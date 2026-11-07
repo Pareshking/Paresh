@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.ui.tokens import css_root, resolve
+from src.ui import formats as _fmt
 
 
 
@@ -2093,20 +2094,20 @@ def render_saas_table(
                         )
                     as_fraction = unit == "fraction"
                     if as_fraction:
-                        cells_html.append(f'<td class="td-right {clr}">{val:.1%}</td>')
+                        cells_html.append(f'<td class="td-right {clr}">{_fmt.pct(val)}</td>')
                     else:
-                        cells_html.append(f'<td class="td-right {clr}">{val:.1f}%</td>')
+                        cells_html.append(f'<td class="td-right {clr}">{_fmt.pct(val, fraction=False)}</td>')
                 # 3. Currency / Prices (e.g. CMP, Entry Price, Exit Price, Value, Capital)
                 elif any(
                     w in c_str for w in _PER_SHARE_PRICE_KEYS + _AGGREGATE_MONEY_KEYS
                 ):
                     if any(w in c_str for w in _PER_SHARE_PRICE_KEYS):
                         cells_html.append(
-                            f'<td class="td-right">₹{float(val):,.2f}</td>'
+                            f'<td class="td-right">{_fmt.inr(val, 2)}</td>'
                         )
                     else:
                         cells_html.append(
-                            f'<td class="td-right {portfolio_sign_class}">₹{float(val):,.0f}</td>'
+                            f'<td class="td-right {portfolio_sign_class}">{_fmt.inr(val)}</td>'
                         )
                 # 4. Multipliers & Ratios (e.g. Sharpe, Sortino, Calmar, Beta, Surge, Multiplier, Profit Factor, RS_Ratio, RS_Momentum)
                 elif any(

@@ -35,6 +35,7 @@ from src.ui.tokens import resolve
 from src.ui.system_param import stock_href
 from src.ui.system_param import suffix as system_suffix
 from src.ui.theme import _spark_window_key, is_tick_true
+from src.ui import formats as _fmt
 
 # Readable names for the index tags the ranking stores.
 INDEX_NAMES = {
@@ -242,7 +243,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     r3_cls = "" if r3 is None else ("pos" if r3 > 0 else "neg" if r3 < 0 else "")
     cells["price"] = (
         f'<td class="n c-price" data-v="{cmp_v if cmp_v is not None else ""}">'
-        f'{"₹" + format(cmp_v, ",.0f") if cmp_v is not None else "—"}'
+        f'{_fmt.inr(cmp_v) if cmp_v is not None else "—"}'
         f'<span class="m-only {r3_cls}">{r3_txt} 3M</span></td>'
     )
     for key, col in (("d1m", "Rank Δ 1M"), ("d3m", "Rank Δ 3M")):
@@ -254,7 +255,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
             cells[key] = f'<td class="n" data-v="{d}"><span class="chip {chip[0]}">{chip[1]}</span></td>'
     mc = _num(row.get("Market Cap (Cr)"))
     cells["mcap"] = (f'<td class="n" data-v="{"" if mc is None else mc}">'
-                     f'{"—" if mc is None else "₹" + format(mc, ",.0f")}</td>')
+                     f'{"—" if mc is None else _fmt.inr(mc)}</td>')
     for w in PERIOD_WINDOWS:
         cells[f"r{w}"] = _pct_cell(_num(row.get(f"{w}M Return")))[0]
         sh = _num(row.get(f"{w}M Sharpe"))
@@ -279,7 +280,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
         v = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if v is None else v}">'
-                      f'{"—" if v is None else "₹" + format(v, ",.0f")}</td>')
+                      f'{"—" if v is None else _fmt.inr(v)}</td>')
     from src.engine.momentum import CARRIED_MARK
 
     gap = str(row.get("Data Gap") or "🟢")

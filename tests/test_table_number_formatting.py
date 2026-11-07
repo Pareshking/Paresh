@@ -80,7 +80,7 @@ def test_a_total_loss_keeps_its_sign_and_scale(monkeypatch):
 
 def test_a_small_drawdown_is_not_inflated_a_hundredfold(monkeypatch):
     html = _render(pd.DataFrame({"Symbol": ["X"], "Max DD 3M": [-0.8]}), monkeypatch)
-    assert "-0.8%" in html
+    assert "\u22120.8%" in html  # true minus (owner, 7 Nov 2026)
     assert "-80.0%" not in html
 
 
@@ -111,7 +111,7 @@ def test_aggregate_money_stays_whole(monkeypatch):
     html = _render(
         pd.DataFrame({"Symbol": ["X"], "Actual Value (₹)": [1234567.89]}), monkeypatch
     )
-    assert "₹1,234,568" in html
+    assert "₹12,34,568" in html  # Indian grouping (owner, 7 Nov 2026)
 
 
 # ── The two renderers must agree ────────────────────────────────────────────

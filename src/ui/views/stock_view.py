@@ -32,6 +32,7 @@ from src.engine.momentum import CARRIED_MARK
 from src.ui.charts import render_stock_chart
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.screener_table import render_screener_table
+from src.ui import formats as _fmt
 
 # ── Palette tokens ───────────────────────────────────────────────────────────
 POS   = C.up
@@ -67,7 +68,7 @@ def _num(value) -> float | None:
 
 def _money(value, decimals: int = 0) -> str:
     v = _num(value)
-    return f"₹{v:,.{decimals}f}" if v is not None else "—"
+    return _fmt.inr(v, decimals) if v is not None else "—"
 
 
 def _pct(value, decimals: int = 1, signed: bool = True) -> str:
@@ -149,7 +150,7 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
     mcap = _num(row.get("Market Cap (Cr)"))
     close_bits = [f"Close · {day:%a %d %b %Y}" if day is not None else "Close"]
     if mcap is not None:
-        close_bits.append(f"Market cap ₹{mcap:,.0f} Cr")
+        close_bits.append(f"Market cap {_fmt.inr(mcap)} Cr")
 
     changes = ""
     for m in (1, 3, 12):

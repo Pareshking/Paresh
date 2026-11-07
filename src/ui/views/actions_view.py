@@ -39,6 +39,7 @@ from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.views.qualified_view import render_qualified_view
 from src.ui.canonical_book import current_book
 from src.ui.widget_state import remember, resolve
+from src.ui import formats as _fmt
 
 SOURCES = ["Model book", "My holdings"]
 
@@ -233,7 +234,7 @@ def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
             f'<div class="ac-row buy"><span class="xw-s"><a href="{stock_href(s)}" target="_self">'
             f'{html.escape(s)}</a><small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
             f'<span class="n">#{int(qrank.get(s, 0))}</span>'
-            f'<span class="n">₹{float(r.get("CMP")):,.2f}</span><span class="n up">{pct(r.get("3M Return"))}</span>'
+            f'<span class="n">{_fmt.inr(r.get("CMP"), 2)}</span><span class="n up">{pct(r.get("3M Return"))}</span>'
             f'<span class="n up">{pct(r.get("6M Return"))}</span><span class="n">{hi_txt}</span></div>')
     return f'<div class="xw">{"".join(rows)}</div>'
 
@@ -316,7 +317,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             capital = float(st.number_input(
                 "Capital (₹)", min_value=KITE_MIN_CAPITAL, max_value=KITE_MAX_CAPITAL,
                 step=100_000, value=kite_capital(), key=KITE_CAPITAL_KEY,
-                help=f"₹{MODEL_BOOK_CAPITAL:,.0f} is the model book on Portfolio. "
+                help=f"{_fmt.inr(MODEL_BOOK_CAPITAL)} is the model book on Portfolio. "
                      "For your own holdings, enter your account's size.",
             ))
             remember(KITE_CAPITAL_KEY, int(capital))
@@ -326,7 +327,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 f"kite_actions_{ist_now():%Y%m%d}.csv", "text/csv", type="primary",
                 key="dl_actions_basket", icon=":material/download:", disabled=orders.empty,
             )
-            kit.caption(f"Buy orders only, each at its target weight of ₹{capital:,.0f}.")
+            kit.caption(f"Buy orders only, each at its target weight of {_fmt.inr(capital)}.")
 
         with kit.card("Sell", "ac_sell"):
             if plan.sells:

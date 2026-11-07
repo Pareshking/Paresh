@@ -24,6 +24,7 @@ from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
 from src.ui.views.track_record_view import render_record_sections
+from src.ui import formats as _fmt
 
 PORTFOLIO_STARTING_CAPITAL = MODEL_BOOK_CAPITAL
 
@@ -580,8 +581,8 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     kit.readings([
         kit.Reading(
             "Portfolio value",
-            f"₹{value:,.0f}",
-            f"Invested: ₹{capital:,.0f}",
+            _fmt.inr(value),
+            f"Invested: {_fmt.inr(capital)}",
         ),
         kit.Reading(
             "Since inception",
@@ -601,7 +602,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
             f"Nifty 500 {kit.pct(benchmark_day_pct)}",
             "up" if day_pnl_pct >= 0 else "down",
         ),
-        kit.Reading("Cash / realised balance", f"₹{cash:,.0f}"),
+        kit.Reading("Cash / realised balance", _fmt.inr(cash)),
         kit.Reading(
             "MTD return",
             kit.pct(strategy_mtd),
