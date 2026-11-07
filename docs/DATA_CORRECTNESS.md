@@ -157,6 +157,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | The parity gate's `ledger_parity` showed Jan and Feb 2026 drifting 0.22 / 0.11 pp after S56 | The rights-issue adjustment (#435) changed the replay; the owner keeps the frozen months (decision above). Cause not traced stock by stock (S60) | `parity_accepted_drift.json` |
 | The History tab's caption said "no dividends" | Wrong since #370: dividends of 10% or more are taken out of the long file. Corrected in #419 | `nse_adjusted.LARGE_DIVIDEND`, `PRICE_PIPELINE.md` |
 | New listings (KISSHT, CMRGREEN, BAGMANE on 12 Oct) are never "near the 52W high" | Under 126 sessions of prices (108, 86, 6): the rule above, not missing data | `HIGH_52W_MIN_OBSERVATIONS` |
+| Three universe counts: 754 in the index files, 752 in the footer's price line, 750 ranked (7 Nov) | 754 = NSE's Total Market file: the 750, ENNATURE and IGLSPIRITS (India Glycols' demerger, listed 4 Nov, carried above the 750 until NSE's exclusion notice) and two unlisted placeholders, DUMMYHEG and DUMMYINXGN. 752 = point-in-time membership on 6 Nov (the 750 plus the two demergers), which the price line covers. 750 = those less the two demergers, which have two sessions of prices: a stock is not ranked until it has 63 (`momentum.MIN_OBSERVATIONS`; unscored rows are dropped at `momentum.py:502`). Checked against the files and the code, not a second source | `data/indices/ind_niftytotalmarket_list.csv`, `members_on`, `MIN_OBSERVATIONS` |
 
 ## 6. Gaps in the file: NSE-only, or a real suspension
 

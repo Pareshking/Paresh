@@ -35,6 +35,7 @@ from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indi
 from src.ui.components import age_phrase, data_freshness, gap_count, render_data_quality_footer
 from src.ui.widget_state import forget, remember, resolve
 from src.ui.theme import render_saas_table
+from src.engine.momentum import MIN_OBSERVATIONS
 
 # Sync and Purge clear st.cache_data for the WHOLE PROCESS, not the clicking
 # reader: every other visitor's next rerun then pays the cold engine build
@@ -155,7 +156,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
     ]
     if engine_stocks != tot_stk:
         tiles.append(kit.Reading("Ranked now", f"{engine_stocks:,}",
-                                 "the header's Universe: stocks in today's ranking"))
+                                 f"the header's Universe: members with {MIN_OBSERVATIONS}+ days of prices"))
     kit.readings(tiles, "Index sync")
     _freshness_table()
     if sync_ok is False:
