@@ -223,6 +223,43 @@ def test_a_rights_issue_is_priced_at_the_theoretical_ex_rights_price():
     assert v["verdict"].tolist() == ["rights"]
 
 
+def test_a_rights_face_value_that_contradicts_the_stocks_history_is_not_used():
+    """INFIBEAM, Rights 67:267 at Rs 10 (face Re 1 + premium Rs 9), ex 26 Jun 2025.
+
+    NSE's list states face value Rs 10 on that row alone; every row since the
+    2017 split (Rs 10 -> Re 1) says 1.0. With Rs 10 the issue reads Rs 19 and
+    the factor x0.979; Re 1 gives x0.8940, the step MarketLens and SS show (S108).
+    """
+    close = pd.DataFrame({"INFIBEAM": [20.40, 21.20, 17.49]},
+                         index=pd.DatetimeIndex(["2025-06-24", "2025-06-25", "2025-06-26"]))
+    day = close.index[2]
+    acts = pd.DataFrame({
+        "symbol": ["INFIBEAM"] * 4,
+        "kind": ["split", "dividend", "rights", "rights"],
+        "ex_date": [pd.Timestamp("2017-08-31"), pd.Timestamp("2024-08-07"), day, day],
+        "price_factor": [0.1, np.nan, np.nan, np.nan],
+        "purpose": ["Face Value Split (Sub-Division) - From Rs 10/- Per Share To Re 1/- Per Share",
+                    "Annual General Meeting/Dividend - Rs 0.05 Per Share",
+                    "Rights 67:267 @ Premium Rs 9/-", "RIGHTS 67:267@PRM RS 9/-"],
+        "face_value": [1.0, 1.0, 10.0, np.nan]})
+    f, v = na.action_factors(close, acts)
+    assert np.isclose(f.at[day, "INFIBEAM"], na.rights_factor(21.20, 10.0, 67, 267))
+    assert np.isclose(f.at[day, "INFIBEAM"], 0.8940, atol=1e-4)
+
+
+def test_a_rights_face_value_after_a_split_is_kept():
+    """A face value that changed through a split between the rows is the new one."""
+    close = _closes(ABC=[100.0, 101.0, 80.0])
+    acts = pd.DataFrame({"symbol": ["ABC"] * 3, "kind": ["dividend", "split", "rights"],
+                         "ex_date": [pd.Timestamp("2019-01-10"), pd.Timestamp("2020-01-10"), close.index[2]],
+                         "price_factor": [np.nan, 0.5, np.nan],
+                         "purpose": ["Dividend - Rs 2 Per Share", "Face Value Split From Rs 10/- To Rs 5/-",
+                                     "Rights 1:4 @ Premium Rs 15/-"],
+                         "face_value": [10.0, 5.0, 5.0]})
+    f, _ = na.action_factors(close, acts)
+    assert np.isclose(f.at[close.index[2], "ABC"], na.rights_factor(101.0, 20.0, 1, 4))
+
+
 def test_a_rights_issue_at_or_above_the_market_changes_nothing():
     close = _closes(ABC=[100.0, 101.0, 99.0])
     acts = pd.DataFrame({"symbol": ["ABC"], "kind": ["rights"], "ex_date": [close.index[2]],

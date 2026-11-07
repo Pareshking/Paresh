@@ -31,6 +31,9 @@ EVENTS = [
      ["SEINVEST", "SEINV", "PAISALO"], date(2011, 9, 26), date(2011, 10, 24)),
     ("S25 SIGNET (INE529F01027, last 10 Aug 2018) -> SIGIND (INE529F01035, from 3 Sep 2018)",
      ["SIGNET", "SIGIND"], date(2018, 8, 3), date(2018, 9, 10)),
+    # S108: the 7 Nov long-file audit's new break: our series -15.7% on 26 Jun
+    # 2025 where MarketLens and SS move -7.6% (INFIBEAM, now CCAVENUE).
+    ("S108 INFIBEAM / CCAVENUE, 26 Jun 2025", ["INFIBEAM", "CCAVENUE"], date(2025, 6, 18), date(2025, 7, 3)),
 ]
 RENAMES_TO: list[str] = []   # the ISIN-change windows above replace the change-list lookup
 
@@ -66,8 +69,24 @@ def main() -> int:
         acts = read_actions(reader, archive, a - timedelta(days=40), b + timedelta(days=40))
         if len(acts):
             acts = acts[acts["symbol"].isin(syms)]
-            cols = [c for c in ("symbol", "ex_date", "purpose", "kind", "price_factor", "source") if c in acts.columns]
+            cols = [c for c in ("symbol", "ex_date", "purpose", "kind", "price_factor", "face_value", "source") if c in acts.columns]
             print(acts[cols].to_string(index=False) if len(acts) else "no actions filed")
+        if len(px) and len(acts) and label.startswith("S108"):
+            # What the pipeline itself does with these rows: the verdict and
+            # factor nse_adjusted.action_factors gives each action.
+            from src.loaders import nse_adjusted as na
+            wide = px.pivot_table(index="date", columns="symbol", values="close")
+            wide.index = pd.DatetimeIndex(wide.index)
+            moved = acts.copy()
+            moved["symbol"] = moved["symbol"].replace({"CCAVENUE": "INFIBEAM"})
+            try:
+                # The rights terms the pipeline reads: ratio, face value + premium.
+                print(na._rights(moved).to_string(index=False))
+                factors, verdicts = na.action_factors(wide, moved)
+                print(verdicts.to_string(index=False) if len(verdicts) else "no verdicts")
+                print("factors != 1:", factors[(factors.fillna(1) != 1).any(axis=1)].to_string())
+            except Exception as exc:  # noqa: BLE001
+                print("action_factors raised:", type(exc).__name__, exc)
     return 0
 
 

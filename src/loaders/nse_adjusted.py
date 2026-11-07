@@ -357,6 +357,7 @@ def _rights(actions: pd.DataFrame) -> pd.DataFrame:
             k = known[known["symbol"] == a.at[i, "symbol"]]
             if len(k):
                 a.at[i, "face_value"] = k.loc[(k["_d"] - a.at[i, "date"]).abs().idxmin(), "_fv"]
+        a["face_value"] = _settled_face_value(a, known, actions)
     else:
         a["face_value"] = np.nan
     a["issue_price"] = a["face_value"] + a["premium"]
@@ -364,6 +365,34 @@ def _rights(actions: pd.DataFrame) -> pd.DataFrame:
     # One issue once: the Bc file and the yearly list both carry it; keep the row with terms.
     a = a.sort_values("issue_price", na_position="last").drop_duplicates(["symbol", "date"])
     return a[cols].reset_index(drop=True)
+
+
+def _settled_face_value(rights: pd.DataFrame, known: pd.DataFrame,
+                        actions: pd.DataFrame) -> pd.Series:
+    """Each rights row's face value, checked against the stock's own history.
+
+    A face value changes only through a split or a consolidation. When a
+    rights row states one that differs from the stock's latest earlier row,
+    and no split or consolidation lies between them, the earlier value
+    stands: NSE's list gave INFIBEAM's Rights 67:267 of 26 Jun 2025 a face
+    value of Rs 10 although every row since the 2017 split says Re 1, which
+    priced the issue at Rs 19 instead of Rs 10 (TODO S108).
+    """
+    fv = rights["face_value"].copy()
+    earlier = known[known["kind"] != "rights"] if "kind" in known else known
+    changes = actions[actions.get("kind", pd.Series(index=actions.index, dtype=object))
+                      .isin(["split", "consolidation"])]
+    change_days = pd.to_datetime(changes["ex_date"], errors="coerce")
+    for i in rights.index:
+        sym, day, stated = rights.at[i, "symbol"], rights.at[i, "date"], fv.at[i]
+        prior = earlier[(earlier["symbol"] == sym) & (earlier["_d"] < day)]
+        if not (stated > 0) or prior.empty:
+            continue
+        last = prior.loc[prior["_d"].idxmax()]
+        moved = ((changes["symbol"] == sym) & (change_days > last["_d"]) & (change_days <= day)).any()
+        if not moved and last["_fv"] != stated:
+            fv.at[i] = last["_fv"]
+    return fv
 
 
 def unexplained_jumps(close: pd.DataFrame, factors: pd.DataFrame) -> pd.DataFrame:
