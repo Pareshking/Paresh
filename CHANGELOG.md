@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-07 — Chart pages load faster
+
+- Every chart frame used to carry its own copy of the chart library, 0.2 to 0.5 MB each, never cached. The libraries are now served once from the app (`static/`) and cached by the browser, with a pinned copy from jsDelivr if that address does not load (audit F60).
+
 ## 2026-11-07 — Size against the Nifty 500 on the same dates
 
 - "What is leading?" compared each size index with the Nifty 500 up to each series' own last close. While the nightly index file is still weekly it ends earlier than the Nifty 500, so the two windows differed: the live site read Microcap 250 +7.0 points over six months against +3.7 on the same dates. Both now end on the size index's last close.

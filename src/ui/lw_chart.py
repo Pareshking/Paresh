@@ -1,8 +1,8 @@
 """One chart component for every time series in the app.
 
 TradingView Lightweight Charts, the same library the stock page uses, drawn in
-an st.iframe with the library inlined (src/ui/vendor, Apache-2.0), so there is
-no CDN to fail and no third-party Streamlit component to render blank.
+an st.iframe; the library is served once from the app's static folder (Apache-2.0),
+with a pinned CDN copy as fallback, and no third-party Streamlit component.
 
 What a reader gets that the old Altair charts could not give: a crosshair, and
 a legend that shows the date and EVERY series' value under it (the latest value
@@ -27,14 +27,14 @@ from __future__ import annotations
 
 import html as _html
 import json
-from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 from src.ui import formats as _fmt
 from src.ui.tokens import FONTS, resolve
 
-_VENDOR = Path(__file__).parent / "vendor" / "lightweight-charts.standalone.production.js"
+LW_VERSION = "5.2.1"
+_LW_FILE = "lightweight-charts.standalone.production.js"
 
 INDIGO, GREY, INK, AMBER, GREEN, RED = "var(--c-ink)", "var(--c-faint)", "var(--c-ink)", "var(--c-caution)", "var(--c-up)", "var(--c-down)"
 GAP_PX = 6
@@ -48,10 +48,11 @@ SPARE = ("var(--c-ink)", "var(--c-up)", "var(--c-caution)", "var(--c-teal)", "va
 
 
 def _lib() -> str:
-    try:
-        return _VENDOR.read_text(encoding="utf-8")
-    except OSError:
-        return ""
+    """A loader for the library (static folder, then the pinned CDN copy):
+    it was inlined into every frame (audit F60)."""
+    from src.ui.highcharts_lib import loader_js
+    return loader_js([(_LW_FILE, f"https://cdn.jsdelivr.net/npm/lightweight-charts@{LW_VERSION}/dist/{_LW_FILE}")],
+                     "LightweightCharts")
 
 
 def _json(obj) -> str:
