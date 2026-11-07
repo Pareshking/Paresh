@@ -230,6 +230,14 @@ DEMERGED_EXTRAS = {
     # ind_prs17072026.pdf: DUMMYTRVN in Nifty Total Market from 2026-07-22; listed as
     # TRIVENIPT in NSE's list file of 2026-10-09.
     "TRIVENIPT",
+    # India Glycols' demerger (S86, 7 Nov 2026). NSE's Nifty Total Market list file
+    # carried DUMMYINGL1 ("Dummy India Glycols ltd. 1", Healthcare) and DUMMYINGL2
+    # ("... 2", Fast Moving Consumer Goods) up to 29 Oct 2026 (commit d86193a); from
+    # 3 Nov (3a203b8) the same slots read ENNATURE (Ennature Bio Pharma, Healthcare,
+    # INE2WCT01016) and IGLSPIRITS (IGL Spirits, FMCG, INE2W6901017), both in NSE's
+    # equity_l.csv from 04-NOV-2026. NSE's press release not read.
+    "ENNATURE",
+    "IGLSPIRITS",
 }
 
 
