@@ -334,3 +334,14 @@ are `nse_index_rebuild/wayback_check.py` and NSE's `IndexInclExcl.xls`.
   month swapped (a Bc row read day first). `repair_swapped_dates` only catches a
   swap far from the file's day; `drop_swapped_twins` lets the yearly list's date
   win. Check a new step against NSE's list before trusting it (ALLCARGO, HCG).
+
+
+### Eight small caps whose Screener closes stop on 29 Sep 2026 (S81, explained 7 Nov 2026)
+
+BHARATRAS, INDIANHUME, KCP, LANDMARK, RAMKY, SAGCEM, SAKSOFT and SHK left the Nano Cap
+list at its 30 Sep 2026 rebuild (`data/nanocap_membership.json`), and the nightly
+Screener sync fetches current members only, so their Screener closes end on 29 Sep.
+RAMKY rejoined on 30 Oct and its closes resumed. Not a download fault. No record is
+affected: Nano Cap's record starts in October 2026, and none has been a Total Market
+member since 2022-2025. A stock that leaves and rejoins gets its whole history back
+from Screener on rejoining (RAMKY: 744 closes from 2016).
