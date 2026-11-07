@@ -92,7 +92,7 @@ def _at_risk_html(a: pd.DataFrame, rules: Rules) -> str:
             f'<span class="db-status">{html.escape(STATUS_LABEL[status])}</span>'
             f'<span class="db-rule">{html.escape(rule)}</span>'
             f'<span class="db-bar" aria-hidden="true"><i style="width:{w:.0f}%"></i></span></div>')
-    head = ('<div class="db-risk-row db-head"><span>Holding</span><span>At the next rebalance</span>'
+    head = ('<div class="db-risk-row db-head"><span>Holding</span><span>At rebalance</span>'
             '<span>Nearest rule · room</span><span>Room</span></div>')
     return f'<div class="db-risk" role="table" aria-label="Book at risk">{head}{"".join(out)}</div>'
 
@@ -148,26 +148,49 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     kit.page_head("Dashboard", answer_line(mtd, bench_mtd, n_watch, len(plan.sells), check))
 
-    with kit.card("Book at risk", "db_risk", "least room first"):
+    # Two columns, each a stack, so a short block never leaves a hole beside
+    # a long one (owner, 7 Nov: "unnecessary white spaces and large gaps").
+    # Left: the book's risk, then the next rebalance; right: sector leaders,
+    # then size leadership. A phone shows the left stack first, which is the
+    # order of importance.
+    page = st.container(key="db_page")
+    left, right = page.columns([1.45, 1], gap="large")
+    top_l, top_r = left, left
+    low_l, low_r = right, right
+
+    with top_l, kit.card("Book at risk", "db_risk", "least room first"):
         st.html(_at_risk_html(a, rules))
         kit.caption(f"Room is how far the price can fall, or the rank slip, before a rule is "
                     f"broken; a full rank buffer ({rules.buffer_n} places) counts as a "
                     f"{RANK_SCALE:.0%} fall. All {len(symbols)} holdings are on Actions.")
 
     n_sess = _sessions_between(as_of, check)
-    with kit.card("Next rebalance", "db_next", "if the month ended today"):
+    with top_r, kit.card("Next rebalance", "db_next", "if the month ended today"):
         st.html(
             '<dl class="db-kv">'
-            f'<dt>Check</dt><dd>{_day(check, weekday=True)} close · {n_sess} '
-            f'session{"s" if n_sess != 1 else ""} away; fills {_day(fill, weekday=True)}</dd>'
+            f'<dt>Check</dt><dd>{_day(check, weekday=True)} close, {n_sess} '
+            f'session{"s" if n_sess != 1 else ""} away</dd>'
+            f'<dt>Fill</dt><dd>{_day(fill, weekday=True)}</dd>'
             f'<dt>Sell</dt><dd>{_names(plan.sells)}</dd>'
             f'<dt>Buy</dt><dd>{_names(plan.buys)}</dd>'
             f'<dt>Next in line</dt><dd>{_names(plan.next_in_line)}</dd>'
             '</dl>')
         kit.caption("The same plan as Actions, from today's ranking and the model book's rules.")
 
+    with low_r, kit.card("Sector leaders", "db_sectors", "median 3M return"):
+        board, _ = industry_board(rank_df)
+        top = (board.sort_values("3M Return", ascending=False).head(5)
+               if not board.empty else board)
+        rows = "".join(
+            f'<tr><th>{html.escape(str(r["Industry"]))}</th>'
+            f'<td class="{_tone(r["3M Return"])}">{_pct(r["3M Return"])}</td>'
+            f'<td class="db-n">{int(r["Top 50"]) if pd.notna(r.get("Top 50")) else "—"} in the top 50</td></tr>'
+            for _, r in top.iterrows())
+        st.html(f'<table class="db-sectors"><tbody>{rows}</tbody></table>')
+        kit.caption("As ranked on Sectors (3M median); the full board is there.")
+
     levels, bench = fetch_index_levels(), nse_benchmarks()
-    with kit.card("Size leadership", "db_size", "price return, NSE index closes"):
+    with low_l, kit.card("Size leadership", "db_size", "price return, NSE index closes"):
         res = None
         if levels is None or bench is None or "nifty500" not in bench or "nifty50" not in bench:
             kit.caption("Index levels are not available right now, so this table is left out.")
@@ -188,18 +211,6 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         + (" (older than the latest prices)" if stale else "")
                         + "; bold figures are against the Nifty 500, small ones the index's own move. "
                         + f"{why}. Source: " + ", ".join(res.sources) + ".")
-
-    with kit.card("Sector leaders", "db_sectors", "median 3M return"):
-        board, _ = industry_board(rank_df)
-        top = (board.sort_values("3M Return", ascending=False).head(5)
-               if not board.empty else board)
-        rows = "".join(
-            f'<tr><th>{html.escape(str(r["Industry"]))}</th>'
-            f'<td class="{_tone(r["3M Return"])}">{_pct(r["3M Return"])}</td>'
-            f'<td>{int(r["Top 50"]) if pd.notna(r.get("Top 50")) else "—"} in the top 50</td></tr>'
-            for _, r in top.iterrows())
-        st.html(f'<table class="db-sectors"><tbody>{rows}</tbody></table>')
-        kit.caption("As ranked on Sectors (3M median); the full board is there.")
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
