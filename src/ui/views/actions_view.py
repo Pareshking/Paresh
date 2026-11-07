@@ -101,12 +101,12 @@ def _sessions_between(a: pd.Timestamp, b: pd.Timestamp) -> int:
 def _bar(room: float | None, ok: bool, scale: float, label: str) -> str:
     """A cushion bar: full = lots of room, short = close to the line, red = broken."""
     if not ok:
-        return (f'<span class="xw-g broken"><b>{html.escape(label)}</b>'
-                '<i><i style="width:100%"></i></i></span>')
+        return (f'<span class="xw-g broken" role="cell"><b>{html.escape(label)}</b>'
+                '<i aria-hidden="true"><i style="width:100%"></i></i></span>')
     w = 0.0 if room is None or pd.isna(room) else max(4.0, min(100.0, float(room) / scale * 100))
     tone = "tight" if w < 30 else "ok"
-    return (f'<span class="xw-g {tone}"><b>{html.escape(label)}</b>'
-            f'<i><i style="width:{w:.0f}%"></i></i></span>')
+    return (f'<span class="xw-g {tone}" role="cell"><b>{html.escape(label)}</b>'
+            f'<i aria-hidden="true"><i style="width:{w:.0f}%"></i></i></span>')
 
 
 def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
@@ -117,9 +117,9 @@ def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
         link = f'<a href="{stock_href(sym)}" target="_self">{html.escape(sym)}</a>'
         if status == UNKNOWN:
             out.append(
-                f'<div class="xw-row unknown"><span class="xw-s">{link}</span>'
-                f'<span class="xw-pill unknown">{STATUS_LABEL[UNKNOWN]}</span>'
-                '<span class="xw-why" style="grid-column: 3 / -1">No rule can be checked.</span></div>')
+                f'<div class="xw-row unknown" role="row"><span class="xw-s" role="rowheader">{link}</span>'
+                f'<span class="xw-pill unknown" role="cell">{STATUS_LABEL[UNKNOWN]}</span>'
+                '<span class="xw-why" role="cell" aria-colspan="5" style="grid-column: 3 / -1">No rule can be checked.</span></div>')
             continue
         q = r["Qualified rank"]
         room = r["Rank room"]
@@ -139,18 +139,19 @@ def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
         ret_txt = "—" if ret is None or pd.isna(ret) else f"{'+' if ret >= 0 else '−'}{abs(ret) * 100:.1f}%"
         ret_cls = "" if ret is None or pd.isna(ret) else ("up" if ret >= 0 else "down")
         out.append(
-            f'<div class="xw-row {status}"><span class="xw-s">{link}'
+            f'<div class="xw-row {status}" role="row"><span class="xw-s" role="rowheader">{link}'
             f'<small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
-            f'<span class="xw-pill {status}">{STATUS_LABEL[status]}</span>'
+            f'<span class="xw-pill {status}" role="cell">{STATUS_LABEL[status]}</span>'
             f"{rank_cell}{ema_cell}{hi_cell}"
-            f'<span class="xw-why">{html.escape(r["why"] or "clear; nearest: " + nearest_rule(r, rules))}</span>'
-            f'<span class="xw-ret {ret_cls}">{ret_txt}</span></div>'
+            f'<span class="xw-why" role="cell">{html.escape(r["why"] or "clear; nearest: " + nearest_rule(r, rules))}</span>'
+            f'<span class="xw-ret {ret_cls}" role="cell">{ret_txt}</span></div>'
         )
-    head = ('<div class="xw-row xw-head"><span>Holding</span><span>At the next rebalance</span>'
-            f'<span title="{BUFFER_HELP}">Rank buffer (top {rules.buffer_n} qualified)</span>'
-            f'<span title="{CUSHION_HELP}">50D EMA</span>'
-            f'<span title="{CUSHION_HELP}">−{(1 - rules.high_pct):.0%} from 52W high</span>'
-            '<span>Closest to</span><span class="xw-ret">Since entry</span></div>')
+    head = ('<div class="xw-row xw-head" role="row"><span role="columnheader">Holding</span>'
+            '<span role="columnheader">At the next rebalance</span>'
+            f'<span role="columnheader" title="{BUFFER_HELP}">Rank buffer (top {rules.buffer_n} qualified)</span>'
+            f'<span role="columnheader" title="{CUSHION_HELP}">50D EMA</span>'
+            f'<span role="columnheader" title="{CUSHION_HELP}">−{(1 - rules.high_pct):.0%} from 52W high</span>'
+            '<span role="columnheader">Closest to</span><span class="xw-ret" role="columnheader">Since entry</span></div>')
     return f'<div class="xw" role="table" aria-label="Exit watch">{head}{"".join(out)}</div>'
 
 

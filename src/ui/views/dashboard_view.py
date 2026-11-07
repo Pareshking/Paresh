@@ -87,13 +87,14 @@ def _at_risk_html(a: pd.DataFrame, rules: Rules) -> str:
         status = r["status"]
         rule = r["why"] if status == SELL else nearest_rule(r, rules)
         out.append(
-            f'<div class="db-risk-row {status}"><span class="db-sym">{_link(str(r["Symbol"]))}'
+            f'<div class="db-risk-row {status}" role="row"><span class="db-sym" role="rowheader">{_link(str(r["Symbol"]))}'
             f'<small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
-            f'<span class="db-status">{html.escape(STATUS_LABEL[status])}</span>'
-            f'<span class="db-rule">{html.escape(rule)}</span>'
+            f'<span class="db-status" role="cell">{html.escape(STATUS_LABEL[status])}</span>'
+            f'<span class="db-rule" role="cell">{html.escape(rule)}</span>'
             f'<span class="db-bar" aria-hidden="true"><i style="width:{w:.0f}%"></i></span></div>')
-    head = ('<div class="db-risk-row db-head"><span>Holding</span><span>At rebalance</span>'
-            '<span>Nearest rule · room</span><span>Room</span></div>')
+    head = ('<div class="db-risk-row db-head" role="row"><span role="columnheader">Holding</span>'
+            '<span role="columnheader">At rebalance</span>'
+            '<span role="columnheader">Nearest rule · room</span><span aria-hidden="true">Room</span></div>')
     return f'<div class="db-risk" role="table" aria-label="Book at risk">{head}{"".join(out)}</div>'
 
 

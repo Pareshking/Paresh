@@ -17,18 +17,21 @@ Series types: line, area, histogram, baseline (fills above/below zero), candlest
 (rows of (t, o, h, l, c); "up"/"down" colours; the legend reads the close).
 A histogram with "volume": True sits on its own hidden scale in the bottom fifth of
 the pane; an optional "colors" list colours each bar.
-fmt: pct (value is already in percent, signed), share (percent, unsigned),
+fmt: pct (value is already in percent, signed), share (percent, unsigned, whole),
+share1 (percent, unsigned, one decimal),
 num, int, rupee. A series may set "range": [lo, hi] to pin the value axis.
 A series may set "abs": True to show magnitudes in the legend (new lows are
 drawn below zero but read as positive counts).
 """
 from __future__ import annotations
 
+import html as _html
 import json
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+from src.ui import formats as _fmt
 from src.ui.tokens import FONTS, resolve
 
 _VENDOR = Path(__file__).parent / "vendor" / "lightweight-charts.standalone.production.js"
@@ -99,6 +102,48 @@ def _distinct(series: list[dict]) -> list[dict]:
     return out
 
 
+def _value(v: float, fmt: str | None) -> str:
+    if fmt == "pct":
+        return _fmt.pct(v, fraction=False)
+    if fmt == "share":
+        return _fmt.pct(v, signed_=False, digits=0, fraction=False)
+    if fmt == "share1":
+        return _fmt.pct(v, signed_=False, fraction=False)
+    if fmt == "rupee":
+        return _fmt.inr(v)
+    if fmt == "int":
+        r = round(v)
+        return (_fmt.MINUS if r < 0 else "") + _fmt.indian_group(abs(r))
+    return _fmt.signed(v, 2, plus=False)
+
+
+def _day(t) -> str:
+    return f"{pd.Timestamp(t):%-d %b %Y}"
+
+
+def summary(panes: list[dict]) -> str:
+    """What the chart shows, in words, for a reader who cannot see it (audit F26):
+    each series' first and last value with their dates, and its low and high."""
+    parts = []
+    for p in panes:
+        for s in p["series"]:
+            data = s.get("data") or []
+            if not data:
+                continue
+            pts = [(row[0], row[-1]) for row in data]  # a candle reads its close
+            vals = [v for _, v in pts]
+            fmt = s.get("fmt")
+            if s.get("abs"):
+                vals = [abs(v) for v in vals]
+            name = s.get("name") or "Series"
+            parts.append(
+                f"{name}: {_value(vals[0], fmt)} on {_day(pts[0][0])}, "
+                f"{_value(vals[-1], fmt)} on {_day(pts[-1][0])}; "
+                f"low {_value(min(vals), fmt)}, high {_value(max(vals), fmt)}."
+            )
+    return " ".join(parts)
+
+
 def chart_html(panes: list[dict]) -> str:
     spec = [
         {
@@ -112,8 +157,10 @@ def chart_html(panes: list[dict]) -> str:
         }
         for p in panes
     ]
+    names = [s.get("name") for p in panes for s in p["series"] if s.get("name")]
+    title = "Chart: " + ", ".join(dict.fromkeys(names)) if names else "Chart"
     return (
-        "<!DOCTYPE html><html lang='en'><head><title>Chart</title><meta charset='utf-8'><meta name='viewport' "
+        "<!DOCTYPE html><html lang='en'><head><title>" + _html.escape(title) + "</title><meta charset='utf-8'><meta name='viewport' "
         "content='width=device-width,initial-scale=1'>"
         "<link rel='stylesheet' href='" + FONTS["google_css"] + "'><style>"
         "*{box-sizing:border-box}html,body{margin:0;background:transparent;"
@@ -128,7 +175,9 @@ def chart_html(panes: list[dict]) -> str:
         ".plot{position:relative;width:100%}"
         ".dot{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;"
         "pointer-events:none;z-index:4;display:none}"
-        "</style></head><body><div id='root'></div><script>"
+        ".sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}"
+        "</style></head><body><p class='sr'>" + _html.escape(summary(panes)) + "</p>"
+        "<div id='root' aria-hidden='true'></div><script>"
         + _lib()
         + "</script><script>(function(){"
         "const SPEC=" + _json(spec) + ";"
@@ -142,20 +191,20 @@ _JS = r"""
 const root=document.getElementById('root');
 const fmts={
   pct:v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+'%',
-  num:v=>v.toFixed(2),
-  int:v=>Math.round(v).toLocaleString('en-US'),
-  rupee:v=>'₹'+Math.round(v).toLocaleString('en-US'),
+  num:v=>(v<0?'−':'')+Math.abs(v).toFixed(2),
+  int:v=>(Math.round(v)<0?'−':'')+Math.abs(Math.round(v)).toLocaleString('en-IN'),
+  rupee:v=>(Math.round(v)<0?'−':'')+'₹'+Math.abs(Math.round(v)).toLocaleString('en-IN'),
   share:v=>v.toFixed(0)+'%',
   share1:v=>v.toFixed(1)+'%',
 };
-const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sept','Oct','Nov','Dec'];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function asDate(t){
   if(t&&typeof t==='object'&&t.year)return new Date(t.year,t.month-1,t.day);
   if(typeof t==='number')return new Date(t*1000);
   return new Date(String(t)+'T00:00:00');
 }
-// Sparse, plain date ticks: "Jan 26 · May · Sept".
+// Sparse, plain date ticks: "Jan 26 · May · Sep".
 function tick(t,type){
   const d=asDate(t);if(isNaN(d))return null;
   if(type===0)return MON[d.getMonth()]+' '+String(d.getFullYear()).slice(2);

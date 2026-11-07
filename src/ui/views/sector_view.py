@@ -295,24 +295,24 @@ def board_html(board: pd.DataFrame) -> str:
         leads = "".join(_leader_link(s) for s in r["Leaders"][:2])
         rows.append(
             f'<div class="ib-row" role="row">'
-            f'<span class="ib-n">{i}</span>'
-            f'<span class="ib-name"><b>{html.escape(r["Industry"])}</b>'
+            f'<span class="ib-n" role="cell">{i}</span>'
+            f'<span class="ib-name" role="rowheader"><b>{html.escape(r["Industry"])}</b>'
             f'<small>{r["Stocks"]} stocks · {r["EMA %"] * 100:.0f}% above 50-day EMA · {r["Top 50"]} in top 50</small></span>'
-            f'<span class="ib-num ib-d">{r["Stocks"]}</span>'
-            f'<span class="ib-3m"><b class="{_tone(v)}">{_pct(v)}</b>'
-            f'<span class="ib-bar"><i class="{_tone(v)}" style="{side};width:{w:.1f}%"></i><em></em></span></span>'
-            f'<span class="ib-num ib-d {_tone(r["6M Return"])}">{_pct(r["6M Return"])}</span>'
-            f'<span class="ib-num ib-d">{r["EMA %"] * 100:.0f}%</span>'
-            f'<span class="ib-num ib-d">{r["Near %"] * 100:.0f}%</span>'
-            f'<span class="ib-num ib-d">{r["Pass"]}</span>'
-            f'<span class="ib-num ib-d">{r["Top 50"]}</span>'
-            f'<span class="ib-leads ib-d">{leads}</span></div>'
+            f'<span class="ib-num ib-d" role="cell">{r["Stocks"]}</span>'
+            f'<span class="ib-3m" role="cell"><b class="{_tone(v)}">{_pct(v)}</b>'
+            f'<span class="ib-bar" aria-hidden="true"><i class="{_tone(v)}" style="{side};width:{w:.1f}%"></i><em></em></span></span>'
+            f'<span class="ib-num ib-d {_tone(r["6M Return"])}" role="cell">{_pct(r["6M Return"])}</span>'
+            f'<span class="ib-num ib-d" role="cell">{r["EMA %"] * 100:.0f}%</span>'
+            f'<span class="ib-num ib-d" role="cell">{r["Near %"] * 100:.0f}%</span>'
+            f'<span class="ib-num ib-d" role="cell">{r["Pass"]}</span>'
+            f'<span class="ib-num ib-d" role="cell">{r["Top 50"]}</span>'
+            f'<span class="ib-leads ib-d" role="cell">{leads}</span></div>'
         )
-    head = ('<div class="ib-row ib-head" role="row"><span>#</span><span>Industry</span>'
-            '<span class="ib-num ib-d">Stocks</span><span class="ib-3m">3M (median)</span>'
-            '<span class="ib-num ib-d">6M</span><span class="ib-num ib-d" title="Share above their 50-day EMA">Above 50D EMA</span>'
-            '<span class="ib-num ib-d" title="Share within 20% of their 52-week high">Near high</span><span class="ib-num ib-d">Pass both</span>'
-            '<span class="ib-num ib-d">Top 50</span><span class="ib-d">Leaders</span></div>')
+    head = ('<div class="ib-row ib-head" role="row"><span role="columnheader">#</span><span role="columnheader">Industry</span>'
+            '<span role="columnheader" class="ib-num ib-d">Stocks</span><span role="columnheader" class="ib-3m">3M (median)</span>'
+            '<span role="columnheader" class="ib-num ib-d">6M</span><span role="columnheader" class="ib-num ib-d" title="Share above their 50-day EMA">Above 50D EMA</span>'
+            '<span role="columnheader" class="ib-num ib-d" title="Share within 20% of their 52-week high">Near high</span><span role="columnheader" class="ib-num ib-d">Pass both</span>'
+            '<span role="columnheader" class="ib-num ib-d">Top 50</span><span role="columnheader" class="ib-d">Leaders</span></div>')
     return f'<div class="ib" role="table" aria-label="Industry leaderboard">{head}{"".join(rows)}</div>'
 
 

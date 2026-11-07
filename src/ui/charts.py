@@ -6,10 +6,16 @@ Stock chart and the Relative Rotation Graph, both Highcharts.
 import json
 import pandas as pd
 import streamlit as st
+from src.ui import formats as _fmt
 from src.ui.tokens import FONTS, resolve
 
 # Each chart is its own document, so it loads the theme's fonts itself.
 _HEAD = "<!DOCTYPE html><html lang='en'><head><title>Chart</title><meta charset='utf-8'><link rel='stylesheet' href='" + FONTS["google_css"] + "'>"
+
+
+def _titled(title: str) -> str:
+    """The frame head with a title that says what the chart is (audit F22/F26)."""
+    return _HEAD.replace("<title>Chart</title>", f"<title>{title}</title>")
 
 
 
@@ -136,7 +142,7 @@ def _script_json(obj) -> str:
     )
 
 
-def _build_rrg_html(data_json: str) -> str:
+def _build_rrg_html(data_json: str, summary: str = "") -> str:
     """The Relative Rotation Graph as a self-contained Highcharts page.
 
     One line series per industry (its trail, ending in a larger dot), quadrants
@@ -169,7 +175,7 @@ body.wide #hint{display:block}
 #scrub::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--c-ink);border:2px solid var(--c-white)}
 #frame-lbl{font-size:12px;color:var(--c-muted_2);font-family:'IBM Plex Mono',monospace;min-width:58px;text-align:center}
 </style>"""
-    _BODY = """<div id="scroller"><div id="c"></div></div>
+    _BODY = """<div id="scroller" aria-hidden="true"><div id="c"></div></div>
 <div id="hint">&#8592; swipe the chart to see every quadrant &#8594;</div>
 <div id="controls">
   <button class="ctrl-btn" id="btn-play">&#9654; Play</button>
@@ -309,8 +315,33 @@ window.addEventListener('resize',function(){
 });
 build(); updateLabel();
 """
-    return (_HEAD + _CSS + "</head><body>" + _BODY
+    from src.ui.highcharts_lib import text_alternative
+    return (_titled("Relative rotation graph") + _CSS + "</head><body>" + text_alternative(summary) + _BODY
             + "<script>" + _lib() + "</script><script>" + _JS + "</script></body></html>")
+
+
+def rrg_summary(sectors: list[dict]) -> str:
+    """The industries named under each quadrant, for a screen reader (audit F26)."""
+    by: dict[str, list[str]] = {}
+    for s in sorted(sectors, key=lambda s: -s["rs_ratio"]):
+        by.setdefault(s["quadrant"], []).append(s["industry"])
+    order = ["Leading", "Weakening", "Lagging", "Improving"]
+    keys = [q for q in order if q in by] + [q for q in by if q not in order]
+    return " ".join(f"{q}: {', '.join(by[q])}." for q in keys)
+
+
+def correlation_summary(sub: pd.DataFrame) -> str:
+    """The most and least alike pair among the stocks shown (audit F26)."""
+    names = list(sub.index)
+    pairs = [(float(sub.iat[i, j]), names[i], names[j])
+             for i in range(len(names)) for j in range(i + 1, len(names))
+             if pd.notna(sub.iat[i, j])]
+    if not pairs:
+        return f"Correlation of {len(names)} stocks."
+    hi, lo = max(pairs), min(pairs)
+    return (f"Correlation of daily returns of {len(names)} stocks. Most alike: {hi[1]} and {hi[2]} "
+            f"({_fmt.signed(hi[0], 2, plus=False)}). Least alike: {lo[1]} and {lo[2]} "
+            f"({_fmt.signed(lo[0], 2, plus=False)}).")
 
 
 def render_rrg_chart(
@@ -351,7 +382,7 @@ def render_rrg_chart(
     # Sized by the page's stylesheet (.st-key-rrg_frame): tall on desktop, near
     # square on a phone. The chart inside fills whatever height it is given.
     with st.container(key="rrg_frame"):
-        st.iframe(resolve(_build_rrg_html(payload)), height=780)
+        st.iframe(resolve(_build_rrg_html(payload, rrg_summary(sectors_data))), height=780)
 
 
 def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
@@ -360,7 +391,7 @@ def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
     Darker indigo = move together more; the tooltip names both stocks and the
     value, and cells carry the number when there is room for it.
     """
-    from src.ui.highcharts_lib import lib, script_json
+    from src.ui.highcharts_lib import lib, script_json, text_alternative
 
     syms = [s for s in syms if s in corr.index]
     if len(syms) < 2:
@@ -375,9 +406,10 @@ def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
     n = len(syms)
     height = min(720, 90 + 26 * n)
     page = (
-        _HEAD + "<style>*{box-sizing:border-box;margin:0}"
+        _titled("Correlation of the holdings") + "<style>*{box-sizing:border-box;margin:0}"
         "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}</style></head>"
-        "<body><div id='c' style='width:100%;height:" + str(height) + "px'></div><script>"
+        "<body>" + text_alternative(correlation_summary(sub)) +
+        "<div id='c' aria-hidden='true' style='width:100%;height:" + str(height) + "px'></div><script>"
         + lib("highcharts-heatmap.js") + "</script><script>(function(){"
         "const syms=" + script_json(syms) + ", data=" + script_json(data) + ";"
         "const wide=document.getElementById('c').clientWidth/syms.length>=30;"
@@ -405,7 +437,7 @@ def render_industry_map(board: pd.DataFrame, x_col: str = "3M Return",
                         x_label: str = "Median 3-month return") -> None:
     """Industries as bubbles: median return (`x_col`, 3M by default) across, share passing both filters up,
     size = number of stocks. Top-right is strong and broad; bottom-left is weak and narrow."""
-    from src.ui.highcharts_lib import lib, script_json
+    from src.ui.highcharts_lib import lib, script_json, text_alternative
 
     need = {"Industry", x_col, "Pass %", "Stocks", "Top 50"}
     x_tip = f"{x_col.split(' ')[0]} median"
@@ -421,9 +453,13 @@ def render_industry_map(board: pd.DataFrame, x_col: str = "3M Return",
     if len(rows) < 2:
         return
     page = (
-        _HEAD + "<style>*{box-sizing:border-box;margin:0}"
+        _titled("Industry map") + "<style>*{box-sizing:border-box;margin:0}"
         "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}</style></head>"
-        "<body><div id='c' style='width:100%;height:420px'></div><script>"
+        "<body>" + text_alternative(" ".join(
+            f"{r['name']}: {x_label.lower()} {_fmt.pct(r['x'], fraction=False)}, "
+            f"{_fmt.pct(r['y'], signed_=False, fraction=False)} pass both filters, {r['z']} stocks."
+            for r in rows)) +
+        "<div id='c' aria-hidden='true' style='width:100%;height:420px'></div><script>"
         + lib("highcharts-more.js") + "</script><script>(function(){"
         "const rows=" + script_json(rows) + ";"
         "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
@@ -522,7 +558,7 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
     (today): across is its 1-month return less the Nifty 500's, up is the share
     of its stocks above their `span`-day EMA.
     Tapping a sector (or picking it above) dims the rest."""
-    from src.ui.highcharts_lib import lib, script_json
+    from src.ui.highcharts_lib import lib, script_json, text_alternative
 
     if board.empty:
         return
@@ -538,16 +574,21 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
         "lead": ", ".join(f"{sym} {v * 100:+.1f}%" for sym, v in (getattr(r, "Leaders", None) or [])[:2]),
     } for r in board.itertuples()]
     months = int(board["Months"].iloc[0]) if "Months" in board.columns else 1
-    then = f"{pd.Timestamp(board['Then'].iloc[0]):%d %b}"
-    now = f"{pd.Timestamp(board['Now'].iloc[0]):%d %b}"
+    then = f"{pd.Timestamp(board['Then'].iloc[0]):%-d %b}"
+    now = f"{pd.Timestamp(board['Now'].iloc[0]):%-d %b}"
     js = (_LEADERSHIP_JS.replace("__ROWS__", script_json(rows)).replace("__SPAN__", str(int(span))).replace("__MONTHS__", str(months))
           .replace("__THEN__", script_json(then)).replace("__NOW__", script_json(now))
           .replace("__FOCUS__", script_json(short.get(focus, focus) if focus else None)))
     page = (
-        _HEAD + "<style>*{box-sizing:border-box;margin:0}"
+        _titled("Sector leadership map") + "<style>*{box-sizing:border-box;margin:0}"
         "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}"
         "#pin{font-size:12px;color:var(--c-faint);padding:2px 4px 6px}</style></head>"
-        "<body><div id='pin'></div><div id='c' style='width:100%;height:500px'></div><script>"
+        "<body>" + text_alternative(" ".join(
+            f"{r['full']}: {months}-month return {_fmt.pct(r['ret'], fraction=False)} against the Nifty 500's "
+            f"{_fmt.pct(r['bench'], fraction=False)}; {_fmt.pct(r['y1'], signed_=False, fraction=False)} above their "
+            f"{span}-day EMA ({_fmt.pct(r['y0'], signed_=False, fraction=False)} on {then})."
+            for r in rows)) +
+        "<div id='pin'></div><div id='c' aria-hidden='true' style='width:100%;height:500px'></div><script>"
         + lib() + "</script><script>" + js + "</script></body></html>"
     )
     st.iframe(resolve(page), height=530)

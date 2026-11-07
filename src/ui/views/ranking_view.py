@@ -583,12 +583,12 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         ret_tone = ("negative" if ret.startswith("−") else "positive" if ret.startswith("+")
                     else "flat")
         return (
-            f'<div class="t50-row{" t50-extra" if extra else ""}">'
-            f'<span class="t50-num">{i}</span>'
-            f'<span class="t50-stock-cell">{stock_link(row["Symbol"])}</span>'
-            f'<span class="t50-cell t50-change">{delta_html}</span>'
-            f'<span class="t50-cell t50-rank">{int(row["Rank"])}</span>'
-            f'<span class="t50-cell t50-return {ret_tone}">{esc(ret)}</span>'
+            f'<div class="t50-row{" t50-extra" if extra else ""}" role="row">'
+            f'<span class="t50-num" role="cell">{i}</span>'
+            f'<span class="t50-stock-cell" role="rowheader">{stock_link(row["Symbol"])}</span>'
+            f'<span class="t50-cell t50-change" role="cell">{delta_html}</span>'
+            f'<span class="t50-cell t50-rank" role="cell">{int(row["Rank"])}</span>'
+            f'<span class="t50-cell t50-return {ret_tone}" role="cell">{esc(ret)}</span>'
             '</div>'
         )
 
@@ -603,10 +603,11 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
             '<span class="t50-when-open">Show less <span>↑</span></span>'
         )
         head = (
-            '<div class="t50-col-head"><span>#</span><span>Stock</span><span>Rank change</span>'
-            '<span>New rank</span><span>1M %</span></div>'
+            '<div class="t50-col-head" role="row"><span role="columnheader">#</span>'
+            '<span role="columnheader">Stock</span><span role="columnheader">Rank change</span>'
+            '<span role="columnheader">New rank</span><span role="columnheader">1M %</span></div>'
         )
-        body = '<div class="t50-table-wrap"><div class="t50-table">' + head
+        body = f'<div class="t50-table-wrap"><div class="t50-table" role="table" aria-label="{esc(title)}">' + head
         body += "".join(row_html(i, row) for i, row in enumerate(rows[:5], 1))
         body += "".join(row_html(i, row, extra=True) for i, row in enumerate(rows[5:], 6))
         body += '</div></div>'

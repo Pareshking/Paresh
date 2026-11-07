@@ -479,6 +479,12 @@ def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | 
             shares = table.set_index("Symbol")["Shares"].reindex(px.columns).fillna(0.0)
             cash = float(value) - float(current)
             live = (px * shares).sum(axis=1) + cash
+            # The table marks today's holdings at their current price, the
+            # store at its adjusted close; the two differ in the paise, which
+            # read as ₹28,27,941 under the chart against ₹28,27,942 above it
+            # (audit F11). Today's point is the account value itself.
+            if px.index[-1] == prices.index[-1]:
+                live.iloc[-1] = float(value)
             eq = pd.concat([eq, live])
             if benchmark_close is not None and len(benchmark_close):
                 bc = pd.to_numeric(benchmark_close, errors="coerce").dropna()

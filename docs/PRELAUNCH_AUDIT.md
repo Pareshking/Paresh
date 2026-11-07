@@ -35,8 +35,8 @@ Phase 4 (stock page, Configuration, Guide first).
 | F22 | Frame documents have no lang or title | **Done** 123e381 |
 | F23 | Menu button's accessible name is "☰" | **Done** 123e381 |
 | F24 | RRG week slider has no label | **Done** 123e381 |
-| F25 | Lists built from divs (Dashboard risk, Actions, movers, Sectors board) | Open |
-| F26 | Charts have no text alternative | Open |
+| F25 | Lists built from divs (Dashboard risk, Actions, movers, Sectors board) | **Done**: ARIA table roles on the grid lists (look unchanged); a test checks every row has as many cells as headers |
+| F26 | Charts have no text alternative | **Done**: every chart frame carries its content in words (first, last, low, high per series; RRG quadrants; correlation extremes; each industry and sector) and a descriptive title; the drawing is aria-hidden |
 | F42 | Five different figure-tile designs | Open |
 | F43 | Calendar-returns card still old theme (shadow, gradient, indigo) | Open |
 | F49 | Stock page is the old card layout recoloured | Open |

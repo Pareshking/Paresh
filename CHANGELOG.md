@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-07 — Screen readers: tables and charts
+
+- The book at risk, the exit watch, the movers cards and the industry leaderboard read as tables to a screen reader (row by row, with column names). They look the same.
+- Every chart says what it shows in words: each line's first and last value with dates, its low and high; the rotation graph's industries by quadrant; the most and least alike holdings; each industry and sector with its figures.
+- Chart legends group rupees the Indian way (₹28,27,942) and write a minus as −, like the rest of the site; dates read "Sep" and "6 Oct".
+- Portfolio's chart ended ₹1 below the value above it (₹28,27,941 against ₹28,27,942): today's point is now the account value itself.
+
 ## 2026-11-07 — One ranking everywhere
 
 - Every rank on the site comes from the Screener's ranking (owner). Portfolio's "Ranks by month" now scores each date's index members only, as the Screener does, so a stock has the same qualified rank on every page (ACUTAAS 45th, not 44th).
