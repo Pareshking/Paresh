@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-10-15_
+_Last updated: 2026-11-07_
 
 ## Now
 
@@ -30,6 +30,24 @@ _Last updated: 2026-10-15_
 | 18 | Screener "Big movers" (rank moved 15+ places in a month) holds 630 of 750: the median stock moved 58 places | Owner picks a threshold (e.g. 150 places: 118 stocks) | [x] 13 Oct: owner chose 150 places (`BIG_MOVE_PLACES`) |
 | 19 | Stocks listed under a year ago (KISSHT, CMRGREEN, BAGMANE) are never "near the 52-week high": no full year of highs | Owner: keep, or measure them against their high since listing | [x] 13 Oct, owner: keep 126 sessions (~6 months), the rule audit S3 set so the screener matches the backtester. No change. A stock gets a 52-week high once it has 126 sessions of prices (KISSHT 108, CMRGREEN 86 on 12 Oct) |
 | 20 | Sector leadership map (owner, 13 Oct): explain how to read it with an example; pill controls like the rest of Sectors; 1M and 3M periods; the two stocks doing the heavy lifting per sector | On the live page | [x] 13 Oct: "How to read this" works the picked sector through with its own numbers; EMA and period pills; leaders in the table and tooltip; checked at 1280 and 400 px |
+
+## Repository audit: cost, speed, resources (7 Nov 2026)
+
+Owner, 7 Nov: audit the whole repository in blocks, data collection to the
+website's menu. Plan, Block 0 measurements and the revised order:
+`docs/AUDIT_PLAN.md`. Every fix reproduces the frozen outputs
+(`scripts/audit_baseline.py check`) and states before/after numbers.
+
+| # | What | How we know it is done | Status |
+|---|---|---|---|
+| S86 | Nifty 750 membership reads 752 from 2026-11-04: the nightly added ENNATURE and IGLSPIRITS (NSE `equity_l.csv`: listed 04-NOV-2026, series BE) with no removal; `test_the_list_is_750_names_on_every_date_it_changes` fails on main. Probably demergers carried above the 750, like TRIVENIPT (S78) | NSE's notice for each found and quoted; they are added to `DEMERGED_EXTRAS` with it (or the history corrected); the test passes on main | [ ] 7 Nov: found by the audit's test run; **not verified**, no NSE notice read yet |
+| A0 | Block 0: baseline and frozen outputs | Plan and measurements in `docs/AUDIT_PLAN.md`; `scripts/audit_baseline.py` (capture/check identical twice) and `scripts/audit_page_bench.py` merged | [ ] 7 Nov: measured; PR open |
+| A1 | Block 7 + 6: Portfolio takes 17.7 s cold and **8.2 s warm** (local); one reader's server memory grows 330 -> 695 MB over 22 page visits and is never released | Cause of each found; Portfolio warm under 2 s and memory flat across a second round of the bench, frozen outputs identical | [ ] |
+| A2 | Block 5: the engine behind Portfolio and Backtest (Backtest 6.0 s cold / 4.6 s warm) | Per-stage profile; fixes with frozen outputs identical | [ ] |
+| A3 | Block 3: `r2_final_acceptance` times out at 20 min every week (0 of 4 succeeded); `r2_cost_observability` fails every run (4 of 4); `r2-historical-evidence-bootstrap` runs ~4 times a day | Each one fixed, rescheduled or deleted with the owner's yes; a week of runs green | [ ] |
+| A4 | Block 1: `ss_sync` is 61% of Actions time (~4.6 h a night): every stock fetches a 1,000-session page for one new day, plus 35 five-minute rests | Can SS serve a shorter page? If yes, the same pace per request with fewer bytes, same three-source result | [ ] |
+| A5 | Failure rates: `canonical_parity` 62 of 224 runs, `screener_sync` 7 of 31, `v1-production-qa` 25 of 140 (8 Oct - 7 Nov) | Each failure class named; real faults fixed, noise removed | [ ] |
+| A6 | The nightly's data commits carry `[skip ci]`, so a data change that breaks a data test (S86) turns nothing red | A scheduled run of the data tests on main (or the sync running them) that alerts on failure | [ ] |
 
 ## Handover (2026-10-13) - start here
 
