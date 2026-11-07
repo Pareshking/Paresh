@@ -19,6 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install requests
+      - name: Latest table and an archive date
+        run: python scripts/nsdl_fpi.py --probe --date 31-Oct-2026
       - name: Fetch NSDL pages
         run: |
           set +e
