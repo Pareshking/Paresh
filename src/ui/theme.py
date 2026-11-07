@@ -1934,6 +1934,14 @@ def inject_custom_css() -> None:
         .db-kv dd { margin: 0 !important; color: var(--c-ink); }
         .db-kv a, .db-sectors a { color: var(--c-ink) !important; }
         .db-lede { margin: 0 0 4px; font-size: 14px; color: var(--c-ink); }
+        /* S91 panels: momentum health and flows */
+        .db-big { font-family: var(--font-serif, Georgia, serif); font-size: 36px; line-height: 1.1; color: var(--c-ink); margin: 0 0 6px; }
+        .db-big span { font-family: inherit; font-size: 14px; color: var(--c-muted); margin-left: 6px; }
+        .db-big.up, .db-kv b.up { color: var(--c-up); }
+        .db-big.down, .db-kv b.down { color: var(--c-down); }
+        .db-flag { margin: 4px 0; font-size: 13.5px; font-weight: 600; color: var(--c-down); }
+        .db-note { margin: 6px 0 0; font-size: 13px; color: var(--c-muted); }
+        .db-mh img { display: block; margin-top: 8px; }
         .db-size, .db-sectors { width: 100%; border-collapse: collapse; font-size: 13.5px; }
         .db-size th, .db-size td, .db-sectors th, .db-sectors td { padding: 6px 8px 6px 0;
             border-bottom: 1px solid var(--c-rule_soft); text-align: right; font-weight: 400; }

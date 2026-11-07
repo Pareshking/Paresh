@@ -11,6 +11,8 @@ on:
       - BSE daily table (weekly refresh)
       - Canonical parity gate
       - Daily NSE Momentum Data Sync
+      - FII and DII flows (daily)
+      - Momentum health (monthly)
       - Monthly Track Record Freeze
       - NSE daily bundle collection
       - NSE history audit

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-07 — Dashboard: momentum health and flows
+
+- **Momentum health**: how momentum itself has been paying. Each month-end the Nifty 500's members are ranked by this site's score, and the next month's return of the top fifth minus the bottom fifth is that month's spread. The panel shows the last 12 months' sum (+8.9 points to October 2026), its percentile since 2010 (42nd, about usual), the last 24 months as bars, and a flag in a crash month. Checked against IIM Ahmedabad's independent Indian momentum factor: correlation 0.83 month by month, Feb 2010 to Dec 2025 (`docs/MOMENTUM_HEALTH.md`). Rebuilt monthly by a checked job.
+- **Flows**: NSE's provisional FII/FPI and DII cash-market net buying for the day, collected each trading evening by a checked job. NSE keeps no history of these, so the record starts on 6 Nov 2026 and grows from there.
+
 ## 2026-11-07 — Screener: where each stock stands against the book
 
 - New columns: **Qualified #** (place among the stocks that pass both filters, the list the model book buys from, the same number Actions uses) and, in Full Quant, **Score** (the composite the ranking is sorted by).
