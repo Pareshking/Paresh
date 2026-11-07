@@ -39,7 +39,7 @@ Phase 4 (stock page, Configuration, Guide first).
 | F26 | Charts have no text alternative | **Done**: every chart frame carries its content in words (first, last, low, high per series; RRG quadrants; correlation extremes; each industry and sector) and a descriptive title; the drawing is aria-hidden |
 | F42 | Five different figure-tile designs | **Done**: one tile for kit.readings and st.metric rows (hairlines, centred per the owner's 13 Oct choice, Plex Sans 600 tabular) |
 | F43 | Calendar-returns card still old theme (shadow, gradient, indigo) | Open |
-| F49 | Stock page is the old card layout recoloured | Open |
+| F49 | Stock page is the old card layout recoloured | **Done**: cards open under an ink rule, verdict a ruled band without tint, Sans tabular figures, words-not-chips for pass/fail |
 | F50 | Configuration looks like the old SaaS theme | **Done**: open sections under an ink rule, plain link index, ink-only weight bar; "Personal" label parked for the owner (F13) |
 | F51 | Guide is boxed cards and marketing headings | **Done** fe3a09a: one reading column, checked against the code; regime playbooks removed; removed-engine list moved to CHANGELOG |
 

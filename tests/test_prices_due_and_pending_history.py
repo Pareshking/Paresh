@@ -54,7 +54,7 @@ def test_8_oct_prices_on_saturday_10_oct_are_stale(monkeypatch):
     assert prices["stale"] is True
     assert prices["due"] == date(2026, 10, 9)
     notice = components.stale_prices_notice()
-    assert "08 Oct" in notice and "09 Oct" in notice and "10 Oct, 09:00 IST" in notice
+    assert "8 Oct" in notice and "9 Oct's" in notice and "10 Oct, 09:00 IST" in notice
 
 
 def test_9_oct_prices_on_saturday_are_current_and_quiet(monkeypatch):

@@ -146,7 +146,7 @@ def _tone(v: float | None) -> str:
 def _day(v) -> str:
     """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
     try:
-        return f"{pd.Timestamp(v):%d %b %Y}" if v else "—"
+        return f"{pd.Timestamp(v):%-d %b %Y}" if v else "—"
     except (TypeError, ValueError):
         return str(v)
 
@@ -272,8 +272,8 @@ def render_record_sections(
         _fill = pd.Timestamp(lm["fill_date"])
         kit.note(
             f"{_fill:%B %Y} has a new book but no return yet.",
-            f"It was signalled on {pd.Timestamp(lm['signal_date']):%d %b} and bought at the "
-            f"{_fill:%d %b} close ({lm.get('n_bought', 0)} bought, {lm.get('n_sold', 0)} sold, "
+            f"It was signalled on {pd.Timestamp(lm['signal_date']):%-d %b} and bought at the "
+            f"{_fill:%-d %b} close ({lm.get('n_bought', 0)} bought, {lm.get('n_sold', 0)} sold, "
             f"{lm.get('n_held', 0)} held). Month-to-date starts accruing the next session. "
             "See Ranks by month for the book and its ranks.",
         )

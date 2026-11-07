@@ -626,7 +626,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     ]
     current_view = table[[c for c in display_cols if c in table.columns]].copy()
     if "Entry Date" in current_view.columns:
-        current_view["Entry Date"] = pd.to_datetime(current_view["Entry Date"], errors="coerce").dt.strftime("%d %b %Y").fillna("—")
+        current_view["Entry Date"] = pd.to_datetime(current_view["Entry Date"], errors="coerce").dt.strftime("%-d %b %Y").fillna("—")
     for col in ("P&L %", "Weight %", "Target Weight %", "Weight Drift %", "1M Return"):
         if col in current_view.columns:
             current_view[col] = pd.to_numeric(current_view[col], errors="coerce")

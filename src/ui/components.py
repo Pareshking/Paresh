@@ -507,7 +507,7 @@ def data_freshness() -> list[dict]:
         stale = behind is None or behind > tolerance
         items.append({
             "label": label,
-            "as_of": as_of.strftime("%d %b"),
+            "as_of": as_of.strftime("%-d %b"),
             # The date itself, for callers that need a different format or the
             # year. Re-parsing "28 Aug" to get it back is how a second, subtly
             # different notion of the as-of date gets born.
@@ -576,7 +576,7 @@ def data_freshness() -> list[dict]:
             cov = str(facts.get("price_deferred_coverage") or "").strip()
             items.append({
                 "label": "Latest session",
-                "as_of": _d.strftime("%d %b"),
+                "as_of": _d.strftime("%-d %b"),
                 "date": _d,
                 "behind": 0,
                 "is_today": _d == ist_today(),
@@ -626,7 +626,7 @@ def pending_history_notice(path=None) -> str:
     parts = []
     for sym, since in sorted(pending.items()):
         try:
-            parts.append(f"{sym} (since {_date.fromisoformat(str(since)).strftime('%d %b')})")
+            parts.append(f"{sym} (since {_date.fromisoformat(str(since)).strftime('%-d %b')})")
         except ValueError:
             parts.append(str(sym))
     return "No price history for new index member" + ("s " if len(parts) > 1 else " ") + ", ".join(parts)
@@ -640,12 +640,12 @@ def stale_prices_notice() -> str:
         return ""
     if not prices or not prices.get("stale") or prices.get("date") is None:
         return ""
-    have = prices["date"].strftime("%d %b")
+    have = prices["date"].strftime("%-d %b")
     due = prices.get("due")
     if due is None:
         return f"Prices stop at {have} and are behind. A background price update has failed or is late."
-    return (f"Prices stop at {have}; {due.strftime('%d %b')}'s closes were due by "
-            f"{(due + timedelta(days=1)).strftime('%d %b')}, 09:00 IST. "
+    return (f"Prices stop at {have}; {due.strftime('%-d %b')}'s closes were due by "
+            f"{(due + timedelta(days=1)).strftime('%-d %b')}, 09:00 IST. "
             "The nightly price update has failed or is late, so rankings use the older prices.")
 
 

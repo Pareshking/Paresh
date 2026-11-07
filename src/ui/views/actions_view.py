@@ -66,7 +66,7 @@ def fill_due_note(as_of: pd.Timestamp, fill: pd.Timestamp, today: pd.Timestamp) 
     as consistent rather than stale. Empty on every other day.
     """
     if fill.normalize() == today.normalize() and as_of.to_period("M") < today.to_period("M"):
-        return (f" The calendar is now {today:%b %Y}; the latest close is {as_of:%d %b}. "
+        return (f" The calendar is now {today:%b %Y}; the latest close is {as_of:%-d %b}. "
                 "Today's fill awaits today's closing price.")
     return ""
 
@@ -89,7 +89,7 @@ def next_rebalance(as_of: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
 
 
 def _day(t: pd.Timestamp, weekday: bool = False) -> str:
-    return (f"{t:%a} " if weekday else "") + f"{t:%d %b}"
+    return (f"{t:%a} " if weekday else "") + f"{t:%-d %b}"
 
 
 def _sessions_between(a: pd.Timestamp, b: pd.Timestamp) -> int:

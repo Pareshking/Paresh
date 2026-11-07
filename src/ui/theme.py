@@ -1202,6 +1202,44 @@ def inject_custom_css() -> None:
             .sp-ladder .list { grid-template-columns: 1fr 1fr; }
         }
 
+        /* ── Stock page in Ledger (audit F49) ─────────────────────────
+           Cards open under an ink rule, the verdict a ruled band without a
+           tint, figures in Plex Sans tabular (decision 4), labels in words
+           and colour rather than filled chips. */
+        .sp-card { background: transparent; border: 0; border-top: 1px solid var(--c-ink); border-radius: 0; padding: 14px 0 18px; }
+        .sp-hero { gap: 40px; margin-bottom: 8px; }
+        .sp-card h2, .sp-sec h2 { font-size: 17px !important; font-weight: 600 !important; }
+        h1.sp-name { font-size: 34px !important; font-weight: 600 !important; letter-spacing: -0.4px !important; }
+        .sp-sym { font-family: var(--font-ui); font-weight: 600; }
+        .sp-price { font-family: var(--font-ui); font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .sp-chg, .sp-chg.up, .sp-chg.down, .sp-chg.flat { background: transparent; padding: 0 16px 0 0; min-width: 0; border-radius: 0; }
+        .sp-chg i { font-weight: 500; }
+        .sp-chg b { font-family: var(--font-ui); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .sp-rank-big span { font-size: 48px; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .sp-step, .sp-step.now { background: transparent; border: 1px solid var(--c-rule); }
+        .sp-step.now { border-color: var(--c-ink); }
+        .sp-step b, .sp-facts b, .sv-price, .sv-side b { font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+        .sp-verdict, .sp-verdict.pass, .sp-verdict.part, .sp-verdict.fail {
+            background: transparent; border: 0; border-top: 1px solid var(--c-ink); border-bottom: 1px solid var(--c-rule); border-radius: 0;
+        }
+        .sv-head { padding: 12px 0; border-bottom: 1px solid var(--c-rule); }
+        .sv-head-mark { width: 26px; height: 26px; font-size: 14px; font-weight: 600; }
+        .sv-state, .sp-verdict.part .sv-state, .sp-verdict.fail .sv-state { background: transparent; padding: 0; font-weight: 600; }
+        .sp-verdict.part .sv-state { color: var(--c-caution); }
+        .sv-card { padding: 14px 20px 14px 0; }
+        .sv-card + .sv-card { border-left: 1px solid var(--c-rule); padding-left: 20px; }
+        .sv-main strong { font-family: var(--font-ui); font-weight: 600; font-variant-numeric: tabular-nums; }
+        .sv-side { border-left: 0; }
+        .sv-side em, .sv-side em.fail, .sv-side em.bonus { background: transparent; padding: 0; font-weight: 600; }
+        .sv-side em.bonus { color: var(--c-caution); }
+        .sv-k { font-weight: 600; }
+        .sp-notice { border-radius: 0; border-width: 0 0 0 2px; }
+        .sp-range .fill { background: var(--c-ink); }
+        @media (max-width: 760px) {
+            .sv-card + .sv-card { border-left: 0; padding-left: 0; border-top: 1px solid var(--c-rule); }
+            .sp-hero { gap: 0; }
+        }
+
         /* ── Command Bar & Quick Filter Pills Styling ── */
         [data-testid="stPills"] {
             display: flex !important;

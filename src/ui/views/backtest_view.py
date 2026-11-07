@@ -59,7 +59,7 @@ def _pct_or_dash(value) -> str:
 def _day(value) -> str:
     """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
     try:
-        return f"{pd.Timestamp(value):%d %b %Y}" if value else "—"
+        return f"{pd.Timestamp(value):%-d %b %Y}" if value else "—"
     except (TypeError, ValueError):
         return str(value)
 
@@ -537,8 +537,8 @@ def _backtest_tab(
     # part-month return is never shown beside whole ones.
     _eq_idx = bt_res["equity_curve"].index
     bt_window_label = (
-        f"{_eq_idx[0]:{'%d %b' if _eq_idx[0].year == _eq_idx[-1].year else '%d %b %Y'}} "
-        f"to {_eq_idx[-1]:%d %b %Y}"
+        f"{_eq_idx[0]:{'%-d %b' if _eq_idx[0].year == _eq_idx[-1].year else '%-d %b %Y'}} "
+        f"to {_eq_idx[-1]:%-d %b %Y}"
         if len(_eq_idx)
         else f"last {months} completed month{'s' if months != 1 else ''}"
     )
@@ -797,7 +797,7 @@ def _backtest_tab(
         with kit.card(view, "bt_live"):
             kit.caption(
                 "The canonical book, as on Actions and Portfolio"
-                + (f", marked {_as_of:%d %b %Y}" if _as_of is not None else "")
+                + (f", marked {_as_of:%-d %b %Y}" if _as_of is not None else "")
                 + " · not the Backtest settings."
             )
 
@@ -806,7 +806,7 @@ def _backtest_tab(
                 n_s = lmeta.get("n_sold", 0)
                 n_h = lmeta.get("n_held", 0)
                 kit.caption(
-                    f"{_fill:%d %b} rebalance: {n_s} sold · {n_b} bought · {n_h} held"
+                    f"{_fill:%-d %b} rebalance: {n_s} sold · {n_b} bought · {n_h} held"
                     + (" · nothing changed" if n_b == 0 and n_s == 0 else "")
                 )
             else:
@@ -819,7 +819,7 @@ def _backtest_tab(
                 if "Entry Date" in out.columns:
                     out["Entry Date"] = pd.to_datetime(
                         out["Entry Date"], errors="coerce"
-                    ).dt.strftime("%d %b %Y").fillna("—")
+                    ).dt.strftime("%-d %b %Y").fillna("—")
                 return out
 
             if live_sub == "holdings":
@@ -903,7 +903,7 @@ def _backtest_tab(
                         ch = ch[ch["Action"] == _codes[act_filter]]
                     st.caption(
                         "What the "
-                        + (f"{_fill:%d %b %Y} " if _fill is not None else "")
+                        + (f"{_fill:%-d %b %Y} " if _fill is not None else "")
                         + "rebalance did. **Return %** on a Sold row is the "
                         "realised round trip; on a Bought or Held row it is "
                         "unrealised, marked at the latest close."
@@ -919,7 +919,7 @@ def _backtest_tab(
                         kit.note(
                             f"{len(_not_in)} sold "
                             f"{'name was' if len(_not_in) == 1 else 'names were'} not in the "
-                            f"index on the {_sig:%d %b %Y} signal date: "
+                            f"index on the {_sig:%-d %b %Y} signal date: "
                             f"{', '.join(_not_in['Symbol'].astype(str))}.",
                             (f"{', '.join(_early['Symbol'].astype(str))} entered the book before "
                              f"the index record begins ({_day(_since)}), when the backtest scored on "
@@ -955,10 +955,10 @@ def _backtest_tab(
                     if "Period Start" in m_df.columns:
                         m_df["Period Start"] = pd.to_datetime(
                             m_df["Period Start"]
-                        ).dt.strftime("%d %b %Y")
+                        ).dt.strftime("%-d %b %Y")
                     if "Period End" in m_df.columns:
                         m_df["Period End"] = pd.to_datetime(m_df["Period End"]).dt.strftime(
-                            "%d %b %Y"
+                            "%-d %b %Y"
                         )
 
                     disp_cols = [

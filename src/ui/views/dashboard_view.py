@@ -104,7 +104,7 @@ def _names(symbols) -> str:
 
 def _size_html(res: sl.SizeLeadership) -> str:
     cols = [w for w in sl.WINDOWS if w in res.starts]
-    head = "".join(f"<th>{w}M<small>from {res.starts[w]:%d %b}</small></th>" for w in cols)
+    head = "".join(f"<th>{w}M<small>from {res.starts[w]:%-d %b}</small></th>" for w in cols)
     body = []
     for name in [n for _, n in sl.INDICES] + ["Nifty 500"]:
         r = res.table.loc[name]
@@ -137,7 +137,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     bench_mtd = pd.to_numeric(meta.get("benchmark_mtd"), errors="coerce")
 
     if not symbols:
-        kit.page_head("Dashboard", f"Closes of {as_of:%d %b %Y}.")
+        kit.page_head("Dashboard", f"Closes of {as_of:%-d %b %Y}.")
         kit.note("No model book yet.", "The book forms once the strategy has its price history.")
         return
 
@@ -208,7 +208,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 st.html(f'<p class="db-lede">{html.escape(line)}</p>')
             st.html(_size_html(res))
             stale = (as_of - res.end).days > 7
-            kit.caption(f"To {res.end:%d %b %Y}"
+            kit.caption(f"To {res.end:%-d %b %Y}"
                         + (" (older than the latest prices)" if stale else "")
                         + "; bold figures are against the Nifty 500, small ones the index's own move. "
                         + f"{why}. Source: " + ", ".join(res.sources) + ".")

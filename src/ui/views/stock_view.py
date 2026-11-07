@@ -106,7 +106,7 @@ def _date_label(raw) -> str:
     if raw is None or str(raw).strip() in ("", "nan", "NaT", "None"):
         return ""
     try:
-        return pd.Timestamp(str(raw)[:10]).strftime("%d %b %Y")
+        return pd.Timestamp(str(raw)[:10]).strftime("%-d %b %Y")
     except (ValueError, TypeError):
         return ""
 
@@ -148,7 +148,7 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
 
     day = _price_day()
     mcap = _num(row.get("Market Cap (Cr)"))
-    close_bits = [f"Close · {day:%a %d %b %Y}" if day is not None else "Close"]
+    close_bits = [f"Close · {day:%a %-d %b %Y}" if day is not None else "Close"]
     if mcap is not None:
         close_bits.append(f"Market cap {_fmt.inr(mcap)} Cr")
 

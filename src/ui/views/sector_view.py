@@ -93,7 +93,7 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
         fell = int((board["y_now"] < board["y_then"]).sum())
         ahead_narrow = board[(board["x_now"] > 0) & (board["y_now"] < 0.5)]
         kit.caption(
-            f"{then:%d %b} to {now:%d %b}: breadth fell in {fell} of {len(board)} sectors."
+            f"{then:%-d %b} to {now:%-d %b}: breadth fell in {fell} of {len(board)} sectors."
             + (f" Ahead of the Nifty 500 with under half above the {span}-day EMA: "
                f"{', '.join(SHORT_NAMES.get(n, n) for n in ahead_narrow['Sector'])}."
                if len(ahead_narrow) else "")
@@ -110,7 +110,7 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
         # Two statistics on one page, each named (pre-launch audit F4): this
         # map's mean over its own dates, the board's median over 3 months.
         kit.caption(f"Here a sector's return is the equal-weighted mean of its stocks' price "
-                    f"returns from {then:%d %b} to {now:%d %b}, not an NSE sector index; the board "
+                    f"returns from {then:%-d %b} to {now:%-d %b}, not an NSE sector index; the board "
                     "above ranks by the median 3-month return. The share counts stocks with a "
                     "close and an EMA that day. Click a header to sort.")
 
@@ -153,7 +153,7 @@ def leadership_explainer(r: pd.Series, name: str, span: int) -> str:
         f"{html.escape(sym)} {_fmt.pct(rv * 100, fraction=False)}, which adds {_fmt.signed(rv * 100 / n, 2)} points to the sector's {_fmt.pct(ret, fraction=False)}"
         for sym, rv in (r.get("Leaders") or [])[:2])
     return f"""**Across: did the sector beat the Nifty 500 over the {period}?**  
-Each of the {n} {html.escape(name)} stocks' price change from the {then:%d %b} close to the {now:%d %b} close, averaged with equal weight: **{_fmt.pct(ret, fraction=False)}**. The Nifty 500 over the same closes: **{_fmt.pct(bench, fraction=False)}**. The difference, {_fmt.signed(ret, 2)} − ({_fmt.signed(bench, 2)}) = **{_fmt.signed(x1, 2)}%**, places the filled dot {side} the 0 line. The hollow dot is the same sum for the {period} before: {_fmt.pct(x0, fraction=False)}.
+Each of the {n} {html.escape(name)} stocks' price change from the {then:%-d %b} close to the {now:%-d %b} close, averaged with equal weight: **{_fmt.pct(ret, fraction=False)}**. The Nifty 500 over the same closes: **{_fmt.pct(bench, fraction=False)}**. The difference, {_fmt.signed(ret, 2)} − ({_fmt.signed(bench, 2)}) = **{_fmt.signed(x1, 2)}%**, places the filled dot {side} the 0 line. The hollow dot is the same sum for the {period} before: {_fmt.pct(x0, fraction=False)}.
 
 **Up: how many of its stocks are in an uptrend?**  
 A stock counts when its close is above its own {span}-day EMA (exponential average of its closes). Today {int(r['above_now'])} of {int(r['obs_now'])} = **{y1:.0f}%**; {_ago(m)} {int(r['above_then'])} of {int(r['obs_then'])} = {y0:.0f}%. Only stocks with a close and an EMA that day are counted; an EMA needs {int(span * 0.8)} sessions of prices, so a recent listing can be missing.
@@ -205,8 +205,8 @@ def leadership_table_html(board: pd.DataFrame, span: int) -> str:
                    f'<span class="nm-short">{html.escape(m)}</span><span class="ar">{a}</span></th>'
                    for h, m, t, c, a in heads)
     groups = ('<tr class="grp-row"><th colspan="2" class="grp">Sector</th>'
-              f'<th colspan="2" class="grp">Today · {now:%d %b}</th>'
-              f'<th colspan="2" class="grp d-only">{ago_head} · {then:%d %b}</th>'
+              f'<th colspan="2" class="grp">Today · {now:%-d %b}</th>'
+              f'<th colspan="2" class="grp d-only">{ago_head} · {then:%-d %b}</th>'
               '<th class="grp">Change</th></tr>')
     css = (TABLE_CSS + "table{min-width:0}.wrap{height:auto}td.c-stock .sub{display:block}"
            "tbody tr:hover td{cursor:default}"

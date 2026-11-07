@@ -90,7 +90,7 @@ def _index_files_dialog() -> None:
         if os.path.exists(path):
             size = os.path.getsize(path)
             mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
-                "%d %b %Y, %H:%M"
+                "%-d %b %Y, %H:%M"
             )
             with open(path, "r", encoding="utf-8") as f:
                 lines = sum(1 for _ in f) - 1
@@ -424,7 +424,7 @@ def _section_portfolio_risk() -> None:
 def _day(value) -> str:
     """The log's ISO date as 01 Oct 2026; a dash when it is missing or unreadable."""
     try:
-        return pd.Timestamp(value).strftime("%d %b %Y")
+        return pd.Timestamp(value).strftime("%-d %b %Y")
     except (TypeError, ValueError):
         return "—"
 
