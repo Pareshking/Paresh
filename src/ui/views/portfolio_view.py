@@ -535,7 +535,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         st.error(f"Canonical Track Record book is invalid: {exc}")
         return
     if book.empty:
-        st.info("The Track Record has no current model book for this system yet.")
+        kit.empty("No current model book", "for this system yet.")
         return
 
     meta = record.get("live_meta", {}) or {}
@@ -566,7 +566,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     equity = history["equity"]
     table = build_portfolio_tracker(book, rank_df, capital, prices, equity_curve=equity)
     if table.empty:
-        st.info("The canonical model book could not be sized.")
+        kit.empty("The model book could not be sized.")
         return
 
     invested = float(table["Value at Rebalance (₹)"].sum())
@@ -696,7 +696,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     # ── Performance: one card, equity and drawdown together ─────────────────
     with kit.card("Equity & drawdown", "portfolio_equity"):
         if equity.empty:
-            st.info("No completed portfolio history is available yet.")
+            kit.empty("No completed portfolio history yet.")
         else:
             mtd_gap = (strategy_mtd - benchmark_mtd
                        if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan)
@@ -729,7 +729,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
                                   if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else None)},
         )
         if grid.empty:
-            st.info("No monthly history is available yet.")
+            kit.empty("No monthly history yet.")
         else:
             _render_calendar_returns(grid)
             note = _calendar_note(labels, mtd_period, mtd_state,
@@ -743,7 +743,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     # ── Activity ────────────────────────────────────────────────────────────
     with kit.card("Trades", "portfolio_trades"):
         if trades.empty:
-            st.info("No trades are available yet.")
+            kit.empty("No trades yet.")
         else:
             outcome = st.pills("Outcome", ["All", "Winners", "Losers", "Open"], default="All",
                                key="portfolio_trade_outcome_v3", label_visibility="collapsed")
@@ -762,7 +762,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
 
     with kit.card("Rebalances", "portfolio_rebalances"):
         if tradebook.empty:
-            st.info("No rebalances are available yet.")
+            kit.empty("No rebalances yet.")
         else:
             action = st.pills("Action", ["All", "Buy", "Sell", "Hold"], default="All",
                               key="portfolio_rebalance_action_v3", label_visibility="collapsed")

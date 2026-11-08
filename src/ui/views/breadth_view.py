@@ -123,7 +123,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                                            default="% of Universe", key="hl_fmt_radio") or "% of Universe"
 
     if not sel_mas:
-        st.info("Pick at least one moving average under Chart settings.")
+        kit.empty("Pick at least one moving average", "under Chart settings.")
         return
 
     # Whole-history fingerprint, not last date + shape (an intraday refresh

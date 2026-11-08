@@ -289,10 +289,12 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         top_n = int(cfg["top_n"])
 
     if not symbols:
-        st.info("Add your holdings above, or upload the holdings CSV from Kite, to see what to "
-                "do with them." if source == "My holdings" else
-                "The model book is not available: the strategy needs about 18 months of price "
-                "history to form one.")
+        if source == "My holdings":
+            kit.empty("Add your holdings above,",
+                      "or upload the holdings CSV from Kite, to see what to do with them.")
+        else:
+            kit.empty("The model book is not available:",
+                      "the strategy needs about 18 months of price history to form one.")
     else:
         a = assess(rank_df, symbols, rules)
         # The caps the model book's own run uses, read from the pinned record

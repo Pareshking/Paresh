@@ -104,8 +104,8 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
                            disabled=view.empty)
 
     if view.empty:
-        st.info("No stock passes both filters today: above its 50-day EMA and within "
-                "20% of its 52-week high.")
+        kit.empty("No stock passes both filters today:",
+                  "above its 50-day EMA and within 20% of its 52-week high.")
         return
 
     if not embedded:
