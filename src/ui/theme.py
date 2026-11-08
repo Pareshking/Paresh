@@ -1956,7 +1956,7 @@ def inject_custom_css() -> None:
         .db-lede { margin: 0 0 4px; font-size: 14px; color: var(--c-ink); }
         /* Streamlit fades st.caption to opacity 0.6, which took our muted grey to
            3.5:1 on white (audit, 8 Nov 2026; WCAG AA needs 4.5:1). Full opacity
-           keeps the token's own colour, #5F5F5B, about 6.6:1. */
+           keeps the muted token's own colour, about 6.6:1. */
         [data-testid="stCaptionContainer"] { opacity: 1 !important; color: var(--c-muted) !important; }
         /* Coming up for the book: days on a rule, ticker in bold (as tipsheet's "Coming up") */
         .db-cal { margin-top: 4px; }
