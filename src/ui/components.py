@@ -192,13 +192,15 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
     summary_cols = ["CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"]
     columns = month_cols + summary_cols
 
-    def cell(value, *, summary=False):
+    def cell(value, *, summary=False, points=False):
         if value is None or pd.isna(value):
             return '<td class="cr-empty">—</td>'
         number = float(value)
         tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
         extra = " cr-summary" if summary else ""
-        shown = _kit.pct(number)
+        # Alpha is a difference of returns: points, as the summary cards and the
+        # yearly table show it (audit, 8 Nov 2026: this grid alone said "%").
+        shown = _kit.pts(number) if points else _kit.pct(number)
         return f'<td class="cr-value {tone}{extra}">{shown}</td>'
 
     blocks = []
@@ -211,7 +213,8 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
                 else "alpha" if series.lower() == "alpha"
                 else "benchmark"
             )
-            cells = "".join(cell(row.get(col), summary=col in summary_cols)
+            cells = "".join(cell(row.get(col), summary=col in summary_cols,
+                                 points=series_class == "alpha")
                             for col in columns)
             rows.append(
                 f'<tr><th scope="row" class="cr-series {series_class}">'

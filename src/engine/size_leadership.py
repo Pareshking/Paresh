@@ -97,7 +97,9 @@ def size_leadership(levels: pd.DataFrame, nifty500: pd.Series) -> SizeLeadership
         for key, name in INDICES:
             r = joined.at[end, key] / joined.at[start, key] - 1
             rows[name][f"{w}M"] = r
-            rows[name][f"{w}M vs 500"] = (1 + r) / (1 + r500) - 1
+            # A difference in points, as on Sectors (audit, 8 Nov 2026: the ratio
+            # here and the difference there gave two figures for one comparison).
+            rows[name][f"{w}M vs 500"] = r - r500
     sources = tuple(sorted(set(levels.get("source", pd.Series(dtype=str)).dropna().astype(str))))
     return SizeLeadership(pd.DataFrame(rows).T, starts, end, sources)
 

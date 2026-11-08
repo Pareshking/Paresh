@@ -86,7 +86,7 @@ def sector_rotation(levels: pd.DataFrame | None, nifty500: pd.Series | None) -> 
             r = b / a - 1
             r500 = joined.at[end, "nifty500"] / joined.at[start, "nifty500"] - 1
             row[f"{w}M"] = r
-            row[f"{w}M vs 500"] = (1 + r) / (1 + r500) - 1
+            row[f"{w}M vs 500"] = r - r500          # points, as everywhere else on the site
         if row:
             rows[name] = row
     if len(rows) < MIN_SECTORS:
