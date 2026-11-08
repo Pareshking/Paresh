@@ -755,7 +755,7 @@ def gap_count(rank_df: pd.DataFrame) -> int:
 
 
 def render_data_quality_footer(
-    total_stocks: int, gap_count: int, short_count: int
+    total_stocks: int, gap_count: int, short_count: int, *, details: bool = False
 ) -> None:
     """Renders the data quality footer bar, including how old each source is.
 
@@ -782,6 +782,13 @@ def render_data_quality_footer(
     # the age, colours staleness, and leads with the stale source), so the bar
     # keeps only what is unique to it: coverage, data-quality counts, and the
     # stop-loss convention.
+    # Only the Screener shows the data line (owner, 8 Nov 2026: "only show this on
+    # Screener page, rest pages don't need it"). Every other page keeps the
+    # copyright; the header's price chip still carries the closes' date.
+    if not details:
+        st.html('<div style="display: flex; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px;">'
+                '<span style="margin-left: auto; color: var(--c-text_2);">© Paresh Patel</span></div>')
+        return
     render_freshness_ribbon()
 
     # Where this process loaded its published data from: R2 first, the

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — The data line on the Screener only
+
+- The line of data dates and counts at the foot of the page (prices, market caps, all-time highs, gap-filled and short-history counts, where the data came from) now shows on the Screener only. Other pages keep the copyright; the header's price chip still gives the closes' date.
+
 ## 2026-11-08 — Dashboard: coming up for the book
 
 - A new card under Next rebalance lists the holdings' and planned buys' board meetings for the next five weeks, by day, from NSE's board-meeting calendar, with the rebalance check in its place: "3 holdings report before the 30 Nov check; 17 of 20 have reported this season". Collected nightly; dates are as companies announced them.

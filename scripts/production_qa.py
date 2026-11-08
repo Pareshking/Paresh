@@ -337,7 +337,8 @@ def app_frame(page):
 def read_data_source(page, wait_s: float = 30.0) -> str:
     """The footer's "Data from:" value: R2, or which files came from the release.
 
-    Empty when the footer never showed it (the loaders recorded nothing)."""
+    Drawn on the Screener only (owner, 8 Nov 2026); empty on any other page,
+    or when the loaders recorded nothing."""
     deadline = time.perf_counter() + wait_s
     while True:
         try:
@@ -512,6 +513,9 @@ def audit_stock_link_navigation(page) -> dict:
         frame = app_frame(page)
     except Exception as exc:
         out["navigate_to_screener"] = f"{type(exc).__name__}: {exc}"[:140]
+    # The data line ("Data from: ...") is drawn on the Screener only (owner,
+    # 8 Nov 2026), so it is read here rather than on the landing page.
+    out["data_source"] = read_data_source(page, wait_s=15.0)
     try:
         out["frame_shape"] = frame.evaluate("""() => ({
             self_url: location.href,
@@ -1134,8 +1138,6 @@ def main() -> None:
 
             report["ready_state"] = state["state"]
             report["ready_after_s"] = round(time.perf_counter() - started, 1)
-            if state["state"] == "ready":
-                report["data_source"] = read_data_source(page)
 
             # Deploy correspondence. If the app is still serving the previous
             # commit, this run's result says nothing about the commit that
@@ -1411,8 +1413,9 @@ def main() -> None:
                   + (f"  STALE: {len(report['stale_modules'])} src/ file(s) not running"
                      if report.get("stale_modules") else ""), flush=True)
     print(f"time to that state    : {report.get('ready_after_s')}s", flush=True)
-    if "data_source" in report:
-        print(f"data loaded from      : {report['data_source'] or 'not shown'}", flush=True)
+    _src = (report.get("stock_link") or {}).get("data_source")
+    if _src is not None:
+        print(f"data loaded from      : {_src or 'not shown'}", flush=True)
     print(f"websocket established : {report['websocket_established']}", flush=True)
     print(f"page errors           : {len(page_errors)}", flush=True)
     print(f"console errors        : {len(console_errors)}", flush=True)
