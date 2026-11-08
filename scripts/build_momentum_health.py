@@ -87,7 +87,7 @@ def main() -> int:
               f"over 12 months, same sign {(np.sign(m['spread']) == np.sign(m['WML'])).mean():.0%}")
     out = sp.copy()
     out["date"] = pd.to_datetime(out["date"]).dt.strftime("%Y-%m-%d")
-    out.round({"top": 4, "bottom": 4, "spread": 4, "qualified": 4, "portfolio": 4, "nifty500": 4}).to_csv(OUT, index=False)
+    out.round({"top": 4, "bottom": 4, "spread": 4, "qualified": 4, "portfolio": 4, "nifty500": 4, "ew": 4}).to_csv(OUT, index=False)
     print(f"{len(out)} months {out['month'].iloc[0]}..{out['month'].iloc[-1]} -> {OUT}")
     return 0
 

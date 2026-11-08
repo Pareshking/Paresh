@@ -34,6 +34,7 @@ from src.engine.exit_watch import (
 )
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
+from src.ui import formats as fmt
 from src.ui import page_kit as kit
 from src.ui.canonical_book import current_book
 from src.ui.components import gap_count, render_data_quality_footer
@@ -136,7 +137,7 @@ def _size_html(res: sl.SizeLeadership) -> str:
                 cells.append(f'<td class="{_tone(r[f"{w}M"])}">{_pct(r[f"{w}M"])}</td>')
             else:
                 rel, ab = r[f"{w}M vs 500"], r[f"{w}M"]
-                cells.append(f'<td><b class="{_tone(rel)}">{_pct(rel)}</b><small>{_pct(ab)}</small></td>')
+                cells.append(f'<td><b class="{_tone(rel)}">{fmt.signed(rel * 100)} pts</b><small>{_pct(ab)}</small></td>')
         cls = ' class="db-base"' if name == "Nifty 500" else ""
         body.append(f"<tr{cls}><th>{html.escape(name)}</th>{''.join(cells)}</tr>")
     return (f'<table class="db-size"><thead><tr><th>Against the Nifty 500</th>{head}</tr></thead>'
@@ -180,10 +181,11 @@ def book_risk_html(res, as_of_record: pd.Timestamp | None) -> str:
                 f"{res.bench_vol * 100:.1f}%. {small * 100:.0f}% of it is in small and micro caps.")
         row("Volatility, a year", f"{res.vol * 100:.1f}%", f"{res.bench_vol * 100:.1f}%")
     if res.drawdown is not None:
-        when = f"From the peak, {as_of_record:%-d %b}" if as_of_record is not None else "From the peak"
+        when = (f"Drawdown at the {as_of_record:%-d %b} month-end" if as_of_record is not None
+                else "Drawdown at the last month-end")
         bdd = fmt.pct(res.bench_drawdown) if res.bench_drawdown is not None else ""
         row(when, fmt.pct(res.drawdown), bdd, "down" if res.drawdown < 0 else "")
-        row("Worst since the record began", fmt.pct(res.max_drawdown))
+        row("Worst month-end drawdown since the record began", fmt.pct(res.max_drawdown))
     for t in ("Nifty 100", "Midcap 150", "Smallcap 250", "Microcap 250", "Outside"):
         if res.tiers.get(t):
             row(f"Weight in the {t}" if t != "Outside" else "Weight outside these indices", f"{res.tiers[t] * 100:.0f}%")

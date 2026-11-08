@@ -714,7 +714,9 @@ def _backtest_tab(
         except Exception as exc:  # the page must not fail because a download could not be built
             st.caption(f"The download is unavailable for this run ({type(exc).__name__}: {exc}).")
 
-    _views = ["Month by month", "Every trade", "Rebalance log", "Method"]
+    # "Rebalance periods": fill to fill, not calendar months (audit, 8 Nov 2026: the
+    # name sat it beside the calendar grid, Jan -4.2% here and 0.0% there).
+    _views = ["Rebalance periods", "Every trade", "Rebalance log", "Method"]
     view = st.segmented_control(
         "Backtest detail",
         _views,
@@ -731,7 +733,7 @@ def _backtest_tab(
                          "month's changes are on Portfolio.", page_href("portfolio"), "Portfolio")
 
     # ── Monthly Performance Breakdown & Rebalance Tradebook ──────────────────
-    if view in ("Month by month", "Every trade", "Rebalance log"):
+    if view in ("Rebalance periods", "Every trade", "Rebalance log"):
         with kit.card(view, "bt_perf"):
             c_dl = st.container()
             sub_view = view
@@ -740,7 +742,7 @@ def _backtest_tab(
             tradebook = bt_res.get("tradebook", pd.DataFrame())
             closed_trades = bt_res.get("closed_trades", pd.DataFrame())
 
-            if sub_view == "Month by month":
+            if sub_view == "Rebalance periods":
                 if not monthly.empty:
                     m_df = monthly.copy()
                     if "Period Start" in m_df.columns:

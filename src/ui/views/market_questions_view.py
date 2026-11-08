@@ -409,7 +409,7 @@ def _chart_series(_key: str, _prices: pd.DataFrame, _bench: pd.Series):
     nnh = mq._net_new_highs(_prices).dropna()
     weekly = nnh.groupby(nnh.index.to_period("W-FRI")).last()
     weekly.index = weekly.index.to_timestamp(how="end").normalize()
-    return share200, weekly
+    return share200, weekly, nnh
 
 
 def _pts(s: pd.Series, since: pd.Timestamp | None = None) -> list[tuple[str, float]]:
@@ -429,7 +429,8 @@ def _chart_head(title: str, note: str) -> None:
             f'<p class="qp-note" style="margin:0 0 4px">{html.escape(note)}</p></div>')
 
 
-def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series) -> None:
+def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
+                    nnh: pd.Series | None = None) -> None:
     from src.ui import lw_chart as lw
     if share200.empty:
         return
@@ -458,9 +459,13 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series) ->
     with right:
         if not weekly.empty:
             w = weekly.loc[since:]
-            a = mq._on_or_before(weekly.index, end - pd.DateOffset(years=1))
-            _chart_head(f"Net new 52W highs this week: {_fmt.signed(weekly.iloc[-1], 1)}% of stocks"
-                        + (f"; a year ago {_fmt.signed(weekly.loc[a], 1)}%" if a is not None else ""),
+            # The same daily reading and the same year-ago session as the table
+            # above (audit, 8 Nov 2026: the weekly bar a Friday earlier said +10.3
+            # where the table said +7.3).
+            daily = nnh if nnh is not None and len(nnh) else weekly
+            a = mq._on_or_before(daily.index, end - pd.DateOffset(years=1))
+            _chart_head(f"Net new 52W highs this week: {_fmt.signed(daily.iloc[-1], 1)}% of stocks"
+                        + (f"; a year ago {_fmt.signed(daily.loc[a], 1)}%" if a is not None else ""),
                         "Each week, the stocks that made a new 52-week high in the last five sessions less "
                         "those that made a new low, each counted once, as a share of the stocks that could "
                         "make one. Above zero, more stocks are making highs.")
@@ -542,8 +547,8 @@ def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench:
     if breadth is not None:
         st.html(question_section_html(breadth, "breadth", "q-breadth")
                 + '<p class="qp-behind">Behind the answer</p>')
-        share200, weekly = _chart_series(key, px, bench.dropna())
-        _breadth_charts(bench.dropna(), share200, weekly)
+        share200, weekly, nnh = _chart_series(key, px, bench.dropna())
+        _breadth_charts(bench.dropna(), share200, weekly, nnh)
     if trend is not None:
         sec = question_section_html(trend, "trend", "q-trend")
         table = size_trend_html(bench, size)
@@ -696,7 +701,9 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
             f'<p class="qp-s">{html.escape(ld.sentence)}</p>{size_html}</div>'
             f'<div>{would}</div></div>{quad_html}{heat_html}'
             '<p class="qp-note">Industries are NSE\'s, at least five stocks each, counted over the stocks '
-            'ranked today; points are the median stock\'s return less the Nifty 500\'s.</p></section>')
+            'ranked today; points are the median stock\'s return less the Nifty 500\'s. The Dashboard\'s '
+            '"Which sectors lead?" reads NSE\'s sector indices instead, which weight large companies more, '
+            'so the two can name different leaders.</p></section>')
 
 
 @st.cache_data(show_spinner=False, ttl=3600)

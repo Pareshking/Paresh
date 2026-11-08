@@ -297,9 +297,18 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         a = assess(rank_df, symbols, rules)
         # The caps the model book's own run uses, read from the pinned record
         # config, so the weights here are its weights.
+        # Winners run to 15% from the 30 Nov 2026 signal (owner, 8 Nov): for the
+        # model book the plan strikes the record's weights from the book as it
+        # stands. Your own holdings' weights are not known, so they stay equal.
+        from src.engine.actions import standing_weights
+        from src.engine.backtester import _hold_cap_on
+        lwr = (source != "My holdings"
+               and _hold_cap_on(cfg.get("hold_cap"), cfg.get("hold_cap_from"), check))
         plan = plan_rebalance(rank_df, symbols, top_n=top_n, buffer_n=rules.buffer_n,
                               stock_cap=float(cfg["stock_cap"]),
-                              sector_cap=float(cfg["sector_cap"]))
+                              sector_cap=float(cfg["sector_cap"]),
+                              standing=standing_weights(book, adj_close) if lwr else None,
+                              hold_cap=cfg.get("hold_cap") if lwr else None)
         n_unknown = int((a["status"] == UNKNOWN).sum())
         n_watch = int(a[a["Symbol"].isin(plan.holds)]["status"].eq(WATCH).sum())
         kit.readings([

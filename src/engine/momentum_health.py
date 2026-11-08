@@ -62,7 +62,7 @@ def monthly_spreads(prices: pd.DataFrame, membership=None, *, first_month: pd.Pe
     if first_month is not None:
         ends = [d for d in ends if pd.Period(d, freq="M") >= first_month]
     if len(ends) < 2:
-        return pd.DataFrame(columns=["month", "date", "top", "bottom", "spread", "n", "qualified"])
+        return pd.DataFrame(columns=["month", "date", "top", "bottom", "spread", "n", "qualified", "ew"])
     snaps = snapshots(prices, ends[:-1], membership=membership, config_weights=config_weights)
     rows = []
     for t0, t1 in zip(ends[:-1], ends[1:]):
@@ -81,8 +81,11 @@ def monthly_spreads(prices: pd.DataFrame, membership=None, *, first_month: pd.Pe
         order = scored.sort_values(ascending=False)
         top = float(ret[order.index[:k]].mean()) * 100
         bottom = float(ret[order.index[-k:]].mean()) * 100
+        # The equal-weighted average of every scored member: splits the long
+        # leg into momentum (top - ew) and breadth (ew - the index); owner, 8 Nov 2026.
+        ew = float(ret[scored.index].mean()) * 100
         rows.append({"month": str(pd.Period(t1, freq="M")), "date": t0, "top": top, "bottom": bottom, "spread": top - bottom, "n": len(scored),
-                     "qualified": qualified})
+                     "qualified": qualified, "ew": ew})
     return pd.DataFrame(rows)
 
 
@@ -103,4 +106,44 @@ def health(spreads: pd.DataFrame) -> dict | None:
         "crash": bool(last < 0 and last <= np.percentile(s.to_numpy(), CRASH_PERCENTILE)),
         "months": int(len(s)),
         "trailing_history": t12,
+    }
+
+
+def long_only(spreads: pd.DataFrame | None) -> dict | None:
+    """Momentum as a long-only book earns it (owner, 8 Nov 2026: "Lead with
+    winners vs index"): the top fifth's return less the Nifty 500's, summed
+    over 12 months, split into momentum (top fifth less the average member)
+    and breadth (the average member less the index) when `ew` is present.
+
+    Research behind it (scripts/research/long_only_momentum_health.py, 201
+    months to Oct 2026): this measure's trailing 12 months tracked our book's
+    12-month lead over the Nifty 500 with correlation 0.81 (same sign 86% of
+    the time); winners minus losers 0.44. The long leg earned 62% of winners
+    minus losers, near Israel and Moskowitz's (JFE 2013) "half" for the US.
+    The top fifth is equal-weighted and the index is not, so the total also
+    carries the small-stock effect; the breadth line shows how much.
+    """
+    if spreads is None or not {"top", "nifty500", "month"} <= set(spreads.columns):
+        return None
+    d = spreads.copy()
+    for c in ("top", "bottom", "nifty500", "ew", "spread"):
+        if c in d:
+            d[c] = pd.to_numeric(d[c], errors="coerce")
+    d = d.dropna(subset=["top", "nifty500"])
+    if len(d) < 24:
+        return None
+    lead = (d["top"] - d["nifty500"]).set_axis(d["month"].astype(str))
+    t12 = lead.rolling(12).sum().dropna()
+    last12 = d.tail(12)
+    has_ew = "ew" in d and last12["ew"].notna().all()
+    return {
+        "month": str(lead.index[-1]),
+        "month_lead": float(lead.iloc[-1]),
+        "lead_12m": float(t12.iloc[-1]),
+        "percentile": float((t12 <= t12.iloc[-1]).mean() * 100),
+        "momentum_12m": float((last12["top"] - last12["ew"]).sum()) if has_ew else None,
+        "breadth_12m": float((last12["ew"] - last12["nifty500"]).sum()) if has_ew else None,
+        "wml_12m": float(last12["spread"].sum()) if "spread" in last12 else None,
+        "recent": (d["top"] - d["nifty500"]).tail(24).astype(float).tolist(),
+        "since": str(d["month"].iloc[0])[:4],
     }

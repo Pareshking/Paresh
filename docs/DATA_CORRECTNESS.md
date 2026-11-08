@@ -108,6 +108,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 
 | Decision | Where |
 |---|---|
+| From the 30 Nov 2026 signal the record lets winners run to 15%: a kept holding keeps its drifted weight, trimmed only above 15%; sells and trims fund the new buys in equal parts; 40% industry cap still hard. Earlier months keep the monthly reset to 5% (owner, 8 Nov 2026, after TODO S111's test) | `track_record.TRACK_RECORD_CONFIG` `hold_cap`, `backtester._let_winners_run`, `docs/TRACK_RECORD.md` |
 | A demerger or scheme is priced at the **ex-date fall** (factor = close / previous close), as every demerger here: NEXTMEDIA, ZEEMEDIA, ABIRLANUVO, **KESORAMIND** (10 Mar 2025, 1 UltraTech per 52; x0.0474) | `data/nse_prices/notes.json` |
 | Rights issues are priced: the theoretical ex-rights price over the last close, only when the issue is under the market | `nse_adjusted.rights_factor`, `PRICE_PIPELINE.md` |
 | Dividends of 10% of the price or more are taken out; smaller ones stay in (as in Screener) | `nse_adjusted.LARGE_DIVIDEND` |

@@ -31,6 +31,7 @@ import json
 import logging
 import sys
 import tempfile
+import time
 import warnings
 from pathlib import Path
 
@@ -47,12 +48,13 @@ from src.core.config import (  # noqa: E402
 )
 from src.engine import systems  # noqa: E402
 from src.engine.actions import plan_rebalance  # noqa: E402
-from src.engine.backtester import run_backtest  # noqa: E402
+from src.engine.backtester import _hold_cap_on, run_backtest  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger, load_accepted_drift  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
-    LEDGER_PATH, TRACK_RECORD_CONFIG, config_fingerprint, config_fingerprint_for_month, months_to_cover,
+    LEDGER_PATH, TRACK_RECORD_CONFIG, config_fingerprint, config_fingerprint_for_month, config_for_month,
+    months_to_cover,
 )
 from src.loaders import nse_prices  # noqa: E402
 from src.loaders import price_source as ps  # noqa: E402
@@ -65,13 +67,26 @@ TOL_PCT = 1e-6  # weights and caps, in percent
 PARITY_CHECK_VERSION = "identity-v2"
 
 
-def _download(url: str, into: Path) -> Path:
+def _download(url: str, into: Path, tries: int = 4) -> Path:
+    """A release asset, retried on a server error or a dropped connection: GitHub's
+    release downloads answer 504 now and then (8 Nov 2026: 504, then 200 twice), and
+    one such reply used to fail the whole check."""
     path = into / url.rsplit("/", 1)[-1]
-    with requests.get(url, timeout=180, stream=True) as r:
-        r.raise_for_status()
-        with open(path, "wb") as fh:
-            for chunk in r.iter_content(1 << 18):
-                fh.write(chunk)
+    for attempt in range(1, tries + 1):
+        try:
+            with requests.get(url, timeout=180, stream=True) as r:
+                if r.status_code >= 500 and attempt < tries:
+                    raise requests.HTTPError(f"HTTP {r.status_code}", response=r)
+                r.raise_for_status()
+                with open(path, "wb") as fh:
+                    for chunk in r.iter_content(1 << 18):
+                        fh.write(chunk)
+            return path
+        except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if attempt == tries or (status is not None and status < 500):
+                raise
+            time.sleep(5 * attempt)
     return path
 
 
@@ -233,7 +248,10 @@ def main() -> int:
     for month, bk in books.items():
         w = pd.to_numeric(bk["Weight %"], errors="coerce").fillna(0.0)
         by_ind = pd.Series(w.values, index=[labels.get(s, "Other") for s in bk["Symbol"]]).groupby(level=0).sum()
-        if (w.max() > TRACK_RECORD_CONFIG["stock_cap"] * 100 + TOL_PCT
+        # From the 30 Nov 2026 signal kept holdings run to `hold_cap` (owner,
+        # 8 Nov 2026); months before keep the 5% cap (track_record.config_for_month).
+        stock_cap = config_for_month(TRACK_RECORD_CONFIG, month).get("hold_cap") or TRACK_RECORD_CONFIG["stock_cap"]
+        if (w.max() > stock_cap * 100 + TOL_PCT
                 or by_ind.max() > TRACK_RECORD_CONFIG["sector_cap"] * 100 + TOL_PCT
                 or w.sum() > 100 + TOL_PCT):
             breaches.append({"month": month, "max_stock": round(float(w.max()), 4),
@@ -259,8 +277,14 @@ def main() -> int:
                               sector_cap=float(TRACK_RECORD_CONFIG["sector_cap"]))
         exp_buys, exp_sells = sorted(set(lb.index) - set(prior)), sorted(set(prior) - set(lb.index))
         wdiff = float(((plan.weights * 100).reindex(lb.index) - pd.to_numeric(lb["Weight %"])).abs().max())
+        # Under let-winners-run the planner's equal targets are not the struck
+        # weights (kept names keep their drift), so only the names must agree
+        # and no weight may pass the 15% cap.
+        lwr = _hold_cap_on(TRACK_RECORD_CONFIG.get("hold_cap"), TRACK_RECORD_CONFIG.get("hold_cap_from"), signal)
+        weights_ok = (float(pd.to_numeric(lb["Weight %"]).max()) <= TRACK_RECORD_CONFIG["hold_cap"] * 100 + TOL_PCT
+                      if lwr else wdiff <= TOL_PCT)
         record("actions_plan", sorted(plan.buys) == exp_buys and sorted(plan.sells) == exp_sells
-               and wdiff <= TOL_PCT, buys=sorted(plan.buys), expected_buys=exp_buys,
+               and weights_ok, buys=sorted(plan.buys), expected_buys=exp_buys,
                sells=sorted(plan.sells), expected_sells=exp_sells, max_weight_diff_pp=wdiff)
 
     # 6. Research defaults reproduce the account on the account's prices.
@@ -278,6 +302,7 @@ def main() -> int:
             cost_bps=float(DEFAULT_TRANSACTION_COST_BPS), buffer_n=int(top_n * 2.0),
             _membership=membership, backtest_months=months_to_cover(basis.index[-1], start),
             stateful_history=True, history_start=start.start_time, _actions=[],
+            hold_cap=TRACK_RECORD_CONFIG.get("hold_cap"), hold_cap_from=TRACK_RECORD_CONFIG.get("hold_cap_from"),
         )
         rr = compare_monthly_ledger(ledger, r["equity_curve"], r["benchmark"], accepted=accepted)
         record("research_default", bool(rr["passed"]), counts=rr["counts"])

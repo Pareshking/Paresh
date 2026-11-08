@@ -543,3 +543,13 @@ def test_shares_are_sized_on_the_account_at_the_fill_so_cash_is_never_negative()
     expect = (990_000 * w / 100.0).apply(np.floor).astype(int)
     assert out["Shares"].tolist() == expect.tolist()
     assert 1_188_000 - float(out["Current Value (₹)"].sum()) >= 0
+
+
+def test_rupee_figures_run_from_the_latest_fill_not_the_first_entry():
+    """Owner, 8 Nov 2026: shares x the FIRST entry price made a trimmed winner look
+    small. The value at the latest fill is today's shares x the fill price."""
+    book = _book()
+    out = build_portfolio_tracker(book, _ranking(), 1_000_000)
+    assert {"Value at Rebalance (₹)", "P&L since Rebalance (₹)"} <= set(out.columns)
+    assert (out["P&L since Rebalance (₹)"]
+            == out["Current Value (₹)"] - out["Value at Rebalance (₹)"]).all()

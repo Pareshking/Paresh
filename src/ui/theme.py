@@ -1954,6 +1954,10 @@ def inject_custom_css() -> None:
         .db-kv dd { margin: 0 !important; color: var(--c-ink); }
         .db-kv a, .db-sectors a { color: var(--c-ink) !important; }
         .db-lede { margin: 0 0 4px; font-size: 14px; color: var(--c-ink); }
+        /* Streamlit fades st.caption to opacity 0.6, which took our muted grey to
+           3.5:1 on white (audit, 8 Nov 2026; WCAG AA needs 4.5:1). Full opacity
+           keeps the muted token's own colour, about 6.6:1. */
+        [data-testid="stCaptionContainer"] { opacity: 1 !important; color: var(--c-muted) !important; }
         /* Coming up for the book: days on a rule, ticker in bold (as tipsheet's "Coming up") */
         .db-cal { margin-top: 4px; }
         .db-cal-day h3 { font-family: inherit !important; font-size: 12.5px !important; font-weight: 600 !important; color: var(--c-ink) !important; margin: 10px 0 0 !important; padding: 0 0 4px !important; border-bottom: 1px solid var(--c-rule_strong); letter-spacing: 0; }
@@ -2061,6 +2065,7 @@ SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
     "ATR %", "PERSISTENCE", "FFILL %",
     "DEL %", "DEL% 20D AVG", "DEL% PREV20D",
     "DAY CHG %", "PRICE_CHG_%", "P&L %", "DAY P&L %", "TARGET WEIGHT %", "WEIGHT DRIFT %",
+    "RETURN SINCE ENTRY %",
     # The backtest's live book stores the entry weight x 100 (backtester: w * 100);
     # undeclared, it raised on the Backtest page's current book (7 Oct 2026).
     "ENTRY WEIGHT %",
@@ -2191,7 +2196,8 @@ def render_saas_table(
             val = row[col]
             c_str = str(col).upper()
             portfolio_sign_class = ""
-            if variant == "portfolio" and c_str in {"P&L (₹)", "P&L %", "DAY P&L (₹)", "DAY P&L %"}:
+            if variant == "portfolio" and c_str in {"P&L (₹)", "P&L %", "DAY P&L (₹)", "DAY P&L %",
+                                                    "P&L SINCE REBALANCE (₹)", "RETURN SINCE ENTRY %"}:
                 portfolio_sign_class = "portfolio-pos" if val > 0 else ("portfolio-neg" if val < 0 else "portfolio-flat")
 
             if pd.isna(val) or val is None or str(val).strip() in ("", "nan", "None"):

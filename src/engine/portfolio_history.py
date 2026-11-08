@@ -36,7 +36,9 @@ def portfolio_months(close: pd.DataFrame, bench: pd.Series, index_key: str = "ni
         cost_bps=cfg["cost_bps"], buffer_n=cfg["buffer_n"], stock_cap=cfg["stock_cap"],
         sector_cap=cfg["sector_cap"], sector_map=record_sector_map(cols), _benchmark_close=bench,
         backtest_months=months, _membership=membership, stateful_history=True,
-        history_start=START.start_time, _actions=[])
+        history_start=START.start_time, _actions=[],
+        members_only_scoring_from=cfg.get("members_only_scoring_from"),
+        hold_cap=cfg.get("hold_cap"), hold_cap_from=cfg.get("hold_cap_from"))
     eq = pd.Series((res or {}).get("equity_curve")).dropna()
     if eq.empty:
         return pd.DataFrame(columns=["month", "portfolio", "nifty500"])

@@ -4,6 +4,29 @@ How momentum itself has been paying, from this site's own ranking. Owner, 7 Nov 
 "build it". The method was written and checked against an independent series before
 it went on the Dashboard, as S91 required.
 
+## Long-only headline (owner, 8 Nov 2026: "Lead with winners vs index")
+
+The book never shorts, so the Dashboard now leads with what a long-only momentum book
+earns: the top fifth's next-month return (equal weight) less the Nifty 500's, summed over
+12 months (`momentum_health.long_only`). It is split into **momentum** (top fifth less the
+equal-weighted average member, the `ew` column) and **breadth** (the average member less
+the index; it carries the small-stock effect, since the index is cap-weighted).
+Winners minus losers stays as a reference row and keeps the IIMA check below.
+
+Why (`scripts/research/long_only_momentum_health.py`, 201 months, Feb 2010 to Oct 2026):
+
+| Trailing 12 months against our book's 12-month lead over the Nifty 500 | Correlation | Same sign |
+|---|---|---|
+| Top fifth less the Nifty 500 | +0.81 | 86% |
+| Top fifth less the average member | +0.43 | 80% |
+| Winners minus losers | +0.44 | 79% |
+
+The long leg (top fifth less the average member) earned 62% of winners minus losers over
+the whole period (51% in 2010-14, 61% in 2015-19, 76% in 2020-24), close to Israel and
+Moskowitz (JFE 108(2), 2013), who find about half of momentum profits on the long side in
+US data. In the 12 months to Oct 2026 winners minus losers was +8.9 points but the long leg
++11.3: the short leg cost -2.4, a loss a long-only book never takes.
+
 ## Method
 
 - **Universe:** the Nifty 500's point-in-time members each month-end

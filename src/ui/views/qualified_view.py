@@ -90,6 +90,10 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
             actions=True,
         )
     view = passing.head(top_n).copy()
+    # Place among the qualified, as on the Screener (audit, 8 Nov 2026: this table
+    # showed "—" in Qualified # for every row).
+    from src.engine.exit_watch import qualified_ranks
+    view["Qualified Rank"] = view["Symbol"].map(qualified_ranks(rank_df))
     with actions:
         st.segmented_control("Show", [10, 15, 20, 25, 30], default=30, required=True,
                              key="qual_top_n", format_func=lambda n: f"Top {n}",

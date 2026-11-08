@@ -53,6 +53,9 @@ jobs:
         if: github.event_name == 'schedule'
         run: python scripts/nsdl_fpi.py --latest
       - name: Commit
+        # Not on a pull request (audit, 8 Nov 2026): a bot commit there leaves the
+        # PR's head without CI, against the "green on the current head" rule.
+        if: github.event_name != 'pull_request'
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'

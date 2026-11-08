@@ -343,7 +343,9 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     actions = kit.page_head(
         "Sectors",
-        f"{len(board)} {'industries' if col == 'Industry' else 'groups'} · ranked by {by}",
+        # The board keeps any group of two or more stocks; "What is leading?" needs
+        # five (audit, 8 Nov 2026: "20 industries" here, "0 of 19" there).
+        f"{len(board)} {'industries' if col == 'Industry' else 'groups'} of two or more stocks · ranked by {by}",
         actions=True,
     )
     with actions:

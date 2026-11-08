@@ -85,7 +85,11 @@ def spark_img(s, w: int = 120, h: int = 28, last: int | None = 63) -> str:
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
            f'<polyline fill="none" stroke="{tone}" stroke-width="1.3" points="{pts}"/></svg>')
     data = base64.b64encode(svg.encode()).decode()
-    return f'<img src="data:image/svg+xml;base64,{data}" width="{w}" height="{h}" alt="">'
+    # A short description, not alt="": the page's sanitiser drops an empty alt,
+    # leaving the image unlabelled for screen readers (audit, 8 Nov 2026).
+    trend = "rising" if v.iloc[-1] >= v.iloc[0] else "falling"
+    return (f'<img src="data:image/svg+xml;base64,{data}" width="{w}" height="{h}" '
+            f'alt="Trend line, {trend} over the period shown">')
 
 
 def readings(tiles: list[Reading], label: str) -> None:

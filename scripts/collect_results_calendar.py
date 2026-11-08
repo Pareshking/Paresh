@@ -83,10 +83,21 @@ def normalise(forward: list[dict], held: list[dict]) -> pd.DataFrame:
     for r in forward or []:
         rows.append({"symbol": r.get("symbol"), "date": r.get("date"), "purpose": r.get("purpose"),
                      "detail": r.get("bm_desc"), "source": "calendar"})
-    for r in held or []:
+    # NSE usually lists a meeting twice, the notice ("Board Meeting Intimation")
+    # and the meeting with its purpose; for some meetings the notice is the only
+    # row (audit, 8 Nov 2026: 17 of Oct-Nov, SCHAND, BAGMANE ...). The notice is
+    # kept when it is alone, its purpose read from its description.
+    held = list(held or [])
+    named = {(_clean(r.get("bm_symbol")).upper(), _clean(r.get("bm_date"))) for r in held
+             if _clean(r.get("bm_purpose")).lower() != "board meeting intimation"}
+    for r in held:
         purpose = _clean(r.get("bm_purpose"))
-        if purpose.lower() == "board meeting intimation":   # NSE lists the notice beside the meeting itself
-            continue
+        key = (_clean(r.get("bm_symbol")).upper(), _clean(r.get("bm_date")))
+        if purpose.lower() == "board meeting intimation":
+            if key in named:
+                continue
+            purpose = ("Financial Results" if "result" in _clean(r.get("bm_desc")).lower()
+                       else "Board meeting")
         rows.append({"symbol": r.get("bm_symbol"), "date": r.get("bm_date"), "purpose": purpose,
                      "detail": r.get("bm_desc"), "source": "held"})
     d = pd.DataFrame(rows, columns=["symbol", "date", "purpose", "detail", "source"])

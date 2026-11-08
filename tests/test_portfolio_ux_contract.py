@@ -21,7 +21,7 @@ def test_portfolio_primary_columns_are_first_and_single_table_is_preserved():
         '"Symbol"',
         '"Current Price"',
         '"P&L %"',
-        '"P&L (₹)"',
+        '"P&L since Rebalance (₹)"',
         '"Weight %"',
         '"Target Weight %"',
         '"Weight Drift %"',

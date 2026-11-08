@@ -248,6 +248,13 @@ def fetch_snapshot(url: str | None = None,
     resp = None  # streamed: holds a pooled connection until closed
     try:
         resp = requests.get(target, timeout=DOWNLOAD_TIMEOUT_S, stream=True)
+        # One quick retry on a server error: GitHub's release downloads answer 504
+        # now and then (8 Nov 2026: 504, then 200 twice), and the fallback, a full
+        # recompute, costs far more than a two-second wait.
+        if resp.status_code >= 500:
+            resp.close()
+            time.sleep(2)
+            resp = requests.get(target, timeout=DOWNLOAD_TIMEOUT_S, stream=True)
         if resp.status_code != 200:
             logger.info(
                 "Ranking snapshot unavailable (HTTP %s); computing instead.",

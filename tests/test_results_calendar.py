@@ -37,6 +37,15 @@ def test_normalise_drops_notices_and_bad_dates_and_keeps_one_row_per_company_day
     assert d["results"].tolist() == [1, 1, 1]
 
 
+def test_a_meeting_listed_only_by_its_notice_is_kept():
+    held = [{"bm_symbol": "SCHAND", "bm_date": "05-Nov-2026", "bm_purpose": "Board Meeting Intimation",
+             "bm_desc": "To consider and approve the unaudited financial results for Sep 2026"},
+            {"bm_symbol": "OTHER", "bm_date": "05-Nov-2026", "bm_purpose": "Board Meeting Intimation", "bm_desc": "AGM"}]
+    d = crc.normalise([], held)
+    assert d.set_index("symbol").loc["SCHAND", "results"] == 1
+    assert d.set_index("symbol").loc["OTHER", "purpose"] == "Board meeting"
+
+
 def test_check_refuses_an_empty_or_halved_forward_calendar():
     today = date(2026, 11, 8)
     few = crc.normalise(_forward(), [])

@@ -15,7 +15,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from src.engine.momentum_health import health
+from src.engine.momentum_health import health, long_only
 from src.ui import formats as fmt
 from src.ui.tokens import C
 
@@ -93,6 +93,42 @@ def momentum_health_html(spreads: pd.DataFrame | None) -> str | None:
             f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="64" style="max-width:100%"></div>')
 
 
+def long_only_html(spreads: pd.DataFrame | None) -> str | None:
+    """Momentum health led by what a long-only book earns: winners against the
+    Nifty 500 (owner, 8 Nov 2026), with winners against losers kept as one row."""
+    lo = long_only(spreads)
+    if lo is None:
+        return None
+    month = pd.Period(lo["month"], freq="M")
+    t12 = lo["lead_12m"]
+    word = percentile_word(lo["percentile"])
+    verb = "beat" if t12 >= 0 else "trailed"
+    lede = (f"Over the last 12 months the top fifth of our ranking {verb} the Nifty 500 by "
+            f"{abs(t12):.1f} points: {word} ({ordinal(round(lo['percentile']))} percentile since {lo['since']}). "
+            f"{month:%B}: {fmt.signed(lo['month_lead'])} points.")
+    rows = []
+
+    def row(label: str, v: float | None) -> None:
+        if v is None:
+            return
+        tone = "up" if v > 0 else "down" if v < 0 else ""
+        rows.append(f'<tr><td>{html.escape(label)}</td><td class="{tone}">{fmt.signed(v)}</td></tr>')
+
+    row("Winners against the average stock (momentum)", lo["momentum_12m"])
+    row("Average stock against the Nifty 500 (breadth)", lo["breadth_12m"])
+    row("Winners against losers (the factor, for reference)", lo["wml_12m"])
+    table = ('<table class="db-fig"><thead><tr><th scope="col">Last 12 months</th><th scope="col">Points</th>'
+             f'</tr></thead><tbody>{"".join(rows)}</tbody></table>') if rows else ""
+    recent = lo["recent"]
+    img = _bars_svg(recent)
+    alt = (f"Monthly lead of the top fifth over the Nifty 500, last {len(recent)} months: from "
+           f"{fmt.signed(min(recent))} to {fmt.signed(max(recent))} points.")
+    tone = "up" if t12 > 0 else "down" if t12 < 0 else ""
+    return (f'<div class="db-mh"><div class="db-big {tone}">{fmt.signed(t12)}<span> pts, 12 months</span></div>'
+            f'<p class="db-lede">{html.escape(lede)}</p>{table}'
+            f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="64" style="max-width:100%"></div>')
+
+
 QUARTER_WORDS = ("Few", "Fewer than usual", "More than usual", "Many")
 
 
@@ -109,7 +145,8 @@ def _qualified_evidence(spreads: pd.DataFrame, d: pd.DataFrame, cuts: list[float
         def lead(v: float, name: str) -> str:
             return f"beat {name} by {v:.1f} pts" if v >= 0 else f"trailed {name} by {-v:.1f} pts"
 
-        return (f"In our strategy's backtest since {pe['since']}, after the quarter of month-ends with the fewest "
+        return (f"In a backtest of the strategy's rules on the Nifty 500 since {pe['since']} (not the live "
+                f"record, which trades the 750), after the quarter of month-ends with the fewest "
                 f"(at or below {pe['cut'] * 100:.0f}%) the portfolio {lead(pe['low'], 'the Nifty 500')} the next "
                 f"month on average; after the other months it {lead(pe['rest'], 'the index')}. The pattern held in "
                 f"{held} of {len(pe['blocks'])} five-year blocks.")
@@ -249,8 +286,8 @@ def nsdl_flows_html(nsdl: pd.DataFrame | None, nse: pd.DataFrame | None) -> str 
                      f'{"bought" if tot > 0 else "sold"}, last {m} sessions (NSE)</dd>')
         else:
             dii_line = (f'<p class="db-note">DII: {len(d)} session{"s" if len(d) != 1 else ""} collected from NSE '
-                        f'since {d["date"].min():%-d %b} (NSDL reports foreign investors only); its trend shows from '
-                        f'{TREND_MIN}.</p>' if len(d) else "")
+                        f'since {d["date"].min():%-d %b} (NSDL reports foreign investors only); the DII trend appears once '
+                        f'{TREND_MIN} sessions are collected.</p>' if len(d) else "")
     img = _month_bars_svg(months.tolist())
     alt = (f"FPI equity net per month, {months.index[0]:%b %Y} to {months.index[-1]:%b %Y}: from "
            f"{fmt.inr(months.min())} to {fmt.inr(months.max())} Cr.")
@@ -262,11 +299,22 @@ def nsdl_flows_html(nsdl: pd.DataFrame | None, nse: pd.DataFrame | None) -> str 
 
 def render(kit, left, right) -> None:
     """The two cards, momentum health on the left, flows on the right."""
-    with left, kit.card("Momentum health", "db_mh", "top fifth minus bottom fifth"):
-        out = momentum_health_html(_load(MOMENTUM_FILE))
+    spreads = _load(MOMENTUM_FILE)
+    lo_out = long_only_html(spreads)
+    with left, kit.card("Momentum health", "db_mh",
+                        "top fifth against the Nifty 500" if lo_out else "top fifth minus bottom fifth"):
+        out = lo_out or momentum_health_html(spreads)
         if out is None:
             kit.caption("Momentum health is not available right now: its monthly file is missing or "
                         "shorter than two years.")
+        elif lo_out:
+            st.html(out)
+            kit.caption("Each month-end the Nifty 500's members are ranked by this site's score; the "
+                        "figure is the next month's return of the top fifth, equal weight, less the Nifty "
+                        "500's: what a long-only momentum book earns over the index. Since 2010 its 12-month "
+                        "sum moved with our book's lead over the index (correlation 0.81; winners minus "
+                        "losers 0.44). Breadth carries the small-stock effect. Bars: the last 24 months. "
+                        f"Winners minus losers checked: {IIMA_CHECK}. A reading, not a forecast.")
         else:
             st.html(out)
             kit.caption("Each month-end the Nifty 500's members are ranked by this site's score; the "
@@ -274,7 +322,7 @@ def render(kit, left, right) -> None:
                         f"Bars: the last 24 months. Checked: {IIMA_CHECK}. How momentum has been "
                         "paying, not a forecast.")
     with right, kit.card("How many stocks qualify?", "db_qual", "the strategy's own filters, month-ends"):
-        out = qualified_html(_load(MOMENTUM_FILE))
+        out = qualified_html(spreads)
         if out is None:
             kit.caption("Not available yet: the monthly momentum file has no qualified share until its "
                         "next build.")
