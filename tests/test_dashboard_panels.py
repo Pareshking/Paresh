@@ -123,3 +123,23 @@ def test_nsdl_flows_lead_with_twenty_days_and_twelve_months():
     assert "12 months" in out and "DII: 1 session collected from NSE" in out
     assert "data:image/svg+xml;base64," in out
     assert dp.nsdl_flows_html(nsdl.head(3), None) is None
+
+
+def test_the_card_splits_the_top_fifth_into_two_deciles_when_the_file_has_them():
+    """Owner, 8 Nov 2026: show the decile split as rows. Research over 201
+    months: the top decile led the index by 1.01 pts a month, ranks 51-100 by
+    0.59, in every five-year block."""
+    d = _long()
+    d["top50"] = 3.0
+    d["d2"] = 1.0
+    lo = mh.long_only(d)
+    assert lo["top50_12m"] == pytest.approx(_c(3.0) - _c(0.5))
+    assert lo["d2_12m"] == pytest.approx(_c(1.0) - _c(0.5))
+    out = dp.long_only_html(d)
+    assert "Top 50 against the Nifty 500" in out and "51–100" in out
+    assert "(momentum)" not in out and "for reference" in out
+
+
+def test_without_the_decile_columns_the_card_keeps_momentum_and_breadth():
+    out = dp.long_only_html(_long())
+    assert "(momentum)" in out and "(breadth)" in out and "Top 50" not in out

@@ -138,8 +138,15 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
         tone = "up" if v > 0 else "down" if v < 0 else ""
         rows.append(f'<tr><td>{html.escape(label)}</td><td class="{tone}">{fmt.signed(v)}</td></tr>')
 
-    row("Winners against the average stock (momentum)", lo["momentum_12m"])
-    row("Average stock against the Nifty 500 (breadth)", lo["breadth_12m"])
+    # The top fifth split in two (owner, 8 Nov 2026), once the monthly file
+    # carries the columns; until then the momentum and breadth split, which
+    # adds to the headline exactly.
+    if lo.get("top50_12m") is not None:
+        row("Top 50 against the Nifty 500", lo["top50_12m"])
+        row("Ranks 51\u2013100 against the Nifty 500", lo["d2_12m"])
+    else:
+        row("Winners against the average stock (momentum)", lo["momentum_12m"])
+        row("Average stock against the Nifty 500 (breadth)", lo["breadth_12m"])
     row("Winners against losers (the factor, for reference)", lo["wml_12m"])
     table = ('<table class="db-fig"><thead><tr><th scope="col">Last 12 months</th><th scope="col">Points</th>'
              f'</tr></thead><tbody>{"".join(rows)}</tbody></table>') if rows else ""

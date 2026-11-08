@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-08 — Momentum health splits the top fifth into its two deciles
+
+- The card now shows the top 50 and ranks 51-100 against the Nifty 500 as separate rows. Over 201 months the top decile led the index by 1.01 pts a month against 0.59 for the second, in every five-year block, so the blended "top 100" figure understates what the best-ranked names did. The headline stays the top 100: a 20-stock basket tracks our own book better (0.93 against 0.85) but is nearly the book itself, is behind the index over a full year 25% of the time against 19%, and would print +29.7 instead of +11.9.
+- The bar strips under Momentum health and Flows print their figures (highest, lowest and latest month, with dates) instead of needing a hover, which touch cannot do. Measured first: an interactive chart costs about 6 requests, 190 KB and 130 ms here, so converting the Dashboard's four would add about half a second and 760 KB to the first page a reader sees.
+
 ## 2026-11-08 — Momentum health states two returns, and says "top 100"
 
 - The headline is now the gap between two 12-month returns ("the top 100 returned +4.6% against the Nifty 500's −7.7%: 12.2 percentage points ahead"). It added the 12 monthly gaps before, which drifts from the real 12-month gap when months are large (12.9 summed against 12.2 compounded), and the card never said which it showed. The percentile is now ranked the same way: 56th, not 65th.

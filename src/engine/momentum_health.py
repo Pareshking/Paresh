@@ -62,7 +62,8 @@ def monthly_spreads(prices: pd.DataFrame, membership=None, *, first_month: pd.Pe
     if first_month is not None:
         ends = [d for d in ends if pd.Period(d, freq="M") >= first_month]
     if len(ends) < 2:
-        return pd.DataFrame(columns=["month", "date", "top", "bottom", "spread", "n", "qualified", "ew"])
+        return pd.DataFrame(columns=["month", "date", "top", "bottom", "spread", "n", "qualified", "ew",
+                                     "top50", "d2"])
     snaps = snapshots(prices, ends[:-1], membership=membership, config_weights=config_weights)
     rows = []
     for t0, t1 in zip(ends[:-1], ends[1:]):
@@ -81,11 +82,18 @@ def monthly_spreads(prices: pd.DataFrame, membership=None, *, first_month: pd.Pe
         order = scored.sort_values(ascending=False)
         top = float(ret[order.index[:k]].mean()) * 100
         bottom = float(ret[order.index[-k:]].mean()) * 100
+        # The top fifth split in two (owner, 8 Nov 2026: "give bifurcation of
+        # top two deciles also"). Research over 201 months: the top decile led
+        # the index by 1.01 pts a month against 0.59 for the second, and that
+        # order held in every five-year block (scripts/research/decile_split.py).
+        half = max(k // 2, 1)
+        top50 = float(ret[order.index[:half]].mean()) * 100
+        d2 = float(ret[order.index[half:k]].mean()) * 100 if k > half else float("nan")
         # The equal-weighted average of every scored member: splits the long
         # leg into momentum (top - ew) and breadth (ew - the index); owner, 8 Nov 2026.
         ew = float(ret[scored.index].mean()) * 100
         rows.append({"month": str(pd.Period(t1, freq="M")), "date": t0, "top": top, "bottom": bottom, "spread": top - bottom, "n": len(scored),
-                     "qualified": qualified, "ew": ew})
+                     "qualified": qualified, "ew": ew, "top50": top50, "d2": d2})
     return pd.DataFrame(rows)
 
 
@@ -114,6 +122,14 @@ def _compound(monthly_pct: pd.Series) -> float:
     return float((1.0 + monthly_pct.astype(float) / 100.0).prod() - 1.0) * 100.0
 
 
+def _leg(last12: pd.DataFrame, col: str, idx12: float) -> float | None:
+    """One slice's 12-month return less the index's, or None when the monthly
+    file does not carry that column yet."""
+    if col not in last12 or not last12[col].notna().all():
+        return None
+    return _compound(last12[col]) - idx12
+
+
 def long_only(spreads: pd.DataFrame | None) -> dict | None:
     """Momentum as a long-only book earns it (owner, 8 Nov 2026: "Lead with
     winners vs index"): the top 100's 12-month return less the Nifty 500's,
@@ -137,7 +153,7 @@ def long_only(spreads: pd.DataFrame | None) -> dict | None:
     if spreads is None or not {"top", "nifty500", "month"} <= set(spreads.columns):
         return None
     d = spreads.copy()
-    for c in ("top", "bottom", "nifty500", "ew", "spread"):
+    for c in ("top", "bottom", "nifty500", "ew", "spread", "top50", "d2"):
         if c in d:
             d[c] = pd.to_numeric(d[c], errors="coerce")
     d = d.dropna(subset=["top", "nifty500"])
@@ -162,6 +178,8 @@ def long_only(spreads: pd.DataFrame | None) -> dict | None:
         "breadth_12m": ew12 - idx12 if has_ew else None,
         "wml_12m": (top12 - _compound(last12["bottom"]))
                    if "bottom" in last12 and last12["bottom"].notna().all() else None,
+        "top50_12m": _leg(last12, "top50", idx12),
+        "d2_12m": _leg(last12, "d2", idx12),
         "recent": (d["top"] - d["nifty500"]).tail(24).astype(float).tolist(),
         "recent_months": d["month"].astype(str).tail(24).tolist(),
         "since": str(d["month"].iloc[0])[:4],
