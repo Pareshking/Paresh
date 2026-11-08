@@ -21,7 +21,6 @@ from src.ui.tokens import C
 
 ROOT = Path(__file__).resolve().parents[3]
 MOMENTUM_FILE = ROOT / "data" / "momentum_health.csv"
-BENCHMARKS_FILE = ROOT / "data" / "benchmarks.csv"
 FLOWS_FILE = ROOT / "data" / "fii_dii_flows.csv"
 NSDL_FILE = ROOT / "data" / "nsdl_fpi_daily.csv"
 IIMA_CHECK = "correlation 0.83 with IIM Ahmedabad's momentum factor, Feb 2010 to Dec 2025"
@@ -97,6 +96,28 @@ def momentum_health_html(spreads: pd.DataFrame | None) -> str | None:
 QUARTER_WORDS = ("Few", "Fewer than usual", "More than usual", "Many")
 
 
+def _qualified_evidence(spreads: pd.DataFrame, d: pd.DataFrame, cuts: list[float]) -> str:
+    """Our portfolio's own backtest, when the monthly job has written it (owner,
+    8 Nov 2026: evidence must hold for the book, and in most 5-year blocks);
+    until then the momentum factor's, said as such."""
+    from src.engine.portfolio_history import excess_by_quarter
+
+    pe = excess_by_quarter(spreads, "qualified")
+    if pe is not None:
+        held = sum(ok for _, ok in pe["blocks"])
+        return (f"In our strategy's backtest since {pe['since']}, after the quarter of month-ends with the fewest "
+                f"(at or below {pe['cut'] * 100:.0f}%) the portfolio's next month beat the Nifty 500 by "
+                f"{fmt.signed(pe['low'])} pts on average, against {fmt.signed(pe['rest'])} after the rest; "
+                f"weaker in {held} of {len(pe['blocks'])} five-year blocks.")
+    d = d.assign(qtr=pd.qcut(d["qualified"], 4, labels=False))
+    g = d.groupby("qtr")["spread"]
+    low, high = g.get_group(0), g.get_group(3)
+    return (f"In the quarter of month-ends with the fewest (below {cuts[0] * 100:.0f}%), the momentum factor's next "
+            f"month (top fifth minus bottom fifth) averaged {fmt.signed(float(low.mean()))} pts and fell in "
+            f"{float((low < 0).mean()) * 100:.0f}% of them; in the quarter with the most, "
+            f"{fmt.signed(float(high.mean()))} pts and {float((high < 0).mean()) * 100:.0f}%.")
+
+
 def qualified_html(spreads: pd.DataFrame | None) -> str | None:
     """How many stocks qualify? (TODO S110, item 2): the month-end share of the
     Nifty 500 passing the strategy's own gates, from data/momentum_health.csv."""
@@ -117,50 +138,11 @@ def qualified_html(spreads: pd.DataFrame | None) -> str | None:
     lede = (f"At the end of {when:%B %Y}, {float(last['qualified']) * 100:.0f}% of the Nifty 500 passed the strategy's "
             f"own filters (above the 50-day EMA, within 20% of the 52-week high): more than in "
             f"{share_below * 100:.0f}% of month-ends since {pd.Timestamp(d['date'].iloc[0]):%Y}.")
-    d = d.assign(qtr=pd.qcut(d["qualified"], 4, labels=False))
-    g = d.groupby("qtr")["spread"]
-    low, high = g.get_group(0), g.get_group(3)
-    ev = (f"In the quarter of month-ends with the fewest (below {cuts[0] * 100:.0f}%), momentum's next month "
-          f"averaged {fmt.signed(float(low.mean()))} pts and fell in {float((low < 0).mean()) * 100:.0f}% of them; "
-          f"in the quarter with the most, {fmt.signed(float(high.mean()))} pts and {float((high < 0).mean()) * 100:.0f}%.")
+    ev = _qualified_evidence(spreads, d, cuts)
     spark = kit.spark_img(d["qualified"].tail(24).tolist(), 120, 28, last=None)
     tone = "down" if quarter == 0 else ""
     return (f'<div class="db-big {tone}">{float(last["qualified"]) * 100:.0f}%<span>{QUARTER_WORDS[quarter]}</span></div>'
             f'<p class="db-lede">{html.escape(lede)}</p>{spark}'
-            f'<p class="db-note">{html.escape(ev)}</p>')
-
-
-def crash_risk_html(bench: pd.Series | None, spreads: pd.DataFrame | None) -> str | None:
-    """Is momentum risky right now? (momentum_crash; owner, 8 Nov 2026)."""
-    from src.engine import momentum_crash as mc
-
-    if bench is None or spreads is None:
-        return None
-    now = mc.current(bench)
-    if now is None:
-        return None
-    s = mc.summary(mc.evidence(bench, spreads))
-    bear, high = now.ret24 < 0, now.vol_pct >= mc.HIGH_VOL_PCT
-    vol_word = "high" if high else "low" if now.vol_pct < 0.25 else "about usual"
-    lede = (f"The Nifty 500 is {abs(now.ret24) * 100:.1f}% {'below' if bear else 'above'} its level 24 months "
-            f"ago{' (a bear market by the test)' if bear else ''}, and its volatility, {now.vol * 100:.1f}% a "
-            f"year, is {vol_word} ({ordinal(round(now.vol_pct * 100))} percentile of month-ends since 2001).")
-    rows = (f'<dt>Nifty 500, 24 months</dt><dd><b class="{"down" if bear else ""}">'
-            f'{fmt.pct(now.ret24)}</b> · risky below 0</dd>'
-            f'<dt>Volatility, 126 sessions</dt><dd><b class="{"down" if high else ""}">'
-            f'{now.vol * 100:.1f}%</b> a year · risky in the top quarter</dd>')
-    bs = s["by_state"]
-    parts = [f"{fmt.signed(bs[k]['mean'])} pts in the {bs[k]['months']} {k} months"
-             for k in (mc.CRASH, mc.ELEVATED, mc.CALM) if k in bs]
-    worst = s["worst"].iloc[0]
-    ev = (f"Since {s['since']:%Y}, the next month's momentum spread averaged " + ", ".join(parts)
-          + f". The worst month, {pd.Timestamp(worst['date']):%b %Y} ({fmt.signed(float(worst['spread']))} pts), "
-          f"came {worst['state']}.")
-    if s["last_crash"] is not None:
-        ev += f" Last {mc.CRASH}: {pd.Timestamp(s['last_crash']):%b %Y}."
-    tone = "down" if now.verdict == mc.CRASH else ""
-    return (f'<div class="db-big {tone}">{html.escape(now.verdict)}</div>'
-            f'<p class="db-lede">{html.escape(lede)}</p><dl class="db-kv">{rows}</dl>'
             f'<p class="db-note">{html.escape(ev)}</p>')
 
 
@@ -284,20 +266,6 @@ def render(kit, left, right) -> None:
                         "spread is the next month's return of the top fifth minus the bottom fifth. "
                         f"Bars: the last 24 months. Checked: {IIMA_CHECK}. How momentum has been "
                         "paying, not a forecast.")
-    with left, kit.card("Is momentum risky?", "db_crash", "the conditions behind momentum crashes"):
-        bench = _load(BENCHMARKS_FILE)
-        b = None
-        if bench is not None and {"date", "nifty500"} <= set(bench.columns):
-            b = bench.assign(date=pd.to_datetime(bench["date"])).set_index("date")["nifty500"]
-        out = crash_risk_html(b, _load(MOMENTUM_FILE))
-        if out is None:
-            kit.caption("Not available right now: the Nifty 500 history or the momentum file is missing.")
-        else:
-            st.html(out)
-            kit.caption("Momentum's crashes come after market declines, when volatility is high, as the market "
-                        "rebounds (Daniel and Moskowitz, Journal of Financial Economics, 2016). Crash-prone: both; "
-                        "Elevated: one. A warning about the conditions, not a forecast; the model's rules do "
-                        "not change with it.")
     with right, kit.card("How many stocks qualify?", "db_qual", "the strategy's own filters, month-ends"):
         out = qualified_html(_load(MOMENTUM_FILE))
         if out is None:

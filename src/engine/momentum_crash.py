@@ -1,4 +1,13 @@
-"""Is momentum risky right now? The conditions under which momentum crashes.
+"""The conditions under which momentum crashes. RESEARCH ONLY, not on the Dashboard.
+
+Owner, 8 Nov 2026 (TODO S110): taken off the Dashboard. The conditions
+predict the long-short momentum FACTOR's bad months, as published, but tested
+on our own long-only portfolio's backtest in 5-year blocks they gave no
+reliable signal: the book's lead over the Nifty 500 vanished in flagged months
+in 2010-14 and 2020-24, reversed in 2025-26, and 2015-19 had none; the
+continuous readings changed sign between blocks.
+scripts/research/crash_state_vs_portfolio.py reproduces this.
+
 
 Daniel and Moskowitz, "Momentum crashes", Journal of Financial Economics
 122(2), 2016, 221-247 (NBER w20439): momentum's crashes come "in 'panic'

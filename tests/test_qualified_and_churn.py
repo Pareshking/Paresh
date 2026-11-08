@@ -20,6 +20,35 @@ def test_a_low_share_reads_few_with_the_evidence():
     assert out and "Few</span>" in out and "fewest" in out and "Nifty 500" in out
 
 
+def test_the_factor_evidence_is_named_as_the_factors_until_the_portfolio_is_written():
+    out = dp.qualified_html(_spreads(last_share=0.05))
+    assert "momentum factor" in out and "our strategy" not in out
+
+
+def _with_portfolio(n=120):
+    d = _spreads(n=n)
+    d["month"] = pd.period_range("2010-02", periods=n, freq="M").astype(str)
+    d["nifty500"] = 1.0
+    d["portfolio"] = 1.0 + (d["qualified"] - 0.4) * 5      # fewer qualifiers, smaller lead
+    return d
+
+
+def test_the_portfolio_evidence_replaces_the_factor_and_counts_blocks():
+    from src.engine.portfolio_history import excess_by_quarter
+    pe = excess_by_quarter(_with_portfolio(), "qualified")
+    assert pe["low"] < pe["rest"] and pe["since"] == 2010
+    assert [lo for lo, _ in pe["blocks"]] == [2010, 2015] and all(ok for _, ok in pe["blocks"])
+    out = dp.qualified_html(_with_portfolio())
+    assert "backtest since 2010" in out and "2 of 2 five-year blocks" in out
+    assert "momentum factor" not in out
+
+
+def test_portfolio_evidence_needs_its_columns_and_four_years():
+    from src.engine.portfolio_history import excess_by_quarter
+    assert excess_by_quarter(_spreads(), "qualified") is None
+    assert excess_by_quarter(_with_portfolio(n=40), "qualified") is None
+
+
 def test_no_qualified_column_or_too_short_history_draws_nothing():
     assert dp.qualified_html(_spreads().drop(columns="qualified")) is None
     assert dp.qualified_html(_spreads(n=10)) is None

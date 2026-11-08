@@ -32,22 +32,3 @@ def test_the_evidence_matches_states_to_the_next_months_spread():
     assert {"state", "spread", "ret24", "vol_pct"} <= set(ev.columns) and len(ev) > 100
     s = mc.summary(ev)
     assert sum(v["months"] for v in s["by_state"].values()) == len(ev)
-
-
-def test_the_real_files_give_a_verdict_and_the_card_renders():
-    from src.ui.views import dashboard_panels as dp
-
-    b = pd.read_csv("data/benchmarks.csv", parse_dates=["date"]).set_index("date")["nifty500"]
-    spreads = pd.read_csv("data/momentum_health.csv")
-    out = dp.crash_risk_html(b, spreads)
-    assert out and any(v in out for v in (mc.CALM, mc.ELEVATED, mc.CRASH))
-    assert "Nifty 500, 24 months" in out and "since 2001" in out
-    assert dp.crash_risk_html(None, spreads) is None
-
-
-def test_the_card_keeps_the_hyphen_in_crash_prone():
-    from src.ui.views import dashboard_panels as dp
-
-    b = pd.read_csv("data/benchmarks.csv", parse_dates=["date"]).set_index("date")["nifty500"]
-    out = dp.crash_risk_html(b, pd.read_csv("data/momentum_health.csv"))
-    assert "Crash−prone" not in out and "Crash-prone" in out

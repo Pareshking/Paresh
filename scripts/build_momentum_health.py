@@ -39,8 +39,18 @@ def build() -> pd.DataFrame:
     close = loaded[0]
     membership = iu.index_history(INDEX_KEY)
     cols = sorted(iu.ever_members(membership) & set(close.columns))
-    return monthly_spreads(close[cols].astype("float64"), membership,
-                           first_month=iu.first_month(membership))
+    sp = monthly_spreads(close[cols].astype("float64"), membership,
+                         first_month=iu.first_month(membership))
+    # Our strategy's own monthly returns beside the factor's (owner, 8 Nov 2026,
+    # TODO S110): Dashboard evidence must hold for the book. A failure here
+    # keeps the spreads and writes the file without these two columns.
+    try:
+        from src.engine.portfolio_history import portfolio_months
+        bench = pd.read_csv(ROOT / "data" / "benchmarks.csv", parse_dates=["date"]).set_index("date")["nifty500"]
+        sp = sp.merge(portfolio_months(close, bench, INDEX_KEY), on="month", how="left")
+    except Exception as exc:  # noqa: BLE001
+        print(f"::warning::portfolio months not written: {type(exc).__name__}: {exc}")
+    return sp
 
 
 def problems(sp: pd.DataFrame, today: pd.Timestamp) -> list[str]:
@@ -77,7 +87,7 @@ def main() -> int:
               f"over 12 months, same sign {(np.sign(m['spread']) == np.sign(m['WML'])).mean():.0%}")
     out = sp.copy()
     out["date"] = pd.to_datetime(out["date"]).dt.strftime("%Y-%m-%d")
-    out.round({"top": 4, "bottom": 4, "spread": 4, "qualified": 4}).to_csv(OUT, index=False)
+    out.round({"top": 4, "bottom": 4, "spread": 4, "qualified": 4, "portfolio": 4, "nifty500": 4}).to_csv(OUT, index=False)
     print(f"{len(out)} months {out['month'].iloc[0]}..{out['month'].iloc[-1]} -> {OUT}")
     return 0
 
