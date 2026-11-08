@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-08 — Dashboard: how many stocks qualify, and the next rebalance's churn
+
+- A new card shows the share of the Nifty 500 passing the strategy's own filters at each month-end, with how momentum did in the months that followed few or many qualifiers since 2010. At the end of September: 20%, fewer than in 87% of month-ends.
+- Next rebalance now says how many holdings would change against the record's monthly average (2 of 20 against 8).
+
 ## 2026-11-08 — Dashboard: how risky is the book?
 
 - A new card under Book at risk describes the whole book: its beta and volatility against the Nifty 500, how much of it is in small and micro caps (90% today), its drawdown from the record's peak beside the index's over the same dates, and how quickly each position could be sold at the model book's size.

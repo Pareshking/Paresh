@@ -149,6 +149,18 @@ def page_nav_html(links: list[tuple[str, str]]) -> str:
     return f'<nav class="qp-nav" aria-label="On this page">{items}</nav>'
 
 
+def _churn_row(record: dict | None, planned: int, held: int) -> str:
+    """How much the next rebalance changes, against the record's months (TODO S110, item 5)."""
+    books = (record or {}).get("month_books") or {}
+    bought = [int((b["Action"] == "Bought").sum()) for k, b in sorted(books.items())[1:]
+              if hasattr(b, "columns") and "Action" in b.columns]
+    if not bought:
+        return ""
+    avg = sum(bought) / len(bought)
+    return (f"<dt>Churn</dt><dd>{planned} of {held} would change, against {avg:.0f} a month on average "
+            f"since the record's second month ({min(bought)} to {max(bought)})</dd>")
+
+
 def book_risk_html(res, as_of_record: pd.Timestamp | None) -> str:
     """"How risky is the book?" (book_risk; owner, 8 Nov 2026, TODO S110)."""
     from src.engine import book_risk as br
@@ -278,6 +290,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             f'<dt>Sell</dt><dd>{_names(plan.sells)}</dd>'
             f'<dt>Buy</dt><dd>{_names(plan.buys)}</dd>'
             f'<dt>Next in line</dt><dd>{_names(plan.next_in_line)}</dd>'
+            f'{_churn_row(record, len(plan.buys), len(symbols))}'
             '</dl>')
         kit.caption_link("The same plan as Actions, from today's ranking and the model book's rules.",
                          page_href("actions"), "Actions")
@@ -311,7 +324,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # Desktop reading order: the questions, then each column's top block, then the rest.
     nav_slot.html(page_nav_html(drawn + [
         ("s-db_risk", "Book at risk"), ("s-db_bookrisk", "How risky is the book?"), ("s-db_next", "Next rebalance"),
-        ("s-db_mh", "Momentum health"), ("s-db_crash", "Is momentum risky?"),
+        ("s-db_mh", "Momentum health"), ("s-db_crash", "Is momentum risky?"), ("s-db_qual", "How many stocks qualify?"),
         ("s-db_size", "Size leadership"), ("s-db_flows", "Flows")]))
 
     render_data_quality_footer(
