@@ -1912,6 +1912,13 @@ def inject_custom_css() -> None:
         .qp-nav a { color: var(--c-ink) !important; text-decoration: underline;
             text-decoration-color: var(--c-rule_strong); text-underline-offset: 3px; }
         .mq h2, .pg-card-h h2 { scroll-margin-top: 72px; }
+        /* Phone tap targets (audit, 8 Nov 2026: section links were 22-23 px tall; 44 px is
+           the usual minimum). Padding grows the target without moving the text. */
+        @media (max-width: 640px) {
+            .qp-nav { gap: 0 14px; }
+            .qp-nav a, .gd nav a, .cfg-index a { display: inline-flex; align-items: center; min-height: 44px; }
+            [class*="st-key-app_nav_menu_"] button { min-width: 44px; min-height: 44px; }
+        }
 
         /* ── Desktop quick links beside the menu (owner, 7 Nov 2026) ── */
         .st-key-app_quicklinks { gap: 2px !important; margin-left: auto !important; }
@@ -1949,9 +1956,12 @@ def inject_custom_css() -> None:
         .db-bar i { display: block; height: 100%; background: var(--c-ink); }
         .db-risk-row.watch .db-bar i { background: var(--c-caution); }
         .db-risk-row.sell .db-bar i { background: var(--c-down); }
-        .db-kv { display: grid; grid-template-columns: 92px 1fr; gap: 5px 12px; margin: 0 !important; padding: 0 !important; font-size: 13.5px; line-height: 1.4; }
-        .db-kv dt { color: var(--c-muted); font-weight: 600; margin: 0 !important; }
-        .db-kv dd { margin: 0 !important; color: var(--c-ink); }
+        /* Label-value rows in the site's table style (owner, 8 Nov 2026: Next rebalance's
+           bold grey labels did not match the question cards' hairline tables): label left
+           in the secondary text colour, value beside it, a hairline under each row. */
+        .db-kv { display: grid; grid-template-columns: minmax(92px, max-content) 1fr; gap: 0 16px; margin: 4px 0 0 !important; padding: 0 !important; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--c-rule_strong); }
+        .db-kv dt { color: var(--c-text_2); font-weight: 400; margin: 0 !important; padding: 7px 0 !important; border-bottom: 1px solid var(--c-rule); }
+        .db-kv dd { margin: 0 !important; padding: 7px 0 !important; color: var(--c-ink); border-bottom: 1px solid var(--c-rule); }
         .db-kv a, .db-sectors a { color: var(--c-ink) !important; }
         .db-lede { margin: 0 0 4px; font-size: 14px; color: var(--c-ink); }
         /* Streamlit fades st.caption to opacity 0.6, which took our muted grey to

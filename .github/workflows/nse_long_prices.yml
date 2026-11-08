@@ -87,10 +87,12 @@ jobs:
             || echo "::warning::no bse_daily.parquet on the release: NSE-only gaps stay empty this build"
           ls -lh bse
       - name: Build
+        env:
+          IN_SINCE: ${{ inputs.since || '2008-01-01' }}
         run: |
           # A missing pack (first run, full=yes, or a scheduled build) reads every session.
           echo "Full re-read: ${FULL}"
-          python scripts/build_nse_long_prices.py --since "${{ inputs.since || '2008-01-01' }}" --out data_cache/nse_long --pack pack/nse_raw_pack.parquet --actions-pack pack/nse_actions_pack.parquet --bse bse/bse_daily.parquet
+          python scripts/build_nse_long_prices.py --since "$IN_SINCE" --out data_cache/nse_long --pack pack/nse_raw_pack.parquet --actions-pack pack/nse_actions_pack.parquet --bse bse/bse_daily.parquet
           ls -lh data_cache/nse_long
           {
             echo "## NSE long price file"
@@ -103,9 +105,10 @@ jobs:
       - name: Check the new file is no smaller than the published one
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IN_SINCE: ${{ inputs.since || '2008-01-01' }}
         run: |
-          if [ "${{ inputs.since || '2008-01-01' }}" != "2008-01-01" ]; then
-            echo "::error::since=${{ inputs.since }}: only a build from 2008-01-01 may replace the published file"
+          if [ "$IN_SINCE" != "2008-01-01" ]; then
+            echo "::error::since=${IN_SINCE}: only a build from 2008-01-01 may replace the published file"
             exit 1
           fi
           mkdir -p published

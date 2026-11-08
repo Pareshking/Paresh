@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-08 — Cards match the site's table style; audit Low items
+
+- Next rebalance and Flows list their items as hairline rows like the market-question tables (they used bold grey labels with no rules). Momentum health shows its momentum and breadth rows again (the monthly file now carries the average stock's return).
+- Rebalances table: "Qualified rank at start / end"; Portfolio: "Overall Rank Now", so the two ranks are not confused.
+- Phone: section links and the menu button are at least 44 px tall.
+- Flows says NSDL's figures are by reporting date (each report covers the session before).
+
 ## 2026-11-08 — The record moves to a six-monthly reset from 30 Nov
 
 - From the 30 Nov 2026 rebalance every holding goes back to 5% twice a year, in March and September, instead of every month. In between, winners run (cut back only above 15%) and each new buy is 5% of the account at the last reset, paid from cash. This replaces the "winners run to 15%" change announced earlier today. Tested over 2010-26 with an estimate of Indian capital-gains tax: 15.3% a year after tax against 15.4% for the monthly reset, with far fewer trades; best of the four rules tested in 2026. Months before the change keep their figures.

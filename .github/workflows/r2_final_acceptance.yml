@@ -51,8 +51,12 @@ jobs:
       - name: Live PIT membership acceptance
         run: python scripts/r2_membership_live_validation.py --as-of "2026-09-18"
       - name: Live immutable research acceptance
+        env:
+          IN_DATASET: ${{ inputs.research_dataset || 'market_caps/nse_history' }}
+          IN_AS_OF: ${{ inputs.research_as_of || '2026-09-18' }}
+          IN_REVISION: ${{ inputs.research_revision || 'f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6' }}
         run: |
-          python scripts/r2_research_live_validation.py             --dataset "${{ inputs.research_dataset || 'market_caps/nse_history' }}"             --as-of "${{ inputs.research_as_of || '2026-09-18' }}"             --revision "${{ inputs.research_revision || 'f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6' }}"
+          python scripts/r2_research_live_validation.py --dataset "$IN_DATASET" --as-of "$IN_AS_OF" --revision "$IN_REVISION"
       - name: Live recovery audit
         run: python scripts/r2_recovery_audit.py
       - name: Live cost observability
