@@ -25,6 +25,7 @@ class Reading:
     value: str
     note: str = ""
     tone: str = ""  # "", "up", "down" or "warn"
+    spark: str = ""  # a spark_img() beside the figure (S99), or ""
 
 
 def sentence(text: str) -> str:
@@ -57,12 +58,43 @@ def _name_class(value: str) -> str:
     return " ms-name" if sum(c.isalpha() for c in value) > 8 else ""
 
 
+def spark_img(s, w: int = 120, h: int = 28, last: int | None = 63) -> str:
+    """A small trend line drawn beside a headline figure (S99, owner, 8 Nov
+    2026: tipsheet puts one next to its numbers). Blue when the series ends
+    above where it starts, rust when below; "" for fewer than five points.
+
+    st.html strips inline <svg>, so the line travels as an image; an image
+    cannot read CSS variables, so the colour is the token's value.
+    """
+    import base64
+
+    import pandas as pd
+
+    from src.ui.tokens import C
+
+    v = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
+    if last:
+        v = v.iloc[-last:]
+    if len(v) < 5:
+        return ""
+    lo, hi = float(v.min()), float(v.max())
+    span = (hi - lo) or 1.0
+    pts = " ".join(f"{i * (w - 2) / (len(v) - 1) + 1:.1f},{h - 2 - (x - lo) / span * (h - 4):.1f}"
+                   for i, x in enumerate(v))
+    tone = C.up if v.iloc[-1] >= v.iloc[0] else C.down
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
+           f'<polyline fill="none" stroke="{tone}" stroke-width="1.3" points="{pts}"/></svg>')
+    data = base64.b64encode(svg.encode()).decode()
+    return f'<img src="data:image/svg+xml;base64,{data}" width="{w}" height="{h}" alt="">'
+
+
 def readings(tiles: list[Reading], label: str) -> None:
     """The strip of big figures under the header."""
     cells = "".join(
         f'<div class="ms-tile"><span class="ms-k">{html.escape(t.label)}</span>'
         f'<span class="ms-v {t.tone}{_name_class(t.value)}" title="{html.escape(t.value)}">'
         f'{html.escape(t.value)}</span>'
+        + (f'<span class="ms-spark">{t.spark}</span>' if t.spark else "")
         + (f'<span class="ms-s">{html.escape(sentence(t.note))}</span>' if t.note else "")
         + "</div>"
         for t in tiles
@@ -134,6 +166,15 @@ def signed_number(v: float, digits: int = 1, plus: bool = True) -> str:
     r = round(v, digits)
     sign = ("+" if plus else "") if r > 0 else "\u2212" if r < 0 else ""
     return f"{sign}{abs(r):.{digits}f}"
+
+
+def pts(x: float | None) -> str:
+    """A difference between two returns (a fraction) in percentage points:
+    0.083 -> "+8.3 pts" (owner, 8 Nov 2026, S97 d). Formatting only."""
+    v = _finite(x)
+    if v is None:
+        return "\u2014"
+    return f"{signed_number(100 * v)} pts"
 
 
 def pct(x: float | None, signed: bool = True) -> str:

@@ -190,13 +190,15 @@ def test_the_menu_button_is_the_only_navigation_on_every_screen():
         assert group in components
 
 
-def test_track_record_copy_uses_percent_alpha_and_its_own_start():
+def test_track_record_copy_uses_points_alpha_and_its_own_start():
     source = (ROOT / "src/ui/views/track_record_view.py").read_text(encoding="utf-8")
     # Owner, 12 Oct 2026: "since <start>", not "YTD", which is wrong for a system
     # that started mid-year and for any record longer than one calendar year.
     assert "f\"after costs · since {start.strftime('%b %Y')}\"" in source
     assert '"after costs · YTD"' not in source
-    assert 'kit.Reading("Ahead of the index", _pct(stats["alpha"]),' in source
+    # Alpha in points (owner, 8 Nov 2026, S97 d; replaces 12 Oct's %), through
+    # the formatter, never by rewriting a % string.
+    assert 'kit.Reading("Ahead of the index", _fmt.pts(stats["alpha"]),' in source
     assert 'replace("%", " pts")' not in source
     assert "Each system starts on its own date" not in source
     assert "A dash means the system had not started yet" not in source
@@ -224,11 +226,12 @@ def test_one_word_for_one_thing_across_pages():
     assert "Momentum Signal" not in (ROOT / "app.py").read_text(encoding="utf-8")
 
 
-def test_backtest_alpha_is_a_percent_like_track_record():
-    # Owner, 12 Oct 2026: the Backtest headline alpha reads as Track Record's does.
+def test_backtest_alpha_is_in_points_like_track_record():
+    # Owner, 12 Oct 2026: the Backtest headline alpha reads as Track Record's
+    # does; 8 Nov 2026 (S97 d): both in points.
     source = (ROOT / "src/ui/views/backtest_view.py").read_text(encoding="utf-8")
-    assert "f\"{_fmt.pct(stats['alpha'])}\"" in source
-    assert " pts\"" not in source
+    assert "_fmt.pts(stats['alpha'])" in source
+    assert "_fmt.pct(stats['alpha'])" not in source
 
 
 def test_production_qa_does_not_wait_for_the_removed_live_month_note():

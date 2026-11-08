@@ -42,7 +42,7 @@ PALETTE: dict[str, str] = {
     "caution": "#B54708", "caution_ink": "#7A2E0E", "caution_tint": "#FEF6EA", "caution_line": "#F5D7A8",
     # charts: two series hues that are neither up, down nor caution (the
     # 20-day EMA, the Nifty 500 overlay, a third breadth line); the faint grid
-    "teal": "#3E8A83", "violet": "#6E5A9E", "grid": "#F0F0ED",
+    "quiet": "#A9A9A4", "teal": "#3E8A83", "violet": "#6E5A9E", "grid": "#F0F0ED",
 }
 
 FONTS: dict[str, str] = {

@@ -61,6 +61,18 @@ def inr(x, decimals: int = 0, plus: bool = False) -> str:
     return f"{sign}₹{indian_group(whole)}{frac}"
 
 
+def pts(x, digits: int = 1, fraction: bool = True) -> str:
+    """A difference between two returns, in percentage points: 0.083 -> "+8.3 pts".
+
+    Alpha is the strategy's return less the index's, so "+8.3%" would read as
+    8.3% OF the index's return (owner, 8 Nov 2026: points, S97 d).
+    """
+    v = _finite(x)
+    if v is None:
+        return DASH
+    return f"{signed(v * 100 if fraction else v, digits)} pts"
+
+
 def pct(x, signed_: bool = True, digits: int = 1, fraction: bool = True) -> str:
     """A return as a percentage: 0.023 -> "+2.3%" (fraction=False takes 2.3)."""
     v = _finite(x)

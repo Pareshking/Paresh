@@ -94,9 +94,14 @@ def test_every_page_is_declared_with_an_explicit_title_and_url_path():
     ]
     if not pages:
         pytest.skip("app.py is not using st.navigation")
+    # The default page is served at "/" whatever url_path it declares: a
+    # declared "home" was ignored and /home showed "Page not found" (8 Nov 2026),
+    # so it declares none and /home is a redirect. Every other page needs one.
     missing = [
         ast.unparse(p)[:60] for p in pages
-        if not {"title", "url_path"} <= {kw.arg for kw in p.keywords}
+        if not ({"title", "url_path"} <= {kw.arg for kw in p.keywords}
+                or ({"title", "default"} <= {kw.arg for kw in p.keywords}
+                    and "url_path" not in {kw.arg for kw in p.keywords}))
     ]
     assert not missing, f"pages missing title or url_path: {missing}"
     defaults = [p for p in pages

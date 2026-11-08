@@ -1174,7 +1174,7 @@ _PAGES = [
     # The Dashboard is the home page, served at "/" (owner, 7 Nov 2026);
     # "dashboard" is the redirect below. The Screener has its own address.
     # In the menu's groups (owner, 7 Nov): My book, then Market, then Method.
-    st.Page(_page_dashboard, title="Dashboard", url_path="home", default=True),
+    st.Page(_page_dashboard, title="Dashboard", default=True),
     st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
     st.Page(_page_actions, title="Actions", url_path="actions"),
     st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
@@ -1191,11 +1191,14 @@ _PAGES = [
 # either still lands there. These are redirects, not pages -- they are left out
 # of _PAGES, so no menu shows them, and their titles are not the app's tabs.
 _MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch", "track-record": "Track Record",
-          "dashboard": "Dashboard link"}
+          "dashboard": "Dashboard link", "home": "Home link"}
 # Where a moved address now lands (Actions unless listed): the record is part of Portfolio.
 # The Dashboard is the default page, which Streamlit serves at "/" only, so a
-# typed /dashboard is a redirect to it (as /screener was until 7 Nov).
-_MOVED_TO = {"track-record": "Portfolio", "dashboard": "Dashboard"}
+# typed /dashboard is a redirect to it (as /screener was until 7 Nov). /home was
+# the Dashboard's declared url_path, which Streamlit ignores for the default
+# page, so /home showed "Page not found" (found 8 Nov on the live site): it is a
+# redirect now too.
+_MOVED_TO = {"track-record": "Portfolio", "dashboard": "Dashboard", "home": "Dashboard"}
 
 
 def _moved_page(path: str):

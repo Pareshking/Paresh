@@ -7,7 +7,6 @@ on hover), what changed, and a link to the page that owns the detail.
 """
 from __future__ import annotations
 
-import base64
 import html
 
 import pandas as pd
@@ -17,7 +16,7 @@ from src.engine import market_questions as mq
 from src.engine import size_leadership as sl
 from src.engine.pipeline import price_fingerprint
 from src.ui import formats as _fmt
-from src.ui.tokens import C
+from src.ui import page_kit as kit
 from src.ui.system_param import page_href
 
 _VOTE_WORD = {
@@ -656,20 +655,9 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
 # ── The market strip: each index's day, its last three months, its month ────
 
 def _spark(s: pd.Series, w: int = 120, h: int = 28) -> str:
-    v = s.dropna().iloc[-63:]
-    if len(v) < 5:
-        return ""
-    lo, hi = float(v.min()), float(v.max())
-    span = (hi - lo) or 1.0
-    pts = " ".join(f"{i * (w - 2) / (len(v) - 1) + 1:.1f},{h - 2 - (x - lo) / span * (h - 4):.1f}"
-                   for i, x in enumerate(v))
-    # st.html strips inline <svg>, so the line travels as an image; an image
-    # cannot read CSS variables, so the colour is the token's value.
-    tone = C.up if v.iloc[-1] >= v.iloc[0] else C.down
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
-           f'<polyline fill="none" stroke="{tone}" stroke-width="1.3" points="{pts}"/></svg>')
-    data = base64.b64encode(svg.encode()).decode()
-    return f'<img src="data:image/svg+xml;base64,{data}" width="{w}" height="{h}" alt="">'
+    """The index's last three months (63 sessions): kit.spark_img, shared with
+    the headline figures on other pages (S99)."""
+    return kit.spark_img(s, w, h, last=63)
 
 
 def market_strip_html(series: dict[str, pd.Series]) -> str:

@@ -494,6 +494,21 @@ CATEGORICAL = (
 SECTOR_SOFT_PALETTE = CATEGORICAL
 
 
+def leadership_colours(board: pd.DataFrame) -> dict[str, str]:
+    """The sector leadership map's colours (owner, 8 Nov 2026, S97 g): every
+    sector a quiet grey, the leader (best return against the Nifty 500 today)
+    in blue and the laggard (worst) in rust; the sector a reader taps turns ink
+    in the chart itself. With twenty hues no dot could be matched to its name;
+    grey plus three answers "who is leading?" at a glance, and it is still not
+    green and red (13 Oct)."""
+    colours = {s: "var(--c-quiet)" for s in board["Sector"]}
+    if len(board) >= 2:
+        ranked = board.sort_values("x_now")
+        colours[ranked["Sector"].iloc[-1]] = "var(--c-up)"
+        colours[ranked["Sector"].iloc[0]] = "var(--c-down)"
+    return colours
+
+
 def sector_colours(names) -> dict[str, str]:
     """One soft colour per sector, fixed by name so the map, its table and
     every EMA tab agree (owner, 13 Oct: subtle colours, not green and red)."""
@@ -518,7 +533,7 @@ const series=rows.map(r=>({name:r.name,id:r.name,color:col(r),row:r,
         {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'var(--c-white)',lineWidth:1,radius:4.5,symbol:'circle'}}]}));
 function paint(chart){
   chart.series.forEach(s=>{const on=!focus||s.name===focus,me=focus&&s.name===focus;
-    const c=col(s.options.row);
+    const c=me?'var(--c-ink)':col(s.options.row);
     s.update({opacity:on?1:0.12,lineWidth:me?2:1.2,zIndex:me?10:1,color:c,
       data:s.options.data.map((p,i)=>Object.assign({},p,{marker:Object.assign({},p.marker,i===0?{lineColor:c}:{fillColor:c})})),
       dataLabels:{enabled:on,style:{fontWeight:me?'600':'500',color:me?'var(--c-ink)':'var(--c-text_2)'}}},false);});
@@ -563,7 +578,7 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
     if board.empty:
         return
     short = short or {}
-    colour = sector_colours(board["Sector"])
+    colour = leadership_colours(board)
     rows = [{
         "name": short.get(r.Sector, r.Sector), "full": r.Sector, "stocks": int(r.Stocks),
         "c": colour[r.Sector],
