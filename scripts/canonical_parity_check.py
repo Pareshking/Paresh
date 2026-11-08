@@ -31,6 +31,7 @@ import json
 import logging
 import sys
 import tempfile
+import time
 import warnings
 from pathlib import Path
 
@@ -66,13 +67,26 @@ TOL_PCT = 1e-6  # weights and caps, in percent
 PARITY_CHECK_VERSION = "identity-v2"
 
 
-def _download(url: str, into: Path) -> Path:
+def _download(url: str, into: Path, tries: int = 4) -> Path:
+    """A release asset, retried on a server error or a dropped connection: GitHub's
+    release downloads answer 504 now and then (8 Nov 2026: 504, then 200 twice), and
+    one such reply used to fail the whole check."""
     path = into / url.rsplit("/", 1)[-1]
-    with requests.get(url, timeout=180, stream=True) as r:
-        r.raise_for_status()
-        with open(path, "wb") as fh:
-            for chunk in r.iter_content(1 << 18):
-                fh.write(chunk)
+    for attempt in range(1, tries + 1):
+        try:
+            with requests.get(url, timeout=180, stream=True) as r:
+                if r.status_code >= 500 and attempt < tries:
+                    raise requests.HTTPError(f"HTTP {r.status_code}", response=r)
+                r.raise_for_status()
+                with open(path, "wb") as fh:
+                    for chunk in r.iter_content(1 << 18):
+                        fh.write(chunk)
+            return path
+        except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if attempt == tries or (status is not None and status < 500):
+                raise
+            time.sleep(5 * attempt)
     return path
 
 
