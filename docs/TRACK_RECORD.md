@@ -163,7 +163,19 @@ top_n 20 · monthly rebalance · 50 EMA · 80% of 52W high
 equal weight · 30 bps cost · 2× persistence buffer (top 40)
 weights 10/30/30/20/10 · benchmark ^CRSLDX
 hard caps: 5% per stock · 40% per NSE industry (≤ 8 of 20 names), never relaxed
+from the 30 Nov 2026 signal: winners run to 15% (hold_cap 0.15, hold_cap_from 2026-11-30)
 ```
+
+**Winners run to 15% (owner, 8 Nov 2026: "Switch to 15% from next rebalance").** Until
+the 30 Nov 2026 signal every rebalance reset each holding to 1/20 = 5% (the 5% cap
+above), trimming winners and topping up laggards. From that signal a kept holding keeps
+the weight its price gave it, trimmed only above 15%; money from sells and trims buys
+the new names in equal parts; the 40% industry cap stays hard at the rebalance
+(`backtester._let_winners_run`). Tested first (TODO S111, `scripts/research/let_winners_run.py`):
+Nifty 500 2010-26 reset 18.8% a year vs 18.2%; Feb-Oct 2026 on the 750 +38.6% vs +45.5%.
+Forward-dated: months governed by earlier signals keep the reset and their
+fingerprints (`track_record.config_for_month`); re-run with the rule, the record to
+date is identical to the last decimal. The new-buy size is no longer a fixed 5%.
 
 The caps are enforced at **selection** (`backtester._select_holdings` with
 `sector_slots`): an over-full industry keeps its best-ranked names and the free slot

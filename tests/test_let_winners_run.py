@@ -36,3 +36,32 @@ def test_a_fresh_book_is_equal_weight():
     w = _let_winners_run(_target(["A", "B", "C", "D"]), pd.Series(dtype=float), [], 0.15)
     assert w.tolist() == pytest.approx([0.15, 0.15, 0.15, 0.15])
     assert w.attrs["cash"] == pytest.approx(0.40)
+
+
+def test_the_industry_cap_stays_hard_at_the_rebalance():
+    sec = {"A": "Pharma", "B": "Pharma", "C": "Pharma", "D": "IT", "NEW": "Pharma", "NEW2": "IT"}
+    standing = pd.Series({"A": 0.15, "B": 0.15, "C": 0.15, "D": 0.05, "SOLD": 0.50})
+    w = _let_winners_run(_target(["A", "B", "C", "D", "NEW", "NEW2"]), standing,
+                         ["A", "B", "C", "D", "SOLD"], 0.15, sec, 0.40)
+    pharma = w[["A", "B", "C", "NEW"]].sum()
+    assert pharma <= 0.40 + 1e-9                     # 45% kept was scaled to 40%, NEW gets no Pharma room
+    assert w["NEW"] == pytest.approx(0.0, abs=1e-9)
+    assert w["NEW2"] == pytest.approx(0.15)          # IT had room
+    assert w.max() <= 0.15 + 1e-12
+
+
+def test_the_rule_starts_at_the_30_nov_signal_and_frozen_months_keep_their_fingerprints():
+    from src.engine.backtester import _hold_cap_on
+    from src.engine.track_record import TRACK_RECORD_CONFIG as cfg
+    from src.engine.track_record import config_fingerprint, config_for_month
+
+    assert cfg["hold_cap"] == 0.15 and cfg["hold_cap_from"] == "2026-11-30"
+    old = {k: v for k, v in cfg.items() if k not in ("hold_cap", "hold_cap_from", "members_only_scoring_from")}
+    for month in ("2026-01", "2026-10", "2026-11"):                # governed by signals before 30 Nov
+        assert config_for_month(cfg, month) == old
+        assert config_fingerprint(**config_for_month(cfg, month)) == config_fingerprint(**old)
+    dec = config_for_month(cfg, "2026-12")
+    assert dec["hold_cap"] == 0.15 and dec["hold_cap_from"] == "2026-11-30"
+    assert not _hold_cap_on(0.15, "2026-11-30", "2026-10-30")
+    assert _hold_cap_on(0.15, "2026-11-30", "2026-11-30")
+    assert not _hold_cap_on(None, "2026-11-30", "2027-01-29")

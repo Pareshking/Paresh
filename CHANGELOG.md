@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — Winners run to 15% from the 30 Nov rebalance
+
+- Until now every monthly rebalance put each holding back to 5% of the book, selling part of a winner and topping up a laggard. From the 30 Nov 2026 rebalance a holding that stays keeps the weight its price gave it, cut back only above 15%; the money from sales and cuts buys the new names in equal parts, and no industry is above 40% after a rebalance. Tested first: on the Nifty 500 from 2010 the reset earned 18.8% a year and letting winners run 18.2%; from February to October 2026, +38.6% against +45.5%. Months before the change keep the old rule and their figures.
+
 ## 2026-11-08 — The data line on the Screener only
 
 - The line of data dates and counts at the foot of the page (prices, market caps, all-time highs, gap-filled and short-history counts, where the data came from) now shows on the Screener only. Other pages keep the copyright; the header's price chip still gives the closes' date.

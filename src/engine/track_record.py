@@ -69,6 +69,15 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     # A forward-dated rule: months it does not govern keep their fingerprint
     # (config_fingerprint_for_month), so no frozen month changes regime.
     "members_only_scoring_from": "2026-11-30",
+    # Let winners run to 15% (owner, 8 Nov 2026: "Switch to 15% from next
+    # rebalance", after TODO S111's test: 2010-26 reset 18.8% a year vs 18.2%,
+    # Feb-Oct 2026 +38.6% vs +45.5%). From the 30 Nov 2026 signal a kept
+    # holding keeps the weight the market gave it, trimmed only above 15%; the
+    # money from sells and trims buys the new names in equal shares
+    # (backtester._let_winners_run). Forward-dated like the rule above: earlier
+    # months keep the monthly reset to 5% and their fingerprints.
+    "hold_cap": 0.15,
+    "hold_cap_from": "2026-11-30",
     # Position and industry caps (owner, 2026-10-02), HARD: no stock above 5%
     # and no NSE industry above 40% of the book at any rebalance. Enforced at
     # selection (at most 8 of 20 names per industry; the rest go to the
@@ -193,7 +202,9 @@ def config_fingerprint(**params: Any) -> str:
 
 # Rules that start on a signal date. A month governed by an earlier signal was
 # not struck under them, so they are left out of that month's fingerprint.
-FORWARD_DATED_KEYS = ("members_only_scoring_from",)
+FORWARD_DATED_KEYS = ("members_only_scoring_from", "hold_cap_from")
+# Settings that exist only with a forward-dated rule: left out with it.
+FORWARD_DATED_COMPANIONS = {"hold_cap_from": ("hold_cap",)}
 
 
 def config_for_month(cfg: dict[str, Any], period) -> dict[str, Any]:
@@ -202,8 +213,9 @@ def config_for_month(cfg: dict[str, Any], period) -> dict[str, Any]:
     A month is governed by the signal on the last session of the month
     before, so a rule dated D governs the months that start after D."""
     start = pd.Period(period, freq="M").start_time.normalize()
-    return {k: v for k, v in cfg.items()
-            if not (k in FORWARD_DATED_KEYS and v and start <= pd.Timestamp(v).normalize())}
+    later = [k for k in FORWARD_DATED_KEYS if cfg.get(k) and start <= pd.Timestamp(cfg[k]).normalize()]
+    drop = set(later) | {c for k in later for c in FORWARD_DATED_COMPANIONS.get(k, ())}
+    return {k: v for k, v in cfg.items() if k not in drop}
 
 
 def config_fingerprint_for_month(cfg: dict[str, Any], period) -> str:

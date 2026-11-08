@@ -488,29 +488,53 @@ def _step_portfolio_allocation(
     return full_w, turnover_period, friction_drag
 
 
-def _let_winners_run(target: pd.Series, standing: pd.Series, prev_holdings,
-                     hold_cap: float) -> pd.Series:
-    """Research rule (owner, 8 Nov 2026): kept names keep their drifted weight up
-    to `hold_cap`; the money freed by sells and by trims above the cap goes to
-    the new buys in equal shares; with no buys it goes to the kept names in
-    proportion. No name ends above `hold_cap`; what cannot be placed stays cash.
+def _hold_cap_on(hold_cap: float | None, hold_cap_from: str | None, signal) -> bool:
+    """Whether the let-winners-run rule governs the rebalance struck at `signal`."""
+    if hold_cap is None:
+        return False
+    return hold_cap_from is None or pd.Timestamp(signal).normalize() >= pd.Timestamp(hold_cap_from).normalize()
 
-    `target`: the live rule's weights for this rebalance (its index is the new
+
+def _let_winners_run(target: pd.Series, standing: pd.Series, prev_holdings,
+                     hold_cap: float, sector_map: dict[str, str] | None = None,
+                     sector_cap: float | None = None) -> pd.Series:
+    """Let winners run (owner, 8 Nov 2026): kept names keep their drifted weight
+    up to `hold_cap`; the money freed by sells and by trims goes to the new buys
+    in equal shares; with no buys it goes to the kept names in proportion.
+
+    The industry cap stays HARD at the rebalance (owner, 2 Oct 2026): an
+    industry above `sector_cap` has its kept names scaled down to it, and no
+    money is placed that would carry an industry past it. No name ends above
+    `hold_cap`; what cannot be placed stays cash.
+
+    `target`: the reset rule's weights for this rebalance (its index is the new
     book). `standing`: the old book as it stands at this fill (_drift_holdings).
     """
     names = list(target.index)
     if not names:
         return target
     prev = set(prev_holdings or [])
+    ind = pd.Series({s: (sector_map or {}).get(s, f"_{s}") for s in names})
+    capped_ind = sector_map is not None and sector_cap is not None
     kept = [s for s in names if s in prev and float(standing.get(s, 0.0)) > 0]
     buys = [s for s in names if s not in kept]
     w = pd.Series(0.0, index=names)
     if kept:
         w[kept] = standing.reindex(kept).astype(float).clip(upper=hold_cap).to_numpy()
+        if capped_ind:
+            by = w.groupby(ind).sum()
+            for g, tot in by[by > sector_cap].items():
+                members = ind.index[ind == g]
+                w[members] *= sector_cap / tot
     free = max(1.0 - float(w.sum()), 0.0)
     takers = buys if buys else kept
-    for _ in range(len(names) + 1):              # spread, re-spreading what a cap turns away
+    for _ in range(2 * len(names) + 2):          # spread, re-spreading what a cap turns away
         room = (hold_cap - w[takers]).clip(lower=0.0)
+        if capped_ind:
+            ind_room = (sector_cap - w.groupby(ind).sum()).clip(lower=0.0)
+            for g in set(ind[takers]):
+                grp = [s for s in takers if ind[s] == g]
+                room[grp] = room[grp].clip(upper=ind_room.get(g, 0.0) / len(grp))
         takers = [s for s in takers if room[s] > 1e-12]
         if free <= 1e-12 or not takers:
             break
@@ -926,6 +950,7 @@ def run_backtest(
     ath_min_years: float = 3.0,
     members_only_scoring_from: str | None = MEMBERS_ONLY_SCORING_FROM,
     hold_cap: float | None = None,
+    hold_cap_from: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -937,10 +962,14 @@ def run_backtest(
     close on file up to the signal date (0.80 = within 20% of it). Both are
     Backtest-page research options (owner, 9 Oct 2026); the defaults are the
     live system and leave every result unchanged.
-    ``hold_cap``: research only (owner, 8 Nov 2026: "let winners run till
-    weight is 15%"). When set, a kept holding is NOT reset to its target at a
-    rebalance: it keeps the weight the market gave it, trimmed only above
-    ``hold_cap``; see `_let_winners_run`. None (default) is the live rule.
+    ``hold_cap``: owner, 8 Nov 2026: "let winners run till weight is 15%",
+    then "switch to 15% from next rebalance". When set, a kept holding is NOT
+    reset to its target at a rebalance: it keeps the weight the market gave
+    it, trimmed only above ``hold_cap``; see `_let_winners_run`.
+    ``hold_cap_from``: the first signal date it governs (the record: the
+    30 Nov 2026 signal); earlier signals keep the monthly reset, so frozen
+    months are untouched. None with a ``hold_cap`` applies it throughout
+    (research). ``hold_cap`` None is the monthly reset everywhere.
     """
     if score_method not in ("sharpe", "return"):
         raise ValueError(f"score_method must be 'sharpe' or 'return', not {score_method!r}")
@@ -1217,8 +1246,9 @@ def run_backtest(
         standing_weights = _drift_holdings(
             prev_weights, prices_ff, prev_fill_idx, fwd_start
         )
-        if hold_cap is not None:
-            wts = _let_winners_run(wts, standing_weights, prev_holdings, hold_cap)
+        if _hold_cap_on(hold_cap, hold_cap_from, dates[start_idx]):
+            wts = _let_winners_run(wts, standing_weights, prev_holdings, hold_cap,
+                                   sec_map or None, sector_cap)
         full_w, turnover_period, friction_drag = _step_portfolio_allocation(
             wts, standing_weights, prices.columns, cost_bps
         )
@@ -1610,6 +1640,12 @@ def run_backtest(
                 new_holdings, log_ret, rebal_idx, weight_method,
                 sector_map=sec_map, stock_cap=stock_cap, sector_cap=sector_cap,
             )
+            # The pending rebalance follows the same rule as the loop above, so
+            # Actions and Portfolio show the weights the record will strike.
+            if _hold_cap_on(hold_cap, hold_cap_from, rebal_signal_dt):
+                new_wts = _let_winners_run(
+                    new_wts, _drift_holdings(prev_weights, prices_ff, prev_fill_idx, fill_idx),
+                    prev_holdings, hold_cap, sec_map or None, sector_cap)
 
             sold = [s for s in prev_holdings if s not in new_holdings]
             bought = [s for s in new_holdings if s not in prev_holdings]
