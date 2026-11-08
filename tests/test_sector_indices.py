@@ -62,3 +62,18 @@ def test_the_leaders_sentence_names_the_top_and_bottom():
     verdict, sentence = si.leaders_sentence(si.sector_rotation(levels, n500))
     assert verdict.startswith("Media")
     assert "Media leads by +" in sentence and "Energy trails by −" in sentence
+
+
+def test_both_dashboard_blocks_render_from_a_result():
+    """The calculation's tests did not draw the blocks; a name clash broke them (8 Nov)."""
+    from src.ui.views import market_questions_view as mqv
+
+    d = _all()
+    d["sector_bank"] = (0.002, 0.002)
+    d["sector_it"] = (-0.003, 0.004)
+    levels, n500 = _levels(d)
+    res = si.sector_rotation(levels, n500)
+    lead = mqv.sectors_lead_html(res)
+    change = mqv.sectors_changing_html(res)
+    assert 'id="d-lead">Which sectors lead?</h2>' in lead and "<td>Bank</td>" in lead
+    assert 'id="d-change">Is leadership changing?</h2>' in change and "Gaining" in change and "IT" in change

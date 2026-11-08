@@ -93,7 +93,8 @@ def _changed(a: mq.Answer) -> str:
 DASH_ANCHORS = {"breadth": "d-breadth", "trend": "d-trend", "lead": "d-lead", "change": "d-change"}
 
 
-def _pts(v: float) -> str:
+def _sector_pts(v: float) -> str:
+    """A fraction as signed points, "+8.7" / "−4.1" (the sector tables)."""
     return f"{v * 100:+.1f}".replace("-", "−")
 
 
@@ -105,8 +106,8 @@ def sectors_lead_html(res) -> str:
     lc, sc = f"{si.LONG}M vs 500", f"{si.SHORT}M vs 500"
     rows = "".join(
         f'<tr><td>{html.escape(name)}</td>'
-        f'<td class="{"up" if r[lc] > 0 else "down"}">{_pts(r[lc])}</td>'
-        f'<td class="{"up" if r[sc] > 0 else "down"}">{_pts(r[sc])}</td></tr>'
+        f'<td class="{"up" if r[lc] > 0 else "down"}">{_sector_pts(r[lc])}</td>'
+        f'<td class="{"up" if r[sc] > 0 else "down"}">{_sector_pts(r[sc])}</td></tr>'
         for name, r in res.table.iterrows())
     return (
         f'<section class="mq" aria-label="Which sectors lead?"><h2 id="{DASH_ANCHORS["lead"]}">Which sectors lead?</h2>'
