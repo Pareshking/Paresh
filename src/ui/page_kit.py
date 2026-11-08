@@ -119,7 +119,7 @@ def note(lead: str, text: str = "") -> None:
 def card(title: str, key: str, aside: str = "") -> Iterator[None]:
     """A white card with a heading; anything drawn inside lands in it."""
     with st.container(key=f"pgcard_{key}"):
-        st.html(f'<div class="pg-card-h"><h2>{html.escape(title)}</h2>'
+        st.html(f'<div class="pg-card-h"><h2 id="s-{_slug(key)}">{html.escape(title)}</h2>'
                 + (f'<span>{html.escape(sentence(aside))}</span>' if aside else "") + "</div>")
         yield
 

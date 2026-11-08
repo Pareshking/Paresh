@@ -143,6 +143,12 @@ def _size_html(res: sl.SizeLeadership) -> str:
             f'<tbody>{"".join(body)}</tbody></table>')
 
 
+def page_nav_html(links: list[tuple[str, str]]) -> str:
+    """The "On this page" line: one link per (anchor, title)."""
+    items = "".join(f'<a href="#{html.escape(a)}">{html.escape(t)}</a>' for a, t in links)
+    return f'<nav class="qp-nav" aria-label="On this page">{items}</nav>'
+
+
 def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                           benchmark_close: pd.Series | None, system: str = "750") -> None:
     cfg = TRACK_RECORD_CONFIG
@@ -171,6 +177,9 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     _title, _sub = headline_parts(mtd, bench_mtd, n_watch, len(plan.sells), check)
     kit.headline(f"Dashboard · closes of {as_of:%-d %b %Y}", _title, _sub)
+    # "On this page", as on Breadth (owner, 8 Nov 2026). Filled in at the end,
+    # with only the sections that were drawn, so no link points at nothing.
+    nav_slot = st.empty()
 
     # The market in three questions, under the book's own line (owner, 7 Nov:
     # tipsheet's question pages as the model, from the data the app holds).
@@ -184,7 +193,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     _strip.update(size_closes(levels, size_ok))
     if _strip:
         st.html(market_strip_html(_strip))
-    render_market_questions(rank_df, adj_close, nifty500, size_closes(levels, size_ok))
+    drawn = render_market_questions(rank_df, adj_close, nifty500, size_closes(levels, size_ok))
 
     # Two columns, each a stack, so a short block never leaves a hole beside
     # a long one (owner, 7 Nov: "unnecessary white spaces and large gaps").
@@ -242,6 +251,10 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # flows under size leadership.
     from src.ui.views import dashboard_panels
     dashboard_panels.render(kit, top_l, low_l)
+    # Desktop reading order: the questions, then each column's top block, then the rest.
+    nav_slot.html(page_nav_html(drawn + [
+        ("s-db_risk", "Book at risk"), ("s-db_next", "Next rebalance"),
+        ("s-db_mh", "Momentum health"), ("s-db_size", "Size leadership"), ("s-db_flows", "Flows")]))
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

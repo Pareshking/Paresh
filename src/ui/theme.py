@@ -1906,6 +1906,13 @@ def inject_custom_css() -> None:
         [data-testid="stMarkdownContainer"] > p:last-child,
         [data-testid="stMarkdownContainer"] > div > p:last-child { margin-bottom: 0 !important; }
 
+        /* "On this page": section links under a page's headline (Breadth, and
+           the Dashboard from 8 Nov 2026). */
+        .qp-nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13.5px; margin: 0 0 14px; }
+        .qp-nav a { color: var(--c-ink) !important; text-decoration: underline;
+            text-decoration-color: var(--c-rule_strong); text-underline-offset: 3px; }
+        .mq h2, .pg-card-h h2 { scroll-margin-top: 72px; }
+
         /* ── Desktop quick links beside the menu (owner, 7 Nov 2026) ── */
         .st-key-app_quicklinks { gap: 2px !important; margin-left: auto !important; }
         .st-key-app_quicklinks [data-testid="stPageLink"] a {

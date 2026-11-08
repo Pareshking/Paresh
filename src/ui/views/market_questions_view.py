@@ -87,6 +87,11 @@ def _changed(a: mq.Answer) -> str:
             f"A year ago: {word(a.score_year_ago).lower()}.")
 
 
+# Anchors for the Dashboard's "On this page" line (owner, 8 Nov 2026: the
+# Breadth page's section links, on the Dashboard too).
+DASH_ANCHORS = {"breadth": "d-breadth", "trend": "d-trend", "lead": "d-lead"}
+
+
 def _answer_html(a: mq.Answer, kind: str, href: str, link: str) -> str:
     words = _VOTE_WORD[kind]
     rows = "".join(
@@ -95,7 +100,8 @@ def _answer_html(a: mq.Answer, kind: str, href: str, link: str) -> str:
         f'<td class="{m.vote}">{words[m.vote]}</td></tr>'
         for m in a.measures)
     return (
-        f'<section class="mq" aria-label="{html.escape(a.question)}"><h2>{html.escape(a.question)}</h2>'
+        f'<section class="mq" aria-label="{html.escape(a.question)}">'
+        f'<h2 id="{DASH_ANCHORS.get(kind, kind)}">{html.escape(a.question)}</h2>'
         f'<p class="mq-v {_tone(a)}">{html.escape(a.verdict)}</p>'
         f'<p class="mq-s">{html.escape(a.sentence)}</p>{_scale(a)}'
         '<table><thead><tr><th scope="col">Measure</th><th scope="col">Now</th>'
@@ -116,7 +122,7 @@ def _leaders_html(ld: mq.Leaders, href: str) -> str:
         groups.append(f'<tr><td>{g.capitalize()}</td><td style="text-align:left">'
                       f'{len(names)} · {html.escape(shown)}</td></tr>')
     return (
-        '<section class="mq" aria-label="What is leading?"><h2>What is leading?</h2>'
+        f'<section class="mq" aria-label="What is leading?"><h2 id="{DASH_ANCHORS["lead"]}">What is leading?</h2>'
         f'<p class="mq-v">{html.escape(verdict)}</p><p class="mq-s">{html.escape(ld.sentence)}</p>'
         # The size indices' figures are the Size leadership block's, below.
         + ('<table><thead><tr><th scope="col">Industries, median stock against the Nifty 500</th>'
@@ -147,26 +153,32 @@ def size_closes(levels: pd.DataFrame | None, ok: bool) -> dict[str, pd.Series]:
 
 
 def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
-                            size: dict[str, pd.Series]) -> None:
+                            size: dict[str, pd.Series]) -> list[tuple[str, str]]:
+    """The Dashboard's three answers. Returns (anchor, question) for each one
+    drawn, for the page's "On this page" line."""
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
-        return
+        return []
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
     key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size))])
     breadth, trend, leaders = _answers(key, px, industry, bench.dropna(), size)
-    cols = []
+    cols, drawn = [], []
     if breadth is not None:
         cols.append(_answer_html(breadth, "breadth", page_href("breadth"), "Market breadth"))
+        drawn.append((DASH_ANCHORS["breadth"], breadth.question))
     if trend is not None:
         cols.append(_answer_html(trend, "trend", page_href("breadth"), "Market breadth"))
+        drawn.append((DASH_ANCHORS["trend"], trend.question))
     if leaders is not None:
         cols.append(_leaders_html(leaders, page_href("sectors")))
+        drawn.append((DASH_ANCHORS["lead"], "What is leading?"))
     if not cols:
-        return
+        return []
     st.html(_CSS + f'<div class="mq-grid">{"".join(cols)}</div>'
             '<p class="mq-note">Counted over the stocks ranked today, so readings a year back leave out '
             'stocks that have since left the index. Each vote\'s cut-off shows on hover.</p>')
+    return drawn
 
 
 # ── Full question sections, for the pages that own the detail ───────────────
@@ -190,8 +202,6 @@ _PAGE_CSS = """<style>
 .qp td.up{color:var(--c-up);font-weight:600}.qp td.down{color:var(--c-down);font-weight:600}.qp td.mid{color:var(--c-muted)}
 .qp-tag{font-size:12px;color:var(--c-muted);margin-left:6px}
 .qp-note{font-size:12.5px;color:var(--c-muted);margin:6px 0 0}
-.qp-nav{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13.5px;margin:0 0 14px}
-.qp-nav a{color:var(--c-ink)!important;text-decoration:underline;text-decoration-color:var(--c-rule_strong);text-underline-offset:3px}
 @media (max-width:900px){.qp-top{grid-template-columns:1fr}.qp td.rule,.qp th.rule{display:none}}
 /* Phone: each evidence row stacks, the measure on a line of its own, then
    the bar, the figure and the vote (the four columns did not fit 375px). */

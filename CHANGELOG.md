@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — Dashboard: links to its sections
+
+- The Dashboard now opens with a line of links to its sections, as the Breadth page does: the three market questions, Book at risk, Next rebalance, Momentum health, Size leadership and Flows. A section left out for missing data gets no link.
+
 ## 2026-11-08 — Alpha in points; the sector map picks out the leader and laggard
 
 - Alpha, the strategy's return less the index's, now reads in points ("+8.3 pts") on Backtest, Portfolio and the record, so it is not read as a percentage of the index's return. Returns stay in %.
