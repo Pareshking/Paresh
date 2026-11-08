@@ -126,3 +126,32 @@ def test_fixed_buys_short_of_cash_buy_fewer_shares_and_never_sell_kept_names():
     assert w["A"] == pytest.approx(0.48) and w["B"] == pytest.approx(0.48)    # untouched
     assert w["N1"] == pytest.approx(0.02) and w["N2"] == pytest.approx(0.02)  # 4% cash shared
     assert w.attrs["cash"] == pytest.approx(0.0, abs=1e-12)
+
+
+def _px(seed=7, n=900, cols=12):
+    import numpy as np
+    rng = np.random.default_rng(seed)
+    idx = pd.bdate_range(end="2026-08-18", periods=n)
+    return pd.DataFrame(100 * np.exp(np.cumsum(rng.normal(0.0006, 0.02, (n, cols)), axis=0)),
+                        index=idx, columns=[f"S{i}" for i in range(cols)])
+
+
+def test_a_scheduled_reset_puts_every_holding_back_to_target_in_its_month():
+    """Research (owner, 8 Nov 2026): with weight_reset_months=(3,), the book struck at
+    a March signal is equal weight; at other signals kept names keep their drift."""
+    from src.engine.backtester import run_backtest
+    fn = run_backtest
+    while hasattr(fn, "__wrapped__"):
+        fn = fn.__wrapped__
+    kw = dict(top_n=4, rebal_freq=21, ema_period=20, high_pct=0.0, cost_bps=0.0, buffer_n=8,
+              stock_cap=1.0, sector_cap=1.0, hold_cap=0.5, buy_size=0.25)
+    res = fn("reset-test", _px(), weight_reset_months=(3,), **kw)
+    tb = res["tradebook"]
+    tb = tb[tb["Action"].str.contains("BUY|HOLD")].copy()
+    tb["start"] = pd.to_datetime(tb["Period Start"])
+    spreads = tb.groupby("start")["Weight %"].agg(lambda w: w.max() - w.min())
+    # the end-of-March signal fills on the first April session
+    april = [d for d in spreads.index if d.month == 4]
+    assert april, "no reset in the sample"
+    assert all(spreads[d] < 1e-6 for d in april)
+    assert spreads.max() > 1.0          # at other fills kept names drifted apart

@@ -996,6 +996,7 @@ def run_backtest(
     hold_cap: float | None = None,
     hold_cap_from: str | None = None,
     buy_size: float | None = None,
+    weight_reset_months: tuple[int, ...] | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -1021,6 +1022,12 @@ def run_backtest(
     fixed amount for the year, paid from cash; when cash is short the buys share
     it equally (fewer shares); cash left over stays cash; kept names are never
     sold to fund a buy and still trim above ``hold_cap``. See `_fixed_buys`.
+    ``weight_reset_months``: research only (owner, 8 Nov 2026), with
+    ``buy_size``: at a signal in one of these months (3 = end of March,
+    (3, 9) = March and September) every holding goes back to its target
+    weight, and the buy amount becomes ``buy_size`` of the account then;
+    between resets the ``buy_size`` rule applies. None keeps the yearly
+    31 March base of ``buy_size`` alone.
     """
     if score_method not in ("sharpe", "return"):
         raise ValueError(f"score_method must be 'sharpe' or 'return', not {score_method!r}")
@@ -1307,13 +1314,20 @@ def run_backtest(
                 acct *= (1.0 + _book_return(prev_weights, prices_ff, prev_fill_idx,
                                             prev_fill_idx, fwd_start))
             fill_dt = prices.index[min(fwd_start, len(prices.index) - 1)]
-            fy = fill_dt.year if fill_dt.month >= 4 else fill_dt.year - 1
-            if fy != base_fy:
-                base_acct, base_fy = acct, fy
+            reset_now = bool(weight_reset_months) and pd.Timestamp(dates[start_idx]).month in weight_reset_months
+            if weight_reset_months:
+                if reset_now or base_fy is None:
+                    base_acct, base_fy = acct, "set"
+            else:
+                fy = fill_dt.year if fill_dt.month >= 4 else fill_dt.year - 1
+                if fy != base_fy:
+                    base_acct, base_fy = acct, fy
         if _hold_cap_on(hold_cap, hold_cap_from, dates[start_idx]):
-            if buy_size is not None:
+            if buy_size is not None and not reset_now:
                 wts = _fixed_buys(wts, standing_weights, prev_holdings, hold_cap,
                                   buy_size * base_acct / acct, sec_map or None, sector_cap)
+            elif buy_size is not None:
+                pass                     # a scheduled reset: every holding back to its target
             else:
                 wts = _let_winners_run(wts, standing_weights, prev_holdings, hold_cap,
                                        sec_map or None, sector_cap)
