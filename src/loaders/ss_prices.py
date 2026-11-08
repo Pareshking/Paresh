@@ -43,7 +43,7 @@ BASE_URL_ENV = "SS_BASE_URL"  # the source's chart endpoint; kept out of the pub
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; umiya-ohlcv/1.0)",
            "Accept": "application/json"}
 PAGE_ROWS = 1000
-DELAY_S = 2.5            # between requests; the owner's 2-3 seconds
+DELAY_S = 3.0            # between requests; SS's owner, 8 Nov 2026: 3 s, no rests needed
 RESTATE_TOLERANCE = 0.005  # a stored close off by more than 0.5% means restated history
 JUMP_LIMIT = 0.20          # the owner's rule: a >20% session triggers a full refresh
 INDEX_SYMBOLS = {"CNX500": "Nifty 500", "NIFTY": "Nifty 50"}

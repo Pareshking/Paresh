@@ -17,8 +17,11 @@ _Last updated: 2026-10-10_
 
 The site behind SS belongs to a friend of the owner, who allowed its use on one
 condition: "do not hammer my site by downloading entire universe in one go,
-give some breathing to my website". Every SS request is 4 s apart, 40 stocks a
-round, 5 minutes' rest between rounds. Its name stays "SS" everywhere.
+give some breathing to my website". Until 8 Nov 2026 every SS request was 4 s
+apart with 5 minutes' rest every 40 stocks; on 8 Nov he told the owner "no rest
+is required, keep 3 sec between requests", so requests are now at least 3 s
+apart (never less: the jitter only adds) with no rests. Its name stays "SS"
+everywhere.
 
 **What the app ranks on:** Screener first, NSE for what Screener lacks
 (`src/loaders/price_source.ranking_frames`), Screener's weekly stretch filled
