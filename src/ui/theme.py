@@ -1508,6 +1508,27 @@ def inject_custom_css() -> None:
                 padding: 10px; margin: -10px -6px -10px 0;
             }
             [data-testid="stTooltipIcon"] { padding: 12px; margin: -12px; }
+            /* The clickable element is the button inside the icon, 16px
+               square on its own (design audit, 8 Nov 2026). */
+            [data-testid="stTooltipHoverTarget"], [data-testid="stTooltipHoverTarget"] button {
+                display: inline-flex; align-items: center; justify-content: center;
+                min-width: 44px !important; min-height: 44px !important; margin: -14px;
+            }
+            /* Every control a finger has to hit is at least 44px tall (design
+               audit, 8 Nov 2026: pills and segmented controls measured 32px on
+               every page, inputs 38px). The visible pill keeps its size; the
+               hit area grows around it. */
+            [data-testid="stButtonGroup"] button,
+            [data-baseweb="segmented-control"] button,
+            .stButton button, .stDownloadButton button, .stFormSubmitButton button,
+            [data-testid="stPopoverButton"],
+            [data-baseweb="select"] > div, [data-baseweb="input"] input,
+            [data-testid="stSelectbox"] input, [data-testid="stSelectbox"] button,
+            [data-testid="stNumberInput"] input, [data-testid="stNumberInputStepUp"],
+            [data-testid="stNumberInputStepDown"], [data-testid="stTextInput"] input {
+                min-height: 44px;
+            }
+            [data-testid="stExpander"] summary { min-height: 44px; align-items: center; }
         }
 
         /* Sectors' leaderboard in Ledger: no box, a rule above. */
