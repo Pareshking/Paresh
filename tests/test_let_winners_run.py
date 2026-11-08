@@ -93,3 +93,14 @@ def test_drift_keeps_cash_in_the_book():
     out = _drift_holdings(w, prices, 0, 1)
     assert out.sum() == pytest.approx(0.75)
     assert out["A"] == pytest.approx(0.40)
+
+
+def test_forward_dated_rules_fall_on_a_month_end_signal():
+    """Audit, 8 Nov 2026 (C-L1): config_for_month switches a rule on for months that
+    start after its date, the engine at signals on or after it; they agree only if the
+    date is a month's last business day (the signal date). Not a holiday check."""
+    from src.engine.track_record import FORWARD_DATED_KEYS, TRACK_RECORD_CONFIG as cfg
+    for key in FORWARD_DATED_KEYS:
+        d = pd.Timestamp(cfg[key])
+        assert d.weekday() < 5, (key, d)
+        assert d == d + pd.offsets.BMonthEnd(0), (key, d, "not the month's last business day")

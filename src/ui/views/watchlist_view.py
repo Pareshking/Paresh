@@ -37,7 +37,7 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
     user_symbols = watchlist_store.symbols()
     matched = rank_df[rank_df["Symbol"].isin(user_symbols)].sort_values("Rank").copy()
 
-    count = f"{len(matched)} stock{'s' if len(matched) != 1 else ''}" if user_symbols else "Nothing saved yet"
+    count = f"{len(matched)} stock{'s' if len(matched) != 1 else ''}" if user_symbols else "Saved in this browser"
     actions = kit.page_head("Watchlist", count, actions=True)
     if not matched.empty:
         actions.download_button("Export CSV", matched.to_csv(index=False).encode(),
@@ -58,6 +58,8 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
             key="wl_input_main",
             label_visibility="collapsed",
         )
+        # Not disabled while the box is empty: Streamlit reads typed text only on
+        # a rerun, so a disabled button would swallow the click that follows typing.
         st.button("Save watchlist", type="primary", key="wl_update_btn",
                   on_click=_save_from_input, help="Saved in this browser only.")
         if user_symbols:
