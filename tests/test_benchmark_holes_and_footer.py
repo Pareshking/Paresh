@@ -80,8 +80,21 @@ def _footer_html(monkeypatch, items):
     monkeypatch.setattr(components, "data_freshness", lambda: items)
     monkeypatch.setattr(components.st, "markdown", lambda *a, **k: captured.setdefault("ribbon", a[0]))
     monkeypatch.setattr(components.st, "html", lambda h, **k: captured.setdefault("footer", h))
-    components.render_data_quality_footer(total_stocks=750, gap_count=69, short_count=0)
+    components.render_data_quality_footer(total_stocks=750, gap_count=69, short_count=0, details=True)
     return captured
+
+
+def test_only_the_screener_shows_the_data_line(monkeypatch):
+    """Owner, 8 Nov 2026: the data line on the Screener only; elsewhere just the copyright."""
+    captured = []
+    monkeypatch.setattr(components, "data_freshness", lambda: ITEMS)
+    monkeypatch.setattr(components.st, "markdown", lambda *a, **k: captured.append(a[0]))
+    monkeypatch.setattr(components.st, "html", lambda h, **k: captured.append(h))
+    components.render_data_quality_footer(total_stocks=750, gap_count=3, short_count=6)
+    out = "".join(captured)
+    assert "© Paresh Patel" in out
+    for gone in ("Gap-filled", "Short history", "Data from", "Prices"):
+        assert gone not in out
 
 
 ITEMS = [

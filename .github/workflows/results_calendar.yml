@@ -1,0 +1,59 @@
+name: Results calendar (nightly)
+
+# NSE's board-meeting calendar (meetings announced ahead, and those held in the last
+# 60 days) into data/results_calendar.csv, for the Dashboard's "Coming up for the book"
+# (TODO S110, item 4). The script refuses an empty or halved forward calendar and fails
+# the job (visible through the scheduled-failure alert) rather than wipe the dates.
+# GitHub's schedule queue can be hours late; nothing here depends on the minute.
+on:
+  schedule:
+    - cron: '23 16 * * *'     # 21:53 IST, after NSE's evening filings
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: results-calendar
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install requests pandas
+
+      - name: Fetch NSE's board-meeting calendar
+        run: python scripts/collect_results_calendar.py
+
+      - name: Commit and push
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/results_calendar.csv data/results_calendar_meta.json
+          if git diff --staged --quiet; then
+            echo "No calendar changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(data): results calendar [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt; rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || {
+              git checkout --theirs -- data/results_calendar.csv data/results_calendar_meta.json 2>/dev/null || true
+              git add data/results_calendar.csv data/results_calendar_meta.json
+              GIT_EDITOR=true git rebase --continue || git rebase --abort
+            }
+            sleep $((attempt * 3))
+          done
+          echo "::error::Could not push the results calendar after 5 attempts."
+          exit 1

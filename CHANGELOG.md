@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-08 — The data line on the Screener only
+
+- The line of data dates and counts at the foot of the page (prices, market caps, all-time highs, gap-filled and short-history counts, where the data came from) now shows on the Screener only. Other pages keep the copyright; the header's price chip still gives the closes' date.
+
+## 2026-11-08 — Dashboard: coming up for the book
+
+- A new card under Next rebalance lists the holdings' and planned buys' board meetings for the next five weeks, by day, from NSE's board-meeting calendar, with the rebalance check in its place: "3 holdings report before the 30 Nov check; 17 of 20 have reported this season". Collected nightly; dates are as companies announced them.
+
 ## 2026-11-08 — Dashboard: how many stocks qualify, and the next rebalance's churn
 
 - A new card shows the share of the Nifty 500 passing the strategy's own filters at each month-end, with how our strategy's backtest did against the Nifty 500 in the months that followed few qualifiers since 2010: after the fewest (27% or less) the portfolio trailed the index by 0.8 pts a month on average, against a 1.2-pt lead after the rest, and the pattern held in each five-year block. At the end of September: 20%, fewer than in 87% of month-ends.

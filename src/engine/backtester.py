@@ -488,6 +488,42 @@ def _step_portfolio_allocation(
     return full_w, turnover_period, friction_drag
 
 
+def _let_winners_run(target: pd.Series, standing: pd.Series, prev_holdings,
+                     hold_cap: float) -> pd.Series:
+    """Research rule (owner, 8 Nov 2026): kept names keep their drifted weight up
+    to `hold_cap`; the money freed by sells and by trims above the cap goes to
+    the new buys in equal shares; with no buys it goes to the kept names in
+    proportion. No name ends above `hold_cap`; what cannot be placed stays cash.
+
+    `target`: the live rule's weights for this rebalance (its index is the new
+    book). `standing`: the old book as it stands at this fill (_drift_holdings).
+    """
+    names = list(target.index)
+    if not names:
+        return target
+    prev = set(prev_holdings or [])
+    kept = [s for s in names if s in prev and float(standing.get(s, 0.0)) > 0]
+    buys = [s for s in names if s not in kept]
+    w = pd.Series(0.0, index=names)
+    if kept:
+        w[kept] = standing.reindex(kept).astype(float).clip(upper=hold_cap).to_numpy()
+    free = max(1.0 - float(w.sum()), 0.0)
+    takers = buys if buys else kept
+    for _ in range(len(names) + 1):              # spread, re-spreading what a cap turns away
+        room = (hold_cap - w[takers]).clip(lower=0.0)
+        takers = [s for s in takers if room[s] > 1e-12]
+        if free <= 1e-12 or not takers:
+            break
+        share = (pd.Series(1.0, index=takers) if buys else w[takers].clip(lower=1e-12))
+        give = (share / share.sum() * free).clip(upper=room[takers])
+        w[takers] += give
+        free -= float(give.sum())
+    out = w.astype(float)
+    out.attrs = dict(target.attrs)
+    out.attrs["cash"] = max(free, 0.0)
+    return out
+
+
 def _book_return(
     weights: pd.Series,
     prices_ff: pd.DataFrame,
@@ -889,6 +925,7 @@ def run_backtest(
     exit_ath_pct: float | None = None,
     ath_min_years: float = 3.0,
     members_only_scoring_from: str | None = MEMBERS_ONLY_SCORING_FROM,
+    hold_cap: float | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -900,6 +937,10 @@ def run_backtest(
     close on file up to the signal date (0.80 = within 20% of it). Both are
     Backtest-page research options (owner, 9 Oct 2026); the defaults are the
     live system and leave every result unchanged.
+    ``hold_cap``: research only (owner, 8 Nov 2026: "let winners run till
+    weight is 15%"). When set, a kept holding is NOT reset to its target at a
+    rebalance: it keeps the weight the market gave it, trimmed only above
+    ``hold_cap``; see `_let_winners_run`. None (default) is the live rule.
     """
     if score_method not in ("sharpe", "return"):
         raise ValueError(f"score_method must be 'sharpe' or 'return', not {score_method!r}")
@@ -1176,6 +1217,8 @@ def run_backtest(
         standing_weights = _drift_holdings(
             prev_weights, prices_ff, prev_fill_idx, fwd_start
         )
+        if hold_cap is not None:
+            wts = _let_winners_run(wts, standing_weights, prev_holdings, hold_cap)
         full_w, turnover_period, friction_drag = _step_portfolio_allocation(
             wts, standing_weights, prices.columns, cost_bps
         )

@@ -606,6 +606,7 @@ def render_ranking_view(
         total_stocks=len(rank_df),
         gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
+        details=True,
     )
 
 

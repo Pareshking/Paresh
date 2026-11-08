@@ -1954,6 +1954,14 @@ def inject_custom_css() -> None:
         .db-kv dd { margin: 0 !important; color: var(--c-ink); }
         .db-kv a, .db-sectors a { color: var(--c-ink) !important; }
         .db-lede { margin: 0 0 4px; font-size: 14px; color: var(--c-ink); }
+        /* Coming up for the book: days on a rule, ticker in bold (as tipsheet's "Coming up") */
+        .db-cal { margin-top: 4px; }
+        .db-cal-day h3 { font-family: inherit !important; font-size: 12.5px !important; font-weight: 600 !important; color: var(--c-ink) !important; margin: 10px 0 0 !important; padding: 0 0 4px !important; border-bottom: 1px solid var(--c-rule_strong); letter-spacing: 0; }
+        .db-cal-day ul { list-style: none; margin: 0 !important; padding: 0 !important; }
+        .db-cal-day li { margin: 0 !important; padding: 5px 0 !important; font-size: 13.5px; color: var(--c-text_2); border-bottom: 1px solid var(--c-rule); }
+        .db-cal-day li b { color: var(--c-ink); font-weight: 600; margin-right: 6px; }
+        .db-cal-tag { font-size: 11.5px; color: var(--c-muted); border: 1px solid var(--c-rule_strong); border-radius: 2px; padding: 0 4px; margin-right: 6px; }
+        .db-cal-check { color: var(--c-muted) !important; font-style: italic; }
         /* A card's figures as rows: label left, figure right, hairlines (as .mq tables) */
         .db-fig { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; margin: 8px 0 2px; }
         .db-fig th { font-size: 12px; font-weight: 500; color: var(--c-muted); text-align: right; padding: 4px 0 4px 8px; border-bottom: 1px solid var(--c-rule_strong); }

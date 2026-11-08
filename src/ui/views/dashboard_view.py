@@ -198,6 +198,27 @@ def book_risk_html(res, as_of_record: pd.Timestamp | None) -> str:
     return head + (f'<p class="db-lede">{html.escape(lede)}</p>' if lede else "") + table + gaps
 
 
+def calendar_html(bc, check: pd.Timestamp) -> str:
+    """"Coming up for the book": the holdings' (and planned buys') board meetings by
+    day, as tipsheet's "Coming up" lists them, with the next check in its place."""
+    from src.engine import results_calendar as rc
+
+    days: dict[pd.Timestamp, list[str]] = {}
+    for r in bc.upcoming.itertuples():
+        tag = ' <span class="db-cal-tag">to buy</span>' if r.role == "to buy" else ""
+        days.setdefault(pd.Timestamp(r.date).normalize(), []).append(
+            f'<li><b>{html.escape(r.symbol)}</b>{tag} {html.escape(rc.short_purpose(r.purpose))}</li>')
+    check = pd.Timestamp(check).normalize()
+    if days and min(days) <= check <= max(days) + pd.Timedelta(days=7):
+        days.setdefault(check, []).insert(0, '<li class="db-cal-check">Rebalance check, at the close</li>')
+    blocks = "".join(f'<div class="db-cal-day"><h3>{d:%a, %-d %b}</h3><ul>{"".join(items)}</ul></div>'
+                     for d, items in sorted(days.items()))
+    if not blocks:
+        blocks = (f'<p class="db-note">No board meetings announced for the book in the next '
+                  f'{rc.AHEAD_DAYS // 7} weeks.</p>')
+    return f'<p class="db-lede">{html.escape(rc.lede(bc, check))}</p><div class="db-cal">{blocks}</div>'
+
+
 def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                           benchmark_close: pd.Series | None, system: str = "750",
                           volume: pd.DataFrame | None = None) -> None:
@@ -297,6 +318,19 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         kit.caption_link("The same plan as Actions, from today's ranking and the model book's rules.",
                          page_href("actions"), "Actions")
 
+    from src.engine import results_calendar as rc
+    # Meetings are on calendar days, so "upcoming" counts from today in India, not
+    # from the last close (a Saturday's page would list Friday's results as ahead).
+    bc = rc.for_book(rc.load(), symbols, list(plan.buys), pd.Timestamp(ist_now().date()),
+                     fetched=rc.fetched_on())
+    if bc is not None:
+        with top_r, kit.card("Coming up for the book", "db_cal", "board meetings, as announced"):
+            st.html(calendar_html(bc, check))
+            when = f", collected {bc.fetched_on:%-d %b}" if bc.fetched_on is not None else ""
+            kit.caption(f"NSE's board-meeting calendar for the holdings and the planned buys, the next "
+                        f"{rc.AHEAD_DAYS // 7} weeks{when}. Companies can move a meeting; results usually "
+                        "come out the same day or the next.")
+
     with low_l, kit.card("Size leadership", "db_size", "price return, NSE index closes"):
         res = None
         if levels is None or bench is None or "nifty500" not in bench or "nifty50" not in bench:
@@ -325,7 +359,8 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     dashboard_panels.render(kit, top_l, low_l)
     # Desktop reading order: the questions, then each column's top block, then the rest.
     nav_slot.html(page_nav_html(drawn + [
-        ("s-db_risk", "Book at risk"), ("s-db_bookrisk", "How risky is the book?"), ("s-db_next", "Next rebalance"),
+        ("s-db_risk", "Book at risk"), ("s-db_bookrisk", "How risky is the book?"), ("s-db_next", "Next rebalance")]
+        + ([("s-db_cal", "Coming up")] if bc is not None else []) + [
         ("s-db_mh", "Momentum health"), ("s-db_qual", "How many stocks qualify?"),
         ("s-db_size", "Size leadership"), ("s-db_flows", "Flows")]))
 
