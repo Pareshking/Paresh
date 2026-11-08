@@ -24,6 +24,28 @@ INDEX_NAMES = {
     "nifty_microcap250": "NIFTY MICROCAP 250",
 }
 
+# NSE's sector indices (owner, 8 Nov 2026, TODO S109: "Which sectors lead?"
+# and "Is leadership changing?" on the Dashboard). Optional: one that fails
+# is reported and left out; the five above stay required. Key -> (NSE name,
+# Screener page). The ids were read off Screener's index pages on 8 Nov 2026;
+# StockCharts' India RRG uses the same set less Services (no history on
+# Screener) and Midcap 100 (a size index).
+SECTOR_NAMES = {
+    "sector_bank": ("NIFTY BANK", "id/1272670"),
+    "sector_it": ("NIFTY IT", "id/1272649"),
+    "sector_pharma": ("NIFTY PHARMA", "id/1272672"),
+    "sector_auto": ("NIFTY AUTO", "id/1272796"),
+    "sector_fmcg": ("NIFTY FMCG", "id/1272711"),
+    "sector_metal": ("NIFTY METAL", "id/1272797"),
+    "sector_realty": ("NIFTY REALTY", "id/1272692"),
+    "sector_media": ("NIFTY MEDIA", "id/1272799"),
+    "sector_psu_bank": ("NIFTY PSU BANK", "id/1272693"),
+    "sector_fin_services": ("NIFTY FINANCIAL SERVICES", "id/1272803"),
+    "sector_pse": ("NIFTY PSE", "id/1272714"),
+    "sector_energy": ("NIFTY ENERGY", "id/1272671"),
+    "sector_infra": ("NIFTY INFRASTRUCTURE", "id/1272689"),
+}
+
 URL = "https://www.niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
@@ -79,14 +101,17 @@ def _merge_daily(weekly: pd.Series, daily: pd.Series | None) -> pd.Series:
     return pd.concat([older, daily]).sort_index()
 
 
+SIZE_SLUGS = {
+    "nifty50": "NIFTY",
+    "nifty_next50": "id/1272613",
+    "nifty_midcap150": "NMIDCAP150",
+    "nifty_smallcap250": "SMALLCA250",
+    "nifty_microcap250": "NFMICRO250",
+}
+
+
 def _fetch_screener(name_key: str, name: str, start: date, end: date) -> pd.DataFrame:
-    slugs = {
-        "nifty50": "NIFTY",
-        "nifty_next50": "id/1272613",
-        "nifty_midcap150": "NMIDCAP150",
-        "nifty_smallcap250": "SMALLCA250",
-        "nifty_microcap250": "NFMICRO250",
-    }
+    slugs = {**SIZE_SLUGS, **{k: slug for k, (_, slug) in SECTOR_NAMES.items()}}
     import requests
     session = requests.Session()
     cid = resolve_id(slugs[name_key], session)
@@ -114,16 +139,29 @@ def _fetch_screener(name_key: str, name: str, start: date, end: date) -> pd.Data
     frame["source"] = "Screener index chart (NSE index)"
     return frame[["date", "open", "high", "low", "close", "index", "source"]]
 
+def _one(key: str, name: str, start: date, end: date) -> tuple[pd.DataFrame, str]:
+    try:
+        return _fetch_official(name, start, end), "NSE Indices historical data"
+    except Exception as official_error:
+        print(f"INDEX_SOURCE_FALLBACK index={name} official={type(official_error).__name__}")
+        return _fetch_screener(key, name, start, end), "Screener index chart (NSE index)"
+
+
 def build(output: Path, start: date, end: date) -> dict:
+    import time
+
     parts = []
-    for key, name in INDEX_NAMES.items():
+    jobs = [(k, n, True) for k, n in INDEX_NAMES.items()] + [(k, n, False) for k, (n, _) in SECTOR_NAMES.items()]
+    for key, name, required in jobs:
+        if not required:
+            time.sleep(1.0)  # gentle on Screener for the optional set
         try:
-            frame = _fetch_official(name, start, end)
-            source = "NSE Indices historical data"
-        except Exception as official_error:
-            frame = _fetch_screener(key, name, start, end)
-            source = "Screener index chart (NSE index)"
-            print(f"INDEX_SOURCE_FALLBACK index={name} official={type(official_error).__name__}")
+            frame, source = _one(key, name, start, end)
+        except Exception as exc:
+            if required:
+                raise
+            print(f"SECTOR_INDEX_SKIPPED index={name} reason={type(exc).__name__}: {exc}")
+            continue
         frame["index"] = key
         frame["source"] = source
         frame["evidence_date"] = pd.Timestamp(end)
@@ -132,7 +170,8 @@ def build(output: Path, start: date, end: date) -> dict:
             raise RuntimeError(f"{name}: null close values")
         parts.append(frame[["date", "index", "open", "high", "low", "close", "source", "evidence_date"]])
     result = pd.concat(parts, ignore_index=True).sort_values(["index", "date"])
-    assert set(result["index"]) == set(INDEX_NAMES)
+    got = set(result["index"])
+    assert set(INDEX_NAMES) <= got <= set(INDEX_NAMES) | set(SECTOR_NAMES), got
     assert result[["index", "date"]].duplicated().sum() == 0
     output.parent.mkdir(parents=True, exist_ok=True)
     result.to_parquet(output, index=False)

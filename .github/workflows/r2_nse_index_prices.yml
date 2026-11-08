@@ -45,9 +45,10 @@ jobs:
         run: |
           python - <<'PY'
           import pandas as pd
-          from scripts.build_nse_index_prices import INDEX_NAMES
+          from scripts.build_nse_index_prices import INDEX_NAMES, SECTOR_NAMES
           f = pd.read_parquet('/tmp/nse_index_prices.parquet')
-          assert set(f['index']) == set(INDEX_NAMES)
+          # The five size indices are required; sector indices are optional (S109).
+          assert set(INDEX_NAMES) <= set(f['index']) <= set(INDEX_NAMES) | set(SECTOR_NAMES)
           assert f[['index','date']].duplicated().sum() == 0
           assert f['close'].notna().all()
           assert all(g['date'].is_monotonic_increasing for _, g in f.groupby('index'))
