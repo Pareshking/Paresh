@@ -39,7 +39,7 @@ def test_the_portfolio_evidence_replaces_the_factor_and_counts_blocks():
     assert pe["low"] < pe["rest"] and pe["since"] == 2010
     assert [lo for lo, _ in pe["blocks"]] == [2010, 2015] and all(ok for _, ok in pe["blocks"])
     out = dp.qualified_html(_with_portfolio())
-    assert "backtest since 2010" in out and "2 of 2 five-year blocks" in out
+    assert "backtest since 2010" in out and "2 of 2 five-year blocks" in out and "trailed the Nifty 500 by" in out
     assert "momentum factor" not in out
 
 
