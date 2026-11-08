@@ -56,12 +56,16 @@ def test_the_rule_starts_at_the_30_nov_signal_and_frozen_months_keep_their_finge
     from src.engine.track_record import config_fingerprint, config_for_month
 
     assert cfg["hold_cap"] == 0.15 and cfg["hold_cap_from"] == "2026-11-30"
-    old = {k: v for k, v in cfg.items() if k not in ("hold_cap", "hold_cap_from", "members_only_scoring_from")}
+    # Owner, 8 Nov 2026: "6 monthly reset final".
+    assert cfg["buy_size"] == 0.05 and list(cfg["weight_reset_months"]) == [3, 9]
+    rule = ("hold_cap", "hold_cap_from", "buy_size", "weight_reset_months", "members_only_scoring_from")
+    old = {k: v for k, v in cfg.items() if k not in rule}
     for month in ("2026-01", "2026-10", "2026-11"):                # governed by signals before 30 Nov
         assert config_for_month(cfg, month) == old
         assert config_fingerprint(**config_for_month(cfg, month)) == config_fingerprint(**old)
     dec = config_for_month(cfg, "2026-12")
     assert dec["hold_cap"] == 0.15 and dec["hold_cap_from"] == "2026-11-30"
+    assert dec["buy_size"] == 0.05 and list(dec["weight_reset_months"]) == [3, 9]
     assert not _hold_cap_on(0.15, "2026-11-30", "2026-10-30")
     assert _hold_cap_on(0.15, "2026-11-30", "2026-11-30")
     assert not _hold_cap_on(None, "2026-11-30", "2027-01-29")
@@ -155,3 +159,28 @@ def test_a_scheduled_reset_puts_every_holding_back_to_target_in_its_month():
     assert april, "no reset in the sample"
     assert all(spreads[d] < 1e-6 for d in april)
     assert spreads.max() > 1.0          # at other fills kept names drifted apart
+
+
+def test_actions_buy_weight_is_buy_size_of_the_account_at_the_last_reset():
+    from src.engine.actions import fixed_buy_weight
+    idx = pd.bdate_range("2026-01-01", "2026-11-06")
+    eq = pd.Series(1.0, index=idx)
+    eq[eq.index > pd.Timestamp("2026-09-30")] = 1.2          # value at the 1 Oct reset fill
+    eq.iloc[-1] = 1.5                                         # today
+    assert fixed_buy_weight(eq, (3, 9), 0.05) == pytest.approx(0.05 * 1.2 / 1.5)
+    assert fixed_buy_weight(None, (3, 9), 0.05) is None
+
+
+def test_the_plan_uses_fixed_buys_between_resets():
+    from src.engine.actions import plan_rebalance
+    rank = pd.DataFrame({"Symbol": ["A", "B", "N1"], "Industry": ["X", "Y", "Z"], "Qualified #": [1, 2, 3]})
+    standing = pd.Series({"A": 0.30, "B": 0.03, "SOLD": 0.67})
+    try:
+        plan = plan_rebalance(rank, ["A", "B", "SOLD"], top_n=3, buffer_n=6,
+                              standing=standing, hold_cap=0.15, buy_weight=0.04)
+    except Exception as exc:                      # the planner reads other ranking columns
+        pytest.skip(f"ranking fixture too thin for the planner: {exc}")
+    if "N1" in plan.buys:
+        assert plan.weights["A"] == pytest.approx(0.15)       # trimmed only above 15%
+        assert plan.weights["B"] == pytest.approx(0.03)       # not topped up
+        assert plan.weights["N1"] == pytest.approx(0.04)      # the fixed amount

@@ -69,14 +69,22 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     # A forward-dated rule: months it does not govern keep their fingerprint
     # (config_fingerprint_for_month), so no frozen month changes regime.
     "members_only_scoring_from": "2026-11-30",
-    # Let winners run to 15% (owner, 8 Nov 2026: "Switch to 15% from next
-    # rebalance", after TODO S111's test: 2010-26 reset 18.8% a year vs 18.2%,
-    # Feb-Oct 2026 +38.6% vs +45.5%). From the 30 Nov 2026 signal a kept
-    # holding keeps the weight the market gave it, trimmed only above 15%; the
-    # money from sells and trims buys the new names in equal shares
-    # (backtester._let_winners_run). Forward-dated like the rule above: earlier
-    # months keep the monthly reset to 5% and their fingerprints.
+    # Six-monthly reset (owner, 8 Nov 2026: "6 monthly reset final", after TODO
+    # S111's tests of four rules with a tax estimate: Nifty 500 2010-26 after
+    # tax, monthly reset 15.41% a year, six-monthly 15.30%, the owner's fixed
+    # buys 14.69%, yearly 14.58%; 2026 six-monthly best). From the 30 Nov 2026
+    # signal:
+    #   - at the March and September signals every holding goes back to 5%;
+    #   - between them a kept holding keeps the weight the market gave it,
+    #     trimmed only above 15%, and each new buy is 5% of the account at the
+    #     last reset, paid from cash (fewer shares when cash is short; no kept
+    #     name is sold to fund a buy; leftover stays cash)
+    #   (backtester._fixed_buys, buy_size, weight_reset_months).
+    # Forward-dated like the rule above, with its companions: earlier months
+    # keep the monthly reset to 5% and their fingerprints.
     "hold_cap": 0.15,
+    "buy_size": 0.05,
+    "weight_reset_months": [3, 9],
     "hold_cap_from": "2026-11-30",
     # Position and industry caps (owner, 2026-10-02), HARD: no stock above 5%
     # and no NSE industry above 40% of the book at any rebalance. Enforced at
@@ -204,7 +212,7 @@ def config_fingerprint(**params: Any) -> str:
 # not struck under them, so they are left out of that month's fingerprint.
 FORWARD_DATED_KEYS = ("members_only_scoring_from", "hold_cap_from")
 # Settings that exist only with a forward-dated rule: left out with it.
-FORWARD_DATED_COMPANIONS = {"hold_cap_from": ("hold_cap",)}
+FORWARD_DATED_COMPANIONS = {"hold_cap_from": ("hold_cap", "buy_size", "weight_reset_months")}
 
 
 def config_for_month(cfg: dict[str, Any], period) -> dict[str, Any]:

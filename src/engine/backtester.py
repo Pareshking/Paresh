@@ -1730,9 +1730,21 @@ def run_backtest(
             # The pending rebalance follows the same rule as the loop above, so
             # Actions and Portfolio show the weights the record will strike.
             if _hold_cap_on(hold_cap, hold_cap_from, rebal_signal_dt):
-                new_wts = _let_winners_run(
-                    new_wts, _drift_holdings(prev_weights, prices_ff, prev_fill_idx, fill_idx),
-                    prev_holdings, hold_cap, sec_map or None, sector_cap)
+                standing_p = _drift_holdings(prev_weights, prices_ff, prev_fill_idx, fill_idx)
+                if buy_size is not None:
+                    # The pending fill under the record's rule: a full reset at a
+                    # reset month's signal, else fixed buys of buy_size of the
+                    # account at the last reset (the in-window loop's own state).
+                    acct_p = acct * (1.0 + _book_return(prev_weights, prices_ff, prev_fill_idx,
+                                                        prev_fill_idx, fill_idx)) \
+                        if prev_fill_idx is not None else acct
+                    reset_p = bool(weight_reset_months) and rebal_signal_dt.month in weight_reset_months
+                    if not reset_p:
+                        new_wts = _fixed_buys(new_wts, standing_p, prev_holdings, hold_cap,
+                                              buy_size * base_acct / acct_p, sec_map or None, sector_cap)
+                else:
+                    new_wts = _let_winners_run(new_wts, standing_p, prev_holdings, hold_cap,
+                                               sec_map or None, sector_cap)
 
             sold = [s for s in prev_holdings if s not in new_holdings]
             bought = [s for s in new_holdings if s not in prev_holdings]
