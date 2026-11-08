@@ -171,7 +171,8 @@ def main(argv=None) -> int:
         if stop:
             break
         if i:
-            time.sleep(max(0.5, args.delay + random.uniform(-JITTER_S, JITTER_S)))
+            # Never under --delay (SS's owner, 8 Nov: 3 s between requests): jitter only adds.
+            time.sleep(args.delay + random.uniform(0, JITTER_S))
         try:
             pages = None if args.full else args.pages
             fresh, more = ss.fetch_history(symbol, pages, session=session, delay_s=args.delay)

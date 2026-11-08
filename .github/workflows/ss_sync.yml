@@ -2,13 +2,13 @@ name: SS price sync (gentle)
 
 # The nightly price update (owner, 2026-10-02: start at 10:02 PM IST).
 #
-#   1. SS, gently: the latest page (1,000 sessions) for each stock, 40 stocks a
-#      round, 4 s apart, a 5-minute rest between rounds (site owner: "do not
-#      hammer my site by downloading entire universe in one go, give some
-#      breathing to my website"). A stock whose history SS restated, or that
-#      jumped past the limit, re-downloads whole (sync_ss.py). About four hours
-#      for the whole universe; each round takes the next 40 not yet updated
-#      tonight, so a stopped run loses nothing.
+#   1. SS: the latest page (1,000 sessions) for each stock, 3 s apart and never
+#      less (SS's owner via the owner, 8 Nov 2026: "no rest is required, keep
+#      3 sec between requests"; until then 4 s apart with a 5-minute rest
+#      every 40 stocks). A stock whose history SS restated, or that jumped past
+#      the limit, re-downloads whole (sync_ss.py). Rounds of 40 remain only as
+#      checkpoints: each takes the next 40 not yet updated tonight, so a stopped
+#      run loses nothing. About 75 minutes for the universe.
 #   2. Saved to the data-latest release (the store the next run resumes from)
 #      and published to R2 as prices/ss (r2_retention.py keeps 7 + month-ends).
 #   3. The three-source check (scripts/reconcile_report.py): SS, Screener and
@@ -29,7 +29,7 @@ on:
         description: "daily (update every stock), backfill (only stocks never stored) or history (back to listing, stocks held on page 1 only)"
         default: "daily"
       rounds:
-        description: "Rounds this run (5-minute rest between rounds)"
+        description: "Rounds of stocks this run (no rest between rounds; 3 s between requests)"
         default: "35"
       per_round:
         description: "Stocks per round"
@@ -87,11 +87,11 @@ jobs:
           set -o pipefail
           round() {
             if [ "$MODE" = "backfill" ]; then
-              python scripts/sync_ss.py --skip-done --delay 4 --limit "$PER_ROUND"
+              python scripts/sync_ss.py --skip-done --delay 3 --limit "$PER_ROUND"
             elif [ "$MODE" = "history" ]; then
-              python scripts/sync_ss.py --needs-history --delay 4 --limit "$PER_ROUND"
+              python scripts/sync_ss.py --needs-history --delay 3 --limit "$PER_ROUND"
             else
-              python scripts/sync_ss.py --stale-hours 12 --delay 4 --limit "$PER_ROUND"
+              python scripts/sync_ss.py --stale-hours 12 --delay 3 --limit "$PER_ROUND"
             fi
           }
           for i in $(seq 1 "$ROUNDS"); do
@@ -99,7 +99,6 @@ jobs:
             round | tee round.log \
               || { echo "Stopped (refused or nothing fetched); saving progress."; break; }
             if grep -q "^SS: 0 symbols" round.log; then echo "Every stock is up to date."; break; fi
-            if [ "$i" -lt "$ROUNDS" ]; then sleep 300; fi
           done
           echo "Done."
 

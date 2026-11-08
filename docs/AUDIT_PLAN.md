@@ -70,7 +70,7 @@ time to within 2%.
 
 | Workflow | Runs | Failed | Total min | Median min | Note |
 |---|---|---|---|---|---|
-| `ss_sync` | 22 | 2 | 6,059 | 278 | 61% of all minutes. Deliberately slow (SS site owner's request): 35 rounds x 40 stocks, 4 s apart, 5 min rest between rounds, and each stock fetches a 1,000-session page to learn one new day |
+| `ss_sync` | 22 | 2 | 6,059 | 278 | 61% of all minutes. Deliberately slow (SS site owner's request): 35 rounds x 40 stocks, 4 s apart, 5 min rest between rounds (8 Nov: 3 s apart, no rests, A4), and each stock fetches a 1,000-session page to learn one new day |
 | `screener_sync` | 31 | 7 | 1,151 | 38 | 23% failure rate |
 | `v1-production-qa` | 140 | 25 | 576 | 3.4 | every 6 h + every push |
 | `v1-full-validation` | 134 | 16 | 437 | 3.5 | PRs and pushes |

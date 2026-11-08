@@ -287,3 +287,20 @@ def test_history_mode_takes_only_stocks_held_without_their_whole_history(monkeyp
     # back to listing (pages=None), and only the stock held on page 1
     assert asked == [("OLD", None)]
     assert json.loads((tmp_path / "manifest.json").read_text())["symbols"]["OLD"]["full_history"]
+
+
+def test_no_gap_between_stocks_is_under_the_delay(monkeypatch, tmp_path):
+    """SS's owner, 8 Nov 2026: keep 3 s between requests; the jitter may only add."""
+    import scripts.sync_ss as sync
+
+    good = _round2(_rows("X", [10.0, 11.0]))
+    slept = []
+    monkeypatch.setattr(sync.ss, "fetch_history", lambda s, p, **kw: (good.assign(symbol=s), False))
+    monkeypatch.setattr(sync.time, "sleep", slept.append)
+    sync.main(["--symbols", *[f"S{i:02d}" for i in range(40)], "--out", str(tmp_path), "--delay", "3"])
+    assert len(slept) == 39
+    assert min(slept) >= 3.0 and max(slept) <= 3.0 + sync.JITTER_S
+
+
+def test_the_default_page_delay_is_three_seconds():
+    assert ss.DELAY_S == 3.0

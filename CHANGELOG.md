@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — SS prices: 3 s between requests, no rests
+
+- The nightly SS download now waits at least 3 s between requests and no longer rests 5 minutes every 40 stocks, as SS's owner said is enough. The run should take about 75 minutes instead of about four and a half hours; the prices and their checks are unchanged.
+
 ## 2026-11-08 — Price history: INFIBEAM's 2025 rights issue
 
 - INFIBEAM's rights issue of 26 Jun 2025 (67 for 267 at Rs 10) is now adjusted at its real issue price. NSE's list stated face value Rs 10 on that one row instead of Re 1, so the issue read as Rs 19 and the ex-date showed a -15.7% fall the holder did not have; it now shows -7.7%, as MarketLens and SS (-7.6%). The rule: a rights issue's face value must agree with the stock's history unless a split or consolidation came between. Shows after the next long-file rebuild.
