@@ -304,10 +304,10 @@ _MENU_GROUPS = (
 _QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio")
 
 
-# The header states the index's trend, not a market call (owner, 7 Nov 2026):
-# "Trend: up" when the Nifty 500 is above its 200-day EMA. "Bullish" read as
-# a verdict and sat beside Breadth's "neutral" for the same market.
-_TREND_LABEL = {MarketRegime.BULLISH: "Trend: up", MarketRegime.BEARISH: "Trend: down"}
+# The header says what it measures (owner, 8 Nov 2026): "Nifty 500 2.9% above its
+# 200D EMA". "Trend: up" sat above the Dashboard's "No clear trend" (four
+# measures) and read as a contradiction (audit U-H1); "Bullish" before it read
+# as a market call.
 
 
 def render_header_kpi_bar(
@@ -331,15 +331,11 @@ def render_header_kpi_bar(
     market_html = f"""
     <div role="status" aria-label="Market status dashboard" class="mkt-snapshot">
         <div class="mkt-item mkt-regime-item">
-            <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>{html.escape(_TREND_LABEL.get(regime.status, regime.status.value.title()))}</span>
+            <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>Nifty 500 {html.escape(dist_text)} its 200D EMA</span>
         </div>
         <div class="mkt-item mkt-index">
             <span class="mkt-label">Nifty 500</span>
             <strong>{regime.current_price:,.0f}</strong>
-        </div>
-        <div class="mkt-item mkt-distance">
-            <strong class="{'mkt-up' if dist >= 0 else 'mkt-down'}">{dist_text}</strong>
-            <span class="mkt-label">200D EMA</span>
         </div>
         <div class="mkt-item">
             <span class="mkt-label">Universe</span>

@@ -208,6 +208,16 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         st.session_state.pop("data_loaded_key", None)
         st.rerun()
 
+    if st.button(f"Index files on disk ({len(INDICES_LOCAL)})", type="tertiary",
+                 icon=":material/folder_open:", key="dlg_cfg_index_files"):
+        _index_files_dialog()
+
+    # Both buttons act for the whole site (they clear the shared caches), so a
+    # visitor does not see them (owner, 8 Nov 2026). The owner opens
+    # Configuration with ?owner=<OWNER_KEY>, the key set in the app's secrets;
+    # with no key set they show to nobody, and the nightly jobs keep the data fresh.
+    if not owner_mode():
+        return
     with st.container(horizontal=True, vertical_alignment="center", key="cfg_sync_row"):
         if st.button("Sync from niftyindices.com", type="primary", key="btn_sync_indices",
                      help="Fetch the latest official constituent lists. One sync at a time, "
@@ -251,9 +261,17 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
                 st.cache_resource.clear()  # the shared price frames (app.py _shared)
                 st.rerun()
 
-    if st.button(f"Index files on disk ({len(INDICES_LOCAL)})", type="tertiary",
-                 icon=":material/folder_open:", key="dlg_cfg_index_files"):
-        _index_files_dialog()
+
+
+def owner_mode() -> bool:
+    """True when the page was opened with the owner's key (?owner=<OWNER_KEY>)."""
+    import hmac
+    try:
+        key = str(st.secrets.get("OWNER_KEY", "") or "")
+    except Exception:  # noqa: BLE001 - no secrets file: nobody is the owner
+        key = ""
+    given = str(st.query_params.get("owner", "") or "")
+    return bool(key) and hmac.compare_digest(given, key)
 
 
 # The five lookback windows, their canonical keys, and the documented default

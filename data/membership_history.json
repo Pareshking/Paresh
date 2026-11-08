@@ -11640,6 +11640,16 @@
             "TRAVELFOOD"
           ],
           "notice": "ind_prs10082026.pdf"
+        },
+        {
+          "date": "2026-10-28",
+          "added": [
+            "ICICILIFE"
+          ],
+          "removed": [
+            "ICICIPRULI"
+          ],
+          "source": "rename: NSE symbolchange.csv line 368, ICICIPRULI -> ICICILIFE effective 23-Oct-2026; NSE's Nifty 500 list of 8 Nov 2026 (sha256 31b764a95cc0...) holds ICICILIFE. Dated 28 Oct as in Total Market and Midcap 150 (owner, 8 Nov 2026: renames NSE lists are approved)"
         }
       ]
     }
