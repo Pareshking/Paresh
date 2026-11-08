@@ -163,5 +163,6 @@ def long_only(spreads: pd.DataFrame | None) -> dict | None:
         "wml_12m": (top12 - _compound(last12["bottom"]))
                    if "bottom" in last12 and last12["bottom"].notna().all() else None,
         "recent": (d["top"] - d["nifty500"]).tail(24).astype(float).tolist(),
+        "recent_months": d["month"].astype(str).tail(24).tolist(),
         "since": str(d["month"].iloc[0])[:4],
     }
