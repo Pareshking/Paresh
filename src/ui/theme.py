@@ -1514,7 +1514,7 @@ def inject_custom_css() -> None:
            area of at least 40px; padding with an equal negative margin leaves
            the layout as it is. */
         @media (pointer: coarse) {
-            .db-sym a, .xw-s a, .t50-stock, .ib-leads a, .pg-onward, .db-kv a {
+            .db-sym a, .xw-s a, .t50-stock, .ib-leads a, .pg-onward, .db-kv a, .mq-more {
                 display: inline-block; padding: 11px 0; margin: -11px 0;
             }
             [data-baseweb="tag"] [role="presentation"], [data-baseweb="tag"] span[aria-hidden] {

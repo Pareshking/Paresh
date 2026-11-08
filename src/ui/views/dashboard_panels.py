@@ -75,18 +75,18 @@ def momentum_health_html(spreads: pd.DataFrame | None) -> str | None:
     t12, last = h["trailing_12m"], h["month_spread"]
     word = percentile_word(h["percentile"])
     lede = (f"Over the last 12 months the top 100 of our ranking beat the bottom 100 by "
-            f"{fmt.signed(t12)} points: {word} ({ordinal(round(h['percentile']))} percentile since 2010). "
-            f"{month:%B}: {fmt.signed(last)} points.")
+            f"{fmt.signed(t12)} pts: {word} ({ordinal(round(h['percentile']))} percentile since 2010). "
+            f"{month:%B}: {fmt.signed(last)} pts.")
     if t12 < 0:
         lede = (f"Over the last 12 months the top 100 of our ranking trailed the bottom 100 by "
-                f"{fmt.signed(abs(t12), plus=False)} points: {word} ({ordinal(round(h['percentile']))} percentile "
-                f"since 2010). {month:%B}: {fmt.signed(last)} points.")
+                f"{fmt.signed(abs(t12), plus=False)} pts: {word} ({ordinal(round(h['percentile']))} percentile "
+                f"since 2010). {month:%B}: {fmt.signed(last)} pts.")
     crash = (f'<p class="db-flag">{month:%B} was in the worst 10% of months since 2010: momentum '
              "stocks fell well behind the laggards.</p>") if h["crash"] else ""
     recent = spreads.tail(24)["spread"].astype(float).tolist()
     img = _bars_svg(recent)
     alt = (f"Monthly spread, top 100 minus bottom 100, last {len(recent)} months: from "
-           f"{fmt.signed(min(recent))} to {fmt.signed(max(recent))} points.")
+           f"{fmt.signed(min(recent))} to {fmt.signed(max(recent))} pts.")
     tone = "up" if t12 > 0 else "down" if t12 < 0 else ""
     return (f'<div class="db-mh"><div class="db-big {tone}">{fmt.signed(t12)}<span> pts, 12 months</span></div>'
             f'<p class="db-lede">{html.escape(lede)}</p>{crash}'
@@ -103,9 +103,10 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
     t12 = lo["lead_12m"]
     word = percentile_word(lo["percentile"])
     lede = (f"Over the last 12 months the top 100 of our ranking (one fifth of the Nifty 500) returned "
-            f"{lo['top_12m']:+.1f}% against the Nifty 500's {lo['index_12m']:+.1f}%: {abs(t12):.1f} percentage "
-            f"points {'ahead' if t12 >= 0 else 'behind'}, {word} ({ordinal(round(lo['percentile']))} percentile "
-            f"since {lo['since']}). {month:%B}: {fmt.signed(lo['month_lead'])} points.")
+            f"{fmt.signed(lo['top_12m'])}% against the Nifty 500's {fmt.signed(lo['index_12m'])}%: "
+            f"{abs(t12):.1f} pts {'ahead' if t12 >= 0 else 'behind'}, {word} "
+            f"({ordinal(round(lo['percentile']))} percentile since {lo['since']}). "
+            f"{month:%B}: {fmt.signed(lo['month_lead'])} pts.")
     rows = []
 
     def row(label: str, v: float | None) -> None:
@@ -122,7 +123,7 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
     recent = lo["recent"]
     img = _bars_svg(recent)
     alt = (f"Monthly lead of the top 100 over the Nifty 500, last {len(recent)} months: from "
-           f"{fmt.signed(min(recent))} to {fmt.signed(max(recent))} points.")
+           f"{fmt.signed(min(recent))} to {fmt.signed(max(recent))} pts.")
     tone = "up" if t12 > 0 else "down" if t12 < 0 else ""
     return (f'<div class="db-mh"><div class="db-big {tone}">{fmt.signed(t12)}<span> pts, 12 months</span></div>'
             f'<p class="db-lede">{html.escape(lede)}</p>{table}'

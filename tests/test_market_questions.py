@@ -168,3 +168,23 @@ def test_size_against_the_index_uses_the_same_dates_for_both():
     bench[bench.index > "2026-10-30"] = 110.0          # a jump after the weekly file ends
     weekly = pd.Series(100.0, index=pd.date_range("2026-01-02", "2026-10-30", freq="W-FRI"))
     assert mq._rel(weekly, bench, daily[-1], 6) == pytest.approx(0.0)
+
+
+def test_header_and_the_uptrend_card_measure_the_200d_ema_the_same_way():
+    """The header said 2.9% above the 200D EMA while the uptrend card said
+    +3.0 (audit, 8 Nov 2026): the header's EMA ran on a two-year window, which
+    has not converged. Both read the whole series now."""
+    import inspect
+
+    from src.engine.market_questions import ema_gap
+    from src.loaders import price_loader
+
+    src = inspect.getsource(price_loader.get_market_regime)
+    assert 'period="max"' in src, "the header's regime must read the whole benchmark series"
+
+    s = price_loader.fetch_benchmark_history(period="max").dropna()
+    if s.empty:
+        return
+    ema = s.ewm(span=200, min_periods=160).mean()
+    header = (float(s.iloc[-1]) - float(ema.iloc[-1])) / float(ema.iloc[-1]) * 100
+    assert round(header, 1) == round(ema_gap(s, s.index[-1]), 1)

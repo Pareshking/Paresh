@@ -333,6 +333,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         f"{rc.AHEAD_DAYS // 7} weeks{when}. Companies can move a meeting; results usually "
                         "come out the same day or the next.")
 
+    size_drawn = False
     with low_l, kit.card("Size leadership", "db_size", "price return, NSE index closes"):
         res = None
         if levels is None or bench is None or "nifty500" not in bench or "nifty50" not in bench:
@@ -345,6 +346,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             elif res is None:
                 kit.caption("Left out: the index file does not cover every size index yet.")
         if res is not None:
+            size_drawn = True
             line = sl.headline(res)
             if line:
                 st.html(f'<p class="db-lede">{html.escape(line)}</p>')
@@ -362,9 +364,10 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # Desktop reading order: the questions, then each column's top block, then the rest.
     nav_slot.html(page_nav_html(drawn + [
         ("s-db_risk", "Book at risk"), ("s-db_bookrisk", "How risky is the book?"), ("s-db_next", "Next rebalance")]
-        + ([("s-db_cal", "Coming up")] if bc is not None else []) + [
-        ("s-db_mh", "Momentum health"), ("s-db_qual", "How many stocks qualify?"),
-        ("s-db_size", "Size leadership"), ("s-db_flows", "Flows")]))
+        + ([("s-db_cal", "Coming up for the book")] if bc is not None else []) + [
+        ("s-db_mh", "Momentum health"), ("s-db_qual", "How many stocks qualify?")]
+        + ([("s-db_size", "Size leadership")] if size_drawn else [])
+        + [("s-db_flows", "Flows")]))
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

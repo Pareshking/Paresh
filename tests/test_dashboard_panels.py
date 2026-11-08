@@ -31,7 +31,7 @@ def test_an_unfinished_month_and_months_before_the_membership_are_left_out():
 def test_momentum_panel_text_and_image():
     out = dp.momentum_health_html(_spreads())
     assert "+11.5" in out and "data:image/svg+xml;base64," in out and "<svg" not in out
-    assert "percentile since 2010" in out and "October: +0.5 points" in out
+    assert "percentile since 2010" in out and "October: +0.5 pts" in out
 
 
 def _long(n=36, ew=True):
@@ -60,7 +60,7 @@ def test_long_only_leads_with_winners_against_the_index_and_splits_it():
     assert lo["momentum_12m"] + lo["breadth_12m"] == pytest.approx(lo["lead_12m"])
     out = dp.long_only_html(_long())
     assert "+20.7" in out and "returned +26.8% against the Nifty 500" in out and "+6.2%" in out
-    assert "20.7 percentage points ahead" in out
+    assert "20.7 pts ahead" in out
     assert "(momentum)" in out and "(breadth)" in out and "for reference" in out
 
 
