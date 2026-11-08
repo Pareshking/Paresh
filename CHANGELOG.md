@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — Dashboard: coming up for the book
+
+- A new card under Next rebalance lists the holdings' and planned buys' board meetings for the next five weeks, by day, from NSE's board-meeting calendar, with the rebalance check in its place: "3 holdings report before the 30 Nov check; 17 of 20 have reported this season". Collected nightly; dates are as companies announced them.
+
 ## 2026-11-08 — Dashboard: how many stocks qualify, and the next rebalance's churn
 
 - A new card shows the share of the Nifty 500 passing the strategy's own filters at each month-end, with how our strategy's backtest did against the Nifty 500 in the months that followed few qualifiers since 2010: after the fewest (27% or less) the portfolio trailed the index by 0.8 pts a month on average, against a 1.2-pt lead after the rest, and the pattern held in each five-year block. At the end of September: 20%, fewer than in 87% of month-ends.
