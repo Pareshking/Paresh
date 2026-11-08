@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — Dashboard: which sectors lead, and is leadership changing?
+
+- The Dashboard answers "Which sectors lead?" and "Is leadership changing?" from NSE's own sector indices (Bank, IT, Pharma, Auto, FMCG, Metal, Realty, Media, PSU Bank, Financial Services, PSE, Energy, Infrastructure): each index's return against the Nifty 500 over three months and over the last month. They replace "What is leading?" once the nightly index job has collected the sector indices. A relative rotation graph was tried first and not used: it agreed with StockCharts' weekly India RRG on 64% of indices, below the 80% bar set.
+
 ## 2026-11-08 — Dashboard: links to its sections
 
 - The Dashboard now opens with a line of links to its sections, as the Breadth page does: the three market questions, Book at risk, Next rebalance, Momentum health, Size leadership and Flows. A section left out for missing data gets no link.

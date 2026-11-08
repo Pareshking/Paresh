@@ -193,7 +193,10 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     _strip.update(size_closes(levels, size_ok))
     if _strip:
         st.html(market_strip_html(_strip))
-    drawn = render_market_questions(rank_df, adj_close, nifty500, size_closes(levels, size_ok))
+    # NSE's sector indices, only from a file whose Nifty 50 passed NSE's check (S109).
+    from src.engine import sector_indices as si
+    sectors = si.sector_rotation(levels, nifty500) if size_ok else None
+    drawn = render_market_questions(rank_df, adj_close, nifty500, size_closes(levels, size_ok), sectors)
 
     # Two columns, each a stack, so a short block never leaves a hole beside
     # a long one (owner, 7 Nov: "unnecessary white spaces and large gaps").

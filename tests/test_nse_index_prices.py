@@ -1,6 +1,6 @@
 import pandas as pd
 
-from scripts.build_nse_index_prices import INDEX_NAMES
+from scripts.build_nse_index_prices import INDEX_NAMES, SECTOR_NAMES
 
 
 def test_all_five_research_indices_are_defined():
@@ -43,13 +43,15 @@ def test_build_falls_back_per_index_and_writes_one_row_per_index_date(tmp_path, 
 
     monkeypatch.setattr(mod, "_fetch_official", official)
     monkeypatch.setattr(mod, "_fetch_screener", screener)
+    monkeypatch.setattr("time.sleep", lambda s: None)
 
     out = tmp_path / "index_prices.parquet"
     result = mod.build(out, date(2026, 9, 1), date(2026, 9, 22))
     frame = pd.read_parquet(out)
 
-    assert result == {"rows": 15, "indices": 5}
-    assert set(frame["index"]) == set(INDEX_NAMES)
+    n = len(INDEX_NAMES) + len(SECTOR_NAMES)
+    assert result == {"rows": 3 * n, "indices": n}
+    assert set(frame["index"]) == set(INDEX_NAMES) | set(SECTOR_NAMES)
     assert not frame[["index", "date"]].duplicated().any()
     micro = frame[frame["index"] == "nifty_microcap250"]
     assert (micro["source"] == "Screener index chart (NSE index)").all()
@@ -97,3 +99,37 @@ def test_the_latest_year_is_daily_where_screener_gives_daily_closes():
         "2025-09-05", "2025-09-12", "2026-10-02", "2026-10-05", "2026-10-06", "2026-10-09"]
     assert merged["2026-10-06"] == 3.2
     assert mod._merge_daily(weekly, None).equals(weekly)
+
+
+def test_a_sector_index_that_fails_is_left_out_and_a_size_index_still_stops_the_build(tmp_path, monkeypatch):
+    """S109: the sector indices are optional; the five size indices are not."""
+    from datetime import date
+
+    import pytest
+
+    from scripts import build_nse_index_prices as mod
+
+    def down(*a, **k):
+        raise RuntimeError("down")
+
+    def official(name, start, end):
+        if name == "NIFTY MEDIA":
+            raise RuntimeError("no such series today")
+        return _series(name)
+
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    monkeypatch.setattr(mod, "_fetch_official", official)
+    monkeypatch.setattr(mod, "_fetch_screener", down)
+    frame_path = tmp_path / "a.parquet"
+    mod.build(frame_path, date(2026, 9, 1), date(2026, 9, 22))
+    got = set(pd.read_parquet(frame_path)["index"])
+    assert "sector_media" not in got and set(INDEX_NAMES) <= got
+
+    def official_size_down(name, start, end):
+        if name == "NIFTY 50":
+            raise RuntimeError("down")
+        return _series(name)
+
+    monkeypatch.setattr(mod, "_fetch_official", official_size_down)
+    with pytest.raises(RuntimeError):
+        mod.build(tmp_path / "b.parquet", date(2026, 9, 1), date(2026, 9, 22))

@@ -50,7 +50,8 @@ _CSS = """<style>
 .mq-ch{font-size:13px;line-height:1.5;color:var(--c-text_2);margin:10px 0 4px}
 .mq-more{font-size:13px;color:var(--c-ink)!important;text-decoration:underline;text-decoration-color:var(--c-rule_strong);text-underline-offset:3px}
 .mq-note{font-size:12px;color:var(--c-muted);margin:0 0 6px}
-@media (max-width:1100px){.mq-grid{grid-template-columns:1fr;gap:0}.mq{padding-bottom:12px}}
+.mq-grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:1100px){.mq-grid,.mq-grid.four{grid-template-columns:1fr;gap:0}.mq{padding-bottom:12px}}
 </style>"""
 
 
@@ -89,7 +90,54 @@ def _changed(a: mq.Answer) -> str:
 
 # Anchors for the Dashboard's "On this page" line (owner, 8 Nov 2026: the
 # Breadth page's section links, on the Dashboard too).
-DASH_ANCHORS = {"breadth": "d-breadth", "trend": "d-trend", "lead": "d-lead"}
+DASH_ANCHORS = {"breadth": "d-breadth", "trend": "d-trend", "lead": "d-lead", "change": "d-change"}
+
+
+def _sector_pts(v: float) -> str:
+    """A fraction as signed points, "+8.7" / "−4.1" (the sector tables)."""
+    return f"{v * 100:+.1f}".replace("-", "−")
+
+
+def sectors_lead_html(res) -> str:
+    """"Which sectors lead?" from NSE's sector indices (TODO S109)."""
+    from src.engine import sector_indices as si
+
+    verdict, sentence = si.leaders_sentence(res)
+    lc, sc = f"{si.LONG}M vs 500", f"{si.SHORT}M vs 500"
+    rows = "".join(
+        f'<tr><td>{html.escape(name)}</td>'
+        f'<td class="{"up" if r[lc] > 0 else "down"}">{_sector_pts(r[lc])}</td>'
+        f'<td class="{"up" if r[sc] > 0 else "down"}">{_sector_pts(r[sc])}</td></tr>'
+        for name, r in res.table.iterrows())
+    return (
+        f'<section class="mq" aria-label="Which sectors lead?"><h2 id="{DASH_ANCHORS["lead"]}">Which sectors lead?</h2>'
+        f'<p class="mq-v">{html.escape(verdict)}</p><p class="mq-s">{html.escape(sentence)}</p>'
+        '<table><thead><tr><th scope="col">NSE sector index</th>'
+        f'<th scope="col">{si.LONG}M vs Nifty 500</th><th scope="col">{si.SHORT}M</th></tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
+        f'<p class="mq-ch">Points: the index\'s return less the Nifty 500\'s, {res.starts[si.LONG]:%-d %b} and '
+        f'{res.starts[si.SHORT]:%-d %b} to {res.end:%-d %b %Y}, price only. NSE\'s sector indices, from '
+        'Screener\'s index charts.</p></section>')
+
+
+def sectors_changing_html(res) -> str:
+    """"Is leadership changing?": the last month against the last three (TODO S109)."""
+    from src.engine import sector_indices as si
+
+    verdict, sentence = si.changing_sentence(res)
+    g = res.table["group"]
+    rows = "".join(
+        f'<tr><td>{grp.capitalize()}</td><td style="text-align:left">{len(names)} · '
+        f'{html.escape(", ".join(names) or "None")}</td></tr>'
+        for grp in si.GROUPS for names in [list(g[g == grp].index)])
+    return (
+        f'<section class="mq" aria-label="Is leadership changing?"><h2 id="{DASH_ANCHORS["change"]}">'
+        'Is leadership changing?</h2>'
+        f'<p class="mq-v">{html.escape(verdict)}</p><p class="mq-s">{html.escape(sentence)}</p>'
+        f'<table><thead><tr><th scope="col">Against the Nifty 500</th><th scope="col" style="text-align:left">'
+        f'{si.LONG}M and {si.SHORT}M</th></tr></thead><tbody>{rows}</tbody></table>'
+        f'<p class="mq-ch">Gaining: behind over {si.LONG} months, ahead over the last month; fading: the reverse.</p>'
+        f'<a class="mq-more" href="{html.escape(page_href("sectors"))}" target="_self">Sectors →</a></section>')
 
 
 def _answer_html(a: mq.Answer, kind: str, href: str, link: str) -> str:
@@ -153,9 +201,14 @@ def size_closes(levels: pd.DataFrame | None, ok: bool) -> dict[str, pd.Series]:
 
 
 def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
-                            size: dict[str, pd.Series]) -> list[tuple[str, str]]:
-    """The Dashboard's three answers. Returns (anchor, question) for each one
-    drawn, for the page's "On this page" line."""
+                            size: dict[str, pd.Series], sectors=None) -> list[tuple[str, str]]:
+    """The Dashboard's answers. Returns (anchor, question) for each one drawn,
+    for the page's "On this page" line.
+
+    With NSE's sector indices (`sectors`, a sector_indices.SectorRotation),
+    "Which sectors lead?" and "Is leadership changing?" replace the industry
+    groups' "What is leading?" (owner, 8 Nov 2026, TODO S109); without them,
+    the industries' answer stays."""
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
         return []
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
@@ -170,12 +223,18 @@ def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: 
     if trend is not None:
         cols.append(_answer_html(trend, "trend", page_href("breadth"), "Market breadth"))
         drawn.append((DASH_ANCHORS["trend"], trend.question))
-    if leaders is not None:
+    if sectors is not None:
+        cols.append(sectors_lead_html(sectors))
+        drawn.append((DASH_ANCHORS["lead"], "Which sectors lead?"))
+        cols.append(sectors_changing_html(sectors))
+        drawn.append((DASH_ANCHORS["change"], "Is leadership changing?"))
+    elif leaders is not None:
         cols.append(_leaders_html(leaders, page_href("sectors")))
         drawn.append((DASH_ANCHORS["lead"], "What is leading?"))
     if not cols:
         return []
-    st.html(_CSS + f'<div class="mq-grid">{"".join(cols)}</div>'
+    grid = "mq-grid four" if len(cols) == 4 else "mq-grid"
+    st.html(_CSS + f'<div class="{grid}">{"".join(cols)}</div>'
             '<p class="mq-note">Counted over the stocks ranked today, so readings a year back leave out '
             'stocks that have since left the index. Each vote\'s cut-off shows on hover.</p>')
     return drawn
