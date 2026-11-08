@@ -658,7 +658,10 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
 
     # "P&L %" is the price return since first entry (true per share); the rupee
     # figures run from the latest fill, where today's shares were set.
-    current_view = current_view.rename(columns={"P&L %": "Return since Entry %"})
+    # "Current Rank" is the place among all ranked stocks; Actions quotes the place
+    # among the qualified (audit, 8 Nov 2026: ACUTAAS 47 here, #45 there).
+    current_view = current_view.rename(columns={"P&L %": "Return since Entry %",
+                                                "Current Rank": "Overall Rank Now"})
     with kit.card(
         "Current book",
         "portfolio_current",
