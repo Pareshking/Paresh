@@ -247,7 +247,11 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
       .cr-year-head h3 { margin:0; font-size:17px; line-height:1.2; letter-spacing:0;
         color:var(--c-ink); font-weight:600; font-variant-numeric:tabular-nums; }
       .cr-year-note { color:var(--c-muted); font-size:12.5px; text-align:right; }
-      .cr-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      /* The scroller, and only the scroller, may be narrower than the table:
+         without max-width the 980px table widened its parent and the whole
+         page scrolled sideways on a phone (design audit, 8 Nov 2026). */
+      .cr-wrap { max-width:100%; overflow-x:hidden; }
+      .cr-scroll { overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; }
       .cr-table { border-collapse:collapse; width:100%;
         min-width:980px; font-size: 13.5px; font-variant-numeric:tabular-nums; }
       .cr-table th,.cr-table td { padding:8px 8px; text-align:right;

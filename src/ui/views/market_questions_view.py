@@ -755,9 +755,11 @@ def market_strip_html(series: dict[str, pd.Series]) -> str:
         month = None if m0 is None else (float(s.iloc[-1]) / float(s.loc[m0]) - 1) * 100
         cells.append(
             f'<div class="ix"><span class="ix-n">{html.escape(name)}</span>'
-            f'<span class="ix-v {_t(round(day, 2))}">{_fmt.signed(day, 2)}%</span>{_spark(s)}'
+            # One decimal, as every other percentage on the site (design audit,
+            # 8 Nov 2026): this tile read "+1.00%" above "1M +5.6%".
+            f'<span class="ix-v {_t(round(day, 1))}">{_fmt.signed(day)}%</span>{_spark(s)}'
             f'<span class="ix-s">1M {_num(month, "pts").replace("pts", "")}%</span>'
-            f'<span class="sr">{html.escape(name)}: {_fmt.signed(day, 2)}% on the day, '
+            f'<span class="sr">{html.escape(name)}: {_fmt.signed(day)}% on the day, '
             f'{_num(month, "pts")}% over a month.</span></div>')
     if not cells:
         return ""

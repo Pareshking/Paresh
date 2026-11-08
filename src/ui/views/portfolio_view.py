@@ -19,7 +19,7 @@ from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
 from src.ui import system_param
 from src.ui.canonical_book import current_book
-from src.ui.components import _render_calendar_returns
+from src.ui.components import _render_calendar_returns, gap_count, render_data_quality_footer
 from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
@@ -603,7 +603,9 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
     losses = int((closed_valid["Return %"] < 0).sum()) if not closed_valid.empty else 0
 
-    kit.page_head("Portfolio", "")
+    # Every other page states what it shows under its title (design audit,
+    # 8 Nov 2026): Portfolio printed an empty line there.
+    kit.page_head("Portfolio", "The model book as it stands, and what it has returned.")
 
     # Frozen Portfolio KPI design: six centered cards, with benchmark
     # comparisons shown as a second layer only where a comparable period exists.
@@ -786,3 +788,10 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
             st.download_button("Monthly returns CSV", monthly_grid.to_csv(index=False).encode(),
                                f"portfolio_monthly_{ist_now():%Y%m%d}.csv", "text/csv",
                                key="dl_port_monthly_csv_v4")
+
+    # The as-of line and the source ages, as Actions and Backtest end with.
+    render_data_quality_footer(
+        total_stocks=len(rank_df),
+        gap_count=gap_count(rank_df),
+        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
+    )

@@ -135,16 +135,6 @@ def inject_custom_css() -> None:
            reader whose OS is in dark mode still gets the light palette the
            design was checked against (4.5:1 text contrast, 12px minimum). */
         :root {
-            --c-bg: var(--c-white);
-            --c-bg-subtle: var(--c-subtle);
-            --c-border: var(--c-rule);
-            --c-border-strong: var(--c-rule_strong);
-            --c-text-primary: var(--c-ink);
-            --c-text-secondary: var(--c-text_2);
-            --c-text-muted: var(--c-muted);
-            --c-accent-text: var(--c-ink);
-            --c-bull-tint: var(--c-up_tint);
-            --c-bear-tint: var(--c-down_tint);
             --font-ui: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-display: var(--font-ui);
             --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -159,9 +149,6 @@ def inject_custom_css() -> None:
             --sh-pop: 0 12px 32px -8px rgba(14, 23, 38, 0.18);
             --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
             --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
-            --c-caution-tint: var(--c-caution_tint);
-            --c-caution-ink: var(--c-caution_ink);
-            --c-accent-tint: var(--c-fill);
         }
 
         /* ── Base Reset & Typography Hierarchy ── */
@@ -1617,32 +1604,32 @@ def inject_custom_css() -> None:
         }
 
         .pg-callout {
-            border-left: 3px solid var(--c-border-strong);
-            background: var(--c-bg-subtle);
+            border-left: 3px solid var(--c-rule_strong);
+            background: var(--c-subtle);
             border-radius: var(--r-md);
             padding: 10px 14px;
             margin: 0;
             font-size: var(--fs-13);
             line-height: 1.45;
-            color: var(--c-text-secondary);
+            color: var(--c-text_2);
         }
-        .pg-callout b { display: block; font-size: var(--fs-13); color: var(--c-text-primary); }
+        .pg-callout b { display: block; font-size: var(--fs-13); color: var(--c-ink); }
         .pg-callout span { display: block; margin-top: 4px; }
-        .pg-callout.up { border-left-color: var(--c-up); background: var(--c-bull-tint); }
+        .pg-callout.up { border-left-color: var(--c-up); background: var(--c-up_tint); }
         .pg-callout.up b { color: var(--c-up); }
-        .pg-callout.down { border-left-color: var(--c-down); background: var(--c-bear-tint); }
+        .pg-callout.down { border-left-color: var(--c-down); background: var(--c-down_tint); }
         .pg-callout.down b { color: var(--c-down); }
-        .pg-callout.warn { border-left-color: var(--c-caution); background: var(--c-caution-tint); }
-        .pg-callout.warn b { color: var(--c-caution-ink); }
+        .pg-callout.warn { border-left-color: var(--c-caution); background: var(--c-caution_tint); }
+        .pg-callout.warn b { color: var(--c-caution_ink); }
 
         a.pg-link {
             display: inline-flex; align-items: center; gap: 6px;
-            padding: 8px 14px; border: 1px solid var(--c-border-strong);
+            padding: 8px 14px; border: 1px solid var(--c-rule_strong);
             border-radius: var(--r-md); background: var(--c-white);
-            color: var(--c-accent-text) !important; font-size: var(--fs-13);
+            color: var(--c-ink) !important; font-size: var(--fs-13);
             font-weight: 600; text-decoration: none;
         }
-        a.pg-link:hover { border-color: var(--c-ink); background: var(--c-accent-tint); }
+        a.pg-link:hover { border-color: var(--c-ink); background: var(--c-fill); }
 
         [data-testid="stDialog"] [role="dialog"] {
             border-radius: var(--r-xl) !important;

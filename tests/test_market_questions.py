@@ -150,8 +150,8 @@ def test_market_strip_reads_the_day_and_the_month_and_draws_an_image_line():
     s = pd.Series(np.linspace(100, 110, len(idx)), index=idx)
     s.iloc[-1] = s.iloc[-2] * 1.01
     out = market_strip_html({"Nifty 500": s})
-    assert "+1.00%" in out and 'src="data:image/svg+xml;base64,' in out and "<svg" not in out
-    assert "Nifty 500: +1.00% on the day" in out
+    assert "+1.0%" in out and 'src="data:image/svg+xml;base64,' in out and "<svg" not in out
+    assert "Nifty 500: +1.0% on the day" in out
 
 
 def test_market_strip_never_shows_a_weeks_move_as_a_day():
