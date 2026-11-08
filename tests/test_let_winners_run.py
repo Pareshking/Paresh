@@ -104,3 +104,25 @@ def test_forward_dated_rules_fall_on_a_month_end_signal():
         d = pd.Timestamp(cfg[key])
         assert d.weekday() < 5, (key, d)
         assert d == d + pd.offsets.BMonthEnd(0), (key, d, "not the month's last business day")
+
+
+def test_fixed_buys_are_the_fixed_amount_and_share_cash_when_short():
+    """Owner, 8 Nov 2026: each new buy is 5% of the account at the last 31 March;
+    short of cash, buys get fewer shares; kept names are never sold to fund them."""
+    from src.engine.backtester import _fixed_buys
+    standing = pd.Series({"WIN": 0.20, "K": 0.05, "SOLD1": 0.03, "SOLD2": 0.03})
+    # enough cash: 20% -> trimmed to 15% frees 5%, plus 6% from sells = 11%; two buys at 5%
+    w = _fixed_buys(_target(["WIN", "K", "N1", "N2"]), standing, ["WIN", "K", "SOLD1", "SOLD2"], 0.15, 0.05)
+    assert w["WIN"] == pytest.approx(0.15) and w["K"] == pytest.approx(0.05)
+    assert w["N1"] == pytest.approx(0.05) and w["N2"] == pytest.approx(0.05)
+    total = 0.20 + 0.05 + 0.03 + 0.03
+    assert w.attrs["cash"] == pytest.approx(1 - (total - 0.05 - 0.06) - 0.10)   # leftover stays cash
+
+
+def test_fixed_buys_short_of_cash_buy_fewer_shares_and_never_sell_kept_names():
+    from src.engine.backtester import _fixed_buys
+    standing = pd.Series({"A": 0.48, "B": 0.48, "SOLD": 0.04})
+    w = _fixed_buys(_target(["A", "B", "N1", "N2"]), standing, ["A", "B", "SOLD"], 0.50, 0.05)
+    assert w["A"] == pytest.approx(0.48) and w["B"] == pytest.approx(0.48)    # untouched
+    assert w["N1"] == pytest.approx(0.02) and w["N2"] == pytest.approx(0.02)  # 4% cash shared
+    assert w.attrs["cash"] == pytest.approx(0.0, abs=1e-12)

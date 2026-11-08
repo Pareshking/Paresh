@@ -548,6 +548,45 @@ def _let_winners_run(target: pd.Series, standing: pd.Series, prev_holdings,
     return out
 
 
+def _fixed_buys(target: pd.Series, standing: pd.Series, prev_holdings, hold_cap: float,
+                buy_w: float, sector_map: dict[str, str] | None = None,
+                sector_cap: float | None = None) -> pd.Series:
+    """The owner's rule (8 Nov 2026), research: kept names keep their drifted
+    weight, trimmed only above `hold_cap`; each new buy gets `buy_w` (a fixed
+    amount as a share of today's book) from cash; short of cash, the buys share
+    it equally; cash left over stays cash; no kept name is sold to fund a buy.
+    The industry cap stays hard (kept names scaled down to it; a buy only gets
+    the room its industry has)."""
+    names = list(target.index)
+    if not names:
+        return target
+    prev = set(prev_holdings or [])
+    ind = pd.Series({s: (sector_map or {}).get(s, f"_{s}") for s in names})
+    capped_ind = sector_map is not None and sector_cap is not None
+    kept = [s for s in names if s in prev and float(standing.get(s, 0.0)) > 0]
+    buys = [s for s in names if s not in kept]
+    w = pd.Series(0.0, index=names)
+    if kept:
+        w[kept] = standing.reindex(kept).astype(float).clip(upper=hold_cap).to_numpy()
+        if capped_ind:
+            by = w.groupby(ind).sum()
+            for g, tot in by[by > sector_cap].items():
+                w[ind.index[ind == g]] *= sector_cap / tot
+    free = max(1.0 - float(w.sum()), 0.0)
+    if buys:
+        each = min(float(buy_w), free / len(buys), hold_cap)
+        for s in buys:
+            give = each
+            if capped_ind:
+                room = sector_cap - float(w[ind == ind[s]].sum())
+                give = max(min(give, room), 0.0)
+            w[s] = give
+    out = w.astype(float)
+    out.attrs = dict(target.attrs)
+    out.attrs["cash"] = max(1.0 - float(out.sum()), 0.0)
+    return out
+
+
 def _book_return(
     weights: pd.Series,
     prices_ff: pd.DataFrame,
@@ -956,6 +995,7 @@ def run_backtest(
     members_only_scoring_from: str | None = MEMBERS_ONLY_SCORING_FROM,
     hold_cap: float | None = None,
     hold_cap_from: str | None = None,
+    buy_size: float | None = None,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -975,6 +1015,12 @@ def run_backtest(
     30 Nov 2026 signal); earlier signals keep the monthly reset, so frozen
     months are untouched. None with a ``hold_cap`` applies it throughout
     (research). ``hold_cap`` None is the monthly reset everywhere.
+    ``buy_size``: research only (owner, 8 Nov 2026), used with ``hold_cap``: each
+    new buy is ``buy_size`` (0.05) of the account as it stood at the last
+    financial-year end (31 March; the first book's capital before that), a
+    fixed amount for the year, paid from cash; when cash is short the buys share
+    it equally (fewer shares); cash left over stays cash; kept names are never
+    sold to fund a buy and still trim above ``hold_cap``. See `_fixed_buys`.
     """
     if score_method not in ("sharpe", "return"):
         raise ValueError(f"score_method must be 'sharpe' or 'return', not {score_method!r}")
@@ -1132,6 +1178,9 @@ def run_backtest(
     # The fill `prev_weights` was struck at, so the next fill knows how far the
     # book has drifted since. None until the first book is established.
     prev_fill_idx: int | None = None
+    # buy_size (research): the account's value at the latest fill, and at the
+    # last financial-year end, as multiples of the first book's capital.
+    acct, base_acct, base_fy = 1.0, 1.0, None
     prev_holdings: list[str] = []
     effective_buffer = buffer_n if buffer_n is not None else int(top_n * 1.5)
     pit_periods = 0
@@ -1251,12 +1300,28 @@ def run_backtest(
         standing_weights = _drift_holdings(
             prev_weights, prices_ff, prev_fill_idx, fwd_start
         )
+        if buy_size is not None:
+            # The account's value at this fill, and at the last 31 March (the
+            # owner's yearly reset of the buy amount).
+            if prev_fill_idx is not None:
+                acct *= (1.0 + _book_return(prev_weights, prices_ff, prev_fill_idx,
+                                            prev_fill_idx, fwd_start))
+            fill_dt = prices.index[min(fwd_start, len(prices.index) - 1)]
+            fy = fill_dt.year if fill_dt.month >= 4 else fill_dt.year - 1
+            if fy != base_fy:
+                base_acct, base_fy = acct, fy
         if _hold_cap_on(hold_cap, hold_cap_from, dates[start_idx]):
-            wts = _let_winners_run(wts, standing_weights, prev_holdings, hold_cap,
-                                   sec_map or None, sector_cap)
+            if buy_size is not None:
+                wts = _fixed_buys(wts, standing_weights, prev_holdings, hold_cap,
+                                  buy_size * base_acct / acct, sec_map or None, sector_cap)
+            else:
+                wts = _let_winners_run(wts, standing_weights, prev_holdings, hold_cap,
+                                       sec_map or None, sector_cap)
         full_w, turnover_period, friction_drag = _step_portfolio_allocation(
             wts, standing_weights, prices.columns, cost_bps
         )
+        if buy_size is not None:
+            acct *= (1.0 - friction_drag)
         prev_weights = full_w
         prev_fill_idx = fwd_start
 
