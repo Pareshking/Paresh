@@ -12,7 +12,21 @@ next month, and compare its 12-month return with the Nifty 500's
 (`momentum_health.long_only`). It is split into **momentum** (top 100 less the
 equal-weighted average member, the `ew` column) and **breadth** (the average member less
 the index; it carries the small-stock effect, since the index is cap-weighted).
+The top fifth is also shown split in two: the top 50 and ranks 51-100 (owner, 8 Nov
+2026, "give bifurcation of top two deciles also"). Over 201 months the top decile led
+the Nifty 500 by 1.01 pts a month against 0.59 for the second, and that order held in
+every five-year block (2010-14 2.33 / 1.83, 2015-19 1.14 / 0.96, 2020-24 3.11 / 2.49):
+blending the two halves halves the signal, which is why the split is on the card.
 Winners minus losers stays as a reference row and keeps the IIMA check below.
+
+The headline stays the top 100, not the top 50 or a 20-stock basket, although a
+20-stock basket tracks our own book best (correlation 0.93 against 0.85, same sign 92%
+of months). That correlation is close to circular - a 20-name momentum basket nearly IS
+the book - so it would turn the card into a second copy of the Track Record. It is also
+noisier (a full year behind the index 25% of the time against 19%) and today it would
+print +29.7 rather than +11.9, which flatters us by 18 points. The broad basket is the
+independent reading. Research: `scripts/research/decile_split.py`, run on a GitHub
+runner (`decile_research.yml`).
 
 Each leg is compounded over the 12 months and the legs are then subtracted, so the
 headline is the gap between two 12-month returns a reader can check against the index

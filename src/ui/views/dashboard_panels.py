@@ -49,6 +49,29 @@ def percentile_word(p: float) -> str:
             else "above usual" if p < 80 else "strong")
 
 
+def bars_read(values: list[float], labels: list[str], *, money: bool = False) -> str:
+    """The figures a hover tooltip would give, printed under the chart.
+
+    These bar strips are pictures (a data-URI image), so there is nothing to
+    hover. Owner, 8 Nov 2026: print the figures rather than make the strip
+    interactive - a tooltip is not reachable by touch at all, and an
+    interactive chart here costs about half a second and 760 KB on the page a
+    reader sees first (measured: the Dashboard draws in 2.4s with four picture
+    charts, Breadth in 3.2s with six interactive ones).
+    """
+    if not values or len(values) != len(labels):
+        return ""
+    def _say(v: float) -> str:
+        return f"{fmt.inr(v, plus=True)} Cr" if money else f"{fmt.signed(v)} pts"
+
+    hi = max(range(len(values)), key=lambda i: values[i])
+    lo = min(range(len(values)), key=lambda i: values[i])
+    parts = [f"highest {_say(values[hi])} ({labels[hi]})", f"lowest {_say(values[lo])} ({labels[lo]})"]
+    if len(values) - 1 not in (hi, lo):
+        parts.append(f"latest {_say(values[-1])} ({labels[-1]})")
+    return " \u00b7 ".join(parts)
+
+
 def _bars_svg(values: list[float], width: int = 300, height: int = 64) -> str:
     """Monthly spreads as diverging bars, as a data-URI image (st.html strips inline SVG)."""
     if not values:
@@ -115,8 +138,15 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
         tone = "up" if v > 0 else "down" if v < 0 else ""
         rows.append(f'<tr><td>{html.escape(label)}</td><td class="{tone}">{fmt.signed(v)}</td></tr>')
 
-    row("Winners against the average stock (momentum)", lo["momentum_12m"])
-    row("Average stock against the Nifty 500 (breadth)", lo["breadth_12m"])
+    # The top fifth split in two (owner, 8 Nov 2026), once the monthly file
+    # carries the columns; until then the momentum and breadth split, which
+    # adds to the headline exactly.
+    if lo.get("top50_12m") is not None:
+        row("Top 50 against the Nifty 500", lo["top50_12m"])
+        row("Ranks 51\u2013100 against the Nifty 500", lo["d2_12m"])
+    else:
+        row("Winners against the average stock (momentum)", lo["momentum_12m"])
+        row("Average stock against the Nifty 500 (breadth)", lo["breadth_12m"])
     row("Winners against losers (the factor, for reference)", lo["wml_12m"])
     table = ('<table class="db-fig"><thead><tr><th scope="col">Last 12 months</th><th scope="col">Points</th>'
              f'</tr></thead><tbody>{"".join(rows)}</tbody></table>') if rows else ""
@@ -125,9 +155,13 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
     alt = (f"Monthly lead of the top 100 over the Nifty 500, last {len(recent)} months: from "
            f"{fmt.signed(min(recent))} to {fmt.signed(max(recent))} pts.")
     tone = "up" if t12 > 0 else "down" if t12 < 0 else ""
+    months = [f"{pd.Period(m, freq='M'):%b %Y}" for m in lo.get("recent_months", [])]
+    read = bars_read(recent, months)
+    read_html = f'<p class="db-note">Each month\u2019s lead, last {len(recent)} months: {html.escape(read)}.</p>' if read else ""
     return (f'<div class="db-mh"><div class="db-big {tone}">{fmt.signed(t12)}<span> pts, 12 months</span></div>'
             f'<p class="db-lede">{html.escape(lede)}</p>{table}'
-            f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="64" style="max-width:100%"></div>')
+            f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="64" style="max-width:100%">'
+            f'{read_html}</div>')
 
 
 QUARTER_WORDS = ("Few", "Fewer than usual", "More than usual", "Many")
@@ -292,13 +326,14 @@ def nsdl_flows_html(nsdl: pd.DataFrame | None, nse: pd.DataFrame | None) -> str 
     img = _month_bars_svg(months.tolist())
     alt = (f"FPI equity net per month, {months.index[0]:%b %Y} to {months.index[-1]:%b %Y}: from "
            f"{fmt.inr(months.min())} to {fmt.inr(months.max())} Cr.")
+    months_read = bars_read(months.tolist(), [f"{d:%b %Y}" for d in months.index], money=True)
     # NSDL dates a row by its reporting day, which covers the session before
     # (audit, 8 Nov 2026: "to 6 Nov" read as trades to 6 Nov).
     return (f'<p class="db-lede">Foreign portfolio investors in equity, NSDL, reported to {last:%-d %b %Y} '
             f'(each report covers the session before).</p>'
             f'<dl class="db-kv">{rows}</dl>'
             f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="64" style="max-width:100%;margin-top:8px">'
-            f'<p class="db-note">Bars: net per month, last 12 months.</p>{dii_line}')
+            f'<p class="db-note">Net per month, last 12 months: {html.escape(months_read)}.</p>{dii_line}')
 
 
 def render(kit, left, right) -> None:
@@ -318,7 +353,7 @@ def render(kit, left, right) -> None:
                         "book earns. The figure is that book's 12-month return less the Nifty 500's, in "
                         "percentage points. Since 2010 it moved with our own book's lead over the index "
                         "(correlation 0.81; winners minus losers 0.44). Breadth carries the small-stock "
-                        "effect. Bars: each month's lead, last 24 months. "
+                        "effect. "
                         f"Winners minus losers checked: {IIMA_CHECK}. A reading, not a forecast.")
         else:
             st.html(out)
