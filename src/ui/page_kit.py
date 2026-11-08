@@ -136,6 +136,15 @@ def signed_number(v: float, digits: int = 1, plus: bool = True) -> str:
     return f"{sign}{abs(r):.{digits}f}"
 
 
+def pts(x: float | None) -> str:
+    """A difference between two returns (a fraction) in percentage points:
+    0.083 -> "+8.3 pts" (owner, 8 Nov 2026, S97 d). Formatting only."""
+    v = _finite(x)
+    if v is None:
+        return "\u2014"
+    return f"{signed_number(100 * v)} pts"
+
+
 def pct(x: float | None, signed: bool = True) -> str:
     """A fraction as a percentage for display; an em dash when it is not a
     finite number. Formatting only: no figure is computed here."""

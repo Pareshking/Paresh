@@ -688,7 +688,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
             kit.metric_row([
                 kit.Metric(f"{month} strategy", kit.pct(strategy_mtd)),
                 kit.Metric(f"{month} Nifty 500", kit.pct(benchmark_mtd)),
-                kit.Metric(f"{month} alpha", kit.pct(mtd_gap)),
+                kit.Metric(f"{month} alpha", kit.pts(mtd_gap)),
                 # Daily closes, the drawdown line drawn below. The record's line
                 # under the calendar gives the month-end figure (-9.9% against
                 # this -13.5% on 6 Nov): both right, so each names its basis.

@@ -48,8 +48,9 @@ def test_month_cards_say_ahead_or_behind_and_mark_backfilled_months():
         "2026-03": {"strategy": -0.122, "benchmark": -0.114, "origin": "recorded"},
     }
     out = track_record_view.month_cards_html(months, pd.Period("2026-04", "M"), 0.022, -0.032)
-    # In %, as every alpha headline is (owner, 12 Oct 2026).
-    assert "ahead 0.6%" in out and "behind 0.8%" in out and " pts" not in out
+    # In points: alpha is a difference of returns (owner, 8 Nov 2026, S97 d;
+    # replaces the 12 Oct choice of %).
+    assert "ahead 0.6 pts" in out and "behind 0.8 pts" in out
     assert out.count("backfilled") == 1 and out.count("recorded") == 1
     assert "Apr 2026 · so far" in out
 
@@ -67,3 +68,26 @@ def test_industry_rows_fold_the_tail_into_others():
     assert [r[0] for r in rows][:2] == ["A", "B"]
     assert rows[-1][0] == "2 others" and rows[-1][1] == 2   # G and H
     assert len(rows) == qualified_view.TOP_INDUSTRIES + 1
+
+
+def test_alpha_is_shown_in_points_returns_in_percent():
+    from src.ui import formats as fmt
+    from src.ui import page_kit as kit
+
+    assert fmt.pts(0.083) == "+8.3 pts" and fmt.pts(-0.012) == "−1.2 pts"
+    assert kit.pts(0.083) == "+8.3 pts" and kit.pct(0.083) == "+8.3%"
+    assert fmt.pts(None) == fmt.DASH
+
+
+def test_the_leadership_map_is_grey_with_the_leader_and_laggard_picked_out():
+    """Owner, 8 Nov 2026 (S97 g): grey for every sector, the leader blue, the laggard rust."""
+    from src.ui.charts import leadership_colours, render_leadership_map  # noqa: F401
+    from src.ui.tokens import resolve
+
+    board = pd.DataFrame({"Sector": ["Banks", "IT", "Metals", "Pharma"],
+                          "x_now": [0.02, -0.05, 0.09, 0.0]})
+    c = leadership_colours(board)
+    assert c["Metals"] == "var(--c-up)" and c["IT"] == "var(--c-down)"
+    assert c["Banks"] == c["Pharma"] == "var(--c-quiet)"
+    assert resolve(c["Banks"]).startswith("#")
+    assert leadership_colours(board.head(1)) == {"Banks": "var(--c-quiet)"}

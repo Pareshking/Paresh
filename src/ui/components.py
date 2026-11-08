@@ -140,12 +140,14 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
     if table.empty:
         return
 
-    def cell(value):
+    def cell(value, points=False):
         if value is None or pd.isna(value):
             return '<td class="cr-empty">—</td>'
         number = float(value)
         tone = "positive" if number > 0 else "negative" if number < 0 else "flat"
-        return f'<td class="cr-value {tone}">{_kit.pct(number)}</td>'
+        # Alpha is a difference of returns: points (owner, 8 Nov 2026, S97 d).
+        shown = _kit.pts(number) if points else _kit.pct(number)
+        return f'<td class="cr-value {tone}">{shown}</td>'
 
     heads = []
     for row in table.itertuples(index=False):
@@ -158,7 +160,7 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
               ("Alpha", "alpha", "ALPHA")]
     body = "".join(
         f'<tr><th scope="row" class="cr-series {klass}">{html.escape(label)}</th>'
-        + "".join(cell(v) for v in table[col]) + "</tr>"
+        + "".join(cell(v, points=(col == "ALPHA")) for v in table[col]) + "</tr>"
         for label, klass, col in series
     )
     st.html(

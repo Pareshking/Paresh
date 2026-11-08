@@ -21,7 +21,7 @@ from src.loaders import benchmark_store
 from src.engine import size_leadership as sl
 from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
 from src.ui.views.market_questions_view import render_leaders_section, size_closes
-from src.ui.charts import render_leadership_map, sector_colours
+from src.ui.charts import leadership_colours, render_leadership_map
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.screener_table import _CSS as TABLE_CSS, _JS as TABLE_JS, render_screener_table
 
@@ -74,7 +74,7 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
     months = LEAD_PERIODS.get(st.session_state.get("sec_lead_period") or "1M", 1)
     with kit.card("Sector leadership map", "sec_lead", f"hollow dot {_ago(months)} · filled dot today"):
         kit.caption(f"Right: beat the Nifty 500 over the {'month' if months == 1 else f'{months} months'}. "
-                    "Up: more of its stocks above the EMA. Each sector keeps its colour; tap one to pick it out.")
+                    "Up: more of its stocks above the EMA. The leader is blue, the laggard rust, the rest grey; tap one to pick it out.")
         with st.container(horizontal=True, gap="small", vertical_alignment="center", key="sec_lead_controls"):
             st.segmented_control("EMA", list(EMA_SPANS), default=200, required=True, key="sec_lead_span",
                                  format_func=lambda n: f"{n} EMA", label_visibility="collapsed")
@@ -176,7 +176,7 @@ Right and up: broad strength building. Right and down: beating the index on a fe
 def leadership_table_html(board: pd.DataFrame, span: int) -> str:
     """The leadership figures in the Screener table's design ("Stocks in an
     industry"): sortable headers, the sector's map colour as a dot."""
-    colour = sector_colours(board["Sector"])
+    colour = leadership_colours(board)
     rows = []
     for i, r in enumerate(board.sort_values("x_now", ascending=False).itertuples(), start=1):
         name = html.escape(r.Sector)

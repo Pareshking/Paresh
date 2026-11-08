@@ -640,7 +640,7 @@ def _backtest_tab(
                     f"{bench_name} {_fmt.pct(stats['ann_bench'])}" if _yrs >= 1
                     else f"needs 12 months; this is {_months_txt(_yrs)}",
                     _tone(stats["ann_return"]) if _yrs >= 1 else ""),
-        kit.Reading("Ahead of the index", f"{_fmt.pct(stats['alpha'])}",
+        kit.Reading("Ahead of the index", _fmt.pts(stats['alpha']),
                     f"{bench_name} {_fmt.pct(stats['bench_return'])}", _tone(stats["alpha"])),
         # Its basis on the tile (audit F69): daily returns, annualised, over the
         # risk-free rate the engine uses.

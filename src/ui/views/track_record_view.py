@@ -157,7 +157,7 @@ def month_cards_html(months: dict, mtd_period, mtd_val, mtd_bench) -> str:
     for key, e in sorted(months.items()):
         s, b = e.get("strategy"), e.get("benchmark")
         gap = "" if s is None or b is None else (
-            f" · {'ahead' if s >= b else 'behind'} {abs(s - b) * 100:.1f}%")
+            f" · {'ahead' if s >= b else 'behind'} {abs(s - b) * 100:.1f} pts")
         tag = "recorded" if e.get("origin") == "recorded" else "backfilled"
         cards.append(
             f'<div class="mo {_tone(s)}"><span class="mo-h">{pd.Period(key, freq="M").strftime("%b %Y")}'
@@ -289,7 +289,7 @@ def render_record_sections(
                     f"after costs · since {start.strftime('%b %Y')}",
                     _tone(stats["total_return"])),
         kit.Reading("Nifty 500", _pct(stats["bench_return"]), "price index", _tone(stats["bench_return"])),
-        kit.Reading("Ahead of the index", _pct(stats["alpha"]),
+        kit.Reading("Ahead of the index", _fmt.pts(stats["alpha"]),
                     (f"{n_beat} of {stats['months']} months beat it" if n_beat is not None else ""),
                     _tone(stats["alpha"])),
         kit.Reading("Worst month", _pct(stats["worst_month"]),

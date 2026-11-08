@@ -73,5 +73,8 @@ def test_book_at_risk_lists_least_room_first_with_its_rule():
 def test_dashboard_is_home_and_the_screener_keeps_an_address():
     src = (dv.__file__ and open(__import__("pathlib").Path(dv.__file__).parents[3] / "app.py",
                                 encoding="utf-8").read())
-    assert 'st.Page(_page_dashboard, title="Dashboard", url_path="home", default=True)' in src
+    assert 'st.Page(_page_dashboard, title="Dashboard", default=True)' in src
+    # /home and /dashboard are redirects to it: the default page is served at "/"
+    # only, and /home showed "Page not found" until 8 Nov.
+    assert '"home": "Dashboard"' in src and '"dashboard": "Dashboard"' in src
     assert 'st.Page(_page_screener, title="Screener", url_path="screener")' in src
