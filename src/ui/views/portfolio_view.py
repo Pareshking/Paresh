@@ -19,7 +19,7 @@ from src.loaders.price_loader import fetch_benchmark_history
 from src.ui import page_kit as kit
 from src.ui import system_param
 from src.ui.canonical_book import current_book
-from src.ui.components import _render_calendar_returns
+from src.ui.components import _render_calendar_returns, gap_count, render_data_quality_footer
 from src.ui.charts import render_correlation_heatmap
 from src.ui.theme import render_saas_table
 from src.ui.views.qualified_view import correlation, correlation_note
@@ -535,7 +535,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         st.error(f"Canonical Track Record book is invalid: {exc}")
         return
     if book.empty:
-        st.info("The Track Record has no current model book for this system yet.")
+        kit.empty("No current model book", "for this system yet.")
         return
 
     meta = record.get("live_meta", {}) or {}
@@ -566,7 +566,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     equity = history["equity"]
     table = build_portfolio_tracker(book, rank_df, capital, prices, equity_curve=equity)
     if table.empty:
-        st.info("The canonical model book could not be sized.")
+        kit.empty("The model book could not be sized.")
         return
 
     invested = float(table["Value at Rebalance (₹)"].sum())
@@ -603,7 +603,9 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     wins = int((closed_valid["Return %"] > 0).sum()) if not closed_valid.empty else 0
     losses = int((closed_valid["Return %"] < 0).sum()) if not closed_valid.empty else 0
 
-    kit.page_head("Portfolio", "")
+    # Every other page states what it shows under its title (design audit,
+    # 8 Nov 2026): Portfolio printed an empty line there.
+    kit.page_head("Portfolio", "The model book as it stands, and what it has returned.")
 
     # Frozen Portfolio KPI design: six centered cards, with benchmark
     # comparisons shown as a second layer only where a comparable period exists.
@@ -694,7 +696,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     # ── Performance: one card, equity and drawdown together ─────────────────
     with kit.card("Equity & drawdown", "portfolio_equity"):
         if equity.empty:
-            st.info("No completed portfolio history is available yet.")
+            kit.empty("No completed portfolio history yet.")
         else:
             mtd_gap = (strategy_mtd - benchmark_mtd
                        if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan)
@@ -727,7 +729,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
                                   if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else None)},
         )
         if grid.empty:
-            st.info("No monthly history is available yet.")
+            kit.empty("No monthly history yet.")
         else:
             _render_calendar_returns(grid)
             note = _calendar_note(labels, mtd_period, mtd_state,
@@ -741,7 +743,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     # ── Activity ────────────────────────────────────────────────────────────
     with kit.card("Trades", "portfolio_trades"):
         if trades.empty:
-            st.info("No trades are available yet.")
+            kit.empty("No trades yet.")
         else:
             outcome = st.pills("Outcome", ["All", "Winners", "Losers", "Open"], default="All",
                                key="portfolio_trade_outcome_v3", label_visibility="collapsed")
@@ -760,7 +762,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
 
     with kit.card("Rebalances", "portfolio_rebalances"):
         if tradebook.empty:
-            st.info("No rebalances are available yet.")
+            kit.empty("No rebalances yet.")
         else:
             action = st.pills("Action", ["All", "Buy", "Sell", "Hold"], default="All",
                               key="portfolio_rebalance_action_v3", label_visibility="collapsed")
@@ -786,3 +788,10 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
             st.download_button("Monthly returns CSV", monthly_grid.to_csv(index=False).encode(),
                                f"portfolio_monthly_{ist_now():%Y%m%d}.csv", "text/csv",
                                key="dl_port_monthly_csv_v4")
+
+    # The as-of line and the source ages, as Actions and Backtest end with.
+    render_data_quality_footer(
+        total_stocks=len(rank_df),
+        gap_count=gap_count(rank_df),
+        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
+    )

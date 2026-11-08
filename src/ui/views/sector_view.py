@@ -84,7 +84,7 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
                                       "for the slower trend underneath.")
         board = _leadership(price_fingerprint(adj_close), adj_close, groups, span, months)
         if board.empty:
-            st.info("Not enough price history to compare the two periods.")
+            kit.empty("Not enough price history", "to compare the two periods.")
             return
         names = board.sort_values("Sector")["Sector"].tolist()
         focus = st.selectbox("Pick out a sector", ["All sectors", *names], key="sec_lead_focus",
@@ -356,7 +356,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                          label_visibility="collapsed", width=190)
 
     if board.empty:
-        st.info("No industry has two or more ranked stocks to compare.")
+        kit.empty("No industry has two or more ranked stocks", "to compare.")
         return
 
     # What is leading, in full; the four tiles that sat here repeated the

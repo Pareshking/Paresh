@@ -501,10 +501,9 @@ def _backtest_tab(
     if not bt_res.get("stats", {}).get("total_return") and bt_res["equity_curve"].empty:
         # The first month of a system: its first book exists (Actions, Portfolio)
         # but no month has completed, so there is no return to report yet.
-        st.info(
-            "No completed month yet. The first book is on Actions and Portfolio; "
-            "returns appear here when the month closes."
-        )
+        kit.empty("No completed month yet.",
+                  "The first book is on Actions and Portfolio; returns appear here when "
+                  "the month closes.")
         return
 
     # The backtest runs on the DEEPEST history available, which is not always
@@ -667,7 +666,7 @@ def _backtest_tab(
                   f"Strategy, {bench_name} and Alpha · year by year"):
         _grid = build_combined_grid(ledger_from_curves(eq, bm), alpha_as_difference=True)
         if _grid.empty:
-            st.info("No full month in this window yet.")
+            kit.empty("No full month in this window yet.")
         else:
             _grid["SERIES"] = _grid["SERIES"].replace({"Nifty 500": bench_name})
             # Year by year first (owner, 9 Oct 2026): the CY column of each block below.
@@ -777,7 +776,7 @@ def _backtest_tab(
                         key="dl_bt_monthly_csv",
                     )
                 else:
-                    st.info("No months in this window.")
+                    kit.empty("No months in this window.")
 
             elif sub_view == "Every trade":
                 if not closed_trades.empty:
@@ -873,7 +872,7 @@ def _backtest_tab(
                         key="dl_bt_realized_trades_csv",
                     )
                 else:
-                    st.info("No trades in this window.")
+                    kit.empty("No trades in this window.")
 
             else:
                 # ── Rebalance Log View ───────────────────────────────────────────
@@ -929,7 +928,7 @@ def _backtest_tab(
                         key="dl_bt_tradebook_csv",
                     )
                 else:
-                    st.info("No rebalances in this window.")
+                    kit.empty("No rebalances in this window.")
 
     if view == "Method":
       with kit.card("Method", "bt_method", "how every figure on this page is made"):

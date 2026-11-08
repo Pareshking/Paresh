@@ -293,7 +293,7 @@ def render_rrg_view(
     )
 
     if rrg_df.empty:
-        st.info("Not enough price history to draw the rotation for these settings.")
+        kit.empty("Not enough price history", "to draw the rotation for these settings.")
     else:
         all_inds = sorted(rrg_df["Industry"].tolist())
         leading_items = (

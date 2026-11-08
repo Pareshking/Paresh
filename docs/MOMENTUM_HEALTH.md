@@ -7,21 +7,30 @@ it went on the Dashboard, as S91 required.
 ## Long-only headline (owner, 8 Nov 2026: "Lead with winners vs index")
 
 The book never shorts, so the Dashboard now leads with what a long-only momentum book
-earns: the top fifth's next-month return (equal weight) less the Nifty 500's, summed over
-12 months (`momentum_health.long_only`). It is split into **momentum** (top fifth less the
+earns: hold the top 100 of the ranking (one fifth of the Nifty 500), equal weight, for the
+next month, and compare its 12-month return with the Nifty 500's
+(`momentum_health.long_only`). It is split into **momentum** (top 100 less the
 equal-weighted average member, the `ew` column) and **breadth** (the average member less
 the index; it carries the small-stock effect, since the index is cap-weighted).
 Winners minus losers stays as a reference row and keeps the IIMA check below.
+
+Each leg is compounded over the 12 months and the legs are then subtracted, so the
+headline is the gap between two 12-month returns a reader can check against the index
+(owner, 8 Nov 2026). The card said a sum of the 12 monthly gaps until then; the two drift
+apart when months are large (to Oct 2026: 12.9 summed, 12.2 compounded, and the percentile
+56th rather than 65th). Subtraction keeps the split exact, since
+(top - ew) + (ew - index) = top - index. The IIMA check below still uses 12-month sums, as
+the comparison was built that way.
 
 Why (`scripts/research/long_only_momentum_health.py`, 201 months, Feb 2010 to Oct 2026):
 
 | Trailing 12 months against our book's 12-month lead over the Nifty 500 | Correlation | Same sign |
 |---|---|---|
-| Top fifth less the Nifty 500 | +0.81 | 86% |
-| Top fifth less the average member | +0.43 | 80% |
+| Top 100 less the Nifty 500 | +0.81 | 86% |
+| Top 100 less the average member | +0.43 | 80% |
 | Winners minus losers | +0.44 | 79% |
 
-The long leg (top fifth less the average member) earned 62% of winners minus losers over
+The long leg (top 100 less the average member) earned 62% of winners minus losers over
 the whole period (51% in 2010-14, 61% in 2015-19, 76% in 2020-24), close to Israel and
 Moskowitz (JFE 108(2), 2013), who find about half of momentum profits on the long side in
 US data. In the 12 months to Oct 2026 winners minus losers was +8.9 points but the long leg

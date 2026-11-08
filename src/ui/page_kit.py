@@ -340,7 +340,13 @@ body .gd h2{font-family:var(--font-serif)!important;font-weight:400!important;fo
 body .cfg-intro h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important}
 body .cr-year-head h3{font-family:var(--font-serif);font-weight:400;font-size:22px}
 body .gd p,body .gd li,body .gd dd{font-size:16px!important}
-@media (max-width:900px){.scr-head h1{font-size:36px!important}.qp h2{font-size:30px!important}.rng{width:110px}}
+/* The stock page's own headings, brought onto the site's scale (design
+   audit, 8 Nov 2026): they were the only sans-serif section headings in
+   the app, 17px beside a serif 24px heading on the same page. */
+body .sp-card h2, body .sp-sec h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important;line-height:1.15!important}
+@media (max-width:900px){.scr-head h1{font-size:36px!important}.qp h2{font-size:30px!important}.rng{width:110px}
+  /* and the stock headline shrinks with every other page's */
+  body h1.sp-name{font-size:36px!important}body .sp-card h2,body .sp-sec h2{font-size:20px!important}}
 </style>"""
 
 

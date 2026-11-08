@@ -99,3 +99,23 @@ def test_no_colour_literals_outside_the_tokens():
             if re.search(r"#[0-9A-Fa-f]{6}\b", line) and "noqa: colour" not in line:
                 offenders.append(f"{f.name}:{n}")
     assert not offenders, offenders
+
+
+def test_every_colour_variable_used_is_a_palette_token():
+    """A second, kebab-case naming (--c-text-primary, --c-bull-tint) lived in an
+    alias layer inside the stylesheet (design audit, 8 Nov 2026). It resolved on
+    the page but not in a chart or a framed table, where tokens.resolve() reads
+    PALETTE and raises KeyError on an unknown name. One naming now."""
+    import re
+    from pathlib import Path
+
+    from src.ui.tokens import PALETTE
+
+    root = Path(__file__).resolve().parents[1] / "src"
+    used = {}
+    for f in root.rglob("*.py"):
+        for n, line in enumerate(f.read_text().splitlines(), 1):
+            for name in re.findall(r"var\(--c-([A-Za-z0-9_-]+)", line):
+                used.setdefault(name, f"{f.relative_to(root)}:{n}")
+    unknown = {k: v for k, v in used.items() if k not in PALETTE}
+    assert not unknown, f"colour variables that PALETTE does not define: {unknown}"

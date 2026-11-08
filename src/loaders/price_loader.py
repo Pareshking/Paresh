@@ -283,7 +283,11 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
         # The argument is honoured rather than decorative: this read
         # BENCHMARK_SYMBOL internally, so asking for any other index
         # silently returned the Nifty 500 regime under that index's name.
-        close_s = fetch_benchmark_history(period="2y", symbol=benchmark_symbol)
+        # The whole series, not two years: a 200-day EMA over a 2-year window
+        # has not converged, so the header read 2.9% above where the market
+        # questions card, which uses the full series, read +3.0 (audit, 8 Nov
+        # 2026). Both now measure the same thing on the same history.
+        close_s = fetch_benchmark_history(period="max", symbol=benchmark_symbol)
 
         if close_s is None or close_s.empty:
             return RegimeData(

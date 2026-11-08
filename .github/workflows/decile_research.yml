@@ -1,0 +1,44 @@
+name: Decile split research (hand-run)
+
+# Owner, 8 Nov 2026: should Momentum health show the top fifth (about 100 stocks),
+# the top decile, or something nearer the book's own 20 names? This runs
+# scripts/research/decile_split.py, which needs NSE's long price file (not
+# available in the dev container). Read-only: it commits nothing; the numbers
+# are in the job log and in the uploaded artifact.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: decile-research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compare the slices of the ranking
+        env:
+          PYTHONPATH: .
+        run: python scripts/research/decile_split.py | tee decile_split.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: decile-split
+          path: |
+            decile_split.txt
+            decile_split_monthly.csv
+          if-no-files-found: error

@@ -175,7 +175,10 @@ def get_recent_hl_events(
     span = "52W" if window == 252 else f"{window}D"
     records: list[dict[str, Any]] = []
     for dt in reversed(sub_high.index):
-        dt_str = pd.to_datetime(dt).strftime("%d %b %Y")
+        # No leading zero, as every other date on the site reads (design
+        # audit, 8 Nov 2026: this table alone said "06 Nov 2026").
+        _d = pd.to_datetime(dt)
+        dt_str = f"{_d.day} {_d:%b %Y}"
         # Highs
         h_series = sub_high.loc[dt]
         for sym in h_series[h_series].index:

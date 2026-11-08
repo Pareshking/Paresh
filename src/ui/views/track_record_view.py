@@ -177,7 +177,7 @@ def _render_rank_months(books: dict) -> None:
     """Show the selected monthly book using the app's shared table treatment."""
     if not books:
         with kit.card("Ranks by month", "tr_ranks", "needs the price history"):
-            st.info("No monthly books to show yet.")
+            kit.empty("No monthly books to show yet.")
         return
 
     keys = sorted(books)
@@ -257,8 +257,9 @@ def render_record_sections(
     mtd_period = pd.Period(lm["mtd_period"], freq="M") if lm.get("mtd_period") else None
 
     if not months:
-        st.info(f"No months frozen yet. {SYSTEM_NAMES[system]}'s record starts with "
-                f"{start.strftime('%B %Y')}; each month is frozen early the next month.")
+        kit.empty("No months frozen yet.",
+                  f"{SYSTEM_NAMES[system]}'s record starts with {start.strftime('%B %Y')}; "
+                  "each month is frozen early the next month.")
         if mtd_val is not None and mtd_period is not None:
             st.html(month_cards_html({}, mtd_period, mtd_val, mtd_bench))
         render_comparison(adj_close, benchmark_close, system)
@@ -445,7 +446,7 @@ def render_comparison(
         "monthly returns · latest 12 months",
     ):
         if table.empty:
-            st.info("Nothing recorded yet.")
+            kit.empty("Nothing recorded yet.")
         else:
             render_saas_table(grid_display(table))
             st.caption(f"{SHADOW_NAME}: 30 holdings · keep while in the top 90 · 200D EMA, "
