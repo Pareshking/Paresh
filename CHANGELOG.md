@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — Dashboard: is momentum risky right now?
+
+- A new card under Momentum health says whether the conditions behind momentum crashes are present: the Nifty 500 below its level of 24 months ago, and high market volatility (Daniel and Moskowitz, 2016). It shows Calm, Elevated (one condition) or Crash-prone (both), with how momentum did in each state since 2010 on this site's own data. Today: Calm.
+
 ## 2026-11-08 — Dashboard: which sectors lead, and is leadership changing?
 
 - The Dashboard answers "Which sectors lead?" and "Is leadership changing?" from NSE's own sector indices (Bank, IT, Pharma, Auto, FMCG, Metal, Realty, Media, PSU Bank, Financial Services, PSE, Energy, Infrastructure): each index's return against the Nifty 500 over three months and over the last month. They replace "What is leading?" once the nightly index job has collected the sector indices. A relative rotation graph was tried first and not used: it agreed with StockCharts' weekly India RRG on 64% of indices, below the 80% bar set.

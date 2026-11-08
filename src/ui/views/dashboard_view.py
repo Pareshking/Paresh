@@ -257,7 +257,8 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # Desktop reading order: the questions, then each column's top block, then the rest.
     nav_slot.html(page_nav_html(drawn + [
         ("s-db_risk", "Book at risk"), ("s-db_next", "Next rebalance"),
-        ("s-db_mh", "Momentum health"), ("s-db_size", "Size leadership"), ("s-db_flows", "Flows")]))
+        ("s-db_mh", "Momentum health"), ("s-db_crash", "Is momentum risky?"),
+        ("s-db_size", "Size leadership"), ("s-db_flows", "Flows")]))
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
