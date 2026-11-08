@@ -701,7 +701,9 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
             f'<p class="qp-s">{html.escape(ld.sentence)}</p>{size_html}</div>'
             f'<div>{would}</div></div>{quad_html}{heat_html}'
             '<p class="qp-note">Industries are NSE\'s, at least five stocks each, counted over the stocks '
-            'ranked today; points are the median stock\'s return less the Nifty 500\'s.</p></section>')
+            'ranked today; points are the median stock\'s return less the Nifty 500\'s. The Dashboard\'s '
+            '"Which sectors lead?" reads NSE\'s sector indices instead, which weight large companies more, '
+            'so the two can name different leaders.</p></section>')
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
