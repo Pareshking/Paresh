@@ -109,18 +109,29 @@ def health(spreads: pd.DataFrame) -> dict | None:
     }
 
 
+def _compound(monthly_pct: pd.Series) -> float:
+    """A series of monthly returns in % compounded into one return in %."""
+    return float((1.0 + monthly_pct.astype(float) / 100.0).prod() - 1.0) * 100.0
+
+
 def long_only(spreads: pd.DataFrame | None) -> dict | None:
     """Momentum as a long-only book earns it (owner, 8 Nov 2026: "Lead with
-    winners vs index"): the top fifth's return less the Nifty 500's, summed
-    over 12 months, split into momentum (top fifth less the average member)
-    and breadth (the average member less the index) when `ew` is present.
+    winners vs index"): the top 100's 12-month return less the Nifty 500's,
+    split into momentum (top 100 less the average member) and breadth (the
+    average member less the index) when `ew` is present.
+
+    Each leg is compounded over the 12 months and then subtracted, so the
+    figure is the gap between two 12-month returns a reader can check (owner,
+    8 Nov 2026: a sum of 12 monthly gaps drifts from it when months are large;
+    Oct 2026, 12.9 summed against 12.2 compounded). Subtraction keeps the
+    split exact: (top - ew) + (ew - index) = top - index.
 
     Research behind it (scripts/research/long_only_momentum_health.py, 201
     months to Oct 2026): this measure's trailing 12 months tracked our book's
     12-month lead over the Nifty 500 with correlation 0.81 (same sign 86% of
     the time); winners minus losers 0.44. The long leg earned 62% of winners
     minus losers, near Israel and Moskowitz's (JFE 2013) "half" for the US.
-    The top fifth is equal-weighted and the index is not, so the total also
+    The top 100 is equal-weighted and the index is not, so the total also
     carries the small-stock effect; the breadth line shows how much.
     """
     if spreads is None or not {"top", "nifty500", "month"} <= set(spreads.columns):
@@ -133,17 +144,24 @@ def long_only(spreads: pd.DataFrame | None) -> dict | None:
     if len(d) < 24:
         return None
     lead = (d["top"] - d["nifty500"]).set_axis(d["month"].astype(str))
-    t12 = lead.rolling(12).sum().dropna()
+    r12 = {c: (1.0 + d[c] / 100.0).rolling(12).apply(np.prod, raw=True).sub(1.0).mul(100.0)
+           for c in ("top", "nifty500")}
+    t12 = (r12["top"] - r12["nifty500"]).set_axis(d["month"].astype(str)).dropna()
     last12 = d.tail(12)
     has_ew = "ew" in d and last12["ew"].notna().all()
+    top12, idx12 = _compound(last12["top"]), _compound(last12["nifty500"])
+    ew12 = _compound(last12["ew"]) if has_ew else None
     return {
         "month": str(lead.index[-1]),
         "month_lead": float(lead.iloc[-1]),
-        "lead_12m": float(t12.iloc[-1]),
+        "lead_12m": top12 - idx12,
+        "top_12m": top12,
+        "index_12m": idx12,
         "percentile": float((t12 <= t12.iloc[-1]).mean() * 100),
-        "momentum_12m": float((last12["top"] - last12["ew"]).sum()) if has_ew else None,
-        "breadth_12m": float((last12["ew"] - last12["nifty500"]).sum()) if has_ew else None,
-        "wml_12m": float(last12["spread"].sum()) if "spread" in last12 else None,
+        "momentum_12m": top12 - ew12 if has_ew else None,
+        "breadth_12m": ew12 - idx12 if has_ew else None,
+        "wml_12m": (top12 - _compound(last12["bottom"]))
+                   if "bottom" in last12 and last12["bottom"].notna().all() else None,
         "recent": (d["top"] - d["nifty500"]).tail(24).astype(float).tolist(),
         "since": str(d["month"].iloc[0])[:4],
     }

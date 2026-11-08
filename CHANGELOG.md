@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-08 — Momentum health states two returns, and says "top 100"
+
+- The headline is now the gap between two 12-month returns ("the top 100 returned +4.6% against the Nifty 500's −7.7%: 12.2 percentage points ahead"). It added the 12 monthly gaps before, which drifts from the real 12-month gap when months are large (12.9 summed against 12.2 compounded), and the card never said which it showed. The percentile is now ranked the same way: 56th, not 65th.
+- "Top fifth" is written as "top 100" everywhere on the Dashboard (one fifth of the Nifty 500, about 100 stocks): "fifth" reads as "fifty".
+
 ## 2026-11-08 — Cards match the site's table style; audit Low items
 
 - Next rebalance and Flows list their items as hairline rows like the market-question tables (they used bold grey labels with no rules). Momentum health shows its momentum and breadth rows again (the monthly file now carries the average stock's return).

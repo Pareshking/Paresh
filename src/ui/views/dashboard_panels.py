@@ -74,18 +74,18 @@ def momentum_health_html(spreads: pd.DataFrame | None) -> str | None:
     month = pd.Period(h["month"], freq="M")
     t12, last = h["trailing_12m"], h["month_spread"]
     word = percentile_word(h["percentile"])
-    lede = (f"Over the last 12 months the top fifth of our ranking beat the bottom fifth by "
+    lede = (f"Over the last 12 months the top 100 of our ranking beat the bottom 100 by "
             f"{fmt.signed(t12)} points: {word} ({ordinal(round(h['percentile']))} percentile since 2010). "
             f"{month:%B}: {fmt.signed(last)} points.")
     if t12 < 0:
-        lede = (f"Over the last 12 months the top fifth of our ranking trailed the bottom fifth by "
+        lede = (f"Over the last 12 months the top 100 of our ranking trailed the bottom 100 by "
                 f"{fmt.signed(abs(t12), plus=False)} points: {word} ({ordinal(round(h['percentile']))} percentile "
                 f"since 2010). {month:%B}: {fmt.signed(last)} points.")
     crash = (f'<p class="db-flag">{month:%B} was in the worst 10% of months since 2010: momentum '
              "stocks fell well behind the laggards.</p>") if h["crash"] else ""
     recent = spreads.tail(24)["spread"].astype(float).tolist()
     img = _bars_svg(recent)
-    alt = (f"Monthly spread, top fifth minus bottom fifth, last {len(recent)} months: from "
+    alt = (f"Monthly spread, top 100 minus bottom 100, last {len(recent)} months: from "
            f"{fmt.signed(min(recent))} to {fmt.signed(max(recent))} points.")
     tone = "up" if t12 > 0 else "down" if t12 < 0 else ""
     return (f'<div class="db-mh"><div class="db-big {tone}">{fmt.signed(t12)}<span> pts, 12 months</span></div>'
@@ -102,10 +102,10 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
     month = pd.Period(lo["month"], freq="M")
     t12 = lo["lead_12m"]
     word = percentile_word(lo["percentile"])
-    verb = "beat" if t12 >= 0 else "trailed"
-    lede = (f"Over the last 12 months the top fifth of our ranking {verb} the Nifty 500 by "
-            f"{abs(t12):.1f} points: {word} ({ordinal(round(lo['percentile']))} percentile since {lo['since']}). "
-            f"{month:%B}: {fmt.signed(lo['month_lead'])} points.")
+    lede = (f"Over the last 12 months the top 100 of our ranking (one fifth of the Nifty 500) returned "
+            f"{lo['top_12m']:+.1f}% against the Nifty 500's {lo['index_12m']:+.1f}%: {abs(t12):.1f} percentage "
+            f"points {'ahead' if t12 >= 0 else 'behind'}, {word} ({ordinal(round(lo['percentile']))} percentile "
+            f"since {lo['since']}). {month:%B}: {fmt.signed(lo['month_lead'])} points.")
     rows = []
 
     def row(label: str, v: float | None) -> None:
@@ -121,7 +121,7 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
              f'</tr></thead><tbody>{"".join(rows)}</tbody></table>') if rows else ""
     recent = lo["recent"]
     img = _bars_svg(recent)
-    alt = (f"Monthly lead of the top fifth over the Nifty 500, last {len(recent)} months: from "
+    alt = (f"Monthly lead of the top 100 over the Nifty 500, last {len(recent)} months: from "
            f"{fmt.signed(min(recent))} to {fmt.signed(max(recent))} points.")
     tone = "up" if t12 > 0 else "down" if t12 < 0 else ""
     return (f'<div class="db-mh"><div class="db-big {tone}">{fmt.signed(t12)}<span> pts, 12 months</span></div>'
@@ -154,7 +154,7 @@ def _qualified_evidence(spreads: pd.DataFrame, d: pd.DataFrame, cuts: list[float
     g = d.groupby("qtr")["spread"]
     low, high = g.get_group(0), g.get_group(3)
     return (f"In the quarter of month-ends with the fewest (below {cuts[0] * 100:.0f}%), the momentum factor's next "
-            f"month (top fifth minus bottom fifth) averaged {fmt.signed(float(low.mean()))} pts and fell in "
+            f"month (top 100 minus bottom 100) averaged {fmt.signed(float(low.mean()))} pts and fell in "
             f"{float((low < 0).mean()) * 100:.0f}% of them; in the quarter with the most, "
             f"{fmt.signed(float(high.mean()))} pts and {float((high < 0).mean()) * 100:.0f}%.")
 
@@ -305,23 +305,24 @@ def render(kit, left, right) -> None:
     spreads = _load(MOMENTUM_FILE)
     lo_out = long_only_html(spreads)
     with left, kit.card("Momentum health", "db_mh",
-                        "top fifth against the Nifty 500" if lo_out else "top fifth minus bottom fifth"):
+                        "top 100 against the Nifty 500" if lo_out else "top 100 minus bottom 100"):
         out = lo_out or momentum_health_html(spreads)
         if out is None:
             kit.caption("Momentum health is not available right now: its monthly file is missing or "
                         "shorter than two years.")
         elif lo_out:
             st.html(out)
-            kit.caption("Each month-end the Nifty 500's members are ranked by this site's score; the "
-                        "figure is the next month's return of the top fifth, equal weight, less the Nifty "
-                        "500's: what a long-only momentum book earns over the index. Since 2010 its 12-month "
-                        "sum moved with our book's lead over the index (correlation 0.81; winners minus "
-                        "losers 0.44). Breadth carries the small-stock effect. Bars: the last 24 months. "
+            kit.caption("Each month-end the Nifty 500's members are ranked by this site's score and the "
+                        "top 100 are held, equal weight, for the next month: what a long-only momentum "
+                        "book earns. The figure is that book's 12-month return less the Nifty 500's, in "
+                        "percentage points. Since 2010 it moved with our own book's lead over the index "
+                        "(correlation 0.81; winners minus losers 0.44). Breadth carries the small-stock "
+                        "effect. Bars: each month's lead, last 24 months. "
                         f"Winners minus losers checked: {IIMA_CHECK}. A reading, not a forecast.")
         else:
             st.html(out)
             kit.caption("Each month-end the Nifty 500's members are ranked by this site's score; the "
-                        "spread is the next month's return of the top fifth minus the bottom fifth. "
+                        "spread is the next month's return of the top 100 minus the bottom 100. "
                         f"Bars: the last 24 months. Checked: {IIMA_CHECK}. How momentum has been "
                         "paying, not a forecast.")
     with right, kit.card("How many stocks qualify?", "db_qual", "the strategy's own filters, month-ends"):

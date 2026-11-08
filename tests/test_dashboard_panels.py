@@ -1,6 +1,7 @@
 """S91 panels: momentum health and flows read their files and say what they show."""
 import numpy as np
 import pandas as pd
+import pytest
 
 from src.engine import momentum_health as mh
 from src.ui.views import dashboard_panels as dp
@@ -42,20 +43,30 @@ def _long(n=36, ew=True):
     return d
 
 
+def _c(monthly_pct: float) -> float:
+    """12 months of that return, compounded, in %."""
+    return ((1 + monthly_pct / 100) ** 12 - 1) * 100
+
+
 def test_long_only_leads_with_winners_against_the_index_and_splits_it():
+    """Each leg is a 12-month return, compounded, and the legs are then
+    subtracted: 2% a month is 26.8% over a year, not 24."""
     lo = mh.long_only(_long())
-    assert lo["lead_12m"] == 18.0                              # (2 - 0.5) x 12
-    assert lo["momentum_12m"] == 12.0 and lo["breadth_12m"] == 6.0   # (2 - 1) x 12, (1 - 0.5) x 12
-    assert lo["momentum_12m"] + lo["breadth_12m"] == lo["lead_12m"]
-    assert lo["wml_12m"] == 11.5
+    top, ew, idx = _c(2.0), _c(1.0), _c(0.5)
+    assert lo["top_12m"] == pytest.approx(top) and lo["index_12m"] == pytest.approx(idx)
+    assert lo["lead_12m"] == pytest.approx(top - idx)           # 20.66, not 18.0 summed
+    assert lo["momentum_12m"] == pytest.approx(top - ew)
+    assert lo["breadth_12m"] == pytest.approx(ew - idx)
+    assert lo["momentum_12m"] + lo["breadth_12m"] == pytest.approx(lo["lead_12m"])
     out = dp.long_only_html(_long())
-    assert "+18.0" in out and "beat the Nifty 500 by 18.0 points" in out
+    assert "+20.7" in out and "returned +26.8% against the Nifty 500" in out and "+6.2%" in out
+    assert "20.7 percentage points ahead" in out
     assert "(momentum)" in out and "(breadth)" in out and "for reference" in out
 
 
 def test_long_only_without_the_average_member_shows_the_total_and_the_factor_only():
     out = dp.long_only_html(_long(ew=False))
-    assert "+18.0" in out and "(momentum)" not in out and "for reference" in out
+    assert "+20.7" in out and "(momentum)" not in out and "for reference" in out
     assert mh.long_only(_spreads()) is None                  # no index column: the old card draws
     assert mh.long_only(_long(n=12)) is None
 
