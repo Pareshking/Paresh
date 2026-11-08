@@ -5,6 +5,7 @@
 - Alpha, the strategy's return less the index's, now reads in points ("+8.3 pts") on Backtest, Portfolio and the record, so it is not read as a percentage of the index's return. Returns stay in %.
 - The sector leadership map draws every sector in grey and picks out the leader in blue and the laggard in rust; the sector you tap turns ink.
 - paresh.streamlit.app/home showed "Page not found" over the Dashboard; it now opens the Dashboard.
+- Every section now starts the same distance below what comes before it (it ranged from 11 to 44 px), and Portfolio's "Since inception" figure carries a small line of the book's record, as the Dashboard's index figures do.
 
 ## 2026-11-08 — SS prices: 3 s between requests, no rests
 

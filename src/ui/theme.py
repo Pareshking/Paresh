@@ -1893,6 +1893,19 @@ def inject_custom_css() -> None:
         .hdr-pill, .sig-chip { border-radius: 4px !important; }
         [data-testid="stExpander"] details { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
 
+        /* ── One section rhythm (S99, owner, 8 Nov 2026) ─────────────
+           A section's top rule sits ~28px below what precedes it on every
+           page: the 16px block gap, the previous card's 6px padding and 6px
+           here. Measured before: 11px to 44px (question sections kept a 22px
+           bottom margin; a block's last paragraph kept its 16px margin). */
+        [class*="st-key-pgcard_"] { margin-top: 6px !important; }
+        .qp { margin-bottom: 0 !important; margin-top: 6px !important; }
+        [data-testid="stExpander"] { margin-bottom: 0 !important; }  /* Streamlit's 12.8px */
+        /* A small trend line under a headline figure (S99): kit.spark_img. */
+        .ms-spark { display: block; line-height: 0; margin: 6px auto 2px; }
+        [data-testid="stMarkdownContainer"] > p:last-child,
+        [data-testid="stMarkdownContainer"] > div > p:last-child { margin-bottom: 0 !important; }
+
         /* ── Desktop quick links beside the menu (owner, 7 Nov 2026) ── */
         .st-key-app_quicklinks { gap: 2px !important; margin-left: auto !important; }
         .st-key-app_quicklinks [data-testid="stPageLink"] a {

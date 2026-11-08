@@ -610,6 +610,8 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
             kit.pct(history["strategy_total_return"]),
             f"Nifty 500 {kit.pct(benchmark_total_daily)}",
             "up" if history["strategy_total_return"] >= 0 else "down",
+            # The book's whole record beside its figure (S99, owner, 8 Nov).
+            kit.spark_img(history.get("equity_daily"), 110, 26, last=None),
         ),
         kit.Reading(
             "Unrealised P&L",

@@ -91,3 +91,19 @@ def test_the_leadership_map_is_grey_with_the_leader_and_laggard_picked_out():
     assert c["Banks"] == c["Pharma"] == "var(--c-quiet)"
     assert resolve(c["Banks"]).startswith("#")
     assert leadership_colours(board.head(1)) == {"Banks": "var(--c-quiet)"}
+
+
+def test_a_small_trend_line_sits_beside_a_headline_figure():
+    """S99 (owner, 8 Nov 2026): kit.spark_img, shared by the Dashboard strip and Portfolio."""
+    import base64
+
+    from src.ui import page_kit as kit
+    from src.ui.tokens import C
+
+    assert kit.spark_img([1, 2, 3]) == "" and kit.spark_img(None) == ""
+    up = kit.spark_img([1, 2, 3, 4, 5, 6])
+    down = kit.spark_img([6, 5, 4, 3, 2, 1])
+    svg = lambda tag: base64.b64decode(tag.split("base64,")[1].split('"')[0]).decode()  # noqa: E731
+    assert C.up in svg(up) and C.down in svg(down)
+    assert kit.spark_img(range(100), last=63) == kit.spark_img(range(37, 100), last=None)
+    assert kit.Reading("Since inception", "+41.4%", spark=up).spark == up
