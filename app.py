@@ -1055,7 +1055,7 @@ def _page_dashboard() -> None:
     # The home page (owner, 7 Nov 2026): book at risk, next rebalance, size
     # leadership, sector leaders. The same book and plan as Actions.
     render_dashboard_view(rank_df, deep_adj_close, fetch_benchmark_history(period="5y"),
-                          system=system)
+                          system=system, volume=volume_data)
 
 
 def _screener_book() -> list[str]:

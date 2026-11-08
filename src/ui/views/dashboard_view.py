@@ -149,8 +149,44 @@ def page_nav_html(links: list[tuple[str, str]]) -> str:
     return f'<nav class="qp-nav" aria-label="On this page">{items}</nav>'
 
 
+def book_risk_html(res, as_of_record: pd.Timestamp | None) -> str:
+    """"How risky is the book?" (book_risk; owner, 8 Nov 2026, TODO S110)."""
+    from src.engine import book_risk as br
+    from src.ui import formats as fmt
+
+    small = res.tiers.get("Smallcap 250", 0.0) + res.tiers.get("Microcap 250", 0.0)
+    order = ["Nifty 100", "Midcap 150", "Smallcap 250", "Microcap 250", "Outside"]
+    tiers = " · ".join(f"{t} {res.tiers[t] * 100:.0f}%" for t in order if res.tiers.get(t))
+    rows, lede = [], ""
+    if res.beta is not None:
+        lede = (f"The book as it stands moves about {res.beta:.2f} for each 1 of the Nifty 500 but swings "
+                f"{'more' if res.vol > res.bench_vol else 'less'}: {res.vol * 100:.1f}% a year against "
+                f"{res.bench_vol * 100:.1f}%. {small * 100:.0f}% of it is in small and micro caps.")
+        rows.append(f"<dt>Beta, {res.sessions} sessions</dt><dd><b>{res.beta:.2f}</b></dd>")
+        rows.append(f"<dt>Volatility</dt><dd><b>{res.vol * 100:.1f}%</b> a year · Nifty 500 "
+                    f"{res.bench_vol * 100:.1f}%</dd>")
+    rows.append(f"<dt>Size</dt><dd>{html.escape(tiers)}</dd>")
+    if res.drawdown is not None:
+        when = f" on {as_of_record:%-d %b}" if as_of_record is not None else ""
+        bench = f" · Nifty 500 {fmt.pct(res.bench_drawdown)}" if res.bench_drawdown is not None else ""
+        rows.append(f'<dt>Drawdown</dt><dd><b class="{"down" if res.drawdown < 0 else ""}">'
+                    f"{fmt.pct(res.drawdown)}</b> from the record's peak{when} (worst "
+                    f"{fmt.pct(res.max_drawdown)}){bench}</dd>")
+    if len(res.exit_days):
+        slow, days = res.exit_days.index[0], float(res.exit_days.iloc[0])
+        within = "within a day" if days <= 1 else f"in up to {days:.1f} days"
+        rows.append(f"<dt>Exit</dt><dd>every position {within} at {br.PARTICIPATION:.0%} of its traded "
+                    f"value (slowest {html.escape(slow)}, {days:.2f} days)</dd>")
+    gaps = "".join(f'<p class="db-note">Left out: {html.escape(g)}.</p>' for g in res.gaps)
+    head = (f'<div class="db-big">{res.beta:.2f}<span>beta · {res.vol * 100:.1f}% volatility</span></div>'
+            if res.beta is not None else "")
+    return (head + (f'<p class="db-lede">{html.escape(lede)}</p>' if lede else "")
+            + f'<dl class="db-kv">{"".join(rows)}</dl>{gaps}')
+
+
 def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
-                          benchmark_close: pd.Series | None, system: str = "750") -> None:
+                          benchmark_close: pd.Series | None, system: str = "750",
+                          volume: pd.DataFrame | None = None) -> None:
     cfg = TRACK_RECORD_CONFIG
     rules = Rules(buffer_n=int(cfg["buffer_n"]), high_pct=float(cfg["high_pct"]))
     as_of = (pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close)
@@ -214,6 +250,24 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                          f"broken; a full rank buffer ({rules.buffer_n} places) counts as a "
                          f"{RANK_SCALE:.0%} fall.", page_href("actions"), f"All {len(symbols)} holdings on Actions")
 
+    with top_l, kit.card("How risky is the book?", "db_bookrisk", "the whole book, not one holding"):
+        from src.core.config import MODEL_BOOK_CAPITAL
+        from src.engine import book_risk as br
+
+        nse = nse_benchmarks()
+        n500 = nse["nifty500"] if nse is not None and "nifty500" in nse else benchmark_close
+        eq = (record or {}).get("equity_curve")
+        res = br.book_risk(book.set_index("Symbol")["Weight %"], adj_close, n500, eq, volume,
+                           MODEL_BOOK_CAPITAL)
+        eq_series = pd.Series(eq).dropna() if eq is not None else pd.Series(dtype=float)
+        eq_end = pd.Timestamp(eq_series.index[-1]) if len(eq_series) else None
+        st.html(book_risk_html(res, eq_end))
+        kit.caption(f"Beta and volatility: today's book at today's weights over the last {br.WINDOW} sessions, "
+                    "against the Nifty 500's daily returns. Size: NSE's latest index lists. Drawdown: the "
+                    "record's equity, to its last month-end. Exit: a position's value at the model book's "
+                    f"capital over {br.PARTICIPATION:.0%} of its 20-day average traded value; that share is a "
+                    "common rule of thumb, an assumption, not a measured figure.")
+
     n_sess = _sessions_between(as_of, check)
     with top_r, kit.card("Next rebalance", "db_next", "if the month ended today"):
         st.html(
@@ -256,7 +310,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     dashboard_panels.render(kit, top_l, low_l)
     # Desktop reading order: the questions, then each column's top block, then the rest.
     nav_slot.html(page_nav_html(drawn + [
-        ("s-db_risk", "Book at risk"), ("s-db_next", "Next rebalance"),
+        ("s-db_risk", "Book at risk"), ("s-db_bookrisk", "How risky is the book?"), ("s-db_next", "Next rebalance"),
         ("s-db_mh", "Momentum health"), ("s-db_crash", "Is momentum risky?"),
         ("s-db_size", "Size leadership"), ("s-db_flows", "Flows")]))
 

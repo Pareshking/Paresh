@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — Dashboard: how risky is the book?
+
+- A new card under Book at risk describes the whole book: its beta and volatility against the Nifty 500, how much of it is in small and micro caps (90% today), its drawdown from the record's peak beside the index's over the same dates, and how quickly each position could be sold at the model book's size.
+
 ## 2026-11-08 — Dashboard: is momentum risky right now?
 
 - A new card under Momentum health says whether the conditions behind momentum crashes are present: the Nifty 500 below its level of 24 months ago, and high market volatility (Daniel and Moskowitz, 2016). It shows Calm, Elevated (one condition) or Crash-prone (both), with how momentum did in each state since 2010 on this site's own data. Today: Calm.
