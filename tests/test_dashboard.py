@@ -78,3 +78,13 @@ def test_dashboard_is_home_and_the_screener_keeps_an_address():
     # only, and /home showed "Page not found" until 8 Nov.
     assert '"home": "Dashboard"' in src and '"dashboard": "Dashboard"' in src
     assert 'st.Page(_page_screener, title="Screener", url_path="screener")' in src
+
+
+def test_the_dashboard_lists_its_sections_like_breadth():
+    """Owner, 8 Nov 2026: the Breadth page's "On this page" links, on the Dashboard too."""
+    out = dv.page_nav_html([("d-breadth", "Are most stocks taking part?"), ("s-db_risk", "Book at risk")])
+    assert out.startswith('<nav class="qp-nav" aria-label="On this page">')
+    assert '<a href="#d-breadth">Are most stocks taking part?</a>' in out and 'href="#s-db_risk"' in out
+    src = open(__import__("pathlib").Path(dv.__file__), encoding="utf-8").read()
+    for anchor in ("s-db_risk", "s-db_next", "s-db_mh", "s-db_size", "s-db_flows"):
+        assert anchor in src
