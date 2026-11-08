@@ -105,10 +105,14 @@ def _qualified_evidence(spreads: pd.DataFrame, d: pd.DataFrame, cuts: list[float
     pe = excess_by_quarter(spreads, "qualified")
     if pe is not None:
         held = sum(ok for _, ok in pe["blocks"])
+
+        def lead(v: float, name: str) -> str:
+            return f"beat {name} by {v:.1f} pts" if v >= 0 else f"trailed {name} by {-v:.1f} pts"
+
         return (f"In our strategy's backtest since {pe['since']}, after the quarter of month-ends with the fewest "
-                f"(at or below {pe['cut'] * 100:.0f}%) the portfolio's next month beat the Nifty 500 by "
-                f"{fmt.signed(pe['low'])} pts on average, against {fmt.signed(pe['rest'])} after the rest; "
-                f"weaker in {held} of {len(pe['blocks'])} five-year blocks.")
+                f"(at or below {pe['cut'] * 100:.0f}%) the portfolio {lead(pe['low'], 'the Nifty 500')} the next "
+                f"month on average; after the other months it {lead(pe['rest'], 'the index')}. The pattern held in "
+                f"{held} of {len(pe['blocks'])} five-year blocks.")
     d = d.assign(qtr=pd.qcut(d["qualified"], 4, labels=False))
     g = d.groupby("qtr")["spread"]
     low, high = g.get_group(0), g.get_group(3)
@@ -135,9 +139,12 @@ def qualified_html(spreads: pd.DataFrame | None) -> str | None:
     quarter = sum(float(last["qualified"]) > c for c in cuts)
     share_below = float((q < float(last["qualified"])).mean())
     when = pd.Timestamp(last["date"])
+    share_above = float((q > float(last["qualified"])).mean())
+    since = f"{pd.Timestamp(d['date'].iloc[0]):%Y}"
+    rank = (f"fewer than in {share_above * 100:.0f}% of month-ends since {since}" if share_above > share_below
+            else f"more than in {share_below * 100:.0f}% of month-ends since {since}")
     lede = (f"At the end of {when:%B %Y}, {float(last['qualified']) * 100:.0f}% of the Nifty 500 passed the strategy's "
-            f"own filters (above the 50-day EMA, within 20% of the 52-week high): more than in "
-            f"{share_below * 100:.0f}% of month-ends since {pd.Timestamp(d['date'].iloc[0]):%Y}.")
+            f"own filters (above the 50-day EMA, within 20% of the 52-week high): {rank}.")
     ev = _qualified_evidence(spreads, d, cuts)
     spark = kit.spark_img(d["qualified"].tail(24).tolist(), 120, 28, last=None)
     tone = "down" if quarter == 0 else ""
@@ -274,9 +281,9 @@ def render(kit, left, right) -> None:
         else:
             st.html(out)
             kit.caption("Each month-end, the share of the Nifty 500's members (as they stood then) passing the "
-                        "same filters the model applies. Line: the last 24 month-ends. Fewer qualifiers have "
-                        "come before weaker months for momentum, on this site's data since 2010; a reading, "
-                        "not a forecast.")
+                        "same filters the model applies. Line: the last 24 month-ends. The backtest is the record's "
+                        "configuration on NSE's adjusted closes over the Nifty 500 as it stood (Backtest's History "
+                        "from 2010), rebuilt each month; a reading, not a forecast.")
     with right, kit.card("Flows", "db_flows", "foreign and domestic institutions"):
         nse = _load(FLOWS_FILE)
         out = nsdl_flows_html(_load(NSDL_FILE), nse)
