@@ -11,6 +11,11 @@ academic momentum factor (WML).
   trailing_12m  the sum of the last 12 monthly spreads
   percentile    where today's trailing_12m sits among every past one (0-100)
   crash         the latest month's spread is negative and in the worst 10% of all months
+  qualified     the share of the month-end's index members passing the strategy's
+                own gates (above the 50-day EMA, within 20% of the 52-week high;
+                rank_history.snapshots' `qualifies`), TODO S110 item 2: in the
+                quarter of months with the lowest share since 2010 the next
+                month's spread averaged -0.4 pts, against +1.9 in the highest
 
 Checked against an independent series before use: IIM Ahmedabad's Indian WML
 factor (survivorship-bias adjusted; docs/MOMENTUM_HEALTH.md). Nothing here is a
@@ -57,11 +62,13 @@ def monthly_spreads(prices: pd.DataFrame, membership=None, *, first_month: pd.Pe
     if first_month is not None:
         ends = [d for d in ends if pd.Period(d, freq="M") >= first_month]
     if len(ends) < 2:
-        return pd.DataFrame(columns=["month", "date", "top", "bottom", "spread", "n"])
+        return pd.DataFrame(columns=["month", "date", "top", "bottom", "spread", "n", "qualified"])
     snaps = snapshots(prices, ends[:-1], membership=membership, config_weights=config_weights)
     rows = []
     for t0, t1 in zip(ends[:-1], ends[1:]):
         day = snaps[snaps["date"] == t0]
+        members = day[day["in_index"] & prices.loc[t0].reindex(day["symbol"].to_numpy()).notna().to_numpy()]
+        qualified = float(members["qualifies"].mean()) if len(members) else float("nan")
         day = day[day["in_index"] & day["score"].notna()]
         if len(day) < MIN_STOCKS:
             continue
@@ -74,7 +81,8 @@ def monthly_spreads(prices: pd.DataFrame, membership=None, *, first_month: pd.Pe
         order = scored.sort_values(ascending=False)
         top = float(ret[order.index[:k]].mean()) * 100
         bottom = float(ret[order.index[-k:]].mean()) * 100
-        rows.append({"month": str(pd.Period(t1, freq="M")), "date": t0, "top": top, "bottom": bottom, "spread": top - bottom, "n": len(scored)})
+        rows.append({"month": str(pd.Period(t1, freq="M")), "date": t0, "top": top, "bottom": bottom, "spread": top - bottom, "n": len(scored),
+                     "qualified": qualified})
     return pd.DataFrame(rows)
 
 

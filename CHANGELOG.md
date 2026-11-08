@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-08 — Dashboard: how many stocks qualify, and the next rebalance's churn
+
+- A new card shows the share of the Nifty 500 passing the strategy's own filters at each month-end, with how our strategy's backtest did against the Nifty 500 in the months that followed few qualifiers since 2010: after the fewest (27% or less) the portfolio trailed the index by 0.8 pts a month on average, against a 1.2-pt lead after the rest, and the pattern held in each five-year block. At the end of September: 20%, fewer than in 87% of month-ends.
+- The monthly momentum job now also writes the strategy's own monthly return and the Nifty 500's beside momentum's, so the Dashboard's evidence is about the book, not only the momentum factor.
+- Next rebalance now says how many holdings would change against the record's monthly average (2 of 20 against 8).
+
+## 2026-11-08 — Dashboard: how risky is the book?
+
+- A new card under Book at risk describes the whole book: its beta and volatility against the Nifty 500, how much of it is in small and micro caps (90% today), its drawdown from the record's peak beside the index's over the same dates, and how quickly each position could be sold at the model book's size.
+
 ## 2026-11-08 — Dashboard: which sectors lead, and is leadership changing?
 
 - The Dashboard answers "Which sectors lead?" and "Is leadership changing?" from NSE's own sector indices (Bank, IT, Pharma, Auto, FMCG, Metal, Realty, Media, PSU Bank, Financial Services, PSE, Energy, Infrastructure): each index's return against the Nifty 500 over three months and over the last month. They replace "What is leading?" once the nightly index job has collected the sector indices. A relative rotation graph was tried first and not used: it agreed with StockCharts' weekly India RRG on 64% of indices, below the 80% bar set.

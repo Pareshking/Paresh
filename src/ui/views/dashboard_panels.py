@@ -93,6 +93,59 @@ def momentum_health_html(spreads: pd.DataFrame | None) -> str | None:
             f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="64" style="max-width:100%"></div>')
 
 
+QUARTER_WORDS = ("Few", "Fewer than usual", "More than usual", "Many")
+
+
+def _qualified_evidence(spreads: pd.DataFrame, d: pd.DataFrame, cuts: list[float]) -> str:
+    """Our portfolio's own backtest, when the monthly job has written it (owner,
+    8 Nov 2026: evidence must hold for the book, and in most 5-year blocks);
+    until then the momentum factor's, said as such."""
+    from src.engine.portfolio_history import excess_by_quarter
+
+    pe = excess_by_quarter(spreads, "qualified")
+    if pe is not None:
+        held = sum(ok for _, ok in pe["blocks"])
+        return (f"In our strategy's backtest since {pe['since']}, after the quarter of month-ends with the fewest "
+                f"(at or below {pe['cut'] * 100:.0f}%) the portfolio's next month beat the Nifty 500 by "
+                f"{fmt.signed(pe['low'])} pts on average, against {fmt.signed(pe['rest'])} after the rest; "
+                f"weaker in {held} of {len(pe['blocks'])} five-year blocks.")
+    d = d.assign(qtr=pd.qcut(d["qualified"], 4, labels=False))
+    g = d.groupby("qtr")["spread"]
+    low, high = g.get_group(0), g.get_group(3)
+    return (f"In the quarter of month-ends with the fewest (below {cuts[0] * 100:.0f}%), the momentum factor's next "
+            f"month (top fifth minus bottom fifth) averaged {fmt.signed(float(low.mean()))} pts and fell in "
+            f"{float((low < 0).mean()) * 100:.0f}% of them; in the quarter with the most, "
+            f"{fmt.signed(float(high.mean()))} pts and {float((high < 0).mean()) * 100:.0f}%.")
+
+
+def qualified_html(spreads: pd.DataFrame | None) -> str | None:
+    """How many stocks qualify? (TODO S110, item 2): the month-end share of the
+    Nifty 500 passing the strategy's own gates, from data/momentum_health.csv."""
+    from src.ui import page_kit as kit
+
+    if spreads is None or "qualified" not in spreads.columns:
+        return None
+    d = spreads.assign(qualified=pd.to_numeric(spreads["qualified"], errors="coerce"),
+                       spread=pd.to_numeric(spreads["spread"], errors="coerce")).dropna(subset=["qualified"])
+    if len(d) < 24:
+        return None
+    last = d.iloc[-1]
+    q = d["qualified"]
+    cuts = q.quantile([0.25, 0.5, 0.75]).tolist()
+    quarter = sum(float(last["qualified"]) > c for c in cuts)
+    share_below = float((q < float(last["qualified"])).mean())
+    when = pd.Timestamp(last["date"])
+    lede = (f"At the end of {when:%B %Y}, {float(last['qualified']) * 100:.0f}% of the Nifty 500 passed the strategy's "
+            f"own filters (above the 50-day EMA, within 20% of the 52-week high): more than in "
+            f"{share_below * 100:.0f}% of month-ends since {pd.Timestamp(d['date'].iloc[0]):%Y}.")
+    ev = _qualified_evidence(spreads, d, cuts)
+    spark = kit.spark_img(d["qualified"].tail(24).tolist(), 120, 28, last=None)
+    tone = "down" if quarter == 0 else ""
+    return (f'<div class="db-big {tone}">{float(last["qualified"]) * 100:.0f}%<span>{QUARTER_WORDS[quarter]}</span></div>'
+            f'<p class="db-lede">{html.escape(lede)}</p>{spark}'
+            f'<p class="db-note">{html.escape(ev)}</p>')
+
+
 TREND_MIN, TREND_WINDOW = 5, 20
 
 
@@ -213,6 +266,17 @@ def render(kit, left, right) -> None:
                         "spread is the next month's return of the top fifth minus the bottom fifth. "
                         f"Bars: the last 24 months. Checked: {IIMA_CHECK}. How momentum has been "
                         "paying, not a forecast.")
+    with right, kit.card("How many stocks qualify?", "db_qual", "the strategy's own filters, month-ends"):
+        out = qualified_html(_load(MOMENTUM_FILE))
+        if out is None:
+            kit.caption("Not available yet: the monthly momentum file has no qualified share until its "
+                        "next build.")
+        else:
+            st.html(out)
+            kit.caption("Each month-end, the share of the Nifty 500's members (as they stood then) passing the "
+                        "same filters the model applies. Line: the last 24 month-ends. Fewer qualifiers have "
+                        "come before weaker months for momentum, on this site's data since 2010; a reading, "
+                        "not a forecast.")
     with right, kit.card("Flows", "db_flows", "foreign and domestic institutions"):
         nse = _load(FLOWS_FILE)
         out = nsdl_flows_html(_load(NSDL_FILE), nse)
