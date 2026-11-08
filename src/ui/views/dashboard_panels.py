@@ -145,7 +145,8 @@ def _qualified_evidence(spreads: pd.DataFrame, d: pd.DataFrame, cuts: list[float
         def lead(v: float, name: str) -> str:
             return f"beat {name} by {v:.1f} pts" if v >= 0 else f"trailed {name} by {-v:.1f} pts"
 
-        return (f"In our strategy's backtest since {pe['since']}, after the quarter of month-ends with the fewest "
+        return (f"In a backtest of the strategy's rules on the Nifty 500 since {pe['since']} (not the live "
+                f"record, which trades the 750), after the quarter of month-ends with the fewest "
                 f"(at or below {pe['cut'] * 100:.0f}%) the portfolio {lead(pe['low'], 'the Nifty 500')} the next "
                 f"month on average; after the other months it {lead(pe['rest'], 'the index')}. The pattern held in "
                 f"{held} of {len(pe['blocks'])} five-year blocks.")

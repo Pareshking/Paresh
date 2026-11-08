@@ -206,9 +206,10 @@ def build_portfolio_tracker(
         return float(prior.iloc[-1]) if not prior.empty else float(capital)
 
     out["Capital at Entry (₹)"] = entry.map(_capital_before_fill).astype(float)
-    # The model trades the whole book back to its target weights at every rebalance, so the
-    # shares held today are those the latest fill bought: account value before that fill x
-    # target weight / price at that fill. Sizing a retained name from its first entry would
+    # At every rebalance the model sets each holding to the weight it struck (back to the
+    # target until the 30 Nov 2026 signal; from then a kept name keeps its drifted weight up
+    # to 15%), so the shares held today are those the latest fill left: account value before
+    # that fill x the struck weight / price at that fill. Sizing a retained name from its first entry would
     # let winners outgrow the account (holdings above 100% of it, negative cash).
     fill = pd.to_datetime(book.attrs.get("fill_date"), errors="coerce")
     fill_px = pd.Series(np.nan, index=out.index)
@@ -242,9 +243,16 @@ def build_portfolio_tracker(
             (out["Capital at Entry (₹)"] * out["Entry Weight %"] / 100.0)
             / out["Entry Price"].replace(0, np.nan)
         ).fillna(0.0).apply(np.floor).astype(int)
+    # Today's shares were set at the latest fill, so their honest base is the value
+    # at that fill (owner, 8 Nov 2026: shares x the FIRST entry price made a trimmed
+    # winner look small, CUPID Rs 2.56 lakh while it held Rs 6.85 lakh). Without a
+    # fill price the shares were sized at entry and the two bases agree.
+    basis_px = (size_px if fill_px.notna().any() else out["Entry Price"])
+    out["Value at Rebalance (₹)"] = (out["Shares"] * basis_px).round(0)
     out["Invested Value (₹)"] = (out["Shares"] * out["Entry Price"]).round(0)
     out["Current Value (₹)"] = (out["Shares"] * out["Current Price"]).round(0)
     out["P&L (₹)"] = (out["Current Value (₹)"] - out["Invested Value (₹)"]).round(0)
+    out["P&L since Rebalance (₹)"] = (out["Current Value (₹)"] - out["Value at Rebalance (₹)"]).round(0)
     out["P&L %"] = np.where(
         out["Invested Value (₹)"] > 0,
         out["P&L (₹)"] / out["Invested Value (₹)"] * 100.0,
@@ -561,7 +569,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         st.info("The canonical model book could not be sized.")
         return
 
-    invested = float(table["Invested Value (₹)"].sum())
+    invested = float(table["Value at Rebalance (₹)"].sum())
     current = float(table["Current Value (₹)"].sum())
     # Total account value is sourced from the same compounded ledger/replay
     # series as Track Record. Cash is the residual after marking current
@@ -614,7 +622,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
             kit.spark_img(history.get("equity_daily"), 110, 26, last=None),
         ),
         kit.Reading(
-            "Unrealised P&L",
+            "Since last rebalance",
             "—" if not np.isfinite(pnl_pct) else f"{_fmt.pct(pnl_pct, fraction=False)}",
             "",
             "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
@@ -635,9 +643,9 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     ], "Portfolio snapshot")
     # One canonical table; the columns users scan first come first.
     display_cols = [
-        "Symbol", "Current Price", "P&L %", "P&L (₹)", "Weight %", "Target Weight %",
+        "Symbol", "Current Price", "P&L %", "P&L since Rebalance (₹)", "Weight %", "Target Weight %",
         "Weight Drift %", "Day P&L (₹)", "Day P&L %", "Current Value (₹)", "Shares",
-        "Entry Date", "Entry Price", "Invested Value (₹)", "Holding Days",
+        "Entry Date", "Entry Price", "Value at Rebalance (₹)", "Holding Days",
         "Rank at Rebalance", "Rank at Entry", "Current Rank", "1M Return",
         "Sector / Industry",
     ]
@@ -648,6 +656,9 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         if col in current_view.columns:
             current_view[col] = pd.to_numeric(current_view[col], errors="coerce")
 
+    # "P&L %" is the price return since first entry (true per share); the rupee
+    # figures run from the latest fill, where today's shares were set.
+    current_view = current_view.rename(columns={"P&L %": "Return since Entry %"})
     with kit.card(
         "Current book",
         "portfolio_current",

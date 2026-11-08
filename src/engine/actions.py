@@ -37,6 +37,8 @@ def plan_rebalance(
     stock_cap: float = 0.05,
     sector_cap: float = 0.40,
     spare: int = 4,
+    standing: pd.Series | None = None,
+    hold_cap: float | None = None,
 ) -> Plan:
     """Sells, buys and holds if the rebalance were struck at today's close.
 
@@ -68,7 +70,32 @@ def plan_rebalance(
     if new_book:
         equal = pd.Series(1.0 / len(new_book), index=new_book)
         weights = apply_caps(equal, sector_map, sector_cap=sector_cap, stock_cap=stock_cap)
+        # From the 30 Nov 2026 signal the record lets winners run to `hold_cap`
+        # (owner, 8 Nov 2026): with the book as it stands, the plan strikes the
+        # record's weights, so the Kite basket buys what the record buys (audit,
+        # 8 Nov 2026: equal 5% here against freed money there).
+        if hold_cap is not None and standing is not None:
+            from src.engine.backtester import _let_winners_run
+            weights = _let_winners_run(weights, standing, known, hold_cap,
+                                       sector_map or None, sector_cap)
     return Plan(sells=sells, buys=buys, holds=holds, next_in_line=nxt, weights=weights)
+
+
+def standing_weights(book: pd.DataFrame, prices: pd.DataFrame | None) -> pd.Series | None:
+    """The model book as it stands today: each name's struck weight carried from
+    the last fill by its price, cash at 0% (the record's `_drift_holdings`)."""
+    fill = pd.to_datetime(book.attrs.get("fill_date"), errors="coerce")
+    if book is None or book.empty or prices is None or prices.empty or pd.isna(fill):
+        return None
+    w = pd.to_numeric(book.set_index("Symbol")["Weight %"], errors="coerce").fillna(0.0) / 100.0
+    px = prices.reindex(columns=w.index).ffill()
+    at_fill, now = px.loc[:fill], px
+    if at_fill.empty or now.empty:
+        return None
+    growth = (now.iloc[-1] / at_fill.iloc[-1]).where(lambda g: g.notna() & (g > 0), 1.0)
+    value = w * growth
+    total = float(value.sum()) + max(1.0 - float(w.sum()), 0.0)
+    return value / total if total > 0 else None
 
 
 def buy_orders(plan: Plan, rank_df: pd.DataFrame, capital: float) -> pd.DataFrame:

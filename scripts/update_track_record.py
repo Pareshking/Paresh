@@ -314,7 +314,9 @@ def main() -> int:
             "on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "months": added,
             "replaced_configs": replaced,
-            "config": fingerprint,
+            # `fingerprint` is per month since the forward-dated rules (audit,
+            # 8 Nov 2026: storing the function made the rebuild unwritable).
+            "config": sorted({fingerprint(pd.Period(k, freq="M")) for k in added}),
             "prices": cfg["prices"],
             "membership": ("point in time" + (f" from {pit_from}" if pit_from else "")),
             "former_members_unpriceable": unpriceable,
@@ -323,8 +325,9 @@ def main() -> int:
         })
     # One basis for the whole file, or none claimed: a ledger that mixes months struck
     # on different bases must not label them all with one.
-    configs = {m.get("config") for m in ledger["months"].values()}
-    if configs <= {fingerprint}:
+    # Each month against its own fingerprint (a set of strings against a set
+    # holding the function was always False, so price_basis was always dropped).
+    if all(m.get("config") == fingerprint(pd.Period(k, freq="M")) for k, m in ledger["months"].items()):
         ledger["price_basis"] = cfg["prices"]
     else:
         ledger.pop("price_basis", None)

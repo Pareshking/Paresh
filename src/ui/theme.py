@@ -2061,6 +2061,7 @@ SCALED_PERCENT_COLUMNS: frozenset[str] = frozenset({
     "ATR %", "PERSISTENCE", "FFILL %",
     "DEL %", "DEL% 20D AVG", "DEL% PREV20D",
     "DAY CHG %", "PRICE_CHG_%", "P&L %", "DAY P&L %", "TARGET WEIGHT %", "WEIGHT DRIFT %",
+    "RETURN SINCE ENTRY %",
     # The backtest's live book stores the entry weight x 100 (backtester: w * 100);
     # undeclared, it raised on the Backtest page's current book (7 Oct 2026).
     "ENTRY WEIGHT %",
@@ -2191,7 +2192,8 @@ def render_saas_table(
             val = row[col]
             c_str = str(col).upper()
             portfolio_sign_class = ""
-            if variant == "portfolio" and c_str in {"P&L (₹)", "P&L %", "DAY P&L (₹)", "DAY P&L %"}:
+            if variant == "portfolio" and c_str in {"P&L (₹)", "P&L %", "DAY P&L (₹)", "DAY P&L %",
+                                                    "P&L SINCE REBALANCE (₹)", "RETURN SINCE ENTRY %"}:
                 portfolio_sign_class = "portfolio-pos" if val > 0 else ("portfolio-neg" if val < 0 else "portfolio-flat")
 
             if pd.isna(val) or val is None or str(val).strip() in ("", "nan", "None"):

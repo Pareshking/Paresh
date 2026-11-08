@@ -623,7 +623,12 @@ def _drift_holdings(
     growth = np.where(np.isfinite(growth) & (p0 > 0.0) & (p1 > 0.0), growth, 1.0)
 
     value = held.to_numpy(dtype=float) * growth
-    total = float(value.sum())
+    # Cash the caps left uninvested earns 0% and stays in the book: dividing by the
+    # holdings alone made a 75%-invested book come back 100% invested (audit, 8 Nov
+    # 2026), so re-striking it was charged turnover nobody traded and the 15% rule
+    # placed the cash against inflated weights.
+    cash = max(1.0 - float(held.sum()), 0.0)
+    total = float(value.sum()) + cash
     if not np.isfinite(total) or total <= 0.0:
         return prev_weights
 
@@ -1626,7 +1631,10 @@ def run_backtest(
         p_ranked = p_score[p_valid & p_score.notna()].sort_values(ascending=False)
         live_ranks = {s: p_ranked.index.get_loc(s) + 1 for s in p_ranked.index}
 
-        if not p_ranked.empty:
+        # An empty ranking is a rebalance to cash, as in the loop above (audit,
+        # 8 Nov 2026: skipping it left the old book on Portfolio and Actions while
+        # the record, replayed, sold everything).
+        if True:
             rebal_signal_dt = prices.index[rebal_idx]
             fill_idx = rebal_idx + 1
             rebal_fill_dt = prices.index[fill_idx]
@@ -1635,7 +1643,7 @@ def run_backtest(
                 p_ranked, prev_holdings, top_n, effective_buffer,
                 sector_map=sec_map or None,
                 max_per_sector=sector_slots(top_n, stock_cap, sector_cap) if sec_map else None,
-            )
+            ) if not p_ranked.empty else []
             new_wts = _compute_weights(
                 new_holdings, log_ret, rebal_idx, weight_method,
                 sector_map=sec_map, stock_cap=stock_cap, sector_cap=sector_cap,

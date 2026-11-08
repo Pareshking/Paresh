@@ -250,3 +250,14 @@ def test_the_sync_check_does_not_hold_the_store_without_ss(monkeypatch, tmp_path
     monkeypatch.setattr(mod.rr, "load_screener", lambda *_a: scr)
     assert mod.main(["--store", str(tmp_path / "s.parquet"), "--ss", str(tmp_path / "none")]) == 0
     assert "::warning::" in capsys.readouterr().out
+
+
+def test_the_freeze_uses_the_per_month_fingerprint_function_correctly():
+    """Audit, 8 Nov 2026: `fingerprint` became a function (forward-dated rules); the
+    rebuild log stored the function itself (unwritable JSON) and the price-basis test
+    compared strings with it (always False, so price_basis was always dropped)."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "scripts" / "update_track_record.py").read_text()
+    assert '"config": fingerprint,' not in src
+    assert "configs <= {fingerprint}" not in src
+    assert 'fingerprint(pd.Period(k, freq="M"))' in src

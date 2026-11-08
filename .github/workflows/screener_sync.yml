@@ -263,8 +263,16 @@ jobs:
               # --theirs is the commit being replayed, i.e. this run's data.
               # --ours here silently dropped the whole sync commit, and the
               # next push then "succeeded" with nothing in it.
-              git checkout --theirs -- data/ 2>/dev/null || true
-              git add -A data/
+              git checkout --theirs -- data/screener_company_ids.json data/corporate_actions_log.json data/screener_pending_history.json 2>/dev/null || true
+              # The corporate-actions log is append-only and both daily_sync and
+              # screener_sync add to it: keep every event from both sides (audit,
+              # 8 Nov 2026), not one run's whole copy.
+              if git show origin/main:data/corporate_actions_log.json > /tmp/ca_main.json 2>/dev/null; then
+                python scripts/merge_actions_log.py /tmp/ca_main.json data/corporate_actions_log.json data/corporate_actions_log.json || true
+              fi
+              # Only this step's files (audit: `git add -A data/` could commit anything under data/).
+              git add data/screener_company_ids.json data/corporate_actions_log.json
+              if [ -f data/screener_pending_history.json ]; then git add data/screener_pending_history.json; fi
               GIT_EDITOR=true git rebase --continue || git rebase --abort
             }
             sleep $((attempt * 3))
