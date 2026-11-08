@@ -31,7 +31,7 @@ jobs:
         working-directory: nse_index_rebuild
         run: python validate_history.py
       - name: Install the workbook reader
-        run: pip install pandas==3.1.0 xlrd   # pandas pinned as in requirements.txt
+        run: pip install pandas==3.1.1 xlrd   # pandas pinned as in requirements.txt
       - name: Cross-check events against NSE's own IndexInclExcl.xls
         working-directory: nse_index_rebuild
         run: python crosscheck_inclexcl.py --assert
