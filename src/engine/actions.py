@@ -39,6 +39,7 @@ def plan_rebalance(
     spare: int = 4,
     standing: pd.Series | None = None,
     hold_cap: float | None = None,
+    buy_weight: float | None = None,
 ) -> Plan:
     """Sells, buys and holds if the rebalance were struck at today's close.
 
@@ -70,14 +71,20 @@ def plan_rebalance(
     if new_book:
         equal = pd.Series(1.0 / len(new_book), index=new_book)
         weights = apply_caps(equal, sector_map, sector_cap=sector_cap, stock_cap=stock_cap)
-        # From the 30 Nov 2026 signal the record lets winners run to `hold_cap`
-        # (owner, 8 Nov 2026): with the book as it stands, the plan strikes the
-        # record's weights, so the Kite basket buys what the record buys (audit,
-        # 8 Nov 2026: equal 5% here against freed money there).
+        # From the 30 Nov 2026 signal the record runs the six-monthly reset
+        # (owner, 8 Nov 2026): between resets the plan strikes the record's
+        # weights from the book as it stands (kept names keep their drift up to
+        # `hold_cap`; each buy gets `buy_weight` from cash), so the Kite basket
+        # buys what the record buys. At a reset month the caller passes no
+        # `standing`, and every name is equal weight as above.
         if hold_cap is not None and standing is not None:
-            from src.engine.backtester import _let_winners_run
-            weights = _let_winners_run(weights, standing, known, hold_cap,
-                                       sector_map or None, sector_cap)
+            from src.engine.backtester import _fixed_buys, _let_winners_run
+            if buy_weight is not None:
+                weights = _fixed_buys(weights, standing, known, hold_cap, buy_weight,
+                                      sector_map or None, sector_cap)
+            else:
+                weights = _let_winners_run(weights, standing, known, hold_cap,
+                                           sector_map or None, sector_cap)
     return Plan(sells=sells, buys=buys, holds=holds, next_in_line=nxt, weights=weights)
 
 
@@ -96,6 +103,22 @@ def standing_weights(book: pd.DataFrame, prices: pd.DataFrame | None) -> pd.Seri
     value = w * growth
     total = float(value.sum()) + max(1.0 - float(w.sum()), 0.0)
     return value / total if total > 0 else None
+
+
+def fixed_buy_weight(equity: pd.Series | None, reset_months, buy_size: float) -> float | None:
+    """A new buy's weight today under the six-monthly reset: `buy_size` of the
+    account at the last reset fill (the first session after the end of a reset
+    month), over the account now. None without an equity curve."""
+    eq = pd.Series(equity).dropna() if equity is not None else pd.Series(dtype=float)
+    if eq.empty:
+        return None
+    eq.index = pd.DatetimeIndex(eq.index)
+    months = set(reset_months or ())
+    ends = [d for d in eq.index if d.month in months and (d + pd.offsets.BMonthEnd(0)) == d]
+    fills = [eq.index[eq.index > e][0] for e in ends if (eq.index > e).any()]
+    base = float(eq.loc[fills[-1]]) if fills else float(eq.iloc[0])
+    now = float(eq.iloc[-1])
+    return buy_size * base / now if now > 0 else None
 
 
 def buy_orders(plan: Plan, rank_df: pd.DataFrame, capital: float) -> pd.DataFrame:

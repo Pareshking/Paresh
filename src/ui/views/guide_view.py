@@ -68,8 +68,8 @@ the same window; each window ranked against the other stocks; the five blended (
 <li><b>Filters.</b> Above its 50-day EMA and within 20% of its 52-week high.</li>
 <li><b>Book.</b> The top {top_n} stocks that pass both filters, at most {per_industry} from one industry.
 A holding stays while it ranks within the top {buffer_n} and passes both filters. From the 30 Nov 2026
-rebalance a holding that stays keeps the weight its price gave it, cut back only above 15%; new buys
-share the money freed by sales (see Weighting).</li>
+rebalance every holding goes back to 5% twice a year (March and September); in between, winners run
+(see Weighting).</li>
 <li><b>Trades.</b> Once a month: the ranking at the month's last close, the trades at the next
 session's close. Nothing is sold in between.</li>
 </ol>
@@ -119,13 +119,15 @@ is traded. Tax on gains is not modelled anywhere: every return on the site is be
 
 <h2 id="weights">Weighting</h2>
 <p><b>Equal weight</b> sets each new book's targets: 1/{top_n} of the account a holding.</p>
-<p><b>Winners run to 15%</b> (from the 30 Nov 2026 rebalance). Until then every rebalance put each
-holding back to 1/{top_n}, selling some of a winner and topping up a laggard. From then a holding that
-stays is left as the market moved it unless it is above 15%, when it is cut to 15%. The money from
-sales and cuts buys the new names in equal parts, and no industry is above 40% after a rebalance.
-Tested before the change: on the Nifty 500 from 2010 the reset earned 18.8% a year and letting
-winners run 18.2%; from February to October 2026 the reset earned 38.6% and letting winners run
-45.5%. The owner chose the second. Months before the change keep the old rule.</p>
+<p><b>Six-monthly reset</b> (from the 30 Nov 2026 rebalance). Until then every rebalance put each
+holding back to 1/{top_n}, selling some of a winner and topping up a laggard. From then that happens
+twice a year, at the March and September rebalances. In between, a holding that stays is left as the
+market moved it unless it is above 15%, when it is cut to 15%, and each new buy is 5% of the account
+as it stood at the last reset, paid from cash; when cash is short the new names get fewer shares, and
+no holding is sold to pay for them. No industry is above 40% after a rebalance. Tested on the
+Nifty 500 from 2010 with an estimate of tax: the monthly reset earned 15.4% a year after tax and the
+six-monthly 15.3%, with far fewer trades between resets; in 2026 the six-monthly reset did best.
+Months before the change keep the old rule.</p>
 <p><b>Inverse volatility</b> can be tried in the Backtest: each holding's weight is proportional to
 one over its volatility over the last 63 sessions.</p>
 <pre>w_i = (1 / σ_i) / Σ_j (1 / σ_j)</pre>

@@ -163,19 +163,26 @@ top_n 20 · monthly rebalance · 50 EMA · 80% of 52W high
 equal weight · 30 bps cost · 2× persistence buffer (top 40)
 weights 10/30/30/20/10 · benchmark ^CRSLDX
 hard caps: 5% per stock · 40% per NSE industry (≤ 8 of 20 names), never relaxed
-from the 30 Nov 2026 signal: winners run to 15% (hold_cap 0.15, hold_cap_from 2026-11-30)
+from the 30 Nov 2026 signal: six-monthly reset (hold_cap 0.15, buy_size 0.05, weight_reset_months [3, 9], hold_cap_from 2026-11-30)
 ```
 
-**Winners run to 15% (owner, 8 Nov 2026: "Switch to 15% from next rebalance").** Until
-the 30 Nov 2026 signal every rebalance reset each holding to 1/20 = 5% (the 5% cap
-above), trimming winners and topping up laggards. From that signal a kept holding keeps
-the weight its price gave it, trimmed only above 15%; money from sells and trims buys
-the new names in equal parts; the 40% industry cap stays hard at the rebalance
-(`backtester._let_winners_run`). Tested first (TODO S111, `scripts/research/let_winners_run.py`):
-Nifty 500 2010-26 reset 18.8% a year vs 18.2%; Feb-Oct 2026 on the 750 +38.6% vs +45.5%.
-Forward-dated: months governed by earlier signals keep the reset and their
-fingerprints (`track_record.config_for_month`); re-run with the rule, the record to
-date is identical to the last decimal. The new-buy size is no longer a fixed 5%.
+**Six-monthly reset (owner, 8 Nov 2026: "6 monthly reset final").** Until the 30 Nov 2026
+signal every rebalance reset each holding to 1/20 = 5%. From that signal:
+- at the March and September signals every holding goes back to 5%;
+- between them a kept holding keeps the weight its price gave it, trimmed only above 15%;
+  each new buy is 5% of the account at the last reset, paid from cash (fewer shares when
+  cash is short; no kept name is sold to fund a buy; leftover stays cash);
+- the 40% industry cap stays hard at every rebalance (`backtester._fixed_buys`).
+
+The owner first chose "winners run to 15%" (merged in #492 with buys sized from freed
+money), then clarified that every buy is a fixed 5% and asked for the realistic options
+tested before tax and after an estimate of it (TODO S111,
+`scripts/research/rebalance_rules_after_tax.py`). Nifty 500 2010-26, Rs 1 crore, a year
+pre-tax / after tax paid: monthly reset 18.95 / 15.41; six-monthly 18.67 / 15.30; the
+owner's fixed buys 17.98 / 14.69; yearly reset 17.87 / 14.58. 2026 on the 750: six-monthly
+best. Forward-dated with its companion keys: months governed by earlier signals keep the
+monthly reset and their fingerprints (`track_record.config_for_month`); re-run with the
+rule, the record to date is identical to the last decimal (205 points).
 
 The caps are enforced at **selection** (`backtester._select_holdings` with
 `sector_slots`): an over-full industry keeps its best-ranked names and the free slot

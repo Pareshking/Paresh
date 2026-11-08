@@ -191,6 +191,8 @@ def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | No
         members_only_scoring_from=cfg.get("members_only_scoring_from"),
         hold_cap=cfg.get("hold_cap"),
         hold_cap_from=cfg.get("hold_cap_from"),
+        buy_size=cfg.get("buy_size"),
+        weight_reset_months=tuple(cfg.get("weight_reset_months") or ()) or None,
         stock_cap=cfg["stock_cap"],
         sector_cap=cfg["sector_cap"],
         sector_map=record_sector_map(prices.columns),

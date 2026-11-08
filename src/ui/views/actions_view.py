@@ -273,7 +273,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     if model_book_note is not None:
         kit.note("No model book yet.", model_book_note)
 
-    book = None
+    book, _record = None, None
     if source == "My holdings":
         _edit_holdings()
         symbols, since, _basis = _my_holdings(rank_df)
@@ -297,18 +297,24 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         a = assess(rank_df, symbols, rules)
         # The caps the model book's own run uses, read from the pinned record
         # config, so the weights here are its weights.
-        # Winners run to 15% from the 30 Nov 2026 signal (owner, 8 Nov): for the
-        # model book the plan strikes the record's weights from the book as it
-        # stands. Your own holdings' weights are not known, so they stay equal.
-        from src.engine.actions import standing_weights
+        # The six-monthly reset from the 30 Nov 2026 signal (owner, 8 Nov): for the
+        # model book, between resets the plan strikes the record's weights from the
+        # book as it stands; at a March or September check every name is equal
+        # weight. Your own holdings' weights are not known, so they stay equal.
+        from src.engine.actions import fixed_buy_weight, standing_weights
         from src.engine.backtester import _hold_cap_on
+        resets = tuple(cfg.get("weight_reset_months") or ())
         lwr = (source != "My holdings"
-               and _hold_cap_on(cfg.get("hold_cap"), cfg.get("hold_cap_from"), check))
+               and _hold_cap_on(cfg.get("hold_cap"), cfg.get("hold_cap_from"), check)
+               and pd.Timestamp(check).month not in resets)
+        buy_w = (fixed_buy_weight((_record or {}).get("equity_curve"), resets, float(cfg.get("buy_size") or 0.05))
+                 if lwr and source != "My holdings" else None)
         plan = plan_rebalance(rank_df, symbols, top_n=top_n, buffer_n=rules.buffer_n,
                               stock_cap=float(cfg["stock_cap"]),
                               sector_cap=float(cfg["sector_cap"]),
                               standing=standing_weights(book, adj_close) if lwr else None,
-                              hold_cap=cfg.get("hold_cap") if lwr else None)
+                              hold_cap=cfg.get("hold_cap") if lwr else None,
+                              buy_weight=buy_w)
         n_unknown = int((a["status"] == UNKNOWN).sum())
         n_watch = int(a[a["Symbol"].isin(plan.holds)]["status"].eq(WATCH).sum())
         kit.readings([

@@ -303,6 +303,8 @@ def main() -> int:
             _membership=membership, backtest_months=months_to_cover(basis.index[-1], start),
             stateful_history=True, history_start=start.start_time, _actions=[],
             hold_cap=TRACK_RECORD_CONFIG.get("hold_cap"), hold_cap_from=TRACK_RECORD_CONFIG.get("hold_cap_from"),
+            buy_size=TRACK_RECORD_CONFIG.get("buy_size"),
+            weight_reset_months=tuple(TRACK_RECORD_CONFIG.get("weight_reset_months") or ()) or None,
         )
         rr = compare_monthly_ledger(ledger, r["equity_curve"], r["benchmark"], accepted=accepted)
         record("research_default", bool(rr["passed"]), counts=rr["counts"])

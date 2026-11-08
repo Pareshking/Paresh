@@ -38,7 +38,9 @@ def portfolio_months(close: pd.DataFrame, bench: pd.Series, index_key: str = "ni
         backtest_months=months, _membership=membership, stateful_history=True,
         history_start=START.start_time, _actions=[],
         members_only_scoring_from=cfg.get("members_only_scoring_from"),
-        hold_cap=cfg.get("hold_cap"), hold_cap_from=cfg.get("hold_cap_from"))
+        hold_cap=cfg.get("hold_cap"), hold_cap_from=cfg.get("hold_cap_from"),
+        buy_size=cfg.get("buy_size"),
+        weight_reset_months=tuple(cfg.get("weight_reset_months") or ()) or None)
     eq = pd.Series((res or {}).get("equity_curve")).dropna()
     if eq.empty:
         return pd.DataFrame(columns=["month", "portfolio", "nifty500"])
