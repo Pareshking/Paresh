@@ -49,8 +49,10 @@ jobs:
           python-version-file: .python-version
       - run: pip install -r requirements.txt
       - name: Audit
+        env:
+          IN_SINCE: ${{ inputs.since || '2008-01-01' }}
         run: |
-          python scripts/nse_history_audit.py --since "${{ inputs.since || '2008-01-01' }}" --out reports/nse_audit
+          python scripts/nse_history_audit.py --since "$IN_SINCE" --out reports/nse_audit
           cat reports/nse_audit/report.md >> "$GITHUB_STEP_SUMMARY"
       # S47: fails the job when a count is worse than its baseline; the report is
       # in the summary already and the artifact below uploads regardless.

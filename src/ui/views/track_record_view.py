@@ -214,6 +214,11 @@ def _render_rank_months(books: dict) -> None:
         cols = [c for c in preferred if c in show.columns]
         rest = [c for c in show.columns if c not in cols]
         show = show[cols + rest]
+        # These are places among the qualified (both filters passed), as Actions
+        # quotes them; a stock that fails a filter has none and shows "—"
+        # (audit, 8 Nov 2026: read as the overall rank beside Portfolio's).
+        show = show.rename(columns={"Rank at start": "Qualified rank at start",
+                                    "Rank at end": "Qualified rank at end"})
         render_saas_table(show, max_height=620)
 
         st.download_button(

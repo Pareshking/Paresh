@@ -113,9 +113,12 @@ jobs:
         run: gh release upload data-latest bse_daily.parquet --repo "$GITHUB_REPOSITORY" --clobber
       - name: Publish to R2 (bse/daily, protected)
         if: inputs.r2 == 'yes' || github.event_name == 'schedule'
+        # Manual inputs reach the shell through env, never pasted into the script (audit, 8 Nov 2026).
+        env:
+          IN_R2: ${{ inputs.r2 }}
         run: |
           set -euo pipefail
-          if [ "${{ inputs.r2 }}" != "yes" ] && [ "$(date -u +%d)" -gt 7 ]; then
+          if [ "$IN_R2" != "yes" ] && [ "$(date -u +%d)" -gt 7 ]; then
             echo "Not the first week of the month: R2 keeps one copy a month."; exit 0
           fi
           python scripts/r2_publish.py --path bse_daily.parquet --dataset bse/daily --source bse_bhavcopy \

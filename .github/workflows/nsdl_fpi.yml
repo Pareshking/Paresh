@@ -43,9 +43,12 @@ jobs:
       - run: pip install requests
       - name: Backfill (pull request or dispatch)
         if: github.event_name != 'schedule'
+        env:
+          IN_SINCE: ${{ github.event.inputs.since || '2016-01' }}
+          EVENT: ${{ github.event_name }}
         run: |
-          SINCE="${{ github.event.inputs.since || '2016-01' }}"
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ -f data/nsdl_fpi_daily.csv ]; then
+          SINCE="$IN_SINCE"
+          if [ "$EVENT" = "pull_request" ] && [ -f data/nsdl_fpi_daily.csv ]; then
             SINCE=$(tail -1 data/nsdl_fpi_daily.csv | cut -c1-7)
           fi
           python scripts/nsdl_fpi.py --backfill "$SINCE" --latest

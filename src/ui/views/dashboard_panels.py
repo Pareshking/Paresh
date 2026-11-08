@@ -291,7 +291,10 @@ def nsdl_flows_html(nsdl: pd.DataFrame | None, nse: pd.DataFrame | None) -> str 
     img = _month_bars_svg(months.tolist())
     alt = (f"FPI equity net per month, {months.index[0]:%b %Y} to {months.index[-1]:%b %Y}: from "
            f"{fmt.inr(months.min())} to {fmt.inr(months.max())} Cr.")
-    return (f'<p class="db-lede">Foreign portfolio investors in equity, NSDL, to {last:%-d %b %Y}.</p>'
+    # NSDL dates a row by its reporting day, which covers the session before
+    # (audit, 8 Nov 2026: "to 6 Nov" read as trades to 6 Nov).
+    return (f'<p class="db-lede">Foreign portfolio investors in equity, NSDL, reported to {last:%-d %b %Y} '
+            f'(each report covers the session before).</p>'
             f'<dl class="db-kv">{rows}</dl>'
             f'<img src="{img}" alt="{html.escape(alt)}" width="300" height="64" style="max-width:100%;margin-top:8px">'
             f'<p class="db-note">Bars: net per month, last 12 months.</p>{dii_line}')

@@ -44,4 +44,5 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           PYTHONPATH: .
-        run: python scripts/r2_membership_live_validation.py --as-of "${{ inputs.as_of || '2026-09-18' }}"
+          IN_AS_OF: ${{ inputs.as_of || '2026-09-18' }}
+        run: python scripts/r2_membership_live_validation.py --as-of "$IN_AS_OF"
