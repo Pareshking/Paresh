@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-08 — Momentum health leads with winners against the Nifty 500
+
+- The book never shorts, so Momentum health now leads with what a long-only momentum book earns: the top fifth of our ranking against the Nifty 500 over 12 months (+12.9 points to October, 65th percentile since 2010). It is split into momentum (winners against the average stock, +11.3) and breadth (the average stock against the index, +1.6); winners minus losers (+8.9) stays as a reference row. Since 2010 the new figure moved with our book's lead over the index far more closely (correlation 0.81 against 0.44).
+
 ## 2026-11-08 — Winners run to 15% from the 30 Nov rebalance
 
 - Until now every monthly rebalance put each holding back to 5% of the book, selling part of a winner and topping up a laggard. From the 30 Nov 2026 rebalance a holding that stays keeps the weight its price gave it, cut back only above 15%; the money from sales and cuts buys the new names in equal parts, and no industry is above 40% after a rebalance. Tested first: on the Nifty 500 from 2010 the reset earned 18.8% a year and letting winners run 18.2%; from February to October 2026, +38.6% against +45.5%. Months before the change keep the old rule and their figures.

@@ -33,6 +33,33 @@ def test_momentum_panel_text_and_image():
     assert "percentile since 2010" in out and "October: +0.5 points" in out
 
 
+def _long(n=36, ew=True):
+    d = _spreads(n)
+    d["top"] = 2.0                       # winners +2 a month
+    d["nifty500"] = 0.5                  # the index +0.5
+    if ew:
+        d["ew"] = 1.0                    # the average member +1
+    return d
+
+
+def test_long_only_leads_with_winners_against_the_index_and_splits_it():
+    lo = mh.long_only(_long())
+    assert lo["lead_12m"] == 18.0                              # (2 - 0.5) x 12
+    assert lo["momentum_12m"] == 12.0 and lo["breadth_12m"] == 6.0   # (2 - 1) x 12, (1 - 0.5) x 12
+    assert lo["momentum_12m"] + lo["breadth_12m"] == lo["lead_12m"]
+    assert lo["wml_12m"] == 11.5
+    out = dp.long_only_html(_long())
+    assert "+18.0" in out and "beat the Nifty 500 by 18.0 points" in out
+    assert "(momentum)" in out and "(breadth)" in out and "for reference" in out
+
+
+def test_long_only_without_the_average_member_shows_the_total_and_the_factor_only():
+    out = dp.long_only_html(_long(ew=False))
+    assert "+18.0" in out and "(momentum)" not in out and "for reference" in out
+    assert mh.long_only(_spreads()) is None                  # no index column: the old card draws
+    assert mh.long_only(_long(n=12)) is None
+
+
 def _flows(n):
     days = pd.bdate_range("2026-11-06", periods=n)
     rows = []
