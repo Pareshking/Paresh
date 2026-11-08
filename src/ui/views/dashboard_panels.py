@@ -286,8 +286,8 @@ def nsdl_flows_html(nsdl: pd.DataFrame | None, nse: pd.DataFrame | None) -> str 
                      f'{"bought" if tot > 0 else "sold"}, last {m} sessions (NSE)</dd>')
         else:
             dii_line = (f'<p class="db-note">DII: {len(d)} session{"s" if len(d) != 1 else ""} collected from NSE '
-                        f'since {d["date"].min():%-d %b} (NSDL reports foreign investors only); its trend shows from '
-                        f'{TREND_MIN}.</p>' if len(d) else "")
+                        f'since {d["date"].min():%-d %b} (NSDL reports foreign investors only); the DII trend appears once '
+                        f'{TREND_MIN} sessions are collected.</p>' if len(d) else "")
     img = _month_bars_svg(months.tolist())
     alt = (f"FPI equity net per month, {months.index[0]:%b %Y} to {months.index[-1]:%b %Y}: from "
            f"{fmt.inr(months.min())} to {fmt.inr(months.max())} Cr.")
