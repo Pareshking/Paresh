@@ -1,9 +1,30 @@
 {
- "fetched_at_utc": "2026-11-07T09:16:15+00:00",
+ "fetched_at_utc": "2026-11-08T09:29:05+00:00",
  "new": {
   "symbolchange.csv": [],
   "namechange.csv": [],
-  "equity_l.csv": [],
+  "equity_l.csv": [
+   {
+    "SYMBOL": "ORTEL",
+    "NAME OF COMPANY": "Ortel Communications Limited",
+    "SERIES": "BZ",
+    "DATE OF LISTING": "19-MAR-2015",
+    "PAID UP VALUE": "10",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE849L01019",
+    "FACE VALUE": "10"
+   },
+   {
+    "SYMBOL": "VEEFIN",
+    "NAME OF COMPANY": "Veefin Solutions Limited",
+    "SERIES": "EQ",
+    "DATE OF LISTING": "11-NOV-2026",
+    "PAID UP VALUE": "10",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE0Q0M01015",
+    "FACE VALUE": "10"
+   }
+  ],
   "corporate_actions": []
  },
  "touching_members": {}
