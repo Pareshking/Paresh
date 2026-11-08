@@ -170,7 +170,7 @@ leave.</dd>
 <dd>The rank places it among all stocks in the universe; the qualified rank, among those passing both
 filters. The book and the buffer use the qualified rank.</dd>
 <dt>Does the market trend change the model?</dt>
-<dd>No. "Trend: up" or "down" in the header compares the Nifty 500 with its 200-day EMA for context.
+<dd>No. The header's "Nifty 500 2.9% above its 200D EMA" (or below) compares the index with its 200-day EMA for context.
 The model holds {top_n} stocks in every market and keeps no cash target.</dd>
 <dt>What do the costs cover?</dt>
 <dd>{cost:.0f} basis points a round trip, meant to cover brokerage, exchange and SEBI fees, GST on them,

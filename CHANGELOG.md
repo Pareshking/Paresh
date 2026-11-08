@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-08 — Header says what it measures; Configuration's site-wide buttons hidden
+
+- The header's first item now reads "Nifty 500 2.9% above its 200D EMA" (it said "Trend: up" next to a Dashboard that said "No clear trend"); the separate distance item is folded into it.
+- Configuration no longer shows visitors "Sync from niftyindices.com" and "Clear cached files": both clear the shared caches for everyone.
+- The Nifty 500 history now follows NSE's rename of ICICIPRULI to ICICILIFE (23 Oct); it matches NSE's list, 500 of 500.
+
 ## 2026-11-08 — Momentum health leads with winners against the Nifty 500
 
 - The book never shorts, so Momentum health now leads with what a long-only momentum book earns: the top fifth of our ranking against the Nifty 500 over 12 months (+12.9 points to October, 65th percentile since 2010). It is split into momentum (winners against the average stock, +11.3) and breadth (the average stock against the index, +1.6); winners minus losers (+8.9) stays as a reference row. Since 2010 the new figure moved with our book's lead over the index far more closely (correlation 0.81 against 0.44).
