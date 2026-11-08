@@ -58,7 +58,9 @@ def test_the_card_renders():
     res = br.book_risk(pd.Series({"AAA": 50, "BBB": 50}), px, bench,
                        volume=pd.DataFrame(1000.0, index=px.index, columns=["AAA", "BBB"]))
     out = dv.book_risk_html(res, pd.Timestamp("2026-10-30"))
-    assert "beta" in out and "Volatility" in out and "Exit" in out and "Size" in out
+    assert "beta" in out and "Volatility" in out and "Slowest exit" in out and "Weight outside these indices" in out
+    # Rows as the market questions' tables: label left, figure right, on hairlines.
+    assert '<table class="db-fig">' in out and "<dl" not in out
 
 
 def test_the_index_drawdown_covers_the_records_dates_only():

@@ -163,37 +163,39 @@ def _churn_row(record: dict | None, planned: int, held: int) -> str:
 
 def book_risk_html(res, as_of_record: pd.Timestamp | None) -> str:
     """"How risky is the book?" (book_risk; owner, 8 Nov 2026, TODO S110)."""
-    from src.engine import book_risk as br
     from src.ui import formats as fmt
 
+    # Figures as rows, label left and figure right on hairlines, the same as
+    # the market questions' tables and the reference site (owner, 8 Nov 2026).
     small = res.tiers.get("Smallcap 250", 0.0) + res.tiers.get("Microcap 250", 0.0)
-    order = ["Nifty 100", "Midcap 150", "Smallcap 250", "Microcap 250", "Outside"]
-    tiers = " · ".join(f"{t} {res.tiers[t] * 100:.0f}%" for t in order if res.tiers.get(t))
     rows, lede = [], ""
+
+    def row(label: str, figure: str, against: str = "", tone: str = "") -> None:
+        rows.append(f'<tr><td>{html.escape(label)}</td><td class="{tone}">{html.escape(figure)}</td>'
+                    f'<td class="mid">{html.escape(against)}</td></tr>')
+
     if res.beta is not None:
         lede = (f"The book as it stands moves about {res.beta:.2f} for each 1 of the Nifty 500 but swings "
                 f"{'more' if res.vol > res.bench_vol else 'less'}: {res.vol * 100:.1f}% a year against "
                 f"{res.bench_vol * 100:.1f}%. {small * 100:.0f}% of it is in small and micro caps.")
-        rows.append(f"<dt>Beta, {res.sessions} sessions</dt><dd><b>{res.beta:.2f}</b></dd>")
-        rows.append(f"<dt>Volatility</dt><dd><b>{res.vol * 100:.1f}%</b> a year · Nifty 500 "
-                    f"{res.bench_vol * 100:.1f}%</dd>")
-    rows.append(f"<dt>Size</dt><dd>{html.escape(tiers)}</dd>")
+        row("Volatility, a year", f"{res.vol * 100:.1f}%", f"{res.bench_vol * 100:.1f}%")
     if res.drawdown is not None:
-        when = f" on {as_of_record:%-d %b}" if as_of_record is not None else ""
-        bench = f" · Nifty 500 {fmt.pct(res.bench_drawdown)}" if res.bench_drawdown is not None else ""
-        rows.append(f'<dt>Drawdown</dt><dd><b class="{"down" if res.drawdown < 0 else ""}">'
-                    f"{fmt.pct(res.drawdown)}</b> from the record's peak{when} (worst "
-                    f"{fmt.pct(res.max_drawdown)}){bench}</dd>")
+        when = f"From the peak, {as_of_record:%-d %b}" if as_of_record is not None else "From the peak"
+        bdd = fmt.pct(res.bench_drawdown) if res.bench_drawdown is not None else ""
+        row(when, fmt.pct(res.drawdown), bdd, "down" if res.drawdown < 0 else "")
+        row("Worst since the record began", fmt.pct(res.max_drawdown))
+    for t in ("Nifty 100", "Midcap 150", "Smallcap 250", "Microcap 250", "Outside"):
+        if res.tiers.get(t):
+            row(f"Weight in the {t}" if t != "Outside" else "Weight outside these indices", f"{res.tiers[t] * 100:.0f}%")
     if len(res.exit_days):
         slow, days = res.exit_days.index[0], float(res.exit_days.iloc[0])
-        within = "within a day" if days <= 1 else f"in up to {days:.1f} days"
-        rows.append(f"<dt>Exit</dt><dd>every position {within} at {br.PARTICIPATION:.0%} of its traded "
-                    f"value (slowest {html.escape(slow)}, {days:.2f} days)</dd>")
+        row(f"Slowest exit, {slow}", f"{days:.2f} days" if days < 10 else f"{days:.0f} days")
     gaps = "".join(f'<p class="db-note">Left out: {html.escape(g)}.</p>' for g in res.gaps)
-    head = (f'<div class="db-big">{res.beta:.2f}<span>beta · {res.vol * 100:.1f}% volatility</span></div>'
+    head = (f'<div class="db-big">{res.beta:.2f}<span>beta against the Nifty 500, {res.sessions} sessions</span></div>'
             if res.beta is not None else "")
-    return (head + (f'<p class="db-lede">{html.escape(lede)}</p>' if lede else "")
-            + f'<dl class="db-kv">{"".join(rows)}</dl>{gaps}')
+    table = ('<table class="db-fig"><thead><tr><th scope="col">The book</th><th scope="col">Now</th>'
+             f'<th scope="col">Nifty 500</th></tr></thead><tbody>{"".join(rows)}</tbody></table>')
+    return head + (f'<p class="db-lede">{html.escape(lede)}</p>' if lede else "") + table + gaps
 
 
 def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,

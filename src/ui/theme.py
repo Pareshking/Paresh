@@ -1954,6 +1954,13 @@ def inject_custom_css() -> None:
         .db-kv dd { margin: 0 !important; color: var(--c-ink); }
         .db-kv a, .db-sectors a { color: var(--c-ink) !important; }
         .db-lede { margin: 0 0 4px; font-size: 14px; color: var(--c-ink); }
+        /* A card's figures as rows: label left, figure right, hairlines (as .mq tables) */
+        .db-fig { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; margin: 8px 0 2px; }
+        .db-fig th { font-size: 12px; font-weight: 500; color: var(--c-muted); text-align: right; padding: 4px 0 4px 8px; border-bottom: 1px solid var(--c-rule_strong); }
+        .db-fig th:first-child, .db-fig td:first-child { text-align: left; padding-left: 0; }
+        .db-fig td { padding: 6px 0 6px 8px; border-bottom: 1px solid var(--c-rule); text-align: right; color: var(--c-ink); }
+        .db-fig td:first-child { color: var(--c-text_2); }
+        .db-fig td.down { color: var(--c-down); } .db-fig td.up { color: var(--c-up); } .db-fig td.mid { color: var(--c-muted); }
         /* S91 panels: momentum health and flows */
         .db-big { font-family: var(--font-serif, Georgia, serif); font-size: 36px; line-height: 1.1; color: var(--c-ink); margin: 0 0 6px; }
         .db-big span { font-family: inherit; font-size: 14px; color: var(--c-muted); margin-left: 6px; }
