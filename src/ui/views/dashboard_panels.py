@@ -352,8 +352,8 @@ def render(kit, left, right) -> None:
                         "top 100 are held, equal weight, for the next month: what a long-only momentum "
                         "book earns. The figure is that book's 12-month return less the Nifty 500's, in "
                         "percentage points. Since 2010 it moved with our own book's lead over the index "
-                        "(correlation 0.81; winners minus losers 0.44). Breadth carries the small-stock "
-                        "effect. "
+                        "(correlation 0.81; winners minus losers 0.44). The top 100 is equal weight "
+                        "and the index is not, so part of the lead is the small-stock effect. "
                         f"Winners minus losers checked: {IIMA_CHECK}. A reading, not a forecast.")
         else:
             st.html(out)

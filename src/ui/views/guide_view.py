@@ -21,25 +21,25 @@ from src.ui.components import gap_count, render_data_quality_footer
 
 _CSS = """<style>
 .gd{max-width:760px;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--c-text_2);
-    font-size:15px;line-height:1.65}
-.gd nav{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13.5px;padding:0 0 4px}
+    font-size: var(--fs-15);line-height:1.65}
+.gd nav{display:flex;flex-wrap:wrap;gap:4px 18px;font-size: var(--fs-13);padding:0 0 4px}
 .gd nav a{color:var(--c-ink);text-decoration:none;border-bottom:1px solid var(--c-rule_strong)}
 .gd nav a:hover,.gd nav a:focus-visible{border-bottom-color:var(--c-ink)}
-.gd h2{font-size:18px;font-weight:600;color:var(--c-ink);margin:30px 0 8px;padding-top:12px;
+.gd h2{font-size: var(--fs-17);font-weight:600;color:var(--c-ink);margin:30px 0 8px;padding-top:12px;
     border-top:1px solid var(--c-ink);scroll-margin-top:72px}
-.gd h3{font-size:15px;font-weight:600;color:var(--c-ink);margin:18px 0 4px}
-.gd p,.gd li,.gd dd{font-size:15px;line-height:1.65;color:var(--c-text_2)}
+.gd h3{font-size: var(--fs-15);font-weight:600;color:var(--c-ink);margin:18px 0 4px}
+.gd p,.gd li,.gd dd{font-size: var(--fs-15);line-height:1.65;color:var(--c-text_2)}
 .gd p{margin:0 0 10px}
 .gd ol,.gd ul{margin:0 0 10px;padding-left:20px}
 .gd li{margin:2px 0}
 .gd b{color:var(--c-ink);font-weight:600}
-.gd pre{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size: 13.5px;line-height:1.6;
+.gd pre{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size: var(--fs-13);line-height:1.6;
     color:var(--c-ink);background:var(--c-subtle);border-left:2px solid var(--c-rule_strong);
     padding:8px 12px;margin:6px 0 12px;white-space:pre-wrap}
 .gd dl{margin:0}
 .gd dt{font-weight:600;color:var(--c-ink);margin-top:14px}
 .gd dd{margin:2px 0 0}
-.gd .k{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13.5px;color:var(--c-ink)}
+.gd .k{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size: var(--fs-13);color:var(--c-ink)}
 </style>"""
 
 

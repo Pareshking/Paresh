@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-09 — One theme file for the whole site
+
+- `src/ui/tokens.py` now holds the whole look: colours, the eight type sizes, the spacing ladder, corners, shadows and the three font families. Change a value there and every page changes, framed tables and charts included. Documented in `docs/THEME.md`.
+- The stylesheet's type sizes are on that scale: 255 hardcoded sizes became tokens, and the four steps that sat inside a 1.5px range (11, 12, 12.5, 13) became one. Tests fail if a theme variable is used that the file does not define, or if the count of leftover hardcoded sizes rises.
+
 ## 2026-11-08 — Momentum health splits the top fifth into its two deciles
 
 - The card now shows the top 50 and ranks 51-100 against the Nifty 500 as separate rows. Over 201 months the top decile led the index by 1.01 pts a month against 0.59 for the second, in every five-year block, so the blended "top 100" figure understates what the best-ranked names did. The headline stays the top 100: a 20-stock basket tracks our own book better (0.93 against 0.85) but is nearly the book itself, is behind the index over a full year 25% of the time against 19%, and would print +29.7 instead of +11.9.

@@ -119,3 +119,46 @@ def test_every_colour_variable_used_is_a_palette_token():
                 used.setdefault(name, f"{f.relative_to(root)}:{n}")
     unknown = {k: v for k, v in used.items() if k not in PALETTE}
     assert not unknown, f"colour variables that PALETTE does not define: {unknown}"
+
+
+def test_the_theme_file_is_the_only_place_sizes_are_set():
+    """src/ui/tokens.py is the theme (owner, 9 Nov 2026: "a theme file like
+    WordPress has, so one can do all the changes globally"). The stylesheet
+    had 345 hardcoded type sizes; what is left is the display end, which is
+    judged one heading at a time. This guard lets that number fall, never
+    rise, so the next change goes through the theme."""
+    import re
+    from pathlib import Path
+
+    ui = Path(__file__).resolve().parents[1] / "src" / "ui"
+    budget = {  # file -> the most literal font sizes it may still carry
+        "theme.py": 24, "page_kit.py": 21, "components.py": 0, "screener_table.py": 0,
+    }
+    for name, allowed in budget.items():
+        found = re.findall(r"font-size:\s*[\d.]+px", (ui / name).read_text())
+        assert len(found) <= allowed, (
+            f"{name}: {len(found)} literal font sizes, budget {allowed}. "
+            f"Use var(--fs-…) from src/ui/tokens.py: {found[allowed:]}")
+    views = sum(len(re.findall(r"font-size:\s*[\d.]+px", f.read_text()))
+                for f in (ui / "views").glob("*.py"))
+    assert views <= 39, f"views carry {views} literal font sizes, budget 39"
+
+
+def test_every_theme_variable_used_is_defined():
+    """A size, space, corner or shadow variable that PALETTE's siblings do not
+    define would resolve to nothing in a framed table or a chart."""
+    import re
+    from pathlib import Path
+
+    from src.ui import tokens
+
+    groups = {"c": tokens.PALETTE, "fs": tokens.TYPE, "sp": tokens.SPACE,
+              "r": tokens.RADIUS, "sh": tokens.SHADOW}
+    root = Path(__file__).resolve().parents[1] / "src"
+    unknown = {}
+    for f in root.rglob("*.py"):
+        for n, line in enumerate(f.read_text().splitlines(), 1):
+            for kind, name in re.findall(r"var\(--(c|fs|sp|r|sh)-([A-Za-z0-9_]+)", line):
+                if name not in groups[kind]:
+                    unknown[f"--{kind}-{name}"] = f"{f.relative_to(root)}:{n}"
+    assert not unknown, f"theme variables that tokens.py does not define: {unknown}"

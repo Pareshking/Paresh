@@ -306,22 +306,21 @@ def growth_chart(
 EDITORIAL_FONT = "app/static/fonts.css"   # self-hosted with the other faces (audit F61)
 _EDITORIAL_CSS = """<style>
 @import url('""" + EDITORIAL_FONT + """');
-:root{--font-serif:'Source Serif 4','Source Serif Pro',Georgia,'Times New Roman',serif}
 .scr-head h1{font-family:var(--font-serif)!important;font-weight:400!important;font-size:52px!important;
   line-height:1.06!important;letter-spacing:-0.6px!important;max-width:16em}
-.scr-head p{font-size:17px!important;line-height:1.55!important;max-width:42em;color:var(--c-text_2)!important}
-.scr-kicker{font-size:13px;color:var(--c-muted);margin:0 0 8px}
+.scr-head p{font-size: var(--fs-17)!important;line-height:1.55!important;max-width:42em;color:var(--c-text_2)!important}
+.scr-kicker{font-size: var(--fs-13);color:var(--c-muted);margin:0 0 8px}
 body .qp h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:40px!important;
   line-height:1.1!important;letter-spacing:-0.4px!important;margin-bottom:6px!important}
 body .qp-v{font-family:var(--font-serif);font-weight:400;font-size:36px;letter-spacing:-0.3px}
-body .qp-s{font-size:17px;max-width:38em}
-body .qp h3{font-size:15px!important}
-body .qp li{font-size:15px}
+body .qp-s{font-size: var(--fs-17);max-width:38em}
+body .qp h3{font-size: var(--fs-15)!important}
+body .qp li{font-size: var(--fs-15)}
 body .qp td.big{font-family:var(--font-serif);font-size:22px;font-weight:400;line-height:1.1}
-body .qp td.big span.sub{font-family:var(--font-ui);font-size:12px;color:var(--c-muted);line-height:1.45;display:inline-block;margin-top:2px}
+body .qp td.big span.sub{font-family:var(--font-ui);font-size: var(--fs-12);color:var(--c-muted);line-height:1.45;display:inline-block;margin-top:2px}
 body .mq h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important;line-height:1.15!important}
 body .mq-v{font-family:var(--font-serif);font-weight:400;font-size:32px;letter-spacing:-0.3px}
-body .mq-s{font-size:15px}
+body .mq-s{font-size: var(--fs-15)}
 .pg-card-h h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important}
 .br-charts-h{font-family:var(--font-serif)!important;font-weight:400!important;font-size:32px!important}
 .rng{position:relative;width:170px;height:14px;display:inline-block;vertical-align:middle}
@@ -339,7 +338,7 @@ body .sp-rank-big span{font-family:var(--font-serif);font-weight:400;font-size:5
 body .gd h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:28px!important;border-top-color:var(--c-ink)}
 body .cfg-intro h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important}
 body .cr-year-head h3{font-family:var(--font-serif);font-weight:400;font-size:22px}
-body .gd p,body .gd li,body .gd dd{font-size:16px!important}
+body .gd p,body .gd li,body .gd dd{font-size: var(--fs-15)!important}
 /* The stock page's own headings, brought onto the site's scale (design
    audit, 8 Nov 2026): they were the only sans-serif section headings in
    the app, 17px beside a serif 24px heading on the same page. */
