@@ -553,7 +553,10 @@ def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench:
         sec = question_section_html(trend, "trend", "q-trend")
         table = size_trend_html(bench, size)
         if table:
-            sec = sec.replace("</section>", "<h3 style='margin-top:14px'>By size</h3>" + table + "</section>")
+            # In its own scroller, as the heat table is: a seven-column table
+            # was 472 px wide inside a 390 px column (design audit, 8 Nov 2026).
+            sec = sec.replace("</section>", "<h3 style='margin-top:14px'>By size</h3>"
+                              + f'<div class="qp-scroll">{table}</div>' + "</section>")
         st.html(sec + '<p class="qp-behind">Behind the answer</p>')
         _trend_charts(bench.dropna(), size)
     st.html('<p class="qp-note" style="margin:10px 0 18px">Counted over the stocks ranked today, so '

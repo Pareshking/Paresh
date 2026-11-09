@@ -173,7 +173,7 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
         '<style>.cr-yearly{margin-bottom:14px}'
         f'.cr-yearly-table{{min-width:{120 + 74 * len(table)}px}}'
         '.cr-yearly-table .cr-part{display:block;font-weight:600;letter-spacing:0;'
-        'text-transform:none;color:var(--c-faint);font-size: 12px;margin-top:2px}</style>'
+        'text-transform:none;color:var(--c-faint);font-size: var(--fs-12);margin-top:2px}</style>'
     )
 
 
@@ -244,24 +244,24 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
       .cr-year-head { display:flex; align-items:baseline; justify-content:space-between;
         gap:12px; padding:10px 0 6px; background:transparent; border:0; }
       .cr-kicker { display:none; }
-      .cr-year-head h3 { margin:0; font-size:17px; line-height:1.2; letter-spacing:0;
+      .cr-year-head h3 { margin:0; font-size: var(--fs-17); line-height:1.2; letter-spacing:0;
         color:var(--c-ink); font-weight:600; font-variant-numeric:tabular-nums; }
-      .cr-year-note { color:var(--c-muted); font-size:12.5px; text-align:right; }
+      .cr-year-note { color:var(--c-muted); font-size: var(--fs-12); text-align:right; }
       /* The scroller, and only the scroller, may be narrower than the table:
          without max-width the 980px table widened its parent and the whole
          page scrolled sideways on a phone (design audit, 8 Nov 2026). */
       .cr-wrap { max-width:100%; overflow-x:hidden; }
       .cr-scroll { overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; }
       .cr-table { border-collapse:collapse; width:100%;
-        min-width:980px; font-size: 13.5px; font-variant-numeric:tabular-nums; }
+        min-width:980px; font-size: var(--fs-13); font-variant-numeric:tabular-nums; }
       .cr-table th,.cr-table td { padding:8px 8px; text-align:right;
         border-bottom:1px solid var(--c-rule); white-space:nowrap; }
-      .cr-table thead th { background:transparent; color:var(--c-muted); font-size:12px;
+      .cr-table thead th { background:transparent; color:var(--c-muted); font-size: var(--fs-12);
         font-weight:500; letter-spacing:0; border-bottom:1px solid var(--c-rule_strong); }
       .cr-table thead th:first-child { text-align:left; padding-left:0; }
       .cr-table tbody tr:last-child th,.cr-table tbody tr:last-child td { border-bottom:0; }
       .cr-series { text-align:left !important; padding-left:0 !important;
-        font-size: 13.5px; font-weight:600; color:var(--c-ink); min-width:86px; border-left:0 !important; }
+        font-size: var(--fs-13); font-weight:600; color:var(--c-ink); min-width:86px; border-left:0 !important; }
       .cr-series.benchmark { color:var(--c-text_2); font-weight:500; }
       .cr-value { font-weight:500; }
       .cr-value.positive { color:var(--c-up); }
@@ -271,7 +271,7 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
       .cr-summary { background:var(--c-subtle); font-weight:600; }
       .cr-table td.cr-summary { border-left:1px solid var(--c-rule); }
       @media(max-width:640px) {
-        .cr-year-note { max-width:150px; font-size:12px; }
+        .cr-year-note { max-width:150px; font-size: var(--fs-12); }
         .cr-table { min-width:940px; }
         .cr-table th,.cr-table td { padding:8px 7px; }
       }
@@ -738,7 +738,7 @@ def render_freshness_ribbon() -> None:
     st.markdown(
         '<div role="status" aria-label="Data freshness" style="display: flex; flex-wrap: wrap; '
         "align-items: baseline; gap: 4px 10px; padding: 14px 0 4px; border-top: 1px solid var(--c-rule); "
-        'margin-top: 22px; margin-bottom: 2px; font-family: var(--font-ui); font-size: 12.5px;">'
+        'margin-top: 22px; margin-bottom: 2px; font-family: var(--font-ui); font-size: var(--fs-12);">'
         f"{sep.join(parts)}</div>",
         unsafe_allow_html=True,
     )
@@ -789,7 +789,7 @@ def render_data_quality_footer(
     # Screener page, rest pages don't need it"). Every other page keeps the
     # copyright; the header's price chip still carries the closes' date.
     if not details:
-        st.html('<div style="display: flex; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px;">'
+        st.html('<div style="display: flex; padding: 6px 0 24px; font-family: var(--font-ui); font-size: var(--fs-12);">'
                 '<span style="margin-left: auto; color: var(--c-text_2);">© Paresh Patel</span></div>')
         return
     render_freshness_ribbon()
@@ -809,7 +809,7 @@ def render_data_quality_footer(
         if _public_where else ""
     )
     footer_html = f"""
-    <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: 12.5px; color: var(--c-muted);">
+    <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: var(--fs-12); color: var(--c-muted);">
         <span>Gap-filled over 10% (12 months): <strong style="color: {"var(--c-caution)" if gap_count else "var(--c-ink)"};">{gap_count}</strong></span>
         <span style="color: var(--c-faint);">·</span>
         <span>Short history (under 126 sessions): <strong style="color: var(--c-ink);">{short_count}</strong></span>

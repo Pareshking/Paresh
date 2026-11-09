@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from src.ui import screener_table
+from src.ui import screener_table, tokens
 
 ROOT = Path(__file__).resolve().parents[1]
 THEME = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
@@ -33,7 +33,10 @@ REDESIGN_CSS = {
 
 @pytest.mark.parametrize("name", REDESIGN_CSS)
 def test_no_redesigned_text_is_smaller_than_11px(name):
-    sizes = [float(n) for n in re.findall(r"font-size:\s*([\d.]+)px", REDESIGN_CSS[name])]
+    # Sizes are theme tokens now (src/ui/tokens.py is the one theme file), so
+    # the guard resolves them to px before measuring.
+    css = tokens.resolve(REDESIGN_CSS[name])
+    sizes = [float(n) for n in re.findall(r"font-size:\s*([\d.]+)px", css)]
     assert sizes, f"no font sizes found in the {name} CSS; the guard lost its target"
     small = [s for s in sizes if s < 11]
     assert not small, f"{name}: font sizes under 11px: {small}"
