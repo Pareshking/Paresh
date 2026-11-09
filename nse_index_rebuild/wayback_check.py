@@ -13,18 +13,28 @@ def canon(sym, date):
             elif sym == a["old_symbol"] and date >= a["first_new_date"]: sym = a["new_symbol"]; ch = True
     return sym
 def sh(cmd):
-    return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=90).stdout
+    """Run a command as a list, never through a shell (audit O-L7).
+
+    The URLs below carry a date and a file name built from this script's own
+    tables, but a string handed to a shell is one stray quote away from being
+    a command, and there is nothing here that needs a shell.
+    """
+    return subprocess.run(cmd, shell=False, capture_output=True, text=True, timeout=90).stdout
 def api(url, t):
     for wait in (0, 20, 60, 120):
         time.sleep(wait + 3)
-        txt = sh(f'curl -sS -m 40 -A "Mozilla/5.0" "https://archive.org/wayback/available?url={url}&timestamp={t.replace("-","")}"')
+        txt = sh(["curl", "-sS", "-m", "40", "-A", "Mozilla/5.0",
+                  f"https://archive.org/wayback/available?url={url}"
+                  f"&timestamp={t.replace('-', '')}"])
         try: return json.loads(txt)
         except Exception: continue
     return None
 def fetch(ts, fn):
     for wait in (0, 30, 90):
         time.sleep(wait + 3)
-        raw = sh(f'curl -sS -m 60 -A "Mozilla/5.0" "https://web.archive.org/web/{ts}id_/https://www.niftyindices.com/IndexConstituent/{fn}"')
+        raw = sh(["curl", "-sS", "-m", "60", "-A", "Mozilla/5.0",
+                  f"https://web.archive.org/web/{ts}id_/"
+                  f"https://www.niftyindices.com/IndexConstituent/{fn}"])
         if raw.lstrip().startswith(("Company", "\ufeffCompany")): return raw
     return ""
 res, prob = run()

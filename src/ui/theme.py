@@ -1907,6 +1907,22 @@ def inject_custom_css() -> None:
            sideways on a phone (design audit, 8 Nov 2026: Breadth's by-size
            table was 456 px in a 390 px column). Shared, not per page. */
         .qp-scroll { overflow-x: auto; max-width: 100%; }
+
+        /* On a phone a four-column answer grid overflows its column by 9px,
+           and an industry name truncated to 110px loses most of itself
+           (design audit, 9 Nov 2026). Two columns, and the name gets a line
+           of its own above its bar. */
+        @media (max-width: 640px) {
+            /* One column: at two, an industry name and its two figures still
+               needed 187px in a 173px cell. */
+            .qp-quad { grid-template-columns: minmax(0, 1fr) !important; gap: 0 !important; }
+            .qp-quad p { flex-wrap: wrap; }
+            .rb-row { grid-template-columns: minmax(0, 1fr) 92px !important; row-gap: 2px; }
+            .rb-row .rb-n { grid-column: 1 / -1; white-space: normal !important;
+                            overflow: visible !important; text-overflow: clip !important; }
+            .rb-row .rb-t { grid-column: 1; }
+            .rb-row .rb-v { grid-column: 2; }
+        }
         .qp-nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--fs-13); margin: 0 0 14px; }
         .qp-nav a { color: var(--c-ink) !important; text-decoration: underline;
             text-decoration-color: var(--c-rule_strong); text-underline-offset: 3px; }

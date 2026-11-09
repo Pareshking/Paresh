@@ -21,6 +21,10 @@ from src.ui.tokens import C
 
 ROOT = Path(__file__).resolve().parents[3]
 MOMENTUM_FILE = ROOT / "data" / "momentum_health.csv"
+# The newest month-end's qualified share. The spreads can only carry a
+# month once its return is in, so the card read September on a 9 Nov
+# page (audit U-M8); this is the same reading, a month earlier.
+QUALIFIED_LATEST = ROOT / "data" / "momentum_health_latest.json"
 FLOWS_FILE = ROOT / "data" / "fii_dii_flows.csv"
 NSDL_FILE = ROOT / "data" / "nsdl_fpi_daily.csv"
 IIMA_CHECK = "correlation 0.83 with IIM Ahmedabad's momentum factor, Feb 2010 to Dec 2025"
@@ -194,6 +198,19 @@ def _qualified_evidence(spreads: pd.DataFrame, d: pd.DataFrame, cuts: list[float
             f"{fmt.signed(float(high.mean()))} pts and {float((high < 0).mean()) * 100:.0f}%.")
 
 
+def _latest_qualified() -> dict | None:
+    """The month-end reading the monthly job writes beside the spreads."""
+    try:
+        import json
+        with open(QUALIFIED_LATEST, encoding="utf-8") as fh:
+            payload = json.load(fh)
+        if payload.get("date") and payload.get("qualified") is not None:
+            return {"date": str(payload["date"]), "qualified": float(payload["qualified"])}
+    except (OSError, ValueError, TypeError):
+        return None
+    return None
+
+
 def qualified_html(spreads: pd.DataFrame | None) -> str | None:
     """How many stocks qualify? (TODO S110, item 2): the month-end share of the
     Nifty 500 passing the strategy's own gates, from data/momentum_health.csv."""
@@ -206,6 +223,19 @@ def qualified_html(spreads: pd.DataFrame | None) -> str | None:
     if len(d) < 24:
         return None
     last = d.iloc[-1]
+    # A newer month-end than the spreads can carry, when the job wrote one.
+    newer = _latest_qualified()
+    if newer is not None and pd.Timestamp(newer["date"]) > pd.Timestamp(last["date"]):
+        # The row carries only what this month-end knows: a share and its
+        # date. Every other column stays empty, and the evidence below reads
+        # the spreads, which are unchanged.
+        row_new = {c: float('nan') for c in d.columns}
+        row_new["date"] = pd.Timestamp(newer["date"])
+        row_new["qualified"] = float(newer["qualified"])
+        if "month" in d.columns:
+            row_new["month"] = str(pd.Period(pd.Timestamp(newer["date"]), freq="M") + 1)
+        d = pd.concat([d, pd.DataFrame([row_new])], ignore_index=True)
+        last = d.iloc[-1]
     q = d["qualified"]
     cuts = q.quantile([0.25, 0.5, 0.75]).tolist()
     quarter = sum(float(last["qualified"]) > c for c in cuts)

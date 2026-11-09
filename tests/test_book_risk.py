@@ -70,3 +70,27 @@ def test_the_index_drawdown_covers_the_records_dates_only():
     bench.iloc[3:] = bench.iloc[2] * 0.5          # a collapse after the record's last date
     res = br.book_risk(pd.Series({"AAA": 50, "BBB": 50}), px, bench, equity=eq)
     assert res.bench_drawdown > -0.05
+
+
+def test_cash_damps_the_book_and_shows_as_its_own_share():
+    """A book 60% invested is not a fully invested book (audit C-L2).
+
+    The weights used to be divided by their own sum, so cash vanished: beta
+    and volatility read as if every rupee were in stocks, and the size tiers
+    summed to the whole book. From the six-monthly reset (S111) the book holds
+    cash between resets whenever a buy is short of it, so this is the normal
+    state, not an edge case.
+    """
+    px, bench = _prices()
+    full = br.book_risk(pd.Series({"AAA": 50, "BBB": 50}), px, bench)
+    part = br.book_risk(pd.Series({"AAA": 30, "BBB": 30}), px, bench)
+
+    assert full.cash == 0.0
+    assert abs(part.cash - 0.4) < 1e-9
+    # The same stocks in the same proportion, 40% in cash: both measures fall
+    # by that share, not stay put.
+    assert abs(part.beta - 0.6 * full.beta) < 1e-6
+    assert abs(part.vol - 0.6 * full.vol) < 1e-6
+    assert abs(sum(part.tiers.values()) - 1.0) < 1e-9
+    assert abs(part.tiers.get("Cash", 0.0) - 0.4) < 1e-9
+    assert "Cash" not in full.tiers

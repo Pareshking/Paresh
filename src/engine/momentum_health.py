@@ -97,6 +97,35 @@ def monthly_spreads(prices: pd.DataFrame, membership=None, *, first_month: pd.Pe
     return pd.DataFrame(rows)
 
 
+def latest_qualified(prices: pd.DataFrame, membership=None, *,
+                     first_month: pd.Period | None = None,
+                     config_weights: Sequence[float] = (0.10, 0.30, 0.30, 0.20, 0.10)) -> dict | None:
+    """The newest month-end's qualified share, with no next month needed.
+
+    `monthly_spreads` can only write a month once the following month has
+    closed, because its return is the point. The qualified share is not a
+    return: it is a count taken at the month-end itself. Reading it from the
+    spreads therefore left the card a month behind -- on 9 Nov 2026 it showed
+    September (audit U-M8). This reads the same thing at the latest complete
+    month-end, and the monthly job writes it beside the spreads.
+    """
+    ends = month_ends(prices)
+    if ends and not _complete(ends[-1]):
+        ends = ends[:-1]
+    if first_month is not None:
+        ends = [d for d in ends if pd.Period(d, freq="M") >= first_month]
+    if not ends:
+        return None
+    t0 = ends[-1]
+    day = snapshots(prices, [t0], membership=membership, config_weights=config_weights)
+    members = day[day["in_index"] & prices.loc[t0].reindex(day["symbol"].to_numpy()).notna().to_numpy()]
+    if len(members) < MIN_STOCKS:
+        return None
+    return {"date": str(pd.Timestamp(t0).date()),
+            "qualified": float(members["qualifies"].mean()),
+            "n": int(len(members))}
+
+
 def health(spreads: pd.DataFrame) -> dict | None:
     """Today's reading from the monthly spreads, or None with under two years."""
     if spreads is None or len(spreads) < 24:

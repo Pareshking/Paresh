@@ -175,7 +175,8 @@ def book_risk_html(res, as_of_record: pd.Timestamp | None) -> str:
     if res.beta is not None:
         lede = (f"The book as it stands moves about {res.beta:.2f} for each 1 of the Nifty 500 but swings "
                 f"{'more' if res.vol > res.bench_vol else 'less'}: {res.vol * 100:.1f}% a year against "
-                f"{res.bench_vol * 100:.1f}%. {small * 100:.0f}% of it is in small and micro caps.")
+                f"{res.bench_vol * 100:.1f}%. {small * 100:.0f}% of it is in small and micro caps"
+                + (f", and {res.cash * 100:.0f}% is in cash." if getattr(res, "cash", 0.0) > 0.0005 else "."))
         row("Volatility, a year", f"{res.vol * 100:.1f}%", f"{res.bench_vol * 100:.1f}%")
     if res.drawdown is not None:
         when = (f"Drawdown at the {as_of_record:%-d %b} month-end" if as_of_record is not None
@@ -186,6 +187,11 @@ def book_risk_html(res, as_of_record: pd.Timestamp | None) -> str:
     for t in ("Nifty 100", "Midcap 150", "Smallcap 250", "Microcap 250", "Outside"):
         if res.tiers.get(t):
             row(f"Weight in the {t}" if t != "Outside" else "Weight outside these indices", f"{res.tiers[t] * 100:.0f}%")
+    # Cash is part of the book, and it is why the beta above is what it is
+    # (audit C-L2): under the six-monthly reset a buy short of cash simply
+    # buys fewer shares and the rest stays in cash.
+    if getattr(res, "cash", 0.0) > 0.0005:
+        row("Held in cash", f"{res.cash * 100:.0f}%")
     if len(res.exit_days):
         slow, days = res.exit_days.index[0], float(res.exit_days.iloc[0])
         row(f"Slowest exit, {slow}", f"{days:.2f} days" if days < 10 else f"{days:.0f} days")
