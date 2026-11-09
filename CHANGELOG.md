@@ -5,6 +5,7 @@
 - "How risky is the book?" kept cash out of its weights, so a book 60% invested read as if every rupee were in stocks: beta and volatility a third too high and the size tiers summing to the whole book. Cash now damps both by its share and appears as its own row. It matters from the six-monthly reset, where a buy short of cash simply buys fewer shares.
 - "How many stocks qualify?" read the September month-end on a 9 November page, because the monthly file can only carry a month once that month's return is in. The share is a count at the month-end, not a return, so the job now writes it as soon as the month closes and the card uses it.
 - No research script runs a shell command built from its arguments.
+- On a phone, "What is leading?" stacks its four groups instead of overflowing, and an industry name gets a line of its own rather than being cut to a third of itself.
 
 ## 2026-11-09 — The display sizes join the scale, and the tables agree
 
