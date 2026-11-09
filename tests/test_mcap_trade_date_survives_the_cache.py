@@ -82,7 +82,8 @@ def test_trade_date_is_written_when_the_live_zip_succeeds(tmp_path, monkeypatch)
     path = tmp_path / "mcap_nse.parquet"
     monkeypatch.setattr(mcap_loader, "MCAP_PR_FILE", str(path))
     monkeypatch.setattr(mcap_loader, "_is_mcap_cache_fresh", lambda: False)
-    monkeypatch.setattr(mcap_loader, "recent_trading_days", lambda n: [date(2026, 8, 18)])
+    monkeypatch.setattr(mcap_loader, "recent_trading_days",
+                        lambda n, **kw: [date(2026, 8, 18)])
     monkeypatch.setattr(
         mcap_loader, "_fetch_mcap_from_pr_zip",
         lambda td: {"RELIANCE": 1.5e13, "TCS": 1.2e13},

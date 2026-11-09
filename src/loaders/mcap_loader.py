@@ -208,9 +208,12 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
         logger.info("Attempting live NSE PR zip for market caps…")
         # Walk back through recent trading days: today's archive is not
         # published until after the close, and a holiday has no archive at
-        # all, so the newest date that actually returns data wins. Weekends
-        # are skipped outright; holidays cost one failed lookup each.
-        for td in recent_trading_days(6):
+        # all, so the newest date that actually returns data wins. A holiday
+        # costs one failed lookup; so does a weekend day, and that is the
+        # price of catching a Muhurat session (8 Nov 2026 was a Sunday and
+        # NSE published PR081126.zip for it). The 200 is also what records
+        # the day as a trading day, so the walk has to ask.
+        for td in recent_trading_days(6, probe_weekends=True):
             metrics.incr("mcap_pr_zip_attempts")
             try:
                 nse_map = _fetch_mcap_from_pr_zip(td)

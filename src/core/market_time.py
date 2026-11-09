@@ -25,6 +25,9 @@ INDIA_TZ = ZoneInfo("Asia/Kolkata")
 # number "today".
 SESSION_SETTLES = time(16, 0)
 
+# Filled on first use by _confirmed_weekend_sessions().
+_WEEKEND_SESSIONS: frozenset[str] | None = None
+
 
 def ist_now() -> datetime:
     """Current time in Indian market time, timezone-aware."""
@@ -36,11 +39,31 @@ def ist_today() -> date:
     return ist_now().date()
 
 
+def _confirmed_weekend_sessions() -> frozenset[str]:
+    """Weekend dates NSE confirmed as trading days (Muhurat trading).
+
+    Read once per process: the record only grows, and this sits on the path
+    every page takes. A missing or unreadable file means no special sessions,
+    which is the behaviour this module had before them.
+    """
+    global _WEEKEND_SESSIONS
+    if _WEEKEND_SESSIONS is None:
+        try:
+            from src.loaders.trading_days import load_confirmed
+            _WEEKEND_SESSIONS = frozenset(
+                d for d in load_confirmed()
+                if date.fromisoformat(d).weekday() >= 5)
+        except Exception:      # noqa: BLE001 - a theme of this module: never raise on a date
+            _WEEKEND_SESSIONS = frozenset()
+    return _WEEKEND_SESSIONS
+
+
 def recent_trading_days(
     count: int = 6,
     *,
     as_of: date | None = None,
     max_lookback_days: int = 21,
+    probe_weekends: bool = False,
 ) -> list[date]:
     """Most recent candidate trading days, newest first, weekends excluded.
 
@@ -55,14 +78,31 @@ def recent_trading_days(
     answer. The calendar-day budget is wide enough to clear a multi-day
     festival cluster sitting next to a weekend (Diwali, Holi), which a
     seven-calendar-day window could not.
+
+    A weekend day is skipped UNLESS NSE has confirmed a session on it. Muhurat
+    trading falls on Diwali, whatever the weekday: on Sunday 8 Nov 2026 NSE
+    published a bhavcopy of 3,551 rows while Saturday the 7th answered 404.
+    Blanket-skipping weekends made that session unplaceable, so the freshest
+    prices the site had were reported as stale (owner, 9 Nov 2026). The
+    confirmations come from the nightly sync's own 200s
+    (src/loaders/trading_days.py); an unconfirmed weekend day stays skipped,
+    because absence of a confirmation is not evidence of a session.
+
+    ``probe_weekends`` offers weekend days as candidates even unconfirmed. A
+    collector that is going to ask the exchange anyway passes it, because the
+    exchange is the only thing that can turn an unknown weekend into a
+    confirmed session; a 404 costs one request. Without it the record could
+    never learn about a Muhurat session, since the walk that would confirm it
+    was the same walk that skipped it.
     """
     if count <= 0:
         return []
     cursor = as_of or ist_today()
+    special = _confirmed_weekend_sessions()
     days: list[date] = []
     for offset in range(max_lookback_days):
         day = cursor - timedelta(days=offset)
-        if day.weekday() >= 5:  # Saturday / Sunday are never trading days
+        if day.weekday() >= 5 and not probe_weekends and day.isoformat() not in special:
             continue
         days.append(day)
         if len(days) >= count:

@@ -135,6 +135,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 
 | What an audit shows | What it is | Evidence |
 |---|---|---|
+| The footer called 8 Nov 2026 prices **stale** although they were the freshest we had | NSE held Muhurat trading on Sunday 8 Nov, and `market_time.recent_trading_days` skipped every weekend day, so the session could not be placed and its age read as unknown | NSE's own archive: `BhavCopy_NSE_CM_0_0_0_20261108_F_0000.csv.zip` 200 with 3,551 rows and `PR081126.zip` 200, against 404 for both on Saturday the 7th (checked 9 Nov 2026). Fixed: a weekend day NSE has confirmed counts as a trading day; collectors pass `probe_weekends=True` so the exchange can confirm one in the first place |
 | Yahoo level breaks where **ours** moved (408 on 3 Oct, 33 stocks, 5 hold 320) | Yahoo is flat or stale on those days | Ours equals NSE's raw close / previous close to six decimals on those days (none has an action, so adjusted and raw agree); eod2, MarketLens, SS, Tijori, TejHQ side with ours (AHLUCONT: all five 100% within 2%, Yahoo 54%) |
 | 240 closes above the high or below the low | All series T0: the close is EQ's, the range is the few T0 trades | None reaches a price the build uses; day moves on those days are ordinary |
 | 1,372 average prices outside the range | NSE's turnover in lakhs, 2 decimals (about Rs 1,000), so value / volume is off on small volumes | 68% have 1,000 shares or fewer; some are value 0 on a few shares |
