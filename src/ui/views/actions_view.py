@@ -355,6 +355,10 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         with kit.card("Sell", "ac_sell"):
             if plan.sells:
                 st.html(sells_html(a, plan.sells, since, entries))
+                # A phone drops a column rather than cramming it; say so
+                # (design audit, 9 Nov 2026: it was dropped silently).
+                st.html('<p class="db-note ac-more">On a wider screen each row '
+                        'also shows how long the holding has been held.</p>')
                 kit.caption("Sell in full; sells are not in the Kite basket.")
             else:
                 kit.caption("None.")
@@ -363,6 +367,9 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         with kit.card("Buy", "ac_buy", "best qualified, not held"):
             if plan.buys:
                 st.html(buys_html(rank_df, plan.buys, qrank))
+                st.html('<p class="db-note ac-more">On a wider screen each row '
+                        'also shows the price, the 3- and 6-month returns and '
+                        'the distance from the 52-week high.</p>')
                 chips = "".join(
                     f'<a class="t50-chip" href="{stock_href(s)}" target="_self">'
                     f'<span class="t50-rank">{int(qrank.get(s, 0))}</span>'

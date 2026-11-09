@@ -256,8 +256,10 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
         min-width:980px; font-size: var(--fs-13); font-variant-numeric:tabular-nums; }
       .cr-table th,.cr-table td { padding:8px 8px; text-align:right;
         border-bottom:1px solid var(--c-rule); white-space:nowrap; }
+      /* 600, as every other table's header (design audit, 9 Nov 2026):
+         this one alone was 500. */
       .cr-table thead th { background:transparent; color:var(--c-muted); font-size: var(--fs-12);
-        font-weight:500; letter-spacing:0; border-bottom:1px solid var(--c-rule_strong); }
+        font-weight:600; letter-spacing:0; border-bottom:1px solid var(--c-rule_strong); }
       .cr-table thead th:first-child { text-align:left; padding-left:0; }
       .cr-table tbody tr:last-child th,.cr-table tbody tr:last-child td { border-bottom:0; }
       .cr-series { text-align:left !important; padding-left:0 !important;

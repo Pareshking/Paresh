@@ -39,6 +39,7 @@ from src.ui import page_kit as kit
 from src.ui.canonical_book import current_book
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.system_param import page_href, stock_href
+from src.ui.page_kit import page_nav_html
 from src.ui.views.actions_view import _day, _sessions_between, next_rebalance
 from src.ui.views.market_questions_view import market_strip_html, render_market_questions, size_closes
 
@@ -144,10 +145,6 @@ def _size_html(res: sl.SizeLeadership) -> str:
             f'<tbody>{"".join(body)}</tbody></table>')
 
 
-def page_nav_html(links: list[tuple[str, str]]) -> str:
-    """The "On this page" line: one link per (anchor, title)."""
-    items = "".join(f'<a href="#{html.escape(a)}">{html.escape(t)}</a>' for a, t in links)
-    return f'<nav class="qp-nav" aria-label="On this page">{items}</nav>'
 
 
 def _churn_row(record: dict | None, planned: int, held: int) -> str:

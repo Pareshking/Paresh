@@ -369,18 +369,22 @@ _CSS = """
 *{box-sizing:border-box}
 body{margin:0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--c-ink);background:transparent;-webkit-font-smoothing:antialiased}
 .wrap{height:100vh;overflow:auto;background:var(--c-white);border:0;border-top:1px solid var(--c-ink);border-radius:0}
-.edge{position:fixed;top:0;right:0;width:32px;height:100vh;pointer-events:none;z-index:6;background:linear-gradient(to right,rgba(255,255,255,0),var(--c-white));opacity:0;transition:opacity .15s}
+.edge{position:fixed;top:0;right:0;width:56px;height:100vh;pointer-events:none;z-index:6;background:linear-gradient(to right,rgba(255,255,255,0),var(--c-white) 62%);border-right:1px solid var(--c-rule_strong);opacity:0;transition:opacity .15s}
 .edge.on{opacity:1}
+/* A reader must be able to tell that columns continue past the edge (design audit, 9 Nov 2026: 580px of columns sat outside a 1240px frame on a 1400px desktop). The fade is the cue; this is its label. */
+.edge-n{position:fixed;bottom:8px;right:10px;z-index:7;pointer-events:none;font-size:var(--fs-12);color:var(--c-muted);background:var(--c-white);padding:2px 6px;border:1px solid var(--c-rule);border-radius:4px;opacity:0;transition:opacity .15s}.edge-n.on{opacity:1}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 tr[data-stock]{cursor:pointer}
 table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
 thead th{position:sticky;top:0;z-index:3;background:var(--c-subtle);border-bottom:1px solid var(--c-rule);height:42px;padding:0 10px;
   font-size: var(--fs-12);font-weight:600;color:var(--c-muted);text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
 thead th.t-left{text-align:left}
-thead th{text-transform:uppercase;letter-spacing:.04em;font-size: var(--fs-12)}
+/* Sentence case, as every table on the site outside this frame
+   (design audit, 9 Nov 2026): the grid shouted where the rest spoke. */
+thead th{text-transform:none;letter-spacing:0;font-size: var(--fs-12)}
 thead tr.grp-row th{font-size: var(--fs-12)}
 td.n.pos,td.n.neg{font-weight:600}
-thead tr.grp-row th{top:0;height:28px;font-size: var(--fs-12);font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
+thead tr.grp-row th{top:0;height:28px;font-size: var(--fs-12);font-weight:600;letter-spacing:0em;text-transform:uppercase;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
 thead tr.grp-row + tr.hdr th{top:28px}
 .tag{display:inline-block;font-size: var(--fs-12);font-weight:600;padding:0;border-radius:0;background:transparent;color:var(--c-text_2);border:0}
 td.c-tick{text-align:center}
@@ -451,9 +455,11 @@ tbody tr.hl td{background:var(--c-subtle)}
 _JS = """
 // More columns to the right: a fade on the right edge while there are
 // (audit F34: "VOL..." and "TECHNIC..." were cut with no cue).
-(function(){const w=document.querySelector('.wrap'),e=document.querySelector('.edge');
+(function(){const w=document.querySelector('.wrap'),e=document.querySelector('.edge'),
+    n=document.querySelector('.edge-n');
   if(!w||!e)return;
-  function upd(){e.classList.toggle('on',w.scrollLeft+w.clientWidth<w.scrollWidth-2);}
+  function upd(){const more=w.scrollLeft+w.clientWidth<w.scrollWidth-2;
+    e.classList.toggle('on',more);if(n)n.classList.toggle('on',more&&w.scrollLeft<4);}
   w.addEventListener('scroll',upd,{passive:true});window.addEventListener('resize',upd);upd();})();
 function openStock(sym){
   const search='?stock='+encodeURIComponent(sym)+SYS;
@@ -595,7 +601,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     return (
         "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Ranking table</title>"
         "<link href='app/static/fonts.css' rel='stylesheet'>"
-        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}{paged_css}</style></head><body><div class='edge' aria-hidden='true'></div><div class='wrap{wide_cls}'><table{by_rank}>"
+        f"<style>{_CSS}@media (min-width:641px){{table{{min-width:{max(1180, len(cols) * 92)}px}}}}{extra}{paged_css}</style></head><body><div class='edge' aria-hidden='true'></div><div class='edge-n' aria-hidden='true'>more columns \u2192</div><div class='wrap{wide_cls}'><table{by_rank}>"
         f"<thead>{group_row}<tr class=\"hdr\">{head}</tr></thead><tbody>{body_html}</tbody></table></div>{more}"
         f"<script>const SYS={json.dumps(system_suffix())};{_JS}</script></body></html>"
     )

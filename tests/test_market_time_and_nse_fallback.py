@@ -53,9 +53,25 @@ def test_window_clears_a_multi_day_holiday_cluster():
     A festival cluster adjacent to a weekend can consume several of those, so
     the walk must still reach a genuine trading day behind it.
     """
-    days = recent_trading_days(6, as_of=date(2026, 11, 10))
-    assert len(days) == 6
-    assert days[-1] <= date(2026, 11, 3), "must reach past the cluster"
+    # Pinned to no confirmed weekend session, so this measures the window and
+    # not the live record: a Muhurat session takes one of the six slots, as
+    # 8 Nov 2026 now does (design/data work, 9 Nov 2026).
+    from src.core import market_time as _mt
+
+    before = _mt._WEEKEND_SESSIONS
+    try:
+        _mt._WEEKEND_SESSIONS = frozenset()
+        days = recent_trading_days(6, as_of=date(2026, 11, 10))
+        assert len(days) == 6
+        assert days[-1] <= date(2026, 11, 3), "must reach past the cluster"
+
+        _mt._WEEKEND_SESSIONS = frozenset({"2026-11-08"})
+        with_session = recent_trading_days(6, as_of=date(2026, 11, 10))
+        assert date(2026, 11, 8) in with_session
+        assert len(with_session) == 6
+        assert with_session[-1] <= date(2026, 11, 4), "still reaches real sessions behind it"
+    finally:
+        _mt._WEEKEND_SESSIONS = before
 
 
 @pytest.mark.parametrize("count", [0, -1])

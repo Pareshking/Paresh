@@ -852,12 +852,15 @@ def inject_custom_css() -> None:
             background: var(--c-ink); color: var(--c-white); font-family: var(--font-mono);
             font-size: var(--fs-12); font-weight: 700; line-height: 1;
         }
+        .ac-more { display: none; margin: 6px 0 0; }
         @media (max-width: 900px) {
             .ac-row.sell, .ac-row.buy { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
             .ac-row.ac-head { display: none; }
             .ac-row .ac-why { grid-column: 1 / -1; order: 3; }
             .ac-row.buy .n:not(:nth-of-type(2)) { display: none; }
             .ac-row.sell .ac-when { display: none; }
+            /* ...and the list says which columns those were. */
+            .ac-more { display: block; }
         }
         @media (max-width: 900px) {
             .xw-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; padding: 12px 14px; }
@@ -1102,12 +1105,12 @@ def inject_custom_css() -> None:
         .gp-row.gp-hdr span:nth-child(4) { padding-left: 10px; }
         .gp-w b { display: block; font-size: var(--fs-15); font-weight: 600; }
         .gp-w i { display: block; font-style: normal; font-size: var(--fs-12); color: var(--c-muted); }
-        .gp-dd { position: relative; height: 28px; margin-right: 10px; }
+        .gp-dd { position: relative; height: 28px; margin-right: 10px; overflow: hidden; }
         .gp-dd .bar { position: absolute; right: 0; top: 4px; height: 20px; border-radius: 4px 0 0 6px; background: var(--c-down_line_4); }
         .gp-dd .lbl { position: absolute; top: 5px; font-family: var(--font-mono); font-size: var(--fs-12); font-weight: 600; color: var(--c-down); white-space: nowrap; }
         .gp-med { position: absolute; top: -2px; height: 32px; z-index: 1; border-left: 2px dashed var(--c-muted); }
         .gp-axis { height: 44px; background: var(--c-ink); }
-        .gp-ret { position: relative; height: 34px; margin: 0 20px 0 10px; }
+        .gp-ret { position: relative; height: 34px; margin: 0 20px 0 10px; overflow: hidden; }
         .gp-ret .bar { position: absolute; left: 0; top: 2px; height: 18px; border-radius: 0 6px 6px 0; background: linear-gradient(90deg, var(--c-up), var(--c-up)); }
         .gp-ret .bar.neg { background: var(--c-down_line_4); }
         .gp-ret .lbl { position: absolute; top: 2px; font-family: var(--font-mono); font-size: var(--fs-13); font-weight: 700; color: var(--c-up_dark); white-space: nowrap; }

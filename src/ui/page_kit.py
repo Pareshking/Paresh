@@ -53,6 +53,29 @@ def page_head(title: str, sub: str, *, actions: bool = False):
                            key=f"pg_actions_{_slug(title)}")
 
 
+def page_nav(links, *, label: str = "On this page") -> None:
+    """The "On this page" line: one link per (anchor id, title).
+
+    One implementation (design audit, 9 Nov 2026). There were three — the
+    Dashboard's `.qp-nav`, the Guide's own `nav` and Configuration's
+    `.cfg-index` — underlined differently, numbered in one of them, and absent
+    from the two longest pages. `kit.card` already emits a stable `s-<slug>`
+    id for every card, so a page can build this from the cards it drew.
+    """
+    out = page_nav_html(links, label=label)
+    if out:
+        st.html(out)
+
+
+def page_nav_html(links, *, label: str = "On this page") -> str:
+    """The markup `page_nav` writes; empty when there is nothing to link to."""
+    items = "".join(f'<a href="#{html.escape(str(a))}">{html.escape(str(t))}</a>'
+                    for a, t in links if a and t)
+    if not items:
+        return ""
+    return f'<nav class="qp-nav" aria-label="{html.escape(label)}">{items}</nav>'
+
+
 def _name_class(value: str) -> str:
     """A tile value that is a name (an industry), not a figure, reads smaller."""
     return " ms-name" if sum(c.isalpha() for c in value) > 8 else ""
@@ -306,23 +329,23 @@ def growth_chart(
 EDITORIAL_FONT = "app/static/fonts.css"   # self-hosted with the other faces (audit F61)
 _EDITORIAL_CSS = """<style>
 @import url('""" + EDITORIAL_FONT + """');
-.scr-head h1{font-family:var(--font-serif)!important;font-weight:400!important;font-size:52px!important;
+.scr-head h1{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-52)!important;
   line-height:1.06!important;letter-spacing:-0.6px!important;max-width:16em}
 .scr-head p{font-size: var(--fs-17)!important;line-height:1.55!important;max-width:42em;color:var(--c-text_2)!important}
 .scr-kicker{font-size: var(--fs-13);color:var(--c-muted);margin:0 0 8px}
-body .qp h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:40px!important;
+body .qp h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-36)!important;
   line-height:1.1!important;letter-spacing:-0.4px!important;margin-bottom:6px!important}
-body .qp-v{font-family:var(--font-serif);font-weight:400;font-size:36px;letter-spacing:-0.3px}
+body .qp-v{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-36);letter-spacing:-0.3px}
 body .qp-s{font-size: var(--fs-17);max-width:38em}
 body .qp h3{font-size: var(--fs-15)!important}
 body .qp li{font-size: var(--fs-15)}
-body .qp td.big{font-family:var(--font-serif);font-size:22px;font-weight:400;line-height:1.1}
+body .qp td.big{font-family:var(--font-serif);font-size:var(--fs-24);font-weight:400;line-height:1.1}
 body .qp td.big span.sub{font-family:var(--font-ui);font-size: var(--fs-12);color:var(--c-muted);line-height:1.45;display:inline-block;margin-top:2px}
-body .mq h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important;line-height:1.15!important}
-body .mq-v{font-family:var(--font-serif);font-weight:400;font-size:32px;letter-spacing:-0.3px}
+body .mq h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;line-height:1.15!important}
+body .mq-v{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-30);letter-spacing:-0.3px}
 body .mq-s{font-size: var(--fs-15)}
-.pg-card-h h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important}
-.br-charts-h{font-family:var(--font-serif)!important;font-weight:400!important;font-size:32px!important}
+.pg-card-h h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important}
+.br-charts-h{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important}
 .rng{position:relative;width:170px;height:14px;display:inline-block;vertical-align:middle}
 .rng i.t{position:absolute;left:0;right:0;top:6px;height:2px;background:var(--c-rule)}
 .rng i.m{position:absolute;top:4px;height:6px;border-radius:3px;background:var(--c-down_tint)}
@@ -330,22 +353,22 @@ body .mq-s{font-size: var(--fs-15)}
 .rng i.d.up{background:var(--c-up)}.rng i.d.down{background:var(--c-down)}
 /* Headline figures and the other titles, site-wide */
 body .mkt-strip.pg-strip .ms-v, body [class*="st-key-mrow_"] [data-testid="stMetricValue"]{
-  font-family:var(--font-serif)!important;font-weight:400!important;font-size:30px!important;letter-spacing:-0.3px!important}
-body .mkt-strip.pg-strip .ms-v.ms-name{font-size:22px!important}
-body h1.sp-name{font-family:var(--font-serif)!important;font-weight:400!important;font-size:44px!important;letter-spacing:-0.5px!important}
-body .sp-price{font-family:var(--font-serif);font-weight:400;font-size:38px}
-body .sp-rank-big span{font-family:var(--font-serif);font-weight:400;font-size:56px}
-body .gd h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:28px!important;border-top-color:var(--c-ink)}
-body .cfg-intro h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important}
-body .cr-year-head h3{font-family:var(--font-serif);font-weight:400;font-size:22px}
+  font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important;letter-spacing:-0.3px!important}
+body .mkt-strip.pg-strip .ms-v.ms-name{font-size:var(--fs-24)!important}
+body h1.sp-name{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-52)!important;letter-spacing:-0.5px!important}
+body .sp-price{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-44)}
+body .sp-rank-big span{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-44)}
+body .gd h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;border-top-color:var(--c-ink)}
+body .cfg-intro h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important}
+body .cr-year-head h3{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-24)}
 body .gd p,body .gd li,body .gd dd{font-size: var(--fs-15)!important}
 /* The stock page's own headings, brought onto the site's scale (design
    audit, 8 Nov 2026): they were the only sans-serif section headings in
    the app, 17px beside a serif 24px heading on the same page. */
-body .sp-card h2, body .sp-sec h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:24px!important;line-height:1.15!important}
-@media (max-width:900px){.scr-head h1{font-size:36px!important}.qp h2{font-size:30px!important}.rng{width:110px}
+body .sp-card h2, body .sp-sec h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;line-height:1.15!important}
+@media (max-width:900px){.scr-head h1{font-size:var(--fs-36)!important}.qp h2{font-size:var(--fs-30)!important}.rng{width:110px}
   /* and the stock headline shrinks with every other page's */
-  body h1.sp-name{font-size:36px!important}body .sp-card h2,body .sp-sec h2{font-size:20px!important}}
+  body h1.sp-name{font-size:var(--fs-36)!important}body .sp-card h2,body .sp-sec h2{font-size:var(--fs-24)!important}}
 </style>"""
 
 
