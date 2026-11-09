@@ -379,10 +379,12 @@ table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px}
 thead th{position:sticky;top:0;z-index:3;background:var(--c-subtle);border-bottom:1px solid var(--c-rule);height:42px;padding:0 10px;
   font-size: var(--fs-12);font-weight:600;color:var(--c-muted);text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
 thead th.t-left{text-align:left}
-thead th{text-transform:uppercase;letter-spacing:.04em;font-size: var(--fs-12)}
+/* Sentence case, as every table on the site outside this frame
+   (design audit, 9 Nov 2026): the grid shouted where the rest spoke. */
+thead th{text-transform:none;letter-spacing:0;font-size: var(--fs-12)}
 thead tr.grp-row th{font-size: var(--fs-12)}
 td.n.pos,td.n.neg{font-weight:600}
-thead tr.grp-row th{top:0;height:28px;font-size: var(--fs-12);font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
+thead tr.grp-row th{top:0;height:28px;font-size: var(--fs-12);font-weight:600;letter-spacing:0em;text-transform:uppercase;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
 thead tr.grp-row + tr.hdr th{top:28px}
 .tag{display:inline-block;font-size: var(--fs-12);font-weight:600;padding:0;border-radius:0;background:transparent;color:var(--c-text_2);border:0}
 td.c-tick{text-align:center}

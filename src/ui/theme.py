@@ -852,12 +852,15 @@ def inject_custom_css() -> None:
             background: var(--c-ink); color: var(--c-white); font-family: var(--font-mono);
             font-size: var(--fs-12); font-weight: 700; line-height: 1;
         }
+        .ac-more { display: none; margin: 6px 0 0; }
         @media (max-width: 900px) {
             .ac-row.sell, .ac-row.buy { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
             .ac-row.ac-head { display: none; }
             .ac-row .ac-why { grid-column: 1 / -1; order: 3; }
             .ac-row.buy .n:not(:nth-of-type(2)) { display: none; }
             .ac-row.sell .ac-when { display: none; }
+            /* ...and the list says which columns those were. */
+            .ac-more { display: block; }
         }
         @media (max-width: 900px) {
             .xw-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; padding: 12px 14px; }

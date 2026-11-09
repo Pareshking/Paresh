@@ -1,11 +1,12 @@
 # Changelog
 
-## 2026-11-09 — The display sizes join the scale, and three long pages get a jump list
+## 2026-11-09 — The display sizes join the scale, and the tables agree
 
 - Every heading and hero figure now comes from the theme: the page headline is one size on every page (the stock name was 44px against 52 elsewhere), section headings one size, and a new step covers the one big figure a page is about, a price or a rank. The stylesheet's own superseded copies are gone, so there is one definition per heading rather than four.
 - "On this page" is one component instead of three hand-rolled copies, and Portfolio and Sectors have it: both run over four screens with no way to jump.
 - The Screener grid says "more columns →" while any are off the right edge, instead of only fading.
-- On a phone, the stock page's return and drawdown figures stay inside their cells; a long bar used to push the number out of sight.
+- On a phone, the stock page's return and drawdown figures stay inside their cells; a long bar used to push the number out of sight. Actions now says which columns a phone leaves out instead of dropping them silently.
+- Every table's column headers read the same way: sentence case, one weight. The Screener's grid was in capitals and the calendar's headers a lighter weight than everywhere else.
 
 ## 2026-11-09 — Muhurat trading counts as a trading day
 
