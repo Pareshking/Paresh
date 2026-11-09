@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-09 — Muhurat trading counts as a trading day
+
+- NSE held Muhurat trading on Sunday 8 November. The site's calendar skipped every weekend day outright, so the 8 Nov prices — the freshest it had, for all 752 stocks — could not be placed and the footer reported them as stale. A weekend day NSE has confirmed is now a trading day, and the collectors offer the exchange weekend dates so a session like this can be confirmed at all: the walk that would have recorded it was the same walk that skipped it. Market caps had stopped at 6 Nov for the same reason.
+
 ## 2026-11-09 — One theme file for the whole site
 
 - `src/ui/tokens.py` now holds the whole look: colours, the eight type sizes, the spacing ladder, corners, shadows and the three font families. Change a value there and every page changes, framed tables and charts included. Documented in `docs/THEME.md`.
