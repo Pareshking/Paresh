@@ -54,6 +54,7 @@ class BookRisk:
     exit_days: pd.Series                    # symbol -> days to exit, slowest first
     gaps: list[str] = field(default_factory=list)
     sessions: int = 0
+    cash: float = 0.0                       # share of the book not in stocks
 
 
 def tier_of(symbols, index_dir: Path = INDEX_DIR) -> dict[str, str]:
@@ -80,10 +81,26 @@ def _drawdown(curve: pd.Series) -> tuple[float, float]:
 def book_risk(weights: pd.Series, prices: pd.DataFrame, bench: pd.Series | None,
               equity: pd.Series | None = None, volume: pd.DataFrame | None = None,
               capital: float = 1e7, index_dir: Path = INDEX_DIR) -> BookRisk:
-    """`weights`: symbol -> weight (fractions or percent; normalised here)."""
+    """`weights`: symbol -> weight, as fractions or percent of the book.
+
+    Cash is kept (audit C-L2, 8 Nov 2026). The weights used to be divided by
+    their own sum, so a book 75% invested was measured as if fully invested:
+    its beta and volatility came out a third too high, and its size tiers
+    summed to the whole book. Only the scale is normalised here -- percent to
+    fractions -- and whatever is left over is cash, which earns nothing and so
+    damps both. It mattered from the six-monthly reset (S111): between resets
+    a buy is paid from cash, and short of cash the book simply holds it.
+    """
     w = pd.to_numeric(weights, errors="coerce").dropna()
     w = w[w > 0]
-    w = w / w.sum()
+    total = float(w.sum())
+    if total > 1.5:                 # percent, not fractions
+        w = w / 100.0
+        total = float(w.sum())
+    cash = max(0.0, 1.0 - total)
+    if total > 1.0:                 # rounding, or a caller that over-allocates
+        w = w / total
+        cash = 0.0
     gaps: list[str] = []
     px = prices.reindex(columns=w.index)
     rets = px.pct_change(fill_method=None).iloc[-WINDOW:]
@@ -98,7 +115,9 @@ def book_risk(weights: pd.Series, prices: pd.DataFrame, bench: pd.Series | None,
         r = rets[usable.index].copy()
         r.index = pd.to_datetime(r.index).normalize()
         # Missing days count as unchanged for that stock: a gap in one name must not drop the session.
-        port = r.fillna(0.0).mul(usable / usable.sum(), axis=1).sum(axis=1)
+        # The weights as they stand, not renormalised: cash (and any name
+        # with too little history) contributes nothing, which is the point.
+        port = r.fillna(0.0).mul(usable, axis=1).sum(axis=1)
         br = b.pct_change().reindex(port.index)
         both = pd.concat([port, br], axis=1, keys=["p", "b"]).dropna()
         # A flat or stale index has no variance: no beta rather than a division by zero.
@@ -110,6 +129,8 @@ def book_risk(weights: pd.Series, prices: pd.DataFrame, bench: pd.Series | None,
     tiers: dict[str, float] = {}
     for s, t in tiers_map.items():
         tiers[t] = tiers.get(t, 0.0) + float(w[s])
+    if cash > 0.0005:
+        tiers["Cash"] = tiers.get("Cash", 0.0) + cash
     dd = mdd = bdd = None
     if equity is not None and len(pd.Series(equity).dropna()) > 1:
         eq = pd.Series(equity).dropna()
@@ -130,4 +151,5 @@ def book_risk(weights: pd.Series, prices: pd.DataFrame, bench: pd.Series | None,
             gaps.append("no traded value: " + ", ".join(no_value))
         ok = value.drop(no_value, errors="ignore")
         exit_days = (w.reindex(ok.index) * capital / (ok * PARTICIPATION)).sort_values(ascending=False)
-    return BookRisk(beta, vol, bench_vol, tiers, dd, mdd, bdd, exit_days, gaps, int(rets.shape[0]))
+    return BookRisk(beta, vol, bench_vol, tiers, dd, mdd, bdd, exit_days, gaps,
+                    int(rets.shape[0]), cash)

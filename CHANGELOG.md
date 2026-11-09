@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-09 — Cash counts in the book's risk, and the qualified share is current
+
+- "How risky is the book?" kept cash out of its weights, so a book 60% invested read as if every rupee were in stocks: beta and volatility a third too high and the size tiers summing to the whole book. Cash now damps both by its share and appears as its own row. It matters from the six-monthly reset, where a buy short of cash simply buys fewer shares.
+- "How many stocks qualify?" read the September month-end on a 9 November page, because the monthly file can only carry a month once that month's return is in. The share is a count at the month-end, not a return, so the job now writes it as soon as the month closes and the card uses it.
+- No research script runs a shell command built from its arguments.
+
 ## 2026-11-09 — The display sizes join the scale, and the tables agree
 
 - Every heading and hero figure now comes from the theme: the page headline is one size on every page (the stock name was 44px against 52 elsewhere), section headings one size, and a new step covers the one big figure a page is about, a price or a rank. The stylesheet's own superseded copies are gone, so there is one definition per heading rather than four.

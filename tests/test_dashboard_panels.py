@@ -143,3 +143,33 @@ def test_the_card_splits_the_top_fifth_into_two_deciles_when_the_file_has_them()
 def test_without_the_decile_columns_the_card_keeps_momentum_and_breadth():
     out = dp.long_only_html(_long())
     assert "(momentum)" in out and "(breadth)" in out and "Top 50" not in out
+
+
+def test_the_qualified_card_prefers_a_newer_month_end_when_the_job_wrote_one(tmp_path, monkeypatch):
+    """The spreads can only carry a month once its return is in, so on a
+    9 Nov page the card read September (audit U-M8). The monthly job now
+    writes the latest month-end's share beside them; the card uses it and
+    counts it in the percentile."""
+    import json
+
+    d = _spreads(40)
+    d["qualified"] = np.linspace(0.20, 0.44, len(d))   # a spread of readings to rank against
+    # Real formation month-ends: the card dates its reading from them.
+    d["date"] = pd.PeriodIndex(d["month"], freq="M").to_timestamp(how="start") - pd.offsets.MonthEnd(1)
+    without = dp.qualified_html(d)
+    last_month = f"{pd.Timestamp(d['date'].iloc[-1]):%B %Y}"
+    assert f"At the end of {last_month}" in without
+
+    newer = tmp_path / "latest.json"
+    after = pd.Timestamp(d["date"].iloc[-1]) + pd.offsets.MonthEnd(1)
+    newer.write_text(json.dumps({"date": str(after.date()), "qualified": 0.44, "n": 500}))
+    monkeypatch.setattr(dp, "QUALIFIED_LATEST", newer)
+    out = dp.qualified_html(d)
+    assert f"At the end of {after:%B %Y}" in out and "44%" in out
+
+    # A reading older than the spreads is ignored rather than rewinding the card.
+    stale = tmp_path / "stale.json"
+    stale.write_text(json.dumps({"date": str((pd.Timestamp(d["date"].iloc[0])).date()),
+                                 "qualified": 0.9, "n": 500}))
+    monkeypatch.setattr(dp, "QUALIFIED_LATEST", stale)
+    assert dp.qualified_html(d) == without

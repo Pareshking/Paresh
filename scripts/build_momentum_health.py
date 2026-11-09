@@ -16,6 +16,7 @@ independent check in docs/MOMENTUM_HEALTH.md).
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -25,7 +26,27 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 OUT = ROOT / "data" / "momentum_health.csv"
+# The newest month-end's qualified share, which needs no next month
+# (audit U-M8): the spreads can only carry a month once its return
+# is in, so the card read September on a 9 Nov page.
+LATEST = ROOT / "data" / "momentum_health_latest.json"
 INDEX_KEY = "nifty_500"
+
+
+def build_latest() -> dict | None:
+    """The newest month-end's qualified share, for the card's headline."""
+    from src.engine import index_universe as iu
+    from src.engine.momentum_health import latest_qualified
+    from src.loaders import nse_long
+
+    loaded = nse_long.load(with_value=False)
+    if loaded is None:
+        return None
+    close = loaded[0]
+    membership = iu.index_history(INDEX_KEY)
+    cols = sorted(iu.ever_members(membership) & set(close.columns))
+    return latest_qualified(close[cols].astype("float64"), membership,
+                            first_month=iu.first_month(membership))
 
 
 def build() -> pd.DataFrame:
@@ -89,6 +110,14 @@ def main() -> int:
     out["date"] = pd.to_datetime(out["date"]).dt.strftime("%Y-%m-%d")
     out.round({"top": 4, "bottom": 4, "spread": 4, "qualified": 4, "portfolio": 4, "nifty500": 4, "ew": 4}).to_csv(OUT, index=False)
     print(f"{len(out)} months {out['month'].iloc[0]}..{out['month'].iloc[-1]} -> {OUT}")
+    # Written separately, so a failure here cannot cost the spreads.
+    try:
+        latest = build_latest()
+        if latest:
+            LATEST.write_text(json.dumps(latest, indent=1) + "\n", encoding="utf-8")
+            print(f"latest qualified {latest['qualified']:.1%} at {latest['date']} -> {LATEST}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"::warning::latest qualified share not written: {type(exc).__name__}: {exc}")
     return 0
 
 
