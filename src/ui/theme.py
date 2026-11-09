@@ -1900,6 +1900,10 @@ def inject_custom_css() -> None:
 
         /* "On this page": section links under a page's headline (Breadth, and
            the Dashboard from 8 Nov 2026). */
+        /* A wide table scrolls inside its own box, so the page never drags
+           sideways on a phone (design audit, 8 Nov 2026: Breadth's by-size
+           table was 456 px in a 390 px column). Shared, not per page. */
+        .qp-scroll { overflow-x: auto; max-width: 100%; }
         .qp-nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--fs-13); margin: 0 0 14px; }
         .qp-nav a { color: var(--c-ink) !important; text-decoration: underline;
             text-decoration-color: var(--c-rule_strong); text-underline-offset: 3px; }
