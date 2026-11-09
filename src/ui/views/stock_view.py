@@ -510,13 +510,16 @@ def _render_gain_vs_pain(row: pd.Series, rank_df: pd.DataFrame) -> None:
         rows_html.append(
             '<div class="gp-row">'
             f'<span class="gp-w"><b>{m}M</b><i>{_LONG[m]}</i></span>'
+            # Each label sits past the end of its bar, clamped so it cannot
+            # run outside the cell: on a phone the cell is 280px and a long
+            # bar pushed the figure out of sight (design audit, 9 Nov 2026).
             f'<div class="gp-dd">{med_mark}<div class="bar" style="width:{dd_w:.1f}%"></div>'
-            f'<span class="lbl" style="right:calc({dd_w:.1f}% + 6px)">{dd_txt}</span></div>'
+            f'<span class="lbl" style="right:min(calc({dd_w:.1f}% + 6px), calc(100% - 52px))">{dd_txt}</span></div>'
             '<div class="gp-axis"></div>'
             f'<div class="gp-ret"><div class="bar {neg}" style="width:{r_w:.1f}%"></div>'
-            f'<span class="lbl {neg}" style="left:calc({r_w:.1f}% + 8px)">{_signed_pct(ret)}</span>'
+            f'<span class="lbl {neg}" style="left:min(calc({r_w:.1f}% + 8px), calc(100% - 56px))">{_signed_pct(ret)}</span>'
             f'<div class="nb" style="width:{n_w:.2f}%"></div>'
-            f'<span class="nl" style="left:calc({n_w:.2f}% + 6px)">{nb_txt}</span></div>'
+            f'<span class="nl" style="left:min(calc({n_w:.2f}% + 6px), calc(100% - 96px))">{nb_txt}</span></div>'
             f'<span class="gp-sh"><span class="dots">{dots}</span><b>{_ratio(sh)}</b></span>'
             f'<span class="gp-top"><em class="{good}">{top}</em></span>'
             '</div>'

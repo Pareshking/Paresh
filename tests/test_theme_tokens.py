@@ -132,7 +132,7 @@ def test_the_theme_file_is_the_only_place_sizes_are_set():
 
     ui = Path(__file__).resolve().parents[1] / "src" / "ui"
     budget = {  # file -> the most literal font sizes it may still carry
-        "theme.py": 24, "page_kit.py": 21, "components.py": 0, "screener_table.py": 0,
+        "theme.py": 24, "page_kit.py": 0, "components.py": 0, "screener_table.py": 0,
     }
     for name, allowed in budget.items():
         found = re.findall(r"font-size:\s*[\d.]+px", (ui / name).read_text())

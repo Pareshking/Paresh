@@ -1102,12 +1102,12 @@ def inject_custom_css() -> None:
         .gp-row.gp-hdr span:nth-child(4) { padding-left: 10px; }
         .gp-w b { display: block; font-size: var(--fs-15); font-weight: 600; }
         .gp-w i { display: block; font-style: normal; font-size: var(--fs-12); color: var(--c-muted); }
-        .gp-dd { position: relative; height: 28px; margin-right: 10px; }
+        .gp-dd { position: relative; height: 28px; margin-right: 10px; overflow: hidden; }
         .gp-dd .bar { position: absolute; right: 0; top: 4px; height: 20px; border-radius: 4px 0 0 6px; background: var(--c-down_line_4); }
         .gp-dd .lbl { position: absolute; top: 5px; font-family: var(--font-mono); font-size: var(--fs-12); font-weight: 600; color: var(--c-down); white-space: nowrap; }
         .gp-med { position: absolute; top: -2px; height: 32px; z-index: 1; border-left: 2px dashed var(--c-muted); }
         .gp-axis { height: 44px; background: var(--c-ink); }
-        .gp-ret { position: relative; height: 34px; margin: 0 20px 0 10px; }
+        .gp-ret { position: relative; height: 34px; margin: 0 20px 0 10px; overflow: hidden; }
         .gp-ret .bar { position: absolute; left: 0; top: 2px; height: 18px; border-radius: 0 6px 6px 0; background: linear-gradient(90deg, var(--c-up), var(--c-up)); }
         .gp-ret .bar.neg { background: var(--c-down_line_4); }
         .gp-ret .lbl { position: absolute; top: 2px; font-family: var(--font-mono); font-size: var(--fs-13); font-weight: 700; color: var(--c-up_dark); white-space: nowrap; }

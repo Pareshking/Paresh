@@ -59,7 +59,8 @@ TYPE: dict[str, str] = {
     "17": "17px",      # a page's lede, one sentence
     "24": "24px",      # card title, section heading (serif)
     "30": "30px",      # the one figure a card is about (serif)
-    "36": "36px",      # page headline on a phone (serif)
+    "36": "36px",      # section heading, page headline on a phone (serif)
+    "44": "44px",      # the page's single biggest figure: a price, a rank (serif)
     "52": "52px",      # page headline (serif)
 }
 

@@ -664,6 +664,18 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     # among the qualified (audit, 8 Nov 2026: ACUTAAS 47 here, #45 there).
     current_view = current_view.rename(columns={"P&L %": "Return since Entry %",
                                                 "Current Rank": "Overall Rank Now"})
+    # "On this page" (design audit, 9 Nov 2026): the page is over five
+    # screens tall at 1400px with eight sections and had no jump list,
+    # though kit.card already gives every card a stable id.
+    kit.page_nav([
+        ("s-portfolio_current", "Current book"),
+        ("s-portfolio_exposure", "Industry exposure"),
+        ("s-portfolio_equity", "Equity & drawdown"),
+        ("s-portfolio_monthly", "Calendar returns"),
+        ("s-portfolio_trades", "Trades"),
+        ("s-portfolio_rebalances", "Rebalances"),
+    ])
+
     with kit.card(
         "Current book",
         "portfolio_current",

@@ -72,6 +72,13 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
     # tabs (owner, 13 Oct): one row for the EMA, one for the period.
     span = int(st.session_state.get("sec_lead_span") or 200)
     months = LEAD_PERIODS.get(st.session_state.get("sec_lead_period") or "1M", 1)
+    # "On this page", as the other long pages have (design audit, 9 Nov 2026).
+    kit.page_nav([
+        ("s-sec_lead", "Sector leadership map"),
+        ("s-sec_board", "Industry leaderboard"),
+        ("s-sec_stocks", "Stocks in an industry"),
+    ])
+
     with kit.card("Sector leadership map", "sec_lead", f"hollow dot {_ago(months)} · filled dot today"):
         kit.caption(f"Right: beat the Nifty 500 over the {'month' if months == 1 else f'{months} months'}. "
                     "Up: more of its stocks above the EMA. The leader is blue, the laggard rust, the rest grey; tap one to pick it out.")
