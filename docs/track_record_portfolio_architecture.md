@@ -114,10 +114,10 @@ The Portfolio layer may enrich this with:
 
 - Capital
 - Shares
-- Invested Value
+- Value at Rebalance (the mark where today's shares were set)
 - Current Value
-- Unrealised P&L
-- Unrealised P&L %
+- P&L since Rebalance
+- Return since Entry % (the price's rise per share, carrying no rupee basis)
 - Weight %
 - Target Weight %
 - Weight Drift %
@@ -286,13 +286,14 @@ Portfolio should become a real model-portfolio tracker rather than a second stoc
 Core summary:
 
 - Portfolio value
-- Invested capital
+- Starting capital (never labelled "invested": the account has compounded since,
+  and the record keeps no rupee cost for a holding's life — S111, 10 Nov 2026)
 - Cash / unallocated capital
 - Exposure
 - Holdings
 - Day P&L
 - MTD P&L
-- Total unrealised P&L
+- P&L since the last rebalance (not since first entry: see §3)
 - Turnover / last rebalance where available
 
 Current holdings table:
@@ -303,10 +304,10 @@ Current holdings table:
 - Entry Price
 - Current Price
 - Shares
-- Invested Value
+- Value at Rebalance
 - Current Value
-- P&L ₹
-- P&L %
+- P&L since Rebalance ₹
+- Return since Entry %
 - Weight %
 - Target Weight %
 - Weight Drift %

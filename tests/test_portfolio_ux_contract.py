@@ -20,7 +20,8 @@ def test_portfolio_primary_columns_are_first_and_single_table_is_preserved():
     expected = [
         '"Symbol"',
         '"Current Price"',
-        '"P&L %"',
+        # The return column carries no rupee basis and says so (S111).
+        '"Return since Entry %"',
         '"P&L since Rebalance (₹)"',
         '"Weight %"',
         '"Target Weight %"',
@@ -32,6 +33,9 @@ def test_portfolio_primary_columns_are_first_and_single_table_is_preserved():
     # price and P&L off screen); Status was always "Held"; 3M/6M/12M returns
     # belong to the screener.
     for dropped in ('"Company"', '"Status"', '"3M Return"', '"6M Return"', '"12M Return"'):
+        assert dropped not in block
+    # S111: no column is "shares today x the first entry price", nor a P&L from it.
+    for dropped in ('"Invested Value (₹)"', '"P&L (₹)"', '"P&L %"'):
         assert dropped not in block
     positions = [block.index(item) for item in expected]
     assert positions == sorted(positions)

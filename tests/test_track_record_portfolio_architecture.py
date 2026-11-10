@@ -168,19 +168,60 @@ def test_portfolio_tracker_sizes_shares_from_original_entry_weight_after_rebalan
     assert aaa["Entry Weight %"] == pytest.approx(10.0)
     assert aaa["Target Weight %"] == pytest.approx(5.0)
     assert aaa["Shares"] == 1000
-    assert aaa["Invested Value (₹)"] == pytest.approx(100_000.0)
+    # Without a fill price the shares were sized at entry, so the mark at the
+    # latest rebalance is the entry value.
+    assert aaa["Value at Rebalance (₹)"] == pytest.approx(100_000.0)
     assert aaa["Current Value (₹)"] == pytest.approx(120_000.0)
-    assert aaa["P&L (₹)"] == pytest.approx(20_000.0)
+    assert aaa["P&L since Rebalance (₹)"] == pytest.approx(20_000.0)
 
 
 def test_portfolio_tracker_current_weight_and_pnl_are_accounting_fields():
     out = build_portfolio_tracker(_book(), _ranking(), 1_000_000)
 
-    assert out["P&L (₹)"].sum() == pytest.approx(
-        out["Current Value (₹)"].sum() - out["Invested Value (₹)"].sum()
+    assert out["P&L since Rebalance (₹)"].sum() == pytest.approx(
+        out["Current Value (₹)"].sum() - out["Value at Rebalance (₹)"].sum()
     )
     assert out["Weight %"].sum() <= 100.0 + 1e-9
     assert set(out["Status"]) == {"Held"}
+
+
+def test_portfolio_tracker_carries_no_first_entry_cost_basis():
+    """S111: "shares today x the first entry price" is not a cost basis.
+
+    Under the reset the record ran until 30 Nov 2026, a kept name is re-struck
+    to 5% at every rebalance, so today's shares are several lots at several
+    prices and the record stores none of them: the ledger holds monthly returns,
+    the replay a weight and a price per rebalance. The frame must therefore not
+    offer an "invested" rupee figure or a P&L measured from one -- not on the
+    page, and not in the Holdings CSV, which exports every column.
+    """
+    book = _book()
+    # AAA has trebled since entry and was trimmed back at a later fill, which is
+    # exactly the case the owner caught (CUPID, 8 Nov 2026).
+    book.loc[book["Symbol"] == "AAA", "Price Now"] = 300.0
+    out = build_portfolio_tracker(book, _ranking(), 1_000_000)
+
+    assert "Invested Value (₹)" not in out.columns
+    assert "P&L (₹)" not in out.columns
+    assert "P&L %" not in out.columns
+
+    aaa = out.set_index("Symbol").loc["AAA"]
+    # The one return offered is the price's rise per share, which needs no basis.
+    assert aaa["Return since Entry %"] == pytest.approx(200.0)
+    # And the rupee figures run from the mark where today's shares were set.
+    assert aaa["P&L since Rebalance (₹)"] == pytest.approx(
+        aaa["Current Value (₹)"] - aaa["Value at Rebalance (₹)"]
+    )
+
+
+def test_portfolio_basis_note_says_the_rupees_are_a_mark_not_a_cost():
+    from src.ui.views.portfolio_view import basis_note
+
+    note = basis_note(pd.Timestamp("2026-11-02"))
+    assert "2 Nov 2026" in note
+    assert "a mark, not a cost" in note
+    # It must not be silently dropped when the fill date is unknown.
+    assert "the latest rebalance" in basis_note(None)
 
 
 def test_portfolio_history_scales_canonical_equity_and_preserves_trades():
