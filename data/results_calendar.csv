@@ -1,16 +1,4 @@
 symbol,date,purpose,results,detail,source
-AGASTYAEN,2026-09-09,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
-GANESHCP,2026-09-09,Other business matters,0,"To consider and approve the proposal for strategic expansion of the Company s business operations and augmentation of its infrastructure, an",held
-HDBFS,2026-09-09,Board meeting,0,HDB FINANCIAL SERVICES LTD has informed the Exchange about Board Meeting to be held on 09-Sep-2026 to consider Fund raising.,held
-LIBAS,2026-09-09,Fund Raising/Other business matters,0,1. the proposal for fund raising by way of issue of equity shares through Rights Issue;2. Any other item with the permission of Chairman.,held
-NATCOPHARM,2026-09-09,Fund Raising,0,To consider Fund Raising,held
-SUMEETINDS,2026-09-09,Other business matters,0,To consider other business matters,held
-AJMERA,2026-09-10,Fund Raising,0,Board Meeting Intimation for consideration and approval of the fund raising proposal by way of Issuance of Non-Convertible Debentures.,held
-GAJA,2026-09-10,Financial Results,1,"To consider and approve the financial results for the period ended Jun 30, 2026",held
-GUJTHEM,2026-09-10,Fund Raising,0,To consider Fund Raising,held
-LANDSMILL,2026-09-10,Other business matters,0,To consider other business matters,held
-LEEL,2026-09-10,Other business matters,0,To consider other business matters,held
-SHANKESH,2026-09-10,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended Jun 30, 2026 and other business matters",held
 CMICABLES,2026-09-11,Financial Results,1,"To consider and approve the financial results for the period ended Jun 30, 2025",held
 HORIZONIND,2026-09-11,Financial Results,1,"To consider and approve the financial results for the period ended Jun 30, 2026",held
 LALITHAA,2026-09-11,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended Jun 30, 2026 and other business matters",held
@@ -1974,31 +1962,37 @@ SURYAROSNI,2026-11-07,Financial Results,1,"To consider and approve the unaudited
 TATACHEM,2026-11-07,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 TATASTEEL,2026-11-07,Financial Results/Other business matters,1,"TATASTEEL : 07-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on October 27, 2026 has been re-scheduled. F",held
 VINNY,2026-11-07,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
-ARSSINFRA,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-AVANTIFEED,2026-11-10,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
-BAJFINANCE,2026-11-10,Other business matters,0,We wish to inform you that a meeting of the PI 2026- Special Committee of the Board of Directors of the Company is scheduled to be held on T,calendar
-COCHINSHIP,2026-11-10,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and dividend",calendar
-DREDGECORP,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-HIRECT,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-IIFL,2026-11-10,Fund Raising,0,"IIFL Finance Limited has informed the Exchanges regarding Board Meeting scheduled to be held on November 10, 2026 to consider and approve fu",calendar
-KALYANKJIL,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-KUNDANMM,2026-11-10,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
-LEEL,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-LFIC,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-MATRIMONY,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-MIDWESTLTD,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-MMTC,2026-11-10,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
-MRF,2026-11-10,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and interim dividend, if any.",calendar
-PILANIINVS,2026-11-10,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
-QUADFUTURE,2026-11-10,Financial Results,1,"To inter-alia consider and approve the Unaudited financial results for the period ended September 30, 2026",calendar
-RENTOMOJO,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-ROSSELLIND,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-SIMPLEXINF,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-SURAKSHA,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-TITAGARH,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-UNITEDTEA,2026-11-10,Financial Results,1,"To consider and approve the unaudited financial results for the quarter and half year ended September 30, 2026",calendar
-VHL,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-VIRINCHI,2026-11-10,Financial Results/Fund Raising,1,"To consider and approve the financial results for the period ended September 30, 2026 and Fund Raising",calendar
+MEDICO,2026-11-09,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+OLECTRA,2026-11-09,Financial Results,1,"To consider and approve the unaudited financial results for the period ended September 30, 2026",held
+PARKHOSPS,2026-11-09,Financial Results,1,To consider and approve the standalone and consolidated unaudited financial results of the Company for the quarter and half year ended on Se,held
+RMDRIP,2026-11-09,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+SVPGLOB,2026-11-09,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+WHIRLPOOL,2026-11-09,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+ARSSINFRA,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+AVANTIFEED,2026-11-10,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
+BAJFINANCE,2026-11-10,Other business matters,0,We wish to inform you that a meeting of the PI 2026- Special Committee of the Board of Directors of the Company is scheduled to be held on T,held
+COCHINSHIP,2026-11-10,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and dividend",held
+DREDGECORP,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+HIRECT,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+IIFL,2026-11-10,Fund Raising,0,"IIFL Finance Limited has informed the Exchanges regarding Board Meeting scheduled to be held on November 10, 2026 to consider and approve fu",held
+KALYANKJIL,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+KUNDANMM,2026-11-10,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
+LEEL,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+LFIC,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+MATRIMONY,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+MIDWESTLTD,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+MMTC,2026-11-10,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
+MRF,2026-11-10,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and interim dividend, if any.",held
+PILANIINVS,2026-11-10,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
+QUADFUTURE,2026-11-10,Financial Results,1,"To inter-alia consider and approve the Unaudited financial results for the period ended September 30, 2026",held
+RENTOMOJO,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+ROSSELLIND,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+SIMPLEXINF,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+SURAKSHA,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+TITAGARH,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+UNITEDTEA,2026-11-10,Financial Results,1,"To consider and approve the unaudited financial results for the quarter and half year ended September 30, 2026",held
+VHL,2026-11-10,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+VIRINCHI,2026-11-10,Financial Results/Fund Raising,1,"To consider and approve the financial results for the period ended September 30, 2026 and Fund Raising",held
 AFSL,2026-11-11,Financial Results,1,"To consider and approve the financial results for the quarter and half year ended September 30, 2026",calendar
 AIRAN,2026-11-11,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 AMBIKCO,2026-11-11,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2042,6 +2036,7 @@ SOMATEX,2026-11-11,Financial Results,1,"To consider and approve the financial re
 SRD,2026-11-11,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 TALBROAUTO,2026-11-11,Financial Results/Dividend/Other business matters,1,"To consider and approve the Unaudited financial results for the 2nd Quarter and half year ended September 30, 2026, dividend and other busin",calendar
 TATAPOWER,2026-11-11,Financial Results/Other business matters,1,"To consider and approve the financial results for the quarter and half year ended September 30, 2026, and other business matters",calendar
+TERASOFT,2026-11-11,Financial Results/Fund Raising/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026, Fund Raising and other business matters",calendar
 THEJO,2026-11-11,Financial Results,1,"To consider the Financial Results (Standalone and Consolidated) of the Company for the quarter and half year ended September 30, 2026.",calendar
 TRITURBINE,2026-11-11,Financial Results,1,"To consider and approve the financial results for the second quarter and half year ended September 30, 2026",calendar
 TSFINV,2026-11-11,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2068,6 +2063,7 @@ ASTRAMICRO,2026-11-12,Financial Results,1,"To consider and approve the financial
 AUTOAXLES,2026-11-12,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 AVALON,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 BALAXI,2026-11-12,Financial Results/Other business matters,1,To consider and approve the Unaudited Standalone and Consolidated financial results of the Company for the second quarter and half year ende,calendar
+BANKA,2026-11-12,Financial Results,1,"To consider and approve the financial results and other inter alia business matters for the period ended September 30, 2026",calendar
 BDL,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 BLKASHYAP,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 BONDADA,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2109,6 +2105,7 @@ GAYAHWS,2026-11-12,Financial Results,1,"GAYAHWS : 12-Nov-2026 : The Company has 
 GICHSGFIN,2026-11-12,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 GLOBAL,2026-11-12,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 GOLDTECH,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+GUJRAFFIA,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 GULPOLY,2026-11-12,Financial Results/Other business matters,1,"To consider and approve the Un-audited financial results for the quarter and half year ended September 30, 2026 and other business matters",calendar
 HAL,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 HAVISHA,2026-11-12,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
@@ -2148,6 +2145,7 @@ MANAKALUCO,2026-11-12,Financial Results,1,"To consider and approve the financial
 MANAPPURAM,2026-11-12,Financial Results/Dividend/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026, dividend and other business matters",calendar
 MANINDS,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 MANORAMA,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+MARKOLINES,2026-11-12,Financial Results,1,"To consider and approve the standalone and consolidated financial results for the quarter and half year ended September 30, 2026",calendar
 MBECL,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 MBLINFRA,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 MOMSBELIEF,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2193,6 +2191,7 @@ RKSWAMY,2026-11-12,Financial Results,1,To consider and approve the Un-Audited Fi
 RPOWER,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 RUBFILA,2026-11-12,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 RUBYMILLS,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+RVNL,2026-11-12,Financial Results,1,Intimation of Board Meeting- Re-schedule,calendar
 SALZERELEC,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 SCPL,2026-11-12,Bonus/Other business matters,0,"To consider bonus, Stock Split and other business matters",calendar
 SHARDAMOTR,2026-11-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2237,15 +2236,19 @@ AAATECH,2026-11-13,Financial Results,1,"To consider and approve the financial re
 AARVI,2026-11-13,Financial Results,1,"AARVI : 13-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 04, 2026 has been re-scheduled. Furt",calendar
 ABB,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 ABMINTLLTD,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+ADL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+AEPL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 AGARIND,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 AHLEAST,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 AJOONI,2026-11-13,Financial Results,1,"To consider and approve the unaudited financial results for the period ended September 30, 2026",calendar
 AKG,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 ALPSINDUS,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 ANMOL,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
+ANNU,2026-11-13,Financial Results,1,"To consider and approve the un-audited financial results for the period ended September 30, 2026",calendar
 AONESTEELS,2026-11-13,Financial Results,1,"To consider and approve the unaudited financial results for the quarter and half year ended September 30, 2026",calendar
 ARIES,2026-11-13,Financial Results,1,To consider and approve the Un-Audited Financial Results (Both Standalone and Consolidated) for the Second Quarter and Half Year ended Septe,calendar
 AVG,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+AXISCADES,2026-11-13,Financial Results,1,"To consider and approve the un-audited financial results for the quarter and half year ended September 30, 2026.",calendar
 BALAJEE,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 BALAJITELE,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 BALLARPUR,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2253,6 +2256,7 @@ BBOX,2026-11-13,Financial Results,1,"To consider and approve the financial resul
 BBTC,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 BELRISE,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 BFINVEST,2026-11-13,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and Consider declaration of Interim dividend to equity",calendar
+BHAGYANGR,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026 and approval of the Postal Ballot notice and other rel",calendar
 BHARATRAS,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 BLUECHIP,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 BOHRAIND,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2279,10 +2283,12 @@ EICHERMOT,2026-11-13,Financial Results,1,"To consider and approve the financial 
 EIDPARRY,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 EKC,2026-11-13,Financial Results,1,"To consider and approve the unaudited financial results for the period ended September 30, 2026",calendar
 ELECTCAST,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+EQUIPPP,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 EROSMEDIA,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 FACT,2026-11-13,Financial Results,1,"To consider and approve the unaudited financial results for the period ended September 30, 2026",calendar
 FCL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 FILATEX,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+FUSIONCX,2026-11-13,Financial Results/Dividend/Other business matters,1,To consider and approve the Un-audited Financial Results for the quarter and half-year ended 30th September 2026. To consider and recommend ,calendar
 GANESHBE,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 GATECH,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 GATECHDVR,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2303,6 +2309,7 @@ GYFTR,2026-11-13,Financial Results,1,"To consider and approve the financial resu
 HARDWYN,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 HARRMALAYA,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 HGM,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+HILTON,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 HINDWAREAP,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 HITECHCORP,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 IFGLEXPOR,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2312,6 +2319,7 @@ INCREDIBLE,2026-11-13,Financial Results,1,"To consider and approve the financial
 INDIAGLYCO,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 INDOMIM,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters.",calendar
 INNOVACAP,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+INNOVISION,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 INOXGREEN,2026-11-13,Financial Results,1,"To consider and approve the Un-audited Financial Results for the quarter and half year ended September 30, 2026",calendar
 INOXWIND,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 INTLCONV,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
@@ -2325,6 +2333,7 @@ JINDALPHOT,2026-11-13,Financial Results,1,To consider and approve the Unaudited 
 JINDRILL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 JKIL,2026-11-13,Financial Results,1,"J. Kumar Infraprojects Ltd has informed BSE that the meeting of the Board of Directors of the Company is scheduled on 13/11/2026 ,inter alia",calendar
 JUBLPHARMA,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+JWL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 KALYANI,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 KANORICHEM,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 KAUSHALYA,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2369,6 +2378,7 @@ ORIENTBELL,2026-11-13,Financial Results,1,"To consider and approve the financial
 PALASHSECU,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 PALREDTEC,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 PARKHOSPS,2026-11-13,Financial Results,1,"PARKHOSPS : 13-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 09, 2026 has been re-scheduled. ",calendar
+PARKHOTELS,2026-11-13,Financial Results,1,Apeejay Surrendra Park Hotels Limited has informed the Exchange about Board Meeting to be held on 13-Nov-2026 to inter-alia consider and app,calendar
 PEARLPOLY,2026-11-13,Financial Results,1,"To consider and approve the Unaudited financial results for the quarter and half year ended September 30, 2026",calendar
 PENIND,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 PENINLAND,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2381,6 +2391,7 @@ RACLGEAR,2026-11-13,Financial Results,1,"To consider and approve the financial r
 RAJSREESUG,2026-11-13,Financial Results,1,To consider and approve the unaudited financial results for the quarter and half year ended 30th September 2026.,calendar
 RAMAPHO,2026-11-13,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and dividend",calendar
 RANASUG,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+REGAAL,2026-11-13,Financial Results,1,"To consider and approve the Unaudited financial results for the period ended September 30, 2026",calendar
 RELAXO,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 RELINFRA,2026-11-13,Financial Results/Fund Raising,1,"To consider and approve the unaudited Financial Results (both standalone and consolidated) for the quarter and half year ended September 30,",calendar
 RHIM,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2403,10 +2414,12 @@ SHRIRAMPPS,2026-11-13,Financial Results,1,"To consider and approve the financial
 SINTERCOM,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for quarter and half year ended September 30, 2026 and other business matters",calendar
 SMLMAH,2026-11-13,Other business matters,0,To consider other business matters,calendar
 SMLT,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
+SOLARWORLD,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 SOLEX,2026-11-13,Financial Results,1,"The Company has informed the Exchange that the Board meeting to be held on November 06, 2026 has been re-scheduled. Further, the Company has",calendar
 SPCENET,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 SPLIL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 SREEL,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
+SSRETAIL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 STARTECK,2026-11-13,Financial Results,1,"To consider and approve the unaudited financial results for the quarter and half year ended September 30, 2026",calendar
 STCINDIA,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 STEELCAS,2026-11-13,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and dividend",calendar
@@ -2421,6 +2434,7 @@ SWELECTES,2026-11-13,Financial Results/Other business matters,1,SWELECT ENERGY S
 SYNCOMF,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 TAKE,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 TEAMGTY,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
+TEXMOPIPES,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 TICL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 TIIL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 TMPV,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2428,6 +2442,7 @@ TNPL,2026-11-13,Financial Results/Other business matters,1,"To consider and appr
 TNTELE,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 TOUCHWOOD,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 TVSSCS,2026-11-13,Financial Results,1,"To consider and approve the financial results for the quarter and half year ended September 30, 2026",calendar
+UNIVPHOTO,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 USHAMART,2026-11-13,Financial Results,1,To consider and approve the unaudited financial results (standalone and consolidated) of the Company for the quarter and half year ended Sep,calendar
 VALECHAENG,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 VCL,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2443,6 +2458,7 @@ YUKEN,2026-11-13,Financial Results,1,"To consider and approve the un-audited fin
 ZAGGLE,2026-11-13,Financial Results/Other business matters,1,To consider and approve the Standalone and Consolidated Unaudited Financial Results of the Company for the quarter and half year ended Septe,calendar
 ZENITHEXPO,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 ZETWERK,2026-11-13,Financial Results,1,"To consider and approve the unaudited financial results for the quarter and half year ended September 30, 2026.",calendar
+ZFCVINDIA,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 AAREYDRUGS,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 AARTECH,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 AARTISURF,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2461,6 +2477,7 @@ ARCOTECH,2026-11-14,Financial Results/Other business matters,1,"To consider and 
 ARENTERP,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 ARHAM,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the second quarter and half year ended September 30, 2026 and other business matters",calendar
 ASHOKLEY,2026-11-14,Financial Results,1,"To consider and approve the Unaudited Financial results of the Company for the period ended September 30, 2026",calendar
+ASIL,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 ATALREAL,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 ATAM,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 BALUFORGE,2026-11-14,Financial Results/Fund Raising/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026, Fund Raising and other business matters",calendar
@@ -2484,6 +2501,7 @@ COASTCORP,2026-11-14,Financial Results,1,"To consider and approve the financial 
 DCMSIL,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 DOLATALGO,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 DSFCL,2026-11-14,Financial Results,1,"To consider and approve Unaudited Financial Results (both Standalone & Consolidated) for the quarter and half year ended September 30, 2026",calendar
+DSSL,2026-11-14,Financial Results,1,"To consider and approve the un-audited financial results for the period ended September 30, 2026",calendar
 EUROBOND,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 EXPLEOSOL,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 FIRSTCRY,2026-11-14,Financial Results,1,Board meeting intimation for considering and approving the Un-audited Financial Results (Standalone and Consolidated) of the Company for the,calendar
@@ -2494,6 +2512,8 @@ GLOBECIVIL,2026-11-14,Financial Results,1,"To consider and approve the financial
 GLOSTERLTD,2026-11-14,Financial Results,1,"GLOSTERLTD : 14-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 05, 2026 has been re-scheduled.",calendar
 GOENKA,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 GOKUL,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
+GRMOVER,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+GSS,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 GUFICBIO,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the Unaudited Financial Results (Standalone and Consolidated) for the quarter and half year ended September 30, 2026",calendar
 GUJAPOLLO,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 GUJTHEM,2026-11-14,Financial Results/Other business matters,1,"GUJTHEM : 14-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 04, 2026 has been re-scheduled. Fu",calendar
@@ -2505,9 +2525,12 @@ HISARMETAL,2026-11-14,Financial Results/Other business matters,1,"To consider an
 ICSA,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 INNOVANA,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 JAMNAAUTO,2026-11-14,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and dividend",calendar
+JINDALPOLY,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 JSLL,2026-11-14,Financial Results,1,"To consider and approve the Unaudited financial results (Standalone and Consolidated) for the period ended September 30, 2026",calendar
 KAVDEFENCE,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
+KAYNES,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 KEEPLEARN,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
+KERNEX,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 KHAZANCHI,2026-11-14,Financial Results,1,"To consider and approve the Unaudited financial results for the period ended September 30, 2026",calendar
 KNAGRI,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 KRISHANA,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
@@ -2528,6 +2551,7 @@ NAHARINDUS,2026-11-14,Financial Results,1,"To consider and approve the financial
 NATHBIOGEN,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 NECLIFE,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 NIBE,2026-11-14,Financial Results,1,"To consider and approve the Unaudited Financial Results (Standalone and Consolidated) for the Quarter and Half Year ended September 30, 2026",calendar
+NITINFIRE,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 NITIRAJ,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 NOVAAGRI,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 OMINFRAL,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2544,6 +2568,7 @@ RMC,2026-11-14,Financial Results/Other business matters,1,"To consider and appro
 RVHL,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 SAHLIBHFI,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 SALASAR,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+SAMMAANCAP,2026-11-14,Financial Results,1,Pursuant to the provisions of SEBI LODR we wish to inform you that a meeting of the Board of Directors of the Company will be held on Saturd,calendar
 SANWARIA,2026-11-14,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 SGL,2026-11-14,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 SHAH,2026-11-14,Financial Results/Other business matters,1,"SHAH : 14-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 05, 2026 has been re-scheduled. Furth",calendar
@@ -2585,6 +2610,7 @@ XLENERGY,2026-11-14,Financial Results,1,"To consider and approve the Un-Audited 
 ZEEMEDIA,2026-11-14,Financial Results,1,"To consider and approve the Un-audited financial results for the period ended September 30, 2026",calendar
 SANDHAR,2026-11-16,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 TTL,2026-11-16,Buyback,0,"Intimation of Board Meeting proposed to be helad on 16th November, 2026 to consider the proposal of Buyback of the Equity Shares of the Comp",calendar
+ADROITINFO,2026-11-17,Other business matters,0,To consider other business matters,calendar
 GVPTECH,2026-11-18,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 LATTEYS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 RNBDENIMS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
