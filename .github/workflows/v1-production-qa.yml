@@ -71,3 +71,8 @@ jobs:
           name: v1-production-qa
           path: artifacts/production_qa/
           if-no-files-found: warn
+          # Without this GitHub keeps every run's evidence for 90 days: 1,034
+          # artifacts / 1,062 MB, 86% of the repository's artifact store
+          # (docs/CALL_AND_STORAGE_AUDIT.md, C3). The QA evidence is only ever
+          # read while a failure is being chased, so a fortnight is enough.
+          retention-days: 14

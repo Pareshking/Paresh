@@ -261,8 +261,10 @@ def test_r2_publisher_performs_post_publication_readback(monkeypatch, tmp_path):
             self.keys = {}
             self.verify_calls = []
 
-        def put_file(self, key, path, **_kwargs):
+        def put_file(self, key, path, **kwargs):
             self.keys[key] = Path(path).read_bytes()
+            if kwargs.get("verify"):
+                self.verify_file(key, path)
 
         def put_bytes(self, key, body, **_kwargs):
             self.keys[key] = body
@@ -284,6 +286,9 @@ def test_r2_publisher_performs_post_publication_readback(monkeypatch, tmp_path):
         release_tag="data-latest",
     )
 
+    # Exactly one read-back of the payload, and it happens inside put_file -
+    # before the manifest and the current pointer are written, so a byte-wrong
+    # upload never gets a pointer (docs/CALL_AND_STORAGE_AUDIT.md, C4).
     assert len(archive.verify_calls) == 1
     assert any("/revisions/" in key for key, _ in archive.verify_calls)
 
