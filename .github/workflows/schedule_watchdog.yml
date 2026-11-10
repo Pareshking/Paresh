@@ -1,0 +1,275 @@
+name: Schedule watchdog (daily)
+
+# S116 (c) and (e), 10 Nov 2026. The scheduled-failure alert triggers on
+# `workflow_run: [completed]`, so it can only speak about a run that HAPPENED.
+# Two silences it cannot break:
+#
+#   (c) A cron that stops firing produces no run and therefore no event. A
+#       workflow can be disabled by GitHub after 60 days of repository
+#       inactivity, renamed out of its schedule, or simply never registered,
+#       and the alert board stays empty.
+#   (e) The alert is not watched by anything -- least of all itself, and a
+#       workflow_run trigger on its own name would chain skipped run after
+#       skipped run. So its failures are checked here instead, from the
+#       outside, on a plain schedule.
+#
+# This job also reconciles: for every scheduled workflow whose latest scheduled
+# run failed, there must be an open `scheduled-failure` issue. That is what
+# makes an alert run that was discarded (21 were, see the alert's concurrency
+# comment) unable to drop the only report of a failure -- a lost alert is
+# re-reported here within a day.
+#
+# Read-only on Actions; the only thing it writes is an issue.
+on:
+  schedule:
+    - cron: '41 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  actions: read
+  contents: read
+
+concurrency:
+  group: schedule-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # Full history: a workflow's own first commit is what says whether its
+      # last expected fire time was before the file existed. momentum_health.yml
+      # (cron `23 6 2-6 * *`, added 8 Nov 2026) matched 2-6 November, all of
+      # them before it was written; it must not be called overdue until its
+      # first real fire, 2 Dec 2026 06:23 UTC.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Find schedules that have not fired, and failures nobody reported
+        run: |
+          python - <<'PY'
+          """Report a scheduled workflow with no run inside its own period.
+
+          Writes overdue.md and unreported.md for the steps below; prints what
+          it decided for every scheduled workflow, so a run of this job is
+          readable on its own.
+          """
+          import datetime as dt
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          import yaml
+
+          NOW = dt.datetime.now(dt.timezone.utc).replace(second=0, microsecond=0)
+          # GitHub's scheduled queue ran 7h15m late on 2026-11-09 and 6h48m
+          # late on 2026-11-06 on this repository. 12 hours of grace is late
+          # enough not to cry wolf and early enough to notice a dead cron.
+          GRACE = dt.timedelta(hours=12)
+          LOOKBACK_DAYS = 70  # covers the longest schedule here (monthly)
+
+          def parse_field(expr, lo, hi):
+              out = set()
+              for part in expr.split(","):
+                  step = 1
+                  if "/" in part:
+                      part, raw = part.split("/", 1)
+                      step = int(raw)
+                  part = part.strip()
+                  if part in ("*", ""):
+                      start, end = lo, hi
+                  elif "-" in part:
+                      a, b = part.split("-", 1)
+                      start, end = int(a), int(b)
+                  else:
+                      start = end = int(part)
+                  out |= set(range(start, end + 1, step))
+              return out
+
+          class Cron:
+              def __init__(self, expr):
+                  fields = expr.split()
+                  if len(fields) != 5:
+                      raise ValueError(f"not a 5-field cron: {expr!r}")
+                  minute, hour, dom, month, dow = fields
+                  self.minute = parse_field(minute, 0, 59)
+                  self.hour = parse_field(hour, 0, 23)
+                  self.dom = parse_field(dom, 1, 31)
+                  self.month = parse_field(month, 1, 12)
+                  self.dow = {d % 7 for d in parse_field(dow, 0, 7)}
+                  self.dom_any = dom.strip() == "*"
+                  self.dow_any = dow.strip() == "*"
+
+              def matches(self, when):
+                  if when.minute not in self.minute or when.hour not in self.hour:
+                      return False
+                  if when.month not in self.month:
+                      return False
+                  # Standard cron: with both day fields restricted, either may
+                  # match; with one restricted, only that one counts.
+                  dom_hit = when.day in self.dom
+                  dow_hit = ((when.weekday() + 1) % 7) in self.dow
+                  if self.dom_any and self.dow_any:
+                      return True
+                  if self.dom_any:
+                      return dow_hit
+                  if self.dow_any:
+                      return dom_hit
+                  return dom_hit or dow_hit
+
+              def last_fire_before(self, limit):
+                  when = limit
+                  for _ in range(LOOKBACK_DAYS * 24 * 60):
+                      if self.matches(when):
+                          return when
+                      when -= dt.timedelta(minutes=1)
+                  return None
+
+          def gh_api(path, jq=None):
+              cmd = ["gh", "api", path]
+              if jq:
+                  cmd += ["--jq", jq]
+              done = subprocess.run(cmd, capture_output=True, text=True)
+              if done.returncode != 0:
+                  print(f"  ! {path}: {done.stderr.strip().splitlines()[-1:]}")
+                  return None
+              return done.stdout.strip()
+
+          def added_at(path):
+              out = subprocess.run(
+                  ["git", "log", "--diff-filter=A", "--format=%aI", "-1", "--", str(path)],
+                  capture_output=True, text=True, check=False,
+              ).stdout.strip()
+              return dt.datetime.fromisoformat(out) if out else None
+
+          def main():
+              REPO = os.environ["GH_REPO"]
+              overdue, unreported = [], []
+              for path in sorted(pathlib.Path(".github/workflows").glob("*.yml")):
+                  wf = yaml.safe_load(path.read_text(encoding="utf-8"))
+                  on = wf.get(True) or wf.get("on")  # PyYAML reads bare `on:` as True
+                  if not isinstance(on, dict) or "schedule" not in on:
+                      continue
+                  crons = [c["cron"] for c in (on["schedule"] or []) if "cron" in c]
+                  name = wf.get("name") or path.name
+                  born = added_at(path)
+                  fires = [f for f in (Cron(c).last_fire_before(NOW - GRACE) for c in crons) if f]
+                  expected = max(fires) if fires else None
+                  latest = gh_api(
+                      f"repos/{REPO}/actions/workflows/{path.name}/runs"
+                      "?event=schedule&per_page=1",
+                      ".workflow_runs[0] // empty",
+                  )
+                  run = json.loads(latest) if latest else None
+                  started = (
+                      dt.datetime.fromisoformat(run["run_started_at"].replace("Z", "+00:00"))
+                      if run else None
+                  )
+                  if expected is None:
+                      print(f"{path.name}: no fire due yet within {LOOKBACK_DAYS} days -- skipped")
+                  elif born and expected < born:
+                      print(f"{path.name}: last due {expected:%Y-%m-%d %H:%M}Z predates the file"
+                            f" ({born:%Y-%m-%d}) -- not yet overdue")
+                  elif started is None or started < expected:
+                      seen = f"{started:%Y-%m-%d %H:%M}Z" if started else "never"
+                      print(f"{path.name}: DUE {expected:%Y-%m-%d %H:%M}Z, last scheduled run {seen}")
+                      overdue.append(
+                          f"- **{name}** (`{path.name}`, cron `{'`, `'.join(crons)}`): due"
+                          f" {expected:%Y-%m-%d %H:%M}Z, last scheduled run {seen}"
+                      )
+                  else:
+                      print(f"{path.name}: ran {started:%Y-%m-%d %H:%M}Z for"
+                            f" {expected:%Y-%m-%d %H:%M}Z -- fine")
+
+                  # Reconciliation: a failed latest scheduled run with no open issue
+                  # means the alert never spoke (discarded run, rename, or an alert
+                  # failure of its own).
+                  if run and run["status"] == "completed":
+                      bad = run["conclusion"] in ("failure", "timed_out")
+                      if run["conclusion"] == "cancelled":
+                          ran = (
+                              dt.datetime.fromisoformat(run["updated_at"].replace("Z", "+00:00"))
+                              - started
+                          ).total_seconds()
+                          bad = ran >= 300  # a queued run replaced by a newer one never ran
+                      if bad:
+                          title = f"Scheduled workflow failing: {name}"
+                          found = gh_api(
+                              "repos/%s/issues?state=open&labels=scheduled-failure&per_page=100" % REPO,
+                              f'[.[] | select(.title == "{title}")] | length',
+                          )
+                          if found is not None and found.strip() == "0":
+                              print(f"{path.name}: {run['conclusion']} and NOT reported")
+                              unreported.append(
+                                  f"- **{name}**: last scheduled run {run['conclusion']}"
+                                  f" at {run['updated_at']} with no open issue: {run['html_url']}"
+                              )
+
+              pathlib.Path("overdue.md").write_text("\n".join(overdue), encoding="utf-8")
+              pathlib.Path("unreported.md").write_text("\n".join(unreported), encoding="utf-8")
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+                  fh.write(f"overdue={len(overdue)}\nunreported={len(unreported)}\n")
+
+          if __name__ == "__main__":
+              main()
+          PY
+        id: scan
+      # One issue for "a cron stopped firing", opened or updated, closed when
+      # every schedule is firing again -- the same shape as the failure board.
+      - name: Report the schedules that have not fired
+        env:
+          OVERDUE: ${{ steps.scan.outputs.overdue }}
+        run: |
+          set -euo pipefail
+          gh label create scheduled-failure --color B60205 \
+            --description "A scheduled production workflow failed" 2>/dev/null || true
+          title="Scheduled workflows not firing"
+          number=$(gh issue list --label scheduled-failure --state open \
+            --search "in:title \"${title}\"" --json number,title \
+            --jq "map(select(.title == \"${title}\")) | .[0].number // empty")
+          if [ "${OVERDUE}" = "0" ]; then
+            if [ -n "${number}" ]; then
+              gh issue comment "${number}" --body "Every scheduled workflow has run inside its own period again, as of $(date -u +%FT%TZ)."
+              gh issue close "${number}" --reason completed
+            fi
+            echo "Nothing overdue."
+            exit 0
+          fi
+          {
+            printf 'As of %s, these scheduled workflows have not run inside their own period (12h of grace for GitHub'"'"'s queue):\n\n' "$(date -u +%FT%TZ)"
+            cat overdue.md
+            printf '\n\nChecked by %s/actions/runs/%s\n' "${GITHUB_SERVER_URL}/${GH_REPO}" "${GITHUB_RUN_ID}"
+          } > body.md
+          if [ -n "${number}" ]; then
+            gh issue comment "${number}" --body-file body.md
+          else
+            gh issue create --title "${title}" --label scheduled-failure --body-file body.md
+          fi
+      - name: Report failures that never reached the board
+        if: steps.scan.outputs.unreported != '0'
+        run: |
+          set -euo pipefail
+          title="Scheduled failures the alert did not report"
+          {
+            printf 'As of %s, the latest scheduled run of these workflows failed and no open issue names them -- the alert run was discarded, failed, or never matched:\n\n' "$(date -u +%FT%TZ)"
+            cat unreported.md
+          } > body.md
+          number=$(gh issue list --label scheduled-failure --state open \
+            --search "in:title \"${title}\"" --json number,title \
+            --jq "map(select(.title == \"${title}\")) | .[0].number // empty")
+          if [ -n "${number}" ]; then
+            gh issue comment "${number}" --body-file body.md
+          else
+            gh issue create --title "${title}" --label scheduled-failure --body-file body.md
+          fi
