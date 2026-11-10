@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from src.core.config import HIGH_52W_MIN_OBSERVATIONS, MOMENTUM_WINDOWS
+from src.engine.backtester import EMA_MIN_PRINTS, EMA_WARMUP_FROM, _warmup_cutoff_rows
 from src.engine.backtester import _composite_z_score, _index_mask
 from src.engine.calendar_momentum import anchor_frame
 
@@ -40,6 +41,12 @@ def snapshots(prices: pd.DataFrame, dates: Sequence[pd.Timestamp], *, membership
     anchor = anchor_frame(prices)
     log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
     ema = prices.ewm(span=ema_period).mean()
+    # The screener's warm-up, from the date the rule takes effect (owner,
+    # 10 Nov 2026). This module reports "the rank the book was struck on", so
+    # it must apply the gate the book applied -- with no warm-up it certified
+    # names as above their EMA that the Screener would not quote one for.
+    warm_rows = _warmup_cutoff_rows(prices, EMA_MIN_PRINTS)
+    warm_from = pd.Timestamp(EMA_WARMUP_FROM).normalize() if EMA_WARMUP_FROM else None
     # The same minimum the screener's gate reads (duplicate audit, 10 Nov
     # 2026): it was hardcoded here and in the backtester while
     # config.HIGH_52W_MIN_OBSERVATIONS held the number, so a test that
@@ -52,6 +59,8 @@ def snapshots(prices: pd.DataFrame, dates: Sequence[pd.Timestamp], *, membership
             continue
         day = prices.index[pos]
         p, e, h = prices.iloc[pos], ema.iloc[pos], high.iloc[pos]
+        if warm_from is not None and pd.Timestamp(day).normalize() >= warm_from:
+            e = e.where(warm_rows <= pos)
         above = p > e
         near = p >= h * high_pct
         idx_mask = _index_mask(membership, prices.columns, day)

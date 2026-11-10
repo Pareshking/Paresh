@@ -189,6 +189,7 @@ def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | No
         cost_bps=cfg["cost_bps"],
         buffer_n=cfg["buffer_n"],
         members_only_scoring_from=cfg.get("members_only_scoring_from"),
+        ema_warmup_from=cfg.get("ema_warmup_from"),
         hold_cap=cfg.get("hold_cap"),
         hold_cap_from=cfg.get("hold_cap_from"),
         buy_size=cfg.get("buy_size"),

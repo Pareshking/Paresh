@@ -946,6 +946,30 @@ def _calculate_backtest_metrics(
 # books by one name (31 Dec 2025, 31 Aug 2026).
 MEMBERS_ONLY_SCORING_FROM = "2026-11-30"
 
+# The screener has always required 30 prints before it will quote a 50-day EMA
+# (momentum.py: ewm(span=50, min_periods=30)); the backtester and rank_history
+# required none, so a name with 10 prints could pass "above its 50-day EMA"
+# here and fail the same gate on the Screener (duplicate audit, 10 Nov 2026:
+# BAGMANE, BIRET and ICICILIFE all did, on 5 Nov). Owner, 10 Nov 2026: 30
+# prints is right, forward-dated from the next signal so the record to date is
+# untouched.
+EMA_MIN_PRINTS = 30
+EMA_WARMUP_FROM = "2026-11-30"
+
+
+def _warmup_cutoff_rows(prices: pd.DataFrame, min_prints: int) -> np.ndarray:
+    """For each column, the row index at which it has `min_prints` prints.
+
+    Returned as positions, not dates, so a signal row can mask its own EMA
+    with one comparison and no second full-size frame: the EMA matrix is
+    already tens of MB at 750 symbols (see the note where it is built).
+    """
+    seen = prices.notna().to_numpy().cumsum(axis=0, dtype=np.int32)
+    enough = seen >= min_prints
+    rows = enough.argmax(axis=0)
+    rows[~enough.any(axis=0)] = len(prices)      # never enough: always masked
+    return rows
+
 
 def _signal_scores(prices, log_ret, idx, windows, weights, *, anchor, metric, members,
                    on, members_from):
@@ -993,6 +1017,7 @@ def run_backtest(
     exit_ath_pct: float | None = None,
     ath_min_years: float = 3.0,
     members_only_scoring_from: str | None = MEMBERS_ONLY_SCORING_FROM,
+    ema_warmup_from: str | None = EMA_WARMUP_FROM,
     hold_cap: float | None = None,
     hold_cap_from: str | None = None,
     buy_size: float | None = None,
@@ -1134,6 +1159,18 @@ def run_backtest(
     # matrix. In History from 2010 that matrix adds tens of MB at 750 symbols and thousands of sessions,
     # before counting pandas temporaries and Streamlit cache copies. Compute the exact rolling maximum only on signal rows.
     ema = prices.ewm(span=ema_period).mean()
+    # The EMA warm-up, applied only to signals on or after its date, so every
+    # month the record has already frozen replays unchanged.
+    _warm_rows = (_warmup_cutoff_rows(prices, EMA_MIN_PRINTS)
+                  if ema_warmup_from else None)
+    _warm_from = pd.Timestamp(ema_warmup_from).normalize() if ema_warmup_from else None
+
+    def _ema_at(idx: int, frame: pd.DataFrame) -> pd.Series:
+        """One signal row of an EMA matrix, with the warm-up where it applies."""
+        row = frame.iloc[idx]
+        if _warm_from is None or pd.Timestamp(prices.index[idx]).normalize() < _warm_from:
+            return row
+        return row.where(_warm_rows <= idx)
     # The all-time-high rule only where the high on file can be trusted (owner,
     # 9 Oct 2026). The file starts on a fixed date (History: 1 Jan 2008), so a
     # stock already trading then has its real peak possibly before it: 44% of
@@ -1216,7 +1253,7 @@ def run_backtest(
             continue
 
         _p = prices.iloc[start_idx]
-        _ema = ema.iloc[start_idx]
+        _ema = _ema_at(start_idx, ema)
         _hi = _high_at(start_idx)
 
         above_ema = _p > _ema
@@ -1231,7 +1268,7 @@ def run_backtest(
         # The masks _exit_reason explains a sale with: the keep rules when set.
         keep_ema, keep_high, keep_ath = above_ema, near_high, near_ath
         if _exit_rules:
-            keep_ema = _p > ema_exit.iloc[start_idx]
+            keep_ema = _p > _ema_at(start_idx, ema_exit)
             keep_high = _p >= _hi * (exit_high_pct if exit_high_pct is not None else high_pct)
             keep_ath = ((_p >= _ath * exit_ath_pct) | ~_ath_ok) if exit_ath_pct is not None else near_ath
             keep = keep_ema & keep_high & (_p > 0)
@@ -1675,7 +1712,7 @@ def run_backtest(
 
     if rebal_idx is not None:
         _pp = prices.iloc[rebal_idx]
-        _pema = ema.iloc[rebal_idx]
+        _pema = _ema_at(rebal_idx, ema)
         _phi = _high_at(rebal_idx)
         p_above_ema = _pp > _pema
         p_near_high = _pp >= _phi * high_pct
@@ -1687,7 +1724,7 @@ def run_backtest(
             p_valid &= p_near_ath
         p_keep_ema, p_keep_high, p_keep_ath = p_above_ema, p_near_high, p_near_ath
         if _exit_rules:
-            p_keep_ema = _pp > ema_exit.iloc[rebal_idx]
+            p_keep_ema = _pp > _ema_at(rebal_idx, ema_exit)
             p_keep_high = _pp >= _phi * (exit_high_pct if exit_high_pct is not None else high_pct)
             p_keep_ath = ((_pp >= _path * exit_ath_pct) | ~_path_ok) if exit_ath_pct is not None else p_near_ath
             p_keep = p_keep_ema & p_keep_high & (_pp > 0)

@@ -58,7 +58,11 @@ def test_the_rule_starts_at_the_30_nov_signal_and_frozen_months_keep_their_finge
     assert cfg["hold_cap"] == 0.15 and cfg["hold_cap_from"] == "2026-11-30"
     # Owner, 8 Nov 2026: "6 monthly reset final".
     assert cfg["buy_size"] == 0.05 and list(cfg["weight_reset_months"]) == [3, 9]
-    rule = ("hold_cap", "hold_cap_from", "buy_size", "weight_reset_months", "members_only_scoring_from")
+    # Owner, 10 Nov 2026: the screener's 30-print EMA warm-up joins the rules
+    # that start at the same signal.
+    assert cfg["ema_warmup_from"] == "2026-11-30"
+    rule = ("hold_cap", "hold_cap_from", "buy_size", "weight_reset_months",
+            "members_only_scoring_from", "ema_warmup_from")
     old = {k: v for k, v in cfg.items() if k not in rule}
     for month in ("2026-01", "2026-10", "2026-11"):                # governed by signals before 30 Nov
         assert config_for_month(cfg, month) == old
@@ -66,6 +70,7 @@ def test_the_rule_starts_at_the_30_nov_signal_and_frozen_months_keep_their_finge
     dec = config_for_month(cfg, "2026-12")
     assert dec["hold_cap"] == 0.15 and dec["hold_cap_from"] == "2026-11-30"
     assert dec["buy_size"] == 0.05 and list(dec["weight_reset_months"]) == [3, 9]
+    assert dec["ema_warmup_from"] == "2026-11-30"
     assert not _hold_cap_on(0.15, "2026-11-30", "2026-10-30")
     assert _hold_cap_on(0.15, "2026-11-30", "2026-11-30")
     assert not _hold_cap_on(None, "2026-11-30", "2027-01-29")

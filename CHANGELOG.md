@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-10 — One entry gate, from the 30 November signal
+
+- The Screener and the backtest could disagree about the same stock on the same day. The 50-day EMA gate: the Screener will not quote an EMA until a stock has 30 prints, while the replay quoted one from as few as 10, so three stocks on 5 November (BAGMANE, BIRET and ICICILIFE) passed the replay's gate and failed the Screener's. The 52-week-high gate: the Screener measured it from intraday highs, the engine from the day's close.
+- Both now follow one rule: 30 prints before an EMA is quoted, and the high is the day's close. The EMA rule starts at the 30 November signal, so every month the record has already frozen replays exactly as before and keeps its fingerprint. The high is the close everywhere from today; on the current price source the two were already the same series, so no figure moves.
+
 ## 2026-11-10 — One formatter, one constant, and 400 lines of dead code gone
 
 - Three pages printed "−0.0%" for a value that rounds to zero, and the stock page used an ASCII hyphen where the rest of the site uses a true minus. Eight places formatted percentages their own way; they go through `src/ui/formats.py` now, which is the module that holds the rule, and a test fails if either slips back.
