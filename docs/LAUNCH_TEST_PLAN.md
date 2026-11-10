@@ -31,7 +31,7 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
 | 3 ✅ | 03:35 | **Functional sweep, phone.** The same at 390px, plus tap-target measurement and the menu. Proves: the phone is a first-class reader, not a resized desktop. |
 | 4 ✅ | 04:05 | **Cross-reading consistency.** Take every figure that appears on more than one page (the EMA distance, the qualified count, returns, drawdown, the book's value) and assert the pages agree. Proves: no second EMA bug. |
 | 5 ✅ | 04:35 | **Resilience.** Run the app against a missing price file, a stale one, an empty ranking, no R2 credentials, and a benchmark with a gap. Proves: it degrades with a sentence, not a traceback. |
-| 6 | 05:05 | **Accessibility.** Contrast on every text colour actually used, heading order, alt text, keyboard-only navigation, focus visibility, screen-reader labels on icon buttons. Target: WCAG 2.1 AA. |
+| 6 ✅ | 05:05 | **Accessibility.** Contrast on every text colour actually used, heading order, alt text, keyboard-only navigation, focus visibility, screen-reader labels on icon buttons. Target: WCAG 2.1 AA. |
 | 7 | 05:35 | **Performance and weight.** Cold start, time to content per page, page bytes, memory at the heaviest page, test-suite runtime. Records the numbers the owner's 10%/20%/20% targets are measured against. |
 | 8 | 06:05 | **Security and privacy.** Secret scan over the repo and the built page, the owner-gated controls, query-parameter injection through `?stock=`, what the published page exposes, and what the logs print. |
 | 9 | 06:35 | **The jobs.** Every scheduled workflow's last run, the failure alert itself, and a dry run of the two that matter tomorrow (the daily sync and the monthly freeze). Proves: a silent job failure is impossible. |
@@ -238,3 +238,85 @@ now, with "—" for the level.
 Three regression tests cover the undated file, both readers, and the honest
 header. The healthy path is unchanged: 2,609 tests pass and all six
 cross-page figures still agree.
+
+
+### Slot 6 — accessibility (05:05 UTC, done). The site is clean; the check was not
+
+`scripts/launch_a11y.py` with `scripts/_launch_a11y.js` measures four things on
+the rendered page, at 1400px and at 390px, over the same eleven pages the gate
+draws. It measures what a reader meets rather than what the stylesheet claims:
+the computed colour of each text run against the background actually painted
+behind it, and the accessible name a screen reader would announce.
+
+| Measured | 1400px | 390px |
+|---|---|---|
+| Text runs below 4.5:1 (3:1 for large text) | 0 of 16,159 | 0 of 15,443 |
+| Controls with no accessible name | 0 of 360 | 0 of 275 |
+| Images with no `alt` | 0 | 0 |
+| Heading order (one h1, no skipped level) | 11/11 pages, 86 headings | 11/11 |
+| Keyboard stops with no focus ring | 0 of 266 | 0 of 268 |
+| `lang` on `<html>` | `en` on all 11 | `en` |
+
+**11/11 pages clean, both widths.** The 390px column doubles as the WCAG 1.4.10
+reflow case: 390 CSS pixels is what 1400px looks like at 360% zoom, and slot 3
+already proved nothing there scrolls sideways.
+
+**The one change to the site**: `textarea:focus-visible` was missing from the
+focus-ring rule in `src/ui/theme.py` — `input` was there, `textarea` was not.
+Nothing on a reader's path is a textarea today, so nothing looks different; it
+is one word, and the next text area would have been invisible to a keyboard.
+
+**And one change withdrawn.** The first version also added
+`iframe:focus-visible` to that rule, on the strength of "12 keyboard stops with
+no focus ring" on Screener. The rule is inert: `document.activeElement` points
+at the IFRAME while focus is really inside the frame's own document, so the
+iframe element is never `:focus-visible`. Shipping a selector that cannot match
+to fix a bug that does not exist is worse than shipping nothing, so it came out
+again.
+
+**Five faults in the check itself, which is the real content of this slot.**
+Every one of them would have been reported to the owner as a site bug:
+
+1. **Nine well-labelled buttons reported as unnamed.** The accessible name was
+   read from `innerText`, which is layout dependent and comes back empty for a
+   control below the fold. `Top 10`…`Top 30` on Actions and the backtest's
+   submit button all have text; `textContent` sees it.
+2. **The header nav reported at 1.51:1.** Same cause, other end: an element
+   that has a text node but an empty `innerText` has not been laid out, and its
+   computed colour is not what gets painted. A screenshot of the backtest
+   header shows `Dashboard  Actions  Screener  Portfolio` in near-black on
+   white. The check now skips a run with no laid-out text, because a contrast
+   claim about text nobody can read is not a contrast claim.
+3. **A slider's value label reported at 1.51:1.** This one was not a timing
+   artefact: the ancestor walk found a real painted background, the dark filled
+   track of the slider, eight pixels tall and nowhere near the label floating
+   above it. An ancestor's background now counts only if its own box contains
+   the text's box. The screenshot shows `0.10` in dark grey on white.
+4. **Two pages reported as having no headings at all.** An over-broad "clipped
+   ancestor" rule, borrowed from slot 3, called an element hidden when any
+   ancestor was 0px tall with `overflow: hidden` — and `<html>` is 1400×0 on
+   every page of this app.
+5. **Two of the eleven pages were the dashboard.** The page list said `config`
+   and `sector_rotation`; the routes are `configuration` and `rrg`. Streamlit
+   served the dashboard for both, so the check measured one page three times
+   and two pages never. Both tables above use the gate's own page list now.
+
+That is five in one slot, after three in the previous four, and the pattern is
+no longer a coincidence: a measurement of a rendered page is a model of what a
+reader sees, and every one of these was the model being wrong in a way that
+produced a confident number. Hence the last addition:
+
+**The check can now prove it is looking.** `--self-test` plants one
+`#c9c9c9`-on-white paragraph in each page's main block and requires the
+contrast check to catch it. It is caught on 11/11 at 1.66:1. (That plant needed
+`!important` to stick: the site's own `p { color: … !important }` wins over an
+inline style, so the first plant came out perfectly legible and was "not
+caught" for the right reason.) A contrast check that reports nothing is now
+distinguishable from one that matched nothing, which is exactly the failure
+mode slot 4 warned about.
+
+**What this slot does not cover**, and will not before launch: a real screen
+reader (NVDA, VoiceOver — Chromium's accessibility tree is not the same thing
+as what a reader hears), colour-blind simulation, and the WCAG 1.4.12 text
+spacing override. Contrast is measured against the 4.5:1 and 3:1 thresholds
+only; nothing here says the palette is comfortable, only that it is compliant.

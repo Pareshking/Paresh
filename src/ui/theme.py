@@ -1566,7 +1566,8 @@ def inject_custom_css() -> None:
            buttons, tabs, pills, sliders and anything focusable by keyboard. */
         a:focus-visible, button:focus-visible, [role="tab"]:focus-visible,
         [role="button"]:focus-visible, [role="slider"]:focus-visible, summary:focus-visible,
-        [tabindex]:not([tabindex="-1"]):focus-visible, input:focus-visible, select:focus-visible {
+        [tabindex]:not([tabindex="-1"]):focus-visible, input:focus-visible, select:focus-visible,
+        textarea:focus-visible {
             outline: 2px solid var(--c-ink) !important; outline-offset: 2px !important;
         }
 
