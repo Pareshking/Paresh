@@ -211,8 +211,20 @@ read until 7 Nov 2026: the circular itself and FORCEMOT's return. The circular
 2023", these six among them. FORCEMOT came back by NSE/CML/60618 of 12 Feb 2024
 ("Listing of Equity Shares of Force Motors Limited (New Listing)", effective
 14 Feb 2024, attached to the company's BSE filing of 13 Feb 2024), the date in
-NSE's files. The other five's April 2026 notice is not found; Goodyear's own
-governance report for 31 Mar 2026 gives its NSE symbol as "NOTLISTED".
+NSE's files. **The other five's return is now found too** (read 10 Nov 2026):
+NSE/CML/73797 of 17 April 2026, "Securities of the Companies permitted to
+trade and admitted to dealings on the Exchange", notifies "the list of
+securities further admitted to dealings on the National Stock Exchange
+(Capital Market segment) **with effect from April 20, 2026**" and states
+"This circular shall be effective from April 20, 2026". Its annexure of 106
+securities carries all five at their own serial numbers: 19 KIRLFER
+(INE884B01025, 164,855,383 shares), 28 GRAUWEIL (INE266D01021), 64 KENNAMET
+(INE717A01029), 73 GOODYEAR (INE533A01012) and 74 NOVARTIND (INE234A01025),
+all in the EQ series. That is NSE's own document and it matches the 20 Apr
+2026 resumption in NSE's price files exactly, so the 614-session gap in each
+is explained end to end by the exchange's own notices rather than inferred.
+Goodyear's governance report for 31 Mar 2026, which gives its NSE symbol as
+"NOTLISTED", is consistent: the readmission came three weeks later.
 
 Mid-2013 has 77 one-month NSE-only gaps (MAITHANALL, IOLCP, SAKSOFT, NEXTMEDIA
 ...): NSE's own bhavcopy for 20 Aug 2013 has no row for them in any series, so
