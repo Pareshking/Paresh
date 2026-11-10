@@ -36,3 +36,48 @@ def test_the_benchmark_is_the_supplied_index_not_the_universe_mean():
 
     assert a["stats"]["total_return"] == pytest.approx(b["stats"]["total_return"])
     assert a["stats"]["bench_return"] > 0 > b["stats"]["bench_return"]
+
+
+def test_the_symbol_is_typed_once_in_the_shipped_code():
+    """The literal belongs in config.py; everywhere else reads the constant.
+
+    It used to be retyped at every call site -- the record's config, the
+    ledger, the benchmark store's column map, the RRG selector, the Backtest
+    tab, the sweep and the agent CLI -- so nothing could tell a deliberate
+    benchmark from a typo, and a change of index would have had to be made in
+    nine places.
+
+    Read as code, not as text: every string the module would actually evaluate,
+    docstrings excluded, so prose may still name the index. Tests and docs are
+    not scanned. The first version of this test resolved the repository root
+    one directory too high, found no files at all and passed on nothing; the
+    assertion below therefore also checks that it read something.
+    """
+    import ast
+    from pathlib import Path
+
+    from src.core import config
+
+    root = Path(config.__file__).resolve().parents[2]
+    this_file = Path(config.__file__).resolve()
+    offenders, scanned = [], 0
+    for folder in ("src", "scripts", "agent", "research"):
+        for path in sorted((root / folder).rglob("*.py")):
+            if path == this_file:
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            docstrings = {
+                id(n.body[0].value)
+                for n in ast.walk(tree)
+                if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+                and n.body and isinstance(n.body[0], ast.Expr)
+                and isinstance(n.body[0].value, ast.Constant)
+                and isinstance(n.body[0].value.value, str)
+            }
+            scanned += 1
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                        and config.BENCHMARK_SYMBOL in node.value
+                        and id(node) not in docstrings):
+                    offenders.append(f"{path.relative_to(root)}:{node.lineno}")
+    assert scanned > 100 and not offenders, f"scanned {scanned}: " + "\n".join(offenders)
