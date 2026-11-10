@@ -428,6 +428,17 @@ def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
         "plotOptions:{heatmap:{borderWidth:1,borderColor:'var(--c-white)',animation:false}},"
         "series:[{name:'Correlation',data:data,dataLabels:{enabled:wide,style:{fontSize:'10px',fontWeight:'400',fontFamily:'IBM Plex Mono,monospace',textOutline:'none'},"
         "formatter:function(){return this.point.value.toFixed(2);}}}]});"
+        # The frame's document can still measure 0 wide when the chart is
+        # created, and Highcharts then falls back to its 600px default and
+        # never looks again: on a phone the heatmap drew 600px inside a 324px
+        # frame whose host is overflow:hidden, so the right of it was simply
+        # cut off (owner, 10 Nov 2026: "other places also have similar
+        # issue"). Reflow once the frame has a width, and on every resize.
+        "const c=Highcharts.charts[Highcharts.charts.length-1];"
+        "const fit=function(){try{c.reflow();}catch(e){}};"
+        "requestAnimationFrame(fit);window.addEventListener('resize',fit);"
+        "if(window.ResizeObserver){new ResizeObserver(fit)"
+        ".observe(document.getElementById('c'));}"
         "})();</script></body></html>"
     )
     st.iframe(resolve(page), height=height + 8)

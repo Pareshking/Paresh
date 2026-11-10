@@ -251,6 +251,14 @@ def _render_calendar_returns(grid: pd.DataFrame) -> None:
          without max-width the 980px table widened its parent and the whole
          page scrolled sideways on a phone (design audit, 8 Nov 2026). */
       .cr-wrap { max-width:100%; overflow-x:hidden; }
+      /* A grid item defaults to min-width:auto, which refuses to shrink below
+         its content. Without this the year section grew to the table's full
+         width (1,292px inside a 358px column on a phone), .cr-scroll's
+         max-width:100% then resolved against THAT, so the element meant to
+         scroll had nothing to scroll and .cr-wrap simply clipped the months
+         from May onwards. Reported by the owner, 10 Nov 2026: "unable to
+         slide returns on mobile, earlier it was slide able". */
+      .cr-year { min-width:0; }
       .cr-scroll { overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; }
       .cr-table { border-collapse:collapse; width:100%;
         min-width:980px; font-size: var(--fs-13); font-variant-numeric:tabular-nums; }

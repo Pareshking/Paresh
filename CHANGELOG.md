@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-10 — Calendar returns can be slid again on a phone
+
+- **The months after April could not be reached on a phone.** The table of monthly returns sits in a box that scrolls sideways, inside a grid. A grid item will not shrink below its own content unless it is told it may, so the year section stretched to the table's full width — 1,292px inside a 358px column — the scrolling box stretched with it and had nothing left to scroll, and the wrapper simply cut the rest off. One line (`.cr-year { min-width: 0 }`) puts the scroll back; after it the scrolling box is 358px wide with 1,292px inside it. Every table on all eleven pages was then checked at phone width: none is unreachable.
+
 ## 2026-11-10 — Launch testing: the four content items left over
 
 - **A second breadth chart dated a month by the calendar, not by the market.** The month-end chart labelled October 2026's close "31 Oct 2026", a Saturday on which nothing traded and which `data/benchmarks.csv` has no row for, while the Dashboard called the same close "the 30 Oct month-end". Both now say 30 Oct, as the source does. Each bucket is dated by the session that closed it, the same rule the weekly chart got yesterday; the values are untouched — only the label moves.
