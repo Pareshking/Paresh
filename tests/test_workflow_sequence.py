@@ -74,3 +74,30 @@ def test_the_sunday_retention_run_applies_its_own_plan_then_audits():
     assert "steps.plan.outputs.count" in apply["env"]["EXPECT"]
     assert "--expect-deletes" in apply["run"]
     assert audit["if"] == "${{ steps.apply.outcome == 'success' }}"
+
+
+def test_the_evidence_bootstrap_passes_the_skip_on_every_publish():
+    """Lives here, not beside the R2 call-budget tests, because it needs yaml.
+
+    PyYAML is NOT in requirements.txt -- it is only ever present as an optional
+    extra of something else -- and the r2-focused job installs requirements.txt
+    alone while running every tests/test_r2_*.py. The assertion is about a
+    workflow anyway, so it belongs with the other workflow tests.
+    """
+    from pathlib import Path
+
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    doc = yaml.safe_load(
+        (root / ".github/workflows/r2-historical-evidence-bootstrap.yml")
+        .read_text(encoding="utf-8")
+    )
+    runs = [
+        str(step.get("run", ""))
+        for step in doc["jobs"]["bootstrap"]["steps"]
+        if "scripts/r2_publish.py" in str(step.get("run", ""))
+    ]
+    assert len(runs) == 7
+    for run in runs:
+        assert run.count("scripts/r2_publish.py") == run.count("--skip-if-published")

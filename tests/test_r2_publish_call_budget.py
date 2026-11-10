@@ -215,23 +215,3 @@ def test_without_the_flag_a_repeat_publish_still_verifies_the_stored_bytes(
         if op == "get_object" and key.endswith(".parquet")
     ]
     assert len(payload_gets) == 1
-
-
-def test_the_evidence_bootstrap_passes_the_skip_on_every_publish():
-    from pathlib import Path
-
-    import yaml
-
-    root = Path(__file__).resolve().parents[1]
-    doc = yaml.safe_load(
-        (root / ".github/workflows/r2-historical-evidence-bootstrap.yml")
-        .read_text(encoding="utf-8")
-    )
-    runs = [
-        str(step.get("run", ""))
-        for step in doc["jobs"]["bootstrap"]["steps"]
-        if "scripts/r2_publish.py" in str(step.get("run", ""))
-    ]
-    assert len(runs) == 7
-    for run in runs:
-        assert run.count("scripts/r2_publish.py") == run.count("--skip-if-published")
