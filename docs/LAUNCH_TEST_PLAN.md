@@ -33,8 +33,8 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
 | 5 ✅ | 04:35 | **Resilience.** Run the app against a missing price file, a stale one, an empty ranking, no R2 credentials, and a benchmark with a gap. Proves: it degrades with a sentence, not a traceback. |
 | 6 ✅ | 05:05 | **Accessibility.** Contrast on every text colour actually used, heading order, alt text, keyboard-only navigation, focus visibility, screen-reader labels on icon buttons. Target: WCAG 2.1 AA. |
 | 7 ✅ | 05:35 | **Performance and weight.** Cold start, time to content per page, page bytes, memory at the heaviest page, test-suite runtime. Records the numbers the owner's 10%/20%/20% targets are measured against. |
-| 8 | 06:05 | **Security and privacy.** Secret scan over the repo and the built page, the owner-gated controls, query-parameter injection through `?stock=`, what the published page exposes, and what the logs print. |
-| 9 | 06:35 | **The jobs.** Every scheduled workflow's last run, the failure alert itself, and a dry run of the two that matter tomorrow (the daily sync and the monthly freeze). Proves: a silent job failure is impossible. |
+| 8 ✅ | 06:05 | **Security and privacy.** Secret scan over the repo and the built page, the owner-gated controls, query-parameter injection through `?stock=`, what the published page exposes, and what the logs print. |
+| 9 ✅ | 06:35 | **The jobs.** Every scheduled workflow's last run, the failure alert itself, and a dry run of the two that matter tomorrow (the daily sync and the monthly freeze). Proves: a silent job failure is impossible. |
 | 10 | 07:05 | **Content.** No placeholder text, no "TODO" or "lorem", every external link resolves, every date on the page is the date it claims, the Guide matches what the model does. |
 | 11 | 07:35 | **Launch report.** One page: what was tested, what was found, what is fixed, what is known and accepted, and the single sentence on whether it is fit to launch. |
 
@@ -416,3 +416,134 @@ Every figure above is a measurement, and the one avoidable cost (the fonts per
 frame) needs a change to what every chart document links — exactly the kind of
 change the standing rule puts after launch, not the night before. The
 candidates, with their numbers, are in `docs/TODO.md` S114.
+
+
+### Slot 8 — security and privacy (06:05 UTC, done). Nothing found, and the check says what it looked for
+
+`scripts/launch_security.py`, with `scripts/_launch_html.js` for the served
+markup and `scripts/_launch_inject.js` for the parameters.
+
+| Check | Result |
+|---|---|
+| A secret committed to the repository | **0** hits over 2,033 tracked files |
+| A secret in the HTML the site serves | **0** hits over 11 pages and 10,373 KB of markup, chart frames included |
+| A hostile `?stock=` | 16 payloads, 0 threw, 0 injected an element, 0 dialogs |
+| A hostile `?sys=`, `?wl=`, `?owner=` | 16 payloads each, same result |
+| The owner-only controls | hidden in all 64 loads |
+
+Two things make the page check worth more than a pattern match. It reads the
+**served markup**, not the visible text, so a credential leaked into an
+attribute, a comment or a frame's `srcdoc` would be caught. And it looks for
+**the actual values this process holds**: four of ten named credentials are
+set in this container, and the check searches every page for their exact
+strings rather than for something that looks like a secret. None appears.
+
+The payloads are the usual ones — `<img src=x onerror=…>`, `<script>`,
+`"><svg onload=…>`, `javascript:`, `../../../../etc/passwd` and its
+URL-encoded twin, `' OR '1'='1`, `'; DROP TABLE prices; --`, `{{7*7}}`,
+`${jndi:ldap://…}`, a 144-character symbol, a null byte, and a CRLF
+`Set-Cookie:` — against `/screener?stock=`, `/screener?sys=`,
+`/watchlist?wl=` and `/configuration?owner=`.
+
+**What the filter actually does, shown rather than asserted.** `?stock=` is
+stripped to `[^A-Z0-9&._-]` (`src/ui/views/ranking_view.py:246`), so
+`"><svg onload=alert('PWNED')>` arrives as the text
+`SVGONLOADALERTPWNED is not in the current ranking.` inside an ordinary `<p>`,
+and the address bar is rewritten to `?stock=SVGONLOADALERTPWNED`. `?sys=` is
+compared against a fixed list of systems, `?wl=` goes through the same
+character filter with a 20-character and 200-symbol cap, and `?owner=` is
+compared with the key.
+
+**The seventh harness fault**, and the cheapest yet: the first version
+reported **two injected elements for the payload `RELIANCE`**. Its selector
+included `iframe[srcdoc]`, which is Streamlit's own chart frame on a perfectly
+ordinary page. A check that reports an injection for a stock symbol reports
+nothing.
+
+**Not covered**: a penetration test, Streamlit Cloud's own TLS and headers,
+and whether the five R2 secrets in the repository's settings are the right
+ones — `GET actions/secrets` answers 403 through this session's proxy, so a
+green R2 job is a lead and not proof.
+
+### Slot 9 — the jobs (06:35 UTC, done). The slot's own claim is false
+
+This slot was written to prove "a silent job failure is impossible". It
+disproves it. 47 workflow files, **26 scheduled**.
+
+| | |
+|---|---|
+| Scheduled workflows | 26 |
+| Never run on their cron | 1 (`momentum_health.yml`, added 8 Nov, cron `23 6 2-6 * *`, first fire 2 Dec) |
+| Whose last *scheduled* run was not green | 3 |
+| Open `scheduled-failure` issues | 12, of which **1 is live** |
+
+**1. The daily sync is green while a step fails, and has been for six runs.**
+`daily_sync.yml` holds ten `|| echo "::warning::…"` fallbacks, and the alert
+fires only on `failure`, `timed_out` or `cancelled`. Line 370, verbatim:
+
+```yaml
+run: python scripts/check_corporate_actions.py --fail-on-new || echo "::warning::Corporate-actions check exited non-zero (new find or failure) -- read the step log."
+```
+
+The six most recent runs — 2026-11-10 02:28, 2026-11-10 00:45, 2026-11-09
+08:54, 2026-11-09 01:19, 2026-11-08 23:10, 2026-11-08 08:23 — all concluded
+`success`. The warning is by design and non-blocking; the point is that
+nobody reads the log of a green run, so a new corporate action or a broken
+check has been sitting in six consecutive green runs unseen.
+
+**2. The alert board is noise, because the alert has no recovery path.**
+`scheduled_failure_alert.yml`'s header says "a later green run of the same
+workflow says so on that issue". Both of its steps are behind
+`if: steps.gate.outputs.alert == 'yes'`, which is reachable only on a failure,
+so no green run ever posts and no issue ever closes. Nine of the ten open
+issues naming a scheduled workflow name one whose last scheduled run
+succeeded (#502, #496, #473, #465, #464, #463, #424, #382, #257). Only #216
+is live. A board where nine of ten entries are stale is a board nobody reads.
+
+**3. A cron that stops firing is invisible.** The alert triggers on
+`workflow_run: types: [completed]`. A workflow that never starts produces no
+`workflow_run`, so there is nothing to react to. `momentum_health.yml` has
+never fired and nothing says so.
+
+**The three not-green crons — and here the alert worked.**
+
+| Workflow | Last scheduled run | What happened | Alert |
+|---|---|---|---|
+| `nse_compare.yml` | 2026-11-08 13:49→14:34 | **45m14s against `timeout-minutes: 45`**, `cancelled` | caught it, opened #496 (audit row A3 is demonstrably closed) |
+| `nse_long_prices.yml` | 2026-11-07 10:33 | `failure` in step `Build` | #473 opened at 10:45; a dispatch at 21:46 papered over it, the issue never closed |
+| `v1-production-qa.yml` | 2026-11-09 22:25:35 | `failure` in step `Portfolio visual QA` | commented on #216 at 22:29 — **four minutes end to end** |
+
+`nse_compare` has been cancelled/success/cancelled/success/cancelled over its
+last five scheduled runs: it times out every other week, and has been red
+since 8 Nov with nobody acting.
+
+**The two that matter tomorrow.** `daily_sync` has `workflow_dispatch`,
+`concurrency: daily-sync` with `cancel-in-progress: false`, `timeout-minutes:
+45`, and hard failures on `sync_data.py`, the R2 publish (`set -euo
+pipefail`), a push that fails five attempts, and `Fail when a ranking was not
+precomputed`. **It is loud if the ranking or the push breaks and silent if a
+feed breaks.** `monthly_track_record` does not run tomorrow — cron
+`0 19 1-5 * *`, next fire 1 Dec 19:00 UTC — and is the better built of the
+two: `Check the app can rank with the new NSE closes` and `Freeze newly closed
+months` have no `|| echo`, so a refusal stops the job and nothing is frozen or
+committed. October is already recorded (`data/track_record.json`, `"2026-10"`,
+`"origin": "recorded"`, `"finalized_on": "2026-11-03"`).
+
+**Two more for the record.** The alert workflow is **not in its own watch
+list**, and its `concurrency: scheduled-failure-alert` with
+`cancel-in-progress: false` has discarded 21 runs (109 success, 0 failure,
+21 cancelled of 2,954); three inspected report `jobs: 0`, cancelled 2–7
+seconds after creation, their `if:` never evaluated. In both bursts traced,
+a surviving sibling still reported the failure, so this is a latent hole —
+not proved to have lost an alert, and not proved safe. And **GitHub's cron
+queue is hours late**: the 2026-11-09 `30 17` daily-sync slot was created
+2026-11-10 00:45:55, **7h15m late**; a 2026-11-06 `0 2` slot fired at 08:48,
+6h48m late. If launch needs fresh prices at a known hour tomorrow, dispatch
+the sync by hand rather than trusting the cron.
+
+**O-L5, measured and narrowed.** Every `uses:` across all 47 files is a
+GitHub-owned action on a mutable major tag, never a SHA: `checkout@v7` ×46,
+`setup-python@v7` ×46, `upload-artifact@v7` ×13, `cache/save@v6` ×3,
+`cache/restore@v6` ×3, plus `upload-artifact@v4` ×2, `setup-python@v5` and
+`checkout@v4`. **No third-party action anywhere, and no `@master` or
+`@main`.** The two files still on v4/v5 are not scheduled.
