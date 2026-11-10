@@ -15,6 +15,7 @@ from src.core.config import SHORT_FORMS
 from src.engine.pipeline import price_fingerprint
 from src.ui import lw_chart as lw
 from src.ui import page_kit as kit
+from src.ui.page_kit import _series_of
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.theme import render_saas_table
 from src.engine import size_leadership as sl
@@ -78,7 +79,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     if levels is not None and bench is not None and "nifty50" in bench:
         size_ok, _ = sl.cross_check(levels, bench["nifty50"])
     nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
-                else (bench or {}).get("nifty500"))
+                else _series_of(bench, "nifty500"))
     render_breadth_questions(rank_df, history_prices if history_prices is not None else adj_close,
                              nifty500, size_closes(levels, size_ok))
 

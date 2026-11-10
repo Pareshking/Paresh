@@ -30,7 +30,7 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
 | 2 ✅ | 03:05 | **Functional sweep, desktop.** All 12 pages at 1400px: every control exercised once (filters, pickers, tabs, expanders, downloads, popovers), deep links (`?stock=`, `?owner=`), and the nav. Proves: nothing throws when touched, not merely when loaded. |
 | 3 ✅ | 03:35 | **Functional sweep, phone.** The same at 390px, plus tap-target measurement and the menu. Proves: the phone is a first-class reader, not a resized desktop. |
 | 4 ✅ | 04:05 | **Cross-reading consistency.** Take every figure that appears on more than one page (the EMA distance, the qualified count, returns, drawdown, the book's value) and assert the pages agree. Proves: no second EMA bug. |
-| 5 | 04:35 | **Resilience.** Run the app against a missing price file, a stale one, an empty ranking, no R2 credentials, and a benchmark with a gap. Proves: it degrades with a sentence, not a traceback. |
+| 5 ✅ | 04:35 | **Resilience.** Run the app against a missing price file, a stale one, an empty ranking, no R2 credentials, and a benchmark with a gap. Proves: it degrades with a sentence, not a traceback. |
 | 6 | 05:05 | **Accessibility.** Contrast on every text colour actually used, heading order, alt text, keyboard-only navigation, focus visibility, screen-reader labels on icon buttons. Target: WCAG 2.1 AA. |
 | 7 | 05:35 | **Performance and weight.** Cold start, time to content per page, page bytes, memory at the heaviest page, test-suite runtime. Records the numbers the owner's 10%/20%/20% targets are measured against. |
 | 8 | 06:05 | **Security and privacy.** Secret scan over the repo and the built page, the owner-gated controls, query-parameter injection through `?stock=`, what the published page exposes, and what the logs print. |
@@ -191,3 +191,50 @@ that cannot find its figure fails loudly instead of passing on an empty match.
 
 **Not covered by this slot**: figures that appear on only one page (nothing to
 compare), and the record's own returns, which no second source reports.
+
+### Slot 5 — resilience (04:35 UTC, done). Four bugs, all launch-relevant
+
+Run in a throwaway git worktree on its own port, so the real tree was never
+broken. Each case removes or truncates one file the app reads, then sweeps the
+pages for a thrown exception.
+
+| Case | Result |
+|---|---|
+| `closes.parquet` removed | no effect — see below |
+| `track_record.json` removed | pages degrade, nothing thrown |
+| `momentum_health.csv` removed | the two cards say so, nothing thrown |
+| **`benchmarks.csv` truncated mid-row** | **Dashboard, Breadth and Sectors all threw** |
+
+**The price case proved the opposite of what it set out to.** Deleting
+`closes.parquet` changed nothing, because the app's live source is Screener,
+fetched at run time: `Ranking price source selected: source=screener
+as_of=2026-11-09 high_basis=closing prices intraday=no`. The committed parquet
+is only the fallback. Worth recording twice over, because the same log line
+independently confirms the 52-week-high change: `high_basis=closing prices`.
+
+**A half-written `benchmarks.csv` took three pages down, in three different
+places.** The file still parses when it is cut mid-row — but its dates come
+back as strings, and nothing downstream expects that:
+
+1. `dashboard_view` wrote `(bench or {}).get("nifty500")`, and `bench` is a
+   DataFrame. Python only evaluates that branch when the primary series is
+   empty — the degraded case — so the crash was invisible until the file
+   broke. `breadth_view` and `sector_view` had the same line. Now one
+   `_series_of` helper, which never asks a frame whether it is true.
+2. `market_questions._on_or_before` called `searchsorted` on a string index:
+   *"'<' not supported between instances of 'str' and 'Timestamp'"*. It
+   returns None now rather than raising.
+3. `sector_breadth` called `asof` through the **other** reader of the same
+   file, `benchmark_store.read`, which my first guard did not cover. One file,
+   two readers — exactly the duplication the 10 Nov audit flagged. Both now
+   reject an undated file.
+
+**And the worst of the four, which was not a crash at all.** With no usable
+benchmark the header read **"Nifty 500 0.0% above its 200D EMA"** beside a
+level of **"0"**. A traceback tells a reader something is broken; a confident
+zero tells them the Nifty 500 is at zero. It reads **"Nifty 500 — no reading"**
+now, with "—" for the level.
+
+Three regression tests cover the undated file, both readers, and the honest
+header. The healthy path is unchanged: 2,609 tests pass and all six
+cross-page figures still agree.

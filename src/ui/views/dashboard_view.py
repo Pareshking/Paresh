@@ -36,6 +36,7 @@ from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
 from src.ui import formats as fmt
 from src.ui import page_kit as kit
+from src.ui.page_kit import _series_of
 from src.ui.canonical_book import current_book
 from src.ui.components import gap_count, render_data_quality_footer
 from src.ui.system_param import page_href, stock_href
@@ -264,7 +265,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     if levels is not None and bench is not None and "nifty50" in bench:
         size_ok, _ = sl.cross_check(levels, bench["nifty50"])
     nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
-                else (bench or {}).get("nifty500"))
+                else _series_of(bench, "nifty500"))
     _strip = {"Nifty 500": nifty500} if nifty500 is not None else {}
     _strip.update(size_closes(levels, size_ok))
     if _strip:

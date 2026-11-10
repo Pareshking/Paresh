@@ -52,4 +52,14 @@ def nse_benchmarks() -> pd.DataFrame | None:
     except Exception as exc:
         logger.warning("benchmarks.csv unreadable: %s", type(exc).__name__)
         return None
+    # A file cut off mid-row still parses, but its dates come back as strings,
+    # and every consumer then compares a str with a Timestamp: the Dashboard,
+    # Breadth and Sectors all died on `searchsorted` with "'<' not supported
+    # between instances of 'str' and 'Timestamp'" (launch slot 5, 10 Nov 2026).
+    # A file we cannot date is a file we cannot use, so say so once, here,
+    # rather than in three views.
+    if not isinstance(frame.index, pd.DatetimeIndex):
+        logger.warning("benchmarks.csv has no usable dates (index is %s); treating it as absent.",
+                       type(frame.index).__name__)
+        return None
     return frame

@@ -15,6 +15,7 @@ from src.ui import formats as _fmt
 
 from src.ui.system_param import stock_href
 from src.ui import page_kit as kit
+from src.ui.page_kit import _series_of
 from src.engine.pipeline import price_fingerprint
 from src.engine.sector_breadth import EMA_SPANS, sector_leadership
 from src.loaders import benchmark_store
@@ -314,7 +315,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     if levels is not None and nbench is not None and "nifty50" in nbench:
         size_ok, _ = sl.cross_check(levels, nbench["nifty50"])
     nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
-                else (nbench or {}).get("nifty500"))
+                else _series_of(nbench, "nifty500"))
     render_leaders_section(rank_df, history_prices if history_prices is not None else adj_close,
                            nifty500, size_closes(levels, size_ok))
 

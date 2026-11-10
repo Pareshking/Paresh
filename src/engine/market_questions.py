@@ -55,7 +55,15 @@ class Answer:
 
 
 def _on_or_before(index: pd.DatetimeIndex, when: pd.Timestamp) -> pd.Timestamp | None:
-    pos = index.searchsorted(when, side="right") - 1
+    """The last index entry at or before `when`, or None.
+
+    None rather than an exception when the index cannot be compared with a
+    date at all: a truncated benchmarks.csv gives a string index, and this
+    function is on the path of every market question (launch slot 5)."""
+    try:
+        pos = index.searchsorted(when, side="right") - 1
+    except TypeError:
+        return None
     return None if pos < 0 else index[pos]
 
 
