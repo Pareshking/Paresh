@@ -8,6 +8,7 @@ size table out and says so, rather than showing figures it could not load.
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -30,6 +31,7 @@ def fetch_index_levels() -> pd.DataFrame | None:
         except Exception as exc:
             logger.warning("INDEX_LEVELS_FILE unreadable: %s", type(exc).__name__)
             return None
+    started = time.perf_counter()
     try:
         from src.storage.r2 import R2Archive, R2Config
         from src.storage.reader import R2DatasetReader
@@ -37,7 +39,12 @@ def fetch_index_levels() -> pd.DataFrame | None:
         reader = R2DatasetReader(R2Archive(R2Config.from_env()))
         frame = reader.read_parquet(reader.resolve_current(DATASET))
     except Exception as exc:  # not configured here, or the read failed
-        logger.warning("Index levels unavailable from R2 (%s): %s", DATASET, type(exc).__name__)
+        # The elapsed time is in the line because the cost of this failure was
+        # read off the GAP between log lines and attributed to R2 (TODO S115,
+        # candidate b). It is not the gap: measure it here or not at all.
+        logger.warning("Index levels unavailable from R2 (%s): %s after %.0f ms",
+                       DATASET, type(exc).__name__,
+                       (time.perf_counter() - started) * 1000)
         return None
     if frame is None or frame.empty or not {"date", "index", "close"} <= set(frame.columns):
         return None

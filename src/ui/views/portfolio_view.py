@@ -510,15 +510,21 @@ def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | 
     return eq[~eq.index.duplicated()], bm[~bm.index.duplicated()]
 
 
-def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
+def render_portfolio_view(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
     """Render the canonical ₹1 crore model portfolio as a portfolio dashboard.
 
     It takes no Configuration limits: the book is the track record's, run on
     its pinned settings (TRACK_RECORD_CONFIG), whatever the sliders say.
+
+    `prices` is the adjusted-close frame the ranking is computed on. It used to
+    arrive as the whole momentum engine, of which this page read `calc.prices`
+    and nothing else -- so the first view built an engine it never scored with
+    (1.3 s, profiled 10 Nov 2026). pipeline.ranked_prices returns the identical
+    frame; app.py passes it.
     """
     capital = PORTFOLIO_STARTING_CAPITAL
     system = system_param.current() or SYSTEM_750
-    prices = getattr(calc, "prices", pd.DataFrame())
+    prices = prices if prices is not None else pd.DataFrame()
     benchmark_close = fetch_benchmark_history(period="5y")
 
     try:

@@ -23,7 +23,12 @@ import numpy as np
 import pandas as pd
 
 from src.engine.calendar_momentum import _apply_weight_composite, _compute_period_z_scores
-from src.engine.momentum import ATR_DERIVED_COLUMNS, MomentumEngine
+from src.engine.momentum import (
+    ATR_DERIVED_COLUMNS,
+    MomentumEngine,
+    _normalize_ticker_cols,
+    clean_holidays,
+)
 
 # Bump when a change alters the numbers this pipeline produces. A precomputed
 # table recorded under a different version is discarded rather than trusted:
@@ -299,6 +304,76 @@ def _trim_to_ranked_session(*frames):
     return out, cutoff
 
 
+def _prepared_frames(
+    adj_close: pd.DataFrame,
+    high_prices: pd.DataFrame,
+    low_prices: pd.DataFrame,
+    close_prices: pd.DataFrame,
+    volume_data: pd.DataFrame,
+    *,
+    announce: bool = False,
+):
+    """The frames the ranking is taken from: stragglers carried, tail trimmed.
+
+    Shared by `build_engine` and `ranked_prices` so the two cannot drift: the
+    price frame a page reads off the engine has to be the same frame whether
+    or not the engine was built. Only `build_engine` announces (`announce`),
+    so reading the frame cheaply does not duplicate the cold-start log lines.
+    """
+    carried = carried_symbols(adj_close)
+    if carried:
+        adj_close, high_prices, low_prices, close_prices = (
+            carry_last_prints(f, carried)
+            for f in (adj_close, high_prices, low_prices, close_prices)
+        )
+        if announce:
+            from src.core import startup_metrics as metrics
+            from src.core.logger import logger
+
+            metrics.note("ranking_carried_symbols", ",".join(carried))
+            logger.info(
+                "Ranking on the newest session with %d symbol(s) on their last "
+                "print: %s", len(carried), ", ".join(carried),
+            )
+    frames, cutoff = _trim_to_ranked_session(
+        adj_close, high_prices, low_prices, close_prices, volume_data
+    )
+    if cutoff is not None and announce:
+        from src.core.logger import logger
+
+        logger.info(
+            "Ranking as of %s: the newer session(s) are still filling in and "
+            "would drop every symbol the vendor has not published yet.",
+            str(cutoff)[:10],
+        )
+    return frames, carried
+
+
+def ranked_prices(
+    adj_close: pd.DataFrame,
+    high_prices: pd.DataFrame | None = None,
+    low_prices: pd.DataFrame | None = None,
+    close_prices: pd.DataFrame | None = None,
+    volume_data: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """`build_engine(...).prices`, without building the engine.
+
+    The Portfolio page reads nothing off the engine but this one frame, and
+    building the whole engine to hand it over cost 1.3 s of its first view
+    (profiled 10 Nov 2026, S115). The frame is produced here by the same four
+    steps the engine path applies -- carry the stragglers, trim the tail, drop
+    the exchange holidays, normalise the ticker columns -- and
+    `tests/test_ranked_prices_match_the_engine.py` fails if the two ever differ,
+    because a page reading a different price frame would report different
+    figures.
+    """
+    frames, _carried = _prepared_frames(
+        adj_close, high_prices, low_prices, close_prices, volume_data
+    )
+    out = _normalize_ticker_cols(clean_holidays(frames[0]))
+    return out if out is not None else pd.DataFrame()
+
+
 def build_engine(
     adj_close: pd.DataFrame,
     high_prices: pd.DataFrame,
@@ -310,33 +385,10 @@ def build_engine(
     corporate_actions: list | None = None,
 ) -> MomentumEngine:
     """The expensive half: everything that does not depend on the weights."""
-    carried = carried_symbols(adj_close)
-    if carried:
-        from src.core import startup_metrics as metrics
-        from src.core.logger import logger
-
-        adj_close, high_prices, low_prices, close_prices = (
-            carry_last_prints(f, carried)
-            for f in (adj_close, high_prices, low_prices, close_prices)
-        )
-        metrics.note("ranking_carried_symbols", ",".join(carried))
-        logger.info(
-            "Ranking on the newest session with %d symbol(s) on their last "
-            "print: %s", len(carried), ", ".join(carried),
-        )
-    (adj_close, high_prices, low_prices, close_prices, volume_data), cutoff = (
-        _trim_to_ranked_session(
-            adj_close, high_prices, low_prices, close_prices, volume_data
-        )
+    (adj_close, high_prices, low_prices, close_prices, volume_data), carried = (
+        _prepared_frames(adj_close, high_prices, low_prices, close_prices,
+                         volume_data, announce=True)
     )
-    if cutoff is not None:
-        from src.core.logger import logger
-
-        logger.info(
-            "Ranking as of %s: the newer session(s) are still filling in and "
-            "would drop every symbol the vendor has not published yet.",
-            str(cutoff)[:10],
-        )
     calc = MomentumEngine(
         adj_close,
         high_df=high_prices,

@@ -36,7 +36,11 @@ def test_the_kite_basket_starts_at_portfolios_capital(monkeypatch):
 def test_portfolio_takes_no_configuration_limits():
     from src.ui.views.portfolio_view import render_portfolio_view
 
-    assert list(inspect.signature(render_portfolio_view).parameters) == ["calc", "rank_df"]
+    # "prices", not "calc": the page reads the ranking's price frame and
+    # nothing else off the engine, so it is handed the frame (S115, 10 Nov
+    # 2026). Either way the point of this assertion stands -- no Configuration
+    # limit is among its arguments.
+    assert list(inspect.signature(render_portfolio_view).parameters) == ["prices", "rank_df"]
     app = (ROOT / "app.py").read_text(encoding="utf-8")
     assert "vol_target" not in app and "cfg_vt" not in app
 

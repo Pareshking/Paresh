@@ -616,6 +616,26 @@ def _run_engine_base(
     )
 
 
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=2)
+def _ranked_prices_cached(
+    base_hash: str,
+    _adj_close: pd.DataFrame,
+    _high_prices: pd.DataFrame,
+    _low_prices: pd.DataFrame,
+    _close_prices: pd.DataFrame,
+    _volume_data: pd.DataFrame,
+) -> pd.DataFrame:
+    """`build_engine(...).prices` for the pages that read only that frame.
+
+    Shared, not copied, for the same reason _run_engine_base is: pandas 3
+    copy-on-write keeps a reader from reaching it, and base_hash already
+    encodes the price state, the universe and the corporate actions applied.
+    """
+    metrics.incr("memo_miss_ranked_prices")
+    return pipeline.ranked_prices(_adj_close, _high_prices, _low_prices,
+                                  _close_prices, _volume_data)
+
+
 @st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
 def _ranked_shared(
     base_hash: str,
@@ -853,13 +873,27 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
         calc, rank_df = _build_engine_and_rank()
 
     return {
-        # A CALLABLE, not the engine. Only Portfolio needs it now (Sectors
-        # and RRG read the ranking table directly); the Screener that every cold start lands on
-        # does not, and building it eagerly made every reader pay 30 seconds for
-        # an object their first page never touched. Pages that need it call this
-        # and get the same memoised engine.
-        "get_calc": (lambda: calc) if calc is not None else (
-            lambda: _build_engine_and_rank()[0]
+        # No page asks for the engine any more. Sectors and RRG read the
+        # ranking table; Portfolio read one price frame off it and now takes
+        # that frame directly (below). Building it eagerly made every reader
+        # pay 30 seconds for an object their first page never touched, and
+        # building it on Portfolio's first view cost that page 1.3 s.
+        # `_build_engine_and_rank` still runs when the precomputed ranking
+        # cannot be verified: then there IS no ranking without it.
+        #
+        # The ONE frame the Portfolio page used to take the engine for: the
+        # adjusted closes the ranking is computed on. Taking it from the engine
+        # built the whole engine -- 1.3 s of Portfolio's first view, profiled
+        # 10 Nov 2026 -- for a page that scores nothing. pipeline.ranked_prices
+        # produces the identical frame from the same three steps, and
+        # tests/test_ranked_prices_match_the_engine.py fails if it ever does not.
+        # The shallow copy is what the engine path already handed out
+        # (pipeline.engine_view isolates every frame the same way): the reader
+        # gets its own container over the same arrays, so a write lands on the
+        # reader and never in the shared cache.
+        "get_ranked_prices": (lambda: calc.prices.copy(deep=False)) if calc is not None else (
+            lambda: _ranked_prices_cached(base_hash, adj_close, high_p, low_p,
+                                          close_p, vol_p).copy(deep=False)
         ),
         "calc": calc,
         "rank_df": rank_df,
@@ -927,11 +961,12 @@ if not data:
     _emit_startup_metrics("data_init_failed")
     st.stop()
 
-# The engine, only when a page actually needs it. `calc` is None whenever the
-# precomputed ranking was accepted, which is the common cold start -- see
-# _precomputed_ranking. Only Portfolio calls get_calc() and pays for it then.
+# `calc` is None whenever the precomputed ranking was accepted, which is the
+# common cold start -- see _precomputed_ranking. No page builds the engine to
+# read from it any more; it exists here only for the empty-ranking diagnostics
+# below, which can only be reached when the engine did run.
 calc = data["calc"]
-get_calc = data["get_calc"]
+get_ranked_prices = data["get_ranked_prices"]
 rank_df = data["rank_df"]
 adj_close = data["adj_close"]
 deep_adj_close = data.get("deep_adj_close")
@@ -1096,8 +1131,9 @@ def _page_rrg() -> None:
 
 
 def _page_portfolio() -> None:
-    # The pinned model book: no Configuration limits reach it.
-    render_portfolio_view(calc=get_calc(), rank_df=rank_df)
+    # The pinned model book: no Configuration limits reach it, and no engine is
+    # built for it -- it reads the ranking's price frame, nothing else (S115).
+    render_portfolio_view(prices=get_ranked_prices(), rank_df=rank_df)
 
 
 def _page_watchlist() -> None:
