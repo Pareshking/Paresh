@@ -32,7 +32,7 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
 | 4 ✅ | 04:05 | **Cross-reading consistency.** Take every figure that appears on more than one page (the EMA distance, the qualified count, returns, drawdown, the book's value) and assert the pages agree. Proves: no second EMA bug. |
 | 5 ✅ | 04:35 | **Resilience.** Run the app against a missing price file, a stale one, an empty ranking, no R2 credentials, and a benchmark with a gap. Proves: it degrades with a sentence, not a traceback. |
 | 6 ✅ | 05:05 | **Accessibility.** Contrast on every text colour actually used, heading order, alt text, keyboard-only navigation, focus visibility, screen-reader labels on icon buttons. Target: WCAG 2.1 AA. |
-| 7 | 05:35 | **Performance and weight.** Cold start, time to content per page, page bytes, memory at the heaviest page, test-suite runtime. Records the numbers the owner's 10%/20%/20% targets are measured against. |
+| 7 ✅ | 05:35 | **Performance and weight.** Cold start, time to content per page, page bytes, memory at the heaviest page, test-suite runtime. Records the numbers the owner's 10%/20%/20% targets are measured against. |
 | 8 | 06:05 | **Security and privacy.** Secret scan over the repo and the built page, the owner-gated controls, query-parameter injection through `?stock=`, what the published page exposes, and what the logs print. |
 | 9 | 06:35 | **The jobs.** Every scheduled workflow's last run, the failure alert itself, and a dry run of the two that matter tomorrow (the daily sync and the monthly freeze). Proves: a silent job failure is impossible. |
 | 10 | 07:05 | **Content.** No placeholder text, no "TODO" or "lorem", every external link resolves, every date on the page is the date it claims, the Guide matches what the model does. |
@@ -320,3 +320,99 @@ reader (NVDA, VoiceOver — Chromium's accessibility tree is not the same thing
 as what a reader hears), colour-blind simulation, and the WCAG 1.4.12 text
 spacing override. Contrast is measured against the 4.5:1 and 3:1 thresholds
 only; nothing here says the palette is comfortable, only that it is compliant.
+
+
+### Slot 7 — performance and weight (05:35 UTC, done). The baseline, and one more wrong number
+
+`scripts/launch_perf.py` with `scripts/_launch_perf.js`. Nothing here passes or
+fails: a baseline that can fail is a baseline nobody records. Owner, 9 Nov
+2026: *"I want my code to be 10% faster, 20% less resources usage and 20% less
+space."* These are the numbers those targets are measured against.
+
+#### Start and memory
+
+| | |
+|---|---|
+| Server answers HTTP | 1.1 s after launch |
+| Cold start to the dashboard's content, from process start | **14.6 s** |
+| Server RSS after the first page | **316 MB** |
+| Test suite | **163 s**, 2,609 tests |
+| Everything git tracks | **25,650 KB** |
+
+#### Per page, at 1400px
+
+Two numbers each, because a reader pays each once: **cold** is a first visit
+with an empty cache, **warm** is a click from the nav after the other pages.
+
+| Page | cold | cold over the wire | warm | warm over the wire | DOM nodes | frames | frame HTML | JS heap |
+|---|---|---|---|---|---|---|---|---|
+| Dashboard | 4.4 s | 3,446 KB | 4.7 s | (first in the walk) | 661 | 0 | — | 22.6 MB |
+| Portfolio | 5.1 s | 4,590 KB | 4.6 s | **1,145 KB** | 715 | 7 | 382 KB | 32.3 MB |
+| Actions | 4.7 s | 3,472 KB | 4.2 s | 10 KB | 872 | 1 | 74 KB | 20.0 MB |
+| Watchlist | 4.3 s | 3,451 KB | 3.9 s | 21 KB | 281 | 0 | — | 22.6 MB |
+| Screener | 4.7 s | 3,759 KB | 4.1 s | 198 KB | 871 | 1 | **2,327 KB** | 28.7 MB |
+| Sectors | 4.5 s | 3,574 KB | 3.9 s | 2 KB | **1,467** | 2 | 84 KB | 28.7 MB |
+| Sector rotation | 4.5 s | 3,435 KB | 3.9 s | 3 KB | 576 | 1 | 67 KB | 25.4 MB |
+| Breadth | **5.2 s** | 3,430 KB | 4.4 s | 2 KB | 613 | 6 | 622 KB | 25.4 MB |
+| Backtest | 4.5 s | 3,823 KB | 4.0 s | 116 KB | 1,032 | 2 | 47 KB | 23.9 MB |
+| Configuration | 4.3 s | 3,756 KB | 4.0 s | 35 KB | 737 | 2 | 19 KB | 28.7 MB |
+| Guide | 4.2 s | 3,431 KB | 3.9 s | 2 KB | 324 | 0 | — | 21.2 MB |
+
+**A reader downloads about 3.4 MB once and then almost nothing.** The 3.4 MB
+is Streamlit's own bundle, not ours: `protobuf` 816 KB, `index` 444 KB,
+`styled-components` 789 KB, `lib` 253 KB, `StreamlitMarkdown` 225 KB,
+`rehype-raw` 184 KB, `react-dom` 130 KB, plus the Material Symbols icon font
+at 365 KB. It carries `cache-control: public, immutable, max-age=31536000`, so
+it is fetched once per release and then never again.
+
+What is *ours* and still costs on a warm visit:
+
+- **Portfolio, 1,145 KB** — the only page that loads both chart libraries:
+  `highstock.js` 373 KB and `lightweight-charts.standalone` 193 KB. Both are
+  genuinely used there (the heatmap needs Highcharts, the panes need the
+  other), so this is the price of that page, not a mistake.
+- **Screener, 198 KB** — the 750-row table, which is also the biggest single
+  framed document on the site at 2,327 KB of HTML.
+- **Fonts, once per chart frame.** `ibm-plex-sans-400-latin.woff2` (45.7 KB)
+  was requested 11 times on Portfolio's first visit and 4 times on the
+  dashboard's. Each chart frame is its own document and links the whole
+  `static/fonts.css` — eighteen faces, including Source Serif at 122 KB — and
+  on a cold load the frames all ask before any answer lands, so the cache
+  cannot help. Unlike Streamlit's bundle, our `/app/static/` files come back
+  with **no `cache-control` at all** (ETag and Last-Modified only), so a
+  browser caches them heuristically rather than by instruction. It worked in
+  every measurement here; it is not guaranteed to.
+
+#### Where the 25,650 KB git tracks actually is
+
+| | |
+|---|---|
+| `nse_index_rebuild/` | **12,101 KB (47%)** |
+| `data/nse_prices/` | 2,338 KB |
+| `data/reference/` | 2,033 KB |
+| `tests/` | 1,278 KB |
+| `static/` | 1,081 KB (the two chart libraries and the fonts) |
+| `reports/` | 737 KB |
+| `src/ui/` | 714 KB |
+
+Nearly half of the repository is one directory, and it is the membership
+evidence trail — which is why it is an owner decision, not a cleanup.
+
+#### And the sixth harness fault
+
+The first version of this check reported that **nothing was cached**: a second
+visit to the dashboard in the same browser "downloaded" 3,473 KB with zero 304
+responses. That would have been the single most important fact about the site,
+and it was false. A response served out of the browser's cache still fires a
+`response` event and still hands over a body, so counting those bytes counts a
+cache hit as a download. Bytes now come from the Resource Timing API, where
+`transferSize === 0` with a non-zero decoded body is a cache hit — and the
+warm column above, 2 KB where it had said 3,473, is what that correction is
+worth.
+
+#### Nothing was changed
+
+Every figure above is a measurement, and the one avoidable cost (the fonts per
+frame) needs a change to what every chart document links — exactly the kind of
+change the standing rule puts after launch, not the night before. The
+candidates, with their numbers, are in `docs/TODO.md` S114.
