@@ -27,7 +27,7 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
 | Slot | Time | What |
 |---|---|---|
 | 1 ✅ | 02:35 | **This plan, and the pre-launch gate.** One command that answers "is the site fit to launch right now": every page renders, no page wider than its viewport, data freshness inside tolerance, no secret in the repo. |
-| 2 | 03:05 | **Functional sweep, desktop.** All 12 pages at 1400px: every control exercised once (filters, pickers, tabs, expanders, downloads, popovers), deep links (`?stock=`, `?owner=`), and the nav. Proves: nothing throws when touched, not merely when loaded. |
+| 2 ✅ | 03:05 | **Functional sweep, desktop.** All 12 pages at 1400px: every control exercised once (filters, pickers, tabs, expanders, downloads, popovers), deep links (`?stock=`, `?owner=`), and the nav. Proves: nothing throws when touched, not merely when loaded. |
 | 3 | 03:35 | **Functional sweep, phone.** The same at 390px, plus tap-target measurement and the menu. Proves: the phone is a first-class reader, not a resized desktop. |
 | 4 | 04:05 | **Cross-reading consistency.** Take every figure that appears on more than one page (the EMA distance, the qualified count, returns, drawdown, the book's value) and assert the pages agree. Proves: no second EMA bug. |
 | 5 | 04:35 | **Resilience.** Run the app against a missing price file, a stale one, an empty ranking, no R2 credentials, and a benchmark with a gap. Proves: it degrades with a sentence, not a traceback. |
@@ -40,9 +40,9 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
 
 ## What this plan does NOT cover, and why
 
-- **Real iOS Safari and Android Chrome.** This container has Chromium only.
-  Phone-width Chromium catches layout, not engine quirks. Someone has to open
-  the site on a real phone before launch; it is the one test I cannot run.
+- **Real iOS Safari and Android Chrome.** Owner, 10 Nov 2026: "Safari not
+  required to be tested." Phone-width Chromium is therefore the standard, and
+  slot 3 holds it.
 - **Load.** Streamlit Cloud serves one container; a load test would mostly
   measure their queue, and running one against production the night before
   launch risks the thing it is meant to protect. Out of scope deliberately.
@@ -73,3 +73,44 @@ first, and the live footer said 8 Nov. A gate that cries wolf about the wrong
 file would have been worse than no gate, so it now names the source it read and
 fails only if the fallback is old enough to mislead on a day R2 is unreachable.
 What a reader actually sees is the footer, which the page sweep reads.
+
+### Slot 2 — every control touched, desktop (03:05 UTC, done)
+
+`scripts/_launch_controls.js` clicks each pill, tab, expander and ordinary
+button once at 1400px and waits for the rerun. Loading a page proves little:
+most Streamlit failures happen on the rerun a control triggers.
+
+| Page | Controls clicked | Failures |
+|---|---|---|
+| Dashboard | 0 (it has links, no controls) | — |
+| Screener | 7 | none |
+| Portfolio | 9 | none |
+| Actions | 4 (5 skipped as destructive) | none |
+| Sectors | 11 | none |
+| Breadth | 6 | none |
+| Backtest | 6 | none |
+| Watchlist | 1 | none |
+| Configuration | 6 | none |
+| Guide | 0 | — |
+| Sectors rotation (RRG) | 10 | none |
+
+**60 controls, nothing thrown.** Destructive controls are never clicked: a
+label matching sync, clear, delete, reset, remove, download or export acts
+site-wide or writes a file.
+
+One failure was reported and then withdrawn, which is worth recording. The
+first run said a Configuration control could not be clicked (an 8s timeout).
+It was the harness: an earlier click had opened a dialog, and the modal covered
+everything after it. With dialogs dismissed between clicks, Configuration
+passes 6/6. A test that blames the app for its own mess is worse than no test.
+
+**Two 404s on every page, explained and left alone**: Streamlit's own client
+asks for `_stcore/health` and `_stcore/host-config` relative to the page path
+(`/screener/_stcore/health`) before falling back to the root. It is Streamlit's
+behaviour, not ours, the app works, and it accounts for the "console errors: 15"
+that production QA reports. Recorded so nobody chases it as a symptom later.
+
+**The owner gate holds.** With no `OWNER_KEY` set, `?owner=`, `?owner=guess`,
+`?owner=1`, `?owner=true` and `?owner=admin` all leave the two site-wide
+controls hidden ("Sync from niftyindices.com", "Clear cached files"). A visitor
+cannot guess their way to a button that clears everyone's caches.
