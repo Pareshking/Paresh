@@ -35,8 +35,8 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
 | 7 ✅ | 05:35 | **Performance and weight.** Cold start, time to content per page, page bytes, memory at the heaviest page, test-suite runtime. Records the numbers the owner's 10%/20%/20% targets are measured against. |
 | 8 ✅ | 06:05 | **Security and privacy.** Secret scan over the repo and the built page, the owner-gated controls, query-parameter injection through `?stock=`, what the published page exposes, and what the logs print. |
 | 9 ✅ | 06:35 | **The jobs.** Every scheduled workflow's last run, the failure alert itself, and a dry run of the two that matter tomorrow (the daily sync and the monthly freeze). Proves: a silent job failure is impossible. |
-| 10 | 07:05 | **Content.** No placeholder text, no "TODO" or "lorem", every external link resolves, every date on the page is the date it claims, the Guide matches what the model does. |
-| 11 | 07:35 | **Launch report.** One page: what was tested, what was found, what is fixed, what is known and accepted, and the single sentence on whether it is fit to launch. |
+| 10 ✅ | 07:05 | **Content.** No placeholder text, no "TODO" or "lorem", every external link resolves, every date on the page is the date it claims, the Guide matches what the model does. |
+| 11 ✅ | 07:35 | **Launch report.** One page: what was tested, what was found, what is fixed, what is known and accepted, and the single sentence on whether it is fit to launch. |
 
 ## What this plan does NOT cover, and why
 
@@ -555,3 +555,200 @@ GitHub-owned action on a mutable major tag, never a SHA: `checkout@v7` ×46,
 `cache/restore@v6` ×3, plus `upload-artifact@v4` ×2, `setup-python@v5` and
 `checkout@v4`. **No third-party action anywhere, and no `@master` or
 `@main`.** The two files still on v4/v5 are not scheduled.
+
+
+### Slot 10 — content (07:05 UTC, done). Four things a reader would have seen
+
+| Checked | Count |
+|---|---|
+| Placeholder patterns in rendered text | 33 patterns × 11 pages, 224,154 characters, chart frames included |
+| Soft placeholder phrases | 13 more, plus 81 em-dashes, 235 `0.0%` and 3 empty cells adjudicated one at a time |
+| External links | 1,043 href/src occurrences crawled; 5 distinct URLs, each checked three ways |
+| Dates printed on a page | 43 distinct, each traced to its source file |
+| The Guide against the model | 19 assertions read against `TRACK_RECORD_CONFIG`, `backtester.py` and `docs/TRACK_RECORD.md` |
+
+**Zero placeholders.** No TODO, TBD, FIXME, lorem, XXX, "coming soon",
+"placeholder", example.com, undefined, NaN, None, null, Traceback, `{}`
+template or `%s` anywhere in what the site renders. Every em-dash, every
+`0.0%` and all three empty cells are legitimate — a future month, a short
+price history, a spanning group header, and a holding exactly at its target
+weight.
+
+**All five external URLs resolve** (TradingView, four jsdelivr files), and the
+site makes **no external network request on any page**: the CDN tags are
+fallbacks inside `if (!window.Highcharts)`, the fonts are self-hosted, and the
+only reader-facing external link is the stock page's "Chart" button. No 403
+appeared, so the method that would separate a bot-blocker from a dead link
+(HEAD, ranged GET, ranged GET with a browser UA) never had to arbitrate.
+
+**Four fixed, all verified on the live pages.**
+
+1. **The freshness ribbon called the newest session stale, on launch morning.**
+   The Screener and Configuration read *"Prices: 9 Nov · 752/752 · 1 trading
+   day behind"* when 9 Nov was the latest session there was: **10 November
+   2026 is Diwali-Balipratipada**, line 19 of
+   `data/reference/nse/holidays.csv`, from NSE's own holiday-master API,
+   fetched 3 Oct. `trading_days_behind` indexed `recent_trading_days`, which
+   deliberately does not enumerate holidays — correctly, because only the
+   exchange can prove a day was closed. But the *age* of a figure is a
+   different question from which days to try, so the count now drops NSE's
+   published holidays, using the `not_a_session` helper `last_due_session`
+   already uses. It never drops `as_of` itself, so a stale holiday file can
+   make the count short but can never turn a real session into "age unknown",
+   which is what the ribbon shows as stale. After: *"Prices: 9 Nov · 752/752 ·
+   latest session"*, market caps *"latest session"*, all-time highs *"1
+   trading day behind"* (8 Nov, correctly one session back). Two regression
+   tests, including one that asserts the calendar can only shorten the count.
+2. **The breadth chart labelled its last bar four days in the future.** *"Net
+   new highs: … 5.5% on 13 Nov 2026"* on a day whose last session was 9 Nov:
+   `to_period("W-FRI").to_timestamp(how="end")` dates the week in progress by
+   its Friday. The monthly chart seventy lines below already guards this, with
+   a comment about "a '30 Nov' close"; the weekly one never got it. Dropping
+   the bucket, as the monthly chart does, would have left the chart
+   disagreeing with the table beside it, which calls the same +5.5 "this
+   week" — so the label is clamped to the last session. After: *"5.5% on 9 Nov
+   2026"*, and "13 Nov" appears nowhere on the page.
+3. **The Guide contradicted itself about the rule that changes in twenty
+   days.** "Caps" said *"no stock above 5% … of the book at a rebalance"*;
+   "Weighting", sixteen lines later, said a kept holding *"is left as the
+   market moved it unless it is above 15%"*. The code settles it:
+   `backtester.py:570` caps a kept holding at `hold_cap` (0.15), not
+   `stock_cap` (0.05), for every signal from 30 Nov 2026 — and a reader can
+   already see holdings at 5.7%, 5.5% and 5.3% on Portfolio. "Caps" now says a
+   new buy is never above 5% and a kept holding is trimmed only above 15%.
+   Wording only; no reported number moves.
+4. **The Guide quoted the header with a figure the header does not show** —
+   *"Nifty 500 2.9% above its 200D EMA"*, hardcoded, against the 3.4% the
+   header was showing on the same render. The number is gone from the
+   quotation; it was the only hardcoded figure in that section.
+
+**Left, recorded rather than fixed** (`docs/TODO.md` S117): Breadth's
+month-end chart labels October's close "31 Oct 2026", a Saturday, where
+`benchmarks.csv` has `2026-10-30` and the dashboard says "the 30 Oct
+month-end" — the same class as (2), in a second chart; the Guide's "Filters"
+never mentions the 30-print EMA warm-up or that the 52-week high is taken from
+closes (which moves the gate from 22 names to 50), neither of which is in
+`docs/TRACK_RECORD.md` either, so there is nothing to copy from; the Guide
+omits `members_only_scoring_from`; and Watchlist is the only page of eleven
+with no footer.
+
+**Worth recording so nobody re-opens it**: the cost sentence is right.
+`cost_bps` is charged on one-way turnover `sum|dw|/2`, so "30 basis points for
+a round trip" is exactly what happens. And the whole January-to-October
+track-record row matches `track_record.json` month for month with no
+off-by-one, as do all eleven header ribbons, every results-calendar date, the
+two sync timestamps, and the three momentum-health extremes recomputed from
+the file (Dec 2024 +4.24, Jan 2025 −10.27, Oct 2026 −3.40). "13 sessions away"
+is exactly right once both November holidays are removed.
+
+**Not checked**: the stock detail page's own text and dates, anything behind
+an unopened tab or expander, 390px, whether `NSE:CUPID` resolves to the right
+instrument on TradingView's side (it answers 200 to any symbol), and whether
+the holiday miscount bit on every NSE holiday or only on one sitting beside a
+Muhurat weekend.
+
+
+## Slot 11 — the launch report (07:35 UTC)
+
+### Is it fit to launch?
+
+**Yes — the site itself is in good order, and the thing that is not is the
+alerting around the jobs, which matters in weeks rather than tomorrow.**
+
+### What was tested
+
+Ten slots over five hours, on top of the 2,609 unit and engine tests. Every
+page, at 1400px and 390px: drawn, every control clicked, every figure that
+appears twice compared, one data file broken at a time, contrast and keyboard
+and screen-reader names measured, bytes and milliseconds recorded, secrets
+hunted in the repository and in the served markup, 64 hostile query
+parameters, 26 scheduled workflows read, and every date and link on every page
+traced to its source.
+
+### What was found and fixed
+
+| | |
+|---|---|
+| Three pages threw on a half-written `benchmarks.csv` | fixed (slot 5) |
+| The header printed "Nifty 500 **0.0%** above its 200D EMA" beside a level of **0** when it had no reading | now "— no reading" (slot 5) |
+| 75 tap targets under 44px on a phone | 13, all Streamlit's own widget internals (slot 3) |
+| The freshness ribbon called the newest session "1 trading day behind" **on launch morning**, because today is an NSE holiday | fixed, two tests (slot 10) |
+| A breadth chart labelled its last bar four days in the future | fixed (slot 10) |
+| The Guide contradicted itself about the 5% / 15% rule that changes on 30 Nov | fixed (slot 10) |
+| The Guide quoted the header with a figure the header does not show | fixed (slot 10) |
+| `textarea` had no focus ring | fixed (slot 6) |
+
+### What is clean, with the number that says so
+
+| | |
+|---|---|
+| Pages drawn, 1400px and 390px | 11 and 11, none throws, none wider than its viewport |
+| Controls clicked | 60 desktop, 61 phone, nothing thrown |
+| Figures on more than one page | 6 of 6 agree |
+| Text runs below AA contrast | 0 of 16,159 and 0 of 15,443 |
+| Controls with no accessible name | 0 of 360 and 0 of 275 |
+| Keyboard stops with no focus ring | 0 of 266 and 0 of 268 |
+| Secrets in the repository | 0 over 2,033 files |
+| Secrets in the served markup | 0 over 10,373 KB, including four live credential values searched for by value |
+| Hostile query parameters | 64: 0 threw, 0 injected, 0 dialogs, owner controls hidden |
+| Placeholder text | 0 over 224,154 rendered characters |
+| External links | 5 of 5 resolve; the site makes no external request on any page |
+| Dates printed on a page | 43 traced to source; 2 were wrong, both fixed |
+| Tests | 2,609 pass |
+
+### What is known and accepted
+
+- **A silent scheduled-job failure is possible**, which is the opposite of
+  what slot 9 set out to prove. The daily sync has been green through six
+  consecutive runs while its corporate-actions step exited non-zero behind a
+  `|| echo "::warning::"`; the alert has no recovery path, so nine of its ten
+  open issues are stale; and a cron that stops firing produces nothing to
+  alert on. The *data* is right — the prices, the ranking and the record all
+  check out — but nobody would be told quickly if that stopped being true.
+  `docs/TODO.md` S116, seven items with how each is known to be done.
+- **GitHub's cron queue ran 7h15m late on 9 Nov.** If launch day needs fresh
+  prices at a known hour, dispatch `daily_sync` by hand.
+- **A first visit costs 3.4 MB** of Streamlit's own immutable bundle, and
+  `nse_index_rebuild/` is 47% of the repository. Both are owner decisions, not
+  defects; the baseline for the 10%/20%/20% targets is slot 7.
+- **Twelve tap targets on Configuration and one on Sector rotation** are under
+  44px. They are Streamlit's slider track, a multiselect's "×" and a help
+  icon; their labels and thumbs are what a finger uses.
+- **Portfolio's first view costs 3.8 s** and that 3.8 s has not been
+  attributed to a step (S115). The sector map's SVG labels are clipped at
+  390px by the chart library.
+- **Not covered, deliberately**: real iOS Safari and Android Chrome (owner:
+  "Safari not required to be tested"), load testing against production the
+  night before launch, a real screen reader, colour-blind simulation, a
+  penetration test, and the record's returns against an independent source —
+  none exists.
+
+### The lesson of these five hours
+
+**Eight of the roughly twenty findings were faults in the checks, not the
+site**, and every one of them produced a confident, specific, false number: a
+modal left open by an earlier click; two regexes reading the wrong table
+column; a gate failing on the fallback price file; accessible names read from
+`innerText`; contrast measured on unrendered elements; an ancestor background
+that does not sit behind the text; a clipped-ancestor rule tripped by `<html>`
+being 1400×0; cached responses counted as downloads — that last one reported
+that nothing on the site was cached, which would have been the most important
+fact about it and was false. Two of the site's real bugs were found by
+*disbelieving* a check and taking a screenshot.
+
+So each script now says what it looked at, not only what it found —
+`16,159 text runs`, `2,033 files`, `43 dates` — and `launch_a11y.py
+--self-test` plants a failing case and requires itself to catch it. A check
+that reports nothing has to be distinguishable from a check that matched
+nothing. On the night before a launch, a false alarm costs more than a missing
+test.
+
+### The commands
+
+```
+python scripts/launch_gate.py            # is it fit to launch right now? (4 gates)
+python scripts/launch_consistency.py     # do the pages agree with each other?
+python scripts/launch_a11y.py            # WCAG 2.1 AA, add --self-test
+python scripts/launch_perf.py            # the weight and speed baseline
+python scripts/launch_security.py        # secrets in the repo and in the page
+```

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-10 — Launch testing: four things a reader would have seen
+
+- **The site said yesterday's prices were stale this morning.** Today is Diwali-Balipratipada, a published NSE holiday, and the freshness line counted it as a trading day: "Prices: 9 Nov · 752/752 · 1 trading day behind" on the day 9 November *was* the latest session. It now reads "latest session". The walk that looks for price files still offers every day, holiday or not, because only the exchange can prove a day was closed — but the age of a figure is a different question, and a day NSE itself lists as closed is no longer counted. A wrong holiday file can now only make that count short; it can never make a real session read as stale.
+- **A breadth chart labelled its newest bar four days in the future** — "5.5% on 13 Nov 2026" when the last session was the 9th — because a week in progress was dated by its Friday. It now carries the last session's date, which is also what the table beside it says.
+- **The Guide contradicted itself** about the rule that changes on 30 November: "Caps" said no stock above 5% of the book, "Weighting" said a holding that stays is trimmed only above 15%. The second is what the model does, and what Portfolio already shows. "Caps" now says a new buy is never above 5% and a kept holding is cut only above 15%.
+- The Guide also quoted the header as reading "Nifty 500 2.9% above its 200D EMA" — a number typed in by hand, against the 3.4% the header was actually showing. The quotation no longer carries a figure.
+- `docs/LAUNCH_TEST_PLAN.md` holds all eleven slots and their measurements, and five commands now answer the launch questions on demand: `launch_gate.py`, `launch_consistency.py`, `launch_a11y.py`, `launch_perf.py` and `launch_security.py`.
+
 ## 2026-11-10 — One entry gate, from the 30 November signal
 
 - The Screener and the backtest could disagree about the same stock on the same day. The 50-day EMA gate: the Screener will not quote an EMA until a stock has 30 prints, while the replay quoted one from as few as 10, so three stocks on 5 November (BAGMANE, BIRET and ICICILIFE) passed the replay's gate and failed the Screener's. The 52-week-high gate: the Screener measured it from intraday highs, the engine from the day's close.

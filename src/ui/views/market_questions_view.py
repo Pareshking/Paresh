@@ -408,7 +408,15 @@ def _chart_series(_key: str, _prices: pd.DataFrame, _bench: pd.Series):
     share200 = mq._share_above_ema(_prices, 200).dropna()
     nnh = mq._net_new_highs(_prices).dropna()
     weekly = nnh.groupby(nnh.index.to_period("W-FRI")).last()
+    # Each bucket is dated its Friday, which for the week in progress is a date
+    # that has not happened: on Monday 9 Nov 2026 the last bar read "5.5% on
+    # 13 Nov 2026", four days ahead of the last session, while the table beside
+    # it called the same +5.5 "this week". The monthly chart drops its
+    # incomplete bucket, but dropping this one would leave the chart and that
+    # table disagreeing, so the label is clamped to the last session instead.
     weekly.index = weekly.index.to_timestamp(how="end").normalize()
+    last = nnh.index[-1].normalize()
+    weekly.index = weekly.index.where(weekly.index <= last, last)
     return share200, weekly, nnh
 
 
