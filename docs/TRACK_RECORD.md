@@ -164,6 +164,9 @@ equal weight · 30 bps cost · 2× persistence buffer (top 40)
 weights 10/30/30/20/10 · benchmark ^CRSLDX
 hard caps: 5% per stock · 40% per NSE industry (≤ 8 of 20 names), never relaxed
 from the 30 Nov 2026 signal: six-monthly reset (hold_cap 0.15, buy_size 0.05, weight_reset_months [3, 9], hold_cap_from 2026-11-30)
+from the 30 Nov 2026 signal: the day's index members only are scored (members_only_scoring_from 2026-11-30)
+from the 30 Nov 2026 signal: 30 prints before any EMA is quoted (EMA_MIN_PRINTS 30, ema_warmup_from 2026-11-30)
+the 52-week high is measured on the price source's own basis (PriceFrames.high_basis): closes where the feed carries no intraday highs
 ```
 
 **Six-monthly reset (owner, 8 Nov 2026: "6 monthly reset final").** Until the 30 Nov 2026
@@ -183,6 +186,35 @@ owner's fixed buys 17.98 / 14.69; yearly reset 17.87 / 14.58. 2026 on the 750: s
 best. Forward-dated with its companion keys: months governed by earlier signals keep the
 monthly reset and their fingerprints (`track_record.config_for_month`); re-run with the
 rule, the record to date is identical to the last decimal (205 points).
+
+**The 30-print EMA warm-up (owner, 10 Nov 2026).** `EMA_MIN_PRINTS = 30` and
+`EMA_WARMUP_FROM = "2026-11-30"` (`src/engine/backtester.py`), mirrored as
+`ema_warmup_from` in the config above. The Screener has always required 30
+prints before it quotes a 50-day EMA (`momentum.py`: `ewm(span=50,
+min_periods=30)`); the backtester and `rank_history` required none, so a name
+with ten prints could pass "above its 50-day EMA" in the model and fail the
+same gate on the Screener (BAGMANE, BIRET and ICICILIFE all did on 5 Nov 2026).
+From the 30 Nov 2026 signal a stock with fewer than 30 prints has **no EMA at
+all** and therefore cannot pass the trend filter, so it cannot qualify and
+cannot be bought. It is a gate, not a penalty: the stock is absent from the
+qualified list, not ranked low in it. Forward-dated like its companions, so
+every frozen month keeps its fingerprint and replays unchanged
+(`FORWARD_DATED_KEYS`).
+
+**The 52-week high is measured on closes.** The gate is "the close at or above
+80% of the 52-week high", and that high is taken from the same series the
+ranking is struck on. Screener's feed, the record's primary basis
+(`prices: screener_primary`), carries no intraday highs, so on it the 52-week
+high is the **highest close** of the last year, not the highest price touched
+(`PriceFrames.high_basis`, `src/loaders/price_source.py`). A close-based high
+is never above the intraday one and usually below it, so every stock reads as
+nearer its high than a chart drawn from intraday data would show, and **every
+count of names near their high is a count on that basis**: on the live universe
+the Screener's "within 5% of the 52-week high" chip stands at 50 names on
+closes against 22 on intraday highs (the measurement recorded at
+`src/ui/components.py:566-570`). Any such figure moves with the basis, so it is
+only comparable against another figure measured the same way. The basis in
+force is published on the freshness ribbon beside the price date.
 
 The caps are enforced at **selection** (`backtester._select_holdings` with
 `sector_slots`): an over-full industry keeps its best-ranked names and the free slot

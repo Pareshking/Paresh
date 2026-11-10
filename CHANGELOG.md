@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-10 — Launch testing: the four content items left over
+
+- **A second breadth chart dated a month by the calendar, not by the market.** The month-end chart labelled October 2026's close "31 Oct 2026", a Saturday on which nothing traded and which `data/benchmarks.csv` has no row for, while the Dashboard called the same close "the 30 Oct month-end". Both now say 30 Oct, as the source does. Each bucket is dated by the session that closed it, the same rule the weekly chart got yesterday; the values are untouched — only the label moves.
+- **The Guide now says that a stock needs 30 closes before it has a moving average.** From the 30 November signal a stock with fewer than 30 daily closes has no 50-day average at all, so it cannot pass the trend filter and cannot be bought — a recent listing waits about six weeks of trading. The rule was in the code and nowhere a reader could find it.
+- **The Guide now says the 52-week high is read from closes**, not from the highest price touched during a day, so every stock reads a little nearer its high than an intraday chart would show and every count of stocks near their high is a count on that basis. `docs/TRACK_RECORD.md` carries both rules, with the measurement that says what the basis costs (50 names against 22 on the live universe).
+- **The Guide names the members-only scoring rule**: from the 30 November ranking the score is worked out over that day's index members only, so the same stock gets the same score on every page; earlier months stay as recorded.
+- **Watchlist has the same footer as every other page.** An empty watchlist returned before the footer was drawn, so a fresh browser saw the empty state and nothing else — the only page of eleven without it.
+
 ## 2026-11-10 — Launch testing: four things a reader would have seen
 
 - **The site said yesterday's prices were stale this morning.** Today is Diwali-Balipratipada, a published NSE holiday, and the freshness line counted it as a trading day: "Prices: 9 Nov · 752/752 · 1 trading day behind" on the day 9 November *was* the latest session. It now reads "latest session". The walk that looks for price files still offers every day, holiday or not, because only the exchange can prove a day was closed — but the age of a figure is a different question, and a day NSE itself lists as closed is no longer counted. A wrong holiday file can now only make that count short; it can never make a real session read as stale.

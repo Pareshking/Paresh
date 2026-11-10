@@ -235,3 +235,34 @@ def test_an_unknown_regime_reads_as_unknown_not_as_zero():
         assert '"— no reading"' in src and 'level_text = "—"' in src
     else:
         assert "no reading" in html and "0.0%" not in html
+
+
+def test_a_month_end_bar_is_labelled_the_session_that_closed_the_month():
+    """Breadth's month-end chart labelled October 2026's close "31 Oct 2026", a
+    Saturday with no row in `benchmarks.csv`, while the Dashboard called the
+    same close "the 30 Oct month-end" (launch slot 10, TODO S117). A bucket's
+    label must be the last session IN the bucket, never the calendar period's
+    last day."""
+    from src.ui.views.market_questions_view import bucket_by_last_session
+
+    # NSE sessions: October 2026 ends on Friday 30 Oct, November on Monday 30
+    # Nov; neither month's calendar last day is 31/30 by accident.
+    idx = pd.bdate_range("2026-08-03", "2026-11-09")
+    s = pd.Series(range(len(idx)), index=idx, dtype=float)
+
+    monthly = bucket_by_last_session(s, "M")
+    for label, value in monthly.items():
+        inside = s.loc[(s.index.year == label.year) & (s.index.month == label.month)]
+        assert label == inside.index[-1], f"{label:%-d %b %Y} is not the last session of its month"
+        assert value == inside.iloc[-1]
+        assert label in s.index                      # a date the source carries
+    assert pd.Timestamp("2026-10-30") in monthly.index
+    assert pd.Timestamp("2026-10-31") not in monthly.index
+
+    # The same for weeks, and for a month whose last session is not its last
+    # weekday either (a holiday on 30 Oct would move the label to 29 Oct).
+    weekly = bucket_by_last_session(s, "W-FRI")
+    for label in weekly.index:
+        assert label in s.index
+    short = s.drop(pd.Timestamp("2026-10-30"))
+    assert pd.Timestamp("2026-10-29") in bucket_by_last_session(short, "M").index
