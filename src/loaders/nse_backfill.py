@@ -32,8 +32,6 @@ import requests
 
 from src.loaders import nse_bundle as nb
 
-MIRROR_REPO = "https://github.com/tilak999/NSE-Data-bank"
-MIRROR_START = date(2010, 6, 10)
 _MIRROR_NAME = re.compile(r"sec_bhavdata_full_(\d{2})(\d{2})(\d{4})\.csv$")
 # NSE's classic bhavcopy (cm02JAN2009bhav.csv): the mirror's historic_data/, and
 # NSE's own archive before its daily bundles begin (4 Jan 2010).

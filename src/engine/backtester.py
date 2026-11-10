@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.core.config import MOMENTUM_WINDOWS, RISK_FREE_RATE
+from src.core.config import HIGH_52W_MIN_OBSERVATIONS, MOMENTUM_WINDOWS, RISK_FREE_RATE
 from src.engine.calendar_momentum import anchor_frame, period_sharpe_at, winsorised_z
 from src.engine.corporate_actions import adjust_prices
 from src.engine import compute_gate, liquidity
@@ -44,7 +44,7 @@ def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
     # date (_high_at_cache), so the History-from-2010 run held ~200 of them,
     # ~580 MB, to keep ~3 MB of values -- the backtest that took production
     # down on 8 Oct 2026. Same values; tests/test_memory_guardrails.py.
-    return window.rolling(252, min_periods=126).max().iloc[-1].copy()
+    return window.rolling(252, min_periods=HIGH_52W_MIN_OBSERVATIONS).max().iloc[-1].copy()
 
 
 def ath_history(prices: pd.DataFrame) -> tuple[pd.Series, pd.Series]:

@@ -20,7 +20,7 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 
-from src.core.config import MOMENTUM_WINDOWS
+from src.core.config import HIGH_52W_MIN_OBSERVATIONS, MOMENTUM_WINDOWS
 from src.engine.backtester import _composite_z_score, _index_mask
 from src.engine.calendar_momentum import anchor_frame
 
@@ -40,7 +40,11 @@ def snapshots(prices: pd.DataFrame, dates: Sequence[pd.Timestamp], *, membership
     anchor = anchor_frame(prices)
     log_ret = np.log(prices / prices.shift(1).replace(0, np.nan))
     ema = prices.ewm(span=ema_period).mean()
-    high = prices.rolling(252, min_periods=126).max()
+    # The same minimum the screener's gate reads (duplicate audit, 10 Nov
+    # 2026): it was hardcoded here and in the backtester while
+    # config.HIGH_52W_MIN_OBSERVATIONS held the number, so a test that
+    # moved the constant proved nothing about either.
+    high = prices.rolling(252, min_periods=HIGH_52W_MIN_OBSERVATIONS).max()
     out = []
     for d in dict.fromkeys(pd.Timestamp(x) for x in dates):
         pos = prices.index.searchsorted(d, side="right") - 1

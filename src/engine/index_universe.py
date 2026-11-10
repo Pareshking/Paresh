@@ -20,7 +20,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.engine.membership import load_history_or_none, members_on
+from src.engine.membership import load_history_or_none, members_on  # noqa: F401  (members_on is read as iu.members_on by scripts/check_nifty500_against_wayback.py)
 from src.engine.systems import combined_history
 
 # key -> display name, in the order the picker lists them.
@@ -98,7 +98,3 @@ def all_ever_members(full: dict[str, Any] | None = None) -> set[str]:
         out |= ever_members(_stored(full, key))
     return out
 
-
-def size_on(history: dict[str, Any] | None, on) -> int | None:
-    members = members_on(history, on) if history else None
-    return len(members) if members is not None else None

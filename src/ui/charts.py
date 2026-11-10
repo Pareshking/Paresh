@@ -433,56 +433,6 @@ def render_correlation_heatmap(corr: pd.DataFrame, syms: list[str]) -> None:
     st.iframe(resolve(page), height=height + 8)
 
 
-def render_industry_map(board: pd.DataFrame, x_col: str = "3M Return",
-                        x_label: str = "Median 3-month return") -> None:
-    """Industries as bubbles: median return (`x_col`, 3M by default) across, share passing both filters up,
-    size = number of stocks. Top-right is strong and broad; bottom-left is weak and narrow."""
-    from src.ui.highcharts_lib import lib, script_json, text_alternative
-
-    need = {"Industry", x_col, "Pass %", "Stocks", "Top 50"}
-    x_tip = f"{x_col.split(' ')[0]} median"
-    if board.empty or not need <= set(board.columns):
-        return
-    rows = []
-    for _, r in board.iterrows():
-        if pd.isna(r[x_col]):
-            continue
-        rows.append({"name": str(r["Industry"]), "x": round(float(r[x_col]) * 100, 1),
-                     "y": round(float(r["Pass %"]) * 100, 1), "z": int(r["Stocks"]),
-                     "top50": int(r["Top 50"])})
-    if len(rows) < 2:
-        return
-    page = (
-        _titled("Industry map") + "<style>*{box-sizing:border-box;margin:0}"
-        "html,body{background:transparent;font-family:'IBM Plex Sans',system-ui,sans-serif}</style></head>"
-        "<body>" + text_alternative(" ".join(
-            f"{r['name']}: {x_label.lower()} {_fmt.pct(r['x'], fraction=False)}, "
-            f"{_fmt.pct(r['y'], signed_=False, fraction=False)} pass both filters, {r['z']} stocks."
-            for r in rows)) +
-        "<div id='c' aria-hidden='true' style='width:100%;height:420px'></div><script>"
-        + lib("highcharts-more.js") + "</script><script>(function(){"
-        "const rows=" + script_json(rows) + ";"
-        "const e=v=>String(v).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));"
-        "const xmax=Math.max.apply(null,rows.map(r=>r.x));const ymax=Math.min(100,Math.max(10,Math.ceil(Math.max.apply(null,rows.map(r=>r.y))*1.15/10)*10));const top5=new Set(rows.slice().sort((a,b)=>b.x-a.x).slice(0,5).map(r=>r.name));const col=r=>r.x>=0?'var(--c-up)':'var(--c-down)';"
-        "Highcharts.chart('c',{chart:{type:'bubble',backgroundColor:'transparent',animation:false,spacing:[8,12,4,4],"
-        "style:{fontFamily:'IBM Plex Sans,system-ui,sans-serif'},zooming:{type:null}},"
-        "credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},"
-        "xAxis:{maxPadding:0.06,title:{text:" + script_json(x_label + " \u2192") + ",style:{color:'var(--c-muted_2)',fontSize:'11px'}},gridLineWidth:0,"
-        "labels:{format:'{value}%',style:{color:'var(--c-muted_2)',fontSize:'11px'}},lineWidth:0,tickLength:0,plotLines:[{value:0,color:'var(--c-rule_strong)',width:1}]},"
-        "yAxis:{title:{text:'\\u2191 Share passing both filters',style:{color:'var(--c-muted_2)',fontSize:'11px'}},min:0,max:ymax,endOnTick:false,tickInterval:ymax>60?20:10,gridLineColor:'var(--c-grid)',"
-        "labels:{format:'{value}%',style:{color:'var(--c-muted_2)',fontSize:'11px'}}},"
-        "tooltip:{useHTML:true,backgroundColor:'var(--c-white)',borderColor:'var(--c-rule)',borderWidth:1,borderRadius:3,shadow:false,padding:8,style:{color:'var(--c-ink)',fontSize:'12px',lineHeight:'17px'},"
-        "formatter:function(){const p=this.point;return '<b>'+e(p.name)+'</b><br>" + x_tip + " <b>'+(p.x>0?'+':'')+p.x.toFixed(1)+'%</b>"
-        "<br>Passing both <b>'+p.y.toFixed(0)+'%</b><br>'+p.z+' stocks \\u00b7 '+p.top50+' in the top 50';}},"
-        "plotOptions:{bubble:{fillOpacity:0.38,minSize:8,maxSize:40,animation:false,marker:{lineWidth:1},"
-        "dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',style:{fontSize:'11px',fontWeight:'500',color:'var(--c-text_2)',textOutline:'2px var(--c-white)'},"
-        "formatter:function(){return e(this.point.name);}}}},"
-        "series:[{data:rows.map(r=>({name:r.name,x:r.x,y:r.y,z:r.z,top50:r.top50,color:col(r),labelrank:(top5.has(r.name)?1e6:0)+(r.x>=0?1000:0)+r.z,dataLabels:{allowOverlap:top5.has(r.name),align:(r.x>=(xmax*0.7)?'right':'center'),x:(r.x>=(xmax*0.7)?-14:0)}}))}]});"
-        "})();</script></body></html>"
-    )
-    st.iframe(resolve(page), height=428)
-
-
 # Twenty muted, distinct hues for the categorical charts (the RRG's
 # industries, the sector leadership map and its table): mid-tones that sit
 # with the Ledger ink, greys, blue and rust, dark enough to read on white.
@@ -491,9 +441,6 @@ CATEGORICAL = (
     "#76955C", "#8D7462", "#3F8297", "#C2875A", "#717CB0", "#99628A", "#628F6B",
     "#A9776A", "#5A7590", "#9C9053", "#86789E", "#B86F66", "#668785",
 )
-SECTOR_SOFT_PALETTE = CATEGORICAL
-
-
 def leadership_colours(board: pd.DataFrame) -> dict[str, str]:
     """The sector leadership map's colours (owner, 8 Nov 2026, S97 g): every
     sector a quiet grey, the leader (best return against the Nifty 500 today)
@@ -507,13 +454,6 @@ def leadership_colours(board: pd.DataFrame) -> dict[str, str]:
         colours[ranked["Sector"].iloc[-1]] = "var(--c-up)"
         colours[ranked["Sector"].iloc[0]] = "var(--c-down)"
     return colours
-
-
-def sector_colours(names) -> dict[str, str]:
-    """One soft colour per sector, fixed by name so the map, its table and
-    every EMA tab agree (owner, 13 Oct: subtle colours, not green and red)."""
-    return {name: CATEGORICAL[i % len(CATEGORICAL)]
-            for i, name in enumerate(sorted(set(names)))}
 
 
 _LEADERSHIP_JS = r"""

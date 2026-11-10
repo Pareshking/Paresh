@@ -16,7 +16,6 @@ IS_STREAMLIT_CLOUD: Final[bool] = bool(
 )
 BASE_DIR: Final[str] = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DATA_DIR: Final[str] = "/tmp/data_cache" if IS_STREAMLIT_CLOUD else os.path.join(BASE_DIR, "data_cache")
-STORAGE_MODE: Final[str] = "streamlit-cloud" if IS_STREAMLIT_CLOUD else "local"
 os.makedirs(DATA_DIR, exist_ok=True)
 
 PRICES_FILE: Final[str] = os.path.join(DATA_DIR, "prices.parquet")
@@ -234,7 +233,6 @@ PRICE_HISTORY_PERIOD: Final[str] = "2y"
 # the app starts.
 PRICE_ARCHIVE_PERIOD: Final[str] = "10y"
 
-# How far back the nightly sync re-asks for history it already holds.
 #
 # The incremental price path is append-only: it requests from the last cached
 # session FORWARD, so anything the vendor changes behind that point is

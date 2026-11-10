@@ -24,30 +24,8 @@ These tests read the script structurally rather than running it: the ordering
 is the whole fix, and it is invisible to every behavioural test in the suite.
 """
 
-import ast
 
 SCRIPT = "scripts/sync_data.py"
-
-
-def _daily_sync():
-    tree = ast.parse(open(SCRIPT, encoding="utf-8").read())
-    return next(
-        n for n in ast.walk(tree)
-        if isinstance(n, ast.FunctionDef) and n.name == "run_daily_sync"
-    )
-
-
-def _call_lines(fn, name):
-    """Line numbers where ``name(...)`` is called inside ``fn``."""
-    out = []
-    for n in ast.walk(fn):
-        if not isinstance(n, ast.Call):
-            continue
-        f = n.func
-        ident = f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", None)
-        if ident == name:
-            out.append(n.lineno)
-    return sorted(out)
 
 
 # ── What gets PUBLISHED must pass the same guards the app reads with ─────────

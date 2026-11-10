@@ -192,10 +192,11 @@ def _num(v) -> float | None:
 
 
 def _signed(v: float, digits: int = 1, plus: bool = True) -> str:
-    """A number with a true minus sign (U+2212), and + when `plus`."""
-    r = round(v, digits)
-    sign = "+" if (r > 0 and plus) else "−" if r < 0 else ""
-    return f"{sign}{abs(r):.{digits}f}"
+    """A number with a true minus sign (U+2212), and + when `plus`.
+
+    One signer for the whole site (duplicate audit, 10 Nov 2026): this was a
+    line-for-line copy of formats.signed."""
+    return _fmt.signed(v, digits, plus=plus)
 
 
 def _price_html(v: float | None) -> str:
@@ -219,7 +220,8 @@ def _pct_cell(v: float | None, cls_extra: str = "") -> tuple[str, str]:
     if v is None:
         return f'<td class="n muted {cls_extra}" data-v="">—</td>', ""
     cls = "pos" if v > 0 else "neg" if v < 0 else ""
-    txt = f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v) * 100:.1f}%"
+    # Signed from the ROUNDED value, so −0.04% is "0.0%" and not "−0.0%".
+    txt = _fmt.pct(v)
     return f'<td class="n {cls} {cls_extra}" data-v="{v:.6f}">{txt}</td>', txt
 
 

@@ -9,6 +9,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.market_time import ist_now
+from src.ui import formats as _fmt
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.screener_table import render_screener_table
@@ -19,9 +20,11 @@ TOP_INDUSTRIES = 6
 
 
 def _pct(v: float | None) -> str:
-    if v is None or pd.isna(v):
-        return "—"
-    return f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v) * 100:.1f}%"
+    """The house rule, from one place (duplicate audit, 10 Nov 2026).
+
+    This copy signed the unrounded value, so −0.04% printed "−0.0%" -- the
+    exact thing src/ui/formats.py exists to prevent."""
+    return _fmt.pct(v)
 
 
 def _tone(v: float | None) -> str:

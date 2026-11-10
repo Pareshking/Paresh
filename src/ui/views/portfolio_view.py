@@ -78,14 +78,6 @@ def _calendar_note(labels: dict, live_period: str | None, state: str, pending: b
     return ""
 
 
-def _compound_returns(values: list[float]) -> float | None:
-    """Compound a sequence of period returns into one period return."""
-    valid = [float(v) for v in values if pd.notna(v)]
-    if not valid:
-        return None
-    return float(np.prod([1.0 + v for v in valid]) - 1.0)
-
-
 def _benchmark_returns_from_daily(
     benchmark_close: pd.Series | None,
     as_of: pd.Timestamp,

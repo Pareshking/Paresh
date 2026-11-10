@@ -64,24 +64,6 @@ def _highs_lows_chart(hl_df: pd.DataFrame, is_pct: bool) -> None:
     ]}], key="br_hl_chart")
 
 
-def _participation_word(val: float) -> tuple[str, str]:
-    """What a share of stocks above an average reads as, and its tone."""
-    if val >= 60:
-        return "strong participation", "up"
-    if val <= 40:
-        return "below 40% reads as weak", "down"
-    # A count in the middle band is not a warning (audit F64): plain ink.
-    return "neutral", ""
-
-
-def _ratio_word(ratio: float) -> tuple[str, str]:
-    if ratio > 2:
-        return "more new highs than new lows", "up"
-    if ratio < 1:
-        return "below 1 = the market is narrowing", "down" if ratio < 0.5 else "warn"
-    return "roughly balanced", "warn"
-
-
 def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         history_prices: pd.DataFrame | None = None,
                         benchmark_close: pd.Series | None = None) -> None:

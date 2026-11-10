@@ -51,10 +51,6 @@ def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
     return summary_stats(ledger, mtd=mtd)
 
 
-def _pct_or_dash(value) -> str:
-    return "—" if value is None or pd.isna(value) else f"{_fmt.pct(float(value))}"
-
-
 def _day(value) -> str:
     """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
     try:
@@ -614,7 +610,7 @@ def _backtest_tab(
     # subline, where it read as the Sortino's own error, and the one tooltip
     # covering both described the Sharpe denominator ("annualised volatility")
     # for a ratio that divides by downside deviation.
-    _rf = stats.get("risk_free_rate", 0.065)
+    _rf = stats.get("risk_free_rate", RISK_FREE_RATE)
     _se = float(stats.get("sharpe_stderr_iid", float("nan")))
     _sortino = float(stats.get("sortino", float("nan")))
     # Both can legitimately be absent: the standard error needs a non-empty

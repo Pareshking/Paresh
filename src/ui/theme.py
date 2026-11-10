@@ -152,11 +152,8 @@ def inject_custom_css() -> None:
             font-family: var(--font-mono) !important;
             font-variant-numeric: tabular-nums !important;
         }
-        .font-code, code, pre {
+         code, pre {
             font-family: var(--font-mono) !important;
-        }
-.font-sans {
-            font-family: var(--font-ui) !important;
         }
 
         /* ── Completely Hide Clunky Grey Native Scrollbars Everywhere (Across All 11 Tabs) ── */

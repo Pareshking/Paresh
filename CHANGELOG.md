@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-10 — One formatter, one constant, and 400 lines of dead code gone
+
+- Three pages printed "−0.0%" for a value that rounds to zero, and the stock page used an ASCII hyphen where the rest of the site uses a true minus. Eight places formatted percentages their own way; they go through `src/ui/formats.py` now, which is the module that holds the rule, and a test fails if either slips back.
+- The 52-week-high minimum, the risk-free rate and the model book's capital are read from the constants that already defined them instead of being retyped. A test that moved the 52-week constant to prove the gate respected it was certifying a number the backtester never read.
+- Removed ~400 lines that nothing calls: an old sector bubble map and its palette, a second sector table, and a dozen helpers and constants left behind by earlier changes. Four one-off scripts and two superseded documents went too. No page's content changed.
+
 ## 2026-11-09 — Cash counts in the book's risk, and the qualified share is current
 
 - "How risky is the book?" kept cash out of its weights, so a book 60% invested read as if every rupee were in stocks: beta and volatility a third too high and the size tiers summing to the whole book. Cash now damps both by its share and appears as its own row. It matters from the six-monthly reset, where a buy short of cash simply buys fewer shares.

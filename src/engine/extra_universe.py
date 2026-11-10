@@ -22,7 +22,6 @@ import pandas as pd
 from src.core.tickers import is_tradeable_symbol
 
 NAME = "NANO CAP"
-DISPLAY_NAME = "Nano Cap"
 # The three systems (owner, 2026-09-27), chosen in Configuration (session key
 # cfg_system). Every page follows the choice; each system is ranked, booked and
 # recorded on its own.
