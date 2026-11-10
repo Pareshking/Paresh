@@ -15,6 +15,7 @@ What was removed from the engine is in CHANGELOG.md, not here.
 import pandas as pd
 import streamlit as st
 
+from src.engine.backtester import EMA_MIN_PRINTS
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer
@@ -49,6 +50,20 @@ def _body() -> str:
     w = dict(zip(("1M", "3M", "6M", "9M", "12M"), cfg["config_weights"]))
     stock_cap, sector_cap = float(cfg["stock_cap"]), float(cfg["sector_cap"])
     per_industry = int(sector_cap * top_n)
+    ema_period, high_pct = int(cfg["ema_period"]), float(cfg["high_pct"])
+    # Dates and counts for the two forward-dated rules and the warm-up come
+    # from the pinned config and the code, never typed here: the Guide once
+    # quoted a hardcoded "2.9% above its 200D EMA" against the 3.4% the header
+    # was showing on the same render (slot 10, 10 Nov 2026).
+    warmup_from = pd.Timestamp(cfg["ema_warmup_from"]).strftime("%-d %b %Y")
+    members_from = pd.Timestamp(cfg["members_only_scoring_from"]).strftime("%-d %b %Y")
+    min_prints = int(EMA_MIN_PRINTS)
+    # How the 52-week high was actually measured in this run, as the freshness
+    # ribbon publishes it (app.py records PriceFrames.high_basis).
+    from src.core import startup_metrics as _metrics
+
+    high_basis = str(_metrics.snapshot().get("facts", {}).get("price_high_basis") or "").strip()
+    basis_note = f" Today's tables measured it on {high_basis}." if high_basis else ""
     weights = " · ".join(f"{k} {float(v) * 100:.0f}%" for k, v in w.items())
     score = " + ".join(f"{float(v):.2f}·z({k})" for k, v in w.items())
     return f"""
@@ -93,14 +108,30 @@ to that limit, the result is turned into a z-score, and the z-score is capped at
 rescaled; it is not given an average 12-month value. These are the record's weights. The
 Configuration page can change them for the Screener and the Backtest; the record and the model book
 on Portfolio and Actions keep these.</p>
+<p>From the {members_from} ranking the score is worked out over the index members of that day only, as the
+Screener has always done, so the same stock gets the same score on every page; earlier months were
+scored over a wider set of stocks and are left exactly as they were recorded.</p>
 
 <h2 id="filters">Filters</h2>
 <ul>
-<li><b>Trend:</b> the close above its 50-day exponential moving average.</li>
-<li><b>Near the high:</b> the close at or above 80% of its 52-week high.</li>
+<li><b>Trend:</b> the close above its {ema_period}-day exponential moving average.</li>
+<li><b>Near the high:</b> the close at or above {high_pct:.0%} of its 52-week high.</li>
 </ul>
 <p>A stock that fails either is not bought; a holding that fails either at a rebalance is sold.
 No liquidity filter is applied, in the record or by default in the Backtest.</p>
+<h3>A stock needs {min_prints} closes before it has a moving average</h3>
+<p>From the {warmup_from} ranking a stock with fewer than {min_prints} daily closes has no
+{ema_period}-day average at all, so it cannot be above one and cannot pass the trend filter. It is
+not ranked low; it is simply not among the stocks that qualify, and it cannot be bought. A recent
+listing therefore waits about six weeks of trading before the model will look at it. This is the
+rule the Screener has always used, and the months already recorded replay as they were.</p>
+<h3>The 52-week high is read from closes</h3>
+<p>The high the filter measures against is the highest <i>close</i> of the last year, not the highest
+price touched during a day. The price history the record is struck on carries closes only.{basis_note}
+A spike above the closing price is not counted. The high is therefore a little lower, and every stock
+reads as a little nearer to it than a chart drawn from intraday prices would show. Every count of
+stocks near their high on this site, the one in the header included, is counted on that basis. Such a
+figure only lines up with another measured the same way.</p>
 
 <h2 id="book">The book</h2>
 <ul>

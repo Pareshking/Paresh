@@ -67,23 +67,28 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
                 st.pills("Remove", user_symbols, key="wl_remove_pick",
                          on_change=_remove_picked, label_visibility="collapsed")
 
+    # The empty list used to `return` here, which is why Watchlist was the only
+    # page of eleven with no data-quality footer (slot 10, 10 Nov 2026): a
+    # fresh browser saw the empty state and nothing else. The footer says how
+    # fresh the prices are and what the universe is, which is as true of an
+    # empty watchlist as of a full one, so the two branches now join and every
+    # page ends the same way.
     if not user_symbols:
         kit.empty("Nothing saved yet.",
                   "Type symbols above and save, or open any stock and press \"Add to watchlist\".")
-        return
-
-    missing = set(user_symbols) - set(rank_df["Symbol"])
-    if missing:
-        # Echoed back from input a shared ?wl= link can supply: reduce each to
-        # ticker characters before showing it.
-        shown = sorted({re.sub(r"[^A-Z0-9&._-]", "", str(m).upper())[:20] for m in missing} - {""})
-        kit.note(f"{len(missing)} not found among the {len(rank_df)} ranked stocks:", ", ".join(shown))
-
-    if matched.empty:
-        kit.empty("None of your symbols is in the ranked universe.")
     else:
-        with kit.card("Your stocks", "wl_list"):
-            render_screener_table(matched, adj_close, "Core")
+        missing = set(user_symbols) - set(rank_df["Symbol"])
+        if missing:
+            # Echoed back from input a shared ?wl= link can supply: reduce each to
+            # ticker characters before showing it.
+            shown = sorted({re.sub(r"[^A-Z0-9&._-]", "", str(m).upper())[:20] for m in missing} - {""})
+            kit.note(f"{len(missing)} not found among the {len(rank_df)} ranked stocks:", ", ".join(shown))
+
+        if matched.empty:
+            kit.empty("None of your symbols is in the ranked universe.")
+        else:
+            with kit.card("Your stocks", "wl_list"):
+                render_screener_table(matched, adj_close, "Core")
 
     render_data_quality_footer(
         total_stocks=len(rank_df),
