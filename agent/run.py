@@ -15,6 +15,7 @@ from pathlib import Path
 
 from agent.contracts import QuantSnapshot, validate_snapshot
 from agent.fingerprint import config_fingerprint
+from src.core.config import BENCHMARK_SYMBOL
 
 
 def build_plan(as_of: date, model: str, universe: str, benchmark: str) -> dict[str, object]:
@@ -53,7 +54,7 @@ def main() -> None:
     parser.add_argument("--as-of", default=date.today().isoformat())
     parser.add_argument("--model", default="System-1")
     parser.add_argument("--universe", default="NIFTY TOTAL MARKET")
-    parser.add_argument("--benchmark", default="^CRSLDX")
+    parser.add_argument("--benchmark", default=BENCHMARK_SYMBOL)
     args = parser.parse_args()
 
     result = build_plan(

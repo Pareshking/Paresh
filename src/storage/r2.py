@@ -17,12 +17,36 @@ from __future__ import annotations
 
 import hashlib
 import os
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
 import boto3
 from botocore.exceptions import ClientError
+
+# Counting R2 operations, for an audit (docs/CALL_AND_STORAGE_AUDIT.md).
+#
+# Off unless R2_CALL_LOG is set in the environment, and it never changes a
+# call: each adapter method adds one to a counter and then does exactly what
+# it did before. Nothing in the repository sets the variable, so every
+# scheduled job and the app run with the counter dark.
+_CALL_LOG_ENV = "R2_CALL_LOG"
+_CALLS: Counter[str] = Counter()
+
+
+def _count(operation: str) -> None:
+    if os.getenv(_CALL_LOG_ENV):
+        _CALLS[operation] += 1
+
+
+def call_counts() -> dict[str, int]:
+    """How many of each operation have been counted since the last reset."""
+    return dict(_CALLS)
+
+
+def reset_call_counts() -> None:
+    _CALLS.clear()
 
 
 class R2ConfigurationError(RuntimeError):
@@ -97,6 +121,7 @@ class R2Archive:
         )
 
     def head(self, key: str) -> dict:
+        _count("head_object")
         return self.client.head_object(Bucket=self.config.bucket, Key=_key(key))
 
     def exists(self, key: str) -> bool:
@@ -117,6 +142,7 @@ class R2Archive:
         immutable: bool = True,
     ) -> dict:
         """Publish bytes; immutable publication cannot replace an existing key."""
+        _count("put_object")
         params = {
             "Bucket": self.config.bucket,
             "Key": _key(key),
@@ -144,6 +170,7 @@ class R2Archive:
         immutable: bool = True,
         verify: bool = True,
     ) -> dict:
+        _count("put_object")
         source = Path(path)
         if not source.is_file():
             raise FileNotFoundError(source)
@@ -170,10 +197,12 @@ class R2Archive:
         return response
 
     def get_bytes(self, key: str) -> bytes:
+        _count("get_object")
         response = self.client.get_object(Bucket=self.config.bucket, Key=_key(key))
         return response["Body"].read()
 
     def get_file(self, key: str, path: str | os.PathLike[str]) -> Path:
+        _count("get_object")
         target = Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
         response = self.client.get_object(Bucket=self.config.bucket, Key=_key(key))
@@ -183,6 +212,7 @@ class R2Archive:
         return target
 
     def list_keys(self, prefix: str = "") -> Iterator[str]:
+        _count("list_objects_v2")
         paginator = self.client.get_paginator("list_objects_v2")
         for page in paginator.paginate(
             Bucket=self.config.bucket, Prefix=_key(prefix) if prefix else ""
@@ -192,6 +222,7 @@ class R2Archive:
 
     def list_objects(self, prefix: str = "") -> Iterator[tuple[str, int]]:
         """(key, size in bytes) for every object under ``prefix``."""
+        _count("list_objects_v2")
         paginator = self.client.get_paginator("list_objects_v2")
         for page in paginator.paginate(
             Bucket=self.config.bucket, Prefix=_key(prefix) if prefix else ""
@@ -200,6 +231,7 @@ class R2Archive:
                 yield str(obj["Key"]), int(obj.get("Size", 0))
 
     def delete(self, key: str) -> None:
+        _count("delete_object")
         self.client.delete_object(Bucket=self.config.bucket, Key=_key(key))
 
     def verify_file(self, key: str, source: str | os.PathLike[str]) -> None:
@@ -215,6 +247,7 @@ class R2Archive:
         local_sha = _sha256_file(path)
         # Streamed: the ten-year price archive is verified on every daily
         # publish, and reading it whole doubled the runner's peak memory.
+        _count("get_object")
         response = self.client.get_object(Bucket=self.config.bucket, Key=_key(key))
         digest = hashlib.sha256()
         for chunk in response["Body"].iter_chunks(chunk_size=1 << 20):

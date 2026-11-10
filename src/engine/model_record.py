@@ -14,7 +14,8 @@ from src.engine.extra_universe import SYSTEM_750
 from src.engine.pipeline import price_fingerprint
 from src.engine.rank_history import month_books
 from src.engine.systems import inception, membership_for
-from src.engine.track_record import TRACK_RECORD_CONFIG, months_to_cover
+from src.engine.track_record import (TRACK_RECORD_CONFIG, months_to_cover,
+                                    run_backtest_kwargs)
 from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
 
@@ -180,22 +181,7 @@ def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | No
         f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}"
         f"_{_benchmark_key(benchmark_close, start)}",
         prices,
-        top_n=cfg["top_n"],
-        rebal_freq=cfg["rebal_freq"],
-        ema_period=cfg["ema_period"],
-        high_pct=cfg["high_pct"],
-        weight_method=cfg["weight_method"],
-        config_weights=cfg["config_weights"],
-        cost_bps=cfg["cost_bps"],
-        buffer_n=cfg["buffer_n"],
-        members_only_scoring_from=cfg.get("members_only_scoring_from"),
-        ema_warmup_from=cfg.get("ema_warmup_from"),
-        hold_cap=cfg.get("hold_cap"),
-        hold_cap_from=cfg.get("hold_cap_from"),
-        buy_size=cfg.get("buy_size"),
-        weight_reset_months=tuple(cfg.get("weight_reset_months") or ()) or None,
-        stock_cap=cfg["stock_cap"],
-        sector_cap=cfg["sector_cap"],
+        **run_backtest_kwargs(cfg),
         sector_map=record_sector_map(prices.columns),
         _benchmark_close=benchmark_close,
         backtest_months=months,

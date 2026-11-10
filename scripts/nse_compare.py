@@ -24,7 +24,9 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from datetime import date
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date, datetime
 
 import pandas as pd
 
@@ -41,25 +43,95 @@ KEEP = ["date", "mkt", "series", "symbol", "close", "prev_close", "high", "low",
         "volume", "value"]
 
 
-def read_nse(since: date = SINCE):
+def progress(message: str) -> None:
+    """One timestamped line, flushed.
+
+    Run 42486769158's `Compare` step spent 44m41s of a 45m14s job in
+    `read_nse` and printed nothing after its first second, so the timeout
+    named the job and not the step. Every long phase now says where it is.
+    """
+    print(f"[{datetime.now():%H:%M:%S}] {message}", flush=True)
+
+
+def _new_reader():
     from src.storage.r2 import R2Archive, R2Config
     from src.storage.reader import R2DatasetReader
 
-    archive = R2Archive(R2Config.from_env())
-    reader = R2DatasetReader(archive)
-    prices, actions, unreadable = [], [], []
+    return R2DatasetReader(R2Archive(R2Config.from_env()))
+
+
+def read_nse(
+    since: date = SINCE,
+    *,
+    workers: int | None = None,
+    make_reader=None,
+):
+    """Every NSE day R2 holds since `since`, read `workers` at a time.
+
+    One day costs four R2 round trips (pointer, manifest, HEAD, payload) and a
+    parquet parse of the whole market. Read one at a time over ~520 days that
+    was ~5 s a day and 45 minutes a run. The reads are independent, so they
+    run concurrently; the frames are reassembled in date order, so the
+    concatenated result and the `unreadable` list are byte-for-byte what the
+    serial loop produced. Each thread builds its own reader (and therefore its
+    own boto3 client) rather than sharing one.
+    """
+    make_reader = make_reader or _new_reader
+    workers = workers or int(os.environ.get("NSE_COMPARE_WORKERS", "8"))
+
+    reader = make_reader()
+    archive = reader.archive
     days = sorted(d for d in present_dates(archive) if d >= since)
     ca_days = present_dates(archive, DATASETS["corporate_actions"][0])
-    for d in days:
-        try:
-            p = reader.read_parquet(reader.resolve_current(DATASETS["prices"][0], as_of=d.isoformat()))
-            prices.append(p[p["series"].isin(na.SERIES)][KEEP])
-            if d in ca_days:
-                actions.append(reader.read_parquet(
-                    reader.resolve_current(DATASETS["corporate_actions"][0], as_of=d.isoformat())))
-        except Exception as exc:
-            unreadable.append(f"{d}: {type(exc).__name__}")
+    progress(
+        f"R2 holds {len(days)} NSE sessions since {since} and "
+        f"{len(ca_days)} corporate-action days; reading with {workers} workers"
+    )
+
+    local = threading.local()
+
+    def _reader() -> object:
+        if not hasattr(local, "reader"):
+            local.reader = make_reader()
+        return local.reader
+
+    def _read(d: date):
+        r = _reader()
+        p = r.read_parquet(
+            r.resolve_current(DATASETS["prices"][0], as_of=d.isoformat())
+        )
+        price = p[p["series"].isin(na.SERIES)][KEEP]
+        action = None
+        if d in ca_days:
+            action = r.read_parquet(
+                r.resolve_current(
+                    DATASETS["corporate_actions"][0], as_of=d.isoformat()
+                )
+            )
+        return price, action
+
+    read: dict[date, tuple] = {}
+    failed: dict[date, str] = {}
+    done = 0
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_read, d): d for d in days}
+        for future in as_completed(futures):
+            d = futures[future]
+            try:
+                read[d] = future.result()
+            except Exception as exc:
+                failed[d] = f"{d}: {type(exc).__name__}"
+            done += 1
+            if done % 50 == 0 or done == len(days):
+                progress(f"read {done}/{len(days)} sessions ({len(failed)} unreadable)")
+
+    # Date order, exactly as the serial loop appended them.
+    prices = [read[d][0] for d in days if d in read]
+    actions = [read[d][1] for d in days if d in read and read[d][1] is not None]
+    unreadable = [failed[d] for d in days if d in failed]
+
     mcap_days = sorted(present_dates(archive, DATASETS["market_caps"][0]))
+    progress("reading the newest market-cap snapshot")
     mcaps = reader.read_parquet(reader.resolve_current(
         DATASETS["market_caps"][0], as_of=mcap_days[-1].isoformat())) if mcap_days else None
     acts = pd.concat(actions, ignore_index=True) if actions else pd.DataFrame()
@@ -112,9 +184,11 @@ def main(argv: list[str] | None = None) -> int:
     from src.loaders.indices_loader import fetch_indices_data
     from src.loaders.ranking_store import asset_name, read_snapshot
 
+    progress("step 1: reading the NSE record from R2")
     prices, acts, mcap_frame, unreadable = read_nse()
     if acts.empty:
         acts = pd.DataFrame(columns=["symbol", "ex_date", "kind", "price_factor"])
+    progress("step 2: adjusting for splits and bonuses")
     adj, factors, verdicts = na.adjusted_frames(prices, acts)
     adj["close"].astype("float32").to_parquet(args.adjusted, compression="zstd")
     ev = na.events(factors)
@@ -142,6 +216,7 @@ def main(argv: list[str] | None = None) -> int:
 
     w_close = w["close"].copy()
     w_close.index = factors.index
+    progress("step 2b: unexplained jumps")
     jumps = na.unexplained_jumps(w_close, factors)
     counts = verdicts["verdict"].value_counts()
     out += ["## 2. The Bc file's splits and bonuses against the price\n",
@@ -156,6 +231,7 @@ def main(argv: list[str] | None = None) -> int:
             f"- Moves beyond 1.8x in a session with no applied action (demergers, "
             f"specials, genuine moves): {len(jumps)}", _md(jumps), ""]
 
+    progress("step 3: Screener drift")
     store = pd.read_parquet(args.screener)
     scr_close = store.xs("Close", axis=1, level=-1)
     drift = na.level_drift(adj["close"], scr_close)
@@ -170,12 +246,14 @@ def main(argv: list[str] | None = None) -> int:
     caps = (mcap_frame.drop_duplicates("symbol").set_index("symbol")["mcap"]
             if mcap_frame is not None else pd.Series(dtype=float))
     out.append("## 4. Rankings: published (Screener) against NSE\n")
+    progress("step 4: rankings, per system")
     base = fetch_indices_data(["NIFTY TOTAL MARKET"])
     extra = xl.members()
     for system in SYSTEMS:
         idx_info = xl.system_universe(system, base if system != SYSTEM_NANO else base.iloc[0:0], extra)
         symbols = idx_info["Symbol"].unique().tolist()
         published, contract = read_snapshot(os.path.join(args.published_dir, asset_name(system)))
+        progress(f"ranking {SYSTEM_NAMES[system]} ({len(symbols)} symbols)")
         src = na.as_price_frames(adj, symbols)
         try:
             nse_table, as_of = rank(src, symbols, idx_info, caps.reindex(symbols).dropna())

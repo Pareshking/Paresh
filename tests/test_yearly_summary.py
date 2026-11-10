@@ -48,3 +48,23 @@ def test_an_empty_grid_gives_an_empty_table():
 def test_the_backtest_page_shows_it_above_the_monthly_grids():
     src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
     assert src.index("_render_yearly_summary(_grid, bench_name)") < src.index("_render_calendar_returns(_grid)")
+
+
+def test_the_calendar_table_has_a_scroller_the_grid_cannot_stretch():
+    """Owner, 10 Nov 2026: "unable to slide returns on mobile".
+
+    `.cr-wrap` is a grid and `.cr-year` is its item. A grid item defaults to
+    `min-width: auto`, which refuses to shrink below its content, so the year
+    section grew to the table's full width (1,292px inside a 358px column),
+    `.cr-scroll`'s `max-width: 100%` resolved against that, and the element
+    meant to scroll had nothing to scroll while `.cr-wrap` clipped the months
+    from May onwards.
+    """
+    from src.ui import components
+
+    css = components.__file__ and open(components.__file__, encoding="utf-8").read()
+    # The scroller and the clip are both still declared ...
+    assert ".cr-scroll { overflow-x:auto; max-width:100%;" in css
+    assert ".cr-wrap { max-width:100%; overflow-x:hidden; }" in css
+    # ... and the grid item between them can be squeezed to the track.
+    assert ".cr-year { min-width:0; }" in css

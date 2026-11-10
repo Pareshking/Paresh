@@ -417,6 +417,24 @@ frame) needs a change to what every chart document links — exactly the kind of
 change the standing rule puts after launch, not the night before. The
 candidates, with their numbers, are in `docs/TODO.md` S114.
 
+#### After launch, 10 Nov: two of the three candidates are answered
+
+- **The fonts per frame were not an avoidable cost at all.** A browser fetches
+  a face only when a document draws with it, so eighteen declarations cost
+  nothing: the eleven requests for `ibm-plex-sans-400-latin.woff2` carried
+  42,742 bytes between them — one download and ten 304s. Giving framed
+  documents their own stylesheet was built and measured over six cold visits:
+  font bytes **1,404,535 → 1,408,766** and Portfolio's requests **29 → 40**,
+  because a second stylesheet URL costs about 1.1 KB on every page that has a
+  frame. It was reverted. The font weight that is real is the page's own
+  (Source Serif 122 KB + 101 KB, Plex Sans 45.7 + 31 KB, Plex Mono 43.7 KB),
+  and no change inside a frame can touch it.
+- **`streamlit-lightweight-charts` is removed** — no caller, 2,823 KB over 18
+  files, and a third-party component that fails to load renders as blank
+  space. `src/ui/lw_chart.py`, the self-hosted library the stock page actually
+  draws through, is untouched.
+- `cache-control` on `/app/static/` is still open.
+
 
 ### Slot 8 — security and privacy (06:05 UTC, done). Nothing found, and the check says what it looked for
 
@@ -714,9 +732,14 @@ traced to its source.
 - **Twelve tap targets on Configuration and one on Sector rotation** are under
   44px. They are Streamlit's slider track, a multiselect's "×" and a help
   icon; their labels and thumbs are what a finger uses.
-- **Portfolio's first view costs 3.8 s** and that 3.8 s has not been
-  attributed to a step (S115). The sector map's SVG labels are clipped at
-  390px by the chart library.
+- **Portfolio's first view costs 3.8 s.** Profiled on 10 Nov after launch and
+  attributed (S115). Under a 1 ms sampling profiler, which roughly doubles the
+  wall time, the first view is 9,955 ms against the second's 1,211, and it is:
+  the NSE price basis 4,504 ms, the other two systems' month-to-date 3,199 ms,
+  and building the momentum engine to read one price frame off it 1,446 ms.
+  The third is gone; the first two are real work on the frames the page's
+  figures come from. The sector map's SVG labels are clipped at 390px by the
+  chart library.
 - **Not covered, deliberately**: real iOS Safari and Android Chrome (owner:
   "Safari not required to be tested"), load testing against production the
   night before launch, a real screen reader, colour-blind simulation, a

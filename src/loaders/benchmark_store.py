@@ -23,6 +23,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.core.config import BENCHMARK_SYMBOL, BENCHMARK_SYMBOL_N50
 from src.core.logger import logger
 
 FILE = Path(__file__).resolve().parents[2] / "data" / "benchmarks.csv"
@@ -30,8 +31,8 @@ FILE = Path(__file__).resolve().parents[2] / "data" / "benchmarks.csv"
 # The symbols callers already pass (the Yahoo tickers they used to download)
 # and the column each one reads.
 COLUMNS: dict[str, str] = {
-    "^CRSLDX": "nifty500",
-    "^NSEI": "nifty50",
+    BENCHMARK_SYMBOL: "nifty500",
+    BENCHMARK_SYMBOL_N50: "nifty50",
 }
 # NSE's name for each column in the bundle's index rows, and Screener's id.
 NSE_NAMES: dict[str, str] = {"nifty500": "NIFTY 500", "nifty50": "NIFTY 50"}
@@ -71,7 +72,7 @@ def _period_start(last: pd.Timestamp, period: str | None) -> pd.Timestamp | None
     return None
 
 
-def history(period: str = "2y", symbol: str = "^CRSLDX", path: Path = FILE) -> pd.Series:
+def history(period: str = "2y", symbol: str = BENCHMARK_SYMBOL, path: Path = FILE) -> pd.Series:
     """A benchmark close series, like the Yahoo download it replaces.
 
     Unknown symbols and a missing file return an empty series named after the

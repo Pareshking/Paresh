@@ -159,12 +159,20 @@ def _publish_current(
 def _verify_publication(
     archive: R2Archive,
     *,
-    path: Path,
     manifest: dict[str, Any],
     manifest_key: str,
     current_key: str,
 ) -> None:
-    """Re-read the complete publication contract from R2 and verify it."""
+    """Re-read the complete publication contract from R2 and verify it.
+
+    The payload itself is read back and hashed once, by
+    ``put_file(verify=True)`` (or by ``verify_file`` on the
+    already-present branch) *before* the manifest and the current pointer are
+    written, so a byte-wrong upload never gets a pointer. This function
+    therefore checks the metadata contract only; it used to call
+    ``verify_file`` on the same key a second time, which downloaded every
+    payload back twice (docs/CALL_AND_STORAGE_AUDIT.md, C4).
+    """
     remote_manifest = json.loads(archive.get_bytes(manifest_key).decode("utf-8"))
     for field in (
         "dataset", "as_of", "source", "schema_version", "row_count",
@@ -178,7 +186,6 @@ def _verify_publication(
             )
 
     object_key = str(remote_manifest["object_key"])
-    archive.verify_file(object_key, path)
 
     current = json.loads(archive.get_bytes(current_key).decode("utf-8"))
     expected_pointer = {
@@ -201,6 +208,31 @@ def _verify_publication(
     )
 
 
+def _already_published(
+    archive: R2Archive,
+    *,
+    current_key: str,
+    revision_sha256: str,
+    object_key: str,
+) -> bool:
+    """True when this dataset/as_of already points at these exact bytes.
+
+    Two cheap calls (a HEAD and a small GET) in place of the nine a
+    publication costs. Jobs that fire several times a day on unchanged data
+    (`r2-historical-evidence-bootstrap`: 3.5 runs x 17 datasets, ~425 R2
+    operations a day that store nothing - docs/CALL_AND_STORAGE_AUDIT.md, C1)
+    pass ``--skip-if-published``. A genuine re-run after a data fix changes
+    the bytes, so the revision SHA changes and nothing is skipped.
+    """
+    if not archive.exists(current_key):
+        return False
+    pointer = json.loads(archive.get_bytes(current_key).decode("utf-8"))
+    return (
+        pointer.get("revision_sha256") == revision_sha256
+        and pointer.get("object_key") == object_key
+    )
+
+
 def publish(
     path: Path,
     *,
@@ -209,6 +241,7 @@ def publish(
     key_root: str,
     pipeline_version: str,
     release_tag: str,
+    skip_if_published: bool = False,
 ) -> None:
     if not path.is_file():
         raise FileNotFoundError(path)
@@ -224,6 +257,19 @@ def publish(
     )
 
     archive = R2Archive(R2Config.from_env())
+    current_key = f"archive/manifests/{dataset}/{as_of}/current.json"
+
+    if skip_if_published and _already_published(
+        archive,
+        current_key=current_key,
+        revision_sha256=revision_sha256,
+        object_key=object_key,
+    ):
+        print(
+            f"ALREADY PUBLISHED, NOTHING TO DO {dataset} as_of={as_of} "
+            f"revision={revision_sha256}"
+        )
+        return
 
     try:
         archive.put_file(
@@ -272,10 +318,9 @@ def publish(
     )
     _verify_publication(
         archive,
-        path=path,
         manifest=manifest,
         manifest_key=manifest_key,
-        current_key=f"archive/manifests/{dataset}/{as_of}/current.json",
+        current_key=current_key,
     )
 
 
@@ -287,6 +332,14 @@ def main() -> int:
     parser.add_argument("--key-root", required=True)
     parser.add_argument("--pipeline-version", required=True)
     parser.add_argument("--release-tag", default="data-latest")
+    parser.add_argument(
+        "--skip-if-published",
+        action="store_true",
+        help=(
+            "Exit cleanly when this dataset's as_of already points at these "
+            "exact bytes, instead of re-writing and re-verifying them."
+        ),
+    )
     args = parser.parse_args()
 
     publish(
@@ -296,6 +349,7 @@ def main() -> int:
         key_root=args.key_root,
         pipeline_version=args.pipeline_version,
         release_tag=args.release_tag,
+        skip_if_published=args.skip_if_published,
     )
     return 0
 

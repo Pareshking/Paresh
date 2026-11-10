@@ -50,6 +50,8 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.core.config import BENCHMARK_SYMBOL, BENCHMARK_SYMBOL_N50  # noqa: E402
+
 WINDOWS = (1, 3, 6, 9, 12)
 LIVE_WEIGHTS = (0.10, 0.30, 0.30, 0.20, 0.10)
 
@@ -106,7 +108,7 @@ def history_inputs(index_key: str) -> dict:
     sec.update({c: past[c] for c in cols if sec.get(c, "Other") == "Other" and c in past})
     sec.update({c: f"Unlabelled · {c}" for c in cols if sec.get(c, "Other") == "Other"})
 
-    symbol = "^NSEI" if index_key == "nifty_50" else "^CRSLDX"
+    symbol = BENCHMARK_SYMBOL_N50 if index_key == "nifty_50" else BENCHMARK_SYMBOL
     bench = fetch_benchmark_history(period="max", symbol=symbol)
     assert abs(DEFAULT_STOCK_CAP - LIVE["stock_cap"]) < 1e-9 and abs(DEFAULT_SECTOR_CAP - LIVE["sector_cap"]) < 1e-9
     return {

@@ -31,6 +31,7 @@ import numpy as np
 import pandas as pd
 
 from src.core.config import MODEL_BOOK_CAPITAL
+from src.engine.metrics import drawdown
 
 WINDOW = 126
 MIN_SESSIONS = 60
@@ -75,8 +76,7 @@ def tier_of(symbols, index_dir: Path = INDEX_DIR) -> dict[str, str]:
 
 def _drawdown(curve: pd.Series) -> tuple[float, float]:
     c = pd.to_numeric(curve, errors="coerce").dropna()
-    peak = c.cummax()
-    dd = c / peak - 1
+    dd = drawdown(c)
     return float(dd.iloc[-1]), float(dd.min())
 
 

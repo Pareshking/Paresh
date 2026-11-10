@@ -127,12 +127,6 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
                     "close and an EMA that day.")
 
 
-def _signed_pct(v: float) -> tuple[str, str]:
-    """Tone and text; the text from formats, which rounds before it signs."""
-    cls = "pos" if v > 0 else "neg" if v < 0 else ""
-    return cls, _fmt.pct(v)
-
-
 def _reading(dx: float, dy: float) -> str:
     """What the line's direction says, in one sentence."""
     if dx >= 0 and dy >= 0:
@@ -144,11 +138,6 @@ def _reading(dx: float, dy: float) -> str:
         return ("it did worse against the index, but more of its stocks are back above the line: "
                 "a possible early turn.")
     return "it did worse against the index and fewer of its stocks are in an uptrend: weak and weakening."
-
-
-def _leaders_txt(leaders, n: int, sep: str = ", ") -> str:
-    """'NAZARA +35.4%, SUNTV +20.1%' from the engine's (symbol, return) pairs."""
-    return sep.join(f"{html.escape(sym)} {_signed_pct(ret)[1]}" for sym, ret in (leaders or [])[:n])
 
 
 def leadership_explainer(r: pd.Series, name: str, span: int) -> str:

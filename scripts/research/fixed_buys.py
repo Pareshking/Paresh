@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 import src.engine.backtester as bt  # noqa: E402
 from src.engine import index_universe as iu  # noqa: E402
+from src.engine.metrics import max_drawdown  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.track_record import TRACK_RECORD_CONFIG as cfg  # noqa: E402
 
@@ -65,7 +66,7 @@ def stats(res):
     return {"total %": (eq.iloc[-1] / eq.iloc[0] - 1) * 100,
             "a year %": ((eq.iloc[-1] / eq.iloc[0]) ** (1 / yrs) - 1) * 100,
             "volatility %": d.std() * np.sqrt(252) * 100,
-            "worst drawdown %": (eq / eq.cummax() - 1).min() * 100}, m
+            "worst drawdown %": max_drawdown(eq) * 100}, m
 
 
 def main(path: str) -> None:

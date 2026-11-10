@@ -402,6 +402,25 @@ def size_trend_html(bench: pd.Series, size: dict[str, pd.Series]) -> str:
             'the average of the last ten. Points are per cent.</p>')
 
 
+def bucket_by_last_session(s: pd.Series, freq: str) -> pd.Series:
+    """`s` bucketed by calendar period, each bucket dated by its last session.
+
+    `to_period(freq).to_timestamp(how="end")` dates a bucket by the calendar
+    period's last day, which is not the day the market last dealt in it:
+    October 2026 closed on Friday 30 Oct at 21895.90 and `benchmarks.csv` has
+    no 31 Oct row at all, yet the month-end bar read "31 Oct 2026" while the
+    Dashboard called the same close "the 30 Oct month-end" (slot 10, TODO
+    S117). Same fault the weekly chart had with "13 Nov 2026". The value of a
+    bucket is unchanged - it is the same last close - only its label moves, on
+    to a date the source actually carries.
+    """
+    per = s.index.to_period(freq)
+    out = s.groupby(per).last()
+    closed_on = s.index.to_series().groupby(per).last()
+    out.index = pd.DatetimeIndex(closed_on.reindex(out.index).to_numpy()).normalize()
+    return out
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def _chart_series(_key: str, _prices: pd.DataFrame, _bench: pd.Series):
     """The series behind the Breadth charts, computed once per price set."""
@@ -486,12 +505,11 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
 def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
     from src.ui import lw_chart as lw
     b = bench.dropna()
-    m = b.groupby(b.index.to_period("M")).last()
+    m = bucket_by_last_session(b, "M")
     # Completed months only, as the rule and the heading read them: the month
     # in progress drew as a "30 Nov" close.
     if b.index[-1] < b.index[-1].to_period("M").to_timestamp(how="end").normalize():
         m = m.iloc[:-1]
-    m.index = m.index.to_timestamp(how="end").normalize()
     avg = m.rolling(10).mean()
     since = b.index[-1] - pd.DateOffset(years=3)
     gap = mq.ten_month_gap(b, b.index[-1])

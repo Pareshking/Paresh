@@ -44,6 +44,7 @@ import requests
 from src.core.market_time import ist_now
 from src.engine import source_check
 from src.loaders import nse_bundle, nse_calendar
+from src.loaders.nse_history import r2_days
 
 DATASETS = {
     "prices": ("nse/prices_daily", "archive/nse/prices_daily"),
@@ -63,16 +64,13 @@ CLOSED_AFTER_DAYS = 7              # no bundle this long after the day: NSE was 
 # ── What R2 already holds ────────────────────────────────────────────────────
 
 def present_dates(archive, dataset: str = DATASETS["prices"][0]) -> set[date]:
-    prefix = f"archive/manifests/{dataset}/"
-    out: set[date] = set()
-    for key in archive.list_keys(prefix):
-        rest = key[len(prefix):]
-        if rest.endswith("/current.json"):
-            try:
-                out.add(date.fromisoformat(rest.split("/", 1)[0]))
-            except ValueError:
-                continue
-    return out
+    """The session dates R2 already holds for `dataset`.
+
+    One implementation, in the loader: this function and
+    nse_history.r2_days were the same eleven lines, and the loader's default
+    dataset (R2_PRICES) is this module's DATASETS["prices"][0].
+    """
+    return r2_days(archive, dataset)
 
 
 def recent_weekdays(n: int, today: date) -> list[date]:

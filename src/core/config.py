@@ -174,6 +174,10 @@ HTTP_HEADERS: Final[dict[str, str]] = {
 
 # Single research benchmark used wherever V1 requires a market benchmark.
 BENCHMARK_SYMBOL: Final[str] = "^CRSLDX"
+# The Nifty 50, offered beside it on the RRG and the Backtest tab. Named here
+# for the same reason: the symbol was retyped at every call site, so a test
+# could not tell a deliberate benchmark from a typo.
+BENCHMARK_SYMBOL_N50: Final[str] = "^NSEI"
 
 # Canonical System-1 economic horizons. These are calendar months, not
 # fixed trading-row windows. Session-based windows are defined only by the

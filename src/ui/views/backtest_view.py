@@ -11,6 +11,7 @@ import streamlit as st
 
 from src.core.config import RISK_FREE_RATE
 from src.core.config import DEFAULT_TRANSACTION_COST_BPS
+from src.core.config import BENCHMARK_SYMBOL, BENCHMARK_SYMBOL_N50
 from src.core.market_time import ist_now
 from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
 from src.engine.corporate_actions import load_events
@@ -180,7 +181,8 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
         "months": (end - start).n + 1, "floor": floor,
         # The Nifty 50 against its own index; the others against the Nifty 500,
         # the broadest index on file (data/benchmarks.csv holds the two).
-        "benchmark": ("^NSEI", "Nifty 50") if key == "nifty_50" else ("^CRSLDX", "Nifty 500"),
+        "benchmark": (BENCHMARK_SYMBOL_N50, "Nifty 50") if key == "nifty_50"
+                      else (BENCHMARK_SYMBOL, "Nifty 500"),
         "traded_value": traded,
         "sector_map": sec, "unlabelled": len(unlabelled), "name": iu.INDICES[key],
         "built": report.get("built"), "last_session": report.get("last_session"),
@@ -423,7 +425,7 @@ def _backtest_tab(
                     + ("." if history else " (Configuration)."))
         if traded_value is not None:
             ph += f"_{price_fingerprint(traded_value)}"
-    bench_symbol, bench_name = history["benchmark"] if history else ("^CRSLDX", "Nifty 500")
+    bench_symbol, bench_name = history["benchmark"] if history else (BENCHMARK_SYMBOL, "Nifty 500")
     benchmark_close = fetch_benchmark_history(period="max" if history else "2y", symbol=bench_symbol)
     if benchmark_close.empty:
         st.error(f"{bench_name} benchmark ({bench_symbol}) data is unavailable. Backtest stopped to "
