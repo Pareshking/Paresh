@@ -5,9 +5,16 @@ bytes again, and what is stored that nothing reads. Owner, 10 Nov 2026: "the
 same actions are being done multiple times ... this will reduce code as well as
 unnecessary calls for R2 / GitHub / sites."
 
-**This page changed no behaviour.** The one code change made with it is an
-opt-in R2 operation counter (`src/storage/r2.py`, `R2_CALL_LOG`, off unless the
-variable is set, `tests/test_r2_call_counter.py`).
+**The measurements on this page changed no behaviour.** The one code change
+made with them is an opt-in R2 operation counter (`src/storage/r2.py`,
+`R2_CALL_LOG`, off unless the variable is set,
+`tests/test_r2_call_counter.py`).
+
+**What has since been acted on (10 Nov, same day):** items 1, 3 and 4 of the
+ranked list below, and the `nse_compare` timeout. Each is a saving, not a
+behaviour change; see `docs/TODO.md` C1, C3, C4 and S116 (d) for the measured
+effect and the tests. Items 2, 6 and 9 need the owner (an R2 delete, a release
+delete, a correctness decision) and are deliberately untouched.
 
 _Measured 10 Nov 2026. Fire counts from the Actions API over 27 Oct – 10 Nov
 (14 days). R2 inventory from the `r2_archive_inventory` run of 9 Nov
@@ -219,20 +226,36 @@ default); it is set in `bse_bhavcopy_r2` (14), `nse_long_prices` (14),
 
 | # | Change | Saves per day | Where |
 |---|---|---|---|
-| 1 | Stop re-publishing unchanged evidence: let `r2-historical-evidence-bootstrap` run **once** a day (drop the `workflow_run` and `push` triggers, or skip a publish whose `as_of`+SHA already exists before the PUT) | **~425 R2 operations** and 2.5 of its 3.5 runs (runner minutes); stops ~0.25 MB/day of near-identical copies under prefixes nothing prunes | `.github/workflows/r2-historical-evidence-bootstrap.yml` (**another agent's file** — report only) |
+| 1 | **Done, 10 Nov.** Every publish in `r2-historical-evidence-bootstrap` passes `--skip-if-published`: the dataset's `as_of` pointer is read (a HEAD and a small GET) and a run whose content hash is already there writes nothing. The triggers are kept — the chain off `daily_sync` is a contract (`tests/test_workflow_sequence.py`) — and a re-run after a data fix still publishes | **~380 of the ~425 R2 operations** (two cheap calls per skipped dataset remain); the 2.5 extra runs still start, so the runner minutes are unchanged | `.github/workflows/r2-historical-evidence-bootstrap.yml`, `scripts/r2_publish.py`, `tests/test_r2_publish_call_budget.py` |
 | 2 | Delete `scratch/bse_bhavcopy_2026-10-03/` once NSE and BSE are aligned (S34) | one-off **1,221.8 MiB, 39% of the bucket** | by hand / `r2_retention` |
-| 3 | Set `retention-days: 14` on `v1-production-qa`'s evidence upload | holds ~1,062 MB → ~100 MB after it settles; no daily call change | `.github/workflows/v1-production-qa.yml` (**another agent's file**) |
-| 4 | Drop the second verify in `r2_publish.py`: `_verify_publication` re-does `verify_file` on the key `put_file(verify=True)` just checked | **~162 R2 calls**, and a second full read-back of every payload (350.7 MB on the monthly BSE publish, 36.8 MB a night on SS) | `scripts/r2_publish.py` |
+| 3 | **Done, 10 Nov.** `retention-days: 14` on `v1-production-qa`'s evidence upload | holds ~1,062 MB → ~100 MB after it settles; no daily call change | `.github/workflows/v1-production-qa.yml` |
+| 4 | **Done, 10 Nov.** `_verify_publication` checks the manifest and pointer contract only; the payload's read-back is `put_file(verify=True)`'s, which runs *before* a manifest or pointer names the object. One publish: 9 calls → **7** (`PutObject x3 GetObject x3 HeadObject x1`), one whole-payload GET | **~162 R2 calls**, and a second full read-back of every payload (350.7 MB on the monthly BSE publish, 36.8 MB a night on SS) | `scripts/r2_publish.py`, `tests/test_r2_publish_call_budget.py` |
 | 5 | Read the index lists from the committed CSVs and fetch only when they are stale: `sync_data` step 2 can take step 1's bytes, and `precompute_systems` can read `data/indices/` | **~48 niftyindices requests** of the ~59.5; ~4 s off every app cold start | `scripts/sync_data.py`, `src/loaders/indices_loader.py` |
-| 6 | Stop `canonical_parity_check.py` downloading the frozen `prices.parquet`, then retire that asset and `prices_extra.parquet` | **~77 MB and 7 downloads/day**, 17.9 MB of release storage, and one stale price frame out of the parity gate | `scripts/canonical_parity_check.py` (**engine/parity file — report only**) |
+| 6 | **Report only, and not just waste** (10 Nov, TODO C6). The frozen frame no longer prices the replay — `record_run_uncached` substitutes `basis_frame`'s Screener-then-NSE blend, so the gate's book is struck on current prices (local run: book as_of 2026-11-05, green) — but it still fixes the **universe**: `prices.parquet` covers 749 of today's 752 names, and `_clean_price_df` intersects, so `ENNATURE`, `ICICILIFE` and `IGLSPIRITS` are dropped from the side `ledger_parity`, `hard_caps` and `actions_plan` are computed on. Removing the download needs a replacement second deep frame, which is a correctness decision, not a saving | **~77 MB and 7 downloads/day**, 17.9 MB of release storage, and one stale price frame out of the parity gate | `scripts/canonical_parity_check.py` |
 | 7 | Fetch `screener_prices.parquet` once per job: `screener_sync` downloads it twice in one run; `nse_collect` downloads it on all four daily fires for `--check` | **~5 downloads, 46 MB** | `.github/workflows/screener_sync.yml`, `nse_collect.yml` (**another agent's files**) |
 | 8 | Have `build_benchmarks --update` read the session `nse_collect` just fetched (or run it from the same process) | **~2.6 NSE PR bundle downloads**, a few MB, and that much less asking of NSE | `scripts/build_benchmarks.py` / `daily_sync.yml` |
-| 9 | Delete `tmp_session_2026-10-03.zip` and `ref_long_price_audit_2026-10-03.zip` from the release | one-off 11.2 MB | release |
+| 9 | Delete `tmp_session_2026-10-03.zip` (10,851,823 B, **0 downloads**, 3 Oct) and `ref_long_price_audit_2026-10-03.zip` (330,498 B, **0 downloads**, superseded by `long_price_audit_latest.zip`) from the release. Confirmed from the API on 10 Nov; **not deleted — a release asset is outward-facing, so the owner deletes**: `gh release delete-asset data-latest <name> --repo Pareshking/Paresh` | one-off 11.18 MB | release |
 | 10 | Keep one ranking revision per date (or let the chained jobs publish once) | ~1 MB/day of R2, never pruned today | `r2_ranking_archive.yml`, `r2_retention.py` |
 
-Items 1, 3, 7 and parts of 5 and 8 touch `.github/workflows/*`, and item 6
-touches the parity engine — four other agents are in those files, so they are
-**reported, not changed**.
+Items 1 and 3 were applied on 10 Nov along with item 4; items 7 and parts of 5
+and 8 still touch `.github/workflows/*` files other agents hold, and item 6 is
+the parity engine's.
+
+### The `nse_compare` timeout (not a duplicate call, but the same shape)
+
+`nse_compare.yml` times out every other week (TODO S116 (d)). Run 42486769158's
+`Compare` step was **44m41s of the 45m14s job** and printed nothing after its
+first second: `read_nse()` walked every R2 day from 2023-10-01 one at a time —
+a `resolve_current` (pointer GET, manifest GET, object HEAD) and a
+`read_parquet` of the whole market per day, ~520 sessions, ~5 s each. Fixed on
+10 Nov by reading them in a thread pool (`NSE_COMPARE_WORKERS`, default 8, one
+reader and so one boto3 client per thread) with the frames reassembled in date
+order, plus a timestamped progress line for every phase so the next timeout
+names its own step. `timeout-minutes` is unchanged. The equality of the output
+is pinned by `tests/test_nse_compare_reads.py` (concurrent == serial, date
+order, the unreadable list, the progress lines); the wall clock could not be
+measured here — no R2 credentials — so the saving is still to be confirmed by a
+run.
 
 ## 6. How big is this actually
 
