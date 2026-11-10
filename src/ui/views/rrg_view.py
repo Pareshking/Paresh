@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.core.config import BENCHMARK_SYMBOL, BENCHMARK_SYMBOL_N50
 from src.loaders.price_loader import fetch_benchmark_history
 from src.ui.system_param import stock_href
 from src.engine.pipeline import price_fingerprint
@@ -22,7 +23,8 @@ from src.ui.components import gap_count, render_data_quality_footer
 # portfolio's benchmark). Value: the Yahoo symbol of the index.
 BENCHMARK_N500: str = "Nifty 500"
 BENCHMARK_N50: str = "Nifty 50"
-BENCHMARK_SYMBOLS: dict[str, str] = {BENCHMARK_N500: "^CRSLDX", BENCHMARK_N50: "^NSEI"}
+BENCHMARK_SYMBOLS: dict[str, str] = {BENCHMARK_N500: BENCHMARK_SYMBOL,
+                                     BENCHMARK_N50: BENCHMARK_SYMBOL_N50}
 BENCHMARK_OPTIONS: list[str] = list(BENCHMARK_SYMBOLS)
 
 

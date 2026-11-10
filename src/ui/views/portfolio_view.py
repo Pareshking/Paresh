@@ -13,6 +13,7 @@ import streamlit as st
 from src.core.config import MODEL_BOOK_CAPITAL
 from src.core.market_time import ist_now
 from src.engine.extra_universe import SYSTEM_750
+from src.engine.metrics import drawdown, max_drawdown
 from src.engine.systems import inception, ledger_path
 from src.engine.track_record import build_combined_grid, load_ledger
 from src.loaders.price_loader import fetch_benchmark_history
@@ -442,8 +443,7 @@ def build_portfolio_history(
                 })
     equity_daily = _daily_path(record.get("equity_curve"), months, "strategy", capital)
     benchmark_daily = _daily_path(record.get("benchmark"), months, "benchmark", capital)
-    peak = equity.cummax()
-    drawdown = equity / peak - 1.0
+    dd = drawdown(equity)
     closed = record.get("closed_trades")
     tradebook = record.get("tradebook")
     return {
@@ -451,8 +451,8 @@ def build_portfolio_history(
         "benchmark": benchmark,
         "equity_daily": equity_daily,
         "benchmark_daily": benchmark_daily,
-        "drawdown": drawdown,
-        "max_drawdown": float(drawdown.min()) if not drawdown.empty else float("nan"),
+        "drawdown": dd,
+        "max_drawdown": max_drawdown(equity) if not dd.empty else float("nan"),
         "monthly": pd.DataFrame(monthly_rows),
         "monthly_grid": pd.DataFrame(monthly_grid_rows),
         "mtd_period": live_period_key,
@@ -706,7 +706,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
                        if np.isfinite(strategy_mtd) and np.isfinite(benchmark_mtd) else np.nan)
             month = labels["prefix"].split(" ")[0]
             eq_d, bm_d = _daily_with_live(history, table, prices, meta, benchmark_close, value, current)
-            dd_d = eq_d / eq_d.cummax() - 1.0
+            dd_d = drawdown(eq_d)
             kit.metric_row([
                 kit.Metric(f"{month} strategy", kit.pct(strategy_mtd)),
                 kit.Metric(f"{month} Nifty 500", kit.pct(benchmark_mtd)),

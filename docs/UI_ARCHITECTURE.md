@@ -341,3 +341,97 @@ navigation contract changed.
 - **Type.** One UI family (Geist) and Geist Mono for numbers; no per-view font stacks.
 - **Pages.** Portfolio owns the model portfolio's live book and its record (the Track Record page is gone; `/track-record` redirects). `record_run` lives in `src/engine/model_record.py`.
 - **Method.** Every UI change is checked on the running app, before and after, at desktop and phone width (Playwright against `streamlit run app.py`), not only by tests.
+
+---
+
+## 10. The four table implementations (plan, 10 Nov 2026 — not yet done)
+
+S112 left this: the four tables are aligned on header and row style but are
+still four files. This section is the survey that work starts from. **Nothing
+here has been changed.** It is written down so the next pass does not have to
+re-find it, and because consolidating four renderers hours after launch would
+risk a visible number or a moved pixel for no reader-facing gain.
+
+### Where each one lives
+
+| # | Renderer | File | Drawn by | Used on |
+|---|---|---|---|---|
+| 1 | `table_html` / `render_screener_table` | `src/ui/screener_table.py` (641 lines) | `st.iframe`, through `tokens.resolve()` | The Screener grid, and the stock page's peers |
+| 2 | `render_saas_table` | `src/ui/theme.py` (from line 2160) | `st.html`, on the page | Backtest (monthly, closed trades, tradebook), Breadth, Portfolio (holdings, trades, rebalances), Track Record (2), Configuration (3) |
+| 3 | `_render_yearly_summary`, `_render_calendar_returns` | `src/ui/components.py` (lines 132-282) | `st.html`, on the page | The calendar returns and yearly summary, on Portfolio and Track Record |
+| 4 | Hand-built `<table>` blocks | `src/ui/views/dashboard_view.py` (`db-size`, `db-fig`), `src/ui/views/dashboard_panels.py` (`db-fig`), `src/ui/views/market_questions_view.py` (plain `<table>`, `qp-heat`) | `st.html`, on the page | The Dashboard's panels, Sectors and Breadth's question cards |
+
+(`render_master_screener_table`, named in older notes and in
+`tests/test_table_html_escaping.py`'s docstring, no longer exists: it is
+`screener_table.table_html`.)
+
+### What a shared renderer would have to support
+
+Taken from what the four actually do today, not from what a table "should"
+have. Anything on this list that the shared renderer cannot do is a page that
+cannot adopt it.
+
+1. **Two drawing modes.** #1 is a whole HTML document in an iframe; #2-#4 are
+   fragments on the page. That is the central constraint: an iframe sees none
+   of the page's CSS variables, so its markup must have the theme written into
+   it by `tokens.resolve()`, while a fragment must NOT (it would then stop
+   following a theme change). A shared renderer needs both and must be told
+   which.
+2. **A column registry with hidden columns** (#1): Full Quant is the master
+   set and Executive/Core are the same table with columns hidden, plus a
+   separate phone set (`rank`, `stock`, `spark`, `price`) and the "more
+   columns →" edge marker while any are off the edge.
+3. **Grouped header rows** (#1 only): a `colspan` band above the column
+   headers, one of which pins.
+4. **Header-click sorting** (#1 only): the arrow state (`↑ ↓ ↕`), per-type
+   first-click direction (a figure opens largest first, a rank ascending), and
+   the keyboard path.
+5. **Paging in the markup** (#1 only): the first N rows shown, the rest
+   hidden by CSS and revealed by a Streamlit button that redraws the frame at
+   full height. Every row stays in the table so a header sort ranks all of
+   them.
+6. **A row-header column** (#3): the series name is a `<th scope="row">`, not
+   a cell, and the table scrolls sideways inside `cr-scroll`.
+7. **Cell renderers**: sparkline images (#1), the price cell, the "% below a
+   peak" cell that is never coloured and says "New high" at the peak, tone
+   classes from the value's sign (#2, #4), a title attribute carrying the peak
+   date, and `🟢`-style status glyphs.
+8. **Column alignment by name** (#2 keys it off words in the header —
+   `RANK`, `DELTA`, `SYMBOL` …; #1 keys it off the registry's declared type).
+   These two disagree today; a shared renderer must pick one and the other's
+   pages must not move.
+9. **Escaping of every third-party cell and header**, which
+   `tests/test_table_html_escaping.py` already pins for #1 and #2.
+10. **A height contract**: #2 takes `max_height` and otherwise computes
+    `min(600, rows × 44 + 48)`; #1 is full height or paged. A shared default
+    would change the height of a table on some page.
+
+### Which could adopt it first
+
+**#4, the hand-built blocks, and only the two-and-three-column figure tables
+among them** (`db-fig` on the Dashboard and its panels, and the question cards
+in `market_questions_view`). They are the smallest, they are fragments like
+#2, they have no sorting, paging, grouping or row headers, and their only cell
+logic is a tone class from the sign. They are also the ones most likely to
+drift, because each is a format string inside the view that draws it.
+
+The order after that, easiest to hardest:
+
+1. #4's figure tables → use #2 (`render_saas_table`), fragment mode. Needs
+   #2 to accept a per-cell tone and a right-aligned figure column without
+   inferring alignment from the header's words.
+2. #3, the calendar table → needs the row-header column (item 6) and the
+   sideways scroll wrapper in #2 first.
+3. #4's `qp-heat` and `db-size` grids → these are heat grids, not tables of
+   figures; decide whether they are a table at all before moving them.
+4. **#1 last, or never.** The Screener grid is the one table with sorting,
+   paging, grouped headers, a phone column set and an iframe, and it is the
+   page the site is mostly about. Folding it in means teaching the shared
+   renderer every feature above; the honest outcome may be that #1 stays its
+   own file and the other three become one.
+
+### How we would know it had not broken anything
+
+Each step: render the page before and after at desktop and phone width and
+compare the markup of the table only; the cell text must be byte-identical and
+the computed row height, alignment and colour of every cell unchanged.

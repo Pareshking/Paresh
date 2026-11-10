@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.config import HIGH_52W_MIN_OBSERVATIONS, MOMENTUM_WINDOWS, RISK_FREE_RATE
+from src.engine.metrics import drawdown
 from src.engine.calendar_momentum import anchor_frame, period_sharpe_at, winsorised_z
 from src.engine.corporate_actions import adjust_prices
 from src.engine import compute_gate, liquidity
@@ -813,7 +814,7 @@ def _calculate_backtest_metrics(
     # six-month window.
     returns_autocorr_lag1 = _returns_autocorr_lag1(strat_daily_s)
 
-    dd_series = eq_strat_net / eq_strat_net.cummax() - 1
+    dd_series = drawdown(eq_strat_net)
     max_dd = float(dd_series.min())
     max_dd_duration_days, current_dd_duration_days = _underwater_durations(eq_strat_net)
 

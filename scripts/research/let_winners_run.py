@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from src.engine import index_universe as iu  # noqa: E402
 from src.engine.backtester import run_backtest  # noqa: E402
+from src.engine.metrics import drawdown  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.track_record import TRACK_RECORD_CONFIG as cfg  # noqa: E402
 
@@ -53,7 +54,7 @@ def summary(res, bench) -> dict:
     eq.index = pd.DatetimeIndex(eq.index)
     yrs = (eq.index[-1] - eq.index[0]).days / 365.25
     daily = eq.pct_change().dropna()
-    dd = eq / eq.cummax() - 1
+    dd = drawdown(eq)
     m = eq.resample("ME").last().pct_change().dropna()
     b = bench.reindex(eq.index, method="ffill")
     out = {"total %": (eq.iloc[-1] / eq.iloc[0] - 1) * 100, "a year %": ((eq.iloc[-1] / eq.iloc[0]) ** (1 / yrs) - 1) * 100,

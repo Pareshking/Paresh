@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 import src.engine.backtester as bt  # noqa: E402
 from src.engine import index_universe as iu  # noqa: E402
+from src.engine.metrics import max_drawdown  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.track_record import TRACK_RECORD_CONFIG as cfg  # noqa: E402
 
@@ -211,7 +212,7 @@ def main(path: str) -> None:
                 "after tax paid a year %": cagr(CAPITAL, post["value"], yrs),
                 "after tax if sold at end a year %": cagr(CAPITAL, post["after_liquidation"], yrs),
                 "tax paid, Rs lakh": post["tax_paid"] / 1e5,
-                "worst drawdown %": (eq / eq.cummax() - 1).min() * 100,
+                "worst drawdown %": max_drawdown(eq) * 100,
                 "volatility %": eq.pct_change().dropna().std() * np.sqrt(252) * 100,
             }
             rows[(label, rule)] = row

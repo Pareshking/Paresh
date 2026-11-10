@@ -32,6 +32,8 @@ import numpy as np
 import pandas as pd
 
 from src.core.logger import logger
+from src.core.config import BENCHMARK_SYMBOL
+from src.engine.metrics import max_drawdown
 
 # Nothing before this month is ever recorded. The strategy's live history
 # starts here; earlier "returns" would be pure hindsight simulation presented
@@ -103,7 +105,7 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     "sector_cap": 0.40,
     "caps": "hard_at_rebalance",
     "sector_labels": "nse_index_industry_tv_fallback",
-    "benchmark": "^CRSLDX",
+    "benchmark": BENCHMARK_SYMBOL,
     # Not a run_backtest argument: it names the ACCOUNTING, so the fingerprint
     # changes with it. From 2026-09-25 the backtest holds each book between
     # fills (buy and hold) instead of re-weighting it to target every session;
@@ -149,7 +151,7 @@ def empty_ledger(inception: pd.Period = INCEPTION) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "inception": str(inception),
-        "benchmark": "^CRSLDX",
+        "benchmark": BENCHMARK_SYMBOL,
         "months": {},
     }
 
@@ -199,6 +201,37 @@ def save_ledger(ledger: dict[str, Any], path: Path | str = LEDGER_PATH) -> None:
     with p.open("w", encoding="utf-8") as fh:
         json.dump(payload, fh, indent=2, sort_keys=False)
         fh.write("\n")
+
+
+def run_backtest_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
+    """The run_backtest arguments a record config supplies, in one place.
+
+    The live replay (engine/model_record.py) and the monthly freeze
+    (scripts/update_track_record.py) each spelled these fourteen arguments out,
+    so a new setting had to be added twice and a month frozen by the script
+    could silently be replayed by the app under different rules. Everything
+    else those two pass -- the prices, the benchmark, the membership, the
+    sector map, the stateful history -- is per-caller and stays at the call
+    site.
+    """
+    return {
+        "top_n": cfg["top_n"],
+        "rebal_freq": cfg["rebal_freq"],
+        "ema_period": cfg["ema_period"],
+        "high_pct": cfg["high_pct"],
+        "weight_method": cfg["weight_method"],
+        "config_weights": cfg["config_weights"],
+        "cost_bps": cfg["cost_bps"],
+        "buffer_n": cfg["buffer_n"],
+        "members_only_scoring_from": cfg.get("members_only_scoring_from"),
+        "ema_warmup_from": cfg.get("ema_warmup_from"),
+        "hold_cap": cfg.get("hold_cap"),
+        "hold_cap_from": cfg.get("hold_cap_from"),
+        "buy_size": cfg.get("buy_size"),
+        "weight_reset_months": tuple(cfg.get("weight_reset_months") or ()) or None,
+        "stock_cap": cfg["stock_cap"],
+        "sector_cap": cfg["sector_cap"],
+    }
 
 
 def config_fingerprint(**params: Any) -> str:
@@ -624,7 +657,7 @@ def summary_stats(
     ann_b = (1 + total_b) ** (12.0 / n) - 1 if total_b is not None and n else None
 
     equity = (1 + strat).cumprod()
-    max_dd = float((equity / equity.cummax() - 1).min()) if n else 0.0
+    max_dd = max_drawdown(equity) if n else 0.0
     beat = (
         float((strat.reindex(bench.index) > bench).mean()) if not bench.empty else None
     )

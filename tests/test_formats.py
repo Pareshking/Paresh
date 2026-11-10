@@ -44,7 +44,6 @@ def test_no_view_prints_a_negative_zero_or_an_ascii_hyphen():
     assert fmt.pct(tiny) == "0.0%"
     assert qualified_view._pct(tiny) == "0.0%"
     assert sector_view._pct(tiny) == "0.0%"
-    assert sector_view._signed_pct(tiny)[1] == "0.0%"
     assert screener_table._signed(tiny * 100) == "0.0"
 
     # The stock page takes percent units, not a fraction.

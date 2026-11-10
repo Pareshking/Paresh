@@ -17,14 +17,25 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from src.core.config import HIGH_52W_MIN_OBSERVATIONS  # noqa: E402
 from src.engine import index_universe as iu  # noqa: E402
 from src.engine.membership import members_on  # noqa: E402
+from src.engine.track_record import TRACK_RECORD_CONFIG  # noqa: E402
 
 
 def monthly_readings(close: pd.DataFrame) -> pd.DataFrame:
     hist = iu.index_history("nifty_500")
-    ema = close.ewm(span=50).mean()
-    high = close.rolling(252, min_periods=200).max()
+    # The engine's own gate, read from the engine, not retyped: the span, the
+    # 52-week-high fraction (backtester.run_backtest's ema_period / high_pct,
+    # as the record configures them) and the number of prints a 52-week high
+    # needs (config.HIGH_52W_MIN_OBSERVATIONS, which the backtester and
+    # rank_history both pass to .rolling). This script asked for 200 prints
+    # where the engine asks for 126, so it called a stock unqualified that the
+    # engine scores, and it hardcoded 50 and 0.8 beside a config that holds
+    # them. `> 0` is the engine's third condition.
+    cfg = TRACK_RECORD_CONFIG
+    ema = close.ewm(span=cfg["ema_period"]).mean()
+    high = close.rolling(252, min_periods=HIGH_52W_MIN_OBSERVATIONS).max()
     ends = close.groupby(close.index.to_period("M")).apply(lambda s: s.index[-1])
     rows = []
     prev = None
@@ -35,7 +46,8 @@ def monthly_readings(close: pd.DataFrame) -> pd.DataFrame:
         mem = [s for s in members_on(hist, t) if s in close.columns]
         p = close.loc[t, mem]
         ok = p.notna() & ema.loc[t, mem].notna() & high.loc[t, mem].notna()
-        q = ((p > ema.loc[t, mem]) & (p >= 0.8 * high.loc[t, mem]))[ok]
+        q = ((p > ema.loc[t, mem]) & (p >= cfg["high_pct"] * high.loc[t, mem])
+             & (p > 0))[ok]
         disp = np.nan
         if prev is not None:
             r = (close.loc[t, mem] / close.loc[prev, mem] - 1).dropna()
