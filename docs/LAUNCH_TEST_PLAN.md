@@ -29,7 +29,7 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
 | 1 ✅ | 02:35 | **This plan, and the pre-launch gate.** One command that answers "is the site fit to launch right now": every page renders, no page wider than its viewport, data freshness inside tolerance, no secret in the repo. |
 | 2 ✅ | 03:05 | **Functional sweep, desktop.** All 12 pages at 1400px: every control exercised once (filters, pickers, tabs, expanders, downloads, popovers), deep links (`?stock=`, `?owner=`), and the nav. Proves: nothing throws when touched, not merely when loaded. |
 | 3 ✅ | 03:35 | **Functional sweep, phone.** The same at 390px, plus tap-target measurement and the menu. Proves: the phone is a first-class reader, not a resized desktop. |
-| 4 | 04:05 | **Cross-reading consistency.** Take every figure that appears on more than one page (the EMA distance, the qualified count, returns, drawdown, the book's value) and assert the pages agree. Proves: no second EMA bug. |
+| 4 ✅ | 04:05 | **Cross-reading consistency.** Take every figure that appears on more than one page (the EMA distance, the qualified count, returns, drawdown, the book's value) and assert the pages agree. Proves: no second EMA bug. |
 | 5 | 04:35 | **Resilience.** Run the app against a missing price file, a stale one, an empty ranking, no R2 credentials, and a benchmark with a gap. Proves: it degrades with a sentence, not a traceback. |
 | 6 | 05:05 | **Accessibility.** Contrast on every text colour actually used, heading order, alt text, keyboard-only navigation, focus visibility, screen-reader labels on icon buttons. Target: WCAG 2.1 AA. |
 | 7 | 05:35 | **Performance and weight.** Cold start, time to content per page, page bytes, memory at the heaviest page, test-suite runtime. Records the numbers the owner's 10%/20%/20% targets are measured against. |
@@ -156,3 +156,38 @@ Their labels and thumbs are what a finger uses, and giving a slider track a
 reader's path. The one on Sector rotation is a 32px Streamlit button in a
 narrow container. Both are recorded rather than bodged the night before a
 launch.
+
+### Slot 4 — do the pages agree with each other? (04:05 UTC, done)
+
+`scripts/launch_consistency.py` takes each figure that appears on more than one
+page, reads it from the rendered text of every page that shows it, and asserts
+they match inside a stated tolerance. This is the generalisation of the 8 Nov
+bug, where the header said 2.9% above the 200-day EMA and the uptrend table
+said +3.0.
+
+**6/6 agree.**
+
+| Figure | Pages | Value |
+|---|---|---|
+| Nifty 500 above its 200D EMA | Dashboard, Breadth | 3.4% / +3.4 |
+| Nifty 500 index level | Dashboard, Screener, Portfolio | 23,567 |
+| The universe's size | Dashboard, Screener, Actions | 750 |
+| Stocks above their 50D EMA | Dashboard, Screener | 368 |
+| Stocks near their 52W high | Dashboard, Screener | 371 |
+| Stocks above their 200D EMA | Dashboard, Breadth | 45% |
+
+**Two of those "failed" first, and both were the check's fault.** The by-size
+table on Breadth is tab separated with two columns per measure — a month ago,
+then now — so reading the first number after the heading gave the month-ago
+column (−4.6) and reported an 8-point disagreement with the header's +3.4. The
+second rule read a figure out of a chart's alt text (87%) instead of the table
+(45%). Both regexes now address the cell they mean.
+
+That is the second time in three slots that the harness, not the app, was
+wrong, which is itself the finding: an automated check reports what it matched,
+not what it meant to match, and the night before a launch a false alarm costs
+more than a missing test. Every rule here names where it looked, and a rule
+that cannot find its figure fails loudly instead of passing on an empty match.
+
+**Not covered by this slot**: figures that appear on only one page (nothing to
+compare), and the record's own returns, which no second source reports.
