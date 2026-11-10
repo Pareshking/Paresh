@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-10 — A cost basis the record cannot prove is gone from Portfolio
+
+- The Portfolio holdings table measured a position against the price it was **first** bought at. Until the 30 November signal the model put every holding back to 5% at each rebalance, so a winner was trimmed month after month and today's shares are several lots at several prices. On that reading CUPID's 2,022 shares "cost" ₹2.56 lakh, against the ₹6.88 lakh the account actually struck them at on 2 November, and the ₹4.37 lakh of "P&L" it implied is neither realised nor unrealised: most of it was banked by the trims and is already inside the record's monthly returns. The two columns left the visible table in #492 but stayed in the frame and in the Holdings CSV; they are now gone from both, with a test that fails if either returns.
+- They are not replaced by a better estimate. The ledger stores one return per month and the replay stores a weight and a price per rebalance — no shares, no rupees, no lots — so no honest rupee cost exists to print. What the table shows instead is what the record can stand behind: the value at the fill where today's shares were set, the move since, and the price's rise per share since entry. **No figure on the page moved**; the return column simply stopped being derived from a basis it did not need.
+- The book now says this under it in one caption, and the headline's "Invested: ₹1,00,00,000" reads "Started with ₹1,00,00,000" — the account has compounded since, and what it holds today is the book struck at the last rebalance.
+
 ## 2026-11-10 — Launch testing: four things a reader would have seen
 
 - **The site said yesterday's prices were stale this morning.** Today is Diwali-Balipratipada, a published NSE holiday, and the freshness line counted it as a trading day: "Prices: 9 Nov · 752/752 · 1 trading day behind" on the day 9 November *was* the latest session. It now reads "latest session". The walk that looks for price files still offers every day, holiday or not, because only the exchange can prove a day was closed — but the age of a figure is a different question, and a day NSE itself lists as closed is no longer counted. A wrong holiday file can now only make that count short; it can never make a real session read as stale.

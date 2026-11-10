@@ -60,6 +60,15 @@ excludes realised gains/losses on sold positions; total account performance
 includes the full sequence of monthly portfolio returns and modeled costs.
 Day P&L is a third measure, calculated from current positions between marks.
 
+The holdings table's unrealised P&L runs from the **latest fill**, where today's
+share counts were set, not from a holding's first entry price. The record keeps
+no rupee cost for a holding's life: the ledger stores one return a month and the
+replay a weight and a price per rebalance, never shares, rupees or lots. Under
+the reset that ran until the 30 Nov 2026 signal a kept name was re-struck to 5%
+every month, so "shares today × the first entry price" is neither its cost nor
+the money the account has in it, and Portfolio prints no such column
+(TODO S111, owner 8 Nov 2026).
+
 The current month may be **live MTD**, or **closed but awaiting freeze** after
 the calendar month changes. It remains visible until the scheduled updater
 freezes it. Existing frozen months remain immutable during normal runs; drift

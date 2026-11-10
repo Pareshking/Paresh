@@ -122,6 +122,27 @@ def _benchmark_returns_from_daily(
     return day, mtd, total
 
 
+def basis_note(fill_date=None) -> str:
+    """What the Current book's rupee columns are based on, and what they are not.
+
+    The record keeps monthly returns (`data/track_record.json`) and, per
+    rebalance, a weight and a price; it keeps no rupee cost for a holding's life
+    and no per-lot basis. So the table marks today's shares at the fill where
+    they were set, and says so, rather than printing a cost basis it cannot
+    stand behind (S111, owner 8 Nov 2026).
+    """
+    when = pd.to_datetime(fill_date, errors="coerce")
+    where = f"{when:%-d %b %Y}" if pd.notna(when) else "the latest rebalance"
+    return (
+        f"Rupee figures are marked from the {where} fill, where today's share counts "
+        "were set. They are a mark, not a cost: the record keeps each month's return "
+        "and each rebalance's weights, never a holding's rupee cost, so no column here "
+        "is what a name cost when it was first bought. Return since Entry % is the "
+        "price's rise per share since its entry date — a winner trimmed at a rebalance "
+        "has already paid part of that gain into the account's return."
+    )
+
+
 def build_portfolio_tracker(
     book: pd.DataFrame,
     rank_df: pd.DataFrame,
@@ -241,22 +262,30 @@ def build_portfolio_tracker(
     # fill price the shares were sized at entry and the two bases agree.
     basis_px = (size_px if fill_px.notna().any() else out["Entry Price"])
     out["Value at Rebalance (₹)"] = (out["Shares"] * basis_px).round(0)
-    out["Invested Value (₹)"] = (out["Shares"] * out["Entry Price"]).round(0)
     out["Current Value (₹)"] = (out["Shares"] * out["Current Price"]).round(0)
-    out["P&L (₹)"] = (out["Current Value (₹)"] - out["Invested Value (₹)"]).round(0)
     out["P&L since Rebalance (₹)"] = (out["Current Value (₹)"] - out["Value at Rebalance (₹)"]).round(0)
-    out["P&L %"] = np.where(
-        out["Invested Value (₹)"] > 0,
-        out["P&L (₹)"] / out["Invested Value (₹)"] * 100.0,
+    # No rupee cost basis is carried for a holding's whole life, and none is
+    # invented here (S111, owner 8 Nov 2026). The ledger stores monthly returns
+    # only; the replay stores a weight and a price per rebalance, never shares or
+    # rupees. Until 30 Nov 2026 every rebalance reset each holding to 5%, so a
+    # name trimmed month after month has several lots at several prices and
+    # "shares today x the first entry price" is neither its cost nor the money the
+    # account has in it (CUPID: Rs 2.56 lakh against the Rs 6.88 lakh it was struck
+    # at on 2 Nov). The two honest rupee figures are the value at the latest fill,
+    # where today's shares were set, and the move since. The one honest return is
+    # the price's rise per share, which needs no basis at all.
+    out["Return since Entry %"] = np.where(
+        out["Entry Price"] > 0,
+        (out["Current Price"] / out["Entry Price"] - 1.0) * 100.0,
         np.nan,
     )
 
-    total_invested = float(out["Invested Value (₹)"].sum())
+    total_rebalance = float(out["Value at Rebalance (₹)"].sum())
     total_current = float(out["Current Value (₹)"].sum())
     total_value = (
         float(curve.iloc[-1])
         if not curve.empty and float(curve.iloc[-1]) > 0
-        else total_current + max(float(capital) - total_invested, 0.0)
+        else total_current + max(float(capital) - total_rebalance, 0.0)
     )
     out["Weight %"] = np.where(
         total_value > 0, out["Current Value (₹)"] / total_value * 100.0, 0.0
@@ -298,10 +327,10 @@ def build_portfolio_tracker(
         out["Day P&L %"] = np.nan
 
     out["Status"] = "Held"
-    # Current Book is presented by open-position P&L %: strongest return first.
+    # Current Book is presented by return since entry: strongest first.
     # Sort the numeric field, not its formatted display string.
     return out.sort_values(
-        ["P&L %", "Symbol"], ascending=[False, True], na_position="last"
+        ["Return since Entry %", "Symbol"], ascending=[False, True], na_position="last"
     ).reset_index(drop=True)
 
 
@@ -605,7 +634,9 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         kit.Reading(
             "Portfolio value",
             _fmt.inr(value),
-            f"Invested: {_fmt.inr(capital)}",
+            # Not "Invested": the account has compounded since, and what it holds
+            # today is the book struck at the latest rebalance (S111).
+            f"Started with {_fmt.inr(capital)}",
         ),
         kit.Reading(
             "Since inception",
@@ -637,7 +668,8 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     ], "Portfolio snapshot")
     # One canonical table; the columns users scan first come first.
     display_cols = [
-        "Symbol", "Current Price", "P&L %", "P&L since Rebalance (₹)", "Weight %", "Target Weight %",
+        "Symbol", "Current Price", "Return since Entry %", "P&L since Rebalance (₹)",
+        "Weight %", "Target Weight %",
         "Weight Drift %", "Day P&L (₹)", "Day P&L %", "Current Value (₹)", "Shares",
         "Entry Date", "Entry Price", "Value at Rebalance (₹)", "Holding Days",
         "Rank at Rebalance", "Rank at Entry", "Current Rank", "1M Return",
@@ -646,16 +678,16 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
     current_view = table[[c for c in display_cols if c in table.columns]].copy()
     if "Entry Date" in current_view.columns:
         current_view["Entry Date"] = pd.to_datetime(current_view["Entry Date"], errors="coerce").dt.strftime("%-d %b %Y").fillna("—")
-    for col in ("P&L %", "Weight %", "Target Weight %", "Weight Drift %", "1M Return"):
+    for col in ("Return since Entry %", "Weight %", "Target Weight %", "Weight Drift %",
+                "1M Return"):
         if col in current_view.columns:
             current_view[col] = pd.to_numeric(current_view[col], errors="coerce")
 
-    # "P&L %" is the price return since first entry (true per share); the rupee
-    # figures run from the latest fill, where today's shares were set.
+    # "Return since Entry %" is the price's rise per share since first entry; the
+    # rupee figures run from the latest fill, where today's shares were set.
     # "Current Rank" is the place among all ranked stocks; Actions quotes the place
     # among the qualified (audit, 8 Nov 2026: ACUTAAS 47 here, #45 there).
-    current_view = current_view.rename(columns={"P&L %": "Return since Entry %",
-                                                "Current Rank": "Overall Rank Now"})
+    current_view = current_view.rename(columns={"Current Rank": "Overall Rank Now"})
     # "On this page" (design audit, 9 Nov 2026): the page is over five
     # screens tall at 1400px with eight sections and had no jump list,
     # though kit.card already gives every card a stable id.
@@ -674,6 +706,7 @@ def render_portfolio_view(calc, rank_df: pd.DataFrame) -> None:
         f"{n_holdings} positions",
     ):
         render_saas_table(current_view, max_height=620, variant="portfolio")
+        kit.caption(basis_note(meta.get("fill_date")))
 
     sector = table.groupby("Sector / Industry", dropna=False).agg(
         Weight=("Weight %", "sum"), Holdings=("Symbol", "count")
