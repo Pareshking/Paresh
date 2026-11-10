@@ -460,6 +460,14 @@ included `iframe[srcdoc]`, which is Streamlit's own chart frame on a perfectly
 ordinary page. A check that reports an injection for a stock symbol reports
 nothing.
 
+**What the logs print.** The server's own log over those 64 hostile loads:
+28 lines, 2 KB, with **no** access key, private key, bearer token, e-mail
+address, GitHub token, R2 endpoint — and no query string at all, so a payload
+never reaches the log either. None of the four live credential values appears.
+The only thing of note is two absolute server paths
+(`/home/user/Paresh/data/track_record_shadow.json`), which name the container's
+filesystem rather than anything secret, and which a reader never sees.
+
 **Not covered**: a penetration test, Streamlit Cloud's own TLS and headers,
 and whether the five R2 secrets in the repository's settings are the right
 ones — `GET actions/secrets` answers 403 through this session's proxy, so a
