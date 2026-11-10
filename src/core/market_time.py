@@ -120,10 +120,27 @@ def trading_days_behind(as_of: date, *, today: date | None = None, horizon: int 
 
     Returns None when ``as_of`` is not among the recent trading days at all --
     either far older than the horizon, or in the future.
+
+    NSE's published holidays are taken out of the count here, which
+    :func:`recent_trading_days` deliberately does not do. The walk back keeps
+    offering a holiday because only the exchange can prove it was one; the
+    *age* of a figure is a different question, and counting a day NSE itself
+    lists as closed makes the freshest data look stale. On 10 November 2026,
+    Diwali-Balipratipada (``data/reference/nse/holidays.csv``, from NSE's own
+    holiday-master API), the ribbon read "Prices: 9 Nov -- 1 trading day
+    behind" when 9 Nov was the latest session there was.
+
+    ``as_of`` itself is never removed, whatever the calendar says. A stale or
+    wrong holiday file can then only make this count slightly short; it can
+    never turn a real session into "age unknown", which the ribbon shows as
+    stale -- the failure the calendar was kept out of the walk to avoid.
     """
+    from src.loaders.nse_calendar import not_a_session
+
     days = recent_trading_days(horizon, as_of=today or ist_today(), max_lookback_days=horizon * 2)
+    sessions = [d for d in days if d == as_of or not not_a_session(d)]
     try:
-        return days.index(as_of)
+        return sessions.index(as_of)
     except ValueError:
         return None
 

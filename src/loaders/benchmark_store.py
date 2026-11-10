@@ -23,6 +23,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.core.logger import logger
+
 FILE = Path(__file__).resolve().parents[2] / "data" / "benchmarks.csv"
 
 # The symbols callers already pass (the Yahoo tickers they used to download)
@@ -44,7 +46,18 @@ def read(path: Path = FILE) -> pd.DataFrame:
         frame = pd.read_csv(path, parse_dates=["date"])
     except (OSError, ValueError):
         return pd.DataFrame(columns=FIELDS[1:], index=pd.DatetimeIndex([], name="date"))
-    return frame.set_index("date").sort_index()
+    frame = frame.set_index("date").sort_index()
+    # The same guard the other reader of this file applies (index_levels.
+    # nse_benchmarks): a file cut off mid-row parses, but its dates come back
+    # as strings and `asof` then raises "'<' not supported between instances
+    # of 'Timestamp' and 'str'" -- which took the Sectors page down in launch
+    # slot 5, 10 Nov 2026. One file, two readers, so the guard belongs in both
+    # until they are one reader.
+    if not isinstance(frame.index, pd.DatetimeIndex):
+        logger.warning("benchmarks.csv has no usable dates (index is %s); treating it as empty.",
+                       type(frame.index).__name__)
+        return pd.DataFrame(columns=FIELDS[1:], index=pd.DatetimeIndex([], name="date"))
+    return frame
 
 
 def _period_start(last: pd.Timestamp, period: str | None) -> pd.Timestamp | None:

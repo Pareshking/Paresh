@@ -30,6 +30,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.core.config import MODEL_BOOK_CAPITAL
+
 WINDOW = 126
 MIN_SESSIONS = 60
 PARTICIPATION = 0.10
@@ -80,7 +82,7 @@ def _drawdown(curve: pd.Series) -> tuple[float, float]:
 
 def book_risk(weights: pd.Series, prices: pd.DataFrame, bench: pd.Series | None,
               equity: pd.Series | None = None, volume: pd.DataFrame | None = None,
-              capital: float = 1e7, index_dir: Path = INDEX_DIR) -> BookRisk:
+              capital: float = MODEL_BOOK_CAPITAL, index_dir: Path = INDEX_DIR) -> BookRisk:
     """`weights`: symbol -> weight, as fractions or percent of the book.
 
     Cash is kept (audit C-L2, 8 Nov 2026). The weights used to be divided by

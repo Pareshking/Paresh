@@ -333,15 +333,27 @@ def render_header_kpi_bar(
     bullish = regime.status == MarketRegime.BULLISH
     regime_cls = "mkt-up" if bullish else "mkt-down"
     dist = regime.distance_pct
-    dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
+    # An unknown regime must read as unknown. With no usable benchmark the
+    # loader returns UNKNOWN with distance 0.0 and price 0.0, and the header
+    # printed "Nifty 500 0.0% above its 200D EMA" beside a level of "0" --
+    # a wrong number stated as fact, which is worse than an error page
+    # (launch slot 5, 10 Nov 2026).
+    unknown = regime.status == MarketRegime.UNKNOWN or not regime.current_price
+    if unknown:
+        regime_cls = "mkt-flat"
+        dist_text = "— no reading"
+        level_text = "—"
+    else:
+        dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
+        level_text = f"{regime.current_price:,.0f}"
     market_html = f"""
     <div role="status" aria-label="Market status dashboard" class="mkt-snapshot">
         <div class="mkt-item mkt-regime-item">
-            <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>Nifty 500 {html.escape(dist_text)} its 200D EMA</span>
+            <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>Nifty 500 {html.escape(dist_text)}{"" if unknown else " its 200D EMA"}</span>
         </div>
         <div class="mkt-item mkt-index">
             <span class="mkt-label">Nifty 500</span>
-            <strong>{regime.current_price:,.0f}</strong>
+            <strong>{level_text}</strong>
         </div>
         <div class="mkt-item">
             <span class="mkt-label">Universe</span>

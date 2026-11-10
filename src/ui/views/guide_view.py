@@ -106,10 +106,12 @@ No liquidity filter is applied, in the record or by default in the Backtest.</p>
 <ul>
 <li><b>Size:</b> {top_n} stocks, each 1/{top_n} of the account at the rebalance, then held as they
 move until the next one.</li>
-<li><b>Caps:</b> no stock above {stock_cap:.0%} and no NSE industry above {sector_cap:.0%} of the book at a
-rebalance, so at most {per_industry} of the {top_n} from one industry; the next-ranked stock from another
-industry takes the place. Between rebalances prices can carry an industry past the cap until the next
-rebalance trims it.</li>
+<li><b>Caps:</b> a new buy is never above {stock_cap:.0%} of the account and no NSE industry is above
+{sector_cap:.0%} of the book at a rebalance, so at most {per_industry} of the {top_n} from one industry; the
+next-ranked stock from another industry takes the place. From the 30 Nov 2026 rebalance a holding that
+is kept is trimmed only above 15%, not back to {stock_cap:.0%} (see Weighting), so a name the market has
+carried up sits above the buy size until a reset. Between rebalances prices can carry an industry past
+its cap until the next rebalance trims it.</li>
 <li><b>Buffer:</b> a holding is kept while its rank among stocks passing both filters stays within
 {buffer_n}, so a move from 18th to 24th does not trigger a sale and a repurchase.</li>
 <li><b>Costs:</b> {cost:.0f} basis points for a round trip (buying and later selling), charged on what
@@ -172,7 +174,7 @@ leave.</dd>
 <dd>The rank places it among all stocks in the universe; the qualified rank, among those passing both
 filters. The book and the buffer use the qualified rank.</dd>
 <dt>Does the market trend change the model?</dt>
-<dd>No. The header's "Nifty 500 2.9% above its 200D EMA" (or below) compares the index with its 200-day EMA for context.
+<dd>No. The header's "Nifty 500 ... % above its 200D EMA" (or below) compares the index with its 200-day EMA for context.
 The model holds {top_n} stocks in every market and keeps no cash target.</dd>
 <dt>What do the costs cover?</dt>
 <dd>{cost:.0f} basis points a round trip, meant to cover brokerage, exchange and SEBI fees, GST on them,

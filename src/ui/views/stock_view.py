@@ -37,13 +37,10 @@ from src.ui import formats as _fmt
 # ── Palette tokens ───────────────────────────────────────────────────────────
 POS   = C.up
 NEG   = C.down
-WARN  = C.caution
 ACC   = C.ink
 INK   = C.ink
 SUB   = C.text_2
 MUTED = C.muted
-LINE  = C.rule
-
 PERIODS = (1, 3, 6, 9, 12)
 _LONG = {1: "1 month", 3: "3 months", 6: "6 months", 9: "9 months", 12: "12 months"}
 
@@ -74,22 +71,19 @@ def _money(value, decimals: int = 2) -> str:
 
 
 def _pct(value, decimals: int = 1, signed: bool = True) -> str:
+    """A percentage already in percent units (not a fraction).
+
+    Through formats (duplicate audit, 10 Nov 2026): this printed an ASCII
+    hyphen where the whole site uses U+2212, and signed before rounding."""
     v = _num(value)
     if v is None:
-        return "—"
-    return f"{v:+.{decimals}f}%" if signed else f"{v:.{decimals}f}%"
+        return _fmt.DASH
+    return f"{_fmt.signed(v, decimals, plus=signed)}%"
 
 
 def _ratio(value, decimals: int = 2) -> str:
     v = _num(value)
     return f"{v:.{decimals}f}" if v is not None else "—"
-
-
-def _sign_colour(value, neutral: str = INK) -> str:
-    v = _num(value)
-    if v is None:
-        return neutral
-    return POS if v > 0 else (NEG if v < 0 else neutral)
 
 
 def _signed_pct(frac: float | None, decimals: int = 1) -> str:

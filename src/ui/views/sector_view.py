@@ -15,15 +15,16 @@ from src.ui import formats as _fmt
 
 from src.ui.system_param import stock_href
 from src.ui import page_kit as kit
+from src.ui.page_kit import _series_of
 from src.engine.pipeline import price_fingerprint
 from src.engine.sector_breadth import EMA_SPANS, sector_leadership
 from src.loaders import benchmark_store
 from src.engine import size_leadership as sl
 from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
 from src.ui.views.market_questions_view import render_leaders_section, size_closes
-from src.ui.charts import leadership_colours, render_leadership_map
+from src.ui.charts import render_leadership_map
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
-from src.ui.screener_table import _CSS as TABLE_CSS, _JS as TABLE_JS, render_screener_table
+from src.ui.screener_table import render_screener_table
 
 RANK_BY = {
     "3M median": "3M Return",
@@ -127,8 +128,9 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
 
 
 def _signed_pct(v: float) -> tuple[str, str]:
+    """Tone and text; the text from formats, which rounds before it signs."""
     cls = "pos" if v > 0 else "neg" if v < 0 else ""
-    return cls, f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v) * 100:.1f}%"
+    return cls, _fmt.pct(v)
 
 
 def _reading(dx: float, dy: float) -> str:
@@ -180,64 +182,6 @@ Right and up: broad strength building. Right and down: beating the index on a fe
 """
 
 
-def leadership_table_html(board: pd.DataFrame, span: int) -> str:
-    """The leadership figures in the Screener table's design ("Stocks in an
-    industry"): sortable headers, the sector's map colour as a dot."""
-    colour = leadership_colours(board)
-    rows = []
-    for i, r in enumerate(board.sort_values("x_now", ascending=False).itertuples(), start=1):
-        name = html.escape(r.Sector)
-        cells = [f'<td class="c-rank" data-v="{i}">{i}</td>',
-                 f'<td class="c-stock" data-v="{name}"><a><span class="sym">'
-                 f'<i class="dot" style="background:{colour[r.Sector]}"></i><span class="nm-full">{name}</span>'
-                 f'<span class="nm-short">{html.escape(SHORT_NAMES.get(r.Sector, r.Sector))}</span></span>'
-                 f'<span class="sub"><span class="nm-full">{int(r.Stocks)} stocks · led by {_leaders_txt(r.Leaders, 2)}</span>'
-                 f'<span class="nm-short">{html.escape(", ".join(sym for sym, _ in (r.Leaders or [])[:2]))}</span>'
-                 f'</span></a></td>']
-        for x, a, o, y, extra in ((r.x_now, r.above_now, r.obs_now, r.y_now, ""),
-                                  (r.x_then, r.above_then, r.obs_then, r.y_then, " d-only")):
-            cls, txt = _signed_pct(x)
-            cells.append(f'<td class="n {cls}{extra}" data-v="{x:.6f}">{txt}</td>')
-            cells.append(f'<td class="n{extra}" data-v="{y:.6f}">{a} of {o}'
-                         f'<span class="pc">{y * 100:.0f}%</span></td>')
-        d = round((r.y_now - r.y_then) * 100)
-        chip = ("up", f"▲ {d}") if d > 0 else ("down", f"▼ {abs(d)}") if d < 0 else ("flat", "— 0")
-        cells.append(f'<td class="n" data-v="{d}"><span class="chip {chip[0]}">{chip[1]}'
-                     '<span class="nm-full"> pts</span></span></td>')
-        rows.append("<tr>" + "".join(cells) + "</tr>")
-    then, now = pd.Timestamp(board["Then"].iloc[0]), pd.Timestamp(board["Now"].iloc[0])
-    ago_head = _ago(int(board["Months"].iloc[0])).capitalize()
-    # (label, phone label, sort type, class, arrow)
-    heads = [("#", "#", "num", "t-left on", "↓"), ("Sector", "Sector", "text", "t-left", "↕"),
-             ("Vs Nifty 500", "Vs N500", "num", "", "↕"), (f"Above {span} EMA", "Above", "num", "", "↕"),
-             ("Vs Nifty 500", "", "num", "d-only", "↕"), (f"Above {span} EMA", "", "num", "d-only", "↕"),
-             ("Breadth", "Δ", "num", "", "↕")]
-    head = "".join(f'<th class="{c}" data-type="{t}"><span class="nm-full">{html.escape(h)}</span>'
-                   f'<span class="nm-short">{html.escape(m)}</span><span class="ar">{a}</span></th>'
-                   for h, m, t, c, a in heads)
-    groups = ('<tr class="grp-row"><th colspan="2" class="grp">Sector</th>'
-              f'<th colspan="2" class="grp">Today · {now:%-d %b}</th>'
-              f'<th colspan="2" class="grp d-only">{ago_head} · {then:%-d %b}</th>'
-              '<th class="grp">Change</th></tr>')
-    css = (TABLE_CSS + "table{min-width:0}.wrap{height:auto}td.c-stock .sub{display:block}"
-           "tbody tr:hover td{cursor:default}"
-           ".dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;"
-           "border:1px solid rgba(14,23,38,.25);vertical-align:0}"
-           "td .pc{display:inline-block;min-width:38px;margin-left:8px;color:var(--c-muted);font-weight:500}"
-           ".nm-short{display:none}"
-           "@media (max-width:640px){td .pc{display:none}.nm-full{display:none}.nm-short{display:inline}"
-           "th,td{padding:0 6px}td{font-size:12.5px}th:nth-child(1),td.c-rank{width:26px;min-width:26px}"
-           "th:nth-child(2),td.c-stock{left:26px;max-width:116px}"
-           "td.c-stock .sub{display:block}"
-           "td.c-stock .sym{display:block;max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
-           "thead th .ar{display:none}}")
-    return ("<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Sector leadership table</title>"
-            "<link href='app/static/fonts.css' rel='stylesheet'>"
-            f"<style>{css}</style></head><body><div class='wrap'><table>"
-            f"<thead>{groups}<tr class=\"hdr\">{head}</tr></thead><tbody>{''.join(rows)}</tbody>"
-            f"</table></div><script>const SYS='';{TABLE_JS}</script></body></html>")
-
-
 def _leader_link(sym: str) -> str:
     if not sym or sym == "—":
         return "—"
@@ -246,9 +190,7 @@ def _leader_link(sym: str) -> str:
 
 
 def _pct(v) -> str:
-    if v is None or pd.isna(v):
-        return "—"
-    return f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v) * 100:.1f}%"
+    return _fmt.pct(v)
 
 
 def _tone(v) -> str:
@@ -373,7 +315,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     if levels is not None and nbench is not None and "nifty50" in nbench:
         size_ok, _ = sl.cross_check(levels, nbench["nifty50"])
     nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
-                else (nbench or {}).get("nifty500"))
+                else _series_of(nbench, "nifty500"))
     render_leaders_section(rank_df, history_prices if history_prices is not None else adj_close,
                            nifty500, size_closes(levels, size_ok))
 

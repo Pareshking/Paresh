@@ -188,3 +188,50 @@ def test_header_and_the_uptrend_card_measure_the_200d_ema_the_same_way():
     ema = s.ewm(span=200, min_periods=160).mean()
     header = (float(s.iloc[-1]) - float(ema.iloc[-1])) / float(ema.iloc[-1]) * 100
     assert round(header, 1) == round(ema_gap(s, s.index[-1]), 1)
+
+
+def test_a_half_written_benchmarks_file_degrades_instead_of_crashing(tmp_path, monkeypatch):
+    """Launch slot 5, 10 Nov 2026: a benchmarks.csv cut off mid-row still
+    parses, but its dates come back as STRINGS. Three pages then died inside
+    pandas -- "'<' not supported between instances of 'str' and 'Timestamp'"
+    on searchsorted and asof -- and served Streamlit's redacted error page.
+
+    One file, two readers, so both reject an undated file; and the comparison
+    on the market-questions path returns None rather than raising, wherever
+    its index came from.
+    """
+    import pandas as pd
+
+    from src.engine.market_questions import _on_or_before
+    from src.loaders import benchmark_store, index_levels
+
+    half = tmp_path / "benchmarks.csv"
+    half.write_text("date,nifty500,nifty50,source\n2026-11-0")   # cut mid-row
+
+    monkeypatch.setattr(index_levels, "BENCHMARKS_FILE", str(half))
+    assert index_levels.nse_benchmarks() is None, "an undated file is not usable"
+
+    empty = benchmark_store.read(half)
+    assert isinstance(empty.index, pd.DatetimeIndex) and empty.empty
+
+    # And the comparison refuses to raise on a string index.
+    assert _on_or_before(pd.Index(["2026-11-05", "2026-11-06"]), pd.Timestamp("2026-11-09")) is None
+
+
+def test_an_unknown_regime_reads_as_unknown_not_as_zero():
+    """With no usable benchmark the header printed "Nifty 500 0.0% above its
+    200D EMA" beside a level of "0" -- a wrong number stated as fact, which is
+    worse than an error page (launch slot 5)."""
+    from src.core.types import MarketRegime, RegimeData
+    from src.ui import components
+
+    unknown = RegimeData(status=MarketRegime.UNKNOWN, current_price=0.0,
+                         dma_200=0.0, distance_pct=0.0)
+    html = components.market_snapshot_html(unknown) if hasattr(
+        components, "market_snapshot_html") else None
+    if html is None:          # rendered inside render_header_kpi_bar
+        import inspect
+        src = inspect.getsource(components)
+        assert '"— no reading"' in src and 'level_text = "—"' in src
+    else:
+        assert "no reading" in html and "0.0%" not in html

@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-11-10 — Launch testing: four things a reader would have seen
+
+- **The site said yesterday's prices were stale this morning.** Today is Diwali-Balipratipada, a published NSE holiday, and the freshness line counted it as a trading day: "Prices: 9 Nov · 752/752 · 1 trading day behind" on the day 9 November *was* the latest session. It now reads "latest session". The walk that looks for price files still offers every day, holiday or not, because only the exchange can prove a day was closed — but the age of a figure is a different question, and a day NSE itself lists as closed is no longer counted. A wrong holiday file can now only make that count short; it can never make a real session read as stale.
+- **A breadth chart labelled its newest bar four days in the future** — "5.5% on 13 Nov 2026" when the last session was the 9th — because a week in progress was dated by its Friday. It now carries the last session's date, which is also what the table beside it says.
+- **The Guide contradicted itself** about the rule that changes on 30 November: "Caps" said no stock above 5% of the book, "Weighting" said a holding that stays is trimmed only above 15%. The second is what the model does, and what Portfolio already shows. "Caps" now says a new buy is never above 5% and a kept holding is cut only above 15%.
+- The Guide also quoted the header as reading "Nifty 500 2.9% above its 200D EMA" — a number typed in by hand, against the 3.4% the header was actually showing. The quotation no longer carries a figure.
+- `docs/LAUNCH_TEST_PLAN.md` holds all eleven slots and their measurements, and five commands now answer the launch questions on demand: `launch_gate.py`, `launch_consistency.py`, `launch_a11y.py`, `launch_perf.py` and `launch_security.py`.
+
+## 2026-11-10 — One entry gate, from the 30 November signal
+
+- The Screener and the backtest could disagree about the same stock on the same day. The 50-day EMA gate: the Screener will not quote an EMA until a stock has 30 prints, while the replay quoted one from as few as 10, so three stocks on 5 November (BAGMANE, BIRET and ICICILIFE) passed the replay's gate and failed the Screener's. The 52-week-high gate: the Screener measured it from intraday highs, the engine from the day's close.
+- Both now follow one rule: 30 prints before an EMA is quoted, and the high is the day's close. The EMA rule starts at the 30 November signal, so every month the record has already frozen replays exactly as before and keeps its fingerprint. The high is the close everywhere from today; on the current price source the two were already the same series, so no figure moves.
+
+## 2026-11-10 — One formatter, one constant, and 400 lines of dead code gone
+
+- Three pages printed "−0.0%" for a value that rounds to zero, and the stock page used an ASCII hyphen where the rest of the site uses a true minus. Eight places formatted percentages their own way; they go through `src/ui/formats.py` now, which is the module that holds the rule, and a test fails if either slips back.
+- The 52-week-high minimum, the risk-free rate and the model book's capital are read from the constants that already defined them instead of being retyped. A test that moved the 52-week constant to prove the gate respected it was certifying a number the backtester never read.
+- Removed ~400 lines that nothing calls: an old sector bubble map and its palette, a second sector table, and a dozen helpers and constants left behind by earlier changes. Four one-off scripts and two superseded documents went too. No page's content changed.
+
 ## 2026-11-09 — Cash counts in the book's risk, and the qualified share is current
 
 - "How risky is the book?" kept cash out of its weights, so a book 60% invested read as if every rupee were in stocks: beta and volatility a third too high and the size tiers summing to the whole book. Cash now damps both by its share and appears as its own row. It matters from the six-monthly reset, where a buy short of cash simply buys fewer shares.

@@ -76,6 +76,26 @@ def page_nav_html(links, *, label: str = "On this page") -> str:
     return f'<nav class="qp-nav" aria-label="{html.escape(label)}">{items}</nav>'
 
 
+def _series_of(frame, column: str):
+    """One column of a benchmark frame, or None, without asking a DataFrame
+    whether it is true.
+
+    `nse_benchmarks()` returns a DataFrame or None, and three views wrote
+    `(bench or {}).get("nifty500")`. Python evaluates that branch only when
+    the primary series is empty -- the degraded case -- so on a short or
+    half-written benchmarks.csv the Dashboard, Breadth and Sectors each died
+    with "The truth value of a DataFrame is ambiguous" and served Streamlit's
+    redacted error page instead of a sentence (launch slot 5, 10 Nov 2026).
+    """
+    if frame is None:
+        return None
+    try:
+        series = frame.get(column)
+    except (AttributeError, TypeError):
+        return None
+    return series if series is not None and len(series) else None
+
+
 def _name_class(value: str) -> str:
     """A tile value that is a name (an industry), not a figure, reads smaller."""
     return " ms-name" if sum(c.isalpha() for c in value) > 8 else ""

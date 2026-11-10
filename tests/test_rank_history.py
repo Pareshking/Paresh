@@ -115,3 +115,62 @@ def test_ranks_are_scored_among_that_days_index_members_only():
     assert np.allclose(a.reindex(b.index), b)
     assert pd.isna(only.set_index("symbol").at["GONE", "score"])
     assert not np.allclose(with_gone.set_index("symbol")["score"].reindex(b.index), b)
+
+
+def _late_listing_frame():
+    """One long history and one name with 12 prints, as BAGMANE had on 5 Nov."""
+    import numpy as np
+    import pandas as pd
+
+    days = pd.bdate_range("2026-06-01", periods=160)
+    old = pd.Series(np.linspace(100, 160, len(days)), index=days)
+    new = pd.Series(np.nan, index=days)
+    new.iloc[-12:] = np.linspace(50, 60, 12)          # rising, so it beats its own EMA
+    return pd.DataFrame({"OLD": old, "NEW": new})
+
+
+def test_the_ema_warm_up_is_the_screener_s_and_only_from_its_date():
+    """One gate, from one date (owner, 10 Nov 2026: 30 prints, forward-dated).
+
+    The screener will not quote a 50-day EMA until a name has 30 prints; the
+    backtester and rank_history required none, so a 10-print name passed
+    "above its 50-day EMA" in the replay and failed it on the Screener
+    (BAGMANE, BIRET, ICICILIFE on 5 Nov 2026). The record to date must not
+    move, so the warm-up applies only to signals on or after its date.
+    """
+    import pandas as pd
+
+    from src.engine import backtester as bt
+
+    px = _late_listing_frame()
+    rows = bt._warmup_cutoff_rows(px, bt.EMA_MIN_PRINTS)
+    assert rows[0] == bt.EMA_MIN_PRINTS - 1, "a full history is warm at its 30th print"
+    assert rows[1] == len(px), "12 prints is never warm, so the gate cannot pass"
+
+    ema = px.ewm(span=50).mean()
+    last = len(px) - 1
+    warmed = ema.iloc[last].where(rows <= last)
+    assert pd.notna(warmed["OLD"]) and pd.isna(warmed["NEW"])
+
+    # And the date gate: before it, nothing is masked at all.
+    before = ema.iloc[last]
+    assert pd.notna(before["NEW"]), "the old rule still quotes an EMA from 12 prints"
+
+
+def test_every_month_the_record_has_frozen_is_before_the_warm_up_date():
+    """The guarantee that the record to date cannot change: there is no frozen
+    month whose signal falls on or after the rule's date."""
+    import json
+    import pathlib
+
+    import pandas as pd
+
+    from src.engine import backtester as bt
+
+    rec = json.loads((pathlib.Path(__file__).resolve().parents[1]
+                      / "data" / "track_record.json").read_text())
+    cutoff = pd.Timestamp(bt.EMA_WARMUP_FROM).normalize()
+    for month in rec.get("months", {}):
+        # A month is governed by the signal on the last session before it.
+        signal = pd.Period(month, freq="M").start_time.normalize()
+        assert signal <= cutoff, f"{month} is governed on or after {cutoff.date()}"

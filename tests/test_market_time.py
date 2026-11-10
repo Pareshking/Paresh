@@ -41,3 +41,40 @@ def test_a_collector_may_offer_the_exchange_a_weekend_date():
         assert date(2026, 11, 8) in days and date(2026, 11, 7) in days
     finally:
         mt._WEEKEND_SESSIONS = before
+
+
+def test_a_published_holiday_is_not_counted_as_a_trading_day():
+    """Slot 10, 10 Nov 2026: the ribbon read "9 Nov -- 1 trading day behind".
+
+    10 Nov 2026 is Diwali-Balipratipada in NSE's own holiday master
+    (data/reference/nse/holidays.csv), so 9 Nov was the latest session there
+    was. recent_trading_days still offers the holiday -- only the exchange can
+    prove a day was closed -- but the age of a figure must not count it.
+    """
+    from datetime import date
+
+    from src.core.market_time import trading_days_behind
+
+    holiday = date(2026, 11, 10)
+    assert trading_days_behind(date(2026, 11, 9), today=holiday) == 0
+    # 8 Nov is a Sunday NSE traded on (Muhurat), so it is a session, not a gap.
+    assert trading_days_behind(date(2026, 11, 8), today=holiday) == 1
+    assert trading_days_behind(date(2026, 11, 6), today=holiday) == 2
+    # And from a day NSE did trade, yesterday's session is one day behind.
+    assert trading_days_behind(date(2026, 11, 9), today=date(2026, 11, 11)) == 1
+
+
+def test_the_holiday_calendar_can_only_shorten_the_count_never_void_it():
+    """A wrong holiday file must not turn a real session into "age unknown".
+
+    That is what the ribbon shows as stale, and it is the failure
+    recent_trading_days keeps the calendar out of the walk to avoid, so as_of
+    itself is never removed by the calendar.
+    """
+    from datetime import date
+
+    from src.core.market_time import trading_days_behind
+
+    # 10 Nov 2026 IS a published holiday. Asked for its own age, the answer is
+    # still a number, not None.
+    assert trading_days_behind(date(2026, 11, 10), today=date(2026, 11, 10)) == 0

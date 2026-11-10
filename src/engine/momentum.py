@@ -275,7 +275,15 @@ class MomentumEngine:
         in run_momentum_pipeline skip the expensive ATR/EMA/drawdown recomputation.
         """
         close_src = (close_prices_df if close_prices_df is not None else self.close).copy()
-        high_src = (high_prices_df if high_prices_df is not None else self.high).copy()
+        # The 52-week and all-time high gates read the DAY CLOSE, not the
+        # intraday high (owner, 10 Nov 2026: "Must be day close value").
+        # The backtester and rank_history always measured the high from
+        # adjusted closes (backtester._rolling_high_at, rank_history), so the
+        # screener's intraday high made its gate strictly harder: a name the
+        # backtest would buy could sit "below its 52-week high" here only
+        # because the comparison used a spike the close never reached
+        # (duplicate audit, 10 Nov 2026). One rule, and it is the checkable one.
+        high_src = close_src.copy()
         close_src.columns = [normalise_symbol(c) for c in close_src.columns]
         high_src.columns = [normalise_symbol(c) for c in high_src.columns]
 
