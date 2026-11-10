@@ -1485,8 +1485,14 @@ def inject_custom_css() -> None:
            area of at least 40px; padding with an equal negative margin leaves
            the layout as it is. */
         @media (pointer: coarse) {
-            .db-sym a, .xw-s a, .t50-stock, .ib-leads a, .pg-onward, .db-kv a, .mq-more {
-                display: inline-block; padding: 11px 0; margin: -11px 0;
+            /* Padding alone was not enough: measured at 390px with touch, a
+               .db-sym link came out 38.2px and .mq-more 42.8px, because the
+               line box they pad is only 16px. Set the height and centre the
+               text in it (10 Nov 2026, launch slot 3). */
+            .db-sym a, .xw-s a, .t50-stock, .ib-leads a, .pg-onward, .db-kv a, .mq-more,
+            .t50-chip {
+                display: inline-flex; align-items: center; min-height: 44px;
+                padding: 0; margin: 0;
             }
             [data-baseweb="tag"] [role="presentation"], [data-baseweb="tag"] span[aria-hidden] {
                 padding: 10px; margin: -10px -6px -10px 0;
@@ -1504,13 +1510,18 @@ def inject_custom_css() -> None:
                hit area grows around it. */
             [data-testid="stButtonGroup"] button,
             [data-baseweb="segmented-control"] button,
+            /* By testid as well as class: the download button's own rule is
+               !important, and the brand link sets its height from padding
+               (both measured 2-4px short at 390px, 10 Nov 2026). */
+            [data-testid="stDownloadButton"] button,
+            .st-key-app_brand [data-testid="stPageLink"] a,
             .stButton button, .stDownloadButton button, .stFormSubmitButton button,
             [data-testid="stPopoverButton"],
             [data-baseweb="select"] > div, [data-baseweb="input"] input,
             [data-testid="stSelectbox"] input, [data-testid="stSelectbox"] button,
             [data-testid="stNumberInput"] input, [data-testid="stNumberInputStepUp"],
             [data-testid="stNumberInputStepDown"], [data-testid="stTextInput"] input {
-                min-height: 44px;
+                min-height: 44px !important;
             }
             [data-testid="stExpander"] summary { min-height: 44px; align-items: center; }
         }
@@ -1769,6 +1780,13 @@ def inject_custom_css() -> None:
             min-height: 40px !important;
         }
 
+        /* On a touch screen the same button must clear 44px. This sits after
+           the 40px rule above, which is why the coarse-pointer block earlier
+           could not win it (measured 10 Nov 2026: computed 40px). */
+        @media (pointer: coarse) {
+            [data-testid="stDownloadButton"] button { min-height: 44px !important; }
+        }
+
         [data-testid="stDownloadButton"] button:hover {
             background-color: var(--c-subtle) !important;
             border-color: var(--c-ink) !important;
@@ -1929,7 +1947,11 @@ def inject_custom_css() -> None:
         @media (max-width: 640px) {
             .qp-nav { gap: 0 14px; }
             .qp-nav a, .gd nav a, .cfg-index a { display: inline-flex; align-items: center; min-height: 44px; }
-            [class*="st-key-app_nav_menu_"] button { min-width: 44px; min-height: 44px; }
+            /* !important, because the base rule above is !important at 40px
+               and silently won (measured 10 Nov 2026: computed min-height 40). */
+            [class*="st-key-app_nav_menu_"] button {
+                min-width: 44px !important; width: 44px !important; min-height: 44px !important;
+            }
         }
 
         /* ── Desktop quick links beside the menu (owner, 7 Nov 2026) ── */

@@ -28,7 +28,7 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
 |---|---|---|
 | 1 ✅ | 02:35 | **This plan, and the pre-launch gate.** One command that answers "is the site fit to launch right now": every page renders, no page wider than its viewport, data freshness inside tolerance, no secret in the repo. |
 | 2 ✅ | 03:05 | **Functional sweep, desktop.** All 12 pages at 1400px: every control exercised once (filters, pickers, tabs, expanders, downloads, popovers), deep links (`?stock=`, `?owner=`), and the nav. Proves: nothing throws when touched, not merely when loaded. |
-| 3 | 03:35 | **Functional sweep, phone.** The same at 390px, plus tap-target measurement and the menu. Proves: the phone is a first-class reader, not a resized desktop. |
+| 3 ✅ | 03:35 | **Functional sweep, phone.** The same at 390px, plus tap-target measurement and the menu. Proves: the phone is a first-class reader, not a resized desktop. |
 | 4 | 04:05 | **Cross-reading consistency.** Take every figure that appears on more than one page (the EMA distance, the qualified count, returns, drawdown, the book's value) and assert the pages agree. Proves: no second EMA bug. |
 | 5 | 04:35 | **Resilience.** Run the app against a missing price file, a stale one, an empty ranking, no R2 credentials, and a benchmark with a gap. Proves: it degrades with a sentence, not a traceback. |
 | 6 | 05:05 | **Accessibility.** Contrast on every text colour actually used, heading order, alt text, keyboard-only navigation, focus visibility, screen-reader labels on icon buttons. Target: WCAG 2.1 AA. |
@@ -114,3 +114,45 @@ that production QA reports. Recorded so nobody chases it as a symptom later.
 `?owner=1`, `?owner=true` and `?owner=admin` all leave the two site-wide
 controls hidden ("Sync from niftyindices.com", "Clear cached files"). A visitor
 cannot guess their way to a button that clears everyone's caches.
+
+### Slot 3 — the phone (03:35 UTC, done)
+
+**Controls at 390px: 61 clicked across 11 pages, nothing thrown.** The same
+sweep as slot 2, at phone width; Backtest exposes one more control there.
+
+**Tap targets, measured with touch emulation so the coarse-pointer rules are in
+force.** Before and after, counting only targets a finger actually aims at (an
+element clipped to a sliver — the focus-only skip link, a checkbox hidden
+behind its own label — is not one, and counting them made the number
+meaningless):
+
+| Page | Under 44px before | After |
+|---|---|---|
+| Dashboard | 24 | **0** |
+| Screener | 21 | **0** |
+| Actions | 30 | **0** |
+| Portfolio, Sectors, Breadth, Guide, Watchlist | 1–4 each | **0** |
+| Sector rotation | 2 | 1 |
+| Configuration | 13 | 12 |
+
+Three causes, each a real bug rather than a near miss:
+
+1. **Padding cannot make a 16px line box 44px tall.** `.db-sym a` came out
+   38.2px and `.mq-more` 42.8px with 11px of padding top and bottom. They set
+   `min-height: 44px` with the text centred now, and `.t50-chip` (32px on
+   Actions) joins them.
+2. **The menu button's phone rule never won.** Its base rule is
+   `min-height: 40px !important`; the phone override was not `!important`, so
+   the computed height stayed 40px while the CSS claimed 44.
+3. **The download button's rule sits *after* the coarse-pointer block.** Equal
+   specificity, later wins — so the touch override had to move below it, not
+   above. The header brand link needed its height set rather than padded.
+
+**What is left, and why it stays.** Configuration's twelve are Streamlit's own
+widget internals on the one page made of sliders: the slider track (16px, seven
+of them), a multiselect's "×" (7px), "Clear all" (24px), a help icon (22px).
+Their labels and thumbs are what a finger uses, and giving a slider track a
+44px box changes what the control looks like. It is a settings page, not the
+reader's path. The one on Sector rotation is a 32px Streamlit button in a
+narrow container. Both are recorded rather than bodged the night before a
+launch.
