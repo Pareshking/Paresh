@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-11-07_
+_Last updated: 2026-11-10_
 
 ## Now
 
@@ -48,6 +48,29 @@ website's menu. Plan, Block 0 measurements and the revised order:
 | A4 | Block 1: `ss_sync` is 61% of Actions time (~4.6 h a night): every stock fetches a 1,000-session page for one new day, plus 35 five-minute rests | Can SS serve a shorter page? If yes, the same pace per request with fewer bytes, same three-source result | [ ] 8 Nov: owner's decision, from SS's owner: "no rest is required, keep 3 sec between requests". `ss_sync.yml` now runs `--delay 3` with no 5-minute rests (rounds of 40 kept as checkpoints); `sync_ss.py`'s jitter only adds, so no gap is under 3 s; `ss_prices.DELAY_S` 3.0 for pages within a stock. Expected ~75 min a night instead of ~4.5 h. Done when the first scheduled run (Mon 9 Nov 16:32 UTC) finishes the universe without a refusal and in under 2 h |
 | A5 | Failure rates: `canonical_parity` 62 of 224 runs, `screener_sync` 7 of 31, `v1-production-qa` 25 of 140 (8 Oct - 7 Nov) | Each failure class named; real faults fixed, noise removed | [x] 8 Nov: each class named from the runs' logs. `canonical_parity` (62): one red streak on main 24 Oct - 7 Nov 08:05 plus PRs opened in it; 24 Oct `rankings.parquet` 404 on the release, then October's ledger drift 0.23 pp (S87, accepted 7 Nov); every run since green (60 of 60). `screener_sync` (7): the designed alert for a new member with no Screener history, TRIVENIPT 9-13 Oct and ENNATURE/IGLSPIRITS 3 Nov; green the next night each time. `v1-production-qa` (19 of the last 100): 24-26 Oct the Portfolio cards missing (real, during the October data fault; passing since); 7 Nov 17:19 1024x768 and 375x812 read zero nav links in 0.0 s after the previous viewport's navigation (QA timing; later runs green): the check now waits up to 20 s for the navigation (`wait_for_navigation`). Not read: each of the 12 Oct 24-26 failures individually (one sampled) |
 | A6 | The nightly's data commits carry `[skip ci]`, so a data change that breaks a data test (S86) turns nothing red | A scheduled run of the data tests on main (or the sync running them) that alerts on failure | [ ] |
+
+## Duplicated calls and wasted storage (10 Nov 2026)
+
+Owner, 10 Nov: "the same actions are being done multiple times ... this will
+reduce code as well as unnecessary calls for R2 / GitHub / sites." Measured in
+`docs/CALL_AND_STORAGE_AUDIT.md` (fire counts from the Actions API over
+27 Oct - 10 Nov; R2 figures from the 9 Nov `r2_archive_inventory` run, this
+container has no R2 keys). Headline: ~70 duplicate outbound requests and ~590
+duplicate R2 operations a day, worth under ten cents a month; the bytes are two
+single decisions, not duplicate calls. An opt-in R2 call counter
+(`R2_CALL_LOG`, off by default) is in `src/storage/r2.py` with
+`tests/test_r2_call_counter.py`.
+
+| # | What | How we know it is done | Status |
+|---|---|---|---|
+| C1 | `r2-historical-evidence-bootstrap` fires 3.5x a day (schedule + `workflow_run` after `daily_sync` + push on `data/indices/**`) and publishes 17 datasets each time; the 2nd and 3rd runs write the same `as_of` and the same bytes: ~425 R2 operations a day that store nothing. 16 of its 17 datasets have no reader; all of their prefixes are in `PROTECTED_DATASETS`, so nothing prunes them (TODO A3 named the 4-a-day firing, not the cost) | The workflow fires once a day (or a publish whose `as_of`+SHA already exists is skipped before the PUT); a day of runs shows one publication per dataset; `r2_archive_inventory` shows the constituents/membership object count flat | [ ] 10 Nov: measured, not changed (`.github/workflows/` belongs to another agent) |
+| C2 | `scratch/bse_bhavcopy_2026-10-03/` is 1,221.8 MiB of 3,135.8 MiB on R2 (39%, 23 objects) and sits outside every dataset `r2_retention.py` knows (S34: delete once NSE and BSE are aligned) | The prefix is gone; `r2_archive_inventory` total drops to ~1.9 GB; the gap audit still runs against `bse/daily` | [ ] 10 Nov: measured; S34's condition (NSE and BSE aligned) not yet met |
+| C3 | `v1-production-qa` uploads ~1 MB of evidence per run with no `retention-days`, so GitHub's 90-day default keeps 1,034 artifacts = 1,062 MB, 86% of the repository's 1,236.9 MB of unexpired artifacts | `retention-days: 14` set; the artifact total settles near 100 MB | [ ] 10 Nov: measured, not changed (another agent's file) |
+| C4 | `scripts/r2_publish.py` reads every payload back twice: `put_file(verify=True)` HEADs and fully downloads it, then `_verify_publication` calls `verify_file` on the same key again. 9 R2 calls per publish, ~81 publishes a day, ~162 duplicate calls; the monthly BSE publish reads 350.7 MB back twice | One read-back per publish; the counter (`R2_CALL_LOG=1`) shows 7 calls, one whole-payload GET; `tests/test_r2_dual_publication.py` still green | [ ] 10 Nov: measured (`GetObject x4 PutObject x3 HeadObject x2`), not changed |
+| C5 | The six niftyindices constituent CSVs are fetched ~59.5 times a day for ~7 distinct files: `sync_data.run_daily_sync` fetches five of them twice in a row (step 1 `sync_official_nse_indices`, step 2 `fetch_indices_data`), `precompute_systems` fetches all six again in the same run (17 per run, measured), and `indices_loader` treats the committed `data/indices/ind_*.csv` the same job writes as a 3-attempt fallback. The app repeats it on every cold start (~4 s of 9.1 s `load_all_data`, A2) and hourly thereafter (`ttl=3600`) | One fetch per file per run; a `daily_sync` run logs 6 index requests, not 17; the committed CSVs are read first and refetched only when stale; the frozen outputs (`scripts/audit_baseline.py check`) are identical | [ ] 10 Nov: measured (11 requests for 6 URLs in `sync_data` alone) |
+| C6 | `scripts/canonical_parity_check.py` downloads the release `prices.parquet` (10.9 MB, frozen since 1 Oct 2026, the day before Yahoo was dropped) on every push and pull request - 100 `canonical_parity` runs in 14 days, ~77 MB a day - and uses it as a price frame named `yahoo` | The gate no longer reads a frozen Yahoo-era file; `prices.parquet` and `prices_extra.parquet` retired from the release (17.9 MB); the gate still fails on a real drift | [ ] 10 Nov: measured, not changed (parity engine file, another agent) |
+| C7 | The release `screener_prices.parquet` (8.79 MB) is downloaded ~6.2 times a day for bytes that change once: twice inside one `screener_sync` run (backfill source, then the row-count guard) and on every one of `nse_collect`'s four daily fires | Each run downloads it at most once; ~46 MB a day less release egress; the row guard and `--check` still run | [ ] 10 Nov: measured, not changed (another agent's files) |
+| C8 | Inside one `daily_sync` run the newest NSE PR bundle is downloaded twice: by `nse_collect --recent 3` and again by `build_benchmarks --update`; plus two dead release assets (`tmp_session_2026-10-03.zip` 10.9 MB, 0 downloads; `ref_long_price_audit_2026-10-03.zip`, superseded) and `prices_full.parquet` (38.1 MB) used only as a trading-day calendar by the manual `nse_sample_check`, which `data/nse_trading_days.json` already holds | The bundle is fetched once a session per run; the two dead assets are gone; `nse_sample_check` reads the calendar from `data/` | [ ] 10 Nov: measured |
 
 ## Repository audit, ported from PR #471 (7 Nov 2026)
 
