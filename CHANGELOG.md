@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-11 — The corporate-actions guard was not looking at anything
+
+- **The nightly check for splits and demergers hiding in the price history had been scanning nothing, while the run reported green.** It read a local file (`data_cache/screener_prices.parquet`) that nothing writes on a GitHub runner — the store a sync downloads is streamed to a temp file, read, and deleted — so it printed "no screener closes to check" and exited in under half a second on every run. The step's warning said "new find or failure", which reads like a find, and seven consecutive green runs carried it before anyone opened the step log.
+- It now falls back to the published store, the same one the ranking is built from, and the log line names the source and the size: *scanned screener from published store: 401 sessions × 1,227 symbols at ±35%*. A run that could not scan exits with a different code from a run that found something, and the workflow prints a different warning for each.
+- No price changed. One session is flagged and was already on the log (POLICYBZR, −36.0% on 24 Sep 2026, matching no standard split ratio — the usual cause is a demerger). Whether anything was missed in the window is not established: the log's newest entry is 29 Sep, which fits the check having been blind since 28 Oct but is not proof, since no new implausible session need have occurred.
+
 ## 2026-11-11 — The monthly returns say which months they are
 
 - **Portfolio and Backtest show the same months and could disagree, with nothing to tell a reader why.** January read −0.2% on one page and 0.0% on the other, October −4.3% against −4.0%. Portfolio's grid now says it is "as recorded each month", and Backtest's says it is "re-run on today's prices", each naming the other. The figures themselves are unchanged.

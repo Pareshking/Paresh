@@ -372,9 +372,21 @@ jobs:
       # warning on the run rather than stopping the sync.
       - name: Check for corporate actions
         # `|| true` alone also swallowed a CRASH, so a broken check looked
-        # exactly like a clean one. Exit 1 is also how --fail-on-new reports a
-        # new find (with its own warning); either way the run now says so.
-        run: python scripts/check_corporate_actions.py --fail-on-new || echo "::warning::Corporate-actions check exited non-zero (new find or failure) -- read the step log."
+        # exactly like a clean one. The exit code now separates the two: 1 is a
+        # new find, 2 is a check that could not run at all. They were reported
+        # as one message until 11 Nov 2026, when the step log showed the check
+        # had been exiting "no screener closes to check" in under a second on
+        # every run while the warning read like a find.
+        run: |
+          set +e
+          python scripts/check_corporate_actions.py --fail-on-new
+          rc=$?
+          set -e
+          if [ "$rc" = "1" ]; then
+            echo "::warning::Corporate-actions check found a NEW implausible session -- read the step log."
+          elif [ "$rc" != "0" ]; then
+            echo "::warning::Corporate-actions check DID NOT RUN (exit $rc) -- it scanned nothing. Read the step log."
+          fi
 
       # A ticker change is adjusted automatically (nse_identity.auto_renames
       # joins on NSE's own symbolchange.csv plus ISIN history), but until now
