@@ -8,6 +8,24 @@
 - **No recorded return moved, and nothing about position sizing changed.** The record is sized equal weight, so the inverse-volatility estimate is not in its path; a replay of all ten frozen months is identical to ten decimal places, and the canonical parity check passes unchanged. Volatility appears in neither the pinned configuration nor the ledger.
 - The convention is written down in `docs/TRACK_RECORD.md` with the owner's date and words, and `tests/test_volatility_convention.py` reads every call site with `ast` and fails if one drops back to the sample SD. Two research scripts are exempt and say why: one replicates a published paper, the other has to follow an external vendor's RRG rather than ours.
 
+## 2026-11-11 — The index lists are read from the repository, not downloaded again
+
+- **The first page view no longer waits for six CSV files the repository already
+  holds.** The six niftyindices constituent lists were downloaded on every cold
+  start and again every hour — about 4 seconds of a 9 second load — although the
+  nightly sync writes and commits those same files to `data/indices/`. They are
+  now read from the committed copy while the sync that writes them is current (a
+  file whose last download is more than 24 hours old is still fetched, so a night
+  without a successful sync changes nothing). Measured on the real code path with
+  the site's own loader: **6 requests per cold start, now 0**. No row of the
+  universe changes — the lists loaded from disk were compared with the lists
+  loaded from NSE, symbol for symbol.
+- The same change stops the nightly jobs asking for the same file several times
+  in one run: a `daily_sync` run made **17 requests for those 6 files and now
+  makes 6**, the Screener store (8.79 MB) is downloaded once a run instead of
+  twice, and the newest NSE bundle once a run instead of twice. Nothing that is
+  published or displayed differs; these are the same bytes, fetched once.
+
 ## 2026-11-10 — Calendar returns can be slid again on a phone
 
 - **The months after April could not be reached on a phone.** The table of monthly returns sits in a box that scrolls sideways, inside a grid. A grid item will not shrink below its own content unless it is told it may, so the year section stretched to the table's full width — 1,292px inside a 358px column — the scrolling box stretched with it and had nothing left to scroll, and the wrapper simply cut the rest off. One line (`.cr-year { min-width: 0 }`) puts the scroll back; after it the scrolling box is 358px wide with 1,292px inside it. Every table on all eleven pages was then checked at phone width: none is unreachable.

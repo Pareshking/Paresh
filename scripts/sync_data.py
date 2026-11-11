@@ -175,8 +175,16 @@ def run_daily_sync() -> None:
     )
 
     # 2. Load universe
+    #
+    # prefer_local=False: this is the job that REFRESHES data/indices/*.csv, so
+    # it must not read yesterday's copy of them. Step 1 downloaded five of the
+    # six moments ago in this same process, and the loader reuses those bytes
+    # rather than asking niftyindices for them a second time
+    # (indices_loader._DOWNLOAD_MEMO), so this step downloads only NIFTY TOTAL
+    # MARKET -- the one list step 1 leaves alone. Six requests for six files
+    # per run, where the two steps together used to make eleven.
     print("\n--- 2. Loading Market Universe ---")
-    universe_df = fetch_indices_data(["NIFTY TOTAL MARKET"])
+    universe_df = fetch_indices_data(["NIFTY TOTAL MARKET"], prefer_local=False)
     if universe_df.empty:
         print("[ERROR] Universe load returned empty.")
         sys.exit(1)
