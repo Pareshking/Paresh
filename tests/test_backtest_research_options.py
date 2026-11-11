@@ -198,3 +198,21 @@ def test_the_page_labels_the_ath_with_where_the_history_starts():
     src = _view()
     assert "ATH since <b>{pd.Timestamp(adj_close.index[0]):%b %Y}</b>" in src
     assert 'key="bt_ath_years"' in src and "ath_min_years=ath_min_years" in src
+
+
+def test_rebalance_rule_defaults_to_the_live_rule():
+    """Owner, 11 Nov 2026: the Backtest page must not reset every holding monthly
+    by default when the record follows the six-monthly rule (TODO S111)."""
+    from src.engine.track_record import TRACK_RECORD_CONFIG
+    from src.ui.views.backtest_view import REBALANCE_RULES, rebalance_rule_kwargs
+
+    assert list(REBALANCE_RULES)[0] == "live"
+    src = _view()
+    body = src[src.index('with st.form("bt_settings"'):src.index("st.form_submit_button(")]
+    assert 'key="bt_rebalance_rule"' in body
+    assert rebalance_rule_kwargs("live") == {
+        "hold_cap": TRACK_RECORD_CONFIG["hold_cap"], "hold_cap_from": None,
+        "buy_size": TRACK_RECORD_CONFIG["buy_size"],
+        "weight_reset_months": tuple(TRACK_RECORD_CONFIG["weight_reset_months"])}
+    assert rebalance_rule_kwargs("monthly") == {}
+    assert "**rebalance_rule_kwargs(rule)" in src

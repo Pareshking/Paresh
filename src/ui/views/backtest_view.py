@@ -25,7 +25,24 @@ from src.ui import page_kit as kit
 from src.ui import formats as _fmt
 from src.ui.system_param import page_href
 from src.engine.backtest_export import RunSpec, export_zip, rules_table, trades_table
-from src.engine.track_record import build_combined_grid, ledger_from_curves, summary_stats
+from src.engine.track_record import TRACK_RECORD_CONFIG, build_combined_grid, ledger_from_curves, summary_stats
+
+# How a held stock's weight is set at each rebalance (owner, 11 Nov 2026: the
+# page reset every holding at every rebalance while the record follows the
+# six-monthly rule from the 30 Nov 2026 signal; TODO S111 measured both).
+REBALANCE_RULES = {
+    "live": "Six-monthly reset: winners run to 15%, new buys 5% (the live rule)",
+    "monthly": "Reset every holding to its target weight at every rebalance",
+}
+
+
+def rebalance_rule_kwargs(rule: str) -> dict:
+    """run_backtest keywords for a rebalance rule, the live one from the record's config."""
+    if rule != "live":
+        return {}
+    cfg = TRACK_RECORD_CONFIG
+    return {"hold_cap": cfg["hold_cap"], "hold_cap_from": None, "buy_size": cfg["buy_size"],
+            "weight_reset_months": tuple(cfg["weight_reset_months"])}
 from src.ui.components import (
     gap_count, render_data_quality_footer, _render_calendar_returns, _render_yearly_summary,
 )
@@ -246,6 +263,13 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
                      "Any other number: every that many sessions.")
             weighting = c4.selectbox("Weighting", ["Equal Weight", "Inverse Volatility"],
                                      index=0, key="bt_weight_scheme")
+            rule = st.selectbox(
+                "Rebalance rule", list(REBALANCE_RULES), format_func=REBALANCE_RULES.get, index=0,
+                key="bt_rebalance_rule",
+                help="The live book, from the 30 Nov 2026 signal: holdings keep their drifted weight "
+                     "(cut back only above 15%), each new buy is 5% of the account at the last reset, "
+                     "and every holding goes back to its target weight in March and September. The "
+                     "other rule resets every holding at every rebalance, as the record did before.")
             cost = st.number_input(
                 "Trading cost (bps a round trip)", min_value=0.0, max_value=300.0,
                 value=float(DEFAULT_TRANSACTION_COST_BPS), step=1.0, key="bt_cost",
@@ -309,7 +333,7 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
         "exit_ema_period": None if exit_ema is None else int(exit_ema),
         "exit_high_pct": frac(exit_52w), "exit_ath_pct": frac(exit_ath),
         "ath_min_years": float(ath_years),
-        "score_method": score, "weights": active,
+        "score_method": score, "weights": active, "rule": rule,
     }
 
 
@@ -375,6 +399,7 @@ def _backtest_tab(
     ath_pct, score_method = settings["ath_pct"], settings["score_method"]
     exit_rules = {k: settings[k] for k in ("exit_ema_period", "exit_high_pct", "exit_ath_pct")}
     ath_min_years = settings["ath_min_years"]
+    rule = settings.get("rule", "live")
 
     # Keyed on the WHOLE price history and the applied corporate actions. The
     # old key (last date + shape) missed an intraday refresh, a vendor
@@ -484,6 +509,7 @@ def _backtest_tab(
             ath_pct=ath_pct,
             ath_min_years=ath_min_years,
             **exit_rules,
+            **rebalance_rule_kwargs(rule),
         )
     queued.empty()
 
@@ -544,6 +570,7 @@ def _backtest_tab(
         f"<span>{html.escape(bt_window_label)}</span>"
         f"<span>Holdings <b>{bt_n}</b></span><span>Rebalance <b>{_rebal_txt}</b></span>"
         f"<span>Weighting <b>{html.escape(bt_weight.lower())}</b></span>"
+        f"<span>Rule <b>{'six-monthly reset, winners run to 15%' if rule == 'live' else 'reset every rebalance'}</b></span>"
         f"<span>Costs <b>{cost_drag_bps:.0f} bps</b> a round trip</span>"
         f"<span>Keep while in top <b>{keep_rank}</b></span>"
         f"<span>Buy above <b>{ema_period}D EMA</b></span>"

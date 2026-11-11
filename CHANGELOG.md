@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-11 — Fixes carried over from the US port
+
+- **The Backtest page now runs the live book's rebalance rule by default.** It reset every holding to its target weight at every rebalance, while the record follows the six-monthly rule from the 30 November signal (winners run to 15%, new buys 5%, every holding back to its target in March and September). The old rule stays as an option, and the run summary names the rule used.
+- **The Dashboard's "top 100 against the Nifty 500" panel could crash.** It dated its months with a format pandas 3 no longer accepts; it now uses the supported form.
+- **Large dividends are taken out at the holder's return.** For a payout of 10% of the price or more, the ex-date return is now (close + dividend) ÷ previous close, as CRSP and S&P compute it; the old factor booked PFIZER's ₹360 on 5 Dec 2013 as a 5.0% fall instead of 4.0%. The History file picks this up at its Saturday rebuild.
+
 ## 2026-11-10 — Calendar returns can be slid again on a phone
 
 - **The months after April could not be reached on a phone.** The table of monthly returns sits in a box that scrolls sideways, inside a grid. A grid item will not shrink below its own content unless it is told it may, so the year section stretched to the table's full width — 1,292px inside a 358px column — the scrolling box stretched with it and had nothing left to scroll, and the wrapper simply cut the rest off. One line (`.cr-year { min-width: 0 }`) puts the scroll back; after it the scrolling box is 358px wide with 1,292px inside it. Every table on all eleven pages was then checked at phone width: none is unreachable.

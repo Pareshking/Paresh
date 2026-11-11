@@ -159,7 +159,8 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
     alt = (f"Monthly lead of the top 100 over the Nifty 500, last {len(recent)} months: from "
            f"{fmt.signed(min(recent))} to {fmt.signed(max(recent))} pts.")
     tone = "up" if t12 > 0 else "down" if t12 < 0 else ""
-    months = [f"{pd.Period(m, freq='M'):%b %Y}" for m in lo.get("recent_months", [])]
+    # strftime, not an f-string spec: pandas 3's Period.__format__ rejects "%b %Y".
+    months = [pd.Period(m, freq="M").strftime("%b %Y") for m in lo.get("recent_months", [])]
     read = bars_read(recent, months)
     read_html = f'<p class="db-note">Each month\u2019s lead, last {len(recent)} months: {html.escape(read)}.</p>' if read else ""
     return (f'<div class="db-mh"><div class="db-big {tone}">{fmt.signed(t12)}<span> pts, 12 months</span></div>'

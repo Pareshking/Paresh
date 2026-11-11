@@ -333,7 +333,9 @@ reference covers are within 2% of one. Numbers and the refusals:
 Ordinary dividends stay in the price, as in Screener's (the live system's
 source), so the History and Live backtests stay on one basis. A payout of 10%
 of the last close or more is taken out (owner, 3 Oct 2026, option 1): factor
-(P - D) / P on the ex-date, every amount in the text added ("Final Rs 6.50
+C / (C + D) on the ex-date, C its close, so the ex-date return is the holder's
+(C + D) / P - 1 (since 11 Nov 2026; it was (P - D) / P, which booked PFIZER's
+5 Dec 2013 as -5.03% instead of -3.97%), every amount in the text added ("Final Rs 6.50
 and Special Rs 60" is 66.50), applied only where the price fell by at least
 half of it (`nse_adjusted.LARGE_DIVIDEND`). 28 events 2008 - 2026: PFIZER's
 Rs 360 and WYETH's Rs 145 on 5 Dec 2013, STAR 2013, PATNI 2010, IDFC 2023,

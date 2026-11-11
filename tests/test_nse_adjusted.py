@@ -304,10 +304,13 @@ def _dividend(sym, day, text):
 
 
 def test_a_large_dividend_is_taken_out_of_the_price_before_it():
-    """PFIZER, Rs 360 on 5 Dec 2013 against 1,711.25: factor (P - D) / P."""
+    """PFIZER, Rs 360 on 5 Dec 2013 against 1,711.25, closing 1,283.30: factor
+    C / (C + D), so the ex-date return is the holder's (1,283.30 + 360) / 1,711.25 - 1."""
     close = _closes(PFIZER=[1730.75, 1711.25, 1283.30, 1248.0])
     f, v = na.action_factors(close, _dividend("PFIZER", close.index[2], "Interim Dividend - Rs 360/- Per Share"))
-    assert np.isclose(f.at[close.index[2], "PFIZER"], 1 - 360 / 1711.25)
+    assert np.isclose(f.at[close.index[2], "PFIZER"], 1283.30 / (1283.30 + 360))
+    adj = close["PFIZER"] * na.factor_after(f)["PFIZER"]
+    assert np.isclose(adj.iloc[2] / adj.iloc[1] - 1, (1283.30 + 360) / 1711.25 - 1)
     assert v["verdict"].tolist() == ["large dividend"]
 
 
@@ -315,7 +318,7 @@ def test_every_amount_in_a_dividend_text_is_added():
     close = _closes(NAVIN=[420.0, 418.10, 332.80])
     f, _ = na.action_factors(close, _dividend(
         "NAVIN", close.index[2], "Final Dividend Rs.6.50 Per Share And Special Dividend Rs.60 Per Share"))
-    assert np.isclose(f.at[close.index[2], "NAVIN"], 1 - 66.5 / 418.10)
+    assert np.isclose(f.at[close.index[2], "NAVIN"], 332.80 / (332.80 + 66.5))
 
 
 def test_an_ordinary_dividend_is_left_in_the_price():
