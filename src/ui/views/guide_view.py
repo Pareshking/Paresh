@@ -146,7 +146,7 @@ its cap until the next rebalance trims it.</li>
 <li><b>Buffer:</b> a holding is kept while its rank among stocks passing both filters stays within
 {buffer_n}, so a move from 18th to 24th does not trigger a sale and a repurchase.</li>
 <li><b>Costs:</b> {cost:.0f} basis points for a round trip (buying and later selling), charged on what
-is traded. Tax on gains is not modelled anywhere: every return on the site is before tax.</li>
+is traded. Every return on the site is before tax; tax was estimated only in the one test named under Weighting.</li>
 <li><b>No stops:</b> a holding leaves only at a monthly rebalance.</li>
 </ul>
 

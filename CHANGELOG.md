@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-11 — Portfolio says again how much of the record is a backtest
+
+- **Portfolio's "Since inception" figures now carry their note.** Nine of the ten months in the 750's record were rebuilt on 1 Oct 2026 under rules settled then. Only October 2026 was frozen as it closed. The note saying so had been turned off when the Track Record page moved into Portfolio, so it appeared nowhere. It is back, and it now says those months are a backtest, not evidence.
+- **The Guide no longer says tax is "not modelled anywhere"** a few lines above an after-tax test result. Every figure is before tax; tax was estimated in that one test only.
+- Audit of method and evidence: `docs/AUDIT_2026-11-11.md` (costs, tax against an index fund, dividends, how long the record must run before it can show anything).
+
 ## 2026-11-10 — Calendar returns can be slid again on a phone
 
 - **The months after April could not be reached on a phone.** The table of monthly returns sits in a box that scrolls sideways, inside a grid. A grid item will not shrink below its own content unless it is told it may, so the year section stretched to the table's full width — 1,292px inside a 358px column — the scrolling box stretched with it and had nothing left to scroll, and the wrapper simply cut the rest off. One line (`.cr-year { min-width: 0 }`) puts the scroll back; after it the scrolling box is 358px wide with 1,292px inside it. Every table on all eleven pages was then checked at phone width: none is unreachable.

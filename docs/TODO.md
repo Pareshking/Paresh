@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-11_
 
 ## Now
 
@@ -30,6 +30,17 @@ _Last updated: 2026-11-10_
 | 18 | Screener "Big movers" (rank moved 15+ places in a month) holds 630 of 750: the median stock moved 58 places | Owner picks a threshold (e.g. 150 places: 118 stocks) | [x] 13 Oct: owner chose 150 places (`BIG_MOVE_PLACES`) |
 | 19 | Stocks listed under a year ago (KISSHT, CMRGREEN, BAGMANE) are never "near the 52-week high": no full year of highs | Owner: keep, or measure them against their high since listing | [x] 13 Oct, owner: keep 126 sessions (~6 months), the rule audit S3 set so the screener matches the backtester. No change. A stock gets a 52-week high once it has 126 sessions of prices (KISSHT 108, CMRGREEN 86 on 12 Oct) |
 | 20 | Sector leadership map (owner, 13 Oct): explain how to read it with an example; pill controls like the rest of Sectors; 1M and 3M periods; the two stocks doing the heavy lifting per sector | On the live page | [x] 13 Oct: "How to read this" works the picked sector through with its own numbers; EMA and period pills; leaders in the table and tooltip; checked at 1280 and 400 px |
+
+## Quant method and evidence audit (11 Nov 2026)
+
+Findings and evidence: `docs/AUDIT_2026-11-11.md`. Q-H1, Q-L1 and Q-L2 fixed in the same PR.
+
+| # | What | How we know it is done | Status |
+|---|---|---|---|
+| S122 | Portfolio's headline compounds 9 backfilled months with 1 recorded month (Q-H1), and the record shows no uncertainty (Q-H2: tracking error ~21% a year, so the record cannot confirm a realistic edge for years) | Owner decides: headline on recorded months only, with the reconstruction beside it; alpha with a 90% interval, or "too short to judge" until 24 recorded months | [ ] 11 Nov: the reconstruction note is back on Portfolio (fixed); headline and interval wait for the owner |
+| S123 | 30 bps round trip is ~22 bps statutory, ~8 bps left for spreads on both legs, for microcaps and Nano Cap alike; spreads never measured (Q-M1) | Statutory rates quoted from dated NSE/SEBI circulars; a spread estimate per size bucket (Corwin-Schultz from NSE high/low, or order-book snapshots); History backtest shown at 30 / 50 / 75 bps | [ ] 11 Nov |
+| S124 | After-tax results never set against an index fund's deferred tax (Q-M2) | `rebalance_rules_after_tax.py` adds the Nifty 500 held throughout and taxed at exit; Guide quotes both after-tax figures together | [ ] 11 Nov: owner decides whether the Guide carries it |
+| S125 | Dividend asymmetry: the strategy keeps dividends of 10% or more, the price index keeps none; the book's yield gap to the index is unmeasured (Q-L3) | Trailing dividend yield of the book vs the Nifty 500, 2010-26, quoted in `DATA_CORRECTNESS.md` | [ ] 11 Nov |
 
 ## Repository audit: cost, speed, resources (7 Nov 2026)
 

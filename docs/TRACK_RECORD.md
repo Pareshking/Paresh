@@ -266,21 +266,30 @@ from the Actions tab.
 
 ---
 
-## 7. Known limitation — survivorship
+## 7. Known limitation — backfilled months are a backtest
 
-Backfilled months use today's constituent list, because no point-in-time
-membership exists for them. Git carries constituent snapshots only from
-**19 Aug 2026** (when the daily sync began committing them), so Jan–Jul 2026
-were necessarily scored against September membership.
+_Rewritten 11 Nov 2026 (audit `docs/AUDIT_2026-11-11.md`, Q-H1): the text that stood
+here said Jan–Jul 2026 were scored on September's constituent list, which stopped being
+true on 1 Oct 2026 (section 5's rebuild)._
 
-Direction is known — index additions skew toward recent strong performers, and a
-momentum screen preferentially buys exactly those, so the bias flatters.
-Magnitude is **not** known and should not be asserted.
+**Survivorship** is handled for every month in the ledger: since the 1 Oct 2026 rebuild
+each is scored on the index as it stood (`universe: point_in_time`), with prices for the
+stocks it has since dropped.
 
-Going forward the daily sync accumulates real point-in-time membership, so
-future backtests could reconstruct the universe as it actually stood. Until then
-the recorded series — growing one month at a time from September 2026 — is the
-only survivorship-free evidence here.
+**Hindsight is not handled, and cannot be.** Jan–Sep 2026 were rebuilt on 1 Oct 2026
+under a configuration settled then (the 5% / 40% caps were decided on 2 Oct, the price
+basis on 1 Oct), after those months had happened. The rebuilds of 1-2 Oct moved the same
+Jan–Aug block between +38.7% (before the first) and +45.2% (before the second); it stands at
++44.2% today (`rebuilds[].previous_values`). That shows how far choices made with the result
+in view can move it. That is not an accusation of
+cherry-picking; each rebuild has its stated reason. It does mean the backfilled months
+are an in-sample backtest. As of 11 Nov 2026, **one month (October 2026) of ten is
+`recorded`**: -4.25% against the Nifty 500's -0.80%. The since-inception figure on Portfolio
+compounds the nine backfilled months with it (the ten frozen months: +38.3% against -8.4%,
+before the running month is added), and the reconstruction note under it says so.
+
+The recorded series grows one month at a time from October 2026 and is the only
+evidence here that is free of hindsight.
 
 See `docs/V1_AUDIT_TRACKER.md` §5 for the standing decision to defer
 survivorship work.
