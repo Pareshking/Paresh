@@ -2,6 +2,7 @@
 
 ## 2026-11-11 — The Guide on tax, and an audit of method and evidence
 
+- **The Backtest shows the month in progress.** Both tabs stopped at the last completed month, so on 11 Nov the grid ended at October while Portfolio already showed November. November now appears to date, marked in the caption with the day it reached ("to 6 Nov 2026"), and the year table reads "Jan–6 Nov". The figures at the top still stop at the last completed month. The History tab shows it when its end month is the latest one.
 - **The Guide compares the strategy with simply holding the index, after tax.** From Jan 2010 to Oct 2026, both price only and both sold at the end: 15.1% a year against 9.4%. The lead is 8.5 points a year before tax and 5.8 after, because the index pays tax only once at the end.
 - **The Guide shows what costs do.** The Nifty 500 backtest earns 18.6% a year at 30 bps a round trip, 17.5% at 50 and 16.2% at 75. STT and stamp duty take about 22 of the 30 bps; the spread has not been measured.
 - **The Guide no longer says tax is "not modelled anywhere"** a few lines above an after-tax test result. Every figure is before tax; tax was estimated in that one test only.
