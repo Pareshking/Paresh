@@ -1,8 +1,7 @@
 # Changelog
 
-## 2026-11-11 — Portfolio says again how much of the record is a backtest
+## 2026-11-11 — The Guide on tax, and an audit of method and evidence
 
-- **Portfolio's "Since inception" figures now carry their note.** Nine of the ten months in the 750's record were rebuilt on 1 Oct 2026 under rules settled then. Only October 2026 was frozen as it closed. The note saying so had been turned off when the Track Record page moved into Portfolio, so it appeared nowhere. It is back, and it now says those months are a backtest, not evidence.
 - **The Guide no longer says tax is "not modelled anywhere"** a few lines above an after-tax test result. Every figure is before tax; tax was estimated in that one test only.
 - Audit of method and evidence: `docs/AUDIT_2026-11-11.md` (costs, tax against an index fund, dividends, how long the record must run before it can show anything).
 

@@ -286,7 +286,8 @@ cherry-picking; each rebuild has its stated reason. It does mean the backfilled 
 are an in-sample backtest. As of 11 Nov 2026, **one month (October 2026) of ten is
 `recorded`**: -4.25% against the Nifty 500's -0.80%. The since-inception figure on Portfolio
 compounds the nine backfilled months with it (the ten frozen months: +38.3% against -8.4%,
-before the running month is added), and the reconstruction note under it says so.
+before the running month is added). Portfolio shows no note saying so (owner, 11 Nov 2026:
+"Remove the notes"); the monthly table's Origin column marks each month.
 
 The recorded series grows one month at a time from October 2026 and is the only
 evidence here that is free of hindsight.

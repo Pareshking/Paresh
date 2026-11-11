@@ -325,9 +325,8 @@ def render_record_sections(
     if _backfilled and show_reconstruction_note:
         _lead = (f"{_backfilled} of {_backfilled + _recorded} months are backfilled"
                  + (": the whole record is a reconstruction." if not _recorded else "."))
-        kit.note(_lead, "Rebuilt later under rules settled after those months had happened, so "
-                        "they are a backtest, not evidence, and the since-inception figures above "
-                        "include them. Only months marked recorded were frozen as they closed."
+        kit.note(_lead, "Rebuilt later, not frozen as each month closed; only months marked "
+                        "recorded were frozen as they closed."
                  + (" Each is scored on the index as it stood." if int(stats.get("current_universe", 0) or 0) == 0
                     else " They carry the backtest's survivorship bias."))
     if len(stats.get("configs", [])) > 1:

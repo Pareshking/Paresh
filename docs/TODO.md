@@ -33,11 +33,11 @@ _Last updated: 2026-11-11_
 
 ## Quant method and evidence audit (11 Nov 2026)
 
-Findings and evidence: `docs/AUDIT_2026-11-11.md`. Q-H1, Q-L1 and Q-L2 fixed in the same PR.
+Findings and evidence: `docs/AUDIT_2026-11-11.md`. Q-L1 and Q-L2 fixed in the same PR; Q-H1's note was removed by the owner.
 
 | # | What | How we know it is done | Status |
 |---|---|---|---|
-| S122 | Portfolio's headline compounds 9 backfilled months with 1 recorded month (Q-H1), and the record shows no uncertainty (Q-H2: tracking error ~21% a year, so the record cannot confirm a realistic edge for years) | Owner decides: headline on recorded months only, with the reconstruction beside it; alpha with a 90% interval, or "too short to judge" until 24 recorded months | [ ] 11 Nov: the reconstruction note is back on Portfolio (fixed); headline and interval wait for the owner |
+| S122 | Portfolio's headline compounds 9 backfilled months with 1 recorded month (Q-H1), and the record shows no uncertainty (Q-H2: tracking error ~21% a year, so the record cannot confirm a realistic edge for years) | Owner decides: headline on recorded months only, with the reconstruction beside it; alpha with a 90% interval, or "too short to judge" until 24 recorded months | [ ] 11 Nov: owner removed the reconstruction note from Portfolio ("Remove the notes"); the Origin column remains. Headline and interval wait for the owner |
 | S123 | 30 bps round trip is ~22 bps statutory, ~8 bps left for spreads on both legs, for microcaps and Nano Cap alike; spreads never measured (Q-M1) | Statutory rates quoted from dated NSE/SEBI circulars; a spread estimate per size bucket (Corwin-Schultz from NSE high/low, or order-book snapshots); History backtest shown at 30 / 50 / 75 bps | [ ] 11 Nov |
 | S124 | After-tax results never set against an index fund's deferred tax (Q-M2) | `rebalance_rules_after_tax.py` adds the Nifty 500 held throughout and taxed at exit; Guide quotes both after-tax figures together | [ ] 11 Nov: owner decides whether the Guide carries it |
 | S125 | Dividend asymmetry: the strategy keeps dividends of 10% or more, the price index keeps none; the book's yield gap to the index is unmeasured (Q-L3) | Trailing dividend yield of the book vs the Nifty 500, 2010-26, quoted in `DATA_CORRECTNESS.md` | [ ] 11 Nov |
