@@ -12,7 +12,13 @@ the 8 Nov audit before being written here (**Checked** column). Mockups are in
 `docs/design/dashboard_2026-11-11/`; every one is marked "Illustrative — not implemented"
 and uses only figures copied from the live pages.
 
-Nothing on the page has been changed. Implementation waits for the owner.
+Nothing on the page has been changed.
+
+**Owner's decision, 11 Nov 2026:** D1-D3 (the book before the market, one heading size,
+status chips) were built and shown as full pages, before and after, at desktop and phone
+width. The owner rejected them: "didn't like it at all vs current one". They were reverted,
+and the current layout stays. Do not propose D1-D3 again; the rest of this report is kept
+for reference.
 
 ## 1. Main finding: the book comes after the market
 

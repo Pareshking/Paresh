@@ -1,11 +1,5 @@
 # Changelog
 
-## 2026-11-11 — The Dashboard shows the book before the market (pending approval)
-
-- **Book at risk, How risky is the book?, Next rebalance and Coming up for the book now come first**, above the four market questions. On a phone, Book at risk starts 619 px down instead of 2,578 px, so the first sale is on the first screen. The market's own cards (momentum health, qualify count, size leadership, flows) follow the market questions.
-- **The book's card headings are the same size as the rest of the page** (they were forced to 15 px).
-- **In Book at risk, a sale is a filled chip and Watch an outlined one**; the two were text colours almost impossible to tell apart. Clear rows draw a light grey bar instead of the darkest mark on the card.
-
 ## 2026-11-11 — The corporate-actions guard was not looking at anything
 
 - **The nightly check for splits and demergers hiding in the price history had been scanning nothing, while the run reported green.** It read a local file (`data_cache/screener_prices.parquet`) that nothing writes on a GitHub runner — the store a sync downloads is streamed to a temp file, read, and deleted — so it printed "no screener closes to check" and exited in under half a second on every run. The step's warning said "new find or failure", which reads like a find, and seven consecutive green runs carried it before anyone opened the step log.

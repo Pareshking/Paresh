@@ -260,10 +260,6 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # "On this page", as on Breadth (owner, 8 Nov 2026). Filled in at the end,
     # with only the sections that were drawn, so no link points at nothing.
     nav_slot = st.empty()
-    # The book before the market (design audit D1, 11 Nov 2026): Book at risk sat
-    # 3,790 px down a phone, after all four market questions. Its cards are drawn
-    # below, into this container, which sits above the market.
-    book_area = st.container()
 
     # The market in three questions, under the book's own line (owner, 7 Nov:
     # tipsheet's question pages as the model, from the data the app holds).
@@ -287,13 +283,10 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # Left: the book's risk; right: the next rebalance, then size leadership
     # (industries are in "What is leading?" above). A phone shows the left
     # stack first, which is the order of importance.
-    page = book_area.container(key="db_page")
+    page = st.container(key="db_page")
     left, right = page.columns([1.45, 1], gap="large")
     top_l, top_r = left, right
-    # The market's own cards (size, momentum health, qualify, flows) stay below
-    # the market questions, in a second two-column block.
-    market = st.container(key="db_page_mkt")
-    low_l, low_r = market.columns([1.45, 1], gap="large")
+    low_l = right
 
     with top_l, kit.card("Book at risk", "db_risk", "least room first"):
         st.html(_at_risk_html(a, rules))
@@ -348,7 +341,7 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         "come out the same day or the next.")
 
     size_drawn = False
-    with low_r, kit.card("Size leadership", "db_size", "price return, NSE index closes"):
+    with low_l, kit.card("Size leadership", "db_size", "price return, NSE index closes"):
         res = None
         if levels is None or bench is None or "nifty500" not in bench or "nifty50" not in bench:
             kit.caption("Index levels are not available right now, so this table is left out.")
@@ -374,11 +367,11 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # S91 (owner, 7 Nov: "build it"): momentum health under the book's risk,
     # flows under size leadership.
     from src.ui.views import dashboard_panels
-    dashboard_panels.render(kit, low_l, low_r)
-    # Reading order: the book's cards, the market questions, then the market's cards.
-    nav_slot.html(page_nav_html([
+    dashboard_panels.render(kit, top_l, low_l)
+    # Desktop reading order: the questions, then each column's top block, then the rest.
+    nav_slot.html(page_nav_html(drawn + [
         ("s-db_risk", "Book at risk"), ("s-db_bookrisk", "How risky is the book?"), ("s-db_next", "Next rebalance")]
-        + ([("s-db_cal", "Coming up for the book")] if bc is not None else []) + drawn + [
+        + ([("s-db_cal", "Coming up for the book")] if bc is not None else []) + [
         ("s-db_mh", "Momentum health"), ("s-db_qual", "How many stocks qualify?")]
         + ([("s-db_size", "Size leadership")] if size_drawn else [])
         + [("s-db_flows", "Flows")]))
