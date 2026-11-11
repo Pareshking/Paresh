@@ -138,6 +138,22 @@ def backfill_dates(calendar: list[date], have: set[date], n: int,
 
 # ── Publishing ───────────────────────────────────────────────────────────────
 
+def save_bundle(directory: str | Path, day: date, files: dict[str, bytes]) -> Path:
+    """Keep a bundle this run fetched, so a later step in the same run can read it.
+
+    TODO C8: `daily_sync` fetches the newest PR bundle twice -- here with
+    `--recent 3`, and again minutes later in `build_benchmarks --update`, which
+    wants the Pd<ddmmyy>.csv rows out of the same zip. The files are written
+    under their own names, so nse_bundle.member() finds the same members in the
+    same bytes it would have downloaded.
+    """
+    folder = Path(directory) / day.isoformat()
+    folder.mkdir(parents=True, exist_ok=True)
+    for name, body in files.items():
+        (folder / name.rsplit("/", 1)[-1]).write_bytes(body)
+    return folder
+
+
 def publish_tables(tables: dict[str, pd.DataFrame], day: date, workdir: Path,
                    publish) -> list[str]:
     """Write each non-empty table for `day` and publish it. Returns what went."""
@@ -270,6 +286,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--probe", action="append", default=[],
                     help="YYYY-MM-DD, or 'latest'; repeatable")
     ap.add_argument("--delay", type=float, default=DELAY_S)
+    ap.add_argument("--save-bundles", default=None,
+                    help="directory to keep each bundle fetched this run in, as "
+                         "<dir>/<YYYY-MM-DD>/<member>, for a later step of the "
+                         "same job (build_benchmarks --bundles)")
     ap.add_argument("--dates", default="",
                     help="YYYY-MM-DD days to collect if R2 lacks them, space- or "
                          "comma-separated; weekend special sessions included "
@@ -279,7 +299,10 @@ def main(argv: list[str] | None = None) -> int:
     session = requests.Session()
 
     def fetch(day):
-        return nse_bundle.fetch_bundle(day, session=session)
+        files = nse_bundle.fetch_bundle(day, session=session)
+        if files and args.save_bundles:
+            save_bundle(args.save_bundles, day, files)
+        return files
 
     today = ist_now().date()
     for p in args.probe:

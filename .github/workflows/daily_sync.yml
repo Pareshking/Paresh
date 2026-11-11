@@ -171,7 +171,10 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
-        run: python scripts/nse_collect.py --recent 3 || echo "::warning::NSE collection failed; the extra universe keeps the last list."
+        # --save-bundles: the next step wants the index rows out of the same
+        # zips, and was downloading them from NSE a second time minutes later
+        # (TODO C8, measured 10 Nov). Kept on the runner only, for this run.
+        run: python scripts/nse_collect.py --recent 3 --save-bundles /tmp/nse-bundles || echo "::warning::NSE collection failed; the extra universe keeps the last list."
 
       # The Nifty 500 / Nifty 50 benchmark closes (data/benchmarks.csv),
       # extended from NSE's daily bundle, Screener for any session NSE does
@@ -180,7 +183,11 @@ jobs:
       - name: Extend the benchmark closes
         env:
           PYTHONPATH: .
-        run: python scripts/build_benchmarks.py --update || echo "::warning::Benchmark update failed; the committed file is used."
+        # --bundles: read the sessions the step above just fetched instead of
+        # asking NSE for the same zip again (TODO C8). A day the collector did
+        # not fetch -- R2 already had it, or NSE has no bundle -- is still
+        # requested here, so no session can go missing from the file.
+        run: python scripts/build_benchmarks.py --update --bundles /tmp/nse-bundles || echo "::warning::Benchmark update failed; the committed file is used."
 
       # The extra universe (every stock of ₹2,000 Cr or more outside the 750,
       # src/engine/extra_universe.py): rebuilt from NSE's market-cap file

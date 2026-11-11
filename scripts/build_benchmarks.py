@@ -134,6 +134,31 @@ def nse_rows(days: list[date], *, fetch=nse_bundle.fetch_bundle, sleep=time.slee
     return frame.dropna(how="all", subset=bs.FIELDS[1:3])
 
 
+def bundle_reader(directory, fetch=nse_bundle.fetch_bundle):
+    """Read a day's bundle from `directory` when it holds one; ask NSE otherwise.
+
+    TODO C8: in one `daily_sync` run, `nse_collect --recent 3` downloads the
+    newest PR bundle and this script downloaded it again minutes later. With
+    `--save-bundles`/`--bundles` pointed at the same directory the zip is asked
+    for once a run; a day the collector did not fetch (R2 already had it, NSE
+    had none) is still asked for here, exactly as before.
+    """
+    from pathlib import Path
+
+    root = Path(directory)
+
+    def _fetch(day, session=None, *a, **kw):
+        folder = root / day.isoformat()
+        if folder.is_dir():
+            files = {p.name: p.read_bytes() for p in sorted(folder.iterdir()) if p.is_file()}
+            if nse_bundle.member(files, "pd") is not None:
+                print(f"  {day}: bundle read from {folder} (already fetched this run)")
+                return files
+        return fetch(day, session, *a, **kw)
+
+    return _fetch
+
+
 def weekdays_between(start: date, end: date) -> list[date]:
     """Every weekday from `start` to `end` inclusive."""
     out, d = [], start
@@ -169,7 +194,12 @@ def main(argv=None) -> int:
                          "(Screener's older history is weekly), newest first")
     ap.add_argument("--nse-days", type=int, default=30,
                     help="most NSE bundles to request this run (default 30)")
+    ap.add_argument("--bundles", default=None,
+                    help="directory of bundles already fetched by this job "
+                         "(nse_collect --save-bundles): a day found there is not "
+                         "downloaded again")
     args = ap.parse_args(argv)
+    nse_fetch = bundle_reader(args.bundles) if args.bundles else nse_bundle.fetch_bundle
     if not (args.seed or args.update or args.backfill_from or args.ss or args.kaggle):
         ap.error("pass --seed, --update, --backfill-from, --ss and/or --kaggle")
 
@@ -190,7 +220,7 @@ def main(argv=None) -> int:
     last = None if last_nse is None or pd.isna(last_nse) else last_nse.date()
     days = weekdays_after(last, today, args.nse_days)
     if days:
-        frame = bs.merge(frame, nse_rows(days))
+        frame = bs.merge(frame, nse_rows(days, fetch=nse_fetch))
     if args.backfill_from:
         # Weekdays with no row at all: a Screener row (daily for its last year,
         # Fridays before) already carries the right close for its date.
@@ -199,7 +229,7 @@ def main(argv=None) -> int:
         gaps = sorted(gaps, reverse=True)[: args.nse_days]
         print(f"Backfill: {len(gaps)} weekdays with no row, newest first")
         if gaps:
-            frame = bs.merge(frame, nse_rows(sorted(gaps)))
+            frame = bs.merge(frame, nse_rows(sorted(gaps), fetch=nse_fetch))
             bs.write(frame)  # keep what was fetched even if a later step fails
     if args.update and not args.seed:
         # Anything NSE did not give (a refusal, a late bundle) from Screener's
