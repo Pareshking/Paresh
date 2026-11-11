@@ -1,6 +1,7 @@
 import hashlib
 import re
 import time
+from collections.abc import Sequence
 from html import escape as _esc
 
 import numpy as np
@@ -2155,6 +2156,81 @@ def _is_pct_text_column(col: pd.Series) -> bool:
         return False
     vals = [str(v).strip() for v in col.dropna() if str(v).strip() not in ("", "—", "-")]
     return bool(vals) and all(_PCT_TEXT.fullmatch(v) for v in vals)
+
+
+# --- The figure tables (`db-fig`), fragment mode ---------------------------
+#
+# The Dashboard's "The book / Now / Nifty 500" table and its panels' "Last 12
+# months / Points" table were two format strings inside the views that drew
+# them (docs/UI_ARCHITECTURE.md section 10, renderer #4). They are page
+# FRAGMENTS: the page's own `.db-fig` rules style them, and nothing is resolved
+# into them, so they follow a theme change. `render_saas_table` below is the
+# other mode -- a whole document in an iframe with the theme written in -- and
+# it cannot draw these: it returns None rather than markup (these tables sit
+# inside a card's HTML), it reformats values rather than taking the display
+# strings the views compute, and it INFERS a column's side from words in the
+# header. Here the side is DECLARED. The two disagree: `render_saas_table`
+# would read "Now" and "Points" as text columns and move them to the left.
+#
+# The `.db-fig` stylesheet puts the first column left and every other column
+# right. A column that declares that side carries no markup of its own, so a
+# table's output is byte-for-byte what the format strings produced; a column
+# that declares the other side gets an inline `text-align`, the idiom the
+# question cards already use.
+_FIG_ALIGNMENTS = ("left", "center", "right")
+
+
+def figure_table_align(n_columns: int) -> list[str]:
+    """What the `.db-fig` stylesheet aligns each of `n_columns` columns to."""
+    return ["left" if i == 0 else "right" for i in range(n_columns)]
+
+
+def _fig_style(side: str, column: int, n_columns: int) -> str:
+    if side not in _FIG_ALIGNMENTS:
+        raise ValueError(f"unknown alignment {side!r}; one of {_FIG_ALIGNMENTS}")
+    if side == figure_table_align(n_columns)[column]:
+        return ""
+    return f' style="text-align:{side}"'
+
+
+def figure_table_html(
+    headers: Sequence[str],
+    rows: Sequence[Sequence[str | tuple[str, str]]],
+    *,
+    align: Sequence[str] | None = None,
+    table_class: str = "db-fig",
+) -> str:
+    """One `db-fig` figure table, as markup for a card to embed.
+
+    `headers` are the column headings. Each row is one cell per column: a plain
+    string for a cell with no tone, or a `(text, tone)` pair for one that
+    carries a tone class (`up`, `down`, `mid`, or `""` for none). Every heading
+    and every cell is escaped. `align` declares each column's side and defaults
+    to the stylesheet's own (first left, the rest right).
+    """
+    n = len(headers)
+    sides = list(align) if align is not None else figure_table_align(n)
+    if len(sides) != n:
+        raise ValueError(f"{len(sides)} alignments for {n} columns")
+    head = "".join(
+        f'<th scope="col"{_fig_style(sides[i], i, n)}>{_esc(str(h))}</th>'
+        for i, h in enumerate(headers)
+    )
+    body = []
+    for row in rows:
+        if len(row) != n:
+            raise ValueError(f"{len(row)} cells for {n} columns")
+        cells = []
+        for i, cell in enumerate(row):
+            style = _fig_style(sides[i], i, n)
+            if isinstance(cell, tuple):
+                text, tone = cell
+                cells.append(f'<td class="{tone}"{style}>{_esc(str(text))}</td>')
+            else:
+                cells.append(f"<td{style}>{_esc(str(cell))}</td>")
+        body.append(f'<tr>{"".join(cells)}</tr>')
+    return (f'<table class="{table_class}"><thead><tr>{head}</tr></thead>'
+            f'<tbody>{"".join(body)}</tbody></table>')
 
 
 def render_saas_table(

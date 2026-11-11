@@ -344,26 +344,37 @@ navigation contract changed.
 
 ---
 
-## 10. The four table implementations (plan, 10 Nov 2026 — not yet done)
+## 10. The four table implementations (plan, 10 Nov 2026; first step done 11 Nov)
 
 S112 left this: the four tables are aligned on header and row style but are
-still four files. This section is the survey that work starts from. **Nothing
-here has been changed.** It is written down so the next pass does not have to
-re-find it, and because consolidating four renderers hours after launch would
-risk a visible number or a moved pixel for no reader-facing gain.
+still four files. This section is the survey that work starts from, and the
+plan for adopting one renderer. **Step 1 of the order below is done** (11 Nov,
+renderer #4's `db-fig` figure tables); everything else below is still the
+survey as written on 10 Nov, with the corrections marked.
 
 ### Where each one lives
 
 | # | Renderer | File | Drawn by | Used on |
 |---|---|---|---|---|
 | 1 | `table_html` / `render_screener_table` | `src/ui/screener_table.py` (641 lines) | `st.iframe`, through `tokens.resolve()` | The Screener grid, and the stock page's peers |
-| 2 | `render_saas_table` | `src/ui/theme.py` (from line 2160) | `st.html`, on the page | Backtest (monthly, closed trades, tradebook), Breadth, Portfolio (holdings, trades, rebalances), Track Record (2), Configuration (3) |
+| 2 | `render_saas_table` | `src/ui/theme.py` (from line 2160) | **`st.iframe`, through `tokens.resolve()`** (the 10 Nov survey said `st.html`, on the page — wrong; it has always ended `st.iframe(resolve(...))`, and it returns `None`, not markup) | Backtest (monthly, closed trades, tradebook), Breadth, Portfolio (holdings, trades, rebalances), Track Record (2), Configuration (3) |
 | 3 | `_render_yearly_summary`, `_render_calendar_returns` | `src/ui/components.py` (lines 132-282) | `st.html`, on the page | The calendar returns and yearly summary, on Portfolio and Track Record |
-| 4 | Hand-built `<table>` blocks | `src/ui/views/dashboard_view.py` (`db-size`, `db-fig`), `src/ui/views/dashboard_panels.py` (`db-fig`), `src/ui/views/market_questions_view.py` (plain `<table>`, `qp-heat`) | `st.html`, on the page | The Dashboard's panels, Sectors and Breadth's question cards |
+| 4 | Hand-built `<table>` blocks | `src/ui/views/dashboard_view.py` (`db-size`; `db-fig` **now through `theme.figure_table_html`**), `src/ui/views/dashboard_panels.py` (same), `src/ui/views/market_questions_view.py` (plain `<table>`, `qp-heat`, and one `rowspan="2"` grouped header at line 394) | a string a card embeds, drawn with the page | The Dashboard's panels, Sectors and Breadth's question cards |
 
 (`render_master_screener_table`, named in older notes and in
 `tests/test_table_html_escaping.py`'s docstring, no longer exists: it is
 `screener_table.table_html`.)
+
+Two further corrections to the 10 Nov survey, found on 11 Nov by reading the
+code rather than the notes:
+
+- **`db-fig` was never in `market_questions_view`.** Its tables are plain
+  `<table>` blocks styled by the question-card CSS; `db-fig` is only in the two
+  Dashboard files. The "figure tables among them" the order below names are
+  therefore two tables, not four.
+- **#2 sorts.** Item 4 below says header-click sorting is "#1 only". It is not:
+  `render_saas_table` ships a `DOMContentLoaded` sort script over
+  `tr.screener-row`. So does #1. Only #3 and #4 do not sort.
 
 ### What a shared renderer would have to support
 
@@ -399,7 +410,8 @@ cannot adopt it.
 8. **Column alignment by name** (#2 keys it off words in the header —
    `RANK`, `DELTA`, `SYMBOL` …; #1 keys it off the registry's declared type).
    These two disagree today; a shared renderer must pick one and the other's
-   pages must not move.
+   pages must not move. **Measured on 11 Nov** — see "The alignment
+   disagreement, measured" below. The answer for `db-fig` was: declare it.
 9. **Escaping of every third-party cell and header**, which
    `tests/test_table_html_escaping.py` already pins for #1 and #2.
 10. **A height contract**: #2 takes `max_height` and otherwise computes
@@ -409,29 +421,129 @@ cannot adopt it.
 ### Which could adopt it first
 
 **#4, the hand-built blocks, and only the two-and-three-column figure tables
-among them** (`db-fig` on the Dashboard and its panels, and the question cards
-in `market_questions_view`). They are the smallest, they are fragments like
-#2, they have no sorting, paging, grouping or row headers, and their only cell
-logic is a tone class from the sign. They are also the ones most likely to
-drift, because each is a format string inside the view that draws it.
+among them** (`db-fig` on the Dashboard and its panels). They are the
+smallest, they have no sorting, paging, grouping or row headers, and their
+only cell logic is a tone class from the sign. They are also the ones most
+likely to drift, because each is a format string inside the view that draws it.
+(The 10 Nov text also named the question cards in `market_questions_view`
+here; they are not `db-fig`, see the corrections above.)
 
 The order after that, easiest to hardest:
 
-1. #4's figure tables → use #2 (`render_saas_table`), fragment mode. Needs
-   #2 to accept a per-cell tone and a right-aligned figure column without
-   inferring alignment from the header's words.
-2. #3, the calendar table → needs the row-header column (item 6) and the
-   sideways scroll wrapper in #2 first.
+1. **[x] 11 Nov** — #4's figure tables → one renderer,
+   `theme.figure_table_html`, the **fragment mode** the plan asked for: it
+   takes a per-cell tone and a DECLARED per-column side, and it returns markup
+   for a card to embed. The two format strings in `dashboard_view.book_risk_html`
+   and `dashboard_panels.long_only_html` are gone; the output is byte-for-byte
+   what shipped, pinned by `tests/test_figure_tables_shared.py`.
+
+   They were **not** routed through `render_saas_table` itself, and this is
+   where the 10 Nov plan was wrong about what that would cost. `render_saas_table`
+   is not a fragment renderer: it builds a whole `<!DOCTYPE html>` document,
+   writes the theme into it with `resolve()`, and ends in `st.iframe` returning
+   `None`. These two tables are **strings a card embeds**, inside
+   `<div class="db-mh">` and beside a lede, a sparkline and footnotes; there is
+   nothing for an iframe to be put in. Beyond that, `render_saas_table` takes
+   raw values and formats them, while these views hand over display strings
+   they have already computed (`16.9%`, `0.03 days`, `+15.7`), so routing them
+   through it changes the figures, not only the pixels (measured below). And
+   its stylesheet is a different table: 40px rows against ~29, a scroll wrapper
+   with a top rule and a 600px cap, a sticky header with a pointer cursor and a
+   hover highlight, monospace in every right-aligned cell. Under S112's "no
+   pixel and no figure may change" none of that is available. The honest shape
+   of the consolidation is therefore **two modes, not one function**: an iframe
+   mode (#1, #2) and a fragment mode (#3, #4), sharing the alignment contract
+   and the escaping rather than the markup.
+2. #3, the calendar table → the next adoption, and the first real test of the
+   fragment mode. Checked on 11 Nov, it needs five things
+   `theme.figure_table_html` does not have yet:
+   - the **row-header column** (item 6): the series name is
+     `<th scope="row" class="cr-series strategy">`, not a first `<td>`, and its
+     class varies by series;
+   - the **`cr-scroll` sideways wrapper** around each table, and the
+     `min-width:980px` that makes it scroll;
+   - a **cell class that is not just a tone**: `cr-value positive` where
+     `db-fig` has bare `up`, plus a second class `cr-summary` on the six
+     summary columns, which is a **background** (`var(--c-subtle)`) and a left
+     rule, not a colour;
+   - a different **empty cell** (`<td class="cr-empty">—</td>`), where
+     `db-fig` leaves the cell empty;
+   - **one table per year** inside a `<section class="cr-year">` with its own
+     kicker and heading, so the renderer draws a group of tables, not one.
+
+   `_render_yearly_summary` and `_render_calendar_returns` are ~150 lines and
+   also **call `st.html` themselves** (they return `None`, like #1 and #2), so
+   the adoption has to split building the markup from drawing it, exactly as
+   step 1 did. They run on Portfolio and Track Record, so the before/after
+   proof has to cover both pages.
 3. #4's `qp-heat` and `db-size` grids → these are heat grids, not tables of
    figures; decide whether they are a table at all before moving them.
-4. **#1 last, or never.** The Screener grid is the one table with sorting,
-   paging, grouped headers, a phone column set and an iframe, and it is the
-   page the site is mostly about. Folding it in means teaching the shared
-   renderer every feature above; the honest outcome may be that #1 stays its
-   own file and the other three become one.
+4. **#1 last, or never.** The Screener grid is the one table with paging,
+   grouped headers and a phone column set, and it is the page the site is
+   mostly about. Folding it in means teaching the shared renderer every feature
+   above; the honest outcome may be that #1 stays its own file and the other
+   three become one.
+
+### The alignment disagreement, measured (11 Nov 2026)
+
+Item 8's trap is real, and it is worse than "a column may move": the inference
+reads the *words in the header*, and the `db-fig` headings are prose ("Now",
+"Points"), not the SCREAMING column keys `render_saas_table` was written for.
+Measured by calling `render_saas_table` on the two tables' own columns with
+`st.iframe` captured, against what the `.db-fig` stylesheet gives today (first
+column left, every other column right):
+
+| Table | Column | Today | `render_saas_table` would give | |
+|---|---|---|---|---|
+| book risk | `The book` | left | left (not numeric → `th-left`) | same |
+| book risk | `Now` | right | **left** — no header word matches, and the column is not all-percent because of `0.03 days` | **moves** |
+| book risk | `Nifty 500` | right | right — by luck: the blanks are dropped and `12.4%`/`−9.1%` sniff as a percent column | same |
+| momentum health | `Last 12 months` | left | left — by luck: `MONTH` is in the left-word list | same |
+| momentum health | `Points` (strings) | right | **left** — no header word, no `%`, not numeric | **moves** |
+| momentum health | `Points` (floats) | right | right | same |
+
+Two of five columns change side, and three of the six "same" answers are
+accidents of a substring match or a sniff. The cells are worse than the
+headings:
+
+- `Slowest exit, MBAPL` → `0.03 days` lands `td-left` while `16.9%` above it
+  lands `td-right`: one column, two sides.
+- The empty cells in `Nifty 500` become `<td class="td-center text-muted">—</td>`
+  — a centred em dash where the site shows nothing.
+- `Points` as floats reformats `+15.7` to `15.70`: the sign goes and a second
+  decimal arrives.
+- The tone classes change meaning: `up`/`down`/`mid` (colour only) become
+  `ret-pos`/`ret-neg` (colour **and** weight 600) or are dropped.
+
+So the shared renderer must not infer. `theme.figure_table_html` takes `align`
+and defaults it to what the stylesheet already gives, so a column that keeps
+its side carries no markup of its own (that is why the output is byte-identical)
+and a column that departs gets an inline `text-align`, the idiom the question
+cards already use. When #3 and #1 come in, the declared side is the contract to
+extend; the header-word list in `render_saas_table` is the thing to retire.
 
 ### How we would know it had not broken anything
 
 Each step: render the page before and after at desktop and phone width and
 compare the markup of the table only; the cell text must be byte-identical and
 the computed row height, alignment and colour of every cell unchanged.
+
+Step 1 was proved that way, twice over (11 Nov):
+
+- **All eleven pages through `AppTest`**, every element's markup dumped at HEAD
+  and after the change: byte-identical on all eleven once the hidden
+  `umiya-startup-metrics` div is elided (it carries a pid and an uptime). The
+  Dashboard dump is 131,518 bytes, sha256 `a489eab22dd40296` both sides; the
+  Screener's 2,151,118 bytes, `62626027ef24cd9f` both sides.
+- **The Dashboard in Chromium at 1400px and at 390px**, before and after, on
+  port 8649: the visible text is identical at both widths, and the capture does
+  contain the figure tables ("The book", "Volatility, a year", "Last 12
+  months", "Points", "Slowest exit"), so the comparison is not passing on an
+  empty page.
+
+The consolidation does **not** remove lines on net: the two views lose 4 lines
+of markup-building (+6 of comment), and `theme.py` gains 76, of which 42 are
+the comment and docstring that record this section's findings at the code.
+What it removes is the second implementation — a `<table class="db-fig">`
+format string can no longer be written in a view without
+`tests/test_figure_tables_shared.py` failing.
