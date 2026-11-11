@@ -130,7 +130,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | A demerger is **not** priced from the company's cost-of-acquisition split: that is a tax split by book value, not the market's (STLTECH 42% vs a 75% fall, ABFRL 76% vs 33%); the ex-date fall stays (13 Oct 2026) | TODO S58 |
 | A demerger stays priced at the ex-date **close** over the last close, not the ex-date open (owner, 13 Oct 2026: the open was proposed and not adopted) | `nse_adjusted.action_factors` |
 | No month is frozen while the freeze's own replay disagrees with a frozen month the owner has not accepted; and the Screener night does not publish a store the three-source vote outvotes on more than 10 stocks over its 45 days (owner, 7 Nov 2026, S92, after October 2026 was struck on a store carrying BSE closes, S89; the 10 set by Claude, owner may change) | `parity_audit.freeze_refusal`, `reconcile.SCREENER_OUTVOTE_LIMIT`, `scripts/check_screener_outvotes.py` |
-| Portfolio shows no note that backfilled months are a reconstruction; the monthly table's Origin column marks each month (owner, 11 Nov 2026: "Remove the notes", after audit Q-H1) | `portfolio_view` `show_reconstruction_note=False`, `docs/AUDIT_2026-11-11.md` |
+| Portfolio's "Since inception" headline compounds every frozen month, backfilled included, with no interval and no note (owner, 11 Nov 2026: "Keep as it is", S122); Portfolio shows no note that backfilled months are a reconstruction; the monthly table's Origin column marks each month (owner, 11 Nov 2026: "Remove the notes", after audit Q-H1) | `portfolio_view` `show_reconstruction_note=False`, `docs/AUDIT_2026-11-11.md` |
 
 ## 5. Findings already explained: do not investigate these again
 
