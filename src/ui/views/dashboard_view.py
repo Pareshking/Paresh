@@ -36,6 +36,7 @@ from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
 from src.ui import formats as fmt
 from src.ui import page_kit as kit
+from src.ui import theme
 from src.ui.page_kit import _series_of
 from src.ui.canonical_book import current_book
 from src.ui.components import gap_count, render_data_quality_footer
@@ -170,8 +171,7 @@ def book_risk_html(res, as_of_record: pd.Timestamp | None) -> str:
     rows, lede = [], ""
 
     def row(label: str, figure: str, against: str = "", tone: str = "") -> None:
-        rows.append(f'<tr><td>{html.escape(label)}</td><td class="{tone}">{html.escape(figure)}</td>'
-                    f'<td class="mid">{html.escape(against)}</td></tr>')
+        rows.append((label, (figure, tone), (against, "mid")))
 
     if res.beta is not None:
         lede = (f"The book as it stands moves about {res.beta:.2f} for each 1 of the Nifty 500 but swings "
@@ -199,8 +199,11 @@ def book_risk_html(res, as_of_record: pd.Timestamp | None) -> str:
     gaps = "".join(f'<p class="db-note">Left out: {html.escape(g)}.</p>' for g in res.gaps)
     head = (f'<div class="db-big">{res.beta:.2f}<span>beta against the Nifty 500, {res.sessions} sessions</span></div>'
             if res.beta is not None else "")
-    table = ('<table class="db-fig"><thead><tr><th scope="col">The book</th><th scope="col">Now</th>'
-             f'<th scope="col">Nifty 500</th></tr></thead><tbody>{"".join(rows)}</tbody></table>')
+    # Alignment declared, not inferred: the shared renderer reads "Now" and
+    # "Nifty 500" as the figure columns they are because this says so
+    # (docs/UI_ARCHITECTURE.md section 10).
+    table = theme.figure_table_html(
+        ("The book", "Now", "Nifty 500"), rows, align=("left", "right", "right"))
     return head + (f'<p class="db-lede">{html.escape(lede)}</p>' if lede else "") + table + gaps
 
 
