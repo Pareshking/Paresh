@@ -201,7 +201,7 @@ def conditions(index_key: str, months: pd.PeriodIndex) -> pd.DataFrame:
     close, membership = inp["close"], inp["membership"]
     bench = pd.to_numeric(inp["benchmark"], errors="coerce").dropna().sort_index()
     sma200 = bench.rolling(200, min_periods=100).mean()
-    vol63 = bench.pct_change().rolling(63, min_periods=40).std() * math.sqrt(TRADING_DAYS)
+    vol63 = bench.pct_change().rolling(63, min_periods=40).std(ddof=0) * math.sqrt(TRADING_DAYS)
     # Against the last five years, not all years to date: the 2008 crash in the
     # file's first year would otherwise call almost every later month calm.
     vol_median = vol63.rolling(5 * TRADING_DAYS, min_periods=TRADING_DAYS).median()
