@@ -65,7 +65,7 @@ def stats(res):
     m = eq.resample("ME").last().pct_change().dropna()
     return {"total %": (eq.iloc[-1] / eq.iloc[0] - 1) * 100,
             "a year %": ((eq.iloc[-1] / eq.iloc[0]) ** (1 / yrs) - 1) * 100,
-            "volatility %": d.std() * np.sqrt(252) * 100,
+            "volatility %": d.std(ddof=0) * np.sqrt(252) * 100,
             "worst drawdown %": max_drawdown(eq) * 100}, m
 
 

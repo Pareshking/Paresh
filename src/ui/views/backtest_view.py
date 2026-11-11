@@ -709,10 +709,19 @@ def _backtest_tab(
             _render_yearly_summary(_grid, bench_name,
                                    through=f"{pd.Timestamp(_mtd['as_of']):%-d %b}" if _mtd else None)
             _render_calendar_returns(_grid)
+            # Say whose months these are. This grid is a REPLAY on today's
+            # prices, and Portfolio's grid of the same months is the frozen
+            # record -- so January reads 0.0% here and -0.2% there, October
+            # -4.0% here and -4.3% there, and nothing said why (owner, 11 Nov
+            # 2026). The causes are in docs/MONTHS_THAT_DIFFER.md: one
+            # holding in the twentieth slot for January and February, a store
+            # that carried BSE closes for October.
             st.caption(
-                "After costs, from the first fill to the last completed month · CY Jan–Dec, "
-                "FY Apr–Mar · Alpha is the strategy's return minus the index's over the same period "
-                "(a difference, not compounded)."
+                "Re-run on today's prices, so a month here can differ from the same month on "
+                "Portfolio, which shows what was recorded at the time. After costs, from the "
+                "first fill to the last completed month · CY Jan–Dec, FY Apr–Mar · Alpha is the "
+                "strategy's return minus the index's over the same period (a difference, not "
+                "compounded)."
                 + (f" {_mtd['period'].strftime('%b').upper()} is the month in progress, to "
                    f"{_day(_mtd['as_of'])}: it is in the CY, FY and quarter cells, not in the "
                    "figures above, which stop at the last completed month." if _mtd else "")

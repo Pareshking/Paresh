@@ -213,7 +213,7 @@ def main(path: str) -> None:
                 "after tax if sold at end a year %": cagr(CAPITAL, post["after_liquidation"], yrs),
                 "tax paid, Rs lakh": post["tax_paid"] / 1e5,
                 "worst drawdown %": max_drawdown(eq) * 100,
-                "volatility %": eq.pct_change().dropna().std() * np.sqrt(252) * 100,
+                "volatility %": eq.pct_change().dropna().std(ddof=0) * np.sqrt(252) * 100,
             }
             rows[(label, rule)] = row
             print(label, rule, {k: round(v, 2) for k, v in row.items()}, flush=True)

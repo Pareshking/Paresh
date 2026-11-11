@@ -775,6 +775,17 @@ def render_portfolio_view(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
             kit.empty("No monthly history yet.")
         else:
             _render_calendar_returns(grid)
+            # Whose months these are. Backtest shows the same grid re-run on
+            # today's prices, and the two can differ: January reads -0.2% here
+            # and 0.0% there, October -4.3% against -4.0%, because one holding
+            # in the twentieth slot and one month's BSE closes moved between
+            # the freeze and today (docs/MONTHS_THAT_DIFFER.md). A reader met
+            # both numbers with nothing to tell them apart (owner, 11 Nov
+            # 2026). _calendar_note keeps its own contract -- the owner's
+            # 7 Oct decision that a live month gets no note stands, and two
+            # tests pin it -- so this is a separate line.
+            st.caption("As recorded each month. Backtest re-runs the same months on today's "
+                       "prices, so a figure there can differ from one here.")
             note = _calendar_note(labels, mtd_period, mtd_state,
                                   pending=bool(mtd_period) and not np.isfinite(strategy_mtd))
             if note:

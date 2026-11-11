@@ -67,3 +67,55 @@ def test_revision_is_published_in_startup_telemetry():
     from src.core import startup_metrics as metrics
 
     assert metrics.snapshot()["revision"] == deployed_revision()
+
+
+def test_a_linked_worktree_resolves_its_revision_through_commondir(tmp_path):
+    """A worktree keeps its own HEAD but its branch refs live in the commondir.
+
+    Without following `commondir` every lookup missed and the function
+    returned None for an ordinary checkout, which the footer reads as
+    "revision unknown". Three agents reported the resulting test failure as
+    "known, not mine" before anyone asked why (11 Nov 2026).
+    """
+    from src.core.build_info import deployed_revision
+
+    sha = "c" * 40
+    # The common directory: where branch refs actually live.
+    common = tmp_path / "main.git"
+    (common / "refs" / "heads").mkdir(parents=True)
+    (common / "refs" / "heads" / "a-branch").write_text(sha + "\n")
+
+    # The worktree's own gitdir: its own HEAD, a commondir pointer, no refs.
+    wt_git = tmp_path / "main.git" / "worktrees" / "wt"
+    wt_git.mkdir(parents=True)
+    (wt_git / "HEAD").write_text("ref: refs/heads/a-branch\n")
+    (wt_git / "commondir").write_text("../..\n")
+
+    # The checkout itself: a .git FILE pointing at that gitdir.
+    checkout = tmp_path / "wt"
+    checkout.mkdir()
+    (checkout / ".git").write_text(f"gitdir: {wt_git}\n")
+
+    assert deployed_revision(str(checkout)) == sha
+
+
+def test_a_worktree_whose_ref_is_only_in_the_commondirs_packed_refs(tmp_path):
+    """The same, when the ref is packed rather than loose."""
+    from src.core.build_info import deployed_revision
+
+    sha = "d" * 40
+    common = tmp_path / "main.git"
+    common.mkdir(parents=True)
+    (common / "packed-refs").write_text(
+        "# pack-refs with: peeled fully-peeled sorted\n"
+        f"{sha} refs/heads/packed-branch\n"
+    )
+    wt_git = common / "worktrees" / "wt"
+    wt_git.mkdir(parents=True)
+    (wt_git / "HEAD").write_text("ref: refs/heads/packed-branch\n")
+    (wt_git / "commondir").write_text("../..\n")
+    checkout = tmp_path / "wt"
+    checkout.mkdir()
+    (checkout / ".git").write_text(f"gitdir: {wt_git}\n")
+
+    assert deployed_revision(str(checkout)) == sha

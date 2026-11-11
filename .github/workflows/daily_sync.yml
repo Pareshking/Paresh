@@ -171,7 +171,10 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
-        run: python scripts/nse_collect.py --recent 3 || echo "::warning::NSE collection failed; the extra universe keeps the last list."
+        # --save-bundles: the next step wants the index rows out of the same
+        # zips, and was downloading them from NSE a second time minutes later
+        # (TODO C8, measured 10 Nov). Kept on the runner only, for this run.
+        run: python scripts/nse_collect.py --recent 3 --save-bundles /tmp/nse-bundles || echo "::warning::NSE collection failed; the extra universe keeps the last list."
 
       # The Nifty 500 / Nifty 50 benchmark closes (data/benchmarks.csv),
       # extended from NSE's daily bundle, Screener for any session NSE does
@@ -180,7 +183,11 @@ jobs:
       - name: Extend the benchmark closes
         env:
           PYTHONPATH: .
-        run: python scripts/build_benchmarks.py --update || echo "::warning::Benchmark update failed; the committed file is used."
+        # --bundles: read the sessions the step above just fetched instead of
+        # asking NSE for the same zip again (TODO C8). A day the collector did
+        # not fetch -- R2 already had it, or NSE has no bundle -- is still
+        # requested here, so no session can go missing from the file.
+        run: python scripts/build_benchmarks.py --update --bundles /tmp/nse-bundles || echo "::warning::Benchmark update failed; the committed file is used."
 
       # The extra universe (every stock of ₹2,000 Cr or more outside the 750,
       # src/engine/extra_universe.py): rebuilt from NSE's market-cap file
@@ -365,9 +372,34 @@ jobs:
       # warning on the run rather than stopping the sync.
       - name: Check for corporate actions
         # `|| true` alone also swallowed a CRASH, so a broken check looked
-        # exactly like a clean one. Exit 1 is also how --fail-on-new reports a
-        # new find (with its own warning); either way the run now says so.
-        run: python scripts/check_corporate_actions.py --fail-on-new || echo "::warning::Corporate-actions check exited non-zero (new find or failure) -- read the step log."
+        # exactly like a clean one. The exit code now separates the two: 1 is a
+        # new find, 2 is a check that could not run at all. They were reported
+        # as one message until 11 Nov 2026, when the step log showed the check
+        # had been exiting "no screener closes to check" in under a second on
+        # every run while the warning read like a find.
+        run: |
+          set +e
+          python scripts/check_corporate_actions.py --fail-on-new
+          rc=$?
+          set -e
+          if [ "$rc" = "1" ]; then
+            echo "::warning::Corporate-actions check found a NEW implausible session -- read the step log."
+          elif [ "$rc" != "0" ]; then
+            echo "::warning::Corporate-actions check DID NOT RUN (exit $rc) -- it scanned nothing. Read the step log."
+          fi
+
+      # A ticker change is adjusted automatically (nse_identity.auto_renames
+      # joins on NSE's own symbolchange.csv plus ISIN history), but until now
+      # nothing SAID one had happened: ICICIPRULI became ICICILIFE on 23 Oct
+      # 2026 and the repository was silent for nineteen days. This reports a
+      # handover neither the ledger nor the resolver joins, and two symbols
+      # carrying the same closes -- which is how Screener leaves an old ticker
+      # behind, harmless only while the universe keeps dropping it (S129).
+      # Non-blocking for the same reason as the step above: the sync's job is
+      # the data, and a find is a warning on the run, which the green-run
+      # annotation reporting (S116) now carries to somebody.
+      - name: Check for ticker changes
+        run: python scripts/check_symbol_changes.py --fail-on-new || echo "::warning::Symbol-change check exited non-zero (an unjoined handover, a twin, or a failure) -- read the step log."
 
       # Fold today's constituent list into the point-in-time membership
       # timeline BEFORE committing, so the snapshot lands in the same commit as

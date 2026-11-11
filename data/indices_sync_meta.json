@@ -33,5 +33,13 @@
   "last_attempt_timestamp": "2026-11-11T02:34:42.007539",
   "last_attempt_fetched": 5,
   "last_attempt_errors": {},
-  "last_attempt_ok": true
+  "last_attempt_ok": true,
+  "local_csv_fetched": {
+    "NIFTY 50": "2026-11-11T02:24:44.311161",
+    "NIFTY NEXT 50": "2026-11-11T02:24:44.974806",
+    "NIFTY MIDCAP 150": "2026-11-11T02:24:45.622737",
+    "NIFTY SMALLCAP 250": "2026-11-11T02:24:46.291898",
+    "NIFTY MICROCAP 250": "2026-11-11T02:24:47.015058",
+    "NIFTY TOTAL MARKET": "2026-11-11T02:24:47.684163"
+  }
 }

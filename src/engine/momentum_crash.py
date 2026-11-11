@@ -57,7 +57,9 @@ def _reading(bench: pd.Series, t: pd.Timestamp) -> tuple[float, float] | None:
     if len(past) == 0 or len(hist) < VOL_SESSIONS + 1:
         return None
     ret24 = float(hist.iloc[-1] / hist.loc[past[-1]] - 1)
-    vol = float(hist.pct_change().iloc[-VOL_SESSIONS:].std() * np.sqrt(252))
+    # Population SD (ddof=0), the site's one volatility convention
+    # (owner, 11 Nov 2026; docs/TRACK_RECORD.md, TODO S119).
+    vol = float(hist.pct_change().iloc[-VOL_SESSIONS:].std(ddof=0) * np.sqrt(252))
     return ret24, vol
 
 
