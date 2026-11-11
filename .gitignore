@@ -92,3 +92,6 @@ Thumbs.db
 
 # Download logs from the announcements fetch (two empty ones were tracked).
 *.log
+
+# The parity gate writes this report beside itself on every run.
+parity_report.json

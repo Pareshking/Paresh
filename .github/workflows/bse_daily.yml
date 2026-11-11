@@ -67,8 +67,20 @@ jobs:
               r = R2DatasetReader(a)
               key = r.resolve_current('bse/daily').object_key
           except Exception as exc:
-              print('no R2 bse/daily yet:', exc)
-              key = 'scratch/bse_bhavcopy_2026-10-03/bse_daily.parquet'
+              # Until 11 Nov 2026 this fell back to
+              # scratch/bse_bhavcopy_2026-10-03/bse_daily.parquet, the October
+              # alignment scratch -- 1,221.8 MiB and 39% of the bucket, which
+              # S34 says should be deleted now that the alignment has shipped.
+              # One silent reference was the only thing keeping it, so the
+              # fallback is gone: with neither the release asset nor R2's
+              # bse/daily, re-downloading eighteen years from bseindia is a
+              # decision, not an accident. Run this workflow with full=yes to
+              # make it (owner, 11 Nov 2026).
+              raise SystemExit(
+                  'FAIL: no published BSE table to start from. The release '
+                  'asset bse_daily.parquet is absent and R2 bse/daily did not '
+                  f'resolve ({exc}). Re-run with full=yes to rebuild from '
+                  'bseindia, which downloads every session from 2008.')
           print('seeding from', key)
           a.get_file(key, 'base/bse_daily.parquet')
           "

@@ -50,6 +50,10 @@ from src.engine import systems  # noqa: E402
 from src.engine.actions import plan_rebalance  # noqa: E402
 from src.engine.backtester import _hold_cap_on, run_backtest  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750  # noqa: E402
+
+# The book is drawn from the top 20 and kept while inside the top 40, so a
+# symbol below that cannot enter any comparison this gate makes.
+TOP_N_FOR_COVERAGE = 40
 from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger, load_accepted_drift  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
@@ -109,6 +113,44 @@ def main() -> int:
     rank, meta = read_snapshot(str(_download(RANKINGS_SNAPSHOT_URL, tmp)))
     symbols = list(meta["universe"])
     yahoo, *_ = extract_ohlcv(pd.read_parquet(_download(PRICE_SNAPSHOT_URL, tmp)), symbols)
+
+    # The deep frame must cover the WHOLE universe the ranking was struck on.
+    # `_clean_price_df` keeps the intersection, so a frame that has gone stale
+    # narrows everything computed from it without failing: on 10 Nov 2026 this
+    # snapshot ended 2026-10-01 and carried 749 of the ranking's 752 names, so
+    # ENNATURE, ICICILIFE and IGLSPIRITS were dropped from every comparison
+    # below and the gate still read green -- for no better reason than that
+    # none of the three was in the top 40 that day. A gate that stops covering
+    # what it compares is worse than a slow one (owner, 11 Nov 2026, C6).
+    absent = [s for s in symbols if s.upper() not in {str(c).upper() for c in yahoo.columns}]
+    if absent:
+        # Fail only where the narrowing can change a verdict: a name absent
+        # from the frame cannot alter what this gate asserts unless it is one
+        # of the names being asserted about. Blanket failure is the stricter
+        # reading and the owner approved it, but it would redden every merge
+        # until the snapshot is refreshed, which is a separate decision -- so
+        # the hole is closed where it bites and named loudly everywhere else.
+        # The snapshot is sorted by Rank but indexed 0..n, and the symbol lives
+        # in a column -- reading .index here gave {"0","1",...}, which can never
+        # intersect a symbol set, so the check could not have failed at all.
+        ranked_top = [str(x).upper()
+                      for x in rank.sort_values("Rank")["Symbol"].head(TOP_N_FOR_COVERAGE)]
+        blocking = sorted({s.upper() for s in absent} & set(ranked_top))
+        where = (f"the price snapshot ends {yahoo.index[-1]:%Y-%m-%d} and covers "
+                 f"{len(symbols) - len(absent)} of {len(symbols)} ranked symbols; "
+                 f"absent: {', '.join(absent[:10])}"
+                 + ("" if len(absent) <= 10 else f" (+{len(absent) - 10} more)"))
+        if blocking:
+            print(f"FAIL  {where}. {', '.join(blocking)} "
+                  f"{'is' if len(blocking) == 1 else 'are'} inside the top "
+                  f"{TOP_N_FOR_COVERAGE}, so every check below would compare a "
+                  "book against a replay that cannot see it. None is run.")
+            return 1
+        print(f"WARN  {where}. None is inside the top {TOP_N_FOR_COVERAGE}, so no "
+              "verdict below depends on them -- but this gate is measuring a "
+              "universe it does not fully cover, and will fail outright the day "
+              "one of these reaches the book (C6).")
+
     chosen = ps.from_screener(pd.read_parquet(_download(SCREENER_STORE_URL, tmp)))
     screener = ps.keep_and_fill(chosen, symbols, yahoo, nse_prices.middle_close(symbols)).close
     bench = fetch_benchmark_history(period="5y")
