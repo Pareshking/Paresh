@@ -11,10 +11,13 @@ Portfolio's "Max drawdown, daily" on daily closes, which is why the same book
 reads -9.9% in one place and -13.5% in the other (both correct; each names its
 basis). Nothing here resamples, re-bases or windows a curve.
 
-Volatility is deliberately NOT here: the engine's position sizing uses the
-population standard deviation (ddof=0) and the reported statistics use the
-sample one (ddof=1), and unifying them would change a printed number. See
-docs/TODO.md S118.
+Volatility is not here either, but the two conventions it used to have are
+gone: every volatility on the site is now the POPULATION standard deviation
+(``std(ddof=0)``), sizing and reported alike (owner, 11 Nov 2026: "OK, match
+everything"). What still differs between callers is the window and the return
+basis -- 63 sessions of log returns for sizing, 126 daily simple returns for
+the book's risk panel -- which is why it stays with the caller. See
+docs/TRACK_RECORD.md and docs/TODO.md S119.
 """
 from __future__ import annotations
 

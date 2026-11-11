@@ -259,8 +259,12 @@ def test_sharpe_is_mean_excess_over_volatility_not_extrapolated_cagr():
 
     curve = res["equity_curve"].to_numpy()
     net_daily = pd.Series(curve[1:] / curve[:-1] - 1.0)
+    # ddof=0: the site has one volatility convention, the population SD
+    # (owner, 11 Nov 2026; docs/TRACK_RECORD.md, TODO S119). This mirrors the
+    # engine deliberately -- tests/test_volatility_convention.py is what pins
+    # the convention itself.
     expected = (net_daily.mean() * 252 - stats["risk_free_rate"]) / (
-        net_daily.std() * np.sqrt(252)
+        net_daily.std(ddof=0) * np.sqrt(252)
     )
 
     assert stats["sharpe"] == pytest.approx(expected, rel=1e-6)

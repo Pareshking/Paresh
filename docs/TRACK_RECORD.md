@@ -148,6 +148,32 @@ month ends**, not from its per-rebalance period table. The period table runs
 fill-to-fill (03 Aug → 31 Aug), which is right for attributing a rebalance and
 wrong for a column headed AUG.
 
+### Volatility — one standard deviation, everywhere
+
+Every standard deviation on the site is the **population** standard deviation,
+`std(ddof=0)`: the Backtest tab's Sharpe denominator, the Dashboard's book and
+Nifty 500 volatility, the RRG's cross-sectional z-scores, the momentum-crash
+research reading, the ranking's own `volatility_m`, and the sizing path
+(`portfolio.inverse_volatility`, `portfolio.volatility_target`, the backtest's
+inverse-vol weighting, `calendar_momentum`). Owner, 11 Nov 2026: **"OK, match
+everything."**
+
+Until that date the sizing path spelled out `ddof=0` while every reported figure
+took pandas' default — the *sample* SD, `ddof=1` — simply because nobody had
+written the argument. The figures moved by about a quarter of one percent of
+themselves when they were unified (the book's volatility 16.945% → 16.878%, the
+Nifty 500's 12.412% → 12.363%, the ten-month backtest's 23.428% → 23.371%, which
+lifts its Sharpe from 1.5787 to 1.5825); shorter windows move more, because the
+two differ by exactly `sqrt((n-1)/n)`. **Nothing in the ledger moved**: no
+recorded return, `alpha`, benchmark or config fingerprint involves a standard
+deviation, and the record is sized equal weight, so the sizing estimate is not
+in its path at all.
+
+Do not "fix" a bare `.std()` back in. `tests/test_volatility_convention.py`
+reads every call site with `ast` and fails if one omits `ddof=0`; the two
+exempt files are named there with their reasons (a paper replication, and a
+script that must follow an external vendor's RRG rather than ours).
+
 ### Month-to-date
 
 Never stored. Computed live from the close the current book was filled at, on

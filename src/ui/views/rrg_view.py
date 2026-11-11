@@ -135,8 +135,13 @@ def compute_rrg_data(
         return pd.DataFrame()
 
     spread = 6.5
-    r_mean, r_std = all_latest_ratio.mean(), max(all_latest_ratio.std(), 1e-8)
-    m_mean, m_std = all_latest_mom.mean(), max(all_latest_mom.std(), 1e-8)
+    # Population SD (ddof=0): these ARE the whole cross-section of industries
+    # (or stocks) on the chart, not a sample drawn from one, and it is the
+    # site's one volatility/dispersion convention (owner, 11 Nov 2026;
+    # docs/TRACK_RECORD.md, TODO S119). The quadrant a name lands in cannot
+    # move -- it turns on the sign of the numerator -- but its coordinates do.
+    r_mean, r_std = all_latest_ratio.mean(), max(all_latest_ratio.std(ddof=0), 1e-8)
+    m_mean, m_std = all_latest_mom.mean(), max(all_latest_mom.std(ddof=0), 1e-8)
 
     rows = []
     for ind, d in raw_data.items():

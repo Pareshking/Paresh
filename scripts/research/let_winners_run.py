@@ -58,7 +58,7 @@ def summary(res, bench) -> dict:
     m = eq.resample("ME").last().pct_change().dropna()
     b = bench.reindex(eq.index, method="ffill")
     out = {"total %": (eq.iloc[-1] / eq.iloc[0] - 1) * 100, "a year %": ((eq.iloc[-1] / eq.iloc[0]) ** (1 / yrs) - 1) * 100,
-           "volatility %": daily.std() * np.sqrt(252) * 100, "worst drawdown %": dd.min() * 100,
+           "volatility %": daily.std(ddof=0) * np.sqrt(252) * 100, "worst drawdown %": dd.min() * 100,
            "Nifty 500 total %": (b.iloc[-1] / b.iloc[0] - 1) * 100,
            "turnover / month %": float(pd.DataFrame(res.get("monthly_df", res.get("periods", []))).get("Turnover %", pd.Series(dtype=float)).mean())}
     return out, m
