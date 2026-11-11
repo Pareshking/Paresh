@@ -376,6 +376,19 @@ jobs:
         # new find (with its own warning); either way the run now says so.
         run: python scripts/check_corporate_actions.py --fail-on-new || echo "::warning::Corporate-actions check exited non-zero (new find or failure) -- read the step log."
 
+      # A ticker change is adjusted automatically (nse_identity.auto_renames
+      # joins on NSE's own symbolchange.csv plus ISIN history), but until now
+      # nothing SAID one had happened: ICICIPRULI became ICICILIFE on 23 Oct
+      # 2026 and the repository was silent for nineteen days. This reports a
+      # handover neither the ledger nor the resolver joins, and two symbols
+      # carrying the same closes -- which is how Screener leaves an old ticker
+      # behind, harmless only while the universe keeps dropping it (S124).
+      # Non-blocking for the same reason as the step above: the sync's job is
+      # the data, and a find is a warning on the run, which the green-run
+      # annotation reporting (S116) now carries to somebody.
+      - name: Check for ticker changes
+        run: python scripts/check_symbol_changes.py --fail-on-new || echo "::warning::Symbol-change check exited non-zero (an unjoined handover, a twin, or a failure) -- read the step log."
+
       # Fold today's constituent list into the point-in-time membership
       # timeline BEFORE committing, so the snapshot lands in the same commit as
       # the CSVs it was taken from. Append-only and a no-op on an unchanged day,
