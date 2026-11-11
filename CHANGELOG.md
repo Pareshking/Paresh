@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-11 — The monthly returns say which months they are
+
+- **Portfolio and Backtest show the same months and could disagree, with nothing to tell a reader why.** January read −0.2% on one page and 0.0% on the other, October −4.3% against −4.0%. Portfolio's grid now says it is "as recorded each month", and Backtest's says it is "re-run on today's prices", each naming the other. The figures themselves are unchanged.
+- Why they differ is written down in `docs/MONTHS_THAT_DIFFER.md`: January and February come down to **one holding** — the twentieth slot, awarded after the 40% industry cap, which is TITAN on one price basis and ANURAS on the other, worth +0.2173 points of January against an observed +0.2170. October is a month whose store carried BSE closes for about forty names. The rights-issue adjustment that had been blamed for years turns out not to touch either: removing all 44 rights rows leaves both months unchanged to six decimals.
+
 ## 2026-11-11 — One volatility convention across the whole site
 
 - **Every standard deviation on the site is now the population one.** The engine's position sizing had always spelled out `std(ddof=0)`; every figure the site *reported* quietly took pandas' default, the sample SD, because nobody had written the argument. Owner, 11 November 2026: "OK, match everything." Unified on `ddof=0` — the convention that was actually chosen, and the one the Guide already claimed for the ranking's own volatility.
