@@ -1971,25 +1971,29 @@ def inject_custom_css() -> None:
         /* ── Dashboard (src/ui/views/dashboard_view.py) ──────────────
            Two columns on a desktop, one on a phone; tight vertical rhythm
            (owner, 7 Nov: "unnecessary white spaces and large gaps"). */
-        .st-key-db_page { gap: 18px !important; }
-        .st-key-db_page [data-testid="stHorizontalBlock"] { gap: 36px !important; align-items: flex-start !important; }
-        .st-key-db_page [class*="st-key-pgcard_db_"] { padding: 10px 0 0 !important; gap: 6px !important; }
-        .st-key-db_page [class*="st-key-pgcard_db_"] .pg-card-h h2 { font-size: var(--fs-15) !important; }
-        .st-key-db_page .pg-cap { font-size: var(--fs-12); margin-top: 2px; }
+        :is(.st-key-db_page, .st-key-db_page_mkt) { gap: 18px !important; }
+        :is(.st-key-db_page, .st-key-db_page_mkt) [data-testid="stHorizontalBlock"] { gap: 36px !important; align-items: flex-start !important; }
+        :is(.st-key-db_page, .st-key-db_page_mkt) [class*="st-key-pgcard_db_"] { padding: 10px 0 0 !important; gap: 6px !important; }
+        /* No heading override (design audit D2): the book's cards read at the kit's
+           size, as the market questions do, not at 15px. */
+        :is(.st-key-db_page, .st-key-db_page_mkt) .pg-cap { font-size: var(--fs-12); margin-top: 2px; }
         .db-risk { display: grid; font-size: var(--fs-13); }
-        .db-risk-row { display: grid; grid-template-columns: minmax(120px,1.25fr) 112px minmax(130px,1.25fr) minmax(60px,0.7fr);
+        .db-risk-row { display: grid; grid-template-columns: minmax(120px,1.25fr) 132px minmax(130px,1.25fr) minmax(60px,0.7fr);
             align-items: center; column-gap: 14px; min-height: 34px; padding: 3px 0; border-bottom: 1px solid var(--c-rule_soft); }
         .db-risk-row.db-head { min-height: 26px; font-size: var(--fs-12); font-weight: 600; color: var(--c-muted);
             border-bottom: 1px solid var(--c-rule); }
         .db-sym { line-height: 1.2; }
         .db-sym a { font-weight: 600; color: var(--c-ink) !important; text-decoration: none; }
         .db-sym small { display: block; font-size: var(--fs-12); color: var(--c-muted); white-space: normal; line-height: 1.3; }
-        .db-status { font-size: var(--fs-12); font-weight: 600; color: var(--c-text_2); }
-        .db-risk-row.watch .db-status { color: var(--c-caution); }
-        .db-risk-row.sell .db-status { color: var(--c-down); }
+        .db-status { font-size: var(--fs-12); font-weight: 600; color: var(--c-text_2); justify-self: start; white-space: nowrap; }
+        /* Design audit D3: the two warning states were text 1.13:1 apart. A sale is a
+           filled chip, Watch an outlined one; Clear stays plain. */
+        .db-risk-row.watch .db-status { color: var(--c-caution); border: 1px solid var(--c-caution_line);
+            background: var(--c-caution_tint); padding: 1px 7px; border-radius: 3px; }
+        .db-risk-row.sell .db-status { color: var(--c-white); background: var(--c-down); padding: 1px 7px; border-radius: 3px; }
         .db-rule { font-family: var(--font-mono); font-size: var(--fs-12); color: var(--c-text_2); }
         .db-bar { display: block; height: 5px; background: var(--c-fill); }
-        .db-bar i { display: block; height: 100%; background: var(--c-ink); }
+        .db-bar i { display: block; height: 100%; background: var(--c-rule_strong); }
         .db-risk-row.watch .db-bar i { background: var(--c-caution); }
         .db-risk-row.sell .db-bar i { background: var(--c-down); }
         /* Label-value rows in the site's table style (owner, 8 Nov 2026: Next rebalance's
@@ -2040,7 +2044,7 @@ def inject_custom_css() -> None:
         .db-size .up, .db-sectors .up { color: var(--c-up); } .db-size .down, .db-sectors .down { color: var(--c-down); }
         .db-sectors td.db-n { color: var(--c-muted); font-family: var(--font-ui); font-size: var(--fs-12); }
         @media (max-width: 640px) {
-            .st-key-db_page [data-testid="stHorizontalBlock"] { gap: 18px !important; }
+            :is(.st-key-db_page, .st-key-db_page_mkt) [data-testid="stHorizontalBlock"] { gap: 18px !important; }
             .db-risk-row { grid-template-columns: 1fr auto; row-gap: 2px; padding: 6px 0; }
             .db-risk-row.db-head { display: none; }
             .db-rule { grid-column: 1 / -1; } .db-bar { grid-column: 1 / -1; }

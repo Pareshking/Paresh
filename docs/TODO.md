@@ -49,7 +49,7 @@ Findings, mockups and the method to reuse on other pages: `docs/DASHBOARD_DESIGN
 
 | # | What | How we know it is done | Status |
 |---|---|---|---|
-| S127 | Dashboard presentation: 17 findings (D1-D17); the book comes after the market (Book at risk 3,790 px down on a phone); additions A-E from figures the app already computes; F-G need new calculations | Owner picks which D# and A-E to build; each ships as its own PR, measured again at 1400 and 390 px, with no number changed | [ ] 11 Nov: audit done, nothing implemented |
+| S127 | Dashboard presentation: 17 findings (D1-D17); the book comes after the market (Book at risk 3,790 px down on a phone); additions A-E from figures the app already computes; F-G need new calculations | Owner picks which D# and A-E to build; each ships as its own PR, measured again at 1400 and 390 px, with no number changed | [ ] 11 Nov: D1-D3 built for review (PR #513, not merged): measured on a local app, Book at risk 1,262 -> 469 px down on a desktop, 2,578 -> 619 px on a phone; Next rebalance 4,621 -> 2,057 px on a phone; the desktop page is ~490 px taller. Waiting for the owner's approval |
 | S128 | Run the same design audit on the other pages (Portfolio, Actions, Screener, Sectors, RRG, Breadth, Backtest, Watchlist, Configuration, Guide), using the method in section 7 of the Dashboard audit | One report per page in `docs/`, with mockups | [ ] 11 Nov: owner, "same can be replicated later to other pages" |
 
 ## Repository audit: cost, speed, resources (7 Nov 2026)
