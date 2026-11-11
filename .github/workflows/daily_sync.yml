@@ -382,7 +382,7 @@ jobs:
       # 2026 and the repository was silent for nineteen days. This reports a
       # handover neither the ledger nor the resolver joins, and two symbols
       # carrying the same closes -- which is how Screener leaves an old ticker
-      # behind, harmless only while the universe keeps dropping it (S124).
+      # behind, harmless only while the universe keeps dropping it (S129).
       # Non-blocking for the same reason as the step above: the sync's job is
       # the data, and a find is a warning on the run, which the green-run
       # annotation reporting (S116) now carries to somebody.

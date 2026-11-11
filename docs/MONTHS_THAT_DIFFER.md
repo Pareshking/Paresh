@@ -211,7 +211,7 @@ monthly and cumulative columns would mix two series.
 
 Neither page needs a fix. What is missing is the label: the Backtest page's
 calendar grid for 2026 is **a replay, not the record**, and nothing on it says so.
-(TODO S125.)
+(TODO S130.)
 
 ## 6. Can it happen again? — November, December and after
 
@@ -256,7 +256,7 @@ therefore:
   guarantees that, and nothing can prove it after the fact, because the store is
   not archived. The one change that would make every future month permanently
   reproducible is to **archive the store (or the record's frame) with each
-  freeze** — not built; proposed as TODO S125.
+  freeze** — not built; proposed as TODO S130.
 
 **The 2010 History run is a separate question and will never match.** The History
 mode replaces the frame and the universe: prices come from the long file
