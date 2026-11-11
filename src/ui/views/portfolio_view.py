@@ -781,6 +781,8 @@ def render_portfolio_view(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
                 st.caption(note)
 
     # ── The frozen record: since inception, each month, provenance, the 3 systems ──
+    # No reconstruction note here (owner, 11 Nov 2026: "Remove the notes"). The Origin
+    # column of the monthly table still marks each month Recorded or Backfilled.
     render_record_sections(prices, benchmark_close, system, show_reconstruction_note=False)
 
     # ── Activity ────────────────────────────────────────────────────────────

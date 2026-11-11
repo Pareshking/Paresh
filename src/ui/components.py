@@ -129,12 +129,13 @@ def yearly_summary(grid: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=columns)
 
 
-def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
+def _render_yearly_summary(grid: pd.DataFrame, bench_name: str, through: str | None = None) -> None:
     """The year-by-year block above the monthly grids (presentation only).
 
     Laid out like the monthly blocks below it (owner, 9 Oct 2026): Strategy,
     the index and Alpha as rows, one column per year; a year the window only
-    partly covers names its months under the year.
+    partly covers names its months under the year. `through` ("6 Nov") ends the
+    last year's span on the day a month in progress has reached (TODO S126).
     """
     table = yearly_summary(grid)
     if table.empty:
@@ -150,10 +151,13 @@ def _render_yearly_summary(grid: pd.DataFrame, bench_name: str) -> None:
         return f'<td class="cr-value {tone}">{shown}</td>'
 
     heads = []
+    last_year = table["YEAR"].max()
     for row in table.itertuples(index=False):
         span = ("" if row.MONTHS == 12 else
                 f"{row.FIRST.title()}–{row.LAST.title()}" if row.MONTHS > 1 else
                 (row.FIRST or "").title())
+        if through and row.YEAR == last_year:
+            span = f"{row.FIRST.title()}–{through}" if row.MONTHS > 1 else f"to {through}"
         sub = f'<span class="cr-part">{html.escape(span)}</span>' if span else ""
         heads.append(f"<th>{row.YEAR}{sub}</th>")
     series = [("Strategy", "strategy", "STRATEGY"), (bench_name, "benchmark", "BENCHMARK"),
