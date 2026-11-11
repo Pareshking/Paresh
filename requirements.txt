@@ -45,3 +45,15 @@ pyarrow==24.0.0
 # boto3 releases almost daily, its S3 API is stable within a major, and the
 # R2 read-path gate re-runs on main whenever this file changes.
 boto3>=1.35.0,<2
+
+# Eight test files parse workflow YAML and have always imported this, while
+# requirements.txt never declared it: it was present only as an optional extra
+# of conan, uvicorn, watchdog, pytest and starlette. The r2-focused job
+# installs requirements.txt alone, so PR #506 went red with
+# "ModuleNotFoundError: No module named 'yaml'" while every other job and the
+# full local suite passed (owner, 11 Nov 2026, S121). Declared, not removed:
+# it is already installed in every environment this runs in, so saying so
+# costs nothing and makes true what the tests assume. Pinned to what this
+# container resolves to today, as with the rest of the file.
+PyYAML==6.0.3
+

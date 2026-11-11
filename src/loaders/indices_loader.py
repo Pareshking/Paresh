@@ -28,6 +28,139 @@ from src.core.tickers import is_tradeable_symbol
 
 SYNC_META_FILE = os.path.join(REPO_DATA_DIR, "indices_sync_meta.json")
 
+# When each constituent CSV in data/indices/ was last written from a live
+# download, under this key in the sync metadata. It is additive and feeds no
+# displayed figure: "last_synced", "total_stocks" and "indices" still move only
+# on a complete five-index sync (see sync_official_nse_indices below).
+LOCAL_FETCH_KEY = "local_csv_fetched"
+
+
+def _local_max_age_s() -> float:
+    """How old the committed CSV may be before it is downloaded again.
+
+    The daily sync writes and COMMITS data/indices/*.csv, so a checkout that is
+    up to a day old already holds the bytes a download would return. 24 hours
+    is one cadence of the job that writes them: miss a night and the readers go
+    back to downloading, exactly as they did before this cache existed.
+    """
+    return float(os.getenv("INDICES_LOCAL_MAX_AGE_S", 24 * 3600))
+
+
+def _download_memo_s() -> float:
+    """How long one process may reuse a CSV it has already downloaded.
+
+    run_daily_sync() downloads the five lists in step 1 and then loads the
+    universe in step 2, seconds later, in the same process: 11 requests for 6
+    files. Minutes, not hours -- fetch_indices_data's own TTL is an hour, and a
+    warm app asking again after that must really ask.
+    """
+    return float(os.getenv("INDICES_DOWNLOAD_MEMO_S", 600))
+
+
+# url -> (time.monotonic() when fetched, decoded CSV text). Written by every
+# live download, read only by _fetch_indices_impl: a reader may reuse bytes
+# this process just fetched, but the Configuration tab's "sync now" button
+# (sync_official_nse_indices(force=True)) must always really ask.
+_DOWNLOAD_MEMO: dict[str, tuple[float, str]] = {}
+
+
+def _memoised(url: str) -> str | None:
+    hit = _DOWNLOAD_MEMO.get(url)
+    if hit is None:
+        return None
+    age = time.monotonic() - hit[0]
+    if age > _download_memo_s():
+        return None
+    return hit[1]
+
+
+def reset_download_memo() -> None:
+    """Forget what this process has downloaded (tests; a long-lived process)."""
+    _DOWNLOAD_MEMO.clear()
+
+
+def _download_index_csv(
+    idx_name: str,
+    url: str,
+    delays: Sequence[float],
+    accept=None,
+    use_memo: bool = False,
+) -> str | None:
+    """Download one constituent CSV, at most once per URL per process.
+
+    `delays` is how long to wait after each failed attempt (0 for none), so
+    each caller keeps its own retry rhythm. `accept` lets a caller reject a
+    200 whose body it cannot use and try again, as it did before.
+    """
+    if use_memo:
+        memo = _memoised(url)
+        if memo is not None:
+            logger.debug("%s: reusing the copy this process already downloaded.", idx_name)
+            return memo
+    for attempt, delay in enumerate(delays):
+        try:
+            resp = requests.get(url, headers=HTTP_HEADERS, timeout=15)
+            if resp.status_code == 200 and len(resp.content) > 200:
+                text = resp.content.decode("utf-8-sig", errors="replace")
+                if accept is None or accept(text):
+                    _DOWNLOAD_MEMO[url] = (time.monotonic(), text)
+                    return text
+            else:
+                logger.warning(
+                    f"{idx_name}: HTTP {resp.status_code} (attempt {attempt+1}/{len(delays)})"
+                )
+        except Exception as e:
+            logger.warning(f"Attempt {attempt+1}/{len(delays)} failed for {idx_name}: {e}")
+        if delay:
+            time.sleep(delay)
+    return None
+
+
+def _has_symbol_column(text: str) -> bool:
+    try:
+        df = pd.read_csv(io.StringIO(text))
+    except Exception:
+        return False
+    df.columns = [c.strip() for c in df.columns]
+    sym_col = next((c for c in df.columns if c.lower() in ("symbol", "ticker")), None)
+    return bool(sym_col) and len(df) > 0
+
+
+def committed_copy_age_s(idx_name: str, meta: dict[str, Any] | None = None) -> float | None:
+    """Seconds since data/indices/<idx>.csv was last written from a download.
+
+    None when there is no local file, or no record of one being fetched: an
+    unstamped copy is treated as stale, so a reader downloads as before.
+    """
+    local_path = INDICES_LOCAL.get(idx_name)
+    if not local_path or not os.path.exists(local_path):
+        return None
+    meta = get_sync_metadata() if meta is None else meta
+    stamp = (meta.get(LOCAL_FETCH_KEY) or {}).get(idx_name)
+    if not stamp:
+        return None
+    try:
+        when = datetime.fromisoformat(str(stamp))
+    except ValueError:
+        return None
+    return (datetime.now() - when).total_seconds()
+
+
+def _committed_copy_is_fresh(idx_name: str, meta: dict[str, Any] | None = None) -> bool:
+    age = committed_copy_age_s(idx_name, meta)
+    return age is not None and 0 <= age <= _local_max_age_s()
+
+
+def _record_local_fetches(fetched: dict[str, str], meta: dict[str, Any] | None = None) -> None:
+    """Stamp the CSVs just written from a download, keeping every other key."""
+    if not fetched:
+        return
+    meta = get_sync_metadata() if meta is None else meta
+    stamps = dict(meta.get(LOCAL_FETCH_KEY) or {})
+    stamps.update(fetched)
+    meta[LOCAL_FETCH_KEY] = stamps
+    _save_sync_metadata(meta)
+
 
 def get_sync_metadata() -> dict[str, Any]:
     """Reads index sync metadata from disk."""
@@ -69,46 +202,49 @@ def sync_official_nse_indices(force: bool = True) -> dict[str, Any]:
     os.makedirs(os.path.join(DATA_DIR, "indices"), exist_ok=True)
 
     total_unique_stocks: set[str] = set()
+    # idx -> when its committed CSV was written from this run's download.
+    local_fetched: dict[str, str] = {}
 
     for idx_name, url in INDICES_URLS.items():
         if idx_name == "NIFTY TOTAL MARKET":
             continue  # Total Market is maintained as the canonical master CSV.
 
         downloaded_ok = False
-        for attempt in range(3):
+        # Three attempts, a second apart, each rejecting a 200 whose body has
+        # no symbol column -- as before. The memo is deliberately NOT read
+        # here: this is also the Configuration tab's "sync now", and a forced
+        # sync must really ask niftyindices.
+        text_content = _download_index_csv(
+            idx_name, url, delays=(1, 1, 1), accept=_has_symbol_column
+        )
+        if text_content is not None:
             try:
-                resp = requests.get(url, headers=HTTP_HEADERS, timeout=15)
-                if resp.status_code == 200 and len(resp.content) > 200:
-                    text_content = resp.content.decode("utf-8-sig", errors="replace")
-                    df = pd.read_csv(io.StringIO(text_content))
-                    df.columns = [c.strip() for c in df.columns]
-                    sym_col = next(
-                        (c for c in df.columns if c.lower() in ("symbol", "ticker")),
-                        None,
+                df = pd.read_csv(io.StringIO(text_content))
+                df.columns = [c.strip() for c in df.columns]
+                sym_col = next(
+                    (c for c in df.columns if c.lower() in ("symbol", "ticker")),
+                    None,
+                )
+                local_path = INDICES_LOCAL.get(idx_name)
+                if sym_col and len(df) > 0 and local_path:
+                    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                    with open(local_path, "w", encoding="utf-8") as f:
+                        f.write(text_content)
+                    logger.info(
+                        f"[SYNC] Synced {idx_name} ({len(df)} constituents) -> {local_path}"
                     )
-
-                    if sym_col and len(df) > 0:
-                        local_path = INDICES_LOCAL.get(idx_name)
-                        if local_path:
-                            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                            with open(local_path, "w", encoding="utf-8") as f:
-                                f.write(text_content)
-                            logger.info(
-                                f"[SYNC] Synced {idx_name} ({len(df)} constituents) -> {local_path}"
-                            )
-                            results["downloaded"][idx_name] = {
-                                "count": len(df),
-                                "status": "Updated",
-                                "time": datetime.now().isoformat(),
-                            }
-                            total_unique_stocks.update(
-                                df[sym_col].astype(str).str.strip().str.upper()
-                            )
-                            downloaded_ok = True
-                            break
+                    results["downloaded"][idx_name] = {
+                        "count": len(df),
+                        "status": "Updated",
+                        "time": datetime.now().isoformat(),
+                    }
+                    total_unique_stocks.update(
+                        df[sym_col].astype(str).str.strip().str.upper()
+                    )
+                    local_fetched[idx_name] = datetime.now().isoformat()
+                    downloaded_ok = True
             except Exception as e:
-                logger.warning(f"Attempt {attempt+1}/3 failed for {idx_name}: {e}")
-            time.sleep(1)
+                logger.warning(f"Could not store {idx_name}: {e}")
 
         if not downloaded_ok:
             results["errors"][idx_name] = "Live fetch failed; using existing fallback"
@@ -150,47 +286,73 @@ def sync_official_nse_indices(force: bool = True) -> dict[str, Any]:
     meta["last_attempt_errors"] = results["errors"]
     meta["last_attempt_ok"] = complete
 
+    # Which committed CSVs this run rewrote from a download, so the readers
+    # below (and precompute_systems, and the app) can use them instead of
+    # downloading the same bytes again.
+    if local_fetched:
+        stamps = dict(meta.get(LOCAL_FETCH_KEY) or {})
+        stamps.update(local_fetched)
+        meta[LOCAL_FETCH_KEY] = stamps
+
     _save_sync_metadata(meta)
     return meta
 
 
-def _fetch_indices_impl(selected_indices: Sequence[str] | None = None) -> pd.DataFrame:
-    """Core logic to fetch, parse, and auto-persist index constituent CSVs."""
+def _fetch_indices_impl(
+    selected_indices: Sequence[str] | None = None,
+    prefer_local: bool = True,
+) -> pd.DataFrame:
+    """Core logic to fetch, parse, and auto-persist index constituent CSVs.
+
+    `prefer_local` (the default) reads the committed data/indices/*.csv when the
+    sync metadata says they were downloaded within INDICES_LOCAL_MAX_AGE_S. The
+    daily sync writes and commits those files, so a reader was downloading the
+    same bytes the checkout already held -- 6 requests on every cold start and
+    again every hour, and 6 more from precompute_systems minutes after the sync
+    wrote them. The job that REFRESHES the files passes prefer_local=False, so
+    nothing here can let a committed copy go unrefreshed: a day without a
+    successful sync makes the stamps stale and every reader downloads again,
+    exactly as before.
+    """
     stock_map: dict[str, dict[str, Any]] = {}
     discarded: list[str] = []
     nse_failed: list[str] = []
+    meta_now = get_sync_metadata()
+    local_fetched: dict[str, str] = {}
 
     for idx_name, url in INDICES_URLS.items():
         csv_text: str | None = None
         is_live = False
 
-        # Layer 1: Live NSE download (3 attempts with exponential backoff)
-        for attempt in range(3):
+        # Layer 0: the committed copy, while the sync that writes it is current.
+        if prefer_local and _committed_copy_is_fresh(idx_name, meta_now):
+            local_path = INDICES_LOCAL.get(idx_name)
             try:
-                resp = requests.get(url, headers=HTTP_HEADERS, timeout=15)
-                if resp.status_code == 200 and len(resp.content) > 200:
-                    csv_text = resp.content.decode("utf-8-sig", errors="replace")
-                    is_live = True
-                    # Auto-persist fresh content to disk so local offline copy is never stale
-                    local_path = INDICES_LOCAL.get(idx_name)
-                    if local_path:
-                        try:
-                            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                            with open(local_path, "w", encoding="utf-8") as f:
-                                f.write(csv_text)
-                            logger.debug(f"Persisted live {idx_name} to disk")
-                        except Exception as e:
-                            logger.debug(f"Could not persist {idx_name} to disk: {e}")
-                    break
-                logger.warning(
-                    f"{idx_name}: HTTP {resp.status_code} (attempt {attempt+1}/3)"
-                )
-            except requests.RequestException as e:
-                logger.warning(
-                    f"{idx_name}: request error (attempt {attempt+1}/3): {e}"
-                )
-            if attempt < 2:
-                time.sleep(2**attempt)
+                with open(local_path, "r", encoding="utf-8-sig", errors="replace") as f:
+                    csv_text = f.read()
+                logger.debug(f"{idx_name}: using the committed copy ({local_path})")
+            except Exception as e:
+                logger.warning(f"{idx_name}: committed copy unreadable: {e}")
+                csv_text = None
+
+        # Layer 1: Live NSE download (3 attempts with exponential backoff)
+        if csv_text is None:
+            csv_text = _download_index_csv(
+                idx_name, url, delays=(1, 2, 0), use_memo=True
+            )
+            if csv_text is not None:
+                is_live = True
+                # Auto-persist fresh content to disk so local offline copy is never stale
+                local_path = INDICES_LOCAL.get(idx_name)
+                if local_path:
+                    try:
+                        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                        with open(local_path, "w", encoding="utf-8") as f:
+                            f.write(csv_text)
+                        logger.debug(f"Persisted live {idx_name} to disk")
+                        local_fetched[idx_name] = datetime.now().isoformat()
+                    except Exception as e:
+                        logger.debug(f"Could not persist {idx_name} to disk: {e}")
 
         # Layer 2: Fall back to local CSV from repo
         if csv_text is None:
@@ -292,6 +454,8 @@ def _fetch_indices_impl(selected_indices: Sequence[str] | None = None) -> pd.Dat
     # Update metadata if not recorded
     meta = get_sync_metadata()
     if not meta.get("last_synced") and not full.empty:
+        stamps = dict(meta.get(LOCAL_FETCH_KEY) or {})
+        stamps.update(local_fetched)
         _save_sync_metadata(
             {
                 "last_synced": datetime.now().strftime("%d %b %Y, %H:%M"),
@@ -300,8 +464,14 @@ def _fetch_indices_impl(selected_indices: Sequence[str] | None = None) -> pd.Dat
                 "indices": {
                     k: {"count": len(full), "status": "Loaded"} for k in INDICES_URLS
                 },
+                LOCAL_FETCH_KEY: stamps,
             }
         )
+    else:
+        # Stamp whichever committed CSVs this call rewrote from a download, so
+        # the next reader (precompute_systems; the app's next cold start) takes
+        # them from disk. Every other key is preserved.
+        _record_local_fetches(local_fetched, meta)
 
     if full.empty or not selected_indices:
         return full
@@ -319,7 +489,15 @@ def _fetch_indices_impl(selected_indices: Sequence[str] | None = None) -> pd.Dat
 
 
 @st.cache_data(show_spinner=False, ttl=3600)  # 1 hour: universe membership is a live production input
-def fetch_indices_data(selected_indices: Sequence[str] | None = None) -> pd.DataFrame:
-    """Public cached loader for index constituents."""
+def fetch_indices_data(
+    selected_indices: Sequence[str] | None = None,
+    prefer_local: bool = True,
+) -> pd.DataFrame:
+    """Public cached loader for index constituents.
+
+    prefer_local=False is for the job that REFRESHES data/indices/*.csv
+    (scripts/sync_data.py); every other caller reads the committed copy while
+    that job's stamp is current.
+    """
     key = tuple(sorted(selected_indices or []))
-    return _fetch_indices_impl(list(key))
+    return _fetch_indices_impl(list(key), prefer_local=prefer_local)

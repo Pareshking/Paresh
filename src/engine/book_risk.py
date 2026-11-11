@@ -123,10 +123,15 @@ def book_risk(weights: pd.Series, prices: pd.DataFrame, bench: pd.Series | None,
         br = b.pct_change().reindex(port.index)
         both = pd.concat([port, br], axis=1, keys=["p", "b"]).dropna()
         # A flat or stale index has no variance: no beta rather than a division by zero.
+        # cov/var leaves ddof no room to matter -- the same (n-1) is in both --
+        # so beta is identical under either convention and these two keep
+        # pandas' default.
         if len(both) >= MIN_SESSIONS and both["b"].var() > 0:
             beta = float(both["p"].cov(both["b"]) / both["b"].var())
-            vol = float(both["p"].std() * np.sqrt(252))
-            bench_vol = float(both["b"].std() * np.sqrt(252))
+            # Population SD (ddof=0): the one volatility convention on the
+            # site (owner, 11 Nov 2026; docs/TRACK_RECORD.md, TODO S119).
+            vol = float(both["p"].std(ddof=0) * np.sqrt(252))
+            bench_vol = float(both["b"].std(ddof=0) * np.sqrt(252))
     tiers_map = tier_of(w.index, index_dir)
     tiers: dict[str, float] = {}
     for s, t in tiers_map.items():

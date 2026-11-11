@@ -76,12 +76,71 @@ jobs:
       - name: Probe live bundles
         if: github.event_name == 'pull_request'
         run: python scripts/nse_collect.py --probe latest --probe 2017-03-15
-      - name: Fetch Screener's store to check against
+      # Which bytes the release is serving right now: the asset's own size and
+      # upload time, from the API (no download). It is the cache key below, so
+      # a restored copy can only ever be the copy the release holds -- a new
+      # store published by screener_sync changes updatedAt and misses the
+      # cache. TODO C7: this store is 8.79 MB and every one of the four daily
+      # fires downloaded it again for bytes that change once a day
+      # (screener_sync, ~18:45 UTC, after all three intraday fires).
+      - name: Identify the published Screener store
+        id: screener_asset
         if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ID="$(gh release view data-latest --repo "$GITHUB_REPOSITORY" \
+                  --json assets \
+                  --jq '.assets[] | select(.name=="screener_prices.parquet") | "\(.size)-\(.updatedAt)"' \
+                2>/dev/null || true)"
+          if [ -z "$ID" ]; then
+            echo "::warning::could not identify screener_prices.parquet on the release"
+            ID="unknown-${GITHUB_RUN_ID}"
+          fi
+          echo "key=screener-store-$(printf '%s' "$ID" | sha256sum | cut -c1-32)" >> "$GITHUB_OUTPUT"
+          echo "Published store: $ID"
+
+      - name: Restore the Screener store
+        id: restore_screener
+        if: github.event_name != 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: screener_prices.parquet
+          key: ${{ steps.screener_asset.outputs.key }}
+
+      # Only on a miss: the first fire after a new store is published pays the
+      # 8.79 MB, the fires that follow it read the same bytes from the cache.
+      # --check therefore runs on every fire exactly as before, on a file that
+      # is identical to the published asset by construction.
+      - name: Fetch Screener's store to check against
+        id: fetch_screener
+        if: github.event_name != 'pull_request' && steps.restore_screener.outputs.cache-hit != 'true'
         run: |
           base="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest"
-          curl -sSfL -o screener_prices.parquet "$base/screener_prices.parquet" \
-            || echo "::warning::could not fetch screener_prices.parquet"
+          if curl -sSfL -o screener_prices.parquet.part "$base/screener_prices.parquet"; then
+            # A half-written or error-page download must not be cached under the
+            # key that says "these are the published bytes": every later fire of
+            # the day would then read it. Only a parquet that opens and has rows
+            # is kept, and only then is it saved.
+            if python -c "import sys, pyarrow.parquet as pq; sys.exit(0 if pq.ParquetFile(sys.argv[1]).metadata.num_rows > 0 else 1)" screener_prices.parquet.part; then
+              mv screener_prices.parquet.part screener_prices.parquet
+              echo "cacheable=true" >> "$GITHUB_OUTPUT"
+            else
+              rm -f screener_prices.parquet.part
+              echo "::warning::screener_prices.parquet did not download as a readable parquet"
+            fi
+          else
+            rm -f screener_prices.parquet.part
+            echo "::warning::could not fetch screener_prices.parquet"
+          fi
+
+      - name: Save the Screener store
+        if: github.event_name != 'pull_request' && steps.fetch_screener.outputs.cacheable == 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: screener_prices.parquet
+          key: ${{ steps.screener_asset.outputs.key }}
       - name: Collect and check
         if: github.event_name != 'pull_request'
         env:

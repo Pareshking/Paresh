@@ -768,7 +768,10 @@ def _calculate_backtest_metrics(
     cagr_bench = float((1 + total_b) ** ann_factor - 1) if (1 + total_b) > 0 else -1.0
 
     strat_daily_s = pd.Series(strat_net_daily)
-    strat_vol = float(strat_daily_s.std() * np.sqrt(252))
+    # Population SD (ddof=0), as everywhere else on the site: one convention
+    # for every volatility, sizing and reported alike (owner, 11 Nov 2026:
+    # "OK, match everything"; docs/TRACK_RECORD.md, TODO S119).
+    strat_vol = float(strat_daily_s.std(ddof=0) * np.sqrt(252))
 
     # Sharpe from the MEAN excess return, which is what a Sharpe ratio is.
     # It used to divide the annualised CAGR by annualised volatility -- a

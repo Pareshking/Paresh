@@ -148,6 +148,32 @@ month ends**, not from its per-rebalance period table. The period table runs
 fill-to-fill (03 Aug → 31 Aug), which is right for attributing a rebalance and
 wrong for a column headed AUG.
 
+### Volatility — one standard deviation, everywhere
+
+Every standard deviation on the site is the **population** standard deviation,
+`std(ddof=0)`: the Backtest tab's Sharpe denominator, the Dashboard's book and
+Nifty 500 volatility, the RRG's cross-sectional z-scores, the momentum-crash
+research reading, the ranking's own `volatility_m`, and the sizing path
+(`portfolio.inverse_volatility`, `portfolio.volatility_target`, the backtest's
+inverse-vol weighting, `calendar_momentum`). Owner, 11 Nov 2026: **"OK, match
+everything."**
+
+Until that date the sizing path spelled out `ddof=0` while every reported figure
+took pandas' default — the *sample* SD, `ddof=1` — simply because nobody had
+written the argument. The figures moved by about a quarter of one percent of
+themselves when they were unified (the book's volatility 16.945% → 16.878%, the
+Nifty 500's 12.412% → 12.363%, the ten-month backtest's 23.428% → 23.371%, which
+lifts its Sharpe from 1.5787 to 1.5825); shorter windows move more, because the
+two differ by exactly `sqrt((n-1)/n)`. **Nothing in the ledger moved**: no
+recorded return, `alpha`, benchmark or config fingerprint involves a standard
+deviation, and the record is sized equal weight, so the sizing estimate is not
+in its path at all.
+
+Do not "fix" a bare `.std()` back in. `tests/test_volatility_convention.py`
+reads every call site with `ast` and fails if one omits `ddof=0`; the two
+exempt files are named there with their reasons (a paper replication, and a
+script that must follow an external vendor's RRG rather than ours).
+
 ### Month-to-date
 
 Never stored. Computed live from the close the current book was filled at, on
@@ -266,21 +292,31 @@ from the Actions tab.
 
 ---
 
-## 7. Known limitation — survivorship
+## 7. Known limitation — backfilled months are a backtest
 
-Backfilled months use today's constituent list, because no point-in-time
-membership exists for them. Git carries constituent snapshots only from
-**19 Aug 2026** (when the daily sync began committing them), so Jan–Jul 2026
-were necessarily scored against September membership.
+_Rewritten 11 Nov 2026 (audit `docs/AUDIT_2026-11-11.md`, Q-H1): the text that stood
+here said Jan–Jul 2026 were scored on September's constituent list, which stopped being
+true on 1 Oct 2026 (section 5's rebuild)._
 
-Direction is known — index additions skew toward recent strong performers, and a
-momentum screen preferentially buys exactly those, so the bias flatters.
-Magnitude is **not** known and should not be asserted.
+**Survivorship** is handled for every month in the ledger: since the 1 Oct 2026 rebuild
+each is scored on the index as it stood (`universe: point_in_time`), with prices for the
+stocks it has since dropped.
 
-Going forward the daily sync accumulates real point-in-time membership, so
-future backtests could reconstruct the universe as it actually stood. Until then
-the recorded series — growing one month at a time from September 2026 — is the
-only survivorship-free evidence here.
+**Hindsight is not handled, and cannot be.** Jan–Sep 2026 were rebuilt on 1 Oct 2026
+under a configuration settled then (the 5% / 40% caps were decided on 2 Oct, the price
+basis on 1 Oct), after those months had happened. The rebuilds of 1-2 Oct moved the same
+Jan–Aug block between +38.7% (before the first) and +45.2% (before the second); it stands at
++44.2% today (`rebuilds[].previous_values`). That shows how far choices made with the result
+in view can move it. That is not an accusation of
+cherry-picking; each rebuild has its stated reason. It does mean the backfilled months
+are an in-sample backtest. As of 11 Nov 2026, **one month (October 2026) of ten is
+`recorded`**: -4.25% against the Nifty 500's -0.80%. The since-inception figure on Portfolio
+compounds the nine backfilled months with it (the ten frozen months: +38.3% against -8.4%,
+before the running month is added). Portfolio shows no note saying so (owner, 11 Nov 2026:
+"Remove the notes"); the monthly table's Origin column marks each month.
+
+The recorded series grows one month at a time from October 2026 and is the only
+evidence here that is free of hindsight.
 
 See `docs/V1_AUDIT_TRACKER.md` §5 for the standing decision to defer
 survivorship work.

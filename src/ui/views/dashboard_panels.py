@@ -17,6 +17,7 @@ import streamlit as st
 
 from src.engine.momentum_health import health, long_only
 from src.ui import formats as fmt
+from src.ui import theme
 from src.ui.tokens import C
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -140,7 +141,7 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
         if v is None:
             return
         tone = "up" if v > 0 else "down" if v < 0 else ""
-        rows.append(f'<tr><td>{html.escape(label)}</td><td class="{tone}">{fmt.signed(v)}</td></tr>')
+        rows.append((label, (fmt.signed(v), tone)))
 
     # The top fifth split in two (owner, 8 Nov 2026), once the monthly file
     # carries the columns; until then the momentum and breadth split, which
@@ -152,8 +153,10 @@ def long_only_html(spreads: pd.DataFrame | None) -> str | None:
         row("Winners against the average stock (momentum)", lo["momentum_12m"])
         row("Average stock against the Nifty 500 (breadth)", lo["breadth_12m"])
     row("Winners against losers (the factor, for reference)", lo["wml_12m"])
-    table = ('<table class="db-fig"><thead><tr><th scope="col">Last 12 months</th><th scope="col">Points</th>'
-             f'</tr></thead><tbody>{"".join(rows)}</tbody></table>') if rows else ""
+    # Alignment declared, not inferred: "Points" is a figure column because
+    # this says so (docs/UI_ARCHITECTURE.md section 10).
+    table = theme.figure_table_html(
+        ("Last 12 months", "Points"), rows, align=("left", "right")) if rows else ""
     recent = lo["recent"]
     img = _bars_svg(recent)
     alt = (f"Monthly lead of the top 100 over the Nifty 500, last {len(recent)} months: from "

@@ -47,7 +47,7 @@ def test_an_empty_grid_gives_an_empty_table():
 
 def test_the_backtest_page_shows_it_above_the_monthly_grids():
     src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
-    assert src.index("_render_yearly_summary(_grid, bench_name)") < src.index("_render_calendar_returns(_grid)")
+    assert src.index("_render_yearly_summary(_grid, bench_name") < src.index("_render_calendar_returns(_grid)")
 
 
 def test_the_calendar_table_has_a_scroller_the_grid_cannot_stretch():

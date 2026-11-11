@@ -192,11 +192,30 @@ jobs:
           ls -lh "$STORE"
           # Never replace the published store with a smaller one (owner, 2026-10-07):
           # a run that fell back to an old cache would otherwise lose history.
-          mkdir -p /tmp/published
-          if gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir /tmp/published \
-               --pattern screener_prices.parquet 2>/dev/null; then
+          #
+          # The published store is already on this runner: "Fold the published
+          # store into the working copy" downloaded it at the top of this run
+          # (TODO C7 -- 8.79 MB, downloaded TWICE in one run, measured 10 Nov).
+          # Nothing republishes the asset between those two steps: this job is
+          # its only publisher and the upload is the line below. So the row
+          # guard reads that copy, and downloads only when the fold step could
+          # not (no asset yet, or its download failed), which is also the only
+          # case in which the guard used to be skipped.
+          PUBLISHED=/tmp/screener-release/screener_prices.parquet
+          if [ ! -f "$PUBLISHED" ]; then
+            mkdir -p /tmp/published
+            if gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir /tmp/published \
+                 --pattern screener_prices.parquet 2>/dev/null; then
+              PUBLISHED=/tmp/published/screener_prices.parquet
+            else
+              PUBLISHED=""
+            fi
+          else
+            echo "Row guard reads the published store downloaded earlier in this run."
+          fi
+          if [ -n "$PUBLISHED" ]; then
             python -c "import sys, pyarrow.parquet as pq; n, o = (pq.ParquetFile(p).metadata.num_rows for p in sys.argv[1:3]); print(f'rows: new {n:,}, published {o:,}'); sys.exit(0 if n >= o else 1)" \
-              "$STORE" /tmp/published/screener_prices.parquet \
+              "$STORE" "$PUBLISHED" \
               || { echo "::error::the new Screener store has fewer rows than the published one; not published"; exit 1; }
           fi
           gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \

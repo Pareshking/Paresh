@@ -6,6 +6,50 @@
 - **The Dashboard's "top 100 against the Nifty 500" panel could crash.** It dated its months with a format pandas 3 no longer accepts; it now uses the supported form.
 - **Large dividends are taken out at the holder's return.** For a payout of 10% of the price or more, the ex-date return is now (close + dividend) ÷ previous close, as CRSP and S&P compute it; the old factor booked PFIZER's ₹360 on 5 Dec 2013 as a 5.0% fall instead of 4.0%. The History file picks this up at its Saturday rebuild.
 
+## 2026-11-11 — The corporate-actions guard was not looking at anything
+
+- **The nightly check for splits and demergers hiding in the price history had been scanning nothing, while the run reported green.** It read a local file (`data_cache/screener_prices.parquet`) that nothing writes on a GitHub runner — the store a sync downloads is streamed to a temp file, read, and deleted — so it printed "no screener closes to check" and exited in under half a second on every run. The step's warning said "new find or failure", which reads like a find, and seven consecutive green runs carried it before anyone opened the step log.
+- It now falls back to the published store, the same one the ranking is built from, and the log line names the source and the size: *scanned screener from published store: 401 sessions × 1,227 symbols at ±35%*. A run that could not scan exits with a different code from a run that found something, and the workflow prints a different warning for each.
+- No price changed. One session is flagged and was already on the log (POLICYBZR, −36.0% on 24 Sep 2026, matching no standard split ratio — the usual cause is a demerger). Whether anything was missed in the window is not established: the log's newest entry is 29 Sep, which fits the check having been blind since 28 Oct but is not proof, since no new implausible session need have occurred.
+
+## 2026-11-11 — The monthly returns say which months they are
+
+- **Portfolio and Backtest show the same months and could disagree, with nothing to tell a reader why.** January read −0.2% on one page and 0.0% on the other, October −4.3% against −4.0%. Portfolio's grid now says it is "as recorded each month", and Backtest's says it is "re-run on today's prices", each naming the other. The figures themselves are unchanged.
+- Why they differ is written down in `docs/MONTHS_THAT_DIFFER.md`: January and February come down to **one holding** — the twentieth slot, awarded after the 40% industry cap, which is TITAN on one price basis and ANURAS on the other, worth +0.2173 points of January against an observed +0.2170. October is a month whose store carried BSE closes for about forty names. The rights-issue adjustment that had been blamed for years turns out not to touch either: removing all 44 rights rows leaves both months unchanged to six decimals.
+
+## 2026-11-11 — One volatility convention across the whole site
+
+- **Every standard deviation on the site is now the population one.** The engine's position sizing had always spelled out `std(ddof=0)`; every figure the site *reported* quietly took pandas' default, the sample SD, because nobody had written the argument. Owner, 11 November 2026: "OK, match everything." Unified on `ddof=0` — the convention that was actually chosen, and the one the Guide already claimed for the ranking's own volatility.
+- **What moved, on the real data (closes of 9 Nov 2026).** The Dashboard's book volatility 16.945% → 16.878% and the Nifty 500's beside it 12.412% → 12.363% — both still print 16.9% and 12.4% at the one decimal the card shows, so that card is character-identical before and after. The Backtest tab has no volatility figure of its own, but the Sharpe divides by it: over the ten completed months its volatility 23.428% → 23.371% and the Sharpe 1.5787 → 1.5825, which still prints 1.58. The two differ by exactly `sqrt((n-1)/n)`, so a short window moves most.
+- **The RRG's numbers moved visibly**, because its z-scores divide by the spread of a twenty-industry cross-section rather than of a few hundred sessions. The largest shift was Utilities, 86.33 · 88.87 → 85.97 · 88.59; Media Entertainment & Publication 117.30 · 105.78 → 117.75 · 105.93; Construction Materials' momentum 112.53 → 112.86. **No industry changed quadrant** — a quadrant turns on the sign of the numerator, which no positive divisor can flip — and nothing else on the page moved.
+- **No recorded return moved, and nothing about position sizing changed.** The record is sized equal weight, so the inverse-volatility estimate is not in its path; a replay of all ten frozen months is identical to ten decimal places, and the canonical parity check passes unchanged. Volatility appears in neither the pinned configuration nor the ledger.
+- The convention is written down in `docs/TRACK_RECORD.md` with the owner's date and words, and `tests/test_volatility_convention.py` reads every call site with `ast` and fails if one drops back to the sample SD. Two research scripts are exempt and say why: one replicates a published paper, the other has to follow an external vendor's RRG rather than ours.
+
+## 2026-11-11 — The index lists are read from the repository, not downloaded again
+
+- **The first page view no longer waits for six CSV files the repository already
+  holds.** The six niftyindices constituent lists were downloaded on every cold
+  start and again every hour — about 4 seconds of a 9 second load — although the
+  nightly sync writes and commits those same files to `data/indices/`. They are
+  now read from the committed copy while the sync that writes them is current (a
+  file whose last download is more than 24 hours old is still fetched, so a night
+  without a successful sync changes nothing). Measured on the real code path with
+  the site's own loader: **6 requests per cold start, now 0**. No row of the
+  universe changes — the lists loaded from disk were compared with the lists
+  loaded from NSE, symbol for symbol.
+- The same change stops the nightly jobs asking for the same file several times
+  in one run: a `daily_sync` run made **17 requests for those 6 files and now
+  makes 6**, the Screener store (8.79 MB) is downloaded once a run instead of
+  twice, and the newest NSE bundle once a run instead of twice. Nothing that is
+  published or displayed differs; these are the same bytes, fetched once.
+## 2026-11-11 — The Guide on tax, and an audit of method and evidence
+
+- **The Backtest shows the month in progress.** Both tabs stopped at the last completed month, so on 11 Nov the grid ended at October while Portfolio already showed November. November now appears to date, marked in the caption with the day it reached ("to 6 Nov 2026"), and the year table reads "Jan–6 Nov". The figures at the top still stop at the last completed month. The History tab shows it when its end month is the latest one.
+- **The Guide compares the strategy with simply holding the index, after tax.** From Jan 2010 to Oct 2026, both price only and both sold at the end: 15.1% a year against 9.4%. The lead is 8.5 points a year before tax and 5.8 after, because the index pays tax only once at the end.
+- **The Guide shows what costs do.** The Nifty 500 backtest earns 18.6% a year at 30 bps a round trip, 17.5% at 50 and 16.2% at 75. STT and stamp duty take about 22 of the 30 bps; the spread has not been measured.
+- **The Guide no longer says tax is "not modelled anywhere"** a few lines above an after-tax test result. Every figure is before tax; tax was estimated in that one test only.
+- Audit of method and evidence: `docs/AUDIT_2026-11-11.md` (costs, tax against an index fund, dividends, how long the record must run before it can show anything).
+
 ## 2026-11-10 — Calendar returns can be slid again on a phone
 
 - **The months after April could not be reached on a phone.** The table of monthly returns sits in a box that scrolls sideways, inside a grid. A grid item will not shrink below its own content unless it is told it may, so the year section stretched to the table's full width — 1,292px inside a 358px column — the scrolling box stretched with it and had nothing left to scroll, and the wrapper simply cut the rest off. One line (`.cr-year { min-width: 0 }`) puts the scroll back; after it the scrolling box is 358px wide with 1,292px inside it. Every table on all eleven pages was then checked at phone width: none is unreachable.

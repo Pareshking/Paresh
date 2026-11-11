@@ -52,7 +52,7 @@ def monthly_readings(close: pd.DataFrame) -> pd.DataFrame:
         if prev is not None:
             r = (close.loc[t, mem] / close.loc[prev, mem] - 1).dropna()
             r = r[(r > -0.9) & (r < 3)]
-            disp = float(r.std())
+            disp = float(r.std(ddof=0))
         rows.append({"date": t, "members": int(ok.sum()), "qualified_share": float(q.mean()), "dispersion": disp})
         prev = t
     return pd.DataFrame(rows)

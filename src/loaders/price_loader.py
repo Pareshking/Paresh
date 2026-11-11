@@ -112,8 +112,27 @@ def _clean_price_df(df: pd.DataFrame, symbols: Sequence[str] | None = None) -> p
         out = out.loc[: valid_idx[-1]]
     # Preserve security-specific NaNs; do not manufacture zero-return observations.
     if symbols:
-        valid_cols = [s.upper() for s in symbols if s.upper() in out.columns]
+        wanted = [s.upper() for s in symbols]
+        valid_cols = [s for s in wanted if s in out.columns]
         if valid_cols:
+            missing = [s for s in wanted if s not in out.columns]
+            if missing:
+                # A PARTIAL mismatch used to pass in silence, and that is how a
+                # stale price file narrows a live universe without anything
+                # failing. The canonical parity gate reads a prices.parquet
+                # frozen on 2026-10-01 covering 749 of the ranking's 752 names,
+                # so ENNATURE, ICICILIFE and IGLSPIRITS were dropped from the
+                # comparison and the gate stayed green -- only because none of
+                # them is in today's top 40. The morning one of them reaches
+                # the book, a silent gate would compare a book that holds it
+                # against a replay that cannot see it (owner, 11 Nov 2026, C6).
+                logger.warning(
+                    "%d of %d requested symbols are absent from the price frame "
+                    "and are being dropped: %s%s. A frame that does not cover "
+                    "the whole universe narrows anything computed from it.",
+                    len(missing), len(wanted), ", ".join(missing[:10]),
+                    "" if len(missing) <= 10 else f" (+{len(missing) - 10} more)",
+                )
             out = out[valid_cols]
         else:
             # Not one requested symbol is present. Silently returning the

@@ -64,16 +64,39 @@ def daily_start(index: pd.Index) -> pd.Timestamp | None:
     return dates[start]
 
 
-def _closes(source: str) -> tuple[pd.DataFrame, pd.Timestamp | None]:
-    """(closes to scan, first date to scan from) for one source."""
+def _closes(source: str) -> tuple[pd.DataFrame, pd.Timestamp | None, str]:
+    """(closes to scan, first date to scan from, where they came from).
+
+    The local path FIRST, then the published store. The local path alone is
+    what this did until 11 Nov 2026, and on a runner it is never there:
+    `screener_loader.load_store` reads a file and nothing writes
+    `data_cache/screener_prices.parquet` in CI -- `price_source.fetch_screener_store`
+    streams the release asset to a temp file, reads it and deletes it. So every
+    nightly run printed "no screener closes to check" and exited 1 in under a
+    second, and the step's `|| echo ::warning::` turned that into a warning
+    whose wording ("new find or failure") reads like a find. Seven consecutive
+    green runs carried it before anybody opened the step log. The check now
+    fetches the same store production ranks from when the file is absent, and
+    says which it used, so a run that did not scan cannot look like one that
+    did.
+    """
     if source == "screener":
         from src.core.config import SCREENER_PRICES_FILE
         from src.loaders import screener_loader
 
         store = screener_loader.load_store(SCREENER_PRICES_FILE)
+        where = f"local {SCREENER_PRICES_FILE}"
+        if store is None or store.empty:
+            from src.loaders.price_source import fetch_screener_store
+
+            store = fetch_screener_store()
+            where = "published store (the local file was not there)"
+        if store is None or store.empty:
+            return pd.DataFrame(), None, "neither the local file nor the published store"
         closes = screener_loader.closes(store)
-        return closes, daily_start(closes.index) if not closes.empty else None
-    return pd.DataFrame(), None
+        start = daily_start(closes.index) if not closes.empty else None
+        return closes, start, where
+    return pd.DataFrame(), None, "an unknown source"
 
 
 def confirm_restated(events: dict, closes: pd.DataFrame, since: pd.Timestamp | None,
@@ -131,17 +154,21 @@ def main() -> int:
                     help="which price history to scan (only the Screener store since 2026-10-02)")
     args = ap.parse_args()
 
-    adj, since = _closes(args.source)
+    adj, since, where = _closes(args.source)
     if adj.empty:
-        print(f"✗ no {args.source} closes to check")
-        return 1
+        print(f"✗ no {args.source} closes to check: tried {where}. "
+              f"The check did NOT run; this is a failure, not a clean result.")
+        # 2, not 1: a new find also exits 1, and the two used to be
+        # indistinguishable from the workflow, which reported both as
+        # "new find or failure".
+        return 2
 
     found = detect(adj, threshold=args.threshold, since=since)
     info = summarise(found)
     scanned = adj.loc[adj.index >= since] if since is not None else adj
     print(
-        f"→ scanned {args.source}: {scanned.shape[0]} sessions x {adj.shape[1]} symbols "
-        f"at +/-{args.threshold:.0%}"
+        f"→ scanned {args.source} from {where}: {scanned.shape[0]} sessions x "
+        f"{adj.shape[1]} symbols at +/-{args.threshold:.0%}"
     )
 
     log = _load(Path(args.log))

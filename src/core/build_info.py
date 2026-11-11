@@ -53,13 +53,29 @@ def deployed_revision(base_dir: str | None = None) -> str | None:
 
     ref = head.split(":", 1)[1].strip()
 
-    direct = _read(os.path.join(git_dir, ref))
-    if direct:
-        return direct
+    # A linked worktree keeps its own HEAD but NOT its own branch refs: those
+    # live in the common directory, named by a `commondir` file beside HEAD.
+    # Without this, every lookup below missed and the function returned None
+    # for a perfectly ordinary checkout -- which the footer reads as "revision
+    # unknown", and which made tests/test_build_info.py fail in any worktree.
+    # Three separate agents reported that failure as "known and not mine"
+    # before anyone looked at why (11 Nov 2026).
+    search_dirs = [git_dir]
+    common = _read(os.path.join(git_dir, "commondir"))
+    if common:
+        resolved = common if os.path.isabs(common) else os.path.join(git_dir, common)
+        search_dirs.append(os.path.normpath(resolved))
+
+    for where in search_dirs:
+        direct = _read(os.path.join(where, ref))
+        if direct:
+            return direct
 
     # Fall back to packed-refs, which is how a fresh clone often stores them.
-    packed = _read(os.path.join(git_dir, "packed-refs"))
-    if packed:
+    for where in search_dirs:
+        packed = _read(os.path.join(where, "packed-refs"))
+        if not packed:
+            continue
         for line in packed.splitlines():
             if line.startswith("#") or not line.strip():
                 continue
