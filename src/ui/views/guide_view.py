@@ -146,7 +146,7 @@ its cap until the next rebalance trims it.</li>
 <li><b>Buffer:</b> a holding is kept while its rank among stocks passing both filters stays within
 {buffer_n}, so a move from 18th to 24th does not trigger a sale and a repurchase.</li>
 <li><b>Costs:</b> {cost:.0f} basis points for a round trip (buying and later selling), charged on what
-is traded. Tax on gains is not modelled anywhere: every return on the site is before tax.</li>
+is traded. Every return on the site is before tax; tax was estimated only in the one test named under Weighting.</li>
 <li><b>No stops:</b> a holding leaves only at a monthly rebalance.</li>
 </ul>
 
@@ -160,6 +160,9 @@ as it stood at the last reset, paid from cash; when cash is short the new names 
 no holding is sold to pay for them. No industry is above 40% after a rebalance. Tested on the
 Nifty 500 from 2010 with an estimate of tax: the monthly reset earned 15.4% a year after tax and the
 six-monthly 15.3%, with far fewer trades between resets; in 2026 the six-monthly reset did best.
+Against the alternative of simply holding the index (Jan 2010 to Oct 2026, both price only, both sold
+at the end and taxed): the six-monthly reset kept 15.1% a year, a Nifty 500 position 9.4% (10.1% before
+tax, because its gain is long-term and taxed once). The lead is 8.5 points a year before tax and 5.8 after.
 Months before the change keep the old rule.</p>
 <p><b>Inverse volatility</b> can be tried in the Backtest: each holding's weight is proportional to
 one over its volatility over the last 63 sessions.</p>
@@ -209,7 +212,10 @@ filters. The book and the buffer use the qualified rank.</dd>
 The model holds {top_n} stocks in every market and keeps no cash target.</dd>
 <dt>What do the costs cover?</dt>
 <dd>{cost:.0f} basis points a round trip, meant to cover brokerage, exchange and SEBI fees, GST on them,
-stamp duty, STT and the bid-ask spread. Capital-gains tax is not included.</dd>
+stamp duty, STT and the bid-ask spread. STT (0.1% on the buy and on the sell) and stamp duty (0.015% on
+the buy) take about 22 bps of it; what is left pays the spread, which has not been measured. Tested
+at 30 bps, the Nifty 500 backtest from 2010 earns 18.6% a year; at 50 bps 17.5%; at 75 bps 16.2%. Capital-gains
+tax is not included.</dd>
 </dl>
 </div>
 """

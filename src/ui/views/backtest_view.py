@@ -52,6 +52,29 @@ def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
     return summary_stats(ledger, mtd=mtd)
 
 
+def _running_month(ledger: dict, live_meta: dict | None, allowed: bool) -> dict | None:
+    """The month in progress, to date, for the Backtest's calendar grid (TODO S126).
+
+    The engine reports completed months only; its `live_meta` carries the running
+    month measured as Portfolio measures it (each book from the close it was filled
+    at, the month's rebalance charged). Shown only when it is the month right after
+    the grid's last one and the run reaches the latest session (`allowed`): a History
+    run ending earlier has no month in progress.
+    """
+    meta = live_meta or {}
+    if not allowed or not meta.get("mtd_period") or meta.get("strategy_mtd") is None:
+        return None
+    period = pd.Period(meta["mtd_period"], freq="M")
+    months = (ledger or {}).get("months") or {}
+    if not months or period != max(pd.Period(k, freq="M") for k in months) + 1:
+        return None
+    s, b = meta.get("strategy_mtd"), meta.get("benchmark_mtd")
+    values = {"strategy": float(s),
+              "benchmark": None if b is None else float(b),
+              "alpha": None if b is None else float(s) - float(b)}
+    return {"period": period, "values": values, "as_of": meta.get("as_of")}
+
+
 def _day(value) -> str:
     """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
     try:
@@ -152,6 +175,13 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
     # the completed months before its last session's month.
     after = close.index[close.index >= (end + 1).start_time]
     cut = after[0] if len(after) else close.index[-1]
+    # Ending at the latest completed month, the frame runs to the file's last
+    # session instead, so the month in progress can be shown to date (TODO S126).
+    # The engine still reports only completed months: its window ends at the last
+    # month-end before the frame's last session either way.
+    to_latest = end == bounds["months"][-1]
+    if to_latest:
+        cut = close.index[-1]
     cols = sorted(iu.ever_members(membership) & set(close.columns))
     frame = close.loc[:cut, cols]
 
@@ -186,6 +216,7 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
         "traded_value": traded,
         "sector_map": sec, "unlabelled": len(unlabelled), "name": iu.INDICES[key],
         "built": report.get("built"), "last_session": report.get("last_session"),
+        "to_latest": to_latest,
     }
 
 
@@ -662,13 +693,21 @@ def _backtest_tab(
     # canonical grid still supplies every monthly and compounded return.
     with kit.card("Calendar returns", "bt_calendar",
                   f"Strategy, {bench_name} and Alpha · year by year"):
-        _grid = build_combined_grid(ledger_from_curves(eq, bm), alpha_as_difference=True)
+        _ledger = ledger_from_curves(eq, bm)
+        _mtd = _running_month(_ledger, bt_res.get("live_meta"),
+                              history is None or bool(history.get("to_latest")))
+        _grid = build_combined_grid(
+            _ledger, alpha_as_difference=True,
+            mtd_period=_mtd["period"] if _mtd else None,
+            mtd_values=_mtd["values"] if _mtd else None,
+        )
         if _grid.empty:
             kit.empty("No full month in this window yet.")
         else:
             _grid["SERIES"] = _grid["SERIES"].replace({"Nifty 500": bench_name})
             # Year by year first (owner, 9 Oct 2026): the CY column of each block below.
-            _render_yearly_summary(_grid, bench_name)
+            _render_yearly_summary(_grid, bench_name,
+                                   through=f"{pd.Timestamp(_mtd['as_of']):%-d %b}" if _mtd else None)
             _render_calendar_returns(_grid)
             # Say whose months these are. This grid is a REPLAY on today's
             # prices, and Portfolio's grid of the same months is the frozen
@@ -683,6 +722,9 @@ def _backtest_tab(
                 "first fill to the last completed month · CY Jan–Dec, FY Apr–Mar · Alpha is the "
                 "strategy's return minus the index's over the same period (a difference, not "
                 "compounded)."
+                + (f" {_mtd['period'].strftime('%b').upper()} is the month in progress, to "
+                   f"{_day(_mtd['as_of'])}: it is in the CY, FY and quarter cells, not in the "
+                   "figures above, which stop at the last completed month." if _mtd else "")
             )
 
     # One download (owner, 2026-10-08): the rules this run followed, and every

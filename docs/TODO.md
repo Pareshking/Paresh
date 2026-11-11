@@ -4,7 +4,7 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-11_
 
 ## Now
 
@@ -30,6 +30,18 @@ _Last updated: 2026-11-10_
 | 18 | Screener "Big movers" (rank moved 15+ places in a month) holds 630 of 750: the median stock moved 58 places | Owner picks a threshold (e.g. 150 places: 118 stocks) | [x] 13 Oct: owner chose 150 places (`BIG_MOVE_PLACES`) |
 | 19 | Stocks listed under a year ago (KISSHT, CMRGREEN, BAGMANE) are never "near the 52-week high": no full year of highs | Owner: keep, or measure them against their high since listing | [x] 13 Oct, owner: keep 126 sessions (~6 months), the rule audit S3 set so the screener matches the backtester. No change. A stock gets a 52-week high once it has 126 sessions of prices (KISSHT 108, CMRGREEN 86 on 12 Oct) |
 | 20 | Sector leadership map (owner, 13 Oct): explain how to read it with an example; pill controls like the rest of Sectors; 1M and 3M periods; the two stocks doing the heavy lifting per sector | On the live page | [x] 13 Oct: "How to read this" works the picked sector through with its own numbers; EMA and period pills; leaders in the table and tooltip; checked at 1280 and 400 px |
+
+## Quant method and evidence audit (11 Nov 2026)
+
+Findings and evidence: `docs/AUDIT_2026-11-11.md`. Q-L1 and Q-L2 fixed in the same PR; Q-H1's note was removed by the owner.
+
+| # | What | How we know it is done | Status |
+|---|---|---|---|
+| S122 | Portfolio's headline compounds 9 backfilled months with 1 recorded month (Q-H1), and the record shows no uncertainty (Q-H2: tracking error ~21% a year, so the record cannot confirm a realistic edge for years) | Owner decides: headline on recorded months only, with the reconstruction beside it; alpha with a 90% interval, or "too short to judge" until 24 recorded months | [ ] 11 Nov: owner removed the reconstruction note from Portfolio ("Remove the notes"); the Origin column remains. Headline and interval wait for the owner |
+| S123 | 30 bps round trip is ~22 bps statutory, ~8 bps left for spreads on both legs, for microcaps and Nano Cap alike; spreads never measured (Q-M1) | Statutory rates quoted from dated NSE/SEBI circulars; a spread estimate per size bucket (Corwin-Schultz from NSE high/low, or order-book snapshots); History backtest shown at 30 / 50 / 75 bps | [ ] 11 Nov: (3) done, 18.56 / 17.52 / 16.23% a year (Nifty 500 2010-26, `scripts/research/cost_and_index_tax.py`), in the Guide; (1) checked against brokers' schedules, circulars not yet quoted; (2) open, needs R2's raw high/low |
+| S124 | After-tax results never set against an index fund's deferred tax (Q-M2) | `rebalance_rules_after_tax.py` adds the Nifty 500 held throughout and taxed at exit; Guide quotes both after-tax figures together | [x] 11 Nov: strategy 15.14% vs index 9.35% a year after tax (sold at end, price only, 2010-26); lead 8.50 pts before tax, 5.79 after. In the Guide; `docs/AUDIT_2026-11-11.md` |
+| S125 | Dividend asymmetry: the strategy keeps dividends of 10% or more, the price index keeps none; the book's yield gap to the index is unmeasured (Q-L3) | Trailing dividend yield of the book vs the Nifty 500, 2010-26, quoted in `DATA_CORRECTNESS.md` | [ ] 11 Nov: not started; needs per-stock dividend history (the long file keeps only dividends of 10% or more) and the Nifty 500 TRI |
+| S126 | Backtest (both tabs) stops at the last completed month (owner, 11 Nov: "why live and old backtest missing recent month?"). Seen on the live site 11 Nov: both tabs "to 30 Oct 2026", November "—". Cause: by design, `backtester.completed_month_window` drops the month in progress, while Portfolio adds November month-to-date. History also lags up to a week: its long file is built weekly (built 7 Nov, last session 6 Nov). Also seen: the Backtest's live tab shows October -4.0% against the record's -4.25% | Backtest shows the running month as month-to-date, marked "to <date>" and kept out of the annualised figures, or the owner keeps it out and the page says why; the October gap explained | [ ] 11 Nov: **running month done** (PR #508): both tabs' calendar grid shows the month in progress from the engine's own `live_meta` (as Portfolio measures it), the caption names the day it reached and says the tiles above stop at the last completed month, and the year table reads "Jan–6 Nov". History runs to the file's last session when its end month is the latest; checked on the long file that every completed month is identical either way (34 of 34, 2024-26). Seen on a local app: History 2026 Nov +2.5% vs Nifty 500 +7.1% to 6 Nov (NSE's closes 21,895.90 to 23,456.95). Tests: `tests/test_backtest_running_month.py`. **October gap open**: same settings as the pinned record; the parity check (record replay vs frozen months) passes on this PR, so the gap is between the Backtest page's run and the record's replay. Lead, not checked: the live tab prices from the long history where Screener does not reach back far enough (its own caption). Needs the Screener store from R2 |
 
 ## Repository audit: cost, speed, resources (7 Nov 2026)
 
