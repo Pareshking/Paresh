@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-13 — Sectors: Rank by sits on the board it sorts
+
+- **On a phone, the 3M median / 6M median / Share passing / Top-50 count buttons looked dead.** They worked, but the only thing they re-sorted was the Industry leaderboard, several screens below; everything in view stayed the same apart from two words in the subtitle. The buttons are now at the top of the leaderboard, with "Ranked by …" beside its title.
+- On a phone each row shows one figure, and it was always the 3-month median, so the board ranked by 6M looked out of order (−4.1% above +1.6%). The figure shown is now the one the board is ranked by: 6M median, stocks passing both checks (with the share), or the top-50 count.
+
 ## 2026-11-11 — The corporate-actions guard was not looking at anything
 
 - **The nightly check for splits and demergers hiding in the price history had been scanning nothing, while the run reported green.** It read a local file (`data_cache/screener_prices.parquet`) that nothing writes on a GitHub runner — the store a sync downloads is streamed to a temp file, read, and deleted — so it printed "no screener closes to check" and exited in under half a second on every run. The step's warning said "new find or failure", which reads like a find, and seven consecutive green runs carried it before anyone opened the step log.
