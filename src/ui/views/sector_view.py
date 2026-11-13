@@ -225,15 +225,48 @@ def industry_board(rank_df: pd.DataFrame, col: str = "Industry") -> tuple[pd.Dat
     return pd.DataFrame(rows), sorted(singles)
 
 
-def board_html(board: pd.DataFrame) -> str:
+# The figure a phone keeps for each row is the one the board is ranked by
+# (owner, 13 Nov 2026): ranked by 6M with only the 3M figure showing, the
+# order looked wrong. Label, and whether it is a signed return with a bar.
+HEADLINE = {
+    "3M median": ("3M (median)", True),
+    "6M median": ("6M (median)", True),
+    "Share passing": ("Pass both", False),
+    "Top-50 count": ("Top 50", False),
+}
+
+
+def _headline(r: pd.Series, by: str) -> str:
+    col = RANK_BY[by]
+    v = r[col]
+    if by == "Share passing":
+        return f'{r["Pass"]} <small>({v * 100:.0f}%)</small>'
+    if by == "Top-50 count":
+        return str(int(v))
+    return _pct(v)
+
+
+def board_html(board: pd.DataFrame, by: str = "3M median") -> str:
     """The leaderboard as a table; on a phone each row folds to name, one
-    line of detail and the 3M figure."""
-    lim = max(0.05, float(board["3M Return"].abs().max() or 0))
+    line of detail and the figure it is ranked by."""
+    if by not in RANK_BY:
+        by = "3M median"
+    label, signed = HEADLINE[by]
+    other = "6M Return" if by == "3M median" else "3M Return"
+    other_label = "6M" if by == "3M median" else "3M"
+    col = RANK_BY[by]
+    lim = max(0.05, float(board[col].abs().max() or 0)) if signed else 0
     rows = []
     for i, (_, r) in enumerate(board.iterrows(), start=1):
-        v = r["3M Return"]
-        w = 0 if pd.isna(v) else min(50.0, abs(v) / lim * 50)
-        side = "left:50%" if (v or 0) >= 0 else "right:50%"
+        v = r[col]
+        if signed:
+            w = 0 if pd.isna(v) else min(50.0, abs(v) / lim * 50)
+            side = "left:50%" if (v or 0) >= 0 else "right:50%"
+            bar = (f'<span class="ib-bar" aria-hidden="true"><i class="{_tone(v)}" '
+                   f'style="{side};width:{w:.1f}%"></i><em></em></span>')
+            tone = _tone(v)
+        else:
+            bar, tone = "", ""
         leads = "".join(_leader_link(s) for s in r["Leaders"][:2])
         rows.append(
             f'<div class="ib-row" role="row">'
@@ -241,9 +274,8 @@ def board_html(board: pd.DataFrame) -> str:
             f'<span class="ib-name" role="rowheader"><b>{html.escape(r["Industry"])}</b>'
             f'<small>{r["Stocks"]} stocks · {r["EMA %"] * 100:.0f}% above 50-day EMA · {r["Top 50"]} in top 50</small></span>'
             f'<span class="ib-num ib-d" role="cell">{r["Stocks"]}</span>'
-            f'<span class="ib-3m" role="cell"><b class="{_tone(v)}">{_pct(v)}</b>'
-            f'<span class="ib-bar" aria-hidden="true"><i class="{_tone(v)}" style="{side};width:{w:.1f}%"></i><em></em></span></span>'
-            f'<span class="ib-num ib-d {_tone(r["6M Return"])}" role="cell">{_pct(r["6M Return"])}</span>'
+            f'<span class="ib-3m" role="cell"><b class="{tone}">{_headline(r, by)}</b>{bar}</span>'
+            f'<span class="ib-num ib-d {_tone(r[other])}" role="cell">{_pct(r[other])}</span>'
             f'<span class="ib-num ib-d" role="cell">{r["EMA %"] * 100:.0f}%</span>'
             f'<span class="ib-num ib-d" role="cell">{r["Near %"] * 100:.0f}%</span>'
             f'<span class="ib-num ib-d" role="cell">{r["Pass"]}</span>'
@@ -251,8 +283,8 @@ def board_html(board: pd.DataFrame) -> str:
             f'<span class="ib-leads ib-d" role="cell">{leads}</span></div>'
         )
     head = ('<div class="ib-row ib-head" role="row"><span role="columnheader">#</span><span role="columnheader">Industry</span>'
-            '<span role="columnheader" class="ib-num ib-d">Stocks</span><span role="columnheader" class="ib-3m">3M (median)</span>'
-            '<span role="columnheader" class="ib-num ib-d">6M</span><span role="columnheader" class="ib-num ib-d" title="Share above their 50-day EMA">Above 50D EMA</span>'
+            f'<span role="columnheader" class="ib-num ib-d">Stocks</span><span role="columnheader" class="ib-3m">{label}</span>'
+            f'<span role="columnheader" class="ib-num ib-d">{other_label}</span><span role="columnheader" class="ib-num ib-d" title="Share above their 50-day EMA">Above 50D EMA</span>'
             '<span role="columnheader" class="ib-num ib-d" title="Share within 20% of their 52-week high">Near 52W high</span><span role="columnheader" class="ib-num ib-d">Pass both</span>'
             '<span role="columnheader" class="ib-num ib-d">Top 50</span><span role="columnheader" class="ib-d">Leaders</span></div>')
     return f'<div class="ib" role="table" aria-label="Industry leaderboard">{head}{"".join(rows)}</div>'
@@ -283,12 +315,10 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         "Sectors",
         # The board keeps any group of two or more stocks; "What is leading?" needs
         # five (audit, 8 Nov 2026: "20 industries" here, "0 of 19" there).
-        f"{len(board)} {'industries' if col == 'Industry' else 'groups'} of two or more stocks · ranked by {by}",
+        f"{len(board)} {'industries' if col == 'Industry' else 'groups'} of two or more stocks",
         actions=True,
     )
     with actions:
-        st.segmented_control("Rank by", list(RANK_BY), default="3M median", required=True,
-                             key="sector_rank_by", label_visibility="collapsed")
         if len(tax) > 1:
             st.selectbox("Classification", list(tax), key="sector_tax_choice",
                          label_visibility="collapsed", width=190)
@@ -310,8 +340,14 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     # One ranking and one map on this page (owner's decision 5, 7 Nov): the
     # industry bubble map repeated the board below it and is gone.
-    with kit.card("Industry leaderboard", "sec_board"):
-        st.html(board_html(board))
+    with kit.card("Industry leaderboard", "sec_board", f"ranked by {by}"):
+        # Rank by sits on the board it sorts. In the page head it changed only
+        # this board, screens below, so on a phone a tap looked dead (owner,
+        # 13 Nov 2026: "clicks not working"; S16 again after the tiles and the
+        # industry map went on 7 Nov).
+        st.segmented_control("Rank by", list(RANK_BY), default="3M median", required=True,
+                             key="sector_rank_by", label_visibility="collapsed")
+        st.html(board_html(board, by))
         if singles:
             kit.caption(f"Not shown (one stock each): {', '.join(singles)}.")
 

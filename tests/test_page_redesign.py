@@ -107,3 +107,17 @@ def test_a_small_trend_line_sits_beside_a_headline_figure():
     assert C.up in svg(up) and C.down in svg(down)
     assert kit.spark_img(range(100), last=63) == kit.spark_img(range(37, 100), last=None)
     assert kit.Reading("Since inception", "+41.4%", spark=up).spark == up
+
+
+def test_board_headline_figure_follows_rank_by():
+    """Ranked by 6M, a phone (which keeps one figure per row) shows the 6M
+    figure, not the 3M one (owner, 13 Nov 2026: the buttons looked dead)."""
+    board, _ = sector_view.industry_board(_ranked())
+    for by, label in sector_view.HEADLINE.items():
+        ranked = board.sort_values(sector_view.RANK_BY[by], ascending=False)
+        out = sector_view.board_html(ranked, by)
+        assert f'class="ib-3m">{label[0]}</span>' in out
+    first = board.sort_values("6M Return", ascending=False).iloc[0]
+    out = sector_view.board_html(board.sort_values("6M Return", ascending=False), "6M median")
+    head_cell = out.split('<span class="ib-3m" role="cell">')[1].split("</b>")[0]
+    assert sector_view._pct(first["6M Return"]) in head_cell
