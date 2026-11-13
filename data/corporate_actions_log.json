@@ -614,7 +614,7 @@
       "kind": "unclassified",
       "first_seen": "2026-09-25",
       "verdict": "price_move",
-      "verdict_note": "Owner, 2026-09-25: real fall (~30-36%) on a government announcement; F&O stock, so no circuit limit. Not a corporate action."
+      "verdict_note": "Owner, 2026-09-25: real fall (~30-36%) on a government announcement; F&O stock, so no circuit limit. Not a corporate action. CONFIRMED 2026-11-11 against two independent sources, because the note above was a recollection and this verdict is never revisited (confirm_restated skips any event that has one). (1) BSE's own bhavcopy for 2026-09-24 (scrip 543390, PB Fintech Limited): open 1701.00, high 1701.00, low 1210.00, close 1210.00, previous close 1890.00, volume 582,725 against 104,880 the day before and 2,297,299 the day after. A split, bonus or demerger OPENS at the adjusted level; this opened at 1701, which is exactly NSE's 10% lower band on 1890, and then fell within the session to 1210. Open = high means it never traded above its open. (2) The ISIN is unchanged on both sides and across all four days (INE417T01026), and NSE's corporate-action list carries NO entry for POLICYBZR, while carrying eight actions for other symbols between 2026-09-02 and 2026-10-22, so the list is populated for that window. NOT established: the cause. This shows a real market fall, not what caused it; no dated source for the insurance regulation is cited anywhere in this repository."
     }
   },
   "last_checked": "2026-11-13"
