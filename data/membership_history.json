@@ -2132,6 +2132,13 @@
             "IGLSPIRITS"
           ],
           "removed": []
+        },
+        {
+          "date": "2026-11-14",
+          "added": [],
+          "removed": [
+            "IGLSPIRITS"
+          ]
         }
       ]
     },
@@ -8268,6 +8275,13 @@
             "IGLSPIRITS"
           ],
           "removed": []
+        },
+        {
+          "date": "2026-11-14",
+          "added": [],
+          "removed": [
+            "IGLSPIRITS"
+          ]
         }
       ]
     },
@@ -13785,6 +13799,13 @@
         "IGLSPIRITS"
       ],
       "removed": []
+    },
+    {
+      "date": "2026-11-14",
+      "added": [],
+      "removed": [
+        "IGLSPIRITS"
+      ]
     }
   ],
   "aliases": {
