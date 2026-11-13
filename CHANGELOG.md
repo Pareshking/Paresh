@@ -5,6 +5,12 @@
 - **On a phone, the 3M median / 6M median / Share passing / Top-50 count buttons looked dead.** They worked, but the only thing they re-sorted was the Industry leaderboard, several screens below; everything in view stayed the same apart from two words in the subtitle. The buttons are now at the top of the leaderboard, with "Ranked by …" beside its title.
 - On a phone each row shows one figure, and it was always the 3-month median, so the board ranked by 6M looked out of order (−4.1% above +1.6%). The figure shown is now the one the board is ranked by: 6M median, stocks passing both checks (with the share), or the top-50 count.
 
+## 2026-11-11 — Fixes carried over from the US port
+
+- **The Backtest page now runs the live book's rebalance rule by default.** It reset every holding to its target weight at every rebalance, while the record follows the six-monthly rule from the 30 November signal (winners run to 15%, new buys 5%, every holding back to its target in March and September). The old rule stays as an option, and the run summary names the rule used.
+- **The Dashboard's "top 100 against the Nifty 500" panel could crash.** It dated its months with a format pandas 3 no longer accepts; it now uses the supported form.
+- **Large dividends are taken out at the holder's return.** For a payout of 10% of the price or more, the ex-date return is now (close + dividend) ÷ previous close, as CRSP and S&P compute it; the old factor booked PFIZER's ₹360 on 5 Dec 2013 as a 5.0% fall instead of 4.0%. The History file picks this up at its Saturday rebuild.
+
 ## 2026-11-11 — The corporate-actions guard was not looking at anything
 
 - **The nightly check for splits and demergers hiding in the price history had been scanning nothing, while the run reported green.** It read a local file (`data_cache/screener_prices.parquet`) that nothing writes on a GitHub runner — the store a sync downloads is streamed to a temp file, read, and deleted — so it printed "no screener closes to check" and exited in under half a second on every run. The step's warning said "new find or failure", which reads like a find, and seven consecutive green runs carried it before anyone opened the step log.
@@ -41,6 +47,7 @@
   makes 6**, the Screener store (8.79 MB) is downloaded once a run instead of
   twice, and the newest NSE bundle once a run instead of twice. Nothing that is
   published or displayed differs; these are the same bytes, fetched once.
+
 ## 2026-11-11 — The Guide on tax, and an audit of method and evidence
 
 - **The Backtest shows the month in progress.** Both tabs stopped at the last completed month, so on 11 Nov the grid ended at October while Portfolio already showed November. November now appears to date, marked in the caption with the day it reached ("to 6 Nov 2026"), and the year table reads "Jan–6 Nov". The figures at the top still stop at the last completed month. The History tab shows it when its end month is the latest one.

@@ -111,7 +111,7 @@ python scripts/audit_gaps_against_bse.py --long nse_long_close.parquet --pack ns
 | From the 30 Nov 2026 signal the record uses the six-monthly reset: every holding back to 5% at the March and September rebalances; in between kept holdings keep their drift up to 15% and each new buy is 5% of the account at the last reset, paid from cash (owner, 8 Nov 2026, after TODO S111's four-rule test with a tax estimate). Earlier months keep the monthly reset | `track_record.TRACK_RECORD_CONFIG` `hold_cap`, `buy_size`, `weight_reset_months`; `backtester._fixed_buys`; `docs/TRACK_RECORD.md` |
 | A demerger or scheme is priced at the **ex-date fall** (factor = close / previous close), as every demerger here: NEXTMEDIA, ZEEMEDIA, ABIRLANUVO, **KESORAMIND** (10 Mar 2025, 1 UltraTech per 52; x0.0474) | `data/nse_prices/notes.json` |
 | Rights issues are priced: the theoretical ex-rights price over the last close, only when the issue is under the market | `nse_adjusted.rights_factor`, `PRICE_PIPELINE.md` |
-| Dividends of 10% of the price or more are taken out; smaller ones stay in (as in Screener) | `nse_adjusted.LARGE_DIVIDEND` |
+| Dividends of 10% of the price or more are taken out; smaller ones stay in (as in Screener). Factor C / (C + D) on the ex-date, the holder's return, since 11 Nov 2026 (was (P - D) / P; TODO S122) | `nse_adjusted.LARGE_DIVIDEND` |
 | Every NSE equity series is read and ranked, best first: EQ, then BE / RR / IV, BZ, T0, SM / ST, SZ | `nse_adjusted.SERIES_RANK` |
 | A `notes.json` correction needs its evidence and steps aside once an NSE list carries the same action | `nse_prices.uncovered` |
 | Renames are followed to the last ticker, even a delisted one (survivorship) | `nse_identity.resolve` |

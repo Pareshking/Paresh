@@ -270,7 +270,13 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
         # The price must have fallen by at least half the payout: a text that
         # reads as a large amount the market never paid out is not applied.
         if y < 1 and move < 1 - y / 2:
-            factor = 1 - y
+            # The holder's return on the ex-date is (close + dividend) / last
+            # close, so the factor is close / (close + dividend) = move / (move + y).
+            # (P - D) / P, used until 11 Nov 2026, booked a fall the holder did
+            # not have whenever the price did not drop by exactly the payout:
+            # PFIZER 5 Dec 2013, -5.03% instead of -3.97% (the US port's audit
+            # found the same in Yahoo's factor, docs/DATA_CORRECTNESS.md).
+            factor = move / (move + y)
             factors.at[day, r.symbol] *= factor
             rows.append({**out, "bc_factor": factor, "verdict": "large dividend"})
         else:
@@ -284,7 +290,7 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
 # one basis; a payout of LARGE_DIVIDEND of the last close or more is a return
 # of capital the holder kept, not a fall: PFIZER's Rs 360 on 5 Dec 2013 (21%),
 # WYETH's Rs 145 the same day, PATNI 2010, IDFC 2023 (23 events, 2008-2026).
-# Factor (P - D) / P on the ex-date.
+# Factor C / (C + D) on the ex-date, C its close (since 11 Nov 2026; was (P - D) / P).
 LARGE_DIVIDEND = 0.10
 
 
