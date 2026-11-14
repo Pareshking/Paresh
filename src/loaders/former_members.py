@@ -61,6 +61,18 @@ def unavailable() -> list[str]:
         return []
 
 
+def out_of_date(needed: Iterable[str], stored: Iterable[str], missing: Iterable[str]) -> list[str]:
+    """Names on which the committed file disagrees with the membership record.
+
+    The file is right when every former member the record needs is either priced
+    or listed as unavailable, and nothing listed unavailable has stopped being
+    needed. A name that leaves the index between the monthly runs (IGLSPIRITS,
+    13 Nov 2026, S135) breaks the first; one that rejoins it breaks the second.
+    Empty means the file is up to date.
+    """
+    return sorted((set(needed) - set(stored)) ^ set(missing))
+
+
 def with_former_members(adj_close: pd.DataFrame, history: dict[str, Any] | None = None,
                         *, stored: pd.DataFrame | None = None) -> pd.DataFrame:
     """`adj_close` plus a column for each stored former member it lacks.

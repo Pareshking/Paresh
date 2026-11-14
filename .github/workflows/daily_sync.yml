@@ -408,6 +408,16 @@ jobs:
       - name: Record index membership
         run: python scripts/build_membership_history.py || echo "::warning::Membership history was NOT recorded today -- read the step log."
 
+      # A name that leaves the index between the monthly Track Record runs is a
+      # former member the record needs priced, or listed as unpriceable, before
+      # the next push: on 13 Nov 2026 IGLSPIRITS left and every PR's tests went
+      # red until the file was rebuilt by hand (S135). A no-op on every night the
+      # file already agrees with the membership record.
+      - name: Rebuild former-member prices when the index loses or regains a name
+        env:
+          PYTHONPATH: .
+        run: python scripts/sync_former_member_prices.py --only-if-out-of-date || echo "::warning::Former-member prices could not be rebuilt -- the tests will name the missing stock; read the step log."
+
       - name: Commit and Push Updated Index & Classification Files
         run: |
           git config --global user.name 'github-actions[bot]'

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-14 — The nightly sync keeps the former-member file in step with the index
+
+- **A stock leaving the index no longer turns every pull request red until the month end.** The nightly sync now runs `sync_former_member_prices.py --only-if-out-of-date` after recording membership. It rebuilds the file only when it disagrees with the record: a name that left the index is neither priced nor listed unavailable, or an unavailable name has rejoined. On every other night it changes nothing. When it rebuilds, the log says how many existing closes it restated and in which names, so a source change like the 904 BSE-to-NSE closes of S135 is visible rather than silent.
+- Checked by replaying 13 Nov: with the file as it stood that day the former-members test fails, the step names IGLSPIRITS, rebuilds, reports "restated 904 existing closes in 7 names", and the test passes; the result is byte-identical to the file now on `main`.
+
 ## 2026-11-14 — Portfolio: the tiles say which return is the account's
 
 - **"Since last rebalance" +7.8% and "MTD return" +7.4% read as two answers to the same question.** They are not. The first is today's holdings since the 2 Nov fill, before that fill's trading costs, the sold names' last day and cash; the second is the whole account since 30 Oct. The tiles now read **Holdings since 2 Nov** ("Today's stocks only, before costs") and **Portfolio · Nov MTD**, so the account's return is the one called Portfolio. A finished month awaiting its freeze reads "Portfolio · Sep (closed)", not MTD. No figure changed.

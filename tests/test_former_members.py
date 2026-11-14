@@ -59,6 +59,22 @@ def test_symbols_needed_is_every_member_ever_the_frame_lacks():
     assert fm.symbols_needed(None, ["AAA"]) == []
 
 
+def test_out_of_date_names_an_exit_and_a_return_and_nothing_else():
+    # S135: IGLSPIRITS left the index on 13 Nov 2026, between monthly runs.
+    assert fm.out_of_date(["GONE", "OLDX"], ["GONE"], ["OLDX"]) == []
+    assert fm.out_of_date(["GONE", "OLDX", "IGLSPIRITS"], ["GONE"], ["OLDX"]) == ["IGLSPIRITS"]
+    # a name listed unavailable that has rejoined the index is no longer needed
+    assert fm.out_of_date(["GONE"], ["GONE"], ["OLDX"]) == ["OLDX"]
+    # a priced name that rejoined is harmless: the frame's own column wins
+    assert fm.out_of_date(["GONE"], ["GONE", "BACK"], []) == []
+
+
+def test_the_nightly_sync_rebuilds_the_former_member_file_after_membership():
+    wf = (ROOT / ".github" / "workflows" / "daily_sync.yml").read_text(encoding="utf-8")
+    step = wf.index("sync_former_member_prices.py --only-if-out-of-date")
+    assert wf.index("build_membership_history.py") < step < wf.index("git add -A data/")
+
+
 def test_with_former_members_adds_only_names_the_record_lists():
     current = _frame("AAA", "NEWY")
     stored = _frame("GONE", "OLDX", "STRAY")           # STRAY was never a member
