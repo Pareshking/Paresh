@@ -1,5 +1,5 @@
 {
-  "fetched_on": "2026-11-05",
+  "fetched_on": "2026-11-14",
   "source": "Screener closes; NSE closes (split/bonus adjusted) where Screener has none",
   "by_source": {
     "screener": 251,
@@ -7,7 +7,7 @@
   },
   "symbols": 258,
   "first_session": "2024-09-30",
-  "last_session": "2026-11-04",
+  "last_session": "2026-11-13",
   "unavailable": [
     "ACCELYA",
     "ACLGATI",
@@ -61,6 +61,7 @@
     "HUHTAMAKI",
     "IDFC",
     "IGARASHI",
+    "IGLSPIRITS",
     "IGPL",
     "IKIO",
     "INOXLEISUR",
@@ -131,5 +132,5 @@
     "VALIANTORG",
     "VIDHIING"
   ],
-  "note": "No usable history on Screener or NSE (fewer than 60 sessions): names merged out of existence. They stay unpriceable and cannot be selected."
+  "note": "No usable history on Screener or NSE (fewer than 60 sessions): names merged out of existence, or listed too recently to have that many. They stay unpriceable and cannot be selected."
 }

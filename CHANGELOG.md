@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-14 — Former members: IGLSPIRITS named, and NSE's closes in place of BSE's
+
+- **CI was red on every pull request since 13 Nov.** The nightly sync of 13 Nov (`83dabff`) took IGL Spirits (IGLSPIRITS, India Glycols' demerger, listed 4 Nov) out of NSE's Total Market list, which made it a former member. The former-members price file is refreshed only by the monthly job, so the name was neither priced nor listed as unavailable, and `test_the_committed_file_prices_every_former_member_it_can_and_names_the_rest` failed. The file has been rebuilt with its own script. IGLSPIRITS has 8 sessions, short of the 60 needed, so it is listed as unavailable and cannot be selected. The file's note no longer says every such name was "merged out of existence".
+- **The rebuild also replaced 904 closes for 7 former members** (AGI, EPIGRAL, EUREKAFORB, JTLIND, SINDHUTRAD, TVSHLTD, VENUSPIPES), Nov 2025 to Nov 2026, by -1.5% to +1.6% a cell. The committed file had **BSE's** close for these names, and the rebuild has **NSE's**: on 6, 12 and 14 Nov 2025 all 21 cells match each exchange's bhavcopy to the paisa, old to BSE and new to NSE. This is the S89 contamination (Screener's store carrying BSE closes), now gone from Screener's published store. No other cell changed; the file now runs to 13 Nov 2026.
+
 ## 2026-11-13 — Sectors: Rank by sits on the board it sorts
 
 - **On a phone, the 3M median / 6M median / Share passing / Top-50 count buttons looked dead.** They worked, but the only thing they re-sorted was the Industry leaderboard, several screens below; everything in view stayed the same apart from two words in the subtitle. The buttons are now at the top of the leaderboard, with "Ranked by …" beside its title.
