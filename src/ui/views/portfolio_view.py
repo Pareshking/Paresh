@@ -123,6 +123,23 @@ def _benchmark_returns_from_daily(
     return day, mtd, total
 
 
+def tile_labels(fill_date, month_prefix: str) -> dict:
+    """Header-tile words that say which figure is the account's return.
+
+    Owner, 14 Nov 2026: "Since last rebalance" +7.8% and "MTD return" +7.4%
+    read as two answers to one question. The first is today's holdings since
+    the fill, before that fill's costs, the sold names' last day and cash; the
+    second is the whole account since the month began. The labels say so.
+    """
+    when = pd.to_datetime(fill_date, errors="coerce")
+    since = f"since {when:%-d %b}" if pd.notna(when) else "since rebalance"
+    return {
+        "holdings": f"Holdings {since}",
+        "holdings_note": "Today's stocks only, before costs",
+        "account_month": f"Portfolio · {month_prefix}",
+    }
+
+
 def basis_note(fill_date=None) -> str:
     """What the Current book's rupee columns are based on, and what they are not.
 
@@ -633,6 +650,7 @@ def render_portfolio_view(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
     # Every other page states what it shows under its title (design audit,
     # 8 Nov 2026): Portfolio printed an empty line there.
     kit.page_head("Portfolio", "The model book as it stands, and what it has returned.")
+    tiles = tile_labels(meta.get("fill_date"), labels["prefix"])
 
     # Frozen Portfolio KPI design: six centered cards, with benchmark
     # comparisons shown as a second layer only where a comparable period exists.
@@ -653,9 +671,9 @@ def render_portfolio_view(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
             kit.spark_img(history.get("equity_daily"), 110, 26, last=None),
         ),
         kit.Reading(
-            "Since last rebalance",
+            tiles["holdings"],
             "—" if not np.isfinite(pnl_pct) else f"{_fmt.pct(pnl_pct, fraction=False)}",
-            "",
+            tiles["holdings_note"],
             "" if not np.isfinite(pnl_pct) else ("up" if pnl >= 0 else "down"),
         ),
         kit.Reading(
@@ -666,7 +684,7 @@ def render_portfolio_view(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
         ),
         kit.Reading("Cash / realised balance", _fmt.inr(cash)),
         kit.Reading(
-            "MTD return",
+            tiles["account_month"],
             kit.pct(strategy_mtd),
             f"Nifty 500 {kit.pct(benchmark_mtd)}",
             "up" if strategy_mtd >= 0 else "down",
