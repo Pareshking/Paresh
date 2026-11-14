@@ -244,3 +244,30 @@ def test_production_qa_does_not_wait_for_the_removed_live_month_note():
     qa = (ROOT / "scripts/portfolio_production_qa.py").read_text(encoding="utf-8")
     assert '"is live month-to-date"' not in qa
     assert '"calendar_live_month_marked": equity_month or' in qa
+
+
+def test_header_tiles_say_which_return_is_the_account():
+    # Owner, 14 Nov 2026: "Since last rebalance" +7.8% beside "MTD return" +7.4%
+    # left unclear which was the portfolio's return. The account tile says
+    # "Portfolio"; the holdings tile names its fill and that it is before costs.
+    import pandas as pd
+
+    from src.ui.views.portfolio_view import _month_labels, tile_labels
+
+    nov13 = pd.Timestamp("2026-11-13")
+    tiles = tile_labels("2026-11-02", _month_labels("2026-11", "mtd", nov13)["prefix"])
+    assert tiles["holdings"] == "Holdings since 2 Nov"
+    assert "before costs" in tiles["holdings_note"]
+    assert tiles["account_month"] == "Portfolio · Nov MTD"
+    # A finished month awaiting its freeze is not called MTD on the tile either.
+    closed = _month_labels("2026-09", "closed", pd.Timestamp("2026-10-01"))["prefix"]
+    assert tile_labels(None, closed) == {
+        "holdings": "Holdings since rebalance",
+        "holdings_note": "Today's stocks only, before costs",
+        "account_month": "Portfolio · Sep (closed)",
+    }
+    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
+    start = source.index("    kit.readings([")
+    block = source[start:source.index('"Portfolio snapshot")', start)]
+    assert 'tiles["holdings"]' in block and 'tiles["account_month"]' in block
+    assert '"Since last rebalance"' not in block and '"MTD return"' not in block

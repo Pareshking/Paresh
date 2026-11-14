@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-14 — Portfolio: the tiles say which return is the account's
+
+- **"Since last rebalance" +7.8% and "MTD return" +7.4% read as two answers to the same question.** They are not. The first is today's holdings since the 2 Nov fill, before that fill's trading costs, the sold names' last day and cash; the second is the whole account since 30 Oct. The tiles now read **Holdings since 2 Nov** ("Today's stocks only, before costs") and **Portfolio · Nov MTD**, so the account's return is the one called Portfolio. A finished month awaiting its freeze reads "Portfolio · Sep (closed)", not MTD. No figure changed.
+
 ## 2026-11-14 — Former members: IGLSPIRITS named, and NSE's closes in place of BSE's
 
 - **CI was red on every pull request since 13 Nov.** The nightly sync of 13 Nov (`83dabff`) took IGL Spirits (IGLSPIRITS, India Glycols' demerger, listed 4 Nov) out of NSE's Total Market list, which made it a former member. The former-members price file is refreshed only by the monthly job, so the name was neither priced nor listed as unavailable, and `test_the_committed_file_prices_every_former_member_it_can_and_names_the_rest` failed. The file has been rebuilt with its own script. IGLSPIRITS has 8 sessions, short of the 60 needed, so it is listed as unavailable and cannot be selected. The file's note no longer says every such name was "merged out of existence".
