@@ -82,7 +82,8 @@ def main() -> int:
         "first_session": str(adj.index[0].date()), "last_session": str(adj.index[-1].date()),
         "unavailable": missing,
         "note": ("No usable history on Screener or NSE (fewer than %d sessions): names merged "
-                 "out of existence. They stay unpriceable and cannot be selected." % MIN_SESSIONS),
+                 "out of existence, or listed too recently to have that many. They stay "
+                 "unpriceable and cannot be selected." % MIN_SESSIONS),
     }, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {PRICES_FILE.name}: {len(usable)} symbols, {len(adj)} sessions; "
           f"unavailable: {missing}")
