@@ -20,6 +20,14 @@ nowhere in the code or docs).
 
 ## Second batch (15 Nov 2026): the unmerged branches and `history_backtests.zip`
 
+**Done.** Dry run 43677292481: "70 to delete, 0 skipped by a check, 2 already gone".
+Delete run 43677526783: backup first, artifact `unmerged-branches-bundle`
+(22,790,482 bytes, expires 13 Feb 2027), then **"done: 70 deleted, 0 failed"**.
+The repository now has 19 branches: `main`, the ten `agent/*`, the stage4b
+branches, `archive/probe-test`, `audit-backup-20260831`,
+`fix/r2-membership-test-live-change` and the three with open pull requests.
+Nothing is left on this page for the owner.
+
 Owner, 15 Nov: *"Yes delete it"*. `.github/cleanup/branches.tsv` now lists the 69
 branches that hold work never merged (24 with no PR, 45 whose PR was closed
 unmerged; each with its tip sha), and `owner_cleanup.py` adds
