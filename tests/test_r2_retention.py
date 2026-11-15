@@ -371,3 +371,14 @@ def test_a_protected_dataset_is_never_thinned_below_two_copies_or_also_pruned():
         rr.check_protected({}, {"bse/daily": "archive/bse/daily"}, {"bse/daily": ("archive/bse/daily", 2)})
     with pytest.raises(ValueError, match="protected"):
         rr.check_protected({"bse/daily": "archive/bse/daily"}, {})
+
+
+def test_prices_ss_keeps_three_dailies_and_every_month_end():
+    # Owner, 15 Nov 2026: clear what is not required. Nothing reads prices/ss
+    # from R2 (ss_sync restores from the release), so it keeps 3 dailies, not 7.
+    a = FakeArchive()
+    for i, d in enumerate(AUG + SEP):
+        publish(a, "prices/ss", "archive/prices/ss", d, 3000 + i, size=1000)
+    plans = {p.dataset: p for p in rr.make_plan(a)}
+    assert set(plans["prices/ss"].keep) == {"2026-08-31"} | set(SEP[-3:])
+    assert rr.RETAINED_KEEP_DAILY == {"prices/ss": 3}

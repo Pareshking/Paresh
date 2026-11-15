@@ -47,7 +47,7 @@ evidence. Findings go to `docs/TODO.md` the same day, as CLAUDE.md requires.
   measure their queue, and running one against production the night before
   launch risks the thing it is meant to protect. Out of scope deliberately.
 - **The strategy's returns against an independent source.** None exists
-  (`docs/AUDIT_2026-11-08.md`, "What was not checked").
+  (`docs/archive/AUDIT_2026-11-08.md`, "What was not checked").
 
 
 ## Slot results

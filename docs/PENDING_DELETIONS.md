@@ -108,7 +108,7 @@ since commit `b4f7111` it exits with an instruction to re-run with `full=yes`
 instead, so deleting the prefix cannot cause a silent eighteen-year
 re-download.
 
-**Still true and worth knowing**: `.github/workflows/bse_bhavcopy_r2.yml`
+**Removed 15 Nov 2026** (no longer true): `.github/workflows/bse_bhavcopy_r2.yml`
 carries this prefix as its *default input*. That is the dispatch-only job which
 *wrote* the scratch. It never runs on its own and it writes rather than reads,
 so it does not block deletion — but dispatching it would recreate the prefix.

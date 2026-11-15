@@ -142,7 +142,7 @@ Findings from the docs:
 
 `docs/TODO.md` (all items here), `docs/UI_ARCHITECTURE.md` (components, chart
 stack), `docs/TRACK_RECORD.md` (page merge), `CHANGELOG.md`, `README.md`,
-`docs/DATA_CATALOGUE.md` (new), `docs/PARKED_IDEAS.md` (remove Table/Grid note).
+`docs/DATA_CATALOGUE.md` (new), `docs/archive/PARKED_IDEAS.md` (remove Table/Grid note).
 
 ## Proposed order
 

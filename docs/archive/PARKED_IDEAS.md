@@ -100,9 +100,9 @@ NSE symbol.
 - **NSE DUMMY placeholders** (e.g. `DUMMYTRVN`) — already filtered in the
   loader, documented in README and audit tracker 2.15. Not a parked idea;
   closed.
-- **Survivorship bias** — tracked in `docs/V1_AUDIT_TRACKER.md` §5 under its
+- **Survivorship bias** — tracked in `docs/archive/V1_AUDIT_TRACKER.md` §5 under its
   own standing decision. Constituent snapshots accumulate from 2026-08-19
   onwards.
-- **Raw-price rebuild (NEXT 9)** — tracked in `docs/V1_AUDIT_TRACKER.md` §4
+- **Raw-price rebuild (NEXT 9)** — tracked in `docs/archive/V1_AUDIT_TRACKER.md` §4
   and fully designed in `docs/RAW_PRICE_REBUILD.md`. Not started; awaiting user
   approval.

@@ -130,7 +130,7 @@ backtest reports 1–30 Sep on the point-in-time list.
 ## Open items
 
 - NSE as the middle price source, once its adjusted prices rank like
-  Screener's (`docs/NSE_DATA_LEDGER.md`, To do 3–4).
+  Screener's (`docs/archive/NSE_DATA_LEDGER.md`, To do 3–4).
 
 
 ## 2026-09-30 — Nano/750 universe correction

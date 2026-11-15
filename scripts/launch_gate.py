@@ -7,7 +7,7 @@ Launch day needs one thing a test suite cannot give: a check that the pages a
 reader will open actually draw, with the data that is really on disk, and that
 nothing on them contradicts anything else. This runs that check and prints a
 verdict per item with the number behind it, so a pass is evidence and not a
-feeling (docs/LAUNCH_TEST_PLAN.md, slot 1).
+feeling (docs/archive/LAUNCH_TEST_PLAN.md, slot 1).
 
 It changes nothing. Exit 1 if any gate fails.
 """
