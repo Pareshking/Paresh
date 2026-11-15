@@ -1,6 +1,4 @@
 # Branches the owner approved for deletion, one per line: name <TAB> tip sha <TAB> why.
 # Both earlier 15 Nov batches are done (233 merged, run 43674615797; 69 unmerged, run 43677526783,
-# bundled first into the artifact unmerged-branches-bundle). Third batch below, owner 15 Nov: "Yes add both branches".
+# bundled first into the artifact unmerged-branches-bundle). Third batch (the branches of closed PRs #511 and #513) done 15 Nov, run 43708240986. Empty now.
 # scripts/owner_cleanup.py deletes a branch only if its tip is still this sha and no PR is open on it.
-ccr-cd46f9c8-zksr9j	58373e23e23d7b02ec39c80256eb737126eb8b78	PR #511 closed 15 Nov, replaced by #535; tip is main's #535 commit, nothing unmerged
-claude/investment-platform-audit-djf1we	d4db9b34643f8880ba6673e0987681a7da0d4b2a	PR #513 closed 15 Nov, owner: drop it entirely (bundled before deletion)

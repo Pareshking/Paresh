@@ -20,7 +20,7 @@ nowhere in the code or docs).
 
 ## Third batch (15 Nov 2026): the branches of two closed PRs
 
-Owner, 15 Nov: "Yes add both branches to the clean-up job". **Waiting on the owner's run**: Actions, then "Owner clean-up", then Run workflow, first in dry-run mode and then in delete mode.
+Owner, 15 Nov: "Yes add both branches to the clean-up job", then "Delete them if you can". **Done.** Dry run 43708207307 listed "2 to delete, 0 skipped by a check, 4 already gone". Delete run 43708240986 first backed both branches up into the artifact `unmerged-branches-bundle` (28,280,240 bytes, expires 13 Feb 2027), then ended "done: 2 deleted, 0 failed". The repository has 17 branches.
 
 | Branch | Tip | Why |
 |---|---|---|
