@@ -8,7 +8,9 @@ classes the shared stylesheet in src/ui/theme.py already styles.
 from __future__ import annotations
 
 import html
+import json
 import math
+import re
 from urllib.parse import quote
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -275,8 +277,28 @@ def caption(text: str) -> None:
     st.html(f'<p class="pg-cap">{html.escape(sentence(text))}</p>')
 
 
+def safe_href(href: str) -> str:
+    """The link if it is relative or http(s); "#" for anything else (javascript:, data:, ...)."""
+    h = (href or "").strip()
+    scheme = re.match(r"([A-Za-z][A-Za-z0-9+.-]*):", re.sub(r"[\x00-\x20]", "", h))
+    if scheme and scheme.group(1).lower() not in ("http", "https"):
+        return "#"
+    return h
+
+
+def safe_json(obj) -> str:
+    """JSON that cannot close the HTML element it sits in: <, > and & as JSON escapes.
+
+    Still valid JSON (the startup-metrics readers parse it unchanged), but a value
+    holding "</div><script>" can no longer break out (S138, HTML audit 15 Nov 2026).
+    """
+    return (json.dumps(obj).replace("&", "\\u0026").replace("<", "\\u003c")
+            .replace(">", "\\u003e"))
+
+
 def caption_link(text: str, href: str, label: str) -> None:
     """A caption that ends in a link onward (audit F33): "… on Actions →"."""
+    href = safe_href(href)
     st.html(f'<p class="pg-cap">{html.escape(text)} '
             f'<a class="pg-onward" href="{html.escape(href)}" target="_self">{html.escape(label)} →</a></p>')
 
