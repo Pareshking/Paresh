@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-15 — Results calendar: the nightly job stops refusing a quiet season
+
+- **The Dashboard's "Coming up for the book" had been stuck on 11 Nov.** The nightly job that copies NSE's board-meeting calendar failed every night from 12 Nov (alerts #519, #520). NSE's data was fine; the job's own guard was wrong twice. It counted the last file's meetings dated today as "still ahead" although NSE had already moved them to its held list (12 Nov: 197 ahead against 431 "expected"). And it required 50 meetings ahead, which no day after the Q2 results deadline (14 Nov) can meet: NSE listed 18 on 15 Nov.
+- The guard now asks whether a meeting the last file knew has vanished: not ahead, not held, and the company has no meeting on another date. More than 25 of those, and over 10% of those checked, or fewer than 100 meetings held in 60 days, still refuses the file. Checked on 15 Nov against NSE's real feeds: 0 of the 2,432 meetings in the 11 Nov file are lost. An empty held feed, or half the companies dropped, is refused. "Today" is now India's date: the job often runs after midnight IST, when the runner's clock still shows the day before.
+
 ## 2026-11-14 — The nightly sync keeps the former-member file in step with the index
 
 - **A stock leaving the index no longer turns every pull request red until the month end.** The nightly sync now runs `sync_former_member_prices.py --only-if-out-of-date` after recording membership. It rebuilds the file only when it disagrees with the record: a name that left the index is neither priced nor listed unavailable, or an unavailable name has rejoined. On every other night it changes nothing. When it rebuilds, the log says how many existing closes it restated and in which names, so a source change like the 904 BSE-to-NSE closes of S135 is visible rather than silent.

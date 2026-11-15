@@ -46,14 +46,56 @@ def test_a_meeting_listed_only_by_its_notice_is_kept():
     assert d.set_index("symbol").loc["OTHER", "purpose"] == "Board meeting"
 
 
-def test_check_refuses_an_empty_or_halved_forward_calendar():
-    today = date(2026, 11, 8)
-    few = crc.normalise(_forward(), [])
-    assert any("forward meetings" in b for b in crc.check(few, None, today))
-    many = pd.DataFrame({"symbol": [f"S{i}" for i in range(200)], "date": "2026-11-20", "purpose": "Financial Results",
-                         "results": 1, "detail": "", "source": "calendar"})
-    assert crc.check(many, None, today) == []
-    assert any("still ahead" in b for b in crc.check(many.head(80), many, today))
+def _meetings(n, day, source, prefix="S"):
+    return pd.DataFrame({"symbol": [f"{prefix}{i}" for i in range(n)], "date": day,
+                         "purpose": "Financial Results", "results": 1, "detail": "", "source": source})
+
+
+def test_check_refuses_a_download_with_no_meetings_held():
+    today = date(2026, 11, 15)
+    assert any("held in 60 days" in b for b in crc.check(_meetings(500, "2026-11-20", "calendar"), None, today))
+    assert crc.check(_meetings(500, "2026-11-10", "held"), None, today) == []
+
+
+def test_the_off_season_and_todays_meetings_moving_to_held_are_not_a_fault():
+    # S110, 12-15 Nov 2026: the old guard counted forward meetings, so the Q2
+    # deadline (14 Nov) emptying NSE's calendar, and NSE moving the day's meetings
+    # from the calendar to the held list, failed the job every night.
+    today = date(2026, 11, 15)
+    old = pd.concat([_meetings(400, "2026-11-10", "held", "H"), _meetings(430, "2026-11-14", "calendar", "C"),
+                     _meetings(5, "2026-12-05", "calendar", "D")])
+    new = pd.concat([_meetings(400, "2026-11-10", "held", "H"), _meetings(430, "2026-11-14", "held", "C"),
+                     _meetings(5, "2026-12-05", "calendar", "D")])
+    assert crc.check(new, old, today) == []
+    assert crc.lost_meetings(new, old, today).empty
+
+
+def test_a_moved_meeting_is_not_lost_but_a_vanished_one_is():
+    today = date(2026, 11, 15)
+    old = pd.concat([_meetings(300, "2026-11-10", "held", "H"), _meetings(1, "2026-11-20", "calendar", "M")])
+    moved = pd.concat([_meetings(300, "2026-11-10", "held", "H"), _meetings(1, "2026-11-27", "calendar", "M")])
+    assert crc.lost_meetings(moved, old, today).empty
+    gone = _meetings(300, "2026-11-10", "held", "H")
+    assert crc.lost_meetings(gone, old, today)["symbol"].tolist() == ["M0"]
+    assert crc.check(gone, old, today) == []          # one cancellation is not a broken download
+
+
+def test_check_refuses_a_download_that_loses_what_the_last_file_knew():
+    today = date(2026, 11, 15)
+    old = pd.concat([_meetings(400, "2026-11-10", "held", "H"), _meetings(200, "2026-11-25", "calendar", "C")])
+    new = pd.concat([_meetings(400, "2026-11-10", "held", "H"), _meetings(100, "2026-11-25", "calendar", "C")])
+    bad = crc.check(new, old, today)
+    assert len(bad) == 1 and bad[0].startswith("100 of 600 meetings")
+    # held meetings about to leave the 60-day window are not required
+    edge = _meetings(400, "2026-09-17", "held", "E")
+    assert crc.check(_meetings(400, "2026-11-10", "held", "H"),
+                     pd.concat([_meetings(400, "2026-11-10", "held", "H"), edge]), today) == []
+
+
+def test_today_is_nse_date_not_the_runners():
+    import inspect
+    assert "Asia/Kolkata" in inspect.getsource(crc.ist_today)
+    assert "today = ist_today()" in inspect.getsource(crc.main)
 
 
 def _cal():
