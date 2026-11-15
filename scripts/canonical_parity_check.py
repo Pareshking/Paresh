@@ -4,9 +4,11 @@
 Runs the REAL code paths on the PUBLISHED data (the rolling release assets the
 app itself reads; no secrets) and exits non-zero when any check fails:
 
-  1. book_parity      Portfolio passes the Screener ranking frame, Actions and
-                      Backtest the deep Yahoo frame; both must yield the identical
-                      current book (symbols, entry dates/prices, price now, weights).
+  1. book_parity      Portfolio passes the ranking frame (Screener, NSE filling
+                      its gaps), Actions, the Dashboard and Backtest the deep frame
+                      (Screener's whole store for the universe), each built the way
+                      app.py builds it; both must yield the identical current book
+                      (symbols, entry dates/prices, weights).
   2. ledger_parity    Every frozen ledger month equals the live replay's
                       calendar-month return, strategy and benchmark (+/-0.05 pp).
   3. ledger_config    Every frozen month was struck under the CURRENT pinned
@@ -44,7 +46,7 @@ logging.disable(logging.WARNING)
 
 from src.core.config import (  # noqa: E402
     DEFAULT_SECTOR_CAP, DEFAULT_STOCK_CAP, DEFAULT_TRANSACTION_COST_BPS,
-    PRICE_SNAPSHOT_URL, RANKINGS_SNAPSHOT_URL, SCREENER_STORE_URL,
+    RANKINGS_SNAPSHOT_URL, SCREENER_STORE_URL,
 )
 from src.engine import systems  # noqa: E402
 from src.engine.actions import plan_rebalance  # noqa: E402
@@ -62,7 +64,7 @@ from src.engine.track_record import (  # noqa: E402
 )
 from src.loaders import nse_prices  # noqa: E402
 from src.loaders import price_source as ps  # noqa: E402
-from src.loaders.price_loader import extract_ohlcv, fetch_benchmark_history  # noqa: E402
+from src.loaders.price_loader import fetch_benchmark_history  # noqa: E402
 from src.loaders.ranking_store import read_snapshot  # noqa: E402
 from src.ui.canonical_book import current_book  # noqa: E402
 
@@ -112,7 +114,23 @@ def main() -> int:
     tmp = Path(tempfile.mkdtemp())
     rank, meta = read_snapshot(str(_download(RANKINGS_SNAPSHOT_URL, tmp)))
     symbols = list(meta["universe"])
-    yahoo, *_ = extract_ohlcv(pd.read_parquet(_download(PRICE_SNAPSHOT_URL, tmp)), symbols)
+    # The two frames the pages pass, built as app._resolved_prices_shared builds
+    # them. Until 15 Nov 2026 the deep side was the release's prices.parquet, a
+    # Yahoo-era snapshot frozen on 1 Oct 2026 that no page has read since Yahoo
+    # was dropped (2 Oct), and the ranking side was filled from it; the gate
+    # therefore compared a frame production does not use (C6, owner: "B ok").
+    chosen = ps.from_screener(pd.read_parquet(_download(SCREENER_STORE_URL, tmp)))
+    if chosen is None:
+        print("FAIL  the published Screener store is not usable; nothing can be compared")
+        return 1
+    keep = [c for c in chosen.close.columns if c in set(symbols)]
+    deep = chosen.close[keep].copy()                 # Actions, Dashboard, Backtest
+    ranked = ps.frames_from(chosen, symbols, nse_prices.middle_close(symbols))
+    if ranked is None:
+        print("FAIL  no ranking frame could be built; nothing can be compared")
+        return 1
+    screener = ranked.close                          # Portfolio
+    yahoo = deep   # the name the checks below were written with
 
     # The deep frame must cover the WHOLE universe the ranking was struck on.
     # `_clean_price_df` keeps the intersection, so a frame that has gone stale
@@ -136,7 +154,7 @@ def main() -> int:
         ranked_top = [str(x).upper()
                       for x in rank.sort_values("Rank")["Symbol"].head(TOP_N_FOR_COVERAGE)]
         blocking = sorted({s.upper() for s in absent} & set(ranked_top))
-        where = (f"the price snapshot ends {yahoo.index[-1]:%Y-%m-%d} and covers "
+        where = (f"the deep frame ends {yahoo.index[-1]:%Y-%m-%d} and covers "
                  f"{len(symbols) - len(absent)} of {len(symbols)} ranked symbols; "
                  f"absent: {', '.join(absent[:10])}"
                  + ("" if len(absent) <= 10 else f" (+{len(absent) - 10} more)"))
@@ -151,8 +169,6 @@ def main() -> int:
               "universe it does not fully cover, and will fail outright the day "
               "one of these reaches the book (C6).")
 
-    chosen = ps.from_screener(pd.read_parquet(_download(SCREENER_STORE_URL, tmp)))
-    screener = ps.keep_and_fill(chosen, symbols, yahoo, nse_prices.middle_close(symbols)).close
     bench = fetch_benchmark_history(period="5y")
     if bench.empty:
         print("FAIL  benchmark unavailable; nothing can be compared")
