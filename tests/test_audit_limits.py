@@ -42,12 +42,20 @@ LONG = {
     "nse_long_report.json": {"unpriced": ["TRIVENIPT"], "renames_not_joined": ["x"] * 16},
 }
 
-# The history audit's summary of run 37047812302 (2 Oct 2026), the baseline.
-HISTORY = {"summary.json": {"sessions": 4704, "stocks": 4486, "missing_weekdays": 35,
-                            "missing_weekdays_settled": 35, "gap_days": 87, "copied_sessions": 73,
+# The history audit's counts in its first scheduled run, 41762106737 (4 Nov 2026), the
+# baseline (S47); the fields the limits do not read are from the 2 Oct run, 37047812302.
+HISTORY = {"summary.json": {"sessions": 4739, "stocks": 4486, "missing_weekdays": 35,
+                            "missing_weekdays_settled": 35, "gap_days": 73, "copied_sessions": 73,
                             "calendar_flags": 80,
-                            "actions": {"no move": 584, "applied": 570, "no price": 310, "demerger": 97},
-                            "unexplained_jumps": 1401, "renames": 425, "renames_refused": 142}}
+                            "actions": {"no move": 82, "applied": 570, "no price": 310, "demerger": 97},
+                            "unexplained_jumps": 922, "renames": 688, "renames_refused": 56}}
+
+
+def test_the_2_oct_history_counts_now_fail():
+    """Tightened to the 4 Nov run (S47): the 2 Oct counts would be a regression now."""
+    old = {"summary.json": {**HISTORY["summary.json"], "gap_days": 87, "unexplained_jumps": 1401,
+                            "renames_refused": 142, "actions": {"no move": 584}}}
+    assert len(al.check(old, al.HISTORY_LIMITS)) == 4
 
 
 def test_todays_long_file_audits_pass():
@@ -119,7 +127,7 @@ def test_a_missing_summary_or_section_fails():
 
 def test_every_limit_is_a_named_constant_with_its_baseline():
     text = (ROOT / "scripts" / "audit_limits.py").read_text(encoding="utf-8")
-    assert "run 38043565842" in text and "run 37047812302" in text
+    assert "run 38043565842" in text and "run 41762106737" in text
     for lim in (*al.LONG_LIMITS, *al.HISTORY_LIMITS):
         assert lim.kind in ("max", "min")
         assert lim.bound >= 0
@@ -141,11 +149,11 @@ def test_the_cli_exits_1_on_a_regression_and_0_otherwise(tmp_path, capsys):
 def test_history_audit_fails_on_limits_only_after_writing_its_report(tmp_path):
     (tmp_path / "summary.json").write_text(json.dumps(HISTORY["summary.json"]), encoding="utf-8")
     assert audit.check_limits(tmp_path, log=lambda *a: None) == 0
-    worse = {**HISTORY["summary.json"], "unexplained_jumps": 1402}
+    worse = {**HISTORY["summary.json"], "unexplained_jumps": 923}
     (tmp_path / "summary.json").write_text(json.dumps(worse), encoding="utf-8")
     lines = []
     assert audit.check_limits(tmp_path, log=lines.append) == 1
-    assert any("unexplained_jumps: 1402 > 1401" in line for line in lines)
+    assert any("unexplained_jumps: 923 > 922" in line for line in lines)
     assert audit.check_limits(tmp_path / "nowhere", log=lambda *a: None) == 1
 
 

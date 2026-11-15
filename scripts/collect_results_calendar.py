@@ -19,8 +19,14 @@ the model book's 20 holdings had a date (3 to come, 17 held 9 Oct to 7 Nov); CUP
 11 Nov and DIVISLAB 7 Nov agree with tipsheet's calendar (stocks.events). Companies
 can move a meeting, so the page says "as announced".
 
-It refuses to replace the file with an empty or shrunken forward calendar and exits
-non-zero, so a refused download is loud instead of wiping the dates.
+It refuses to replace the file when the download loses what the last file knew, and
+exits non-zero, so a refused download is loud instead of wiping the dates. "Lost" is
+a meeting in the last file that the new download no longer has in any form: not ahead,
+not held, and the company has no meeting on another date either. A count is not the
+test: the forward calendar empties itself every results season (the Q2 deadline is
+14 Nov; on 15 Nov 2026 NSE listed 18 meetings ahead) and on the day of a meeting NSE
+moves it from the calendar to the held list (S110: the count-based guard failed every
+night from 12 Nov while nothing was wrong).
 """
 from __future__ import annotations
 
@@ -28,7 +34,8 @@ import argparse
 import json
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import pandas as pd
@@ -41,8 +48,10 @@ HOME = "https://www.nseindia.com/companies-listing/corporate-filings-event-calen
 CALENDAR = "https://www.nseindia.com/api/event-calendar"
 HELD = "https://www.nseindia.com/api/corporate-board-meetings"
 PAST_DAYS = 60
-MIN_FORWARD = 50          # NSE's calendar carries hundreds in a results season, dozens at worst
-SHRINK_LIMIT = 0.5        # the forward calendar falling by half overnight is a broken download
+MIN_HELD = 100            # meetings held in 60 days: thousands in a season, hundreds at the quietest
+MAX_LOST = 25             # meetings the last file knew that may vanish (cancelled, or moved past
+LOST_SHARE = 0.10         #   the window): more than 25 and 10% of those checked is a broken download
+EDGE_DAYS = 3             # held meetings this close to the 60-day edge may fall out of the window
 DETAIL_CHARS = 140
 COLUMNS = ["symbol", "date", "purpose", "results", "detail", "source"]
 
@@ -119,22 +128,50 @@ def normalise(forward: list[dict], held: list[dict]) -> pd.DataFrame:
 
 def check(new: pd.DataFrame, old: pd.DataFrame | None, today: date) -> list[str]:
     """Reasons to refuse the new file (empty list: fine)."""
-    fwd = new[(new["source"] == "calendar") & (pd.to_datetime(new["date"]).dt.date >= today)]
     out = []
-    if len(fwd) < MIN_FORWARD:
-        out.append(f"only {len(fwd)} forward meetings (at least {MIN_FORWARD} expected)")
+    held = int((new["source"] == "held").sum())
+    if held < MIN_HELD:
+        out.append(f"only {held} meetings held in {PAST_DAYS} days (at least {MIN_HELD} expected)")
+    lost = lost_meetings(new, old, today)
     if old is not None and len(old):
-        old_fwd = old[(old["source"] == "calendar") & (pd.to_datetime(old["date"]).dt.date >= today)]
-        if len(old_fwd) and len(fwd) < len(old_fwd) * (1 - SHRINK_LIMIT):
-            out.append(f"{len(fwd)} forward meetings against {len(old_fwd)} still ahead in the last file")
+        checked = _checked(old, today)
+        if len(lost) > max(MAX_LOST, LOST_SHARE * len(checked)):
+            sample = ", ".join(f"{r.symbol} {r.date}" for r in lost.head(5).itertuples())
+            out.append(f"{len(lost)} of {len(checked)} meetings in the last file are gone from NSE's "
+                       f"download (not ahead, not held, no new date): {sample} ...")
     return out
+
+
+def _checked(old: pd.DataFrame, today: date) -> pd.DataFrame:
+    """The last file's meetings the new download must still account for: every one
+    announced, and every one held that is not about to leave the 60-day window."""
+    d = pd.to_datetime(old["date"]).dt.date
+    edge = today - timedelta(days=PAST_DAYS - EDGE_DAYS)
+    return old[(old["source"] == "calendar") | (d >= edge)]
+
+
+def lost_meetings(new: pd.DataFrame, old: pd.DataFrame | None, today: date) -> pd.DataFrame:
+    """Meetings in the last file the new download has in no form (S110)."""
+    if old is None or not len(old):
+        return pd.DataFrame(columns=COLUMNS)
+    checked = _checked(old, today)
+    have = set(zip(new["symbol"], new["date"]))
+    moved = set(new.loc[pd.to_datetime(new["date"]).dt.date >= today - timedelta(days=EDGE_DAYS), "symbol"])
+    keep = [(s, d) not in have and s not in moved for s, d in zip(checked["symbol"], checked["date"])]
+    return checked[keep]
+
+
+def ist_today() -> date:
+    """NSE's date. The job is due 21:53 IST but GitHub's queue often runs it after
+    midnight IST, when the runner's UTC date is still the day before."""
+    return datetime.now(ZoneInfo("Asia/Kolkata")).date()
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
-    today = date.today()
+    today = ist_today()
     s = session()
     forward = _get_json(s, CALENDAR, {"index": "equities"})
     held = _get_json(s, HELD, {"index": "equities", "from_date": (today - timedelta(days=PAST_DAYS)).strftime("%d-%m-%Y"),

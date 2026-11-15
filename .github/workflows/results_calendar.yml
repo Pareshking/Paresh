@@ -2,8 +2,9 @@ name: Results calendar (nightly)
 
 # NSE's board-meeting calendar (meetings announced ahead, and those held in the last
 # 60 days) into data/results_calendar.csv, for the Dashboard's "Coming up for the book"
-# (TODO S110, item 4). The script refuses an empty or halved forward calendar and fails
-# the job (visible through the scheduled-failure alert) rather than wipe the dates.
+# (TODO S110, item 4). The script refuses a download that loses meetings the last file
+# knew (not ahead, not held, no new date) or holds almost none held, and fails the job
+# (visible through the scheduled-failure alert) rather than wipe the dates.
 # GitHub's schedule queue can be hours late; nothing here depends on the minute.
 on:
   schedule:
