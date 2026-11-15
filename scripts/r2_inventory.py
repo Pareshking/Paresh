@@ -237,8 +237,12 @@ def main() -> int:
                        "total": result["storage"]["total"]["bytes"], "buckets": {}}
     result["storage_limit"] = limit = storage_limit(result["storage"], account)
     if limit.get("note"):
-        print(f"::warning::R2 account storage not fully counted: {limit['note']}. "
-              "Check the account total on Cloudflare's dashboard (R2 Object Storage, Overview).")
+        # A plain line, not a ::warning:: annotation: the project's key is scoped to
+        # its bucket, so this holds on every run, and a warning on a green scheduled
+        # run opens an alert issue (S116) -- one a day for a known fact. The owner's
+        # dashboard (15 Nov 2026) shows the account holds this bucket alone.
+        print(f"R2 account storage not fully counted: {limit['note']}. "
+              "The owner's dashboard showed one bucket on 15 Nov 2026; check it there if that changes.")
     if limit["status"] in ("WARN", "FAIL"):
         print(f"::{'error' if limit['status'] == 'FAIL' else 'warning'}::R2 holds "
               f"{limit['bytes'] / 10**9:.2f} GB, {limit['share']:.0%} of Cloudflare's 10 GB free storage "
