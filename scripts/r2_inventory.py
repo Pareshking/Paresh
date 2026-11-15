@@ -94,6 +94,68 @@ def storage_report(archive: R2Archive, today: date, recent_days: int = RECENT_DA
             "by_dataset": dict(sorted(rows.items(), key=lambda kv: -kv[1]["bytes"]))}
 
 
+# Cloudflare R2's free allowance is 10 GB-month of Standard storage
+# (docs/MARKET_DATA_ARCHIVE_R2_SPEC.md). Owner, 15 Nov 2026: "we need to keep it
+# below 50% of Cloudflare limits". Counted in decimal GB, the smaller reading,
+# so the guard errs early. A warning at 40% leaves time to act before 50% fails.
+FREE_STORAGE_BYTES = 10 * 10**9
+STORAGE_WARN_SHARE = 0.40
+STORAGE_FAIL_SHARE = 0.50
+
+
+def account_storage(client, own_bucket: str, own_bytes: int) -> dict[str, Any]:
+    """Bytes in every R2 bucket of the Cloudflare account, as far as the key may see.
+
+    The 10 GB free allowance is per ACCOUNT, all buckets together (owner, 15 Nov
+    2026: "I think I am sharing this cloudflare with other account or website").
+    This project's key may be scoped to its own bucket, in which case Cloudflare
+    refuses ListBuckets or another bucket's listing; the result then says the
+    account total is not known rather than passing off one bucket as the account.
+    Read-only: listings only.
+    """
+    buckets: dict[str, int | None] = {own_bucket: own_bytes}
+    try:
+        names = [b["Name"] for b in client.list_buckets().get("Buckets", [])]
+    except Exception as exc:                       # AccessDenied on a bucket-scoped key
+        return {"buckets": buckets, "complete": False, "total": own_bytes,
+                "reason": f"ListBuckets refused ({type(exc).__name__}): only this bucket is counted"}
+    for name in names:
+        if name == own_bucket:
+            continue
+        try:
+            size = 0
+            for page in client.get_paginator("list_objects_v2").paginate(Bucket=name):
+                size += sum(int(o.get("Size", 0)) for o in page.get("Contents", []))
+            buckets[name] = size
+        except Exception:
+            buckets[name] = None
+    unread = [n for n, b in buckets.items() if b is None]
+    return {"buckets": buckets, "complete": not unread,
+            "total": sum(b for b in buckets.values() if b is not None),
+            "reason": f"could not list: {', '.join(unread)}" if unread else ""}
+
+
+def storage_limit(storage: dict[str, Any], account: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Where the ACCOUNT stands against half of Cloudflare's free storage.
+
+    Judged on the account total when every bucket could be listed; otherwise on
+    what could be counted, marked incomplete, with a warning that other buckets
+    may hold more (they count against the same allowance).
+    """
+    total = (account or {}).get("total", storage.get("total", {}).get("bytes"))
+    if total is None:
+        return {"status": "UNKNOWN", "reason": storage.get("error", "no storage report")}
+    share = total / FREE_STORAGE_BYTES
+    status = "FAIL" if share >= STORAGE_FAIL_SHARE else ("WARN" if share >= STORAGE_WARN_SHARE else "PASS")
+    complete = bool(account and account.get("complete"))
+    return {"bytes": total, "free_bytes": FREE_STORAGE_BYTES, "share": round(share, 4),
+            "warn_at": STORAGE_WARN_SHARE, "fail_at": STORAGE_FAIL_SHARE, "status": status,
+            "account_complete": complete,
+            "buckets": (account or {}).get("buckets", {}),
+            "note": "" if complete else ((account or {}).get("reason")
+                                         or "only this bucket is counted; other buckets in the account share the allowance")}
+
+
 def _mb(n: int) -> str:
     return f"{n / 1024**2:,.1f} MB"
 
@@ -166,6 +228,23 @@ def main() -> int:
         result["storage"] = {"error": f"{type(exc).__name__}: {exc}"}
     if result["freshness"]["status"] != "PASS":
         result["status"] = "FAIL"
+    account = None
+    if "total" in result["storage"]:
+        try:
+            account = account_storage(archive.client, archive.config.bucket, result["storage"]["total"]["bytes"])
+        except Exception as exc:  # a report, never a reason to fail the inventory
+            account = {"complete": False, "reason": f"{type(exc).__name__}: {exc}",
+                       "total": result["storage"]["total"]["bytes"], "buckets": {}}
+    result["storage_limit"] = limit = storage_limit(result["storage"], account)
+    if limit.get("note"):
+        print(f"::warning::R2 account storage not fully counted: {limit['note']}. "
+              "Check the account total on Cloudflare's dashboard (R2 Object Storage, Overview).")
+    if limit["status"] in ("WARN", "FAIL"):
+        print(f"::{'error' if limit['status'] == 'FAIL' else 'warning'}::R2 holds "
+              f"{limit['bytes'] / 10**9:.2f} GB, {limit['share']:.0%} of Cloudflare's 10 GB free storage "
+              f"(warn at {STORAGE_WARN_SHARE:.0%}, fail at {STORAGE_FAIL_SHARE:.0%}); see the STORAGE lines")
+    if limit["status"] == "FAIL":
+        result["status"] = "FAIL"
     print(json.dumps(result, indent=2, sort_keys=True) if args.json else _summary(result))
     return 0 if result["status"] == "PASS" else 1
 
@@ -179,6 +258,13 @@ def _summary(result: dict[str, Any]) -> str:
     ]
     for dataset, row in result.get("freshness", {}).get("stale", {}).items():
         lines.append(f"STALE={dataset} LAST_AS_OF={row['last_as_of']} AGE_DAYS={row['age_days']}")
+    limit = result.get("storage_limit", {})
+    if "share" in limit:
+        lines.append(f"STORAGE_LIMIT={limit['status']} SHARE_OF_FREE={limit['share']:.1%} "
+                     f"(warn {limit['warn_at']:.0%}, fail {limit['fail_at']:.0%} of 10 GB) "
+                     f"ACCOUNT_COMPLETE={'yes' if limit.get('account_complete') else 'no'}")
+        for name, size in (limit.get("buckets") or {}).items():
+            lines.append(f"STORAGE_BUCKET={name} TOTAL={'unreadable' if size is None else _mb(size)}")
     storage = result.get("storage", {})
     if "total" in storage:
         t = storage["total"]

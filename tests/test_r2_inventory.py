@@ -93,3 +93,52 @@ def test_a_dataset_whose_date_is_its_evidence_is_not_held_to_a_daily_age():
     result = _result(**{d.replace("/", "__"): "2026-11-13" for d in r2_inventory.DAILY_DATASETS})
     result["datasets"]["classifications/tv_history"] = {"last_as_of": "2026-11-04"}
     assert r2_inventory.freshness(result, date(2026, 11, 14))["status"] == "PASS"
+
+
+def test_storage_is_kept_under_half_of_cloudflares_free_allowance():
+    # Owner, 15 Nov 2026: "keep it below 50% of Cloudflare limits" (10 GB-month free).
+    def at(gb):
+        return r2_inventory.storage_limit({"total": {"bytes": int(gb * 10**9)}})
+    assert at(2.1)["status"] == "PASS"               # after the 15 Nov clean-up
+    assert at(3.33)["status"] == "PASS"              # 14 Nov, before it
+    assert at(4.0)["status"] == "WARN"
+    assert at(5.0)["status"] == "FAIL"
+    assert r2_inventory.storage_limit({"error": "x"})["status"] == "UNKNOWN"   # a failed listing never fails the run
+
+
+class _Client:
+    def __init__(self, buckets=None, refuse=False, sizes=None):
+        self.buckets, self.refuse, self.sizes = buckets or [], refuse, sizes or {}
+
+    def list_buckets(self):
+        if self.refuse:
+            raise PermissionError("AccessDenied")
+        return {"Buckets": [{"Name": b} for b in self.buckets]}
+
+    def get_paginator(self, _op):
+        sizes = self.sizes
+
+        class P:
+            def paginate(self, Bucket):
+                if sizes.get(Bucket) is None:
+                    raise PermissionError("AccessDenied")
+                return [{"Contents": [{"Size": sizes[Bucket]}]}]
+        return P()
+
+
+def test_the_limit_is_judged_on_every_bucket_in_the_account():
+    # Owner, 15 Nov 2026: the Cloudflare account may be shared with other sites;
+    # the 10 GB is per account, so another bucket's bytes count too.
+    acct = r2_inventory.account_storage(_Client(["ours", "theirs"], sizes={"theirs": 3 * 10**9}), "ours", 2 * 10**9)
+    assert acct["complete"] and acct["total"] == 5 * 10**9
+    limit = r2_inventory.storage_limit({"total": {"bytes": 2 * 10**9}}, acct)
+    assert limit["status"] == "FAIL" and limit["account_complete"] and limit["note"] == ""
+
+
+def test_a_bucket_scoped_key_says_the_account_total_is_unknown():
+    acct = r2_inventory.account_storage(_Client(refuse=True), "ours", 2 * 10**9)
+    assert not acct["complete"] and "only this bucket" in acct["reason"]
+    limit = r2_inventory.storage_limit({"total": {"bytes": 2 * 10**9}}, acct)
+    assert limit["status"] == "PASS" and not limit["account_complete"] and limit["note"]
+    part = r2_inventory.account_storage(_Client(["ours", "hidden"], sizes={}), "ours", 1)
+    assert not part["complete"] and "hidden" in part["reason"] and part["buckets"]["hidden"] is None

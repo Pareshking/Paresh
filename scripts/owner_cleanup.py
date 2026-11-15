@@ -37,7 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BRANCH_LIST = ROOT / ".github" / "cleanup" / "branches.tsv"
 REPO = "Pareshking/Paresh"
 
-# Never deleted, whatever the list says (docs/BRANCH_CLEANUP_TODO.md, "Do NOT delete").
+# Never deleted, whatever the list says (the keep rules of the retired BRANCH_CLEANUP_TODO.md; docs/PENDING_DELETIONS.md).
 KEEP = ("main", "agent/*", "*stage4b*", "audit-backup-*", "archive/*",
         "fix/r2-membership-test-live-change")
 
