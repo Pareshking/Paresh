@@ -1,6 +1,6 @@
 # To do: delete merged remote branches
 
-**Status:** open. **Owner:** repository owner. **Added:** 2026-09-25 (PR #151).
+**Status:** superseded on 15 Nov 2026 by the one-tap job (`docs/PENDING_DELETIONS.md`, "The one-tap way"), whose list holds these and 211 more merged branches. **Owner:** repository owner. **Added:** 2026-09-25 (PR #151).
 
 Delete this file once every branch below is gone.
 

@@ -3,6 +3,32 @@
 Owner, 11 Nov 2026: *"Record items which required delete as I am on mobile and
 can't do it, whatever possible please delete it."*
 
+## The one-tap way (15 Nov 2026)
+
+Owner, 15 Nov: *"Build the one-tap clean-up job."* GitHub's own runner can do
+what the cloud session cannot, so `.github/workflows/owner_cleanup.yml` does items
+1 and 2 below plus the 233 merged branches, from a phone:
+
+1. Open **github.com/Pareshking/Paresh/actions/workflows/owner_cleanup.yml**.
+2. Tap **Run workflow**, leave *mode* on **dry-run**, tap the green **Run workflow**.
+3. Open the run and read the log: one line per item, `delete`, `skip` (a check
+   failed, with the reason) or `gone`, and a total. Expect **235 to delete**:
+   233 branches, the R2 prefix and the asset.
+4. If that is what you expect, run it again with *mode* = **delete**.
+
+`scripts/owner_cleanup.py` re-checks each item when it runs and skips, never
+forces, anything that changed: a branch someone pushed to since 15 Nov, or one
+with an open pull request; an R2 prefix that is not exactly 23 objects and
+about 1,221.8 MiB; an asset that is no longer 10,851,823 bytes with 0
+downloads. The branch list is `.github/cleanup/branches.tsv` (each a merged PR
+whose branch tip is still the PR's head, or a branch with no commit off main;
+checked against all 506 PRs). Not in it: `main`, `agent/*`, stage4b, backups,
+the three branches with open PRs, and 69 branches holding unmerged work, which
+are the owner's call one by one. A deleted branch can be restored from its PR
+page ("Restore branch").
+
+---
+
 Nothing on this page could be deleted from the cloud session. Both items are
 outside what it can reach, for two different reasons, both verified on 11 Nov:
 

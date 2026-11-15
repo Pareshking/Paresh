@@ -105,7 +105,11 @@ def _mb(n: int) -> str:
 # (prices/yahoo/raw, parked by design; prices/yahoo, no longer published since
 # 2026-10-02) or whose as_of is fixed by the evidence
 # itself (trading_sessions/*, market_caps/nse_snapshot, corporate_actions/*)
-# are deliberately not listed.
+# are deliberately not listed. So is classifications/tv_history (S136, 15 Nov
+# 2026): its as_of is the last day TradingView reclassified a stock, not the last
+# day the job ran. The weekly refresh ran green on 13 Nov with "Refreshed 2404
+# rows; 0 changed" while the as_of stayed at 4 Nov, which failed this check every
+# day from 11 Nov (and 23-27 Oct). Its job's failures reach the alert on their own.
 DAILY_DATASETS = (
     "prices/screener",
     "snapshots/rankings",
@@ -114,7 +118,6 @@ DAILY_DATASETS = (
     "indices/prices/research",
     "indices/membership/nifty_total_market",
     "universes/point_in_time",
-    "classifications/tv_history",
 )
 
 # Calendar days. A Friday session checked on the following Wednesday is five
