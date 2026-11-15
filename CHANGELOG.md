@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-15 — Streamlit 1.67.0
+
+- The app runs on Streamlit 1.67.0, the latest (released 5 Nov). Every page was compared before and after at desktop and phone width; nothing visible changed. Python stays on 3.14: 3.15 needs a newer pyarrow than Streamlit Cloud currently allows.
+
 ## 2026-11-15 — The app no longer grows with every update
 
 - **On 15 Nov Streamlit restricted the site for using too much memory.** The cause: Streamlit Cloud loads each update into the running app without restarting it, and every update left the previous copy of the price data in memory. Over 57 updates its memory grew from about 180 MB to 2,874 MB.
