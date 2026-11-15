@@ -58,3 +58,19 @@ def test_two_different_companies_are_not_twins():
     df["ACO"] = pd.Series(range(120), index=idx, dtype=float) + 400.0
     df["BCO"] = pd.Series(range(120), index=idx, dtype=float) + 400.5
     assert _twins(df) == []
+
+
+def test_sundarmhld_to_rubicon_is_explained_not_a_handover():
+    # S129 (b), 15 Nov 2026: NSE's equity_l.csv lists RUBICON as Rubicon Research,
+    # a new listing on 16 Oct 2025 with its own ISIN; SUNDARMHLD became TSFINV.
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "check_symbol_changes", Path(__file__).resolve().parents[1] / "scripts" / "check_symbol_changes.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    why = mod.EXPLAINED[("SUNDARMHLD", "RUBICON")]
+    assert "INE506V01022" in why and "TSFINV" in why
+    eq = (Path(__file__).resolve().parents[1] / "data" / "reference" / "nse" / "equity_l.csv").read_text()
+    assert "RUBICON,Rubicon Research Limited,EQ,16-OCT-2025" in eq

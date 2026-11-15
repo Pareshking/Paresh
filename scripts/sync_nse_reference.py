@@ -17,6 +17,7 @@ import csv
 import hashlib
 import io
 import json
+import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -108,6 +109,17 @@ def membership_symbols(path: Path | None = None) -> set[str]:
     return names
 
 
+PRICE_MOVING = re.compile(r"split|sub-?div|bonus|right|demerg|arrangement|consolidat|reduction of capital",
+                          re.IGNORECASE)
+
+
+def needs_a_look(feed: str, row: dict) -> bool:
+    """Is this change to an index member worth a warning (an alert issue)?"""
+    if feed != "corporate_actions":
+        return True                       # symbol, name or listing changes: always
+    return bool(PRICE_MOVING.search(str(row.get("subject", ""))))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true")
@@ -157,7 +169,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{name}: {n} new row(s)")
     for name, rows in changes["touching_members"].items():
         for r in rows:
-            print(f"::warning::{name} touches an index member: {json.dumps(r)[:200]}")
+            line = f"{name} touches an index member: {json.dumps(r)[:200]}"
+            # A warning only where a person should look: an action that moves the
+            # price (the long file's factors must catch it), or a change of symbol or
+            # name. An ordinary dividend is in the change file and the log, not an
+            # alert: 9-10 a day in results season opened an alert issue daily (#515).
+            print(f"::warning::{line}" if needs_a_look(name, r) else line)
     if args.dry_run:
         return 0
     for name, raw in pending.items():

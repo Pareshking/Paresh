@@ -118,6 +118,16 @@ def _twins(close: pd.DataFrame) -> list[tuple]:
     return out
 
 
+# Handovers on price that are not handovers, each with NSE's evidence (S129).
+EXPLAINED: dict[tuple[str, str], str] = {
+    ("SUNDARMHLD", "RUBICON"): (
+        "two different companies, not a rename or demerger. RUBICON is Rubicon Research "
+        "Ltd, a new listing on 16 Oct 2025 (ISIN INE506V01022, NSE equity_l.csv); "
+        "SUNDARMHLD (ISIN INE202Z01029) became TSFINV, TSF Investments, the same day "
+        "(NSE namechange/symbolchange), already joined. Found 15 Nov 2026."),
+}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--fail-on-new", action="store_true",
@@ -151,9 +161,14 @@ def main() -> int:
         return "auto" if known[old].get("auto") else "ledger"
 
     pairs = _pairs(close)
-    unjoined = [p for p in pairs if joined(p[1], p[2]) is None]
+    unjoined = [p for p in pairs if joined(p[1], p[2]) is None and (p[1], p[2]) not in EXPLAINED]
+    for day, old, new, *_ in pairs:
+        if (old, new) in EXPLAINED:
+            print(f"  EXPLAINED {day:%Y-%m-%d}  {old} -> {new}: {EXPLAINED[(old, new)]}")
+    explained = sum((p[1], p[2]) in EXPLAINED for p in pairs)
     print(f"{len(pairs)} contiguous handovers within {NEAR:.0%} on price; "
-          f"{len(pairs) - len(unjoined)} already joined, {len(unjoined)} not")
+          f"{len(pairs) - len(unjoined) - explained} already joined, {explained} explained "
+          f"(not handovers), {len(unjoined)} not")
     for day, old, new, a, b, ratio in unjoined:
         print(f"  UNJOINED  {day:%Y-%m-%d}  {old} -> {new}  "
               f"{a:.2f} -> {b:.2f} (x{ratio:.3f}). Neither notes.json nor NSE's "
