@@ -104,3 +104,41 @@ def test_storage_is_kept_under_half_of_cloudflares_free_allowance():
     assert at(4.0)["status"] == "WARN"
     assert at(5.0)["status"] == "FAIL"
     assert r2_inventory.storage_limit({"error": "x"})["status"] == "UNKNOWN"   # a failed listing never fails the run
+
+
+class _Client:
+    def __init__(self, buckets=None, refuse=False, sizes=None):
+        self.buckets, self.refuse, self.sizes = buckets or [], refuse, sizes or {}
+
+    def list_buckets(self):
+        if self.refuse:
+            raise PermissionError("AccessDenied")
+        return {"Buckets": [{"Name": b} for b in self.buckets]}
+
+    def get_paginator(self, _op):
+        sizes = self.sizes
+
+        class P:
+            def paginate(self, Bucket):
+                if sizes.get(Bucket) is None:
+                    raise PermissionError("AccessDenied")
+                return [{"Contents": [{"Size": sizes[Bucket]}]}]
+        return P()
+
+
+def test_the_limit_is_judged_on_every_bucket_in_the_account():
+    # Owner, 15 Nov 2026: the Cloudflare account may be shared with other sites;
+    # the 10 GB is per account, so another bucket's bytes count too.
+    acct = r2_inventory.account_storage(_Client(["ours", "theirs"], sizes={"theirs": 3 * 10**9}), "ours", 2 * 10**9)
+    assert acct["complete"] and acct["total"] == 5 * 10**9
+    limit = r2_inventory.storage_limit({"total": {"bytes": 2 * 10**9}}, acct)
+    assert limit["status"] == "FAIL" and limit["account_complete"] and limit["note"] == ""
+
+
+def test_a_bucket_scoped_key_says_the_account_total_is_unknown():
+    acct = r2_inventory.account_storage(_Client(refuse=True), "ours", 2 * 10**9)
+    assert not acct["complete"] and "only this bucket" in acct["reason"]
+    limit = r2_inventory.storage_limit({"total": {"bytes": 2 * 10**9}}, acct)
+    assert limit["status"] == "PASS" and not limit["account_complete"] and limit["note"]
+    part = r2_inventory.account_storage(_Client(["ours", "hidden"], sizes={}), "ours", 1)
+    assert not part["complete"] and "hidden" in part["reason"] and part["buckets"]["hidden"] is None
