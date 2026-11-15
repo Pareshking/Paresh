@@ -82,3 +82,14 @@ def test_storage_report_splits_recent_from_old_per_dataset():
     assert report["by_dataset"]["archive/manifests/prices/yahoo"]["recent_bytes"] == 1
     assert report["total"]["undated_bytes"] == 2
     assert report["total"]["bytes"] == 58
+
+
+def test_a_dataset_whose_date_is_its_evidence_is_not_held_to_a_daily_age():
+    from datetime import date
+    # S136: classifications/tv_history moves only when TradingView reclassifies a
+    # stock (4 Nov 2026), so a daily freshness rule failed the inventory every day
+    # from 11 Nov although the weekly refresh ran and found "0 changed".
+    assert "classifications/tv_history" not in r2_inventory.DAILY_DATASETS
+    result = _result(**{d.replace("/", "__"): "2026-11-13" for d in r2_inventory.DAILY_DATASETS})
+    result["datasets"]["classifications/tv_history"] = {"last_as_of": "2026-11-04"}
+    assert r2_inventory.freshness(result, date(2026, 11, 14))["status"] == "PASS"
