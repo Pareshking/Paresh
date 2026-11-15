@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-15 — NSE's holiday list keeps itself current
+
+- **The site knew NSE's holidays for 2026 only**, from a list fetched by hand on 3 Oct, and nothing refreshed it. From 1 January 2027 the header's price chip would have called prices stale the morning after any 2027 holiday, and the next-rebalance dates on Actions and the Dashboard could have landed on one.
+- The nightly NSE reference sync now fetches NSE's holiday list (`holiday-master`, cash market) and takes in any new year the night NSE posts it, usually in December. It never rewrites a past date, removes a future one only from a complete year, and keeps yesterday's list if NSE refuses. Checked against NSE's live list on 15 Nov: it reproduces the committed 2026 file exactly, Muhurat day included.
+- Where a year is still missing, the site says so instead of guessing. The price chip says "cannot tell" rather than "stale", the rebalance dates carry a short note, and the nightly job raises a warning (from 15 Dec for the next year).
+
 ## 2026-11-15 — Results calendar: the nightly job stops refusing a quiet season
 
 - **The Dashboard's "Coming up for the book" had been stuck on 11 Nov.** The nightly job that copies NSE's board-meeting calendar failed every night from 12 Nov (alerts #519, #520). NSE's data was fine; the job's own guard was wrong twice. It counted the last file's meetings dated today as "still ahead" although NSE had already moved them to its held list (12 Nov: 197 ahead against 431 "expected"). And it required 50 meetings ahead, which no day after the Q2 results deadline (14 Nov) can meet: NSE listed 18 on 15 Nov.

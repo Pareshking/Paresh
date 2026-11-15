@@ -33,6 +33,7 @@ from src.engine.exit_watch import (
     nearest_rule,
 )
 from src.engine.track_record import TRACK_RECORD_CONFIG
+from src.loaders.nse_calendar import holiday_caveat
 from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
 from src.ui import formats as fmt
 from src.ui import page_kit as kit
@@ -324,6 +325,8 @@ def render_dashboard_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             f'<dt>Next in line</dt><dd>{_names(plan.next_in_line)}</dd>'
             f'{_churn_row(record, len(plan.buys), len(symbols))}'
             '</dl>')
+        if holiday_caveat(check, fill):
+            kit.caption(holiday_caveat(check, fill))
         kit.caption_link("The same plan as Actions, from today's ranking and the model book's rules.",
                          page_href("actions"), "Actions")
 

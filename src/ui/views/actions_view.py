@@ -17,7 +17,7 @@ import streamlit as st
 
 from src.ui.system_param import stock_href
 from src.core.market_time import ist_now
-from src.loaders.nse_calendar import published_holidays
+from src.loaders.nse_calendar import holiday_caveat, published_holidays
 from src.engine.exit_watch import (
     RANK_SCALE,
     STATUS_LABEL,
@@ -326,8 +326,9 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
             kit.Reading("Hold", f"{len(plan.holds)}",
                         f"{n_watch} close to a rule" if n_watch else "all clear of the rules"),
             kit.Reading("Next rebalance", _day(check, weekday=True),
-                        timing_note.strip()
-                        or f"{n_sess} session{'s' if n_sess != 1 else ''} away · fills {_day(fill, weekday=True)}"),
+                        (timing_note.strip()
+                         or f"{n_sess} session{'s' if n_sess != 1 else ''} away · fills {_day(fill, weekday=True)}")
+                        + (" · NSE holidays not yet published" if holiday_caveat(check, fill) else "")),
         ], "Actions")
         if n_unknown:
             kit.note(f"{n_unknown} holding{'s are' if n_unknown != 1 else ' is'} not ranked; "

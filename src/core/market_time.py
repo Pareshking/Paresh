@@ -221,13 +221,22 @@ def last_due_session(*, now: datetime | None = None) -> date | None:
 
     Weekends and NSE's published holidays (``nse_calendar``) are not sessions.
     None when no candidate in the window qualifies: "cannot tell".
+
+    Also None when the candidate falls in a year NSE's holiday list does not
+    cover (owner, 15 Nov 2026: "we don't know NSE calendar for even 2027"):
+    any weekday could then be an unlisted holiday, and calling it due would
+    turn the header's price chip amber the morning after it -- prices called
+    stale when nothing was wrong. The list is refreshed nightly
+    (scripts/sync_nse_holidays.py), which warns while a needed year is missing.
     """
-    from src.loaders.nse_calendar import not_a_session
+    from src.loaders.nse_calendar import covers, not_a_session
 
     reference = now or ist_now()
     for day in recent_trading_days(count=10, as_of=reference.date(), max_lookback_days=30):
         if not_a_session(day):
             continue
+        if not covers(day.year):
+            return None
         if reference >= datetime.combine(day + timedelta(days=1), PRICES_DUE, tzinfo=INDIA_TZ):
             return day
     return None

@@ -45,6 +45,29 @@ def _lists() -> tuple[dict[date, str], set[date], set[date]]:
     return hol, muhurat, special
 
 
+def covers(year: int) -> bool:
+    """Does NSE's published list (holidays.csv) cover `year`?
+
+    NSE lists 14-20 trading holidays a year, so a year with none is a year we
+    have no list for (the file is refreshed nightly by
+    scripts/sync_nse_holidays.py; NSE posts next year's list in December).
+    Where it does not, a weekday cannot be called a session, and callers say
+    "cannot tell" rather than guess (owner, 15 Nov 2026).
+    """
+    hol, _m, _s = _lists()
+    return any(d.year == year for d in hol)
+
+
+def holiday_caveat(*days) -> str:
+    """One sentence when a date shown depends on a year NSE's list does not cover; "" otherwise."""
+    years = sorted({pd.Timestamp(d).year for d in days if d is not None and not pd.isna(d)})
+    missing = [y for y in years if not covers(y)]
+    if not missing:
+        return ""
+    return (f"NSE has not published its {' and '.join(map(str, missing))} holidays yet, "
+            "so this date assumes none falls in between.")
+
+
 def published_holidays() -> list[date]:
     """NSE's published trading holidays (holidays.csv), for counting sessions
     still to come; a future session cannot be told from prices."""
