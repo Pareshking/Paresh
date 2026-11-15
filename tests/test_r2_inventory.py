@@ -93,3 +93,14 @@ def test_a_dataset_whose_date_is_its_evidence_is_not_held_to_a_daily_age():
     result = _result(**{d.replace("/", "__"): "2026-11-13" for d in r2_inventory.DAILY_DATASETS})
     result["datasets"]["classifications/tv_history"] = {"last_as_of": "2026-11-04"}
     assert r2_inventory.freshness(result, date(2026, 11, 14))["status"] == "PASS"
+
+
+def test_storage_is_kept_under_half_of_cloudflares_free_allowance():
+    # Owner, 15 Nov 2026: "keep it below 50% of Cloudflare limits" (10 GB-month free).
+    def at(gb):
+        return r2_inventory.storage_limit({"total": {"bytes": int(gb * 10**9)}})
+    assert at(2.1)["status"] == "PASS"               # after the 15 Nov clean-up
+    assert at(3.33)["status"] == "PASS"              # 14 Nov, before it
+    assert at(4.0)["status"] == "WARN"
+    assert at(5.0)["status"] == "FAIL"
+    assert r2_inventory.storage_limit({"error": "x"})["status"] == "UNKNOWN"   # a failed listing never fails the run
