@@ -1,0 +1,47 @@
+name: Owner clean-up (one tap)
+
+# The owner's deletions a cloud session cannot make (docs/PENDING_DELETIONS.md;
+# owner, 15 Nov 2026: "Build the one-tap clean-up job"). Run it from the Actions
+# tab: first as "dry-run" (the default), read the plan in the log, then again
+# with "delete". scripts/owner_cleanup.py re-checks every item at run time and
+# skips anything that changed since the list was made. Never scheduled.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run lists what would go; delete removes it"
+        type: choice
+        options: [dry-run, delete]
+        default: dry-run
+
+permissions:
+  contents: write          # delete branches and a release asset
+
+concurrency:
+  group: owner-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install "boto3>=1.35.0,<2"   # the pin in requirements.txt
+      - name: Clean up (${{ inputs.mode }})
+        run: |
+          if [ "${{ inputs.mode }}" = "delete" ]; then
+            python scripts/owner_cleanup.py --delete
+          else
+            python scripts/owner_cleanup.py
+          fi
