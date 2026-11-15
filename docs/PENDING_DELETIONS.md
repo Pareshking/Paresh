@@ -18,6 +18,17 @@ Still the owner's call, one by one: 69 branches holding unmerged work
 in the 15 Nov classification), and `history_backtests.zip` (3.3 MB, 7 Oct, named
 nowhere in the code or docs).
 
+## Third batch (15 Nov 2026): the branches of two closed PRs
+
+Owner, 15 Nov: "Yes add both branches to the clean-up job". **Waiting on the owner's run**: Actions, then "Owner clean-up", then Run workflow, first in dry-run mode and then in delete mode.
+
+| Branch | Tip | Why |
+|---|---|---|
+| `ccr-cd46f9c8-zksr9j` | `58373e2` | PR #511, closed and replaced by #535. Its tip is main's own #535 commit, so it holds nothing unmerged |
+| `claude/investment-platform-audit-djf1we` | `d4db9b3` | PR #513 (the Dashboard design audit), closed. Owner: "drop it entirely". The delete run bundles it first, so it can be restored for 90 days |
+
+Each is deleted only if its tip still matches the sha above and no pull request is open on it.
+
 ## Second batch (15 Nov 2026): the unmerged branches and `history_backtests.zip`
 
 **Done.** Dry run 43677292481: "70 to delete, 0 skipped by a check, 2 already gone".

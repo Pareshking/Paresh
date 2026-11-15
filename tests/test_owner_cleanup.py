@@ -56,13 +56,14 @@ def test_an_asset_is_deleted_only_if_still_the_same_size_and_downloads():
 
 def test_the_branch_list_holds_no_protected_or_open_pr_branch():
     listed = oc.read_list()
-    assert len(listed) == 0           # both 15 Nov batches are done
+    assert len(listed) == 2           # third 15 Nov batch: the branches of closed PRs #511 and #513
     names = [n for n, _ in listed]
     assert len(set(names)) == len(names)
     assert all(re.fullmatch(r"[0-9a-f]{40}", sha) for _, sha in listed)
     assert not [n for n in names if oc.kept(n)]
-    # open on 15 Nov: this session's branch, #511, #513
-    assert not {"ccr-5b2956f6-7ybas4", "ccr-cd46f9c8-zksr9j", "claude/investment-platform-audit-djf1we"} & set(names)
+    # this session's branch is never listed; #511 and #513 were closed on 15 Nov
+    assert "ccr-5b2956f6-7ybas4" not in names
+    assert set(names) == {"ccr-cd46f9c8-zksr9j", "claude/investment-platform-audit-djf1we"}
 
 
 def test_a_delete_run_bundles_the_listed_branches_first():
