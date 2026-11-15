@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-15 — The app no longer grows with every update
+
+- **On 15 Nov Streamlit restricted the site for using too much memory.** The cause: Streamlit Cloud loads each update into the running app without restarting it, and every update left the previous copy of the price data in memory. Over 57 updates its memory grew from about 180 MB to 2,874 MB.
+- The first page load after an update now clears the previous copy. That one page loads like a cold start, about 10 seconds; the app no longer grows. Measured locally over twelve updates: memory grew about 15 MB per update before and about 7 MB after; on the live site the growth had been 40-60 MB per update.
+
 ## 2026-11-15 — Big one-day moves re-checked against BSE; Alok Industries' 2020 relisting restored
 
 - **All nine big one-day moves that carry a manual verdict were re-checked against BSE's own daily files.** Seven held up as recorded. Patanjali's 2020 relisting (then Ruchi Soya) followed a 100-to-1 share consolidation, so its 95% fall was a real loss to the old shareholders and stays.
