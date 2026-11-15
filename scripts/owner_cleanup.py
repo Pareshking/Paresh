@@ -17,8 +17,12 @@ check fails:
    pull request is open on it, and its name matches no keep rule.
 2. R2 `scratch/bse_bhavcopy_2026-10-03/`: deleted only if it holds exactly the
    23 objects / 1,221.8 MiB recorded on 10 Nov, every key under that prefix.
-3. The release asset `tmp_session_2026-10-03.zip` on `data-latest`: deleted
-   only if it is still 10,851,823 bytes with 0 downloads.
+3. Release assets on `data-latest` (ASSETS): each deleted only if it still has
+   the size and download count recorded when the owner approved it.
+
+Before a delete run, the workflow bundles every listed branch into a 90-day
+artifact (`unmerged-branches.bundle`), so work that never reached main can be
+restored with `git clone` / `git fetch` from the bundle.
 
 Nothing else is touched. The dry run prints the same plan the real run executes.
 """
@@ -46,7 +50,12 @@ R2_OBJECTS = 23
 R2_BYTES = int(1221.8 * 2**20)   # 1,221.8 MiB as measured on 10 Nov (r2_archive_inventory)
 R2_BYTES_TOLERANCE = 0.01         # the 10 Nov figure was rounded to a tenth of a MiB
 
-ASSET = {"tag": "data-latest", "name": "tmp_session_2026-10-03.zip", "size": 10_851_823, "downloads": 0}
+RELEASE_TAG = "data-latest"
+# Each approved by the owner with its size and downloads at the time; a change skips it.
+ASSETS = (
+    {"name": "tmp_session_2026-10-03.zip", "size": 10_851_823, "downloads": 0},   # deleted 15 Nov (run 43674615797)
+    {"name": "history_backtests.zip", "size": 3_311_385, "downloads": 3},         # owner, 15 Nov: "Yes delete it"
+)
 
 
 @dataclass(frozen=True)
@@ -101,16 +110,16 @@ def plan_r2(objects: list[dict]) -> Step:
     return Step("r2", R2_PREFIX, "delete", f"{len(objects)} objects, {size / 2**20:,.1f} MiB as recorded")
 
 
-def plan_asset(assets: list[dict]) -> Step:
-    match = [a for a in assets if a.get("name") == ASSET["name"]]
+def plan_asset(assets: list[dict], want: dict) -> Step:
+    match = [a for a in assets if a.get("name") == want["name"]]
     if not match:
-        return Step("asset", ASSET["name"], "gone", "not on the release")
+        return Step("asset", want["name"], "gone", "not on the release")
     a = match[0]
-    if int(a.get("size", -1)) != ASSET["size"] or int(a.get("download_count", -1)) != ASSET["downloads"]:
-        return Step("asset", ASSET["name"], "skip",
+    if int(a.get("size", -1)) != want["size"] or int(a.get("download_count", -1)) != want["downloads"]:
+        return Step("asset", want["name"], "skip",
                     f"size {a.get('size')} / downloads {a.get('download_count')}, expected "
-                    f"{ASSET['size']} / {ASSET['downloads']}")
-    return Step("asset", ASSET["name"], "delete", "10,851,823 bytes, 0 downloads as recorded")
+                    f"{want['size']} / {want['downloads']}")
+    return Step("asset", want["name"], "delete", f"{want['size']:,} bytes, {want['downloads']} downloads as recorded")
 
 
 # --- The outside world (only on GitHub's runner) ------------------------------
@@ -156,7 +165,7 @@ def r2_objects(client, bucket: str) -> list[dict]:
 
 
 def release_assets() -> list[dict]:
-    rel = json.loads(_run(["gh", "api", f"repos/{REPO}/releases/tags/{ASSET['tag']}"]))
+    rel = json.loads(_run(["gh", "api", f"repos/{REPO}/releases/tags/{RELEASE_TAG}"]))
     return rel.get("assets", [])
 
 
@@ -173,7 +182,8 @@ def main(argv: list[str] | None = None) -> int:
         steps.append(plan_r2(objects))
     else:
         steps.append(Step("r2", R2_PREFIX, "skip", "no R2 credentials in this run"))
-    steps.append(plan_asset(release_assets()))
+    assets = release_assets()
+    steps += [plan_asset(assets, want) for want in ASSETS]
 
     mode = "DELETING" if args.delete else "DRY RUN (nothing is deleted)"
     print(f"Owner clean-up: {mode}")
@@ -195,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
                     client.delete_objects(Bucket=bucket, Delete={
                         "Objects": [{"Key": o["Key"]} for o in objects[i:i + 1000]], "Quiet": True})
             elif s.what == "asset":
-                _run(["gh", "release", "delete-asset", ASSET["tag"], ASSET["name"], "--repo", REPO, "--yes"])
+                _run(["gh", "release", "delete-asset", RELEASE_TAG, s.target, "--repo", REPO, "--yes"])
             print(f"deleted {s.what} {s.target}")
         except Exception as exc:          # one failure must not stop the rest; report it
             failed += 1

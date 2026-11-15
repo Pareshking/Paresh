@@ -1,236 +1,74 @@
-# Branches the owner approved for deletion (15 Nov 2026), one per line: name <TAB> tip sha <TAB> why.
-# Each is a merged PR whose branch tip equals the PR's head, or a branch with no commit off main.
+# Branches the owner approved for deletion, one per line: name <TAB> tip sha <TAB> why.
+# 15 Nov 2026, second batch (owner: "Yes delete it"): the 69 branches holding work never merged
+# (no PR, or a PR closed unmerged). The workflow bundles every one into a 90-day artifact first.
+# The first batch (233 merged branches) was deleted by run 43674615797 the same day.
 # scripts/owner_cleanup.py deletes a branch only if its tip is still this sha and no PR is open on it.
-audit/2010-monthly-rank-workflow	c56721e5537e4e28bae7f8d364e2bfa4a37396ea	PR #379 merged
-ccr-2daded1d-5xzbwl	9172e848a56beffb71f24deb70d95699f2914157	no commit off main
-ccr-31392d93-bokbml	3a36fc5ad5ef836efe4b51dccd1b599b2cb1f7c2	no commit off main
-ccr-36508ca4-24x4oo	ac1f66d4aa26a424110c01516f11f08e3db26b5e	no commit off main
-ccr-3eb930df-j178nk	38014866c7a992233a6992059b21e72f172868f8	PR #322 merged
-ccr-5b2956f6-7ybas4-former-members	ea628bfc36b4306ecbd8c1f76eaa3fbfed4904c1	PR #523 merged
-ccr-6275a79e-eq98g7	a26fdd299eea0b3dca35bd6099b91217909cd74d	no commit off main
-ccr-6c8d60cd-uzlr0s	915eb6b67031548b1541b82701617863cbe0af44	no commit off main
-ccr-8dff4623-rzg2wz	f85685fc1e12c7685a05955b14679a6089289078	no commit off main
-ccr-9dcfee84-jisigp	e385dccf7a00ed3a7b92cd83acf5b8f5d5f480ae	no commit off main
-ccr-d1b8b660-jaa0ai	c4e68e753b8c3ccd783c5e22f8ed00b82a46ee82	no commit off main
-ccr-e18dd4b7-6cdoxf	df92dcb80e77a1457e742011e0f10f7a4346feed	PR #419 merged
-chore/streamlit-1.65	3d57a342699070aa43b4342c5ba92837c4e0f1a4	PR #405 merged
-claude/codebase-audit-modernization-xy2y38	7a5b4fe3b3cbcaffc0b48891b4e439b2351cc766	PR #10 merged
-claude/codebase-audit-xbu6ns	4d6dd85239f1519101ecc3c80b31f462a07294da	PR #11 merged
-claude/dark-line-chart-close-m7h5l0	898db3238d398995edc9c47b804772730c6b26d4	PR #18 merged
-claude/delete-yahoo-r2-data-ifsvx3	0cea462d0424b00baa571dfe0b0c5e05bf27d9f6	PR #327 merged
-claude/gracious-euler-tfma5e	0bece588d2b67173d58e4d5ae75aab6f0f3568c9	PR #340 merged
-claude/multi-agent-audit-framework-upy0zj	71aa114a0d65d38a42e5ce39028e21cbfe105703	no commit off main
-claude/pr-75-4b-interference-8ndpep	4ec9dac32ab4f881dbc41b89914e266cc7c51b74	no commit off main
-claude/stock-return-calculations-bug-28jrcy	7c3d68f66cd21fe48cfebdd05881e51030c47a39	no commit off main
-claude/streamlit-warnings-performance-fn07h8	0b8803c1f351368598dcf426c234730616e473de	no commit off main
-claude/umiya-codebase-audit-kgr923	c621454954b68e1f8c7a815f87f0f333dd04ae6c	PR #1 merged
-claude/umiya-stale-frontend-data-vguzpv	da9f6443fabec5a4ec08f0825c6034c13152a8b6	no commit off main
-claude/umiya-v1-qa-hardening-itgv19	eab8924aedfeb26554b7edb4c33a7782d53a8f42	no commit off main
-docs/2026-09-30-change-log	988da1bc7b2067ded29053056ad14a5c5e04a7cf	PR #274 merged
-docs/handover-2026-10-03	3724bc7465445fa74700c60517ae02b8850f3607	PR #363 merged
-docs/long-prices-audit	ef16784d57c55a6678ecbc119492c998b306907d	PR #357 merged
-docs/membership-history-live-verification	cc7bc1cf96f821e235de05d87f07f687919d3308	PR #259 merged
-docs/r2-consumer-hardening-closure	98e8b83c658824e8317de5f3f2ec7aef73f40482	PR #97 merged
-docs/r2-final-state-reconcile	732206b15c6d814139561c6ce6341c64453ac08d	PR #55 merged
-docs/r2-loop-status-2026-09-22	84859b341e168e72ab2891da129fd19ef5bfac24	PR #67 merged
-docs/r2-market-data-archive-spec	e0b9dacba9415185416a54421bb745b5465bc41d	PR #32 merged
-docs/r2-status-consolidation	9ed04225320ff753e89e07c60a5833bccc17f891	PR #102 merged
-docs/r2-status-sync-v2	7519071ec8237e34ba792bc3ca58bb5f856f115a	PR #52 merged
-docs/s54-catalogue	15518cce6add96e1b0238d7efd8017fbc7f7abcd	PR #409 merged
-docs/sync-production-documentation-2026-09-23	84fc396f81f29720ba6215e841692eb618728786	PR #150 merged
-docs/todo-2026-10-07-evening	941cbd201434c06bb684acba4842f2fb5477a8ca	PR #406 merged
-dq/sweep-2026-10-03	d2a3c1ac241f2c7eaa8c54012f1e6a7b8d40cd41	PR #394 merged
-feat/audit-refs	d4b2b856a8e0bdc9584621b91152b6fadf3bf442	PR #355 merged
-feat/bse-gap-fill	1611341e8c75a875ffd20f7a9a0154decef705d4	PR #400 merged
-feat/canonical-parity-audit	bf7ff8b06e152f3095f0b6801898d875fba9e898	PR #315 merged
-feat/history-benchmark	89200dfe1fb586b34c9e7edea2095fce48868375	PR #360 merged
-feat/long-backtest-2010	5c687e99ed9f721685577aaa640106d5b606afbf	PR #345 merged
-feat/long-backtest-ui	b3888f32885ac25431bc5ec574d593ea61716c3f	PR #346 merged
-feat/portfolio-calendar-performance-grid	d629210984e14e18a86250a3ef7ac2a677f242f8	PR #293 merged
-feat/portfolio-ux-history-activity	de6785e6b479b87194d2dffc2aa995f9e5e08648	PR #285 merged
-feat/portfolio-ux-polish	eed606b4fa21b8faa88668f52776053cf9ae6387	PR #286 merged
-feat/portfolio-ux-redesign	288890433102c21a5a13978b4e81b34f07fcfe86	PR #284 merged
-feat/r2-archive-inventory	6179f38b149feccf3d4d32cc6b7b3963660bbb47	PR #63 merged
-feat/r2-consumer-contract	ba8b86f5a6cefc5e7cf4dc2a1613627a0a7ef64f	PR #57 merged
-feat/r2-consumer-fallback-cost-gates	e8792fdfbb194a9f9e73fc77d0a9f1b3d28433b4	PR #72 merged
-feat/r2-final-acceptance-loop	47405b614963112031299e4e84dc2241ce2f05ab	PR #73 merged
-feat/r2-historical-evidence-bootstrap	bb89eeab2863cdb1a9bbabaf18f31ec28d643d30	PR #49 merged
-feat/r2-live-consumer-acceptance	16e4ec37052dba8b2aa6fa2d2f129dd2fe6588dc	PR #66 merged
-feat/r2-manifest-pinned-research-reader	20836f0c3c543cd392236fdf66f4e5c58b161e43	PR #68 merged
-feat/r2-ops-gates	17cab8648b883c00e8648a8fb83d08954f69a184	PR #70 merged
-feat/r2-phase1-storage-adapter	f614098473256247cb9d8de211021797f4f899c3	PR #34 merged
-feat/r2-phase3-dual-publication	c8c0a017d35bef0be421c18ee545a09fb3d66972	PR #36 merged
-feat/r2-phase3-revisions-screener-10y	f9ea25d7082198cc0e76f20738cd98ab2edc171e	PR #38 merged
-feat/r2-phase4-publication-audit	ee748e2253c02629c1fb2b883325312ccd4da887	PR #39 merged
-feat/r2-publish-asset	412b674fd58e91b29591a56f7d2aa85fecfb703d	PR #352 merged
-feat/r2-recovery-audit	6baaf154e6995a4a65fe20e46172292473f706c3	PR #64 merged
-feat/r2-screener-bootstrap-audit-step	7b8f94135456bc27ddb17ef8029dcf80516ef750	PR #42 merged
-feat/r2-separation-guard	c12b0c18ea71a29355fa3f96934f5cb3ad353313	PR #56 merged
-feat/r2-storage-completion-loop	d9af32f2e3a6923c7763f8606437ef0955a2fa44	PR #46 merged
-feat/r2-streamlit-reader-contract	24d831f819497e59b72891c76cf31a58a4fec57e	PR #74 merged
-feat/r2-yahoo-raw-rebuild	8e4074fdbdf2c4a95b14e9324b761cf86b969ea1	PR #77 merged
-feat/screener-weekly-nse-fill	3d058164c0ffd5453c4841547bd9091516f8be0f	PR #401 merged
-feat/shadow-record	155b233db6d5b3eb1b8860c27e77658715245179	PR #434 merged
-feat/ss-history	92b326c8cbef7177a221ae0e9b060b3028d1c845	PR #351 merged
-feat/tejhq-actions	9ac6e0023f130bda2ea93aa7533018d256a58d7f	PR #354 merged
-feat/track-record-parity-diagnostics	b352eb414a253e00bb3730e8fb258feb32060723	PR #316 merged
-final-config-frame-fix	d0907b15658ef33f06174d62f7ab180709fd3255	PR #144 merged
-final-nav-live-gate	9340acbb6c1933b4c595282e248e6b2230cbcc07	PR #138 merged
-final-production-qa-frame-fix	0dfca927d00803ef9d798fed5ec77a3f65853541	PR #141 merged
-final-r2-acceptance-fix	e8c5e68bb109e7d576d152868647ed828bf8e88f	PR #131 merged
-fix-production-nav-probe-v3	3b1e3cc6def1da3c2a067d7a8500461d88e6a70c	PR #135 merged
-fix-production-qa-custom-nav	d1faeb2edf797317b2bcca6f13c58d09f1707930	PR #132 merged
-fix-qa-frame-test-final	e22dab71513ec6bb0a582db6792b4571b1d2b7dd	PR #146 merged
-fix-qa-regression-test	c48ef512b5586ea7645f24e34d3bd57838c237e5	PR #145 merged
-fix/52w-high-marker-position	23548d6a6495a497dad880e5a121301e2c36b59b	PR #84 merged
-fix/5bd898c-portfolio-overlap	27932942b4ba8801863212c1b758c3172935ec75	no commit off main
-fix/actions-counted-once	19feca192dd5add264fe8745524d6f0d964dd3e4	PR #348 merged
-fix/actions-old-symbol	ee9f4290a4d3bd6c4ee2b535056e6a51cc866306	PR #353 merged
-fix/alpha-as-difference	23fe9815611b6f72c4e512b647eff96a729fd4af	PR #403 merged
-fix/backtest-canonical-account-parity-v2	e004e88f60882ca42f0ccb3fe3609e3c631ead44	PR #314 merged
-fix/backtest-canonical-live-book	19f6c2646937867b6a526ae083d9bd52bc1ae05a	PR #313 merged
-fix/canonical-parity-hard-caps	d44a7f544c0a4a685f0130a6398f57f1f75e96c9	PR #319 merged
-fix/canonical-portfolio-return-reconciliation	92f97d97d059663f5798c3b20dbd89ae847a778e	PR #311 merged
-fix/canonical-stateful-backtest	8bfd57f9483009cc1ac93ad1160f2fc05b83ffa9	PR #277 merged
-fix/cards-52w-range-render	7eaa0f50bea95a2939bd299f66d8d4aa4d694f32	PR #30 merged
-fix/current-universe-screener-acquisition	26a930e779ed01e8bab7952301dbe6df87bf26dc	PR #109 merged
-fix/data-safety-guards	81fcc06d242cea3fded60cdbe1c650286d8a0784	PR #396 merged
-fix/dynamic-index-membership-history	c836522ef5187781318980c8eed87b4c79956c7d	PR #258 merged
-fix/entry-weight-unit	9511f5add2e2aaf624a0f6271aff23a293fe9942	PR #404 merged
-fix/first-month-record-run	2c816b8ba66c4c0a86ac5de5c560831f5dcbf988	PR #395 merged
-fix/gap-audit-isin-and-followups	c11404ccc2f07eef24699790d9f5a419b701fe8c	PR #408 merged
-fix/header-hamburger-duplicate	2e0ba9824ae96b4d70f3224dd1396b963ddb9530	PR #27 merged
-fix/hide-screener-source	915c8fa55abbfc2247aec5905be6f3ccd1564051	PR #415 merged
-fix/history-backtest-memory	4e0c86e9b83e67873485953b139b63e797cf75c0	PR #376 merged
-fix/holiday-copies	b5f775a63450f06bcfa32890c077ad6930ae33c0	PR #349 merged
-fix/join-before-adjust	a4ee64dd9f0d5a1528c48e67737ebbd604afcfff	PR #358 merged
-fix/large-dividends	8f23adc4a89306259a63d14b565e3de2920f1d1b	PR #370 merged
-fix/live-month-from-month-end	8d6e54c673384c5fcdcb354e97833dd5a0f07d49	PR #433 merged
-fix/mobile-header-menu-right	42b60b09da15c66431157fd3c4ea0971e62515bf	PR #28 merged
-fix/momentum-rank-history-artifact-invalidation	8ee1e4689e4f3a10044a0218ab927f253f986e7c	PR #270 merged
-fix/momentum-rank-history-display	301ac2d0b3586e738d342a38d00d505e56b0f7c3	PR #271 merged
-fix/more-corrections-lazy-value	e8815ba6d9fe23f0a565c2b2b9001719687d8d82	PR #368 merged
-fix/nano-disjoint-from-750	2ec647e9f9082f89eb150bc07b6dabd0596d0fa4	PR #273 merged
-fix/percentage-unit-hardening	51a677bd3b990e56ac4bd9c82cadc3c59f5993cc	PR #393 merged
-fix/portfolio-equity-chart-values	8cda0f6fed1b68706b97e95d09f4cfe7adfee450	PR #292 merged
-fix/portfolio-history-inception-defense	6b75424a8203eca5768385c28fde6306ea976c61	PR #288 merged
-fix/portfolio-nse-exposure-and-formatting	adfd78fb8d23b7ef7020332571b2c18690d6c1d7	PR #282 merged
-fix/portfolio-performance-canonical-alignment	43b6b6654f787881053b030e97dccc6849957058	PR #310 merged
-fix/portfolio-performance-clarity	e1e792d9d467b962f9d1a9ae194b925b7b619ef9	PR #283 merged
-fix/portfolio-qa-current-book-case	0f657cf6556fdeeeb58eee6e2b672d328ae0c0f2	PR #291 merged
-fix/portfolio-qa-live-month	43b618ca52fe079b1983a9405387eaf6e8c229bb	PR #402 merged
-fix/portfolio-rebalance-source-boundary	9cf32e823f0f0ee236a51b7a274d21e7b7503b72	PR #289 merged
-fix/portfolio-trade-history-boundary	10e1acb68957df6b77d472ad763669d508d119c2	PR #281 merged
-fix/production-universe-and-r2-deep-history	299be9cdf411534574944761d290add704cbfb6f	PR #107 merged
-fix/r2-ci-trigger-isolation	ba82e7f4e1293eed8ef1e51843a96099c739b455	PR #58 merged
-fix/r2-focused-workflow-schema	279c66f7d122111dfa97d41c0af1264c0dd20fdf	PR #61 merged
-fix/r2-phase3-ranking-artifact	464a6432757ec3e7b9a104ccfa4eac4a0aa5764a	PR #37 merged
-fix/r2-pit-empty-coverage	47fac725d5b8b02c603a7f96d69b85bdbc9817b1	PR #59 merged
-fix/r2-v1-test-isolation	4a1e4a1e65a679f9d7423aa0434c5aab24c35f17	PR #65 merged
-fix/r2-yahoo-workflow-input	7aca34dfff02f48b1d6182a0dc3d44e03ad263a9	PR #79 merged
-fix/rank-history-pipeline-fingerprint	290dd0902c239ecd646a8c324e4e6e41e07c1972	PR #272 merged
-fix/ranking-movement-mobile-columns	377189fc0dc8ad67bfdeda353a62d59f5975dbe2	PR #391 merged
-fix/ranking-movement-no-trend	c6bdd3b1fe9d84ea7cde8f2fd1edb994e16f0c03	PR #389 merged
-fix/ranking-movement-return-percent	959cb2f30f048780e48ec86e0ea30906659f9213	PR #390 merged
-fix/ranking-movement-runtime	2938a591f8d73b92a86525807a83edb5d4935f5d	PR #385 merged
-fix/ranking-movement-values-mobile	73773db16de21fd23d3245294e077e1c130c203b	PR #386 merged
-fix/ranking-universe-reconciliation	fbb40f5f27f6d3271dbe93ff52438a26f05d92b7	PR #148 merged
-fix/reduce-streamlit-repeat-work	5992733780662c590246cae276fdec2e380d962f	PR #149 merged
-fix/reland-411-startup-log	0a4094c70e057ee2f7b755964c2f0eef879b49d0	PR #437 merged
-fix/reload-in-place	cd81f96afa26d16e48fccebf803bbadf1e757950	PR #412 merged
-fix/rename-chains	9a69490ed0523723060a86a131e634d30d6b8cb8	PR #362 merged
-fix/rights-abbrev	a1dd56f06e7f17443c91272b2f03e4911b44e207	PR #371 merged
-fix/rights-small-bonus-audits	b665b514e9708e82fe696da4757280066bba5491	PR #369 merged
-fix/s56-nse-rights-actions	9c2262d616888894076e97a3a40b0b7d75fc9f88	PR #435 merged
-fix/schemes-as-demergers	0518f2aaf3c0156a7246f44c59587fdc7319b5ba	PR #361 merged
-fix/settings-say-what-they-do	0c26ca52700d78f6c476ea2ff52cde70a2650401	PR #431 merged
-fix/split-wording	d86a8ff517088b0f6de032bc0e5c1c1b8646850b	PR #350 merged
-fix/startup-warnings	c5d4069adedb11d10ee2c199b2a7bd3269cc1615	PR #411 merged
-fix/streamlit-reload-race-track-record-warnings	7ce3bcd85d5edf7930b5b5f056b445d3275b2748	PR #263 merged
-fix/windows-test-run	fbeabd370ec7959ff0cae1c95d370c35c834972d	PR #347 merged
-hotfix/fix-reload-indent	f455c509d3a962481359a3d043aa79c173a435a1	PR #266 merged
-hotfix/restore-streamlit-app	406e6fafb18671733705b8bdff18d7c64d16f3fd	PR #264 merged
-hotfix/streamlit-reload-bootstrap-race	ae008724b6ec55f35c3ef237bab034b752875764	PR #265 merged
-merge/portfolio-wording-into-current	27932942b4ba8801863212c1b758c3172935ec75	no commit off main
-perf/history-precompute	77b9df6d08dfc0a05500ab20efef963b3de365b3	PR #410 merged
-perf/long-build-actions-pack	fd2a87df41fd6e182fabbb16e1bfaa2b9731c0e8	PR #407 merged
-perf/long-prices-pack	273dd0f072e3ac51ec1f2a7a621cce14adbb47b7	PR #359 merged
-qa/menu-timing	79ce5e23ef448690244f80401242bd38711295f3	PR #367 merged
-qa/portfolio-calendar-production-coverage	082b7193351dc1d788cddbd52f4d0227f2c59f28	PR #294 merged
-qa/portfolio-page-production-coverage	0948730bb9f819ada90951fe27517ecc407a0d0b	PR #290 merged
-r2-final2	10ef74f5877378aadbba3bbde83cbd75c6993b45	PR #127 merged
-r2-historical-foundation-auto-publish	f8654a3f14e58ebb01f1181a991edd83b167c01a	PR #114 merged
-r2-historical-universe-foundation	1dfb52b824a121564771e99b925eece080696976	PR #110 merged
-r2-index-price-final-fallback	05df2b00fcf2150de4f2405649168345bb80b9b1	PR #130 merged
-r2-index-price-screener	648cb0a97cd6d60ef5514050dad7f95aae0e2de1	PR #125 merged
-r2-index-price-screener-fix	4bef204c84fd8a082d4e37c2d46dda312bb9fbdb	PR #128 merged
-r2-index-tests-current	e26fc4b4c051a77c72dde44a480d42e59148aa23	PR #129 merged
-r2-nifty-api-primary	7e32c026ef13ebcaca2a7778408602d838991bbe	PR #123 merged
-r2-nse-index-archive	c8b237b7a1c4b34ce66453133efe9b73a33138f5	PR #121 merged
-r2-nse-index-archive2	847f8269d05166f353bd31f3603cc7b6caacaa92	PR #122 merged
-r2-nse-index-chunked	1c1fc7c9c70c7116bebfe9cec90f298e4c2debd0	PR #113 merged
-r2-nse-index-final2	d8e803569853588a3df32bdc07789f9c49d1144a	PR #118 merged
-r2-nse-index-final3	a10be60eab81135db6a69f79780bd698c62d26ab	PR #119 merged
-r2-nse-index-fix	d45081be98da91a9170f0b8070af6e8d06a7d681	PR #111 merged
-r2-nse-index-session	aff685c809d2e77263d2aa457c01544270f1a400	PR #124 merged
-r2-stable-pipeline-versions	398a7ac8b928b11c366f2e915e6502143825281b	PR #117 merged
-r2/bootstrap-line-by-line-hardening	c0ebf6cb7ab7a8c2d962bec4fb668d6e3c705470	PR #87 merged
-r2/corporate-action-discrepancy-diagnostic	3368b2b50d4fee202f8bdca40dc3665dc151328d	PR #80 merged
-r2/fallback-error-boundary	f81e07fc774ac7538124ce060d1d051a877ff887	PR #95 merged
-r2/final-acceptance-doc-sync	0a837642327e959f83683169e1c447ee23a9fb56	PR #91 merged
-r2/fix-bootstrap-pytest	a9e11e913c4e96cf36d2ebe57d6d034e68084e8a	PR #88 merged
-r2/fix-bootstrap-python-modulepath	a608d7eec6b6e2c745fc7576dbce248cd83c4a54	PR #89 merged
-r2/fix-bootstrap-pythonpath	896649220b5fc1c6b643d8c5a7dcd21ae89a64bf	PR #90 merged
-r2/fix-corporate-action-attribution	453ebfdc977a998aa6330eec3f73d1819975886b	PR #81 merged
-r2/fix-membership-pit-pointer	aeb99b8273e6e00722f50adb14f0de3f0e7f5363	PR #83 merged
-r2/fix-membership-revision-resolution	1d70ded5e1136158b95ca8d79d2ee9016764e2bf	PR #85 merged
-r2/immutable-membership-consumer	2361fa7bba2efa7c4c36d501d8d4fa0365b6d75f	PR #92 merged
-r2/immutable-reader-hardening	c202e7a6905729281ae2ad903cbe6804cc1cd4f8	PR #94 merged
-r2/manifest-contract-hardening	2afd88ee7b2276c3bfc1b98223301f54a940c84f	PR #98 merged
-r2/manifest-provenance	c3681137d1fe8318fd2cc275cd4c65b7eb0603c1	PR #100 merged
-r2/park-yahoo-and-advance-screener	f368186bf53dc0212ff4929465a767496d935e02	PR #82 merged
-r2/production-provenance-observability	88ba7cfe3a9d21e46aa01712ce9d839c723888c9	PR #106 merged
-r2/recovery-audit-immutable	04b7b112491597e3b389c39c8cce95946256b8c8	PR #99 merged
-r2/research-pin-date-contract	30586c906a480f847432074077429e344676945d	PR #96 merged
-r2/research-pin-hardening	bd8f73e7428032d4a36530c9c0bc4134312e0f9d	PR #93 merged
-r2/revision-resolver-date-contract	f6ec8a87b35f2a8813669e86792245b46491ec2e	PR #101 merged
-r2/streamlit-daily-current	09e2ec90adeefec75f600557f8f393a68c5e3f7a	PR #105 merged
-r2/streamlit-production-gate	63aedef4b080c44fa704d00ee98589c8e7ebd3f9	PR #104 merged
-r2/streamlit-read-path	398d07113c74b325951873444e9563f90220afe9	PR #103 merged
-redesign-v3-design	b0ad7e9975b8acb58c5810f0f59149c725d86f6c	no commit off main
-redesign-v3-doc	b0ad7e9975b8acb58c5810f0f59149c725d86f6c	no commit off main
-redesign-v3-docs	b0ad7e9975b8acb58c5810f0f59149c725d86f6c	no commit off main
-redesign-v3-final	b0ad7e9975b8acb58c5810f0f59149c725d86f6c	no commit off main
-redesign-v3-spec	b0ad7e9975b8acb58c5810f0f59149c725d86f6c	no commit off main
-redesign-v3-spec2	b0ad7e9975b8acb58c5810f0f59149c725d86f6c	no commit off main
-redesign-v3-ui	b0ad7e9975b8acb58c5810f0f59149c725d86f6c	no commit off main
-refactor/r2-consumer-outside-v1	91e8cd8f104e86427a2f2b57b9b5ef4d0a2d41ab	PR #60 merged
-repair-nav-corruption	9cf6b1613cb3aee3412bfd0c52412b1a9d0e888c	PR #143 merged
-research/grid-edge	d74124850eb91e3556a7cb888bfe8507a3890f6a	PR #436 merged
-research/lookback-weights	147efe0138f8f03c679f81f853df4a53173f4673	PR #429 merged
-revert/2010-pit-monthly-ranking-audit	4e1ee84a3545ba0e5c5cd5cae75b4db7475daac2	PR #380 merged
-ui/actions-one-statement	8dfb52e172739b66887a26af5786db1f379fff47	PR #440 merged
-ui/backtest-concise	ea809e7abe895fe3968b23141403ab53e575db7a	PR #428 merged
-ui/backtest-preferred-settings	0ee233b4b8ee99b1ec1ee173a23a5afbe07ca85b	PR #432 merged
-ui/calendar-returns-year-cards	2379563fe9e65cf79fc083d9747c4002701a03b0	PR #375 merged
-ui/cards-1m-return-metric	213c45db363278c28c273396c4e518797d7d6fad	PR #31 merged
-ui/cards-52w-range-index-chips	f988f3a8ea9a86d9884c420f939ccddf331e92f0	PR #29 merged
-ui/compact-verdict-no-icons	3e3dc0afb42e5fcf00aa983d8608f57c96850d51	PR #267 merged
-ui/configuration-one-statement	5f44a2c4d39b9f38657af276a0dd26e3341fe5e8	PR #443 merged
-ui/consistent-wording	cf7b9224b62101b41283d235db3f55bc3880480d	PR #430 merged
-ui/hamburger-in-header	32c6a5633555e6911e304e96f7c95f19ef33a52b	PR #26 merged
-ui/hamburger-navigation	46312376dd7244932a37c8bcb6c6c2b8cdda6148	PR #25 merged
-ui/market-status-redesign	f778a71a69a5340866e1d701c3bb5d7416b4b881	PR #275 merged
-ui/pages-text-pass	b3f54cd4b78fb0b5564c7db46e8aa6479f005f52	PR #442 merged
-ui/portfolio-calendar-nav-cleanup	d8100e117b6d2ade950ad03dff22f3728f7bde01	PR #398 merged
-ui/portfolio-wording	464499604686b27f6ddd04b523069b40254c1288	PR #397 merged
-ui/price-ladder-clean-mobile	293a2e79aa72e2371154f5cc1b104e2f2ad2b750	PR #261 merged
-ui/price-ladder-colour-spaced	7b9e078a171e2ebc9ede16510077972eabbe60f1	PR #269 merged
-ui/price-ladder-labels	2783692bef394644c6e3768d3b0a480ca2863530	PR #260 merged
-ui/ranking-movement-agreed-design	83a9b2b56072623581edc955bf4efa53a908db52	PR #384 merged
-ui/ranking-movement-redesign	51c4169dc8f206084b6405dbee393a42d5024758	PR #383 merged
-ui/remove-dead-helpers	ed1486b652cb52d91a974a0b3731b597df22f287	PR #439 merged
-ui/stock-page-one-statement	2544d27b839e84941ba348363b136b1265e9fca5	PR #441 merged
-ui/typography-final-balance	8c646c2bec15816e4080e78ed814264635dc1f18	PR #268 merged
-ui/verdict-rank-path-returns	fc9ed05783ff54092fef25cdf1e2c14d267a487b	PR #262 merged
-verify/new-symbol-history	965617b31eedfa383a3b0e79b8cd78888612ab27	PR #147 merged
+Sandbox	78adafd92e7c89dfc63823c986d7e7f5d55e8489	no PR, unmerged
+audit/data-footprint-phase0	56a219d99444bd64dc4af09b557dde65ab80e86b	PR #416 closed-unmerged, unmerged
+audit/data-loading-phase1	453648e6679d6f7510e9a2b0a5dae61210be18c8	PR #417 closed-unmerged, unmerged
+audit/p0-missing-data	fed0b1b01be8b83448edbfc0188db284c8561471	no PR, unmerged
+audit/short-history-2026-10-08	ff9838cb364d33ae926a71c32b3042c4af18d06b	no PR, unmerged
+ccr-320023a8-d4iys7	0782e6af58d8762c3eda42431bdce4af5370a062	PR #356 closed-unmerged, unmerged
+claude/code-audit-improvements-t8677r	6d10126fcbb0043d5eb920bc08b94052e1989aef	PR #321 closed-unmerged, unmerged
+claude/peaceful-ride-usqzub	90397c092ecbb24025392d06f64966a5315e8f4b	no PR, unmerged
+claude/sep-2026-backtest-entries-y1gh6x	c3fdd78d05c015fdeb9fc80be24f9801ad05bc58	no PR, unmerged
+claude/stoic-mayer-d3gop5	0bc0f33beabc74c54f8fe5933b1afc35c24da601	PR #471 closed-unmerged, unmerged
+claude/umiya-v1-audit-xht45x	5e2a4c9c00bb3c2c35dce86133a3b6153536891f	no PR, unmerged
+dependabot/pip/pyarrow-26.0.0	82a0af6f8e285985e15d88c5d7174f3ee639a2c9	PR #467 closed-unmerged, unmerged
+design-spec-v2	acba893b597e94012a5b9ed0079c7fe94f6acc5e	no PR, unmerged
+diagnostic/stltech-r2-price-check	959f676e80adb7eee8fb61cba640b9d3aaa183a3	no PR, unmerged
+docs/pit-nifty500-year-by-year-audit	6c0ee346f2d918939e0058167dc622a280b4caee	PR #378 closed-unmerged, unmerged
+docs/r2-final-separation-record	1ed9da06415d768bc464adb019a51092cef7cf6e	PR #62 closed-unmerged, unmerged
+docs/r2-loop-sync-historical-evidence	3090ce2e04d403a7646f78d9a7fefcf9848d645f	PR #48 closed-unmerged, unmerged
+docs/r2-research-reader-status	f2bad77a2e6454892f01edb0b54b9c333bd548d5	PR #69 closed-unmerged, unmerged
+docs/r2-status-sync	9df0c0282c6765ee246e20d1e5d3050a699a7947	PR #51 closed-unmerged, unmerged
+docs/r2-status-sync-v3	c43d4d580dfb31b9cb06bdc0cc785881a3d5bffc	PR #53 closed-unmerged, unmerged
+feat/r2-archive-audit-hardening	1bd634516af6ed238ec691012cd87a8e804b81d6	PR #41 closed-unmerged, unmerged
+feat/r2-archive-integrity-audit	7babb800cba1519d258ef8fd15f71e2461a27c0d	PR #40 closed-unmerged, unmerged
+feat/r2-coverage-audit-clean	78d8734317a9ed48562959593fd86aa2a761d5ea	PR #44 closed-unmerged, unmerged
+feat/r2-coverage-audit-loop	2d9d3f08e0227512526167a0144b9511446fc2eb	PR #45 closed-unmerged, unmerged
+feat/r2-loop-next-verification	8eb1872d723d7dae5cd3721d6d2e19cc3884b5d8	PR #54 closed-unmerged, unmerged
+feat/r2-one-time-live-audit	7faa0f37e83c772d6bbfab28fd83b449137d9a1c	PR #43 closed-unmerged, unmerged
+feat/r2-phase2-bootstrap	39ab657fe5d57639e414167ae7c5edcc3a7dd6c3	PR #35 closed-unmerged, unmerged
+feat/r2-session-marketcap-history	b47c2cf88ca6192c393f8478f5d9e9d84d8bea7d	PR #50 closed-unmerged, unmerged
+feature/6m-backtest	586631c73f8b4227865b994ee9ce924a523e63c8	no PR, unmerged
+final-qa-popover-fix	36019d16a8fd0decc819945d01d81382674827ba	PR #137 closed-unmerged, unmerged
+fix-production-nav-probe-v2	79e1bb0553893178b0f1c0723a640e19e947fbd6	PR #134 closed-unmerged, unmerged
+fix-production-nav-probe-v4	21b6b5e84c818bfe4553806ec9ffb0ef734daf33	PR #139 closed-unmerged, unmerged
+fix-production-nav-probe-v5	70ca1262de80c5faf1b91c6f4eeedcd155d84b51	PR #140 closed-unmerged, unmerged
+fix-production-nav-probe-v6	ce90ea649e6141215b36aac94403807b61e23f19	PR #142 closed-unmerged, unmerged
+fix-production-qa-popover-race	41f0058706b8a3b01b371612100536c2e24915fe	PR #136 closed-unmerged, unmerged
+fix/calendar-month-boundary-alpha-grid	aa864646f6d82f171d2d538d1b4c8c6460361f3c	PR #296 closed-unmerged, unmerged
+fix/calendar-month-boundary-mtd	7daa4182f09bc1ab8dc17b3659c18f1ca54c0ae8	PR #295 closed-unmerged, unmerged
+fix/canonical-backtest-account-parity	b6a792754eec68c303ccef31b7676f7cbe342203	PR #312 closed-unmerged, unmerged
+fix/canonical-book-performance-parity	4f00c727f2b2f6ea63bcba6f1759a28e98959aee	no PR, unmerged
+fix/canonical-portfolio-reconciliation	4bc2ca01051af8a2b677a7b967332dca11e4f785	PR #318 closed-unmerged, unmerged
+fix/data-loading-phase2-lazy-history	a6a0d8ebbcd46e06f661d95509d7c2134531e039	PR #418 closed-unmerged, unmerged
+fix/heg-symbol-migration	ae47eb07d20781b96cb75189e3c1c269ad610a32	PR #108 closed-unmerged, unmerged
+fix/membership-2026-rename-reconciliation	70ffa0e61fc34ea9b816179eed5f6637034c1b51	PR #331 closed-unmerged, unmerged
+fix/portfolio-day-pnl-percent	25e82c44ac113656dd23b23549d74600e0019edd	PR #392 closed-unmerged, unmerged
+fix/portfolio-qa-current-layout	f5e74a4e6ef8c5e4111230412498f9abaeff6b1d	no PR, unmerged
+fix/portfolio-rebalance-inception-window	66d9fbfc9533adeb462d3e65de6901bf0ffdc7fa	PR #287 closed-unmerged, unmerged
+fix/portfolio-track-record-lint	b4babb67f53e57a190ca97524fd69fab912d7da4	PR #399 closed-unmerged, unmerged
+fix/r2-coverage-interior-session	3ef8922fdc96389d9a1e755b69f82252a2d1dce8	PR #47 closed-unmerged, unmerged
+fix/r2-final-acceptance-regression	3956db4a1b1829d8ee614de367be03e815d10057	PR #75 closed-unmerged, unmerged
+fix/ranking-movement-mobile-fit	0f8ad0b4b8dccd727c730532a09ff5fafeac6016	PR #388 closed-unmerged, unmerged
+fix/ranking-movement-values	3a663648fe109b53ce08b91f5fbf89cbd77114e1	PR #387 closed-unmerged, unmerged
+fix/rights-in-committed-actions	e2f6800beb3e6b5aa516dcea5c1e2377ac207222	no PR, unmerged
+perf/history-backtest-profiling	3113474dd288794ab6a92913f4acfb866c3735b3	PR #377 closed-unmerged, unmerged
+r2-final-foundation	114fe74d17930ac273e2661c3fb8b9717054fa95	PR #126 closed-unmerged, unmerged
+r2-nse-index-final	0faefd220c43fea9ba6e511f09d1abe7104f5536	PR #116 closed-unmerged, unmerged
+r2-nse-index-fix2	2b103cdd1c5408f3d7866510936179a5b8d76a95	PR #115 closed-unmerged, unmerged
+r2-publication-idempotency-and-index-fetch	eafbbfc1b0eb42823954e068ee9a7adc4a11d6f6	PR #120 closed-unmerged, unmerged
+r2/docs-current-contract	7271eee3bbf0a84fe996fd44f578297124f82098	no PR, unmerged
+r2/fix-bootstrap-index-filename	0c230375153ce33bdf445ef8a467d6d54ef7f3f3	PR #86 closed-unmerged, unmerged
+redesign-v2	395fd3e1df378bd4411bfea12a99ef1cb241bc80	no PR, unmerged
+redesign-v2-verify	1dce87140a9cb6ac5b271f65ec583594075d71ae	no PR, unmerged
+redesign-v3	f04f8e07ae998f09501d92970d1378be410895ac	no PR, unmerged
+test/phase3-real-screener-sync	fde608bd8a087666070bbebd490dc6d525a63b4a	no PR, unmerged
+test/phase3-real-yahoo-sync	f798a9a2811b96aa6fa37973b25f7cd3c3f9dd24	no PR, unmerged
+test/r2-credentials-20260921	5e401a51ddf942236df2af209aeec8fd04e84e6b	PR #33 closed-unmerged, unmerged
+test/r2-phase3-live-validation	f3c4201e995497898e0d7b90c28ac2de757856bb	no PR, unmerged
+test/single-reliance-3650	a7a222e47fc5d4a47885e456631290e27d78bdbe	no PR, unmerged
+ui/guide-rewrite	cd779ec70119465d35ce62bdea1d179ff5f7aa6e	no PR, unmerged
+ui/portfolio-correlation-collapsed	e67b2a3133acb088a3b246b896bdad13bf81feb1	PR #438 closed-unmerged, unmerged
