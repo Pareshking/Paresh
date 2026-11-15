@@ -54,7 +54,10 @@ RELEASE_TAG = "data-latest"
 # Each approved by the owner with its size and downloads at the time; a change skips it.
 ASSETS = (
     {"name": "tmp_session_2026-10-03.zip", "size": 10_851_823, "downloads": 0},   # deleted 15 Nov (run 43674615797)
-    {"name": "history_backtests.zip", "size": 3_311_385, "downloads": 3},         # owner, 15 Nov: "Yes delete it"
+    {"name": "history_backtests.zip", "size": 3_311_385, "downloads": 3},         # deleted 15 Nov (run 43677526783)
+    # Nothing reads it: nse_compare lost its --extra argument and its workflow never
+    # downloads it (storage audit, 15 Nov; owner: "Delete whatever you decided").
+    {"name": "prices_extra.parquet", "size": 7_001_785, "downloads": 10},
 )
 
 

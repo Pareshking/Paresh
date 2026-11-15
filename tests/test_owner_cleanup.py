@@ -49,14 +49,14 @@ def test_an_asset_is_deleted_only_if_still_the_same_size_and_downloads():
         assert oc.plan_asset([{**ok, "size": 5}], want).action == "skip"
         assert oc.plan_asset([], want).action == "gone"
     names = {a["name"] for a in oc.ASSETS}
-    assert names == {"tmp_session_2026-10-03.zip", "history_backtests.zip"}
+    assert names == {"tmp_session_2026-10-03.zip", "history_backtests.zip", "prices_extra.parquet"}
     # the reference set and every live asset stay (docs/PENDING_DELETIONS.md)
     assert not {n for n in names if n.startswith("ref_") or n in {"prices.parquet", "prices_full.parquet"}}
 
 
 def test_the_branch_list_holds_no_protected_or_open_pr_branch():
     listed = oc.read_list()
-    assert len(listed) == 69          # second batch, 15 Nov: the unmerged branches
+    assert len(listed) == 0           # both 15 Nov batches are done
     names = [n for n, _ in listed]
     assert len(set(names)) == len(names)
     assert all(re.fullmatch(r"[0-9a-f]{40}", sha) for _, sha in listed)

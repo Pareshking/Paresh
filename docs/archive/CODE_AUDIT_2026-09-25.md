@@ -30,7 +30,7 @@ that need one more check before anyone acts on them.
 asserts `data/membership_history.json["changes"] == []`. The 2026-09-23 daily
 sync recorded a real NSE symbol change, `{"added": ["HEGAM"], "removed": ["HEG"]}`.
 The test asserts a fact about **live, bot-updated data**, so the first real
-index change broke it. The data is correct, and `docs/PRODUCTION_STATUS.md`
+index change broke it. The data is correct, and `docs/archive/PRODUCTION_STATUS.md`
 says HEGAM must not be aliased to HEG. The test is what's wrong.
 
 **Fix:** assert the structure of the history (the schema, sorted dates, no
@@ -196,7 +196,7 @@ The filters can never match anything.
 - **26** branches have **0 commits** that aren't on `main`. They are fully
   merged and safe to delete.
 - The rest are 1–177 commits ahead, mostly squash-merged work. Run the
-  branch-by-branch triage described in `docs/REPO_CLEANUP_2026-08-18.md`
+  branch-by-branch triage described in `(removed 15 Nov 2026; superseded by the branch clean-up recorded in docs/PENDING_DELETIONS.md)`
   (tag, then delete). The five branches that document already signed off
   (`Sandbox`, `audit/p0-missing-data`, `claude/umiya-*`,
   `feature/6m-backtest`) **still exist**.
@@ -207,7 +207,7 @@ finished loops (`V1_AUDIT_CURRENT_LOOP_2026-08-17.md`,
 `V1_QA_ROOT_CAUSE_2026-08-18.md`, `REPO_CLEANUP_2026-08-18.md`,
 `ADVERSARIAL_AUDIT_2026-09-10.md`). `agent/STAGE_4B_IMPROVEMENT_TRACKER.md`
 is 1,439 lines. **Move** closed audits to `docs/archive/`, and keep
-`README.md` → `docs/PRODUCTION_STATUS.md` → specs as the reading order.
+`README.md` → `docs/archive/PRODUCTION_STATUS.md` → specs as the reading order.
 
 ---
 

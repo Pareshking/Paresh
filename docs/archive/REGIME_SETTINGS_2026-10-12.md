@@ -8,7 +8,7 @@ defaults, the track record and the model book are unchanged (owner, 12 Oct).
 
 Owner's question, 12 Oct: which settings work best in which market conditions?
 Run on the laptop with `scripts/research_regime_sweep.py`. This follows the
-lookback-weights study (`docs/LOOKBACK_WEIGHTS_2026-10-12.md`), which held every
+lookback-weights study (`docs/archive/LOOKBACK_WEIGHTS_2026-10-12.md`), which held every
 setting but the weights at the live values.
 
 ## What was run

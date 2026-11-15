@@ -79,7 +79,7 @@
 - **The Guide compares the strategy with simply holding the index, after tax.** From Jan 2010 to Oct 2026, both price only and both sold at the end: 15.1% a year against 9.4%. The lead is 8.5 points a year before tax and 5.8 after, because the index pays tax only once at the end.
 - **The Guide shows what costs do.** The Nifty 500 backtest earns 18.6% a year at 30 bps a round trip, 17.5% at 50 and 16.2% at 75. STT and stamp duty take about 22 of the 30 bps; the spread has not been measured.
 - **The Guide no longer says tax is "not modelled anywhere"** a few lines above an after-tax test result. Every figure is before tax; tax was estimated in that one test only.
-- Audit of method and evidence: `docs/AUDIT_2026-11-11.md` (costs, tax against an index fund, dividends, how long the record must run before it can show anything).
+- Audit of method and evidence: `docs/archive/AUDIT_2026-11-11.md` (costs, tax against an index fund, dividends, how long the record must run before it can show anything).
 
 ## 2026-11-10 — Calendar returns can be slid again on a phone
 
@@ -111,7 +111,7 @@
 - **A breadth chart labelled its newest bar four days in the future** — "5.5% on 13 Nov 2026" when the last session was the 9th — because a week in progress was dated by its Friday. It now carries the last session's date, which is also what the table beside it says.
 - **The Guide contradicted itself** about the rule that changes on 30 November: "Caps" said no stock above 5% of the book, "Weighting" said a holding that stays is trimmed only above 15%. The second is what the model does, and what Portfolio already shows. "Caps" now says a new buy is never above 5% and a kept holding is cut only above 15%.
 - The Guide also quoted the header as reading "Nifty 500 2.9% above its 200D EMA" — a number typed in by hand, against the 3.4% the header was actually showing. The quotation no longer carries a figure.
-- `docs/LAUNCH_TEST_PLAN.md` holds all eleven slots and their measurements, and five commands now answer the launch questions on demand: `launch_gate.py`, `launch_consistency.py`, `launch_a11y.py`, `launch_perf.py` and `launch_security.py`.
+- `docs/archive/LAUNCH_TEST_PLAN.md` holds all eleven slots and their measurements, and five commands now answer the launch questions on demand: `launch_gate.py`, `launch_consistency.py`, `launch_a11y.py`, `launch_perf.py` and `launch_security.py`.
 
 ## 2026-11-10 — One entry gate, from the 30 November signal
 
@@ -616,7 +616,7 @@
 
 ## 2026-10-08 — Memory: the app stays inside Streamlit Cloud's limit
 
-- Streamlit Cloud restricted the app for using too much memory. Each rerun of each session had been unpickling its own copy of the same price frames (~130 MB a click), and every weight setting a reader tried kept a 56 MB engine for an hour with no ceiling. The price frames are now one shared copy, and the engine and backtest caches have a size limit. With 4 readers at once, peak memory fell from 1.9 GB to 1.4 GB and the Screener answers in 4 s instead of 18 s. Rankings and prices are unchanged (`docs/MEMORY_AUDIT_2026-10-08.md`).
+- Streamlit Cloud restricted the app for using too much memory. Each rerun of each session had been unpickling its own copy of the same price frames (~130 MB a click), and every weight setting a reader tried kept a 56 MB engine for an hour with no ceiling. The price frames are now one shared copy, and the engine and backtest caches have a size limit. With 4 readers at once, peak memory fell from 1.9 GB to 1.4 GB and the Screener answers in 4 s instead of 18 s. Rankings and prices are unchanged (`docs/archive/MEMORY_AUDIT_2026-10-08.md`).
 - Every cold start had been skipping the R2 copy of the ranking for the release file because of an import race between two threads; fixed.
 - Holdings CSV uploads are limited to 5 MB.
 - The ranking engine is now shared between readers too (each gets its own view of it), and the Track Record comparison prices the other systems from the app's own Screener copy instead of downloading it again; with 4 readers on Portfolio, peak memory 1.44 GB -> 1.05 GB. The comparison's own system could be shown a price frame up to an hour old after new prices arrived; fixed.
@@ -684,7 +684,7 @@
 - Owner decision: hard caps everywhere — 5% per stock, 40% per NSE industry, enforced at selection, never relaxed; the shortfall is cash. Defaults moved 30% → 40%.
 - Track record rebuilt under the capped config (`4cc739e503d7`, logged in `rebuilds`): cumulative +46.57% → +44.40%; benchmark unchanged.
 - New: canonical parity gate (`scripts/canonical_parity_check.py`, `canonical_parity.yml`) fails CI on any disagreement.
-- Record: `docs/CANONICAL_RECONCILIATION_2026-10-02.md`.
+- Record: `docs/archive/CANONICAL_RECONCILIATION_2026-10-02.md`.
 
 ## 2026-10-01 — UI overhaul (draft PR)
 

@@ -19,7 +19,6 @@ on:
       - '.github/workflows/r2_*.yml'
       - 'docs/R2_*.md'
       - 'docs/MARKET_DATA_ARCHIVE_R2_SPEC.md'
-      - 'docs/RAW_PRICE_REBUILD.md'
   schedule:
     - cron: "17 */6 * * *"
 

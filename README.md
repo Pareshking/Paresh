@@ -222,9 +222,9 @@ corrected statistics — are the asset a blank rewrite would have to re-earn.
 
 ## Research audit tracker
 
-See [`docs/V1_AUDIT_TRACKER.md`](docs/V1_AUDIT_TRACKER.md) for the full audit roadmap, completed corrections, and remaining research tasks.
+See [`docs/archive/V1_AUDIT_TRACKER.md`](docs/archive/V1_AUDIT_TRACKER.md) for the full audit roadmap, completed corrections, and remaining research tasks.
 
-See [`docs/ADVERSARIAL_AUDIT_2026-09-10.md`](docs/ADVERSARIAL_AUDIT_2026-09-10.md)
+See [`docs/archive/ADVERSARIAL_AUDIT_2026-09-10.md`](docs/archive/ADVERSARIAL_AUDIT_2026-09-10.md)
 for the multi-agent adversarial audit: confirmed defects with reproductions,
 allegations investigated and rejected, and the remaining risks the corrections
 do **not** address — chiefly that 7 of the 8 recorded months are backfilled
@@ -232,7 +232,7 @@ reconstructions, and that every figure in this application is **pre-tax**.
 
 What is still open, in one list: [`docs/TODO.md`](docs/TODO.md).
 
-See [`docs/PARKED_IDEAS.md`](docs/PARKED_IDEAS.md) for features and integrations that were researched and deliberately set aside, with recorded reasoning.
+See [`docs/archive/PARKED_IDEAS.md`](docs/archive/PARKED_IDEAS.md) for features and integrations that were researched and deliberately set aside, with recorded reasoning.
 
 ## Core capabilities
 

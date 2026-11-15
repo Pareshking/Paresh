@@ -28,7 +28,6 @@ on:
       - '.github/workflows/r2-focused-validation.yml'
       - 'docs/R2_*.md'
       - 'docs/MARKET_DATA_ARCHIVE_R2_SPEC.md'
-      - 'docs/RAW_PRICE_REBUILD.md'
   pull_request:
     branches: [main]
     paths:
@@ -52,7 +51,6 @@ on:
       - '.github/workflows/r2-focused-validation.yml'
       - 'docs/R2_*.md'
       - 'docs/MARKET_DATA_ARCHIVE_R2_SPEC.md'
-      - 'docs/RAW_PRICE_REBUILD.md'
 
 permissions:
   contents: read

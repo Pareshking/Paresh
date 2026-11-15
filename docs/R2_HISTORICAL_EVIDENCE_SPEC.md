@@ -208,7 +208,7 @@ Still pending Section-C completeness:
 The previously pending live consumer and point-in-time reconstruction gates are complete.
 
 Parked:
-- Yahoo raw-price rebuild in `docs/RAW_PRICE_REBUILD.md`.
+- Yahoo raw-price rebuild (plan removed 15 Nov 2026: Yahoo was dropped as a source on 2 Oct, #328).
 
 ## 7. Current acceptance status
 

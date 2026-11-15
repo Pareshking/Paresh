@@ -16,7 +16,7 @@ Steps
      gaps -- what users see) against the same pipeline run on NSE's prices.
 
     python scripts/nse_compare.py --screener screener_prices.parquet \\
-        --published-dir . --extra prices_extra.parquet
+        --published-dir .
 """
 
 from __future__ import annotations

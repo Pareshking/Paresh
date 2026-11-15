@@ -13,7 +13,7 @@ then opens each page of the menu in turn in headless Chromium and records:
     python scripts/audit_page_bench.py [--out bench.json] [--rounds 2]
 
 Round 1 is cold (empty cache); later rounds are warm. One reader at a time:
-the concurrency case is in docs/MEMORY_AUDIT_2026-10-08.md.
+the concurrency case is in docs/archive/MEMORY_AUDIT_2026-10-08.md.
 Numbers are from this machine, not Streamlit Cloud; compare runs on the same
 machine only.
 """

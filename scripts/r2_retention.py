@@ -68,6 +68,14 @@ RETAINED_DATASETS: dict[str, str] = {
     "prices/ss": "archive/prices/ss",
 }
 
+# Retained datasets that keep fewer daily copies than KEEP_DAILY (month-ends are
+# still kept). prices/ss (owner, 15 Nov 2026: clear what is not required): each
+# copy is the whole SS history (~37 MB); nothing reads it from R2 -- ss_sync
+# restores from the release's ss_* files and stops rather than fall back -- so
+# R2 holds it only as a rollback. Three dailies plus every month-end keep that
+# (11 copies, 405 MB, on 15 Nov; about 4 after the next prune).
+RETAINED_KEEP_DAILY: dict[str, int] = {"prices/ss": 3}
+
 # Datasets that keep only their newest N dates, no month-ends. None now: the
 # app's Yahoo snapshots were retired below.
 KEEP_LATEST_ONLY: dict[str, int] = {}
@@ -215,7 +223,7 @@ def plan_dataset(archive: R2Archive, dataset: str, root: str,
     elif dataset in KEEP_LATEST_ONLY:
         keep = keep_dates(dates, KEEP_LATEST_ONLY[dataset], month_ends=False)
     else:
-        keep = keep_dates(dates)
+        keep = keep_dates(dates, RETAINED_KEEP_DAILY.get(dataset, KEEP_DAILY))
     drop = [d for d in dates if d not in keep]
     plan = DatasetPlan(dataset, dates, sorted(keep), drop)
 

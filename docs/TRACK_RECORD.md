@@ -127,7 +127,7 @@ then to Screener-primary (`docs/NSE_PRICE_BASIS.md`). **The fourth, for the owne
 decision of 2026-10-02, made the 5% stock and 40% industry caps hard** (config
 `4cc739e503d7`): previously the replay passed no sector map and no industry cap
 bound at all. Jan–Sep moved by −1.77 to +1.96 pp; cumulative +46.57% → +44.40%.
-Full record: `docs/CANONICAL_RECONCILIATION_2026-10-02.md`.
+Full record: `docs/archive/CANONICAL_RECONCILIATION_2026-10-02.md`.
 
 ---
 
@@ -294,7 +294,7 @@ from the Actions tab.
 
 ## 7. Known limitation — backfilled months are a backtest
 
-_Rewritten 11 Nov 2026 (audit `docs/AUDIT_2026-11-11.md`, Q-H1): the text that stood
+_Rewritten 11 Nov 2026 (audit `docs/archive/AUDIT_2026-11-11.md`, Q-H1): the text that stood
 here said Jan–Jul 2026 were scored on September's constituent list, which stopped being
 true on 1 Oct 2026 (section 5's rebuild)._
 
@@ -318,7 +318,7 @@ before the running month is added). Portfolio shows no note saying so (owner, 11
 The recorded series grows one month at a time from October 2026 and is the only
 evidence here that is free of hindsight.
 
-See `docs/V1_AUDIT_TRACKER.md` §5 for the standing decision to defer
+See `docs/archive/V1_AUDIT_TRACKER.md` §5 for the standing decision to defer
 survivorship work.
 
 ---
@@ -375,7 +375,7 @@ restatement is expected: the stored value stands until the owner decides to rebu
 
 ## 9. Shadow record: the Recommendation
 
-Owner, 2026-10-12 (TODO 6 and 9; `docs/REGIME_SETTINGS_2026-10-12.md`): the
+Owner, 2026-10-12 (TODO 6 and 9; `docs/archive/REGIME_SETTINGS_2026-10-12.md`): the
 settings research's Recommendation is recorded forward beside the live system,
 never traded, so that it is judged on months nobody could tune it on.
 

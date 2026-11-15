@@ -115,7 +115,7 @@ line `Precomputed ranking accepted` after the next overnight run.
 
 ## Code audit (2026-09-25)
 
-The whole V1 codebase was read line by line (`docs/CODE_AUDIT_2026-09-25.md`).
+The whole V1 codebase was read line by line (`docs/archive/CODE_AUDIT_2026-09-25.md`).
 Three owner decisions shipped:
 
 - **1B.** Ranking windows count back from the last price date, not the wall clock.
