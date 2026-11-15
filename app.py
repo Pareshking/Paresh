@@ -133,6 +133,7 @@ if _code_reloaded:
 inject_custom_css()
 # Editorial type on every page (owner, 7 Nov: prototype seen, "continue").
 from src.ui.page_kit import editorial_style as _editorial_style  # noqa: E402
+from src.ui.page_kit import safe_json  # noqa: E402  (S138: the hidden metrics div)
 _editorial_style()
 
 # Seed freshness dates from committed repo files so the ribbon always has
@@ -948,7 +949,7 @@ def _emit_startup_metrics(outcome: str) -> None:
         # public_snapshot, not snapshot: this div is hidden, not private, and
         # which upstream feed the prices came from does not belong in HTML
         # anyone can view-source. Timings and counters are untouched.
-        + json.dumps(metrics.public_snapshot())
+        + safe_json(metrics.public_snapshot())
         + "</div>",
         unsafe_allow_html=True,
     )
