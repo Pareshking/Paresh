@@ -3,6 +3,21 @@
 Owner, 11 Nov 2026: *"Record items which required delete as I am on mobile and
 can't do it, whatever possible please delete it."*
 
+## Done, 15 Nov 2026
+
+Run 43674615797 (`owner_cleanup.yml`, mode delete, on `fc976c8`) ended
+**"done: 235 deleted, 0 failed"** after a dry run (43671866353) that listed the
+same 235 with 0 skipped: 233 merged branches (321 branches before, 88 after; none
+of the listed ones left; `main`, `agent/*`, stage4b, the backup and the three
+open-PR branches all still there), the R2 prefix `scratch/bse_bhavcopy_2026-10-03/`
+(23 objects, 1,221.8 MiB) and the release asset `tmp_session_2026-10-03.zip`.
+Items 1 and 2 below are therefore done; they are kept for the record.
+
+Still the owner's call, one by one: 69 branches holding unmerged work
+(`Sandbox`, `redesign-v2*`, `feat/r2-*` and others, listed with their evidence
+in the 15 Nov classification), and `history_backtests.zip` (3.3 MB, 7 Oct, named
+nowhere in the code or docs).
+
 ## The one-tap way (15 Nov 2026)
 
 Owner, 15 Nov: *"Build the one-tap clean-up job."* GitHub's own runner can do
