@@ -52,3 +52,15 @@ def test_headerless_symbol_change_file_keeps_its_first_row():
     raw = b"Acme Ltd,OLD,NEW,01-JUL-2026\nBeta Ltd,B1,B2,02-JUL-2026\n"
     rows = s.parse_csv(raw, s.HEADERLESS["symbolchange.csv"])
     assert len(rows) == 2 and rows[0] == {"company": "Acme Ltd", "old_symbol": "OLD", "new_symbol": "NEW", "date": "01-JUL-2026"}
+
+
+def test_only_a_price_moving_action_or_a_symbol_change_is_a_warning():
+    # #515: ordinary results-season dividends opened an alert issue every day.
+    div = {"symbol": "HINDUNILVR", "subject": "Interim Dividend - Rs 19 Per Share"}
+    assert not s.needs_a_look("corporate_actions", div)
+    for subject in ("Face Value Split (Sub-Division) - From Rs 10/- Per Share To Re 1/- Per Share",
+                    "Bonus 1:1", "Rights 1:5 @ Premium Rs 100/-", "Demerger",
+                    "Scheme Of Arrangement", "Consolidation Of Shares"):
+        assert s.needs_a_look("corporate_actions", {"subject": subject}), subject
+    assert s.needs_a_look("symbolchange.csv", {"old_symbol": "X", "new_symbol": "Y"})
+    assert s.needs_a_look("namechange.csv", {"NCH_SYMBOL": "X"})
