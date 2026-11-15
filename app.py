@@ -26,6 +26,7 @@ warnings.filterwarnings("ignore", message=".*st\\.components\\.v1\\.html.*")
 # in a later commit. If the old module is still resident, reload it first;
 # if even that is unavailable, use its existing lock for the import window.
 import importlib
+import sys
 import threading
 from contextlib import contextmanager
 
@@ -52,7 +53,41 @@ if app_import_guard is None:
 mark_loaded = _code_reload.mark_loaded
 reload_if_changed = _code_reload.reload_if_changed
 
+def _new_revision_pulled() -> bool:
+    """True on the first run after Streamlit Cloud pulled a new commit into this process.
+
+    Written to survive a mixed deployment: on the pull that first brings this
+    code, the src.core.memory still loaded is the old one, without
+    revision_changed, so it is reloaded first; any failure reads as "no".
+    """
+    try:
+        from src.core import build_info as _bi
+        from src.core import memory as _mem
+
+        if not hasattr(_mem, "revision_changed"):
+            _mem = importlib.reload(_mem)
+        return bool(_mem.revision_changed(_bi.deployed_revision()))
+    except Exception:  # noqa: BLE001 - never let the check take a page down
+        return False
+
+
 with app_import_guard():
+    # A pull into this running process must not stack a second copy of every
+    # cache (owner's log, 15 Nov 2026: 57 pulls and 2 restarts, resident memory
+    # after each pull rising to ~2,450 MB; restricted for memory at 11:24 UTC).
+    # On a new revision every src/ and r2/ module is dropped, so their memos go
+    # with them, and the caches are cleared once the imports below are done.
+    _revision_pulled = _new_revision_pulled()
+    if _revision_pulled:
+        try:
+            from src.core import memory as _mem_old
+
+            if hasattr(_mem_old, "clear_module_memos"):
+                _mem_old.clear_module_memos(sys.modules)
+        except Exception:  # noqa: BLE001
+            pass
+        for _name in [n for n in sys.modules if n in ("src", "r2") or n.startswith(("src.", "r2."))]:
+            sys.modules.pop(_name, None)
     _code_reloaded = reload_if_changed()
     
     # Core & Loaders
@@ -126,6 +161,14 @@ with app_import_guard():
     
     mark_loaded()  # the baseline reload_if_changed() compares against next run
 metrics.mark_code_current()  # loaded_revision: the src/ now running is disk's
+if _revision_pulled:
+    from src.core.memory import drop_caches_for_new_revision as _drop_caches  # noqa: E402
+
+    _freed = _drop_caches([st.cache_data.clear, st.cache_resource.clear])
+    logger.info("New revision pulled: modules re-imported and caches dropped, resident %s -> %s MB%s",
+                _freed["before_mb"], _freed["after_mb"],
+                f" (errors: {_freed['errors']})" if _freed["errors"] else "")
+
 if _code_reloaded:
     logger.info("Reloaded app code changed on disk: %s", ", ".join(_code_reloaded))
 

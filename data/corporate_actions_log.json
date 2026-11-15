@@ -24,7 +24,7 @@
       "kind": "unclassified",
       "first_seen": "2026-09-18",
       "verdict": "price_move",
-      "verdict_note": "Owner check, 2026-09-27: Indiabulls Real Estate's real +40% on a demerger PLAN announced that day (Business Standard, 17 Apr 2017); nothing was effected, so not a corporate action."
+      "verdict_note": "Owner check, 2026-09-27: Indiabulls Real Estate's real +40% on a demerger PLAN announced that day (Business Standard, 17 Apr 2017); nothing was effected, so not a corporate action. CONFIRMED 15 Nov 2026: BSE bhavcopy, downloaded 15 Nov 2026 (S132 re-check), scrip 532832 INDBUL REAL: 13 Apr C 105.85; 17 Apr O 108.10 H 150.90 L 103.65 C 148.15 on 23.2M shares (4.6M the session before). It opened near the previous close and rose through the session; an action would open at the adjusted level."
     },
     "2017-07-03:CDSL": {
       "date": "2017-07-03",
@@ -103,7 +103,7 @@
       "kind": "unclassified",
       "first_seen": "2026-09-18",
       "verdict": "price_move",
-      "verdict_note": "Owner check, 2026-09-27: Infibeam's real -71% crash on a WhatsApp rumour, closing at Rs 58.45 (Business Standard / Inc42, 28 Sep 2018); not a corporate action."
+      "verdict_note": "Owner check, 2026-09-27: Infibeam's real -71% crash on a WhatsApp rumour, closing at Rs 58.45 (Business Standard / Inc42, 28 Sep 2018); not a corporate action. CONFIRMED 15 Nov 2026: BSE bhavcopy, downloaded 15 Nov 2026 (S132 re-check), scrip 539807 INFIBEAM: 27 Sep C 197.55; 28 Sep O 190.00 H 190.00 L 53.80 C 58.80 on 19.0M shares (0.8M the session before). Fell within the session from near the previous close; our ratio 0.292 matches BSE's 0.298 after later bonus adjustment."
     },
     "2019-10-11:ABREL": {
       "date": "2019-10-11",
@@ -182,7 +182,7 @@
       "kind": "unclassified",
       "first_seen": "2026-09-18",
       "verdict": "price_move",
-      "verdict_note": "Owner, 2026-09-25: a real price move -- Screener's data is already adjusted, so nothing here needs neutralising."
+      "verdict_note": "Owner, 2026-09-25: a real price move -- Screener's data is already adjusted, so nothing here needs neutralising. CONFIRMED 15 Nov 2026: BSE notice 20200122-42 (Ruchi Soya listing from 24 Jan 2020): paid-up capital reduced from 33,41,00,722 to 33,41,007 shares of Rs 2, exactly 100:1. BSE bhavcopy, downloaded 15 Nov 2026 (S132 re-check), scrip 500368: last trade 3.32, relisted 27 Jan at O 16.10 C 16.90. On the consolidated basis 3.32 x 100 = 332 -> 16.90 = -94.9%, which is the logged ratio (0.0507 vs 0.0509): a real loss to the old holders, already adjusted for the consolidation, so not neutralised."
     },
     "2020-02-19:ALOKINDS": {
       "date": "2020-02-19",
@@ -194,8 +194,8 @@
       "looks_like": "5:1 reverse split",
       "kind": "split/bonus",
       "first_seen": "2026-09-18",
-      "verdict": "corporate_action",
-      "verdict_note": "Owner check, 2026-09-27: face value cut from Rs 10 to Re 1 in the insolvency resolution (record date 3 Feb 2020), trading resumed after it; a corporate action, correctly neutralised."
+      "verdict": "price_move",
+      "verdict_note": "Owner, 15 Nov 2026: \"Yes for alok\": changed from corporate_action to price_move on the evidence below. BSE notice 20200217-50 (Listing of Equity Shares of Alok Industries Ltd, 17 Feb 2020): capital reduced from 1,37,73,17,895 shares of Rs 10 to 1,37,73,17,895 shares of Re 1. The face value was cut and the NUMBER OF SHARES DID NOT CHANGE, so a holder kept every share: no consolidation, nothing to neutralise. BSE bhavcopy, downloaded 15 Nov 2026 (S132 re-check), scrip 521070: last trade 3.32 before the suspension; listed again 19 Feb 2020 at O 19.00 H 19.00 L 18.05 C 18.05. The +410% is a real move. Before: 'Owner check, 2026-09-27: face value cut from Rs 10 to Re 1 in the insolvency resolution (record date 3 Feb 2020), trading resumed after it; a corporate action, correctly neutralised.' That read a face-value cut as a 5:1 reverse split; until this change the pipeline divided the move away."
     },
     "2020-02-19:IDEA": {
       "date": "2020-02-19",
@@ -263,7 +263,7 @@
       "kind": "split/bonus",
       "first_seen": "2026-09-18",
       "verdict": "price_move",
-      "verdict_note": "Owner, 2026-09-25: a real price move -- Screener's data is already adjusted, so nothing here needs neutralising."
+      "verdict_note": "Owner, 2026-09-25: a real price move -- Screener's data is already adjusted, so nothing here needs neutralising. CONFIRMED 15 Nov 2026: BSE bhavcopy, downloaded 15 Nov 2026 (S132 re-check), scrip 532822: 17 Mar C 4.85; 18 Mar O 5.33 H 5.57 L 2.91 C 3.16 on 242.8M shares (76.6M the session before). Opened above the previous close and fell within the session; no 1:2 bonus."
     },
     "2020-03-26:BANDHANBNK": {
       "date": "2020-03-26",
@@ -377,7 +377,7 @@
       "kind": "unclassified",
       "first_seen": "2026-09-18",
       "verdict": "price_move",
-      "verdict_note": "Owner check, 2026-09-27: a real +40% rally on Invesco's EGM requisition to remove the MD (Business Standard, 14 Sep 2021); not a corporate action."
+      "verdict_note": "Owner check, 2026-09-27: a real +40% rally on Invesco's EGM requisition to remove the MD (Business Standard, 14 Sep 2021); not a corporate action. CONFIRMED 15 Nov 2026: BSE bhavcopy, downloaded 15 Nov 2026 (S132 re-check), scrip 505537: 13 Sep C 186.80; 14 Sep O 205.45 H 270.85 L 205.45 C 261.50 on 6.4M shares (0.4M the session before). Rose within the session."
     },
     "2023-09-18:DIACABS": {
       "date": "2023-09-18",
@@ -500,7 +500,7 @@
       "kind": "unclassified",
       "first_seen": "2026-09-03",
       "verdict": "corporate_action",
-      "verdict_note": "Screener restated the history (checked 2026-09-25): a corporate action."
+      "verdict_note": "Screener restated the history (checked 2026-09-25): a corporate action. CONFIRMED 15 Nov 2026: BSE bhavcopy, downloaded 15 Nov 2026 (S132 re-check), scrip 500570 (ISIN INE155A01022): 13 Oct C 660.90; 14 Oct O 399.00 H 421.45 L 376.90 C 395.50. It opened at the post-demerger level (the commercial-vehicle demerger), which is what an action looks like."
     },
     "2025-10-15:SKFINDIA": {
       "date": "2025-10-15",
@@ -524,7 +524,7 @@
       "kind": "unclassified",
       "first_seen": "2026-09-03",
       "verdict": "corporate_action",
-      "verdict_note": "Screener restated the history (checked 2026-09-25): a corporate action."
+      "verdict_note": "Screener restated the history (checked 2026-09-25): a corporate action. CONFIRMED 15 Nov 2026: BSE bhavcopy, downloaded 15 Nov 2026 (S132 re-check), scrip 500295 (ISIN INE205A01025): 29 Apr C 773.25; 30 Apr O 290.50 H 291.05 L 268.70 C 271.60. It opened at the post-demerger level."
     },
     "2026-07-22:TRIVENI": {
       "date": "2026-07-22",
