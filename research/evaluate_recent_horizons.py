@@ -138,7 +138,7 @@ def _load_prices() -> tuple[pd.DataFrame, Path]:
     raise SystemExit(
         "No local price cache found. Looked in:\n  "
         + "\n  ".join(str(p) for p in CACHE_CANDIDATES)
-        + "\nRun the app or scripts/full_validation.py once to populate it. "
+        + "\nRun the app once to populate it. "
         "This script will not download prices."
     )
 
