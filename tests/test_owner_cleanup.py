@@ -41,23 +41,40 @@ def test_r2_is_deleted_only_when_it_is_exactly_what_was_recorded():
     assert oc.plan_r2(stray).action == "skip"                             # never outside the prefix
 
 
-def test_the_asset_is_deleted_only_if_still_unused_and_the_same_size():
-    ok = {"name": oc.ASSET["name"], "size": oc.ASSET["size"], "download_count": 0}
-    assert oc.plan_asset([ok, {"name": "prices.parquet", "size": 1, "download_count": 9}]).action == "delete"
-    assert oc.plan_asset([{**ok, "download_count": 1}]).action == "skip"
-    assert oc.plan_asset([{**ok, "size": 5}]).action == "skip"
-    assert oc.plan_asset([]).action == "gone"
+def test_an_asset_is_deleted_only_if_still_the_same_size_and_downloads():
+    for want in oc.ASSETS:
+        ok = {"name": want["name"], "size": want["size"], "download_count": want["downloads"]}
+        assert oc.plan_asset([ok, {"name": "prices.parquet", "size": 1, "download_count": 9}], want).action == "delete"
+        assert oc.plan_asset([{**ok, "download_count": want["downloads"] + 1}], want).action == "skip"
+        assert oc.plan_asset([{**ok, "size": 5}], want).action == "skip"
+        assert oc.plan_asset([], want).action == "gone"
+    names = {a["name"] for a in oc.ASSETS}
+    assert names == {"tmp_session_2026-10-03.zip", "history_backtests.zip"}
+    # the reference set and every live asset stay (docs/PENDING_DELETIONS.md)
+    assert not {n for n in names if n.startswith("ref_") or n in {"prices.parquet", "prices_full.parquet"}}
 
 
 def test_the_branch_list_holds_no_protected_or_open_pr_branch():
     listed = oc.read_list()
-    assert len(listed) == 233
+    assert len(listed) == 69          # second batch, 15 Nov: the unmerged branches
     names = [n for n, _ in listed]
     assert len(set(names)) == len(names)
     assert all(re.fullmatch(r"[0-9a-f]{40}", sha) for _, sha in listed)
     assert not [n for n in names if oc.kept(n)]
-    # open on 15 Nov: #526 (this session's branch, merged since), #511, #513
+    # open on 15 Nov: this session's branch, #511, #513
     assert not {"ccr-5b2956f6-7ybas4", "ccr-cd46f9c8-zksr9j", "claude/investment-platform-audit-djf1we"} & set(names)
+
+
+def test_a_delete_run_bundles_the_listed_branches_first():
+    wf = yaml.safe_load((ROOT / ".github" / "workflows" / "owner_cleanup.yml").read_text(encoding="utf-8"))
+    steps = wf["jobs"]["cleanup"]["steps"]
+    names = [s.get("name", s.get("uses", "")) for s in steps]
+    backup = names.index("Back up the listed branches")
+    upload = next(i for i, s in enumerate(steps) if "upload-artifact" in s.get("uses", ""))
+    clean = next(i for i, n in enumerate(names) if str(n).startswith("Clean up"))
+    assert backup < upload < clean
+    assert steps[upload]["with"]["retention-days"] == 90
+    assert "git bundle create" in steps[backup]["run"] and "git bundle verify" in steps[backup]["run"]
 
 
 def test_the_job_never_runs_by_itself_and_defaults_to_a_dry_run():

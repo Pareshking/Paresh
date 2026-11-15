@@ -18,6 +18,23 @@ Still the owner's call, one by one: 69 branches holding unmerged work
 in the 15 Nov classification), and `history_backtests.zip` (3.3 MB, 7 Oct, named
 nowhere in the code or docs).
 
+## Second batch (15 Nov 2026): the unmerged branches and `history_backtests.zip`
+
+Owner, 15 Nov: *"Yes delete it"*. `.github/cleanup/branches.tsv` now lists the 69
+branches that hold work never merged (24 with no PR, 45 whose PR was closed
+unmerged; each with its tip sha), and `owner_cleanup.py` adds
+`history_backtests.zip` (3,311,385 bytes, 3 downloads, 7 Oct 2026, named nowhere).
+
+**Backup first.** A delete run bundles every listed branch into the artifact
+`unmerged-branches-bundle` (kept 90 days) before deleting anything: 69 heads,
+about 22 MB (built and verified locally on 15 Nov). To restore one:
+
+```sh
+# download the artifact from the run page, unzip it, then in a clone:
+git fetch /path/to/unmerged-branches.bundle "refs/backup/<branch>:refs/heads/<branch>"
+git push origin <branch>
+```
+
 ## The one-tap way (15 Nov 2026)
 
 Owner, 15 Nov: *"Build the one-tap clean-up job."* GitHub's own runner can do

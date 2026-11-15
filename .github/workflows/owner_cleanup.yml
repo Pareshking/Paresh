@@ -34,10 +34,36 @@ jobs:
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0          # the bundle needs each branch's history
       - uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
       - run: pip install "boto3>=1.35.0,<2"   # the pin in requirements.txt
+      # Every listed branch, bundled before a delete run: work that never reached main
+      # (owner, 15 Nov 2026) stays restorable for 90 days. A branch already gone is skipped.
+      - name: Back up the listed branches
+        if: ${{ inputs.mode == 'delete' }}
+        run: |
+          refs=()
+          while IFS=$'\t' read -r name sha why; do
+            case "$name" in ''|'#'*) continue ;; esac
+            if git fetch -q origin "refs/heads/$name:refs/backup/$name" 2>/dev/null; then refs+=("refs/backup/$name"); fi
+          done < .github/cleanup/branches.tsv
+          if [ ${#refs[@]} -gt 0 ]; then
+            git bundle create unmerged-branches.bundle "${refs[@]}"
+            git bundle verify unmerged-branches.bundle
+            echo "bundled ${#refs[@]} branches"
+          else
+            echo "no listed branch left to bundle"
+          fi
+      - uses: actions/upload-artifact@v7
+        if: ${{ inputs.mode == 'delete' && hashFiles('unmerged-branches.bundle') != '' }}
+        with:
+          name: unmerged-branches-bundle
+          path: unmerged-branches.bundle
+          retention-days: 90
+          if-no-files-found: error
       - name: Clean up (${{ inputs.mode }})
         run: |
           if [ "${{ inputs.mode }}" = "delete" ]; then
