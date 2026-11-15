@@ -42,17 +42,19 @@ def _share(baseline: float) -> float:
 
 
 # --- The NSE history audit (scripts/nse_history_audit.py, R2's raw history) ---
-# Baseline: run 37047812302 (2 Oct 2026, 2008-01-01 to 2026-10-01), the latest
-# full run. It predates #348 (one action counted twice: 500 of its 584 "no
-# move"), the 13 weekend sessions collected on 3 Oct and #350's wordings, all
-# of which only lower these counts. Tighten after the first scheduled run.
+# Baseline: run 41762106737 (4 Nov 2026, the first scheduled run, 2008-01-01 to
+# 2026-11-03), read from its log (S47, tightened 15 Nov 2026). The 2 Oct run
+# (37047812302) gave 87 / 584 / 1,401 / 142; #348 (one action counted twice),
+# the weekend sessions of 3 Oct and #350's wordings brought them down. The
+# missing-weekday limit stays at 35: the log gives the unsettled total (35,
+# all 2008 holidays among the first 15 listed), not the settled count.
 HISTORY_MISSING_WEEKDAYS = 35       # weekdays neither held nor a known closed day (2008 holidays)
-HISTORY_GAP_DAYS = 87               # sessions whose previous close says one is missing before them
-HISTORY_ACTIONS_NO_MOVE = 584       # splits / bonuses the price does not confirm
-HISTORY_UNEXPLAINED_JUMPS = 1401    # one-day moves beyond 1.8x no action explains
-HISTORY_RENAMES_REFUSED = 142       # automatic renames the continuity check refused
+HISTORY_GAP_DAYS = 73               # sessions whose previous close says one is missing before them
+HISTORY_ACTIONS_NO_MOVE = 82        # splits / bonuses the price does not confirm
+HISTORY_UNEXPLAINED_JUMPS = 922     # one-day moves beyond 1.8x no action explains
+HISTORY_RENAMES_REFUSED = 56        # automatic renames the continuity check refused
 # Not in the 2 Oct summary: the 73 holiday copies the mirror filed (docs/PRICE_PIPELINE.md,
-# "Which days are sessions"), also 73 in run 38043565842's raw audit.
+# "Which days are sessions"), also 73 in run 38043565842's raw audit and in the 4 Nov run.
 HISTORY_COPIED_SESSIONS = 73
 
 HISTORY_LIMITS = (
