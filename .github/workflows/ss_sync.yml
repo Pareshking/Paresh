@@ -10,7 +10,7 @@ name: SS price sync (gentle)
 #      checkpoints: each takes the next 40 not yet updated tonight, so a stopped
 #      run loses nothing. About 75 minutes for the universe.
 #   2. Saved to the data-latest release (the store the next run resumes from)
-#      and published to R2 as prices/ss (r2_retention.py keeps 7 + month-ends).
+#      and published to R2 as prices/ss (r2_retention.py keeps the newest 3 + month-ends).
 #   3. The three-source check (scripts/reconcile_report.py): SS, Screener and
 #      NSE, NSE as judge, rights issues adjusted automatically. The report is
 #      this run's summary and is saved to the release. It never changes a price.
@@ -61,6 +61,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
+          cache: pip
       - run: pip install -r requirements.txt
 
       - name: Restore what earlier runs saved

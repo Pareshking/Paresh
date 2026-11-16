@@ -31,10 +31,11 @@ import threading
 from contextlib import contextmanager
 
 from src.core import code_reload as _code_reload
-from src.core.memory import release_freed_memory, use_system_arrow_pool
+from src.core.memory import fix_mmap_threshold, release_freed_memory, use_system_arrow_pool
 
 # pyarrow on malloc, not mimalloc: ~85 MB lower peaks with 4 readers (TODO S64).
 use_system_arrow_pool()
+fix_mmap_threshold()
 
 if not hasattr(_code_reload, "app_import_guard"):
     _code_reload = importlib.reload(_code_reload)

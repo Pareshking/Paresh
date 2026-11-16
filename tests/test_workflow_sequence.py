@@ -27,7 +27,6 @@ def _on(doc: dict) -> dict:
 CHAINS = {
     "daily_sync.yml": "Screener daily price sync (overnight)",          # re-rank the new store
     "r2_observed_trading_sessions.yml": "Screener daily price sync (overnight)",
-    "r2_ranking_archive.yml": "Daily NSE Momentum Data Sync",           # rankings.parquet
     "r2_market_cap_history.yml": "Daily NSE Momentum Data Sync",        # data/nse_market_caps.csv
     "r2-historical-evidence-bootstrap.yml": "Daily NSE Momentum Data Sync",
 }

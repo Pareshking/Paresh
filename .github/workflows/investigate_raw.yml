@@ -15,6 +15,13 @@ on:
 permissions:
   contents: read
 
+# Superseded PR runs are cancelled: only the PR's current head counts (S141,
+# 16 Nov 2026: 61 full-validation PR runs, 242 min, were still running when a
+# newer push reached their branch). Pushes, schedules and chains are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   investigate:
     runs-on: ubuntu-latest

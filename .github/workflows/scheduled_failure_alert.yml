@@ -28,7 +28,6 @@ on:
       - R2 observed trading-session publication
       - R2 research index price history
       - R2 retention
-      - R2 ranking calculation archive
       - R2 recovery audit
       - R2 session continuity audit
       - Results calendar (nightly)
@@ -39,6 +38,8 @@ on:
       - V1 Full Validation
       - Weekly Full Sync (Friday night)
     types: [completed]
+    # Only main: a PR run of a watched workflow only made a skipped run here (S141).
+    branches: [main]
 
 permissions:
   issues: write

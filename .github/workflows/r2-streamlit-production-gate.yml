@@ -16,8 +16,26 @@ on:
       - ".github/workflows/r2-streamlit-production-gate.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "app.py"
+      - "r2/consumers/r2_streamlit.py"
+      - "r2/consumers/r2_research.py"
+      - "src/loaders/price_source.py"
+      - "src/storage/**"
+      - "tests/test_r2_streamlit_reader.py"
+      # boto3 is the R2 client. A Dependabot bump skips this gate on its PR
+      # (below), so the merge must bring it back here, against the real bucket.
+      - "requirements.txt"
+      - ".github/workflows/r2-streamlit-production-gate.yml"
 permissions:
   contents: read
+
+# Superseded PR runs are cancelled: only the PR's current head counts (S141,
+# 16 Nov 2026: 61 full-validation PR runs, 242 min, were still running when a
+# newer push reached their branch). Pushes, schedules and chains are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   gate:

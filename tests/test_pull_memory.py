@@ -89,3 +89,62 @@ def test_the_guard_uses_the_same_clear_as_a_pull():
     app = (ROOT / "app.py").read_text(encoding="utf-8")
     assert "if _revision_pulled or _memory_guard:" in app
     assert app.count("if _revision_pulled or _memory_guard:") == 2   # modules dropped, then caches
+
+
+def test_the_mmap_threshold_is_fixed_at_app_import():
+    """S141: without it, freed frames stay resident in per-thread arenas."""
+    import sys
+
+    from src.core import memory
+
+    if sys.platform.startswith("linux"):
+        assert memory.fix_mmap_threshold() is True
+    else:
+        assert memory.fix_mmap_threshold() in (True, False)
+    src = open("app.py", encoding="utf-8").read()
+    head = src[:src.index("if not hasattr(_code_reload")]
+    assert "fix_mmap_threshold()" in head, "must run before the first page builds any frame"
+
+
+def test_a_freed_large_frame_goes_back_to_the_system():
+    """With the threshold fixed, a 24 MB block freed under a survivor is not kept resident.
+
+    Unfixed, freeing the 64 MB block raises glibc's threshold, the 24 MB block
+    is carved from the thread's arena, and the small survivor above it stops
+    the trim: 24 MB stays resident (measured 16 Nov). Fixed, it is 0.
+    """
+    import subprocess
+    import sys
+
+    import pytest
+
+    from src.core import memory
+
+    if memory.resident_mb() is None or not memory.fix_mmap_threshold():
+        pytest.skip("needs Linux with glibc")
+    # Its own process: resident memory inside the test run moves with every
+    # other test's frames.
+    out = subprocess.run([sys.executable, "-c", _FRAGMENT], capture_output=True,
+                         text=True, timeout=120, check=True).stdout
+    assert int(out.split()[-1]) < 8, out
+
+
+_FRAGMENT = """
+import threading
+import numpy as np
+from src.core import memory
+assert memory.fix_mmap_threshold()
+keep = []
+def work():
+    for _ in range(4):
+        a = np.ones((8 << 20,))
+        del a
+        b = np.ones((3 << 20,))
+        keep.append(np.ones(64))
+        del b
+before = memory.resident_mb()
+t = threading.Thread(target=work)
+t.start()
+t.join()
+print(memory.resident_mb() - before)
+"""

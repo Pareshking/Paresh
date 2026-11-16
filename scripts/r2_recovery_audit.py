@@ -95,8 +95,15 @@ def audit_recovery(archive: R2Archive,
             return {"dataset": dataset, "as_of": as_of, "revision_sha256": ref.revision_sha256,
                     "size_bytes": int(ref.manifest.get("size_bytes", -1)), "checked": "manifest+size"}
         body = reader.read_bytes(ref)
+        downloaded.add(ref.revision_sha256)
         return {"dataset": dataset, "as_of": as_of, "revision_sha256": ref.revision_sha256,
                 "size_bytes": len(body), "checked": "sha256"}
+
+    # A pointer names one of the revisions above. Its object was downloaded and
+    # checked there, so it is not downloaded a second time: every dataset's newest
+    # object was read twice per run (S141, 16 Nov 2026: 1,409.5 MiB downloaded,
+    # bse/daily alone 2 x 334 MiB). The pointer is still resolved in full.
+    downloaded: set[str] = set()
 
     def check_pointer(key: str) -> dict[str, Any] | None:
         parts = key.split("/")
@@ -109,6 +116,10 @@ def audit_recovery(archive: R2Archive,
             return {"dataset": dataset, "as_of": as_of, "revision_sha256": ref.revision_sha256,
                     "size_bytes": int(getattr(ref, "manifest", {}).get("size_bytes", -1)),
                     "checked": "manifest+size"}
+        if ref.revision_sha256 in downloaded:
+            return {"dataset": dataset, "as_of": as_of, "revision_sha256": ref.revision_sha256,
+                    "size_bytes": int(getattr(ref, "manifest", {}).get("size_bytes", -1)),
+                    "checked": "sha256 (as its revision)"}
         body = reader.read_bytes(ref)
         return {"dataset": dataset, "as_of": as_of, "revision_sha256": ref.revision_sha256,
                 "size_bytes": len(body), "checked": "sha256"}

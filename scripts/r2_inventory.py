@@ -172,10 +172,12 @@ def _mb(n: int) -> str:
 # day the job ran. The weekly refresh ran green on 13 Nov with "Refreshed 2404
 # rows; 0 changed" while the as_of stayed at 4 Nov, which failed this check every
 # day from 11 Nov (and 23-27 Oct). Its job's failures reach the alert on their own.
+# calculations/rankings is retired (S141, 16 Nov 2026): r2_ranking_archive.yml
+# republished the very release rankings.parquet daily_sync had just published as
+# snapshots/rankings, and nothing read the copy. Its stored dates stay on R2.
 DAILY_DATASETS = (
     "prices/screener",
     "snapshots/rankings",
-    "calculations/rankings",
     "market_caps/nse_history",
     "indices/prices/research",
     "indices/membership/nifty_total_market",
@@ -250,6 +252,10 @@ def main() -> int:
     if limit["status"] == "FAIL":
         result["status"] = "FAIL"
     print(json.dumps(result, indent=2, sort_keys=True) if args.json else _summary(result))
+    if args.json:
+        # The size table too, from the same listing: the workflow ran the whole
+        # inventory a second time just to print these lines (S141, 16 Nov 2026).
+        print("\n".join(line for line in _summary(result).splitlines() if line.startswith("STORAGE")))
     return 0 if result["status"] == "PASS" else 1
 
 
