@@ -17,3 +17,21 @@ def test_both_sides_events_are_kept_and_first_seen_is_the_earliest():
     assert set(out["events"]) == {"2026-11-01:A", "2026-11-03:B", "2026-11-06:C"}
     assert out["events"]["2026-11-01:A"] == {"first_seen": "2026-11-02", "kind": "split"}
     assert out["last_checked"] == "2026-11-07"
+
+
+def test_mains_verdict_and_note_win_over_a_run_that_checked_out_before_they_changed():
+    # 16 Nov 2026: S132 changed ALOKINDS to price_move and rewrote its note on main.
+    main = {"events": {"2020-02-19:ALOKINDS": {"first_seen": "2026-09-18", "verdict": "price_move",
+                                               "verdict_note": "Owner, 15 Nov 2026: BSE notice 20200217-50"}}}
+    stale_run = {"events": {"2020-02-19:ALOKINDS": {"first_seen": "2026-09-18", "verdict": "corporate_action",
+                                                    "verdict_note": "Owner check, 2026-09-27: ...", "move": 4.1}}}
+    ev = m.merge(main, stale_run)["events"]["2020-02-19:ALOKINDS"]
+    assert ev["verdict"] == "price_move" and ev["verdict_note"].startswith("Owner, 15 Nov")
+    assert ev["move"] == 4.1                                     # the run's other fields still come through
+
+
+def test_a_run_may_still_give_a_verdict_where_main_has_none():
+    main = {"events": {"2026-04-30:VEDL": {"first_seen": "2026-05-01"}}}
+    run = {"events": {"2026-04-30:VEDL": {"first_seen": "2026-05-01", "verdict": "corporate_action",
+                                          "verdict_note": "Screener restated the history"}}}
+    assert m.merge(main, run)["events"]["2026-04-30:VEDL"]["verdict"] == "corporate_action"
