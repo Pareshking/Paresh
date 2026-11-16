@@ -78,7 +78,17 @@ with app_import_guard():
     # On a new revision every src/ and r2/ module is dropped, so their memos go
     # with them, and the caches are cleared once the imports below are done.
     _revision_pulled = _new_revision_pulled()
-    if _revision_pulled:
+    # The same clear when memory passes the guard between pulls (16 Nov 2026:
+    # 185 -> 1,594 MB in 24 h with no pull; src/core/memory.GUARD_MB).
+    _memory_guard = False
+    if not _revision_pulled:
+        try:
+            from src.core import memory as _mem_guard
+
+            _memory_guard = bool(getattr(_mem_guard, "over_guard", lambda: False)())
+        except Exception:  # noqa: BLE001
+            _memory_guard = False
+    if _revision_pulled or _memory_guard:
         try:
             from src.core import memory as _mem_old
 
@@ -161,11 +171,12 @@ with app_import_guard():
     
     mark_loaded()  # the baseline reload_if_changed() compares against next run
 metrics.mark_code_current()  # loaded_revision: the src/ now running is disk's
-if _revision_pulled:
+if _revision_pulled or _memory_guard:
     from src.core.memory import drop_caches_for_new_revision as _drop_caches  # noqa: E402
 
     _freed = _drop_caches([st.cache_data.clear, st.cache_resource.clear])
-    logger.info("New revision pulled: modules re-imported and caches dropped, resident %s -> %s MB%s",
+    logger.info("%s: modules re-imported and caches dropped, resident %s -> %s MB%s",
+                "New revision pulled" if _revision_pulled else "Memory guard",
                 _freed["before_mb"], _freed["after_mb"],
                 f" (errors: {_freed['errors']})" if _freed["errors"] else "")
 

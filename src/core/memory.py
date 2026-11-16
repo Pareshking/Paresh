@@ -182,3 +182,50 @@ def clear_module_memos(modules: dict) -> int:
                 except Exception:  # noqa: BLE001
                     pass
     return emptied
+
+
+# --- A ceiling between pulls (16 Nov 2026) ----------------------------------
+#
+# The owner's log after the pull fix: every pull now frees 100-370 MB, but
+# memory still climbs with use between pulls, 185 MB after the restart to
+# 1,594 MB 24 hours later, mostly at the hourly cache expiries (16:35 1,129;
+# 18:55 1,326; 05:05 1,454; 14:14 1,594). Not reproduced locally at that size
+# (about +10 MB an expiry without production's R2 data), so the cause is not
+# proven. Until it is, the same clear that a pull runs also runs when resident
+# memory passes GUARD_MB, at most once per GUARD_EVERY_S. The ~2.7 GB limit is
+# then never reached by this growth, and the log line says how much each clear
+# freed, which is the evidence still missing.
+GUARD_MB = 1800
+GUARD_EVERY_S = 900
+_GUARD_ATTR = "_umiya_memory_guard_at"
+
+
+def resident_mb() -> int | None:
+    try:
+        with open("/proc/self/status", encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) // 1024
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
+
+
+def over_guard(holder=None, now: float | None = None, rss_mb: int | None = None,
+               limit_mb: int | None = None) -> bool:
+    """True when resident memory is over the guard and the last guard clear is old enough."""
+    import os
+    import sys
+    import time
+
+    box = sys if holder is None else holder
+    limit = limit_mb if limit_mb is not None else int(os.environ.get("UMIYA_MEMORY_GUARD_MB", GUARD_MB))
+    rss = resident_mb() if rss_mb is None else rss_mb
+    if rss is None or rss < limit:
+        return False
+    t = time.time() if now is None else now
+    last = getattr(box, _GUARD_ATTR, None)
+    if last is not None and t - last < GUARD_EVERY_S:
+        return False
+    setattr(box, _GUARD_ATTR, t)
+    return True

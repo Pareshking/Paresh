@@ -74,3 +74,18 @@ def test_app_drops_memos_before_modules_and_caches_after_the_imports():
     imports = app.index("mark_loaded()  # the baseline")
     caches = app.index("_drop_caches([st.cache_data.clear, st.cache_resource.clear])")
     assert memo < pop < imports < caches
+
+
+def test_the_memory_guard_fires_over_the_limit_and_at_most_every_fifteen_minutes():
+    box = types.SimpleNamespace()
+    assert memory.over_guard(box, now=0, rss_mb=1200, limit_mb=1800) is False
+    assert memory.over_guard(box, now=10, rss_mb=1900, limit_mb=1800) is True
+    assert memory.over_guard(box, now=100, rss_mb=1950, limit_mb=1800) is False      # too soon
+    assert memory.over_guard(box, now=10 + memory.GUARD_EVERY_S, rss_mb=1950, limit_mb=1800) is True
+    assert memory.over_guard(box, now=99999, rss_mb=None, limit_mb=1800) is False   # unknown never clears
+
+
+def test_the_guard_uses_the_same_clear_as_a_pull():
+    app = (ROOT / "app.py").read_text(encoding="utf-8")
+    assert "if _revision_pulled or _memory_guard:" in app
+    assert app.count("if _revision_pulled or _memory_guard:") == 2   # modules dropped, then caches
