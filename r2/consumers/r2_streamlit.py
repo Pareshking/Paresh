@@ -57,16 +57,27 @@ def read_historical(reader: R2DatasetReader, *, pin: R2ResearchPin | None = None
     return read_pinned_dataset(reader, pin=pin)
 
 
-def read_configured_screener():
+def current_screener_pin() -> R2ResearchPin:
+    """The configured dataset's current revision: one small pointer read, no data."""
     if not enabled():
         raise RuntimeError(f"{ENV_FLAG} is disabled")
     reader = R2DatasetReader(R2Archive(R2Config.from_env()))
-    dataset = configured_dataset()
-    ref = reader.resolve_current(dataset)
-    pin = R2ResearchPin(
+    ref = reader.resolve_current(configured_dataset())
+    return R2ResearchPin(
         dataset=ref.dataset,
         as_of=ref.as_of,
         revision_sha256=ref.revision_sha256,
     )
-    frame = reader.read_parquet(ref)
-    return frame, pin
+
+
+def read_screener_revision(pin: R2ResearchPin):
+    """Download exactly ``pin``'s immutable revision (verified against its SHA)."""
+    if not enabled():
+        raise RuntimeError(f"{ENV_FLAG} is disabled")
+    reader = R2DatasetReader(R2Archive(R2Config.from_env()))
+    return read_pinned_dataset(reader, pin=pin).frame
+
+
+def read_configured_screener():
+    pin = current_screener_pin()
+    return read_screener_revision(pin), pin

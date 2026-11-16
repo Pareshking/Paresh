@@ -75,7 +75,8 @@ def _decorator_of(src: str, name: str) -> str:
 
 
 @pytest.mark.parametrize("path,name", [
-    ("src/loaders/screener_cache.py", "fetch_screener_store"),
+    ("src/loaders/screener_cache.py", "_read_revision"),
+    ("src/loaders/screener_cache.py", "_fetch_https_store"),
     ("app.py", "_resolved_prices_shared"),
     ("app.py", "_adjusted_frames_shared"),
     ("app.py", "_run_engine_base"),
@@ -88,7 +89,46 @@ def test_the_price_frames_are_one_shared_object(path, name):
         f"{name} is back on cache_data: every rerun of every session unpickles "
         "its own copy of the price frames again"
     )
-    assert "max_entries=" in deco and "ttl=" in deco
+    assert "max_entries=" in deco
+    # An immutable revision needs no TTL; everything else keeps its hour.
+    assert ("ttl=" in deco) == (name != "_read_revision")
+
+
+def test_an_unchanged_revision_is_not_downloaded_again(monkeypatch):
+    """The hourly expiry re-reads the pointer only; the file comes down once per SHA."""
+    from r2.consumers import r2_streamlit
+    from r2.consumers.r2_research import R2ResearchPin
+    from src.loaders import screener_cache
+
+    sha = {"now": "a" * 64}
+    downloads = []
+    monkeypatch.setattr(r2_streamlit, "enabled", lambda: True)
+    monkeypatch.setattr(
+        r2_streamlit, "current_screener_pin",
+        lambda: R2ResearchPin("prices/screener", "2026-11-13", sha["now"]),
+    )
+
+    def _download(pin):
+        downloads.append(pin.revision_sha256)
+        return pd.DataFrame({"X": [1.0]})
+
+    monkeypatch.setattr(r2_streamlit, "read_screener_revision", _download)
+    screener_cache._current_pin.clear()
+    screener_cache._read_revision.clear()
+    try:
+        first, rev1 = screener_cache.fetch_screener_store("k")
+        screener_cache._current_pin.clear()          # the hourly expiry
+        again, rev2 = screener_cache.fetch_screener_store("k")
+        assert downloads == ["a" * 64] and rev1 == rev2
+        assert again is first, "same revision must hand back the same object (identity memos)"
+
+        sha["now"] = "b" * 64                        # tonight's publish
+        screener_cache._current_pin.clear()
+        _, rev3 = screener_cache.fetch_screener_store("k")
+        assert downloads == ["a" * 64, "b" * 64] and rev3 == "b" * 64
+    finally:
+        screener_cache._current_pin.clear()
+        screener_cache._read_revision.clear()
 
 
 def test_the_engine_is_handed_out_as_a_view():
