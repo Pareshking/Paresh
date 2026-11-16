@@ -2,6 +2,11 @@ name: R2 recovery audit
 
 on:
   workflow_dispatch:
+    inputs:
+      full:
+        description: "Download every revision (the complete audit), not only the last 14 days"
+        type: boolean
+        default: false
   schedule:
     - cron: "47 3 * * 1"
   push:
@@ -22,9 +27,11 @@ concurrency:
 jobs:
   recovery:
     runs-on: ubuntu-latest
-    # Reads every immutable revision in the bucket, so it grows with the archive:
-    # 7 min on 28 Sep, 31-38 min in October, cancelled at 40 on 2 Nov (audit A3,
-    # 7 Nov 2026). 90 is a stopgap; bounding what it reads is TODO A3.
+    # Downloading every revision grew with the archive: 7 min on 28 Sep, 31-38 in
+    # October, cancelled at 40 on 2 Nov, 43 on 9 Nov, 34 on 16 Nov (A3). Since 16 Nov
+    # every revision is still resolved and size-checked, but only the last 14 days
+    # and each dataset's newest date are downloaded (owner's rule, 15 Nov: 30+ min
+    # -> bound it). Run with full=true for the complete audit.
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
@@ -43,4 +50,9 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           PYTHONPATH: .
-        run: python scripts/r2_recovery_audit.py --json
+        run: |
+          if [ "${{ inputs.full }}" = "true" ]; then
+            python scripts/r2_recovery_audit.py --json --full
+          else
+            python scripts/r2_recovery_audit.py --json
+          fi

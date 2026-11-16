@@ -45,6 +45,12 @@ def test_membership_symbols_reads_baselines_and_recent_changes(tmp_path):
     p.write_text(json.dumps({"indices": {"i": {"baseline": {"symbols": ["A"]},
                                                "changes": [{"added": ["B"], "removed": ["C"]}]}}}))
     assert s.membership_symbols(p) == {"A", "B", "C"}
+    # A baseline member removed long ago is not a member today (EDUCOMP, #541).
+    old = [{"added": [f"X{i}"], "removed": []} for i in range(12)]
+    p.write_text(json.dumps({"indices": {"i": {"baseline": {"symbols": ["A", "EDUCOMP"]},
+                                               "changes": [{"added": [], "removed": ["EDUCOMP"]}] + old}}}))
+    got = s.membership_symbols(p)
+    assert "EDUCOMP" not in got and "A" in got and "X0" in got
     assert s.membership_symbols(tmp_path / "missing.json") == set()
 
 
