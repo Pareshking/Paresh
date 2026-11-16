@@ -53,6 +53,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           name: nse-compare
+          retention-days: 30
           path: |
             nse_compare_report.md
             nse_adjusted_close.parquet
