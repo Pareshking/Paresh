@@ -103,8 +103,17 @@ def membership_symbols(path: Path | None = None) -> set[str]:
         return set()
     names: set[str] = set()
     for ix in (hist.get("indices") or {}).values():
-        names |= set(ix.get("baseline", {}).get("symbols", []))
-        for c in ix.get("changes", [])[-12:]:
+        # Today's list is the baseline with every change applied. The baseline
+        # alone is the 2010 list: adding it made every 2010 member "an index
+        # member" for good (16 Nov 2026: EDUCOMP, out of the Nifty 500 since 27
+        # Mar 2015, re-listed in NSE's BZ series and opened alert #541).
+        current = set(ix.get("baseline", {}).get("symbols", []))
+        changes = ix.get("changes", [])
+        for c in changes:
+            current |= set(c.get("added", []))
+            current -= set(c.get("removed", []))
+        names |= current
+        for c in changes[-12:]:
             names |= set(c.get("added", [])) | set(c.get("removed", []))
     return names
 
