@@ -10,12 +10,22 @@ it, and their conflict path used to keep one run's whole copy (`git checkout
 (audit, 8 Nov 2026). This keeps every event from both copies; for an event in
 both, the earliest `first_seen` wins and the rest of the newer copy's fields;
 `last_checked` is the later of the two.
+
+A verdict is the exception: where the first copy (main, as both workflows pass
+it) holds a verdict, its `verdict` and `verdict_note` win. Verdicts are given by
+hand on main; a sync run only ever adds one to an event that has none
+(check_corporate_actions.py:123-136). Without this, a run that checked out main
+before a verdict changed and pushed after would put the old one back
+(16 Nov 2026, after S132 rewrote nine notes and changed ALOKINDS's verdict).
 """
 from __future__ import annotations
 
 import json
 import sys
 from pathlib import Path
+
+
+VERDICT_FIELDS = ("verdict", "verdict_note")
 
 
 def _load(path: str) -> dict:
@@ -31,7 +41,8 @@ def merge(a: dict, b: dict) -> dict:
     for key, ev in (b.get("events") or {}).items():
         if key in events:
             first = min(filter(None, [events[key].get("first_seen"), ev.get("first_seen")]), default=None)
-            events[key] = {**events[key], **ev}
+            human = {k: events[key][k] for k in VERDICT_FIELDS if k in events[key]} if events[key].get("verdict") else {}
+            events[key] = {**events[key], **ev, **human}
             if first:
                 events[key]["first_seen"] = first
         else:
