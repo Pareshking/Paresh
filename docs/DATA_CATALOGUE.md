@@ -24,12 +24,12 @@ the repo copy the app reads at run time.
 | `prices/screener/max_history` | Screener's full chart history, weekly before the latest year, 1,345 stocks | stock x week | 2000 to Oct 2026 | `r2_publish_release_asset` (3 Oct 2026) | the audit | **Protected** |
 | `prices/ss` | The SS store: daily OHLCV, 1,216 stocks, 1,000 sessions each, one whole-history file | stock × day | from 2018 (most from Sep 2022) | `ss_sync` weekdays 22:02 IST | Three-source check; to become the app's primary source | 7 dates + month-ends |
 | `nse/market_caps` | NSE market cap per security | security × day | 3 years | `nse_collect` | Nano Cap list, screener MCAP column | Full history |
-| `nse/source_checks` | Disagreements between NSE and the other sources, newest day | check | newest day | `nse_compare`, `nse_sample_check` | Data-health review | Overwritten daily |
+| `nse/source_checks` | Disagreements between NSE and the other sources, newest day | check | newest day | `nse_compare`, `nse_sample_check` | Data-health review | Every day kept (not overwritten; checked 16 Nov 2026) |
 | `market_caps/nse_history` | Market-cap history used for universe cuts | security × day | grows daily | `r2_market_cap_history` 20:00 | Membership, Nano Cap | Full history |
 | `indices/membership/nifty_total_market` | Point-in-time index membership | stock × effective date | from notices | `daily_sync`, membership notices | Backtester (`former_members`), Track Record | Full history |
 | `indices/prices/research` | Index levels (Nifty 500, Nifty 50 …) | index × day | years | `r2_nse_index_prices` 20:30 | Benchmarks, RRG, Breadth | Full history |
 | `trading_sessions/observed` | Sessions that actually traded | day | grows daily | `r2_observed_trading_sessions` | Continuity audit | Full history |
-| `snapshots/rankings` | Daily ranking table (the rank history) | stock × day | grows daily | `r2_ranking_archive` 20:45 | Rank history, Track Record "Ranks by month" | Full history |
+| `snapshots/rankings` | Daily ranking table, as the app read it | stock × day | grows daily | `daily_sync` (dual-publish) | The app reads the newest only; rank history is recomputed from prices (`src/engine/rank_history.py`), not read from here. `calculations/rankings`, a byte copy written by `r2_ranking_archive`, was retired 16 Nov 2026 (S141) | Full history |
 | `app/prices_snapshot`, `app/prices_extra` | **Retired 2026-10-02**: app reads these from the release only | — | — | — | — | Deleted whole |
 | `snapshots/application` | Retired. No longer published (2026-09-25) | | | | | Existing copies follow the 7 + month-end rule |
 

@@ -218,3 +218,38 @@ def test_the_weekly_run_is_bounded_and_a_full_run_can_still_be_asked_for():
     assert "full" in on["workflow_dispatch"]["inputs"]
     run = wf["jobs"]["recovery"]["steps"][-1]["run"]
     assert "--full" in run and "inputs.full" in run
+
+
+def test_a_pointer_whose_revision_was_downloaded_is_not_downloaded_again():
+    keys = [_rev("bse/daily", "2026-11-06", "a"), f"{_M}bse/daily/2026-11-06/current.json"]
+    downloaded = []
+
+    class FakeArchive:
+        def list_keys(self, prefix):
+            return iter(keys)
+
+    class FakeReader:
+        def __init__(self, archive):
+            pass
+
+        def resolve_revision(self, dataset, as_of, revision_sha256):
+            ref = type("Ref", (), {})()
+            ref.revision_sha256, ref.manifest = revision_sha256, {"size_bytes": 9}
+            return ref
+
+        def resolve_current(self, dataset, as_of):
+            return self.resolve_revision(dataset, as_of, "a" * 64)
+
+        def read_bytes(self, ref):
+            downloaded.append(ref.revision_sha256)
+            return b"payload!!"
+
+    old = r2_recovery_audit.R2DatasetReader
+    r2_recovery_audit.R2DatasetReader = FakeReader
+    try:
+        out = r2_recovery_audit.audit_recovery(FakeArchive(), full_days=14, today=_date(2026, 11, 16))
+    finally:
+        r2_recovery_audit.R2DatasetReader = old
+    assert downloaded == ["a" * 64]                              # once, not twice (334 MiB for bse/daily)
+    assert out["verified"][0]["checked"] == "sha256 (as its revision)"
+    assert out["current_pointers"] == 1 and out["immutable_revisions"] == 1

@@ -46,11 +46,11 @@ def test_freshness_flags_a_stalled_and_a_missing_dataset():
     from datetime import date
     fresh = {d.replace("/", "__"): "2026-09-24" for d in r2_inventory.DAILY_DATASETS}
     fresh["universes__point_in_time"] = "2026-09-15"
-    del fresh["calculations__rankings"]
+    del fresh["snapshots__rankings"]
     report = r2_inventory.freshness(_result(**fresh), date(2026, 9, 25), max_age_days=6)
     assert report["status"] == "FAIL"
     assert report["stale"]["universes/point_in_time"] == {"last_as_of": "2026-09-15", "age_days": 10}
-    assert report["stale"]["calculations/rankings"] == {"last_as_of": None, "age_days": None}
+    assert report["stale"]["snapshots/rankings"] == {"last_as_of": None, "age_days": None}
     assert len(report["stale"]) == 2
 
 

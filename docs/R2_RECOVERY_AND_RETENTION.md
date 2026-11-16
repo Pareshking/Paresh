@@ -94,8 +94,7 @@ How it is applied (`scripts/r2_retention.py`, workflow `R2 retention`):
 The month-end copies are the archival strategy that the conditions above ask
 for.
 
-**No deletion has been run.** The first one needs the owner to confirm the
-dry-run list.
+**Deletion runs weekly** (`r2_retention.yml`, Sundays) since the owner confirmed the dry-run list; on 15 Nov 2026 it freed 291.0 MB (run 43705741007), and the recovery audit after it passed.
 
 ## Recovery
 
