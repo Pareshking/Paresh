@@ -75,6 +75,44 @@ def use_system_arrow_pool() -> str | None:
         return None
 
 
+# --- Large blocks go straight back to the system (16 Nov 2026, S141) ----------
+#
+# glibc serves a block of at least M_MMAP_THRESHOLD bytes with its own mmap,
+# which free() hands straight back to the system. The threshold starts at
+# 128 KiB but RISES to the size of every such block that is freed, up to
+# 32 MiB, so after the first large DataFrame is dropped every later block up
+# to that size is carved out of a thread's arena instead -- and Streamlit
+# runs each rerun on a new thread, with up to 8 arenas per CPU. Freed there,
+# the pages stay resident: that was the growth between pulls (S61).
+#
+# Measured 16 Nov against the production store revision (f7abe4...), six
+# cycles of Dashboard, Portfolio, Backtest and History in two sessions with
+# every cache expiring between cycles, both runs side by side: resident after
+# each cycle 966 / 1147 / 1134 / 1117 / 1271 / 1286 MB unchanged, 756 / 775 /
+# 785 / 795 / 802 / 799 MB with the threshold fixed at 1 MiB. Python held the
+# same 448 MB of frames in both; each cycle took 71 s in both. Capping the
+# arenas (MALLOC_ARENA_MAX=2) gives the same result but must be set before
+# Python starts, which Streamlit Cloud does not allow; this option can be set
+# at any time, because the threshold is shared by every arena.
+
+M_MMAP_THRESHOLD = -3
+MMAP_THRESHOLD_BYTES = 1 << 20
+
+
+def fix_mmap_threshold(nbytes: int = MMAP_THRESHOLD_BYTES) -> bool:
+    """Fix glibc's mmap threshold (no dynamic rise). True if glibc accepted it; never raises."""
+    try:
+        name = ctypes.util.find_library("c")
+        fn = getattr(ctypes.CDLL(name), "mallopt", None) if name else None
+        if fn is None:
+            return False
+        fn.argtypes = [ctypes.c_int, ctypes.c_int]
+        fn.restype = ctypes.c_int
+        return fn(M_MMAP_THRESHOLD, int(nbytes)) == 1
+    except Exception:  # noqa: BLE001 - an allocator choice must never break the app
+        return False
+
+
 # --- A pull must not stack a second copy of every cache (15 Nov 2026) --------
 #
 # Streamlit Cloud pulls each push into the RUNNING process ("Updated app!") and

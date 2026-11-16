@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-16 — The app no longer grows between updates
+
+- **Memory still grew between updates: from about 185 MB to 1,594 MB in 24 hours on 15-16 Nov.** The cause was the system allocator. After the app freed a large table, it kept that memory instead of giving it back, once for each of Streamlit's worker threads. The app now tells the allocator to return large blocks at once. Measured on the live site's own price data, six rounds of Dashboard, Portfolio, Backtest and History in two sessions: memory went from 966 to 1,286 MB before the fix, and stayed between 756 and 802 MB after it, at the same speed.
+- **The Screener price file is no longer downloaded again every hour.** The app checks hourly for a new nightly file, as before, but fetches the 8.8 MB file only when it has changed.
+
 ## 2026-11-15 — Streamlit 1.67.0
 
 - The app runs on Streamlit 1.67.0, the latest (released 5 Nov). Every page was compared before and after at desktop and phone width; nothing visible changed. Python stays on 3.14: 3.15 needs a newer pyarrow than Streamlit Cloud currently allows.
