@@ -2,8 +2,9 @@ name: R2 dated market-cap publication
 # Stable manifest idempotency is handled by scripts/r2_publish.py; this workflow is also scheduled daily.
 
 on:
+  # A weekly fallback in case the chain below stops (it was daily until 17 Nov 2026).
   schedule:
-    - cron: "00 20 * * *"
+    - cron: "00 20 * * 0"   # Monday 01:30 IST
   push:
     branches: [main]
     paths:
@@ -30,7 +31,14 @@ concurrency:
 jobs:
   publish:
     # Chained runs only after a successful upstream run: a failed one published nothing new.
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # Once a night (S141, 17 Nov 2026): the daily sync runs about three times a
+    # day, but only its run chained after the Screener night carries new data;
+    # the other two only re-published the same bytes (skip-if-published). A
+    # skipped job is not billed.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'workflow_run')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

@@ -29,7 +29,10 @@ def _in_scope(key: str, datasets: tuple[str, ...] | None) -> bool:
     return False
 
 
-FULL_READ_DAYS = 14   # A3, owner 15 Nov 2026: bound what the weekly run downloads
+# A3, owner 15 Nov 2026: bound what a scheduled run downloads. 35 days since the
+# run went monthly (S141, 17 Nov 2026), so every revision is downloaded in full by
+# at least one scheduled run; older ones are resolved and HEAD-checked.
+FULL_READ_DAYS = 35
 
 
 def _key_parts(key: str) -> tuple[str, str] | None:

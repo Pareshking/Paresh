@@ -20,7 +20,7 @@ on:
   # No schedule (audit A3, 7 Nov 2026): the acceptance of the 22 Sep R2 evidence is
   # done (docs/R2_ENGINEERING_LOOP.md, "R2 acceptance is complete"). Weekly, it re-proved
   # the same fixed date and timed out at 20 minutes on every run since 5 Oct, because its
-  # recovery step reads the whole bucket; r2_recovery_audit.yml runs that check weekly.
+  # recovery step reads the whole bucket; r2_recovery_audit.yml runs that check monthly.
   # Run it by hand to re-prove the acceptance.
 
 permissions:
