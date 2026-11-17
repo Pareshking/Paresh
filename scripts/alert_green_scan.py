@@ -22,7 +22,6 @@ cause is still there.
 """
 from __future__ import annotations
 
-import datetime as dt
 import json
 import os
 import subprocess
@@ -32,7 +31,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ALERT_WORKFLOW = ROOT / ".github" / "workflows" / "scheduled_failure_alert.yml"
 UNATTENDED = ("schedule", "workflow_run")
-LOOKBACK = dt.timedelta(days=8)   # covers the weekly workflows
 
 
 def watched_names(path: Path = ALERT_WORKFLOW) -> list[str]:
@@ -66,15 +64,23 @@ def _gh(*args: str, check: bool = True) -> str:
     return done.stdout
 
 
-def _runs(repo: str, since: dt.datetime) -> list[dict]:
+def _runs(repo: str, names: list[str]) -> list[dict]:
+    """The latest completed main runs of each watched workflow, however old.
+
+    Per workflow, not one window over the whole repository: the monthly
+    workflows' last run can be weeks old, and a shared window either misses
+    them or pages through thousands of runs.
+    """
+    body = json.loads(_gh("api", f"repos/{repo}/actions/workflows?per_page=100"))
+    ids = {w["name"]: w["id"] for w in body.get("workflows", [])}
     runs: list[dict] = []
-    for page in range(1, 31):
-        body = json.loads(_gh("api", f"repos/{repo}/actions/runs?branch=main&status=completed"
-                                     f"&created=>={since:%Y-%m-%dT%H:%M:%SZ}&per_page=100&page={page}"))
-        batch = body.get("workflow_runs", [])
-        runs += batch
-        if len(batch) < 100:
-            break
+    for name in names:
+        if name not in ids:
+            print(f"{name}: no such workflow")
+            continue
+        got = json.loads(_gh("api", f"repos/{repo}/actions/workflows/{ids[name]}/runs"
+                                    "?branch=main&status=completed&per_page=30"))
+        runs += got.get("workflow_runs", [])
     return runs
 
 
@@ -114,11 +120,11 @@ def main() -> int:
     _gh("label", "create", "scheduled-failure", "--repo", repo, "--color", "B60205",
         "--description", "A scheduled production workflow failed", check=False)
     names = watched_names()
-    latest = latest_unattended(_runs(repo, dt.datetime.now(dt.timezone.utc) - LOOKBACK), names)
+    latest = latest_unattended(_runs(repo, names), names)
     for name in names:
         run = latest.get(name)
         if run is None:
-            print(f"{name}: no unattended run in {LOOKBACK.days} days")
+            print(f"{name}: no unattended run among its last 30 on main")
             continue
         if run.get("conclusion") != "success":
             print(f"{name}: latest unattended run {run.get('conclusion')} -- the alert job reports failures")
