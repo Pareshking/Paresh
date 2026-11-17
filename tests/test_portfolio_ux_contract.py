@@ -271,3 +271,43 @@ def test_header_tiles_say_which_return_is_the_account():
     block = source[start:source.index('"Portfolio snapshot")', start)]
     assert 'tiles["holdings"]' in block and 'tiles["account_month"]' in block
     assert '"Since last rebalance"' not in block and '"MTD return"' not in block
+
+
+def test_production_qa_waits_for_the_month_tiles_not_only_the_headings(monkeypatch):
+    # Run 44114529502 (17 Nov 2026): the desktop read came at 1,570 characters,
+    # headings drawn and the Equity tiles not yet; the phone passed seconds later.
+    import importlib.util
+    import sys
+    import types
+
+    # The script imports Playwright and its sibling probe at load; neither is needed here.
+    sync_api = types.ModuleType("playwright.sync_api")
+    sync_api.sync_playwright = None
+    monkeypatch.setitem(sys.modules, "playwright", types.ModuleType("playwright"))
+    monkeypatch.setitem(sys.modules, "playwright.sync_api", sync_api)
+    monkeypatch.syspath_prepend(str(ROOT / "scripts"))
+    spec = importlib.util.spec_from_file_location("pqa", ROOT / "scripts/portfolio_production_qa.py")
+    pqa = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pqa)
+    reads = iter(["Equity & drawdown  Calendar returns",
+                  "Equity & drawdown  Calendar returns",
+                  "Equity & drawdown  Nov strategy +7.4%  Nov Nifty 500 +8.4%  Nov alpha -1.0%  Calendar returns"])
+
+    class Loc:
+        def __init__(self, sel):
+            self.sel = sel
+
+        def inner_text(self, timeout=None):
+            return next(reads)
+
+        def count(self):
+            return 0
+
+    class Frame:
+        def locator(self, sel):
+            return Loc(sel)
+
+    monkeypatch.setattr(pqa, "app_frame", lambda page: Frame())
+    monkeypatch.setattr(pqa.time, "sleep", lambda s: None)
+    text = pqa.settle_view(object(), "calendar returns", also=pqa.MONTH_TILE)
+    assert "Nov alpha" in text

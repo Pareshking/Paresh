@@ -52,7 +52,12 @@ def wait_ready(page):
     return app_frame(page), last or {"state": "timeout"}
 
 
-def settle_view(page, marker: str, timeout_s: int = 45) -> str:
+# The Equity card's month tiles ("<Mon> strategy / Nifty 500 / alpha"): the
+# last text on the page to render.
+MONTH_TILE = re.compile(r"\b[a-z]{3} alpha\b")
+
+
+def settle_view(page, marker: str, timeout_s: int = 45, also=None) -> str:
     """Page text once a clicked history view has rendered, not a fixed 0.7s later.
 
     Choosing Equity or Monthly reruns the page on the server; a cold production
@@ -61,6 +66,12 @@ def settle_view(page, marker: str, timeout_s: int = 45) -> str:
     Waits for Streamlit's running indicator to clear and for `marker` (lower
     case) to appear, up to timeout_s, then returns whatever is there so a real
     absence is still reported as one.
+
+    `also` (a compiled pattern on the folded text) must match too: the marker
+    is a card heading, which renders before the cards' contents. Run
+    44114529502 (17 Nov 2026) read the desktop page at 1,570 characters, the
+    headings present and the Equity tiles not yet drawn; passing runs read
+    ~3,166. The phone, a few seconds later, passed.
     """
     deadline = time.perf_counter() + timeout_s
     text = ""
@@ -68,7 +79,8 @@ def settle_view(page, marker: str, timeout_s: int = 45) -> str:
         frame = app_frame(page)
         text = frame.locator("body").inner_text(timeout=15_000)
         running = frame.locator('[data-testid="stStatusWidget"]').count()
-        if not running and marker in text.casefold():
+        folded = text.casefold()
+        if not running and marker in folded and (also is None or also.search(folded)):
             return text
         time.sleep(1)
     return text
@@ -140,7 +152,7 @@ def main() -> int:
                     frame = app_frame(page)
                     # #304 put every history view on the page as a card; the
                     # last card streams in after the book, so wait for it.
-                    body = settle_view(page, "calendar returns")
+                    body = settle_view(page, "calendar returns", also=MONTH_TILE)
                     body_folded = body.casefold()
                     frame = app_frame(page)
                     exception = frame.locator('[data-testid="stException"]').count()
