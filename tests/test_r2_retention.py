@@ -82,15 +82,14 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
                           "snapshots/application", "prices/yahoo/bootstrap",
                           "prices/yahoo", "prices/yahoo/raw", "app/prices_snapshot",
                           "app/prices_extra"}
-    # market_caps/nse_history: the newest two, plus the acceptance pin.
-    assert set(plans["market_caps/nse_history"].keep) == set(SEP[-2:]) | {"2026-09-18"}
+    # market_caps/nse_history: the newest two (the 2026-09-18 pin went 17 Nov).
+    assert set(plans["market_caps/nse_history"].keep) == set(SEP[-2:])
     # Every Yahoo dataset goes whole, each key planned once.
     assert set(plans["prices/yahoo"].drop) == set(AUG + SEP)
     every = [k for p in plans.values() for k in p.delete_keys]
     assert len(every) == len(set(every))
     assert not [k for k in every if "screener/bootstrap" in k]
-    assert not [k for k in every if "market_caps" in k
-                and any(d in k for d in (*SEP[-2:], "2026-09-18"))]
+    assert not [k for k in every if "market_caps" in k and any(d in k for d in SEP[-2:])]
     # Pointers go first, payloads last.
     assert yahoo.delete_keys[0].endswith("/current.json")
     assert not yahoo.delete_keys[-1].startswith("archive/manifests/")
@@ -415,3 +414,12 @@ def test_the_post_retention_audit_covers_every_dataset_that_keeps_some_keys():
     assert {"prices/screener", "prices/ss", "bse/daily", "market_caps/nse_history",
             "snapshots/rankings"} <= covered
     assert not covered & set(rr.RETIRED_DATASETS)
+
+
+def test_a_pinned_date_survives_thinning(monkeypatch):
+    monkeypatch.setitem(rr.PINNED_DATES, "market_caps/nse_history", frozenset({SEP[0]}))
+    a = FakeArchive()
+    for i, d in enumerate(SEP):
+        publish(a, "market_caps/nse_history", "archive/market_caps/nse_history", d, 7000 + i)
+    plan = {p.dataset: p for p in rr.make_plan(a)}["market_caps/nse_history"]
+    assert set(plan.keep) == {SEP[0], *SEP[-2:]}

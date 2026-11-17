@@ -7,14 +7,16 @@ on:
         description: "Immutable R2 dataset"
         required: true
         default: "market_caps/nse_history"
+      # Empty (the default): the dataset's newest revision. Until 17 Nov 2026 this
+      # was fixed to 2026-09-18 / f01555ee..., which made retention keep that copy.
       research_as_of:
-        description: "Immutable R2 evidence date"
-        required: true
-        default: "2026-09-18"
+        description: "Immutable R2 evidence date (empty: the newest)"
+        required: false
+        default: ""
       research_revision:
-        description: "64-character immutable revision SHA"
-        required: true
-        default: "f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6"
+        description: "64-character revision SHA (empty: the newest)"
+        required: false
+        default: ""
   # No schedule (audit A3, 7 Nov 2026): the acceptance of the 22 Sep R2 evidence is
   # done (docs/R2_ENGINEERING_LOOP.md, "R2 acceptance is complete"). Weekly, it re-proved
   # the same fixed date and timed out at 20 minutes on every run since 5 Oct, because its
@@ -53,10 +55,14 @@ jobs:
       - name: Live immutable research acceptance
         env:
           IN_DATASET: ${{ inputs.research_dataset || 'market_caps/nse_history' }}
-          IN_AS_OF: ${{ inputs.research_as_of || '2026-09-18' }}
-          IN_REVISION: ${{ inputs.research_revision || 'f01555ee9afa74a0f6c0c8bd5e8e451b88bd7390c79ca8367cf0ff904244b6e6' }}
+          IN_AS_OF: ${{ inputs.research_as_of }}
+          IN_REVISION: ${{ inputs.research_revision }}
         run: |
-          python scripts/r2_research_live_validation.py --dataset "$IN_DATASET" --as-of "$IN_AS_OF" --revision "$IN_REVISION"
+          if [ -n "$IN_AS_OF$IN_REVISION" ]; then
+            python scripts/r2_research_live_validation.py --dataset "$IN_DATASET" --as-of "$IN_AS_OF" --revision "$IN_REVISION"
+          else
+            python scripts/r2_research_live_validation.py --dataset "$IN_DATASET"
+          fi
       - name: Live recovery audit
         run: python scripts/r2_recovery_audit.py
       - name: Live cost observability
