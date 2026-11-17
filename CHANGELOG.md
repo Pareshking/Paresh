@@ -3,6 +3,7 @@
 ## 2026-11-17 — Two and a half hours of an error page
 
 - **From about 22:35 UTC on 16 Nov to 01:03 UTC on 17 Nov, every page showed an ImportError.** The update that fixed memory added a new function and imported it in the first lines of the app. Streamlit Cloud loads an update into the running app without restarting it, and at that point the old copy of the code, without the new function, was still loaded. Fixed: those first lines now cope with an older copy, and a test runs them against one. The live check after the update failed within a minute; it was not looked at until 00:58.
+- **R2 storage trimmed by 426 MB** (owner's decisions of 17 Nov; run 43994049767, 492 keys, recovery audit PASS): one copy of the BSE table instead of two, the newest three SS stores without month-ends, the newest two market-cap histories plus the 18 Sep one the acceptance check re-reads, and only the newest ranking revision of each day.
 
 ## 2026-11-16 — The app no longer grows between updates
 
