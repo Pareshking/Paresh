@@ -2139,6 +2139,13 @@
           "removed": [
             "IGLSPIRITS"
           ]
+        },
+        {
+          "date": "2026-11-17",
+          "added": [],
+          "removed": [
+            "ENNATURE"
+          ]
         }
       ]
     },
@@ -8282,6 +8289,13 @@
           "removed": [
             "IGLSPIRITS"
           ]
+        },
+        {
+          "date": "2026-11-17",
+          "added": [],
+          "removed": [
+            "ENNATURE"
+          ]
         }
       ]
     },
@@ -13805,6 +13819,13 @@
       "added": [],
       "removed": [
         "IGLSPIRITS"
+      ]
+    },
+    {
+      "date": "2026-11-17",
+      "added": [],
+      "removed": [
+        "ENNATURE"
       ]
     }
   ],

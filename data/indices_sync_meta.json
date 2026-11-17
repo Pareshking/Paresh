@@ -1,45 +1,45 @@
 {
-  "last_synced": "16 Nov 2026, 08:49",
-  "timestamp": "2026-11-16T08:49:40.525379",
-  "total_stocks": 753,
+  "last_synced": "17 Nov 2026, 00:55",
+  "timestamp": "2026-11-17T00:55:35.047984",
+  "total_stocks": 752,
   "indices": {
     "NIFTY 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-11-16T08:49:39.359984"
+      "time": "2026-11-17T00:55:32.915850"
     },
     "NIFTY NEXT 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-11-16T08:49:39.658259"
+      "time": "2026-11-17T00:55:33.387417"
     },
     "NIFTY MIDCAP 150": {
       "count": 150,
       "status": "Updated",
-      "time": "2026-11-16T08:49:39.950992"
+      "time": "2026-11-17T00:55:33.940982"
     },
     "NIFTY SMALLCAP 250": {
       "count": 251,
       "status": "Updated",
-      "time": "2026-11-16T08:49:40.235903"
+      "time": "2026-11-17T00:55:34.506516"
     },
     "NIFTY MICROCAP 250": {
-      "count": 252,
+      "count": 251,
       "status": "Updated",
-      "time": "2026-11-16T08:49:40.524849"
+      "time": "2026-11-17T00:55:35.047037"
     }
   },
-  "last_attempt": "16 Nov 2026, 08:49",
-  "last_attempt_timestamp": "2026-11-16T08:49:40.525379",
+  "last_attempt": "17 Nov 2026, 00:55",
+  "last_attempt_timestamp": "2026-11-17T00:55:35.047984",
   "last_attempt_fetched": 5,
   "last_attempt_errors": {},
   "last_attempt_ok": true,
   "local_csv_fetched": {
-    "NIFTY 50": "2026-11-16T08:49:40.526267",
-    "NIFTY NEXT 50": "2026-11-16T08:49:40.529435",
-    "NIFTY MIDCAP 150": "2026-11-16T08:49:40.532465",
-    "NIFTY SMALLCAP 250": "2026-11-16T08:49:40.539490",
-    "NIFTY MICROCAP 250": "2026-11-16T08:49:40.550648",
-    "NIFTY TOTAL MARKET": "2026-11-16T08:49:40.843738"
+    "NIFTY 50": "2026-11-17T00:55:35.049391",
+    "NIFTY NEXT 50": "2026-11-17T00:55:35.055295",
+    "NIFTY MIDCAP 150": "2026-11-17T00:55:35.060849",
+    "NIFTY SMALLCAP 250": "2026-11-17T00:55:35.074431",
+    "NIFTY MICROCAP 250": "2026-11-17T00:55:35.095378",
+    "NIFTY TOTAL MARKET": "2026-11-17T00:55:35.616204"
   }
 }
