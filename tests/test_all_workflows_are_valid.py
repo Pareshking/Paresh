@@ -51,4 +51,5 @@ def test_every_scheduled_workflow_is_watched_by_the_failure_alert():
         if isinstance(wf.get(True) or wf.get("on"), dict)
         and "schedule" in (wf.get(True) or wf.get("on"))
     }
-    assert scheduled - watched == set()
+    # The alert's own scan (S141) is watched from outside, by the schedule watchdog.
+    assert scheduled - watched - {alert["name"]} == set()

@@ -5,7 +5,17 @@ name: Scheduled job failure alert
 # September 2026 with nobody looking. Every failed scheduled run of a
 # production workflow now lands on one open issue, labelled so it is easy to
 # find, and a later green run of the same workflow says so on that issue.
+#
+# Two halves since 17 Nov 2026 (S141; owner: make a reduction). A FAILURE is
+# still reported the moment it happens (job `alert`, on workflow_run). The
+# GREEN half -- close a recovered workflow's issue, report warnings on a green
+# run -- ran a job after every successful run: 506 runs and 219 billed minutes
+# in the week of 10-16 Nov. It is now a scan three times a day (job `green`,
+# scripts/alert_green_scan.py), so a recovery is noted up to ~8 h later.
 on:
+  schedule:
+    - cron: "17 1,9,17 * * *"   # 06:47, 14:47 and 22:47 IST
+  workflow_dispatch:
   workflow_run:
     workflows:
       - BSE daily table (weekly refresh)
@@ -56,7 +66,7 @@ permissions:
 # workflow at the same moment can now write two comments; a duplicate report is
 # the lesser fault. The schedule watchdog re-reports anything lost anyway.
 concurrency:
-  group: scheduled-failure-alert-${{ github.event.workflow_run.id }}
+  group: scheduled-failure-alert-${{ github.event.workflow_run.id || github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -65,6 +75,7 @@ jobs:
     # both happen with nobody watching. Pushes and dispatches have a person
     # looking at them already.
     if: >-
+      github.event_name == 'workflow_run' &&
       (github.event.workflow_run.event == 'schedule' ||
        github.event.workflow_run.event == 'workflow_run') &&
       (github.event.workflow_run.conclusion == 'failure' ||
@@ -119,92 +130,30 @@ jobs:
           Close this issue once the workflow is green again."
           fi
 
-  # A green run of a watched workflow. Two things are owed to the reader of the
-  # alert board, and neither existed before (S116 a and b, 10 Nov 2026):
+  # The green half (S116 a and b, 10 Nov 2026), as a scan since 17 Nov 2026:
   #
-  #   (b) The header above promises that "a later green run of the same
-  #       workflow says so on that issue". It never did: the only steps sat
-  #       behind the failure gate, so nine of the ten open issues named a
-  #       workflow whose last scheduled run had succeeded.
-  #   (a) daily_sync.yml reports ten of its steps with
-  #       `|| echo "::warning::..."` on purpose (the log is the deliverable,
-  #       see daily_sync.yml:366-370), so the run is GREEN while the step
-  #       exited non-zero. The last six runs were all green with the
-  #       corporate-actions warning on them. The warning is read back off the
-  #       run through the annotations API and reported the way a failure is.
+  #   (b) "a later green run of the same workflow says so on that issue": the
+  #       latest unattended run of each watched workflow, if green, closes its
+  #       open failure issue.
+  #   (a) daily_sync.yml reports some steps with `|| echo "::warning::..."` on
+  #       purpose, so the run is GREEN while a step exited non-zero. The latest
+  #       green run's warning annotations (read back through the annotations
+  #       API, annotation_level == "warning") go on their own issue, once per run.
   #
-  # The warnings are reported on their own issue, so a green-with-warnings run
-  # still closes the failure issue: the workflow really did succeed.
+  # The job used to fire on every successful run; the logic and the issue
+  # titles are unchanged, only when it runs. See scripts/alert_green_scan.py.
   green:
-    if: >-
-      (github.event.workflow_run.event == 'schedule' ||
-       github.event.workflow_run.event == 'workflow_run') &&
-      github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      WORKFLOW: ${{ github.event.workflow_run.name }}
-      RUN_ID: ${{ github.event.workflow_run.id }}
-      RUN_URL: ${{ github.event.workflow_run.html_url }}
-      SHA: ${{ github.event.workflow_run.head_sha }}
-      UPDATED: ${{ github.event.workflow_run.updated_at }}
     steps:
-      # A job's check-run id is its job id, so the annotations of a run are
-      # reachable without the checks API's commit lookup. `notice` level is
-      # skipped: every run carries the runner-image migration notice.
-      - name: Read the run's warning annotations
-        id: warnings
-        run: |
-          set -uo pipefail
-          : > warnings.txt
-          for job in $(gh api "repos/${GH_REPO}/actions/runs/${RUN_ID}/jobs" \
-                --paginate --jq '.jobs[].id'); do
-            gh api "repos/${GH_REPO}/check-runs/${job}/annotations" \
-              --jq '.[] | select(.annotation_level == "warning") | .message' \
-              >> warnings.txt || echo "could not read annotations of job ${job}"
-          done
-          sort -u -o warnings.txt warnings.txt
-          sed -i '/^$/d' warnings.txt
-          count=$(wc -l < warnings.txt | tr -d ' ')
-          echo "count=${count}" >> "$GITHUB_OUTPUT"
-          echo "${count} warning annotation(s) on ${RUN_URL}"
-          cat warnings.txt
-      - name: Report a green run that printed warnings
-        if: steps.warnings.outputs.count != '0'
-        run: |
-          set -euo pipefail
-          gh label create scheduled-failure --color B60205 \
-            --description "A scheduled production workflow failed" 2>/dev/null || true
-          title="Scheduled workflow warning: ${WORKFLOW}"
-          count=$(wc -l < warnings.txt | tr -d ' ')
-          {
-            printf '**%s** finished GREEN on `%s` at %s with %s warning annotation(s): %s\n\n' \
-              "${WORKFLOW}" "${SHA:0:7}" "${UPDATED}" "${count}" "${RUN_URL}"
-            sed 's/^/- /' warnings.txt
-          } > body.md
-          number=$(gh issue list --label scheduled-failure --state open \
-            --search "in:title \"${title}\"" --json number,title \
-            --jq "map(select(.title == \"${title}\")) | .[0].number // empty")
-          if [ -n "${number}" ]; then
-            gh issue comment "${number}" --body-file body.md
-          else
-            printf '\nA warning here does not fail the job on purpose: the step log is the deliverable (daily_sync.yml:366-370). Close this once the warnings stop.\n' >> body.md
-            gh issue create --title "${title}" --label scheduled-failure --body-file body.md
-          fi
-      - name: Say the workflow recovered, and close its failure issue
-        run: |
-          set -euo pipefail
-          title="Scheduled workflow failing: ${WORKFLOW}"
-          number=$(gh issue list --label scheduled-failure --state open \
-            --search "in:title \"${title}\"" --json number,title \
-            --jq "map(select(.title == \"${title}\")) | .[0].number // empty")
-          if [ -z "${number}" ]; then
-            echo "No open failure issue for ${WORKFLOW}; nothing to close."
-            exit 0
-          fi
-          gh issue comment "${number}" --body \
-            "Recovered: **${WORKFLOW}** succeeded on \`${SHA:0:7}\` at ${UPDATED}: ${RUN_URL}"
-          gh issue close "${number}" --reason completed
-          echo "Closed #${number}."
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      - run: pip install pyyaml
+      - name: Close recovered workflows' issues and report warnings on green runs
+        run: python scripts/alert_green_scan.py

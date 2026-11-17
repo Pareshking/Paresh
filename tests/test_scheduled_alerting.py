@@ -50,7 +50,8 @@ def test_every_scheduled_workflow_is_in_the_alert_watch_list():
     missing = {
         f"{file} ({name})"
         for file, name in _scheduled().items()
-        if name not in watched
+        # The alert's own scan schedule is watched from outside, by the watchdog.
+        if name not in watched and file != ALERT.name
     }
     assert missing == set(), (
         "these scheduled workflows are not watched by the failure alert; a "
@@ -69,26 +70,53 @@ def test_a_green_run_can_close_the_issue_and_report_its_warnings():
     jobs = _load(ALERT)["jobs"]
     assert "green" in jobs, "no green path: a recovery can never close an issue"
     green = jobs["green"]
-    assert "'success'" in green["if"]
+    # Since 17 Nov 2026 (S141) the green path is a scan, not a job per run.
+    assert "'schedule'" in green["if"]
     runs = "\n".join(step.get("run", "") for step in green["steps"])
-    assert "/annotations" in runs, "a warning on a green run must be read back"
-    assert "annotation_level == \"warning\"" in runs
-    assert "gh issue close" in runs, "a recovered workflow must close its issue"
-    # The failure path stays reachable only on a failure.
+    assert "scripts/alert_green_scan.py" in runs
+    scan = (ROOT / "scripts/alert_green_scan.py").read_text(encoding="utf-8")
+    assert "/annotations" in scan, "a warning on a green run must be read back"
+    assert 'annotation_level") == "warning"' in scan
+    assert '"issue", "close"' in scan, "a recovered workflow must close its issue"
+    # The failure path stays immediate and reachable only on a failure.
     assert "'failure'" in jobs["alert"]["if"]
+    assert "github.event_name == 'workflow_run'" in jobs["alert"]["if"]
+    on = _on(_load(ALERT))
+    assert on["schedule"] and "workflow_run" in on
+
+
+def test_the_scan_takes_the_latest_unattended_main_run_of_each_watched_workflow():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("alert_green_scan", ROOT / "scripts/alert_green_scan.py")
+    scan = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scan)
+
+    def run(i, name, event="schedule", branch="main", status="completed", at="2026-11-17T01:00:00Z"):
+        return {"id": i, "name": name, "event": event, "head_branch": branch, "status": status,
+                "created_at": at}
+
+    runs = [run(1, "A", at="2026-11-16T01:00:00Z"), run(2, "A", at="2026-11-17T01:00:00Z"),
+            run(3, "A", event="push", at="2026-11-17T05:00:00Z"),           # a person was watching
+            run(4, "B", branch="feature"), run(5, "B", event="workflow_run"),
+            run(6, "C", status="in_progress"), run(7, "Z")]                 # Z is not watched
+    got = scan.latest_unattended(runs, ["A", "B", "C"])
+    assert {k: v["id"] for k, v in got.items()} == {"A": 2, "B": 5}
+    assert set(scan.watched_names()) >= {"Daily NSE Momentum Data Sync", "Screener daily price sync (overnight)"}
 
 
 def test_the_alert_never_queues_behind_another_alert_run():
     """21 alert runs were discarded by one shared concurrency group (S116 e)."""
     group = _load(ALERT)["concurrency"]["group"]
-    assert "workflow_run.id" in group
+    assert "workflow_run.id" in group and "github.run_id" in group
 
 
 def test_the_watchdog_watches_the_alert_itself():
     text = WATCHDOG.read_text(encoding="utf-8")
     alert_name = _load(ALERT)["name"]
-    # The watchdog scans every workflow file with `on: schedule`, and the alert
-    # has no schedule, so it is the reconciliation pass that covers it: a
+    # The watchdog scans every workflow file with `on: schedule` (the alert's
+    # scan included since 17 Nov 2026), and its reconciliation pass covers the
+    # failure half: a
     # failed latest scheduled run with no open issue is reported from outside.
     assert "unreported" in text
     assert alert_name  # named here so a rename of the alert shows up in review

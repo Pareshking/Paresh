@@ -8,7 +8,9 @@ on:
         type: boolean
         default: false
   schedule:
-    - cron: "47 3 * * 1"
+    # Monthly since 17 Nov 2026 (S141; weekly before): the 1st, 09:17 IST. The weekly
+    # retention run still audits every dataset it deletes from.
+    - cron: "47 3 1 * *"
   push:
     branches: [main]
     paths:

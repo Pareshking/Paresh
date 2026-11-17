@@ -30,8 +30,9 @@ on:
       - "scripts/r2_historical_evidence_bootstrap.py"
       - "tests/test_r2_historical_evidence.py"
       - ".github/workflows/r2-historical-evidence-bootstrap.yml"
+  # A weekly fallback in case the chain above stops (it was daily until 17 Nov 2026).
   schedule:
-    - cron: "15 20 * * *"
+    - cron: "15 20 * * 0"   # Monday 01:45 IST
 
 permissions:
   contents: read
@@ -44,7 +45,14 @@ concurrency:
 jobs:
   bootstrap:
     # Chained runs only after a successful upstream run: a failed one published nothing new.
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # Once a night (S141, 17 Nov 2026): the daily sync runs about three times a
+    # day, but only its run chained after the Screener night carries new data;
+    # the other two only re-published the same bytes (skip-if-published). A
+    # skipped job is not billed.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'workflow_run')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
