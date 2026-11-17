@@ -27,7 +27,7 @@ everywhere.
 (`src/loaders/price_source.ranking_frames`), Screener's weekly stretch filled
 with NSE's daily moves (below, "The weekly stretch is filled"); the liquidity
 floor uses Screener's NSE + BSE volume. Owner, 2 Oct 2026: **keep Screener as the app's
-source for now.** SS is collected and checked every night, not ranked on.
+source for now.** SS is collected and checked weekly (Fridays, since 17 Nov 2026; nightly before), not ranked on.
 
 Measured 2 Oct on a year of 192 stocks: SS and Screener identical to the paisa
 on 187. Screener's volume is NSE + BSE (exact on 99.9% of 1,165 stocks); SS's
@@ -50,7 +50,7 @@ is NSE's exactly.
   header says which session is missing, on every page. The old rule, one trading
   day behind counts as current, let 8 Oct read as current all of 10 Oct.
 
-## The nightly run (`ss_sync.yml`, weekdays 22:02 IST)
+## The weekly run (`ss_sync.yml`, Fridays 22:02 IST; weekdays until 17 Nov 2026)
 
 1. **SS, gently:** page 1 (1,000 sessions) for each stock, the next 40 not
    yet updated tonight (`sync_ss.py --stale-hours 12`), about four hours for

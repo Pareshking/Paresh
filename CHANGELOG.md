@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-17 — SS prices weekly
+
+- The SS price download (the second, independent price source the nightly check compares against; nothing ranks on it) now runs on Fridays at 22:02 IST instead of every weekday. Each run took about 88 minutes. The check of Screener against SS and NSE still runs every night, but for the days since the last Friday it has only Screener and NSE to compare.
+
 ## 2026-11-17 — Two and a half hours of an error page
 
 - **From about 22:35 UTC on 16 Nov to 01:03 UTC on 17 Nov, every page showed an ImportError.** The update that fixed memory added a new function and imported it in the first lines of the app. Streamlit Cloud loads an update into the running app without restarting it, and at that point the old copy of the code, without the new function, was still loaded. Fixed: those first lines now cope with an older copy, and a test runs them against one. The live check after the update failed within a minute; it was not looked at until 00:58.

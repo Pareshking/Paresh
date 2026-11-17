@@ -1,16 +1,23 @@
 name: SS price sync (gentle)
 
-# The nightly price update (owner, 2026-10-02: start at 10:02 PM IST).
+# The weekly SS update: Fridays at 10:02 PM IST (owner, 2026-10-02: 10:02 PM;
+# 17 Nov 2026: "we don't need it now and make it weekly only" -- nothing ranks
+# on SS, and each run was 88 minutes of the repository's Actions time).
+#
+# What weekly costs: screener_sync's nightly three-source vote (S92) has SS only
+# up to the last Friday, so on the newest sessions after it the vote has two
+# voices (Screener, NSE) and cannot outvote either; a fault confined to those
+# days is caught by the next Friday's run instead of the same night.
 #
 #   1. SS: the latest page (1,000 sessions) for each stock, 3 s apart and never
 #      less (SS's owner via the owner, 8 Nov 2026: "no rest is required, keep
 #      3 sec between requests"; until then 4 s apart with a 5-minute rest
 #      every 40 stocks). A stock whose history SS restated, or that jumped past
 #      the limit, re-downloads whole (sync_ss.py). Rounds of 40 remain only as
-#      checkpoints: each takes the next 40 not yet updated tonight, so a stopped
+#      checkpoints: each takes the next 40 not yet updated in this run, so a stopped
 #      run loses nothing. About 75 minutes for the universe.
 #   2. Saved to the data-latest release (the store the next run resumes from)
-#      and published to R2 as prices/ss (r2_retention.py keeps the newest 3 + month-ends).
+#      and published to R2 as prices/ss (r2_retention.py keeps the newest 3).
 #   3. The three-source check (scripts/reconcile_report.py): SS, Screener and
 #      NSE, NSE as judge, rights issues adjusted automatically. The report is
 #      this run's summary and is saved to the release. It never changes a price.
@@ -22,7 +29,7 @@ name: SS price sync (gentle)
 # round take 13 minutes. Run it twice for the universe; it resumes.
 on:
   schedule:
-    - cron: "32 16 * * 1-5"   # 22:02 IST, Monday to Friday
+    - cron: "32 16 * * 5"     # 22:02 IST, Fridays only (owner, 17 Nov 2026)
   workflow_dispatch:
     inputs:
       mode:

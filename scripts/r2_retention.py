@@ -64,7 +64,7 @@ KEEP_DAILY = 7
 # like every nested one, is never matched here.
 RETAINED_DATASETS: dict[str, str] = {
     "prices/screener": "archive/prices/screener",
-    # The SS store (ss_sync.yml), whole history in one file each night.
+    # The SS store (ss_sync.yml), whole history in one file each run (weekly, Fridays).
     "prices/ss": "archive/prices/ss",
 }
 

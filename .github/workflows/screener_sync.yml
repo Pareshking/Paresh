@@ -149,6 +149,8 @@ jobs:
       # SCREENER_OUTVOTE_LIMIT stocks outvoted (10; src/engine/reconcile.py)
       # holds back both publishes below, the last published store stays and the
       # failure alert fires. No SS store to vote with: a warning, not a hold.
+      # Since 17 Nov 2026 SS is fetched weekly (Fridays, ss_sync.yml), so the
+      # sessions after the last Friday have two voices only and are not voted on.
       - name: Three-source vote on the new store (SS, Screener, NSE)
         id: outvote_check
         if: always() && steps.ranking_check.outcome != 'failure'

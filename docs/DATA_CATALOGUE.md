@@ -22,7 +22,7 @@ the repo copy the app reads at run time.
 | `reference/*` (yahoo_close, eod2_close, tijori_close_verified, tijori_close_raw, marketlens_close, tejhq_adjusted_close, ss_close) | Independent price histories the long NSE file is audited against | stock x day | 1995 / 2002 / 2007 / 2010 to Oct 2026 by source | `r2_publish_release_asset` (by hand, 3 Oct 2026) | `scripts/audit_long_prices.py` | **Protected** (`PROTECTED_DATASETS`) |
 | ~~`scratch/bse_bhavcopy_2026-10-03/`~~ deleted 15 Nov 2026 (owner clean-up run 43674615797); the workflow that wrote it, `bse_bhavcopy_r2.yml`, was removed the same day | BSE bhavcopy, every equity, 2008-01-01 to date: OHLC, previous close, trades, shares, value; ISIN from 2024 only; 20 sessions Jun 2008 - Jan 2010 missing | security x day | 2008 - 2026 | `bse_bhavcopy_r2` (manual) | `scripts/audit_gaps_against_bse.py` | Scratch: outside every dataset `r2_retention.py` lists; delete by hand |
 | `prices/screener/max_history` | Screener's full chart history, weekly before the latest year, 1,345 stocks | stock x week | 2000 to Oct 2026 | `r2_publish_release_asset` (3 Oct 2026) | the audit | **Protected** |
-| `prices/ss` | The SS store: daily OHLCV, 1,216 stocks, 1,000 sessions each, one whole-history file | stock × day | from 2018 (most from Sep 2022) | `ss_sync` weekdays 22:02 IST | Three-source check; to become the app's primary source | Newest 3 dates, no month-ends (owner, 17 Nov 2026) |
+| `prices/ss` | The SS store: daily OHLCV, 1,216 stocks, 1,000 sessions each, one whole-history file | stock × day | from 2018 (most from Sep 2022) | `ss_sync` Fridays 22:02 IST (weekdays until 17 Nov 2026) | Three-source check; to become the app's primary source | Newest 3 dates, no month-ends (owner, 17 Nov 2026) |
 | `nse/market_caps` | NSE market cap per security | security × day | 3 years | `nse_collect` | Nano Cap list, screener MCAP column | Full history |
 | `nse/source_checks` | Disagreements between NSE and the other sources, newest day | check | newest day | `nse_compare`, `nse_sample_check` | Data-health review | Every day kept (not overwritten; checked 16 Nov 2026) |
 | `market_caps/nse_history` | Market-cap history, dated from the git history of `data/nse_market_caps.csv` | security × day | grows daily | `r2_market_cap_history` 20:00 | Nothing in the app, backtests or ranking (they read the CSV); `r2_final_acceptance` re-reads its newest revision | Newest 2 copies; each copy is the whole series (owner, 17 Nov 2026) |
@@ -77,7 +77,7 @@ changes, the frame is built at run time from `prices/screener` and the
 committed `data/nse_prices`). Yahoo is no longer a source (owner, 2 Oct
 2026), and since 13 Oct 2026 no code downloads from it: `yfinance` is gone
 from `requirements.txt` (TODO S10). Yahoo survives only as the stored audit
-reference `reference/yahoo_close`. SS is collected nightly and checked against the other two by the
+reference `reference/yahoo_close`. SS is collected weekly (Fridays) and checked against the other two by the
 three-source vote, with NSE's own record as judge; it is not yet wired into
 the app. Rules, the nightly run and the vote: `docs/PRICE_PIPELINE.md`.
 
