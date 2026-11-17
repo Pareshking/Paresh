@@ -103,7 +103,8 @@ def test_the_mmap_threshold_is_fixed_at_app_import():
         assert memory.fix_mmap_threshold() in (True, False)
     src = open("app.py", encoding="utf-8").read()
     head = src[:src.index("if not hasattr(_code_reload")]
-    assert "fix_mmap_threshold()" in head, "must run before the first page builds any frame"
+    assert 'getattr(_memory, "fix_mmap_threshold", lambda: False)()' in head, \
+        "must run before the first page builds any frame"
 
 
 def test_a_freed_large_frame_goes_back_to_the_system():
@@ -148,3 +149,33 @@ t.start()
 t.join()
 print(memory.resident_mb() - before)
 """
+
+
+def test_app_survives_a_pull_that_adds_a_memory_function():
+    """17 Nov 2026: a pull left the old src.core.memory loaded, and app.py's top
+    `from src.core.memory import fix_mmap_threshold` raised ImportError on every page.
+    The head of app.py (up to the module drop) must run against a stale module."""
+    import subprocess
+    import sys
+
+    src = open("app.py", encoding="utf-8").read()
+    head = src[:src.index("def _new_revision_pulled(")]
+    # Every `from src... import name` above the drop is the bug this guards against.
+    import re
+    assert not re.findall(r"^from src\.[\w.]+ import (?!code_reload|memory as)", head, re.M), \
+        "import modules, not names, above the module drop"
+    probe = (
+        "import sys, types\n"
+        "import src.core.memory as real\n"
+        "stale = types.ModuleType('src.core.memory')\n"
+        "stale.__file__ = real.__file__; stale.__spec__ = real.__spec__\n"
+        "for n in ('release_freed_memory', 'use_system_arrow_pool'):\n"
+        "    setattr(stale, n, getattr(real, n))\n"
+        "sys.modules['src.core.memory'] = stale\n"
+        "import src.core\n"
+        "src.core.memory = stale\n"
+        f"exec(compile({head!r}, 'app.py', 'exec'), {{'__name__': 'app_head'}})\n"
+        "print('ok')\n"
+    )
+    out = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0 and out.stdout.strip().endswith("ok"), out.stderr[-2000:]

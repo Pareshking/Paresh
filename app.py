@@ -31,11 +31,19 @@ import threading
 from contextlib import contextmanager
 
 from src.core import code_reload as _code_reload
-from src.core.memory import fix_mmap_threshold, release_freed_memory, use_system_arrow_pool
+from src.core import memory as _memory
+
+# Nothing above the module drop below may import a NAME from src/: on a pull
+# the module still loaded is the old one, and a name added since is missing.
+# 16-17 Nov 2026: `from src.core.memory import fix_mmap_threshold` here took
+# every page down with an ImportError from the pull of #545 until a reboot.
+if not hasattr(_memory, "fix_mmap_threshold"):
+    _memory = importlib.reload(_memory)
+release_freed_memory = _memory.release_freed_memory
 
 # pyarrow on malloc, not mimalloc: ~85 MB lower peaks with 4 readers (TODO S64).
-use_system_arrow_pool()
-fix_mmap_threshold()
+_memory.use_system_arrow_pool()
+getattr(_memory, "fix_mmap_threshold", lambda: False)()
 
 if not hasattr(_code_reload, "app_import_guard"):
     _code_reload = importlib.reload(_code_reload)

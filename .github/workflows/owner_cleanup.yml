@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write          # delete branches and a release asset
+  actions: write           # delete the old v1-production-qa artifacts
 
 concurrency:
   group: owner-cleanup
