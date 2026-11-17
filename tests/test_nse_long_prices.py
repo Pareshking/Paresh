@@ -277,3 +277,11 @@ def test_the_report_round_trips_through_its_parquet(tmp_path):
     (tmp_path / "bad.json").write_text("{}")
     with pytest.raises(ValueError):
         nse_long.report_to_parquet(tmp_path / "bad.json", tmp_path / "bad.parquet")
+
+
+def test_the_long_file_logs_to_the_apps_own_log():
+    """Its lines must reach the Streamlit Cloud log, where "from R2" is read (17 Nov 2026)."""
+    from src.core.logger import logger as app_logger
+    from src.loaders import nse_long
+
+    assert nse_long.logger is app_logger

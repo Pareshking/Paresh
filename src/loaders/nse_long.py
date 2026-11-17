@@ -23,7 +23,6 @@ The value and report files are taken from the same build date as the closes
 from __future__ import annotations
 
 import json
-import logging
 import os
 import tempfile
 import time
@@ -33,8 +32,11 @@ import pandas as pd
 import requests
 
 from src.core.config import DATA_DIR, NSE_LONG_BASE_URL
+# The app's own logger: under getLogger(__name__) these lines never reached the
+# Streamlit Cloud log (owner's log of 17 Nov 2026 had none), so whether the
+# Backtest's long file came from R2 or the release could not be read there.
+from src.core.logger import logger
 
-logger = logging.getLogger(__name__)
 
 CLOSE_FILE = "nse_long_close.parquet"
 VALUE_FILE = "nse_long_value.parquet"
