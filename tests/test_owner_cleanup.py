@@ -83,3 +83,27 @@ def test_the_job_never_runs_by_itself_and_defaults_to_a_dry_run():
     assert on["workflow_dispatch"]["inputs"]["mode"]["default"] == "dry-run"
     run = wf["jobs"]["cleanup"]["steps"][-1]["run"]
     assert "--delete" in run and 'inputs.mode }}" = "delete"' in run
+
+
+def _art(i, days, name="v1-production-qa", expired=False, size=1_000_000):
+    return {"id": i, "name": name, "expired": expired, "size_in_bytes": size,
+            "created_at": "2026-11-01T00:00:00Z",
+            "expires_at": f"2026-{11 + (days // 30)}-{1 + days % 30:02d}T00:00:00Z" if days < 60
+            else "2027-01-30T00:00:00Z"}
+
+
+def test_only_the_90_day_qa_artifacts_are_deleted():
+    # Owner, 17 Nov 2026: delete the QA evidence uploaded before retention-days: 14.
+    arts = [_art(1, 90), _art(2, 90), _art(3, 14), _art(4, 90, name="v1-validation-artifacts"),
+            _art(5, 90, expired=True)]
+    step, ids = oc.plan_artifacts(arts)
+    assert step.action == "delete" and ids == [1, 2]
+    assert oc.plan_artifacts([_art(3, 14)])[0].action == "gone"
+    many = [_art(i, 90) for i in range(oc.ARTIFACT_MAX + 1)]
+    step, ids = oc.plan_artifacts(many)
+    assert step.action == "skip" and ids == []
+
+
+def test_the_job_may_delete_artifacts():
+    src = open(".github/workflows/owner_cleanup.yml", encoding="utf-8").read()
+    assert "actions: write" in src

@@ -19,6 +19,12 @@ check fails:
    23 objects / 1,221.8 MiB recorded on 10 Nov, every key under that prefix.
 3. Release assets on `data-latest` (ASSETS): each deleted only if it still has
    the size and download count recorded when the owner approved it.
+4. Actions artifacts named `v1-production-qa` that GitHub keeps for 90 days:
+   the ones uploaded before `retention-days: 14` (#506, 10 Nov 2026), about
+   953 / 994 MB on 16 Nov (owner, 17 Nov 2026: "Delete 953 old QA artifacts").
+   An artifact is taken only if it expires more than 15 days after it was made,
+   which no upload under the new setting does; more than ARTIFACT_MAX of them
+   skips the step.
 
 Before a delete run, the workflow bundles every listed branch into a 90-day
 artifact (`unmerged-branches.bundle`), so work that never reached main can be
@@ -63,7 +69,7 @@ ASSETS = (
 
 @dataclass(frozen=True)
 class Step:
-    what: str        # "branch" / "r2" / "asset"
+    what: str        # "branch" / "r2" / "asset" / "artifact"
     target: str
     action: str      # "delete" / "skip" / "gone"
     why: str
@@ -125,6 +131,36 @@ def plan_asset(assets: list[dict], want: dict) -> Step:
     return Step("asset", want["name"], "delete", f"{want['size']:,} bytes, {want['downloads']} downloads as recorded")
 
 
+ARTIFACT_NAME = "v1-production-qa"
+ARTIFACT_LONG_LIFE_DAYS = 15   # the new uploads live 14 days; the old ones 90
+ARTIFACT_MAX = 1100            # 953 on 16 Nov; more means the selection is wrong
+
+
+def _days_kept(a: dict) -> float | None:
+    from datetime import datetime
+
+    try:
+        made = datetime.fromisoformat(str(a["created_at"]).replace("Z", "+00:00"))
+        ends = datetime.fromisoformat(str(a["expires_at"]).replace("Z", "+00:00"))
+    except (KeyError, ValueError):
+        return None
+    return (ends - made).total_seconds() / 86400
+
+
+def plan_artifacts(artifacts: list[dict]) -> tuple[Step, list[int]]:
+    old = [a for a in artifacts
+           if a.get("name") == ARTIFACT_NAME and not a.get("expired")
+           and (_days_kept(a) or 0) > ARTIFACT_LONG_LIFE_DAYS]
+    if not old:
+        return Step("artifact", ARTIFACT_NAME, "gone", "no 90-day upload left"), []
+    size = sum(int(a.get("size_in_bytes", 0)) for a in old)
+    if len(old) > ARTIFACT_MAX:
+        return Step("artifact", ARTIFACT_NAME, "skip", f"{len(old)} matched, more than {ARTIFACT_MAX}"), []
+    return (Step("artifact", ARTIFACT_NAME, "delete",
+                 f"{len(old)} uploads kept 90 days, {size / 2**20:,.1f} MiB"),
+            [int(a["id"]) for a in old])
+
+
 # --- The outside world (only on GitHub's runner) ------------------------------
 
 def _run(cmd: list[str]) -> str:
@@ -172,6 +208,12 @@ def release_assets() -> list[dict]:
     return rel.get("assets", [])
 
 
+def artifacts() -> list[dict]:
+    out = _run(["gh", "api", "--paginate", f"repos/{REPO}/actions/artifacts?name={ARTIFACT_NAME}&per_page=100",
+                "--jq", ".artifacts[]"])
+    return [json.loads(line) for line in out.splitlines() if line.strip()]
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--delete", action="store_true", help="delete; without it nothing is removed")
@@ -187,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
         steps.append(Step("r2", R2_PREFIX, "skip", "no R2 credentials in this run"))
     assets = release_assets()
     steps += [plan_asset(assets, want) for want in ASSETS]
+    art_step, art_ids = plan_artifacts(artifacts())
+    steps.append(art_step)
 
     mode = "DELETING" if args.delete else "DRY RUN (nothing is deleted)"
     print(f"Owner clean-up: {mode}")
@@ -209,6 +253,16 @@ def main(argv: list[str] | None = None) -> int:
                         "Objects": [{"Key": o["Key"]} for o in objects[i:i + 1000]], "Quiet": True})
             elif s.what == "asset":
                 _run(["gh", "release", "delete-asset", RELEASE_TAG, s.target, "--repo", REPO, "--yes"])
+            elif s.what == "artifact":
+                gone = 0
+                for art_id in art_ids:
+                    try:
+                        _run(["gh", "api", "-X", "DELETE", f"repos/{REPO}/actions/artifacts/{art_id}"])
+                        gone += 1
+                    except Exception as exc:   # noqa: BLE001 - count it, keep going
+                        print(f"::warning::artifact {art_id}: {exc}")
+                if gone != len(art_ids):
+                    raise RuntimeError(f"{len(art_ids) - gone} of {len(art_ids)} artifacts not deleted")
             print(f"deleted {s.what} {s.target}")
         except Exception as exc:          # one failure must not stop the rest; report it
             failed += 1
