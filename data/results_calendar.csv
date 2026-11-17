@@ -1,16 +1,4 @@
 symbol,date,purpose,results,detail,source
-ARFIN,2026-09-18,Dividend,0,"To consider, approve the declaration of Interim dividend for the current financial year ending on march 31, 2027",held
-AVANTEL,2026-09-18,Other business matters,0,"Notice of Board Meeting under Regulation 29 of the SEBI (Listing Obligations and Disclosure Requirements) Regulations, 2015",held
-BTML,2026-09-18,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
-HTEL,2026-09-18,Financial Results,1,"To consider and approve the financial results for the period ended Jun 30, 2026",held
-POWERGRID,2026-09-18,Fund Raising,0,"to consider issue of Unsecured, Non-Convertible, Non-Cumulative, Redeemable, Taxable Bonds as POWERGRID Bond - LXXXIV (84th) Issue under pri",held
-ROSSTECH,2026-09-18,Fund Raising,0,To consider and approve the proposal for issuance of equity shares by way of preferential allotment to certain investors,held
-SABEVENTS,2026-09-18,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
-SHAREINDIA,2026-09-18,Fund Raising,0,Share India Securities Limited has informed the Exchange that the meeting of the Board of Directors of the Company is scheduled to be held o,held
-SHREMINVIT,2026-09-18,Fund Raising,0,Intimation of the meeting of the Board of Directors of Shrem Infra Investment Manager Private Limited (acting in its capacity as Investment ,held
-SUPREMEENG,2026-09-18,Financial Results,1,"SUPREMEENG : 18-Sep-2026 : The Company has informed the Exchange that a Board meeting to be held on September 16, 2026 has been re-scheduled",held
-VEDL,2026-09-18,Fund Raising,0,"Intimation of Meeting of Committee of Directors proposed to be held on Friday, September 18, 2026 to consider the proposal for issuance of N",held
-VIPIND,2026-09-18,Fund Raising,0,To consider and evaluate the proposal for raising funds,held
 ANURAS,2026-09-19,Fund Raising,0,"Anupam Rasayan India Limited has informed the exchanges about Board Meeting to be held on Saturday, September 19, 2026, to inter alia, consi",held
 EMBDL,2026-09-19,Fund Raising,0,To consider Fund Raising by way of issuance of non-convertible debentures,held
 PNGJL,2026-09-19,Other business matters,0,To consider and approve the Employee Stock Option Plan,held
@@ -2648,20 +2636,22 @@ SMLMAH,2026-11-16,Other business matters,0,"SMLMAH : 16-Nov-2026 : The Company h
 TTL,2026-11-16,Buyback,0,"Intimation of Board Meeting proposed to be helad on 16th November, 2026 to consider the proposal of Buyback of the Equity Shares of the Comp",held
 ADROITINFO,2026-11-17,Other business matters,0,To consider other business matters,held
 LIBAS,2026-11-17,Financial Results/Other business matters,1,"LIBAS : 17-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 14, 2026 has been re-scheduled. Furt",held
-ANSALAPI,2026-11-18,Financial Results,1,"To consider and approve the unaudited financial results for the quarter ended Jun 30, 2026",calendar
-ARIHANTCAP,2026-11-18,Other business matters,0,To consider other business matters,calendar
-AYE,2026-11-18,Fund Raising,0,To consider Fund Raising through issuance of Non-convertible Debentures,calendar
-BLSPOLY,2026-11-18,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-BONLON,2026-11-18,Fund Raising,0,"Intimation of Rights Issue Committee Meeting Scheduled to be held on Wednesday, November 18, 2026 for deciding Issue Price and other terms o",calendar
-GVPTECH,2026-11-18,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+ANSALAPI,2026-11-18,Financial Results,1,"To consider and approve the unaudited financial results for the quarter ended Jun 30, 2026",held
+ARIHANTCAP,2026-11-18,Other business matters,0,To consider other business matters,held
+AYE,2026-11-18,Fund Raising,0,To consider Fund Raising through issuance of Non-convertible Debentures,held
+BLSPOLY,2026-11-18,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+BONLON,2026-11-18,Fund Raising,0,"Intimation of Rights Issue Committee Meeting Scheduled to be held on Wednesday, November 18, 2026 for deciding Issue Price and other terms o",held
+GVPTECH,2026-11-18,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 ANTGRAPHIC,2026-11-19,Financial Results,1,"ANTGRAPHIC : 19-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 12, 2026 has been re-scheduled.",calendar
 BETA,2026-11-19,Other business matters,0,To consider other business matters,calendar
 MUTHOOTMF,2026-11-19,Financial Results,1,"To consider and approve the audited financial results for the Half Year ended September 30, 2025 and September 30, 2026",calendar
+GVPTECH,2026-11-20,Financial Results,1,"GVPTECH : 20-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 18, 2026 has been re-scheduled. Fu",calendar
 INDIANB,2026-11-20,Fund Raising,0,To consider additional Capital Raising Plan of the Bank,calendar
 SUKHJITS,2026-11-20,Buyback,0,"Sukhjit Starch & Chemicals Ltd- has informed NSE that the meeting of the Board of Directors of the Company is scheduled on 20/11/2026, inter",calendar
 TTKHLTCARE,2026-11-20,Bonus/Other business matters,0,To consider bonus and other business matters,calendar
 VALECHAENG,2026-11-20,Financial Results,1,"VALECHAENG : 20-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 13, 2026 has been re-scheduled.",calendar
 BCSSL,2026-11-23,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+SETCO,2026-11-24,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
 BRNL,2026-11-28,Financial Results,1,"BRNL : 28-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 14, 2026 has been re-scheduled. Furth",calendar
 LATTEYS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 RNBDENIMS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
