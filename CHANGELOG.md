@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-17 — Two and a half hours of an error page
+
+- **From about 22:35 UTC on 16 Nov to 01:03 UTC on 17 Nov, every page showed an ImportError.** The update that fixed memory added a new function and imported it in the first lines of the app. Streamlit Cloud loads an update into the running app without restarting it, and at that point the old copy of the code, without the new function, was still loaded. Fixed: those first lines now cope with an older copy, and a test runs them against one. The live check after the update failed within a minute; it was not looked at until 00:58.
+
 ## 2026-11-16 — The app no longer grows between updates
 
 - **Memory still grew between updates: from about 185 MB to 1,594 MB in 24 hours on 15-16 Nov.** The cause was the system allocator. After the app freed a large table, it kept that memory instead of giving it back, once for each of Streamlit's worker threads. The app now tells the allocator to return large blocks at once. Measured on the live site's own price data, six rounds of Dashboard, Portfolio, Backtest and History in two sessions: memory went from 966 to 1,286 MB before the fix, and stayed between 756 and 802 MB after it, at the same speed.
