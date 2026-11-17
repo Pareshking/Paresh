@@ -58,7 +58,8 @@ _Current list (17 Nov 2026, `scripts/r2_retention.py`):_
   `ss_sync.yml`) keeps its newest 3 dates, no month-ends.
 - Protected but thinned (`PROTECTED_KEEP_NEWEST`), each copy being the whole
   table: `bse/daily` keeps its newest copy, `market_caps/nse_history` its newest
-  two plus the 2026-09-18 revision the R2 acceptance re-proves (`PINNED_DATES`).
+  two. (The 2026-09-18 revision was kept for the R2 acceptance until 17 Nov,
+  when that check moved to the newest revision.)
 - Protected, every date kept (`PROTECTED_SUPERSEDED_ONLY`): `snapshots/rankings`,
   `_nano` and `_combined` drop only superseded revisions within a date.
 - After a deletion the recovery audit re-reads every one of these

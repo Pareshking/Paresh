@@ -124,7 +124,8 @@ PROTECTED_DATASETS: tuple[str, ...] = (
 # scripts/bse_bhavcopy.py, so a bad newest copy is re-made, not restored).
 # Each market_caps/nse_history copy is the whole dated series rebuilt from
 # data/nse_market_caps.csv's git history (scripts/build_market_cap_history.py),
-# so it too only repeats the newest (owner, 17 Nov 2026: "newest 2").
+# so it too only repeats the newest (owner, 17 Nov 2026: "newest 2"). Nothing in
+# the app, the backtests or the ranking reads it from R2.
 PROTECTED_KEEP_NEWEST: dict[str, tuple[str, int]] = {
     "bse/daily": ("archive/bse/daily", 1),
     "market_caps/nse_history": ("archive/market_caps/nse_history", 2),
@@ -132,11 +133,10 @@ PROTECTED_KEEP_NEWEST: dict[str, tuple[str, int]] = {
 MIN_PROTECTED_COPIES = 1
 
 # Dates kept whatever the rule says: a revision something still re-proves.
-# r2_final_acceptance.yml's default research pin is market_caps/nse_history
-# 2026-09-18 revision f01555ee..., the evidence the R2 acceptance closed on.
-PINNED_DATES: dict[str, frozenset[str]] = {
-    "market_caps/nse_history": frozenset({"2026-09-18"}),
-}
+# None now. market_caps/nse_history 2026-09-18 was kept for r2_final_acceptance.yml
+# until 17 Nov 2026, when that check moved to the newest revision (owner: "it must
+# go and use latest one"). Nothing else reads the dataset from R2.
+PINNED_DATES: dict[str, frozenset[str]] = {}
 
 # Protected datasets that keep EVERY date but drop the superseded revisions
 # within a date (the same rule as a kept date above: the pointer's revision and
