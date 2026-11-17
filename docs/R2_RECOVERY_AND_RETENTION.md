@@ -52,9 +52,17 @@ release also carries `ref_nse_action_list_api_2008_2026.zip`,
 `ref_long_price_audit_2026-10-03.zip` and `ref_marketlens_sectors.csv`.
 Published by hand with `r2_publish_release_asset.yml`.
 
-_Current list (2026-10-02, `RETAINED_DATASETS` in `scripts/r2_retention.py`):_
-`prices/screener` and `prices/ss` (the SS store, one whole-history file
-published each weeknight by `ss_sync.yml`) keep 7 dates plus month-ends.
+_Current list (17 Nov 2026, `scripts/r2_retention.py`):_
+- `prices/screener` keeps 7 dates plus month-ends.
+- `prices/ss` (the SS store, one whole-history file published each weeknight by
+  `ss_sync.yml`) keeps its newest 3 dates, no month-ends.
+- Protected but thinned (`PROTECTED_KEEP_NEWEST`), each copy being the whole
+  table: `bse/daily` keeps its newest copy, `market_caps/nse_history` its newest
+  two plus the 2026-09-18 revision the R2 acceptance re-proves (`PINNED_DATES`).
+- Protected, every date kept (`PROTECTED_SUPERSEDED_ONLY`): `snapshots/rankings`,
+  `_nano` and `_combined` drop only superseded revisions within a date.
+- After a deletion the recovery audit re-reads every one of these
+  (`deleted_from()`), not only `RETAINED_DATASETS` as before 17 Nov.
 `prices/yahoo*`, `app/prices_*` and `snapshots/application` are retired and
 deleted whole. The NSE datasets (`nse/prices_daily` back to 2010,
 `nse/corporate_actions`, `nse/corporate_actions_history`, `nse/closed_days`,

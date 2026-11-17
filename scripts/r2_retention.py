@@ -69,16 +69,16 @@ RETAINED_DATASETS: dict[str, str] = {
 }
 
 # Retained datasets that keep fewer daily copies than KEEP_DAILY (month-ends are
-# still kept). prices/ss (owner, 15 Nov 2026: clear what is not required): each
+# still kept). None now: prices/ss moved to KEEP_LATEST_ONLY below.
+RETAINED_KEEP_DAILY: dict[str, int] = {}
+
+# Datasets that keep only their newest N dates, no month-ends. prices/ss: each
 # copy is the whole SS history (~37 MB); nothing reads it from R2 -- ss_sync
 # restores from the release's ss_* files and stops rather than fall back -- so
-# R2 holds it only as a rollback. Three dailies plus every month-end keep that
-# (11 copies, 405 MB, on 15 Nov; about 4 after the next prune).
-RETAINED_KEEP_DAILY: dict[str, int] = {"prices/ss": 3}
-
-# Datasets that keep only their newest N dates, no month-ends. None now: the
-# app's Yahoo snapshots were retired below.
-KEEP_LATEST_ONLY: dict[str, int] = {}
+# R2 holds it only as a rollback, and the newest three are that rollback
+# (owner, 15 Nov 2026: three dailies; 17 Nov 2026, S141: no month-ends either,
+# which grew it by ~445 MB a year).
+KEEP_LATEST_ONLY: dict[str, int] = {"prices/ss": 3}
 
 # dataset -> key root, deleted whole. Neither root is a prefix of another
 # dataset's (the trailing "/" is part of every match below).
@@ -119,11 +119,35 @@ PROTECTED_DATASETS: tuple[str, ...] = (
 # Protected datasets the owner allowed to be thinned to their newest copies,
 # never retired and never below MIN_PROTECTED_COPIES. Each bse/daily copy is
 # the whole table (2008 to that day, ~330 MB, one a month), so an older copy
-# only repeats the newest (owner, 13 Oct 2026, TODO S52: "keep the newest two").
+# only repeats the newest (owner, 13 Oct 2026, TODO S52: "keep the newest two";
+# 17 Nov 2026, S141: one -- the table is rebuilt from BSE's own bhavcopies by
+# scripts/bse_bhavcopy.py, so a bad newest copy is re-made, not restored).
+# Each market_caps/nse_history copy is the whole dated series rebuilt from
+# data/nse_market_caps.csv's git history (scripts/build_market_cap_history.py),
+# so it too only repeats the newest (owner, 17 Nov 2026: "newest 2").
 PROTECTED_KEEP_NEWEST: dict[str, tuple[str, int]] = {
-    "bse/daily": ("archive/bse/daily", 2),
+    "bse/daily": ("archive/bse/daily", 1),
+    "market_caps/nse_history": ("archive/market_caps/nse_history", 2),
 }
-MIN_PROTECTED_COPIES = 2
+MIN_PROTECTED_COPIES = 1
+
+# Dates kept whatever the rule says: a revision something still re-proves.
+# r2_final_acceptance.yml's default research pin is market_caps/nse_history
+# 2026-09-18 revision f01555ee..., the evidence the R2 acceptance closed on.
+PINNED_DATES: dict[str, frozenset[str]] = {
+    "market_caps/nse_history": frozenset({"2026-09-18"}),
+}
+
+# Protected datasets that keep EVERY date but drop the superseded revisions
+# within a date (the same rule as a kept date above: the pointer's revision and
+# the newest created_at stay). A ranking date is re-published when the nightly
+# job re-runs; the app reads the newest revision only (src/loaders/app_source.py)
+# and nothing pins an older one (owner, 17 Nov 2026, S141: "newest per date").
+PROTECTED_SUPERSEDED_ONLY: dict[str, str] = {
+    "snapshots/rankings": "snapshots/rankings",
+    "snapshots/rankings_nano": "snapshots/rankings_nano",
+    "snapshots/rankings_combined": "snapshots/rankings_combined",
+}
 
 # A scheduled run deletes at most this many keys; a larger plan waits for a
 # person to dispatch it with the count (owner, 2026-10-07). The weekly prune
@@ -145,6 +169,8 @@ def check_protected(datasets: dict[str, str], retired: dict[str, str],
     copies: its newest N, N at least MIN_PROTECTED_COPIES, are always kept.
     """
     for ds, (_root, n) in (thinned or {}).items():
+        if not _protected(ds):
+            raise ValueError(f"{ds} is not protected; thin it with KEEP_LATEST_ONLY instead")
         if n < MIN_PROTECTED_COPIES:
             raise ValueError(f"{ds} would keep {n} copies; a protected dataset keeps at least "
                              f"{MIN_PROTECTED_COPIES}")
@@ -203,7 +229,8 @@ def keep_dates(as_of_dates: list[str], keep_daily: int = KEEP_DAILY,
 
 
 def plan_dataset(archive: R2Archive, dataset: str, root: str,
-                 sizes: dict[str, int], keep_latest: int | None = None) -> DatasetPlan:
+                 sizes: dict[str, int], keep_latest: int | None = None,
+                 keep_all: bool = False) -> DatasetPlan:
     prefix = f"archive/manifests/{dataset}/"
     pointers: dict[str, str] = {}
     manifests: dict[str, list[str]] = {}
@@ -218,12 +245,15 @@ def plan_dataset(archive: R2Archive, dataset: str, root: str,
             pointers[as_of] = key
 
     dates = sorted(set(pointers) | set(manifests))
-    if keep_latest is not None:
+    if keep_all:
+        keep = set(dates)
+    elif keep_latest is not None:
         keep = keep_dates(dates, keep_latest, month_ends=False)
     elif dataset in KEEP_LATEST_ONLY:
         keep = keep_dates(dates, KEEP_LATEST_ONLY[dataset], month_ends=False)
     else:
         keep = keep_dates(dates, RETAINED_KEEP_DAILY.get(dataset, KEEP_DAILY))
+    keep |= PINNED_DATES.get(dataset, frozenset()) & set(dates)
     drop = [d for d in dates if d not in keep]
     plan = DatasetPlan(dataset, dates, sorted(keep), drop)
 
@@ -347,15 +377,26 @@ def plan_retired(archive: R2Archive, dataset: str, root: str,
     return plan
 
 
+def deleted_from() -> tuple[str, ...]:
+    """Every dataset that keeps some of its keys after a run: what the audit re-reads."""
+    return tuple(RETAINED_DATASETS) + tuple(PROTECTED_KEEP_NEWEST) + tuple(PROTECTED_SUPERSEDED_ONLY)
+
+
 def make_plan(archive: R2Archive,
               datasets: dict[str, str] = RETAINED_DATASETS,
               retired: dict[str, str] = RETIRED_DATASETS,
-              thinned: dict[str, tuple[str, int]] | None = None) -> list[DatasetPlan]:
+              thinned: dict[str, tuple[str, int]] | None = None,
+              superseded_only: dict[str, str] | None = None) -> list[DatasetPlan]:
     thinned = PROTECTED_KEEP_NEWEST if thinned is None else thinned
+    superseded_only = PROTECTED_SUPERSEDED_ONLY if superseded_only is None else superseded_only
     check_protected(datasets, retired, thinned)
+    for ds in superseded_only:
+        if not _protected(ds) or ds in thinned or ds in datasets or ds in retired:
+            raise ValueError(f"{ds}: PROTECTED_SUPERSEDED_ONLY is for protected datasets in no other table")
     sizes = dict(archive.list_objects(""))
     return ([plan_dataset(archive, ds, root, sizes) for ds, root in datasets.items()]
             + [plan_dataset(archive, ds, root, sizes, keep_latest=n) for ds, (root, n) in thinned.items()]
+            + [plan_dataset(archive, ds, root, sizes, keep_all=True) for ds, root in superseded_only.items()]
             + [plan_retired(archive, ds, root, sizes, retired) for ds, root in retired.items()])
 
 
