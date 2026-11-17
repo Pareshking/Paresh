@@ -132,6 +132,27 @@ jobs:
             data_cache/nse_long/nse_raw_pack.parquet \
             data_cache/nse_long/nse_actions_pack.parquet \
             --repo "$GITHUB_REPOSITORY" --clobber
+      # The same three files to R2 (S142, owner 17 Nov 2026: "Yes weekly"), which
+      # src/loaders/nse_long.py reads first. Value and report go first and the
+      # closes last: the app resolves the closes' current build and takes the
+      # other two at that same as_of, so it never sees a new closes file before
+      # its partners exist. Retention keeps the newest two (r2_retention.py).
+      - name: Publish to R2
+        env:
+          PIPELINE: r2-nse-long-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python -c "from src.loaders.nse_long import report_to_parquet as r; r('data_cache/nse_long/nse_long_report.json', 'data_cache/nse_long/nse_long_report.parquet')"
+          for kind in value report close; do
+            python scripts/r2_publish.py \
+              --path "data_cache/nse_long/nse_long_${kind}.parquet" \
+              --dataset "prices/nse_long_${kind}" \
+              --source nse_long_build \
+              --key-root "archive/prices/nse_long_${kind}" \
+              --pipeline-version "$PIPELINE" \
+              --release-tag data-latest \
+              --skip-if-published
+          done
       # The audits (docs/PRICE_PIPELINE.md, "Audit"): the new file against every
       # reference on the release, against Screener point by point, and NSE's raw
       # rows' own arithmetic, dividends, ISINs and calendar. They run here, after

@@ -66,6 +66,12 @@ RETAINED_DATASETS: dict[str, str] = {
     "prices/screener": "archive/prices/screener",
     # The SS store (ss_sync.yml), whole history in one file each run (weekly, Fridays).
     "prices/ss": "archive/prices/ss",
+    # The 2010+ backtest's long NSE file (nse_long_prices.yml, Saturdays), each
+    # copy the whole history from 2008 (~18 + 24 MB): the newest two are kept
+    # (KEEP_LATEST_ONLY), one to read and one to fall back to.
+    "prices/nse_long_close": "archive/prices/nse_long_close",
+    "prices/nse_long_value": "archive/prices/nse_long_value",
+    "prices/nse_long_report": "archive/prices/nse_long_report",
 }
 
 # Retained datasets that keep fewer daily copies than KEEP_DAILY (month-ends are
@@ -78,7 +84,12 @@ RETAINED_KEEP_DAILY: dict[str, int] = {}
 # R2 holds it only as a rollback, and the newest three are that rollback
 # (owner, 15 Nov 2026: three dailies; 17 Nov 2026, S141: no month-ends either,
 # which grew it by ~445 MB a year).
-KEEP_LATEST_ONLY: dict[str, int] = {"prices/ss": 3}
+KEEP_LATEST_ONLY: dict[str, int] = {
+    "prices/ss": 3,
+    "prices/nse_long_close": 2,
+    "prices/nse_long_value": 2,
+    "prices/nse_long_report": 2,
+}
 
 # dataset -> key root, deleted whole. Neither root is a prefix of another
 # dataset's (the trailing "/" is part of every match below).
