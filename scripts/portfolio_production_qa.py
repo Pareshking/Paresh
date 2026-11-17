@@ -53,11 +53,14 @@ def wait_ready(page):
 
 
 # The Equity card's month tiles ("<Mon> strategy / Nifty 500 / alpha"): the
-# last text on the page to render.
-MONTH_TILE = re.compile(r"\b[a-z]{3} alpha\b")
+# last text on the page to render. All three: run 44116558226 (17 Nov 2026)
+# matched "alpha" on a page still at 2,303 of ~3,166 characters, its
+# "strategy" and "Nifty 500" tiles not yet drawn.
+MONTH_TILE = re.compile(
+    r"(?=.*\b[a-z]{3} strategy\b)(?=.*\b[a-z]{3} nifty 500\b)(?=.*\b[a-z]{3} alpha\b)", re.S)
 
 
-def settle_view(page, marker: str, timeout_s: int = 45, also=None) -> str:
+def settle_view(page, marker: str, timeout_s: int = 90, also=None) -> str:
     """Page text once a clicked history view has rendered, not a fixed 0.7s later.
 
     Choosing Equity or Monthly reruns the page on the server; a cold production
@@ -71,7 +74,9 @@ def settle_view(page, marker: str, timeout_s: int = 45, also=None) -> str:
     is a card heading, which renders before the cards' contents. Run
     44114529502 (17 Nov 2026) read the desktop page at 1,570 characters, the
     headings present and the Equity tiles not yet drawn; passing runs read
-    ~3,166. The phone, a few seconds later, passed.
+    ~3,166. The phone, a few seconds later, passed. The push-triggered run
+    comes straight after a pull, when the app rebuilds every cache, so the
+    page can take over a minute: 90 s, not 45.
     """
     deadline = time.perf_counter() + timeout_s
     text = ""

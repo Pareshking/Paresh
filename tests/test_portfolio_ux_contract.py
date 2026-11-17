@@ -290,7 +290,8 @@ def test_production_qa_waits_for_the_month_tiles_not_only_the_headings(monkeypat
     pqa = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pqa)
     reads = iter(["Equity & drawdown  Calendar returns",
-                  "Equity & drawdown  Calendar returns",
+                  # Run 44116558226: "alpha" drawn, the other two tiles not yet.
+                  "Equity & drawdown  Nov alpha -1.0%  Calendar returns",
                   "Equity & drawdown  Nov strategy +7.4%  Nov Nifty 500 +8.4%  Nov alpha -1.0%  Calendar returns"])
 
     class Loc:
@@ -310,4 +311,4 @@ def test_production_qa_waits_for_the_month_tiles_not_only_the_headings(monkeypat
     monkeypatch.setattr(pqa, "app_frame", lambda page: Frame())
     monkeypatch.setattr(pqa.time, "sleep", lambda s: None)
     text = pqa.settle_view(object(), "calendar returns", also=pqa.MONTH_TILE)
-    assert "Nov alpha" in text
+    assert "Nov strategy" in text and "Nov Nifty 500" in text
