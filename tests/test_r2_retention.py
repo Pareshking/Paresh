@@ -77,15 +77,20 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
     assert set(yahoo.drop) == dropped
     # pointer + manifest + payload per dropped date
     assert len(yahoo.delete_keys) == 3 * len(dropped)
-    assert set(plans) == {"prices/screener", "prices/ss", "bse/daily", "snapshots/application", "prices/yahoo/bootstrap",
+    assert set(plans) == {"prices/screener", "prices/ss", "bse/daily", "market_caps/nse_history",
+                          "snapshots/rankings", "snapshots/rankings_nano", "snapshots/rankings_combined",
+                          "snapshots/application", "prices/yahoo/bootstrap",
                           "prices/yahoo", "prices/yahoo/raw", "app/prices_snapshot",
                           "app/prices_extra"}
+    # market_caps/nse_history: the newest two, plus the acceptance pin.
+    assert set(plans["market_caps/nse_history"].keep) == set(SEP[-2:]) | {"2026-09-18"}
     # Every Yahoo dataset goes whole, each key planned once.
     assert set(plans["prices/yahoo"].drop) == set(AUG + SEP)
     every = [k for p in plans.values() for k in p.delete_keys]
     assert len(every) == len(set(every))
-    assert not [k for k in every
-                if "screener/bootstrap" in k or "market_caps" in k]
+    assert not [k for k in every if "screener/bootstrap" in k]
+    assert not [k for k in every if "market_caps" in k
+                and any(d in k for d in (*SEP[-2:], "2026-09-18"))]
     # Pointers go first, payloads last.
     assert yahoo.delete_keys[0].endswith("/current.json")
     assert not yahoo.delete_keys[-1].startswith("archive/manifests/")
@@ -345,40 +350,68 @@ def test_a_large_plan_is_not_applied_by_a_capped_run(monkeypatch):
     assert len(a.deleted) == count
 
 
-def test_bse_daily_keeps_its_newest_two_monthly_copies_and_nothing_else_of_it_goes():
-    # Owner, 13 Oct 2026 (S52): each copy is the whole table; keep the newest two.
+def test_bse_daily_keeps_only_its_newest_monthly_copy():
+    # Owner, 13 Oct 2026 (S52): newest two; 17 Nov 2026 (S141): newest one. Each
+    # copy is the whole table, rebuilt from BSE's bhavcopies if the newest is bad.
     a = FakeArchive()
     months = ["2026-11-02", "2026-12-01", "2027-01-04"]
     for i, d in enumerate(months):
         publish(a, "bse/daily", "archive/bse/daily", d, 9000 + i)
-    plans = {p.dataset: p for p in rr.make_plan(a)}
-    plan = plans["bse/daily"]
-    assert plan.keep == months[1:] and plan.drop == months[:1]
-    assert plan.delete_keys and all("2026-11-02" in k for k in plan.delete_keys)
-    # With one or two copies (today, and in November) nothing is deleted.
+    plan = {p.dataset: p for p in rr.make_plan(a)}["bse/daily"]
+    assert plan.keep == months[-1:] and plan.drop == months[:-1]
+    assert plan.delete_keys and not [k for k in plan.delete_keys if "2027-01-04" in k]
+    # With one copy nothing is deleted.
     b = FakeArchive()
-    for i, d in enumerate(months[:2]):
-        publish(b, "bse/daily", "archive/bse/daily", d, 9100 + i)
+    publish(b, "bse/daily", "archive/bse/daily", months[0], 9100)
     assert not {p.dataset: p for p in rr.make_plan(b)}["bse/daily"].delete_keys
 
 
-def test_a_protected_dataset_is_never_thinned_below_two_copies_or_also_pruned():
+def test_a_protected_dataset_is_never_emptied_or_also_pruned():
     import pytest
 
     with pytest.raises(ValueError, match="at least"):
-        rr.check_protected({}, {}, {"bse/daily": ("archive/bse/daily", 1)})
+        rr.check_protected({}, {}, {"bse/daily": ("archive/bse/daily", 0)})
     with pytest.raises(ValueError, match="thinned"):
         rr.check_protected({}, {"bse/daily": "archive/bse/daily"}, {"bse/daily": ("archive/bse/daily", 2)})
     with pytest.raises(ValueError, match="protected"):
         rr.check_protected({"bse/daily": "archive/bse/daily"}, {})
+    with pytest.raises(ValueError, match="not protected"):
+        rr.check_protected({}, {}, {"prices/screener": ("archive/prices/screener", 2)})
+    with pytest.raises(ValueError, match="SUPERSEDED_ONLY"):
+        rr.make_plan(FakeArchive(), superseded_only={"prices/screener": "archive/prices/screener"})
 
 
-def test_prices_ss_keeps_three_dailies_and_every_month_end():
-    # Owner, 15 Nov 2026: clear what is not required. Nothing reads prices/ss
-    # from R2 (ss_sync restores from the release), so it keeps 3 dailies, not 7.
+def test_prices_ss_keeps_its_newest_three_and_no_month_ends():
+    # Owner, 15 Nov 2026: three dailies; 17 Nov 2026 (S141): no month-ends.
+    # Nothing reads prices/ss from R2 (ss_sync restores from the release).
     a = FakeArchive()
     for i, d in enumerate(AUG + SEP):
         publish(a, "prices/ss", "archive/prices/ss", d, 3000 + i, size=1000)
     plans = {p.dataset: p for p in rr.make_plan(a)}
-    assert set(plans["prices/ss"].keep) == {"2026-08-31"} | set(SEP[-3:])
-    assert rr.RETAINED_KEEP_DAILY == {"prices/ss": 3}
+    assert set(plans["prices/ss"].keep) == set(SEP[-3:])
+    assert rr.KEEP_LATEST_ONLY == {"prices/ss": 3}
+
+
+def test_rankings_keep_every_date_and_only_the_newest_revision_of_each():
+    # Owner, 17 Nov 2026 (S141): "newest per date". A re-run republishes a date.
+    a = FakeArchive()
+    for i, d in enumerate(SEP):
+        publish(a, "snapshots/rankings", "snapshots/rankings", d, 4000 + i,
+                created_at="2026-09-25T09:00:00+00:00")
+    old = publish(a, "snapshots/rankings", "snapshots/rankings", SEP[3], 4900,
+                  created_at="2026-09-25T08:00:00+00:00", move_pointer=False)
+    newer = publish(a, "snapshots/rankings", "snapshots/rankings", SEP[5], 4901,
+                    created_at="2026-09-25T11:00:00+00:00")
+    plan = {p.dataset: p for p in rr.make_plan(a)}["snapshots/rankings"]
+    assert plan.keep == SEP and plan.drop == []
+    assert old in plan.delete_keys and newer not in plan.delete_keys
+    # The superseded revision on SEP[5] (pointer moved to `newer`) goes too.
+    assert any(SEP[5] in k and SHA.format(4005) in k for k in plan.delete_keys)
+    assert not [k for k in plan.delete_keys if k.endswith("/current.json")]
+
+
+def test_the_post_retention_audit_covers_every_dataset_that_keeps_some_keys():
+    covered = set(rr.deleted_from())
+    assert {"prices/screener", "prices/ss", "bse/daily", "market_caps/nse_history",
+            "snapshots/rankings"} <= covered
+    assert not covered & set(rr.RETIRED_DATASETS)

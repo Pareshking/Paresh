@@ -156,8 +156,8 @@ def main() -> int:
     args = parser.parse_args()
     datasets = tuple(args.dataset) if args.dataset else None
     if args.retention_scope:
-        from scripts.r2_retention import RETAINED_DATASETS
-        datasets = tuple(RETAINED_DATASETS) + (datasets or ())
+        from scripts.r2_retention import deleted_from
+        datasets = deleted_from() + (datasets or ())
     result = audit_recovery(R2Archive(R2Config.from_env()), datasets,
                             full_days=None if args.full else FULL_READ_DAYS)
     if args.json:
