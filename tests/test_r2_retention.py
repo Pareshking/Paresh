@@ -78,6 +78,7 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
     # pointer + manifest + payload per dropped date
     assert len(yahoo.delete_keys) == 3 * len(dropped)
     assert set(plans) == {"prices/screener", "prices/ss", "bse/daily", "market_caps/nse_history",
+                          "prices/nse_long_close", "prices/nse_long_value", "prices/nse_long_report",
                           "snapshots/rankings", "snapshots/rankings_nano", "snapshots/rankings_combined",
                           "snapshots/application", "prices/yahoo/bootstrap",
                           "prices/yahoo", "prices/yahoo/raw", "app/prices_snapshot",
@@ -388,7 +389,7 @@ def test_prices_ss_keeps_its_newest_three_and_no_month_ends():
         publish(a, "prices/ss", "archive/prices/ss", d, 3000 + i, size=1000)
     plans = {p.dataset: p for p in rr.make_plan(a)}
     assert set(plans["prices/ss"].keep) == set(SEP[-3:])
-    assert rr.KEEP_LATEST_ONLY == {"prices/ss": 3}
+    assert rr.KEEP_LATEST_ONLY["prices/ss"] == 3
 
 
 def test_rankings_keep_every_date_and_only_the_newest_revision_of_each():
@@ -423,3 +424,17 @@ def test_a_pinned_date_survives_thinning(monkeypatch):
         publish(a, "market_caps/nse_history", "archive/market_caps/nse_history", d, 7000 + i)
     plan = {p.dataset: p for p in rr.make_plan(a)}["market_caps/nse_history"]
     assert set(plan.keep) == {SEP[0], *SEP[-2:]}
+
+
+def test_the_long_nse_file_keeps_its_newest_two_builds_and_nothing_else_of_it():
+    # Owner, 17 Nov 2026 ("Yes weekly"): published to R2 each Saturday.
+    a = FakeArchive()
+    weeks = ["2026-10-30", "2026-11-06", "2026-11-13"]
+    for i, d in enumerate(weeks):
+        for k, kind in enumerate(("close", "value", "report")):
+            publish(a, f"prices/nse_long_{kind}", f"archive/prices/nse_long_{kind}", d, 8000 + 10 * i + k)
+    plans = {p.dataset: p for p in rr.make_plan(a)}
+    for kind in ("close", "value", "report"):
+        plan = plans[f"prices/nse_long_{kind}"]
+        assert plan.keep == weeks[1:] and plan.drop == weeks[:1]
+    assert set(rr.deleted_from()) >= {"prices/nse_long_close", "prices/nse_long_value", "prices/nse_long_report"}

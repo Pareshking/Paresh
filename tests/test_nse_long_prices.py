@@ -186,3 +186,94 @@ def test_the_historical_industries_use_nse_sector_names_and_fill_the_gaps():
     past = dict(zip(frame["NSE_SYMBOL"], frame["SECTOR"]))
     left = [s for s in syms if known.get(s, "Other") == "Other" and s not in past]
     assert len(left) <= 5, left
+
+
+# --- R2 first, the release as fallback (S142, owner 17 Nov 2026: "Yes weekly") ---
+
+class _Ref:
+    def __init__(self, dataset, as_of):
+        self.dataset, self.as_of = dataset, as_of
+
+
+def _fake_r2(monkeypatch, objects, calls):
+    """objects: {(dataset, as_of): bytes}; the newest as_of is current."""
+    from r2.consumers import r2_streamlit
+    from src.storage import r2 as r2mod
+    from src.storage import reader as readmod
+
+    class Reader:
+        def __init__(self, _archive):
+            pass
+
+        def resolve_current(self, dataset, as_of=None):
+            calls.append((dataset, as_of))
+            dates = sorted(d for (ds, d) in objects if ds == dataset)
+            if as_of is None:
+                if not dates:
+                    raise FileNotFoundError(dataset)
+                as_of = dates[-1]
+            if (dataset, as_of) not in objects:
+                raise FileNotFoundError(f"{dataset} {as_of}")
+            return _Ref(dataset, as_of)
+
+        def read_bytes(self, ref):
+            return objects[(ref.dataset, ref.as_of)]
+
+    monkeypatch.setattr(r2_streamlit, "enabled", lambda: True)
+    monkeypatch.setattr(readmod, "R2DatasetReader", Reader)
+    monkeypatch.setattr(r2mod, "R2Archive", lambda cfg: None)
+    monkeypatch.setattr(r2mod.R2Config, "from_env", classmethod(lambda cls: None))
+
+
+def _build_bytes(tmp_path, nse_long):
+    close, value, _ = long.build(_prices(), SPLIT, {"renames": RENAMES}, RENAMES, ["AAA", "NEWX"])
+    close.to_parquet(tmp_path / "c.parquet")
+    value.to_parquet(tmp_path / "v.parquet")
+    (tmp_path / "r.json").write_text('{"sessions": %d, "last_session": "2026-11-13"}' % len(close))
+    nse_long.report_to_parquet(tmp_path / "r.json", tmp_path / "r.parquet")
+    return close, {name: (tmp_path / f).read_bytes() for name, f in
+                   ((nse_long.CLOSE_FILE, "c.parquet"), (nse_long.VALUE_FILE, "v.parquet"),
+                    (nse_long.REPORT_FILE, "r.parquet"))}
+
+
+def test_the_loader_reads_r2_first_and_pins_every_file_to_the_closes_build(tmp_path, monkeypatch):
+    from src.loaders import nse_long
+
+    close, files = _build_bytes(tmp_path, nse_long)
+    ds = nse_long.R2_DATASETS
+    objects = {(ds[n], "2026-11-13"): b for n, b in files.items()}
+    # A newer value file than the closes' build must NOT be picked up with them.
+    objects[(ds[nse_long.VALUE_FILE], "2026-11-20")] = b"not this one"
+    calls = []
+    _fake_r2(monkeypatch, objects, calls)
+    cache = tmp_path / "cache"
+    out = nse_long.load(base="http://127.0.0.1:9/unreachable", cache=cache)
+    assert out is not None
+    c, v, r = out
+    assert c.shape == close.shape and v is not None
+    assert r == {"sessions": len(close), "last_session": "2026-11-13"}
+    assert (ds[nse_long.CLOSE_FILE], None) in calls
+    assert (ds[nse_long.VALUE_FILE], "2026-11-13") in calls
+    assert (ds[nse_long.REPORT_FILE], "2026-11-13") in calls
+
+
+def test_the_loader_falls_back_to_the_release_when_r2_cannot_serve(tmp_path, monkeypatch):
+    from src.loaders import nse_long
+
+    calls = []
+    _fake_r2(monkeypatch, {}, calls)          # R2 on, but nothing published yet
+    assert nse_long.load(base="http://127.0.0.1:9/unreachable", cache=tmp_path) is None
+    assert calls, "R2 was not asked"
+
+
+def test_the_report_round_trips_through_its_parquet(tmp_path):
+    from src.loaders import nse_long
+
+    text = '{"built": "2026-11-14", "last_session": "2026-11-13", "unpriced": ["X"]}'
+    (tmp_path / "r.json").write_text(text)
+    out = nse_long.report_to_parquet(tmp_path / "r.json", tmp_path / "r.parquet")
+    assert pd.read_parquet(out)["as_of"].tolist() == ["2026-11-13"]
+    assert nse_long._report_text(out.read_bytes()).decode() == text
+    (tmp_path / "bad.json").write_text("{}")
+    with pytest.raises(ValueError):
+        nse_long.report_to_parquet(tmp_path / "bad.json", tmp_path / "bad.parquet")
