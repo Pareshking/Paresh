@@ -29,7 +29,7 @@ from src.loaders.nse_backfill import CM_URL  # noqa: E402
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
-    "Referer": "https://www.nseindia.com/",
+    "Referer": "https://www.nseindia.in/",   # the archive ignores it: .com, .in and none all served cm31DEC2009 (18 Nov 2026)
     "Accept": "*/*",
 }
 

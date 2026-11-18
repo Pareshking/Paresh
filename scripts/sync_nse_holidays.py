@@ -36,11 +36,15 @@ import io
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # src/ (nse_web), however the script is started
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "reference" / "nse" / "holidays.csv"
-HOME = "https://www.nseindia.com/resources/exchange-communication-holidays"
-API = "https://www.nseindia.com/api/holiday-master"
+# On www.nseindia.in, with .com as a fallback (src/core/nse_web.py, 18 Nov 2026).
+HOME_PATH = "/resources/exchange-communication-holidays"
+API_PATH = "/api/holiday-master"
+HOME = "https://www.nseindia.in" + HOME_PATH
+API = "https://www.nseindia.in" + API_PATH
 COLUMNS = ["date", "description", "special_session", "source"]
 MIN_PER_YEAR = 10            # NSE lists 14-20 trading holidays a year
 NEXT_YEAR_FROM = (12, 15)    # from this day on, next year's list is expected
@@ -118,13 +122,9 @@ def write(rows: list[dict], path: Path = OUT) -> None:
 
 
 def fetch() -> dict:
-    import requests
+    from src.core import nse_web
 
-    s = requests.Session()
-    s.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
-                      "Accept": "application/json", "Referer": HOME})
-    s.get(HOME, timeout=30)                       # the cookies NSE's api/ needs
-    r = s.get(API, params={"type": "trading"}, timeout=60)
+    r, _ = nse_web.get(API_PATH, page=HOME_PATH, params={"type": "trading"})
     r.raise_for_status()
     return r.json()
 

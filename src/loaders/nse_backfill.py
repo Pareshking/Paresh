@@ -38,13 +38,11 @@ _MIRROR_NAME = re.compile(r"sec_bhavdata_full_(\d{2})(\d{2})(\d{4})\.csv$")
 _CM_NAME = re.compile(r"cm(\d{2}[A-Z]{3}\d{4})bhav\.csv$")
 CM_URL = "https://nsearchives.nseindia.com/content/historical/EQUITIES/{yyyy}/{MON}/cm{DDMONYYYY}bhav.csv.zip"
 
-API_URL = "https://www.nseindia.com/api/corporates-corporateActions"
+# On www.nseindia.in, with .com as a fallback (src/core/nse_web.py, 18 Nov 2026).
+API_PATH = "/api/corporates-corporateActions"
+API_PAGE = "/companies-listing/corporate-filings-actions"
+API_URL = "https://www.nseindia.in" + API_PATH
 API_INDICES = ("equities", "sme")
-API_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
-    "Referer": "https://www.nseindia.com/companies-listing/corporate-filings-actions",
-}
 API_DELAY_S = 3.0
 
 
@@ -181,14 +179,16 @@ def api_actions(rows: list[dict]) -> pd.DataFrame:
 def fetch_actions_year(year: int, session: requests.Session | None = None,
                        sleep=time.sleep) -> pd.DataFrame:
     """Every equity and SME corporate action with an ex-date in `year`."""
-    session = session or requests.Session()
-    session.headers.update(API_HEADERS)
+    from src.core import nse_web
+
+    factory = (lambda: session) if session is not None else requests.Session
     rows: list[dict] = []
     for i, index in enumerate(API_INDICES):
         if i:
             sleep(API_DELAY_S)
-        r = session.get(API_URL, params={"index": index, "from_date": f"01-01-{year}",
-                                         "to_date": f"31-12-{year}"}, timeout=60)
+        r, _ = nse_web.get(API_PATH, page=API_PAGE, factory=factory,
+                           params={"index": index, "from_date": f"01-01-{year}",
+                                   "to_date": f"31-12-{year}"})
         if r.status_code in (401, 403, 429):
             raise nb.NSEBlocked(f"HTTP {r.status_code}")
         r.raise_for_status()

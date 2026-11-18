@@ -40,13 +40,19 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # src/ (nse_web), however the script is started
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "results_calendar.csv"
 META = ROOT / "data" / "results_calendar_meta.json"
-HOME = "https://www.nseindia.com/companies-listing/corporate-filings-event-calendar"
-CALENDAR = "https://www.nseindia.com/api/event-calendar"
-HELD = "https://www.nseindia.com/api/corporate-board-meetings"
+# On www.nseindia.in, with .com as a fallback (src/core/nse_web.py, 18 Nov 2026):
+# session() picks the host whose page answers, and every call below uses it.
+HOME_PATH = "/companies-listing/corporate-filings-event-calendar"
+CALENDAR_PATH = "/api/event-calendar"
+HELD_PATH = "/api/corporate-board-meetings"
+HOME = "https://www.nseindia.in" + HOME_PATH
+CALENDAR = "https://www.nseindia.in" + CALENDAR_PATH
+HELD = "https://www.nseindia.in" + HELD_PATH
 PAST_DAYS = 60
 MIN_HELD = 100            # meetings held in 60 days: thousands in a season, hundreds at the quietest
 MAX_LOST = 25             # meetings the last file knew that may vanish (cancelled, or moved past
@@ -61,11 +67,16 @@ class CalendarError(RuntimeError):
 
 
 def session() -> requests.Session:
-    s = requests.Session()
-    s.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
-                      "Accept": "application/json", "Referer": HOME})
-    s.get(HOME, timeout=30)       # sets the cookies NSE's api/ needs
+    """A session on the first NSE host whose calendar page answers; its base is `s.nse_base`."""
+    from src.core import nse_web
+
+    s, base = nse_web.session_for(HOME_PATH)
+    s.nse_base = base
     return s
+
+
+def _url(s, path: str) -> str:
+    return getattr(s, "nse_base", "https://www.nseindia.in") + path
 
 
 def _get_json(s: requests.Session, url: str, params: dict, tries: int = 4):
@@ -79,7 +90,7 @@ def _get_json(s: requests.Session, url: str, params: dict, tries: int = 4):
         except (requests.RequestException, ValueError) as exc:
             last = repr(exc)
         time.sleep(attempt * 3)
-        s.get(HOME, timeout=30)
+        s.get(_url(s, HOME_PATH), timeout=30)
     raise CalendarError(f"{url}: {last}")
 
 
@@ -173,8 +184,8 @@ def main() -> int:
     args = ap.parse_args()
     today = ist_today()
     s = session()
-    forward = _get_json(s, CALENDAR, {"index": "equities"})
-    held = _get_json(s, HELD, {"index": "equities", "from_date": (today - timedelta(days=PAST_DAYS)).strftime("%d-%m-%Y"),
+    forward = _get_json(s, _url(s, CALENDAR_PATH), {"index": "equities"})
+    held = _get_json(s, _url(s, HELD_PATH), {"index": "equities", "from_date": (today - timedelta(days=PAST_DAYS)).strftime("%d-%m-%Y"),
                                "to_date": today.strftime("%d-%m-%Y")})
     new = normalise(forward, held)
     old = pd.read_csv(OUT) if OUT.exists() else None
@@ -190,7 +201,7 @@ def main() -> int:
         META.write_text(json.dumps({"fetched_on": today.isoformat(), "rows": len(new),
                                     "announced": int((new["source"] == "calendar").sum()),
                                     "held": int((new["source"] == "held").sum()),
-                                    "sources": [CALENDAR, HELD]}, indent=1) + "\n")
+                                    "sources": [_url(s, CALENDAR_PATH), _url(s, HELD_PATH)]}, indent=1) + "\n")
         print(f"-> {OUT}")
     return 0
 

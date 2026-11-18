@@ -21,21 +21,22 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import requests
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # src/ (nse_web), however the script is started
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "fii_dii_flows.csv"
-URL = "https://www.nseindia.com/api/fiidiiTradeReact"
+# On www.nseindia.in, with .com as a fallback (src/core/nse_web.py, 18 Nov 2026).
+API_PATH = "/api/fiidiiTradeReact"
+PAGE = "/reports/fii-dii"
+URL = "https://www.nseindia.in" + API_PATH
 FIELDS = ["date", "category", "buy", "sell", "net", "fetched_at"]
 CATEGORIES = {"FII/FPI", "DII"}
 
 
 def fetch() -> list[dict]:
-    s = requests.Session()
-    s.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)", "Accept": "application/json",
-                      "Referer": "https://www.nseindia.com/reports/fii-dii"})
-    s.get("https://www.nseindia.com/reports/fii-dii", timeout=30)
-    r = s.get(URL, timeout=30)
+    from src.core import nse_web
+
+    r, _ = nse_web.get(API_PATH, page=PAGE, timeout=30)
     r.raise_for_status()
     return r.json()
 
