@@ -29,6 +29,7 @@ permissions:
   issues: write
   actions: read
   contents: read
+  checks: read        # the green scan reads warning annotations (below)
 
 concurrency:
   group: schedule-watchdog
@@ -273,3 +274,11 @@ jobs:
           else
             gh issue create --title "${title}" --label scheduled-failure --body-file body.md
           fi
+      # Backstop for the failure alert's green scan (owner, 18 Nov 2026: "Ok add").
+      # scheduled_failure_alert.yml runs it at 06:47, 14:47 and 22:47 IST, but
+      # GitHub dropped two of its first three slots (17-18 Nov); this job has
+      # fired every day. Idempotent: a closed issue is not closed again and a
+      # run's warnings already on an issue are not reported again.
+      - name: Close recovered workflows' issues and report warnings on green runs
+        if: always()
+        run: python scripts/alert_green_scan.py
