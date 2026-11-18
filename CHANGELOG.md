@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-18 — Sectors: a worked example of Run
+
+- Under the month-by-month table on the Sectors page, one sentence now works through a real row: the industry with the longest current run, its months read back to the one that broke the run, and how its 12-month figure is the months added up. It is built from the table's own numbers, so it changes as they do.
+
 ## 2026-11-17 — SS prices weekly
 
 - The SS price download (the second, independent price source the nightly check compares against; nothing ranks on it) now runs on Fridays at 22:02 IST instead of every weekday. Each run took about 88 minutes. The check of Screener against SS and NSE still runs every night, but for the days since the last Friday it has only Screener and NSE to compare.
