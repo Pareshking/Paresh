@@ -1,45 +1,45 @@
 {
-  "last_synced": "18 Nov 2026, 02:06",
-  "timestamp": "2026-11-18T02:06:30.084407",
+  "last_synced": "18 Nov 2026, 09:32",
+  "timestamp": "2026-11-18T09:32:30.508517",
   "total_stocks": 752,
   "indices": {
     "NIFTY 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-11-18T02:06:27.649784"
+      "time": "2026-11-18T09:32:28.528889"
     },
     "NIFTY NEXT 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-11-18T02:06:28.102295"
+      "time": "2026-11-18T09:32:28.848442"
     },
     "NIFTY MIDCAP 150": {
       "count": 150,
       "status": "Updated",
-      "time": "2026-11-18T02:06:28.696229"
+      "time": "2026-11-18T09:32:29.455409"
     },
     "NIFTY SMALLCAP 250": {
       "count": 251,
       "status": "Updated",
-      "time": "2026-11-18T02:06:29.599360"
+      "time": "2026-11-18T09:32:30.070854"
     },
     "NIFTY MICROCAP 250": {
       "count": 251,
       "status": "Updated",
-      "time": "2026-11-18T02:06:30.083837"
+      "time": "2026-11-18T09:32:30.507731"
     }
   },
-  "last_attempt": "18 Nov 2026, 02:06",
-  "last_attempt_timestamp": "2026-11-18T02:06:30.084407",
+  "last_attempt": "18 Nov 2026, 09:32",
+  "last_attempt_timestamp": "2026-11-18T09:32:30.508517",
   "last_attempt_fetched": 5,
   "last_attempt_errors": {},
   "last_attempt_ok": true,
   "local_csv_fetched": {
-    "NIFTY 50": "2026-11-18T02:06:30.085529",
-    "NIFTY NEXT 50": "2026-11-18T02:06:30.089306",
-    "NIFTY MIDCAP 150": "2026-11-18T02:06:30.092922",
-    "NIFTY SMALLCAP 250": "2026-11-18T02:06:30.101641",
-    "NIFTY MICROCAP 250": "2026-11-18T02:06:30.115313",
-    "NIFTY TOTAL MARKET": "2026-11-18T02:06:30.600998"
+    "NIFTY 50": "2026-11-18T09:32:30.534653",
+    "NIFTY NEXT 50": "2026-11-18T09:32:30.539832",
+    "NIFTY MIDCAP 150": "2026-11-18T09:32:30.635984",
+    "NIFTY SMALLCAP 250": "2026-11-18T09:32:30.652698",
+    "NIFTY MICROCAP 250": "2026-11-18T09:32:30.666836",
+    "NIFTY TOTAL MARKET": "2026-11-18T09:32:30.992870"
   }
 }
