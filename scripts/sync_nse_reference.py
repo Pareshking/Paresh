@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # src/ (nse_web), however the script is started
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "reference" / "nse"
@@ -33,7 +34,10 @@ FEEDS = {
     "namechange.csv": ARCHIVE + "namechange.csv",
     "equity_l.csv": ARCHIVE + "EQUITY_L.csv",
 }
-CA_URL = "https://www.nseindia.com/api/corporates-corporateActions"
+# On www.nseindia.in first, the old .com second (src/core/nse_web.py, 18 Nov 2026).
+CA_PATH = "/api/corporates-corporateActions"
+CA_URLS = ("https://www.nseindia.in" + CA_PATH, "https://www.nseindia.com" + CA_PATH)
+CA_URL = CA_URLS[0]
 CA_DAYS = 45
 UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36"}
 # A feed that loses more than this share of its rows is a broken download, not a real change.
@@ -79,7 +83,16 @@ def guard(name: str, new_rows: int, old_rows: int | None) -> None:
 def fetch_corporate_actions(today: datetime, days: int = CA_DAYS, fetch=_get) -> list[dict]:
     params = {"index": "equities", "from_date": (today - timedelta(days=days)).strftime("%d-%m-%Y"),
               "to_date": today.strftime("%d-%m-%Y")}
-    rows = json.loads(fetch(CA_URL, params))
+    raw, last = None, None
+    for url in CA_URLS:
+        try:
+            raw = fetch(url, params)
+            break
+        except SyncError as exc:
+            last = exc
+    if raw is None:
+        raise last
+    rows = json.loads(raw)
     if not isinstance(rows, list):
         raise SyncError("corporate actions: unexpected response shape")
     return rows
