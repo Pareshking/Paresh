@@ -37,6 +37,7 @@ def session_for(page: str, *, factory=requests.Session, timeout: int = 30) -> tu
         first = first or (s, base)
         try:
             if s.get(base + page, timeout=timeout).status_code < 400:
+                print(f"NSE {page}: session on {base}", flush=True)
                 return s, base
         except requests.RequestException:
             continue
@@ -62,7 +63,9 @@ def get(api_path: str, *, page: str, params: dict | None = None, factory=request
             last_exc = exc
             continue
         if r.status_code == 200 and r.content:
+            print(f"NSE {api_path}: answered by {base}", flush=True)
             return r, base
+        print(f"NSE {api_path}: {base} answered HTTP {r.status_code}; trying the next host", flush=True)
         last_resp = (r, base)
     if last_resp is not None:
         return last_resp
