@@ -178,3 +178,11 @@ def test_a_schedule_with_no_fire_in_the_lookback_is_not_reported(watchdog):
     """29 February: no fire inside 70 days is "nothing due", not "overdue"."""
     cron = watchdog["Cron"]("0 3 29 2 *")
     assert cron.last_fire_before(dt.datetime(2026, 11, 10, tzinfo=UTC)) is None
+
+
+def test_the_watchdog_also_runs_the_green_scan():
+    """GitHub dropped two of the scan's first three slots; the daily watchdog backs it up."""
+    wd = _load(WATCHDOG)
+    runs = "\n".join(step.get("run", "") for step in wd["jobs"]["watch"]["steps"])
+    assert "python scripts/alert_green_scan.py" in runs
+    assert wd["permissions"].get("checks") == "read", "the scan reads annotations"
