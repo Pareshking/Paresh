@@ -628,6 +628,46 @@ def _run_text(n: int) -> str:
     return f"{abs(n)} {'ahead' if n > 0 else 'behind'}"
 
 
+def run_example(months: pd.DataFrame) -> str:
+    """A worked example of Run and 12 months, from the table's own numbers.
+
+    Owner, 18 Nov 2026: "We should add one live example to explain it in
+    page". The industry with the longest current run (the one the sentence
+    above the table names), its completed months read back to the one that
+    broke the run. Empty when no industry has a run.
+    """
+    if months is None or months.empty or "run" not in months:
+        return ""
+    longest = months["run"].abs().max()
+    if not longest:
+        return ""
+    row = months[months["run"].abs() == longest].iloc[0]
+    name = months[months["run"].abs() == longest].index[0]
+    n = int(row["run"])
+    side = "ahead" if n > 0 else "behind"
+    completed = [c for c in months.columns if c not in ("run", "total") and not c.endswith("MTD")]
+    inside = completed[len(completed) - abs(n):][::-1]          # newest first
+
+    def short(col: str) -> str:
+        return col.split()[0]
+
+    parts = [f"{short(c)} {_fmt.signed(row[c], 1)}" for c in inside]
+    listed = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+    text = (f"For example, {name}: {listed} points, "
+            f"{'all ' if len(parts) > 1 else ''}{'ahead of' if n > 0 else 'behind'} the Nifty 500")
+    before = completed[: len(completed) - abs(n)]
+    if before and pd.notna(row[before[-1]]):
+        other = "behind" if n > 0 else "ahead"
+        text += (f"; {short(before[-1])} was {_fmt.signed(row[before[-1]], 1)}, {other}, "
+                 f"so the count stops there and Run reads {abs(n)} {side}")
+    else:
+        text += f", so Run reads {abs(n)} {side}"
+    if pd.notna(row.get("total")):
+        text += (f". Its 12 months, {_fmt.signed(row['total'], 1)}, is the twelve completed "
+                 f"months added up")
+    return text + "."
+
+
 def _rel_bars_html(sec: pd.DataFrame) -> str:
     """Each industry's six months against the Nifty 500 as a bar from zero,
     with a dot for the last month: the quadrants as a picture."""
@@ -706,13 +746,15 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
                 f'{"—" if not pd.notna(r[c]) else _fmt.signed(r[c], 1)}</td>' for c in cols)
             body.append(f'<tr><td>{html.escape(name)}</td>{cells}<td class="run">{_run_text(int(r["run"]))}</td>'
                         f'<td class="tot {_t(r["total"])}">{_num(r["total"], "pts")}</td></tr>')
+        example = run_example(months)
         heat_html = ('<h3>Month by month against the Nifty 500</h3>' + run_line +
                      '<div class="qp-heat"><table><thead><tr><th scope="col">Industry</th>' + head +
                      '<th scope="col">Run</th><th scope="col">12 months</th></tr></thead>'
                      f'<tbody>{"".join(body)}</tbody></table></div>'
                      '<p class="qp-note">Each cell is the median stock\'s return in that month less the '
                      'Nifty 500\'s, in points; deeper shades are 4 points or more. The last column before Run '
-                     'is the month so far. Run counts completed months in a row on the same side.</p>')
+                     'is the month so far. Run counts completed months in a row on the same side.</p>'
+                     + (f'<p class="qp-note">{html.escape(example)}</p>' if example else ""))
 
     sw = mq.nearest_switches(sec)
     sw_items = []
