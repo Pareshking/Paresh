@@ -82,12 +82,67 @@ SHADOW: dict[str, str] = {
 FONTS: dict[str, str] = {
     "ui": "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     "mono": "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    "serif": "'Source Serif 4', 'Source Serif Pro', Georgia, 'Times New Roman', serif",
+    # The "SS4 fallback" faces are the reader's own Noto Serif or Times resized to Source Serif 4's width, so the headline does not re-wrap
+    # when the real face arrives (serif_face_css below).
+    "serif": "'Source Serif 4', 'SS4 fallback Noto', 'SS4 fallback Times', "
+             "Georgia, 'Times New Roman', serif",
     # Self-hosted (audit F61): static/fonts.css, served by Streamlit's static
     # folder. Relative, so it resolves against the app page, from srcdoc frames
     # too (locally /app/static/, on Streamlit Cloud /~/+/app/static/).
     "font_css": "app/static/fonts.css",
 }
+
+# Source Serif 4's vertical metrics (hhea and OS/2 typo, read from the woff2,
+# units per em 1000), and for each stand-in the width of Source Serif 4 over
+# the stand-in's for the same text. Widths were measured in Chromium on 19 Nov
+# 2026 for a 150-character Dashboard sentence at 36px, the phone headline
+# size: Source Serif 4 is a variable font whose display optical size narrows it
+# as it grows (Noto ratio 0.928 at 24px, 0.902 at 36px, 0.869 at 52px), so one
+# size-adjust is exact at one size and within about 4% at the others. Not the
+# letter-frequency averages in @capsizecss/metrics: those are taken at text
+# size and predicted 0.996 for Noto, which left the headline re-wrapping.
+_SS4 = {"ascent": 1036, "descent": 335, "lineGap": 0, "upm": 1000}
+_SERIF_FALLBACKS = {
+    # name: (local() names tried in order, measured width ratio). Android's
+    # serif is Noto Serif (measured: Google Fonts' Noto Serif v33). Linux has
+    # Liberation Serif, metric-compatible with Times New Roman, which Apple
+    # and Windows carry. Georgia is not listed: it could not be measured here,
+    # and an unmeasured size-adjust can make the swap worse, not better.
+    "Noto": (("Noto Serif", "NotoSerif-Regular", "NotoSerif"), 0.902),
+    "Times": (("Times New Roman", "TimesNewRomanPSMT", "Liberation Serif", "LiberationSerif"), 1.056),
+}
+
+
+def fallback_overrides(target: dict, scale: float) -> dict[str, str]:
+    """size-adjust and metric overrides that make a stand-in set text at `target`'s size.
+
+    `scale` is target width over stand-in width for the same text. The
+    vertical overrides are the target's metrics divided by the scale, because
+    the browser applies size-adjust to them as well, so line boxes keep the
+    target's height and baseline.
+    """
+    pct = lambda v: f"{v / target['upm'] / scale * 100:.2f}%"  # noqa: E731
+    return {"size-adjust": f"{scale * 100:.2f}%", "ascent-override": pct(target["ascent"]),
+            "descent-override": pct(target["descent"]), "line-gap-override": pct(target["lineGap"])}
+
+
+def serif_face_css(fonts_css: str) -> str:
+    """The page's @font-face rules for the serif: the real face and its stand-ins.
+
+    Streamlit writes the rules for the theme's own families (config.toml
+    [[theme.fontFaces]]) when the page opens; it writes none for a family the
+    theme does not name, so the serif's rules travel in the page's first style
+    block. `fonts_css` is static/fonts.css, whose Source Serif 4 rules are
+    copied with their URLs made relative to the page, as the theme's are.
+    """
+    blocks = re.findall(r"@font-face \{[^}]*'Source Serif 4'[^}]*\}", fonts_css)
+    out = [b.replace("url(fonts/", "url(app/static/fonts/") for b in blocks]
+    for name, (locals_, scale) in _SERIF_FALLBACKS.items():
+        src = ", ".join(f'local("{n}")' for n in locals_)
+        props = "".join(f" {k}: {v};" for k, v in fallback_overrides(_SS4, scale).items())
+        out.append(f"@font-face {{ font-family: 'SS4 fallback {name}'; src: {src};{props} }}")
+    return "\n".join(out)
+
 
 C = SimpleNamespace(**PALETTE)
 

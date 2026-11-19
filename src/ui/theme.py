@@ -8,7 +8,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.ui.tokens import FONTS, css_root, resolve
+from pathlib import Path
+
+from src.ui.tokens import FONTS, css_root, resolve, serif_face_css
 from src.ui import formats as _fmt
 
 
@@ -118,18 +120,28 @@ FORMAT_MAP: dict[str, str] = {
     "Score": "{:.2f}",
 }
 
+# The serif's @font-face rules, read once from static/fonts.css (see
+# tokens.serif_face_css for why they are inline rather than imported).
+_SERIF_FACES = serif_face_css(
+    (Path(__file__).resolve().parents[2] / "static" / "fonts.css").read_text(encoding="utf-8"))
+
+
 def inject_custom_css() -> None:
     """The page's CSS. Colours and fonts come from src/ui/tokens.py."""
-    # The theme's colour variables first, so every rule below can read them,
-    # in the same element: a markdown element of its own added an empty
-    # block (about 14px) at the top of every page.
-    st.markdown(
-        # The skip link rides in this element too (audit F27): its own
-        # st.html would add another empty block above the header.
-        clean_html(f"<style>{css_root()}</style>"
-                   '<a class="skip-link" href="#content">Skip to content</a>' + """
-        <style>@import url('""" + FONTS["font_css"] + """');</style>
+    # st.html, not st.markdown (19 Nov 2026): a markdown element waits for
+    # Streamlit's Markdown renderer, about 440 KB of script fetched on first
+    # use, so on a slow phone these rules arrived seconds after the st.html
+    # headline and the page was drawn twice, unstyled and then styled. A
+    # style-only st.html goes to Streamlit's event container, so it adds no
+    # block at the top of the page either. The theme's variables come first so
+    # every rule below can read them, then the serif's @font-face rules.
+    st.html(f"<style>{css_root()}\n{_SERIF_FACES}</style>" + _PAGE_CSS)
+    # The skip link (audit F27) is the one visible-on-focus element; it keeps
+    # the markdown block it always had.
+    st.markdown('<a class="skip-link" href="#content">Skip to content</a>', unsafe_allow_html=True)
 
+
+_PAGE_CSS = ("""
         <style>
         /* ── Design tokens: "Clear Ledger", light only ──────────────────
            The owner asked for a light app, so there is no dark override: a
@@ -1685,7 +1697,7 @@ def inject_custom_css() -> None:
             color: var(--c-ink) !important;
         }
 
-        /* The page-wide paragraph rule reached the <p> inside a metric's label
+        /* The page-wide paragraph rule reached the p element inside a metric's label
            and value, leaving every value 14px grey under a 90px box. */
         [data-testid="stMetricLabel"] p,
         [data-testid="stMetricValue"] p {
@@ -2046,9 +2058,7 @@ def inject_custom_css() -> None:
             .db-rule { grid-column: 1 / -1; } .db-bar { grid-column: 1 / -1; }
         }
         </style>
-        """),
-        unsafe_allow_html=True,
-    )
+        """)
 
 
 def _spark_window_key(sub_prices: pd.DataFrame) -> str:

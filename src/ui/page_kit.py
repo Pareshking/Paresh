@@ -368,9 +368,7 @@ def growth_chart(
 # app.py for every page (prototyped on the Dashboard and Breadth, then rolled
 # out on the owner's word). Source Serif 4 (SIL Open Font
 # Licence), not tipsheet's own face, so the site keeps its own identity.
-EDITORIAL_FONT = "app/static/fonts.css"   # self-hosted with the other faces (audit F61)
 _EDITORIAL_CSS = """<style>
-@import url('""" + EDITORIAL_FONT + """');
 .scr-head h1{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-52)!important;
   line-height:1.06!important;letter-spacing:-0.6px!important;max-width:16em}
 .scr-head p{font-size: var(--fs-17)!important;line-height:1.55!important;max-width:42em;color:var(--c-text_2)!important}
@@ -415,7 +413,9 @@ body .sp-card h2, body .sp-sec h2{font-family:var(--font-serif)!important;font-w
 
 
 def editorial_style() -> None:
-    # @import inside the style: st.html drops <link> elements.
+    # The serif's @font-face rules come with theme.inject_custom_css, the
+    # page's first element; importing fonts.css here as well declared the
+    # faces twice and fetched the stylesheet one round trip late.
     st.html(_EDITORIAL_CSS)
 
 
