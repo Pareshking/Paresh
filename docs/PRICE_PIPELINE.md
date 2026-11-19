@@ -33,7 +33,7 @@ Measured 2 Oct on a year of 192 stocks: SS and Screener identical to the paisa
 on 187. Screener's volume is NSE + BSE (exact on 99.9% of 1,165 stocks); SS's
 is NSE's exactly.
 
-## The Screener night (`screener_sync.yml`, 00:15 IST) and when it is late
+## The Screener night (`screener_sync.yml`, 22:37 IST; 00:15 IST until 19 Nov 2026) and when it is late
 
 - **A new index member Screener has no history for** (TRIVENIPT, listed 9 Oct
   2026) is recorded in `data/screener_pending_history.json` with the day it was
