@@ -134,6 +134,109 @@ SHADOW_LEDGER_PATH = LEDGER_PATH.with_name("track_record_shadow.json")
 SHADOW_NAME = "Recommendation (shadow)"
 
 
+# ── Every shadow record, in one table ───────────────────────────────────────
+#
+# Two more beside the Recommendation (owner, 19 Nov 2026: "Both, separately"),
+# from the leads of the risk-overlay study of 19 Nov 2026 (TODO S144). Neither
+# passed that study's fixed bar; they are recorded forward so they are judged
+# on months nobody could tune them on. Each on the Nifty 750 like the live
+# record, from the book signalled at the 30 Nov 2026 close, reviewed after 12
+# months. None is traded and none changes a live record.
+#
+# breadth_rule (threshold, low_exposure): the engine's month is frozen as it
+# is ("strategy", so ledger parity stays the engine's), and beside it the
+# overlay -- invested `low_exposure` instead of 100% for a month whose signal
+# close had at most `threshold` of the point-in-time Nifty 500 above its
+# 200-day average; the rest earns SHADOW_CASH_YIELD; a change of exposure pays
+# SHADOW_SWITCH_COST on the share moved. As in the study (scratchpad
+# overlays.apply): the mix is kept daily at that exposure.
+SHADOW_CASH_YIELD = 0.065
+SHADOW_SWITCH_COST = 0.003
+BREADTH_INDEX = "nifty_500"
+BREADTH_DMA = 200
+BREADTH_MIN_NAMES = 100
+
+
+class Shadow:
+    """One shadow record: its name, settings, start, ledger and optional overlay."""
+
+    def __init__(self, key: str, name: str, note: str, config: dict[str, Any],
+                 inception: pd.Period, ledger_path: Path,
+                 breadth_rule: tuple[float, float] | None = None):
+        self.key, self.name, self.note = key, name, note
+        self.config, self.inception, self.ledger_path = config, inception, ledger_path
+        self.breadth_rule = breadth_rule
+
+
+LONG_HEAVY_WEIGHTS = [0.0, 0.10, 0.20, 0.30, 0.40]
+SHADOWS: dict[str, Shadow] = {
+    "recommendation": Shadow(
+        "recommendation", SHADOW_NAME, "30 holdings · keep while in the top 90 · 200D EMA",
+        SHADOW_CONFIG, SHADOW_INCEPTION, SHADOW_LEDGER_PATH),
+    "high90": Shadow(
+        "high90", "Near-high 90% (shadow)",
+        "buy only within 10% of the 52-week high (live: 20%)",
+        {**TRACK_RECORD_CONFIG, "high_pct": 0.90},
+        pd.Period("2026-12", freq="M"), LEDGER_PATH.with_name("track_record_shadow_high90.json")),
+    "breadth_long": Shadow(
+        "breadth_long", "Breadth + long lookback (shadow)",
+        "within 10% of the high · lookback weights 0/10/20/30/40 · 50% invested when "
+        "60% or fewer of the Nifty 500 are above their 200-day average",
+        {**TRACK_RECORD_CONFIG, "high_pct": 0.90, "config_weights": LONG_HEAVY_WEIGHTS},
+        pd.Period("2026-12", freq="M"), LEDGER_PATH.with_name("track_record_shadow_breadth_long.json"),
+        breadth_rule=(0.60, 0.50)),
+}
+
+
+def breadth_on(closes: pd.DataFrame, membership: dict[str, Any] | None, on: Any,
+               n: int = BREADTH_DMA, min_names: int = BREADTH_MIN_NAMES) -> float | None:
+    """Share of `membership`'s members on `on` closing above their n-day average.
+
+    None when fewer than `min_names` members have both a close and an average
+    (the study's rule). Closes are carried over at most 5 sessions.
+    """
+    from src.engine.membership import members_on
+
+    if membership is None or closes is None or closes.empty:
+        return None
+    px = closes.astype("float64").sort_index().ffill(limit=5)
+    on = pd.Timestamp(on)
+    px = px.loc[:on]
+    if len(px) < n:
+        return None
+    day = px.index[-1]
+    members = [c for c in (members_on(membership, day) or []) if c in px.columns]
+    if not members:
+        return None
+    ma = px[members].iloc[-n:].mean()
+    last = px[members].iloc[-1]
+    has = ma.notna() & last.notna() & (px[members].iloc[-n:].notna().sum() >= n)
+    if int(has.sum()) < min_names:
+        return None
+    return float((last[has] > ma[has]).mean())
+
+
+def overlay_month(curve: pd.Series, period: pd.Period, exposure: float,
+                  prev_exposure: float, cash_yield: float = SHADOW_CASH_YIELD,
+                  switch_cost: float = SHADOW_SWITCH_COST) -> float | None:
+    """The month's return at `exposure` (rest in cash), kept daily, less the switch cost."""
+    curve = curve.dropna().sort_index()
+    if curve.empty:
+        return None
+    curve.index = pd.DatetimeIndex(curve.index)
+    month = curve[curve.index.to_period("M") == period]
+    before = curve[curve.index.to_period("M") < period]
+    if month.empty:
+        return None
+    # From the previous month's last close; a curve's first month from its base
+    # point, as calendar_month_returns measures the engine's own month.
+    path = pd.concat([before.iloc[-1:], month]) if not before.empty else month
+    daily = path.pct_change().dropna()
+    cash_d = (1 + cash_yield) ** (1 / 252) - 1
+    growth = float(np.prod(1 + exposure * daily.to_numpy() + (1 - exposure) * cash_d))
+    return growth * (1 - abs(exposure - prev_exposure) * switch_cost) - 1
+
+
 # ── Ledger I/O ───────────────────────────────────────────────────────────────
 
 def ledger_inception(ledger: dict[str, Any] | None) -> pd.Period:

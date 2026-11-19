@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-19 — Two more paper portfolios beside the live system
+
+- From the December 2026 book, two paper portfolios are recorded every month beside the live system and the existing Recommendation, never traded: "Near-high 90%" (buy only within 10% of the 52-week high) and "Breadth + long lookback" (the same, with longer lookbacks and only 50% invested when 60% or fewer of the Nifty 500 are above their 200-day average). They come from a study of sizing and risk rules in which none beat simply staying invested; they appear as rows in "Three systems, side by side" once their first month closes in January.
+
 ## 2026-11-19 — The nightly price update starts earlier
 
 - The nightly Screener price download, which the rankings and portfolio use, is now scheduled for 22:37 IST instead of 00:15 IST. GitHub starts scheduled jobs hours late (a median of 3.9 hours over the last 40 nights, up to 7.3), and on 6 of the 16 nights since 3 Nov the previous day's prices reached the site after 06:00 IST. Starting earlier should put them there before 06:00 on nearly every day; GitHub does not guarantee it.

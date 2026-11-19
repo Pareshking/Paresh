@@ -123,6 +123,15 @@ jobs:
         run: |
           python scripts/update_track_record.py --shadow || echo "::warning::Shadow record freeze failed; the live records are unaffected."
 
+      # Two more shadow records (owner, 19 Nov 2026, TODO S144): the leads of the
+      # 19 Nov risk-overlay study, from the December 2026 book, never traded.
+      - name: Freeze the near-high and breadth shadow records
+        run: |
+          for BOOK in high90 breadth_long; do
+            python scripts/update_track_record.py --shadow "$BOOK" \
+              || echo "::warning::Shadow record $BOOK freeze failed; the live records are unaffected."
+          done
+
       - name: Commit the ledger
         run: |
           git config --global user.name 'github-actions[bot]'

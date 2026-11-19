@@ -20,6 +20,7 @@ from src.engine.track_record import (
     SHADOW_INCEPTION,
     SHADOW_LEDGER_PATH,
     SHADOW_NAME,
+    SHADOWS,
     load_ledger,
     summary_stats,
 )
@@ -346,6 +347,7 @@ def comparison_frame(
     ledgers: dict[str, dict],
     live_meta: dict[str, dict] | None = None,
     shadow: dict | None = None,
+    extra_shadows: dict[str, dict] | None = None,
 ) -> pd.DataFrame:
     """Calendar-style monthly returns for all three systems.
 
@@ -355,14 +357,21 @@ def comparison_frame(
 
     `shadow`, the Recommendation's ledger, adds a row of its frozen months
     only: it has no month to date, so the page runs no backtest for it.
+    `extra_shadows` ({SHADOWS key: ledger}) adds one such row each; a month
+    with an overlay (the breadth rule) shows the overlay's return.
     """
+    # A book is shown from its first frozen month: until then its row is all blanks.
+    extra = {k: v for k, v in (extra_shadows or {}).items()
+             if k in SHADOWS and v is not None and v.get("months")}
     live_meta = live_meta or {}
     frozen = {
         sys_id: ledgers.get(sys_id, {}).get("months", {})
         for sys_id in SYSTEMS
     }
     shadow_months = (shadow or {}).get("months", {})
-    keys = sorted({k for months in [*frozen.values(), shadow_months] for k in months})
+    keys = sorted({k for months in [*frozen.values(), shadow_months,
+                                    *(led.get("months", {}) for led in extra.values())]
+                   for k in months})
     current_periods = [
         pd.Period(meta["mtd_period"], freq="M")
         for meta in live_meta.values()
@@ -407,6 +416,17 @@ def comparison_frame(
                 entry = shadow_months.get(str(p)) if p >= SHADOW_INCEPTION else None
                 row[p.strftime("%b").upper()] = entry.get("strategy") if entry else None
             rows.append(row)
+        for key, led in extra.items():
+            book, months = SHADOWS[key], led.get("months", {})
+            row = {"SYSTEM": book.name, "YEAR": str(year)}
+            for p in year_periods:
+                entry = months.get(str(p)) if p >= book.inception else None
+                value = None
+                if entry:
+                    overlay = entry.get("overlay") or {}
+                    value = overlay.get("strategy") if book.breadth_rule else entry.get("strategy")
+                row[p.strftime("%b").upper()] = value
+            rows.append(row)
 
     columns = ["SYSTEM", "YEAR"] + [p.strftime("%b").upper() for p in periods]
     return pd.DataFrame(rows)[columns]
@@ -439,7 +459,15 @@ def render_comparison(
         shadow = load_ledger(SHADOW_LEDGER_PATH, SHADOW_INCEPTION)
     except (ValueError, OSError):
         shadow = {}
-    table = comparison_frame(ledgers, live_meta, shadow)
+    extra_shadows = {}
+    for key, book in SHADOWS.items():
+        if key == "recommendation":
+            continue
+        try:
+            extra_shadows[key] = load_ledger(book.ledger_path, book.inception)
+        except (ValueError, OSError):
+            extra_shadows[key] = None
+    table = comparison_frame(ledgers, live_meta, shadow, extra_shadows)
     with kit.card(
         "Three systems, side by side",
         "tr_compare",
@@ -452,4 +480,8 @@ def render_comparison(
             st.caption(f"{SHADOW_NAME}: 30 holdings · keep while in the top 90 · 200D EMA, "
                        f"on the Nifty 750, from {SHADOW_INCEPTION.strftime('%b %Y')}; "
                        "not traded, frozen months only")
+            for key, book in SHADOWS.items():
+                if key != "recommendation":
+                    st.caption(f"{book.name}: {book.note}, on the Nifty 750, from "
+                               f"{book.inception.strftime('%b %Y')}; not traded, frozen months only")
 
