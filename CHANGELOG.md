@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-19 — The nightly price update starts earlier
+
+- The nightly Screener price download, which the rankings and portfolio use, is now scheduled for 22:37 IST instead of 00:15 IST. GitHub starts scheduled jobs hours late (a median of 3.9 hours over the last 40 nights, up to 7.3), and on 6 of the 16 nights since 3 Nov the previous day's prices reached the site after 06:00 IST. Starting earlier should put them there before 06:00 on nearly every day; GitHub does not guarantee it.
+
 ## 2026-11-18 — Sectors: a worked example of Run
 
 - Under the month-by-month table on the Sectors page, one sentence now works through a real row: the industry with the longest current run, its months read back to the one that broke the run, and how its 12-month figure is the months added up. It is built from the table's own numbers, so it changes as they do.

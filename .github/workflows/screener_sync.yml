@@ -9,8 +9,14 @@ name: Screener daily price sync (overnight)
 
 on:
   schedule:
-    # 18:45 UTC = 00:15 IST nominally, every day. India's session has long
-    # settled and the site is at its quietest.
+    # 17:07 UTC = 22:37 IST nominally, every day (owner, 19 Nov 2026: the
+    # previous day's prices should be on the site by 06:00 IST). Until then
+    # 00:15 IST: GitHub started it a median 3.9 h late over 40 nights (up to
+    # 7.3 h, 5-7 h in the second half of November), and 6 of the 16 nights
+    # from 3 Nov finished after 06:00. 22:37 is just past DOWNLOAD_SETTLES
+    # (src/core/market_time.py, 22:30 IST: a vendor's close is final by then),
+    # after nse_collect's last weekday fire (21:41 IST) and off the round hour
+    # GitHub's queue is busiest at.
     #
     # GitHub's queue adds hours here, not minutes -- this slot fired at 21:15
     # UTC on its first scheduled run, 2h30m late. It does not matter: the job
@@ -21,7 +27,7 @@ on:
     # Every day, not weekdays: the job re-requests a rolling year on each run,
     # so a weekend pass costs one cheap walk and repairs anything a blocked or
     # truncated weeknight left behind.
-    - cron: '45 18 * * *'
+    - cron: '7 17 * * *'    # 22:37 IST
   workflow_dispatch:
     inputs:
       deep_check:

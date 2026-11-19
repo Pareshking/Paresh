@@ -208,8 +208,9 @@ def session_is_downloadable(day: date, *, now: datetime | None = None) -> bool:
 
 # ── When the published prices should reach a session ────────────────────────
 #
-# The nightly Screener sync is scheduled for 00:15 IST (18:45 UTC) and GitHub's
-# scheduler has started it as late as 05:50 IST, about 40 minutes a run. By
+# The nightly Screener sync is scheduled for 22:37 IST (17:07 UTC; 00:15 IST
+# until 19 Nov 2026) and GitHub's scheduler has started it up to 7.3 h late,
+# about 40 minutes a run. By
 # 09:00 IST the next day a session's closes are overdue, not merely late. A flat
 # "one trading day behind is fine" let 8 Oct prices read as current all of
 # Saturday 10 Oct after the 9 Oct sync failed.
