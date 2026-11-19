@@ -36,9 +36,12 @@ from src.engine.backtester import run_backtest  # noqa: E402
 from src.engine.parity_audit import compare_monthly_ledger, load_accepted_drift  # noqa: E402
 from src.engine.parity_audit import freeze_refusal  # noqa: E402
 from src.engine.track_record import (  # noqa: E402
-    SHADOW_CONFIG,
-    SHADOW_INCEPTION,
-    SHADOW_LEDGER_PATH,
+    BREADTH_INDEX,
+    SHADOW_CASH_YIELD,
+    SHADOW_SWITCH_COST,
+    SHADOWS,
+    breadth_on,
+    overlay_month,
     TRACK_RECORD_CONFIG,
     config_fingerprint_for_month,
     finalize_months,
@@ -68,16 +71,62 @@ def record_setup(system: str, shadow: bool = False,
     if shadow:
         if system != SYSTEM_750:
             raise SystemExit("--shadow is the Nifty 750's; it takes no --system")
-        return system, ledger or str(SHADOW_LEDGER_PATH), SHADOW_INCEPTION, dict(SHADOW_CONFIG)
+        book = SHADOWS[_shadow_key(shadow)]
+        return system, ledger or str(book.ledger_path), book.inception, dict(book.config)
     return (system, ledger or str(systems.ledger_path(system)), systems.inception(system),
             dict(TRACK_RECORD_CONFIG))
+
+
+def _shadow_key(shadow) -> str:
+    """`--shadow` alone is the Recommendation (the workflow's first call); else its key."""
+    key = "recommendation" if shadow is True else str(shadow)
+    if key not in SHADOWS:
+        raise SystemExit(f"--shadow {key!r}: one of {', '.join(SHADOWS)}")
+    return key
+
+
+def add_overlay(ledger: dict, added: list[str], book, curve: pd.Series, closes: pd.DataFrame,
+                breadth_membership: dict | None) -> list[str]:
+    """For a book with a breadth rule, the overlay of each newly frozen month, beside it.
+
+    The signal is the close of the last session before the month, as for the
+    engine's own book. Returns what it printed, for the log.
+    """
+    if not book.breadth_rule or not added:
+        return []
+    threshold, low = book.breadth_rule
+    lines, months = [], ledger["months"]
+    for key in sorted(added):
+        period = pd.Period(key, freq="M")
+        signal_close = closes.index[closes.index.to_period("M") < period]
+        if len(signal_close) == 0:
+            continue
+        signal_day = signal_close[-1]
+        breadth = breadth_on(closes, breadth_membership, signal_day)
+        prev = months.get(str(period - 1), {}).get("overlay", {}).get("exposure", 1.0)
+        exposure = 1.0 if breadth is None or breadth > threshold else low
+        ret = overlay_month(curve, period, exposure, prev)
+        months[key]["overlay"] = {
+            "rule": f"{low:.0%} invested when breadth <= {threshold:.0%}",
+            "signal": signal_day.strftime("%Y-%m-%d"),
+            "breadth": None if breadth is None else round(breadth, 4),
+            "exposure": exposure,
+            "strategy": None if ret is None else round(ret, 6),
+            "cash_yield": SHADOW_CASH_YIELD,
+            "switch_cost": SHADOW_SWITCH_COST,
+        }
+        lines.append(f"  overlay {key}: breadth "
+                     f"{'n/a' if breadth is None else f'{breadth:.1%}'} on {signal_day:%d %b %Y}"
+                     f" -> {exposure:.0%} invested, {'n/a' if ret is None else f'{ret:+.2%}'}")
+    return lines
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--system", default=SYSTEM_750, choices=list(SYSTEMS))
-    ap.add_argument("--shadow", action="store_true",
-                    help="the Recommendation's shadow record (750, from Nov 2026), not the live one")
+    ap.add_argument("--shadow", nargs="?", const=True, default=False,
+                    help="a shadow record instead of the live one: alone, the Recommendation "
+                         f"(750, from Nov 2026); or one of: {', '.join(SHADOWS)}")
     ap.add_argument("--ledger", default=None,
                     help="defaults to the system's own ledger")
     ap.add_argument("--extra-prices", default=None,
@@ -108,7 +157,8 @@ def main() -> int:
     args = ap.parse_args()
 
     system, ledger_file, start, cfg = record_setup(args.system, args.shadow, args.ledger)
-    print(f"→ system: {system}{' (shadow record)' if args.shadow else ''} · ledger {ledger_file} "
+    book = SHADOWS[_shadow_key(args.shadow)] if args.shadow else None
+    print(f"→ system: {system}{f' (shadow record: {book.name})' if book else ''} · ledger {ledger_file} "
           f"· inception {start}")
 
     core: list[str] = []
@@ -220,7 +270,7 @@ def main() -> int:
     print(f"  config fingerprint (current month): {fingerprint(pd.Period(as_of, freq='M'))}")
 
     result = run_backtest(
-        f"trackrecord_{system}{'_shadow' if args.shadow else ''}_{as_of:%Y%m%d}_{months}",
+        f"trackrecord_{system}{f'_shadow_{book.key}' if book else ''}_{as_of:%Y%m%d}_{months}",
         adj_close,
         **run_backtest_kwargs(cfg),
         sector_map=record_sector_map(adj_close.columns),
@@ -285,6 +335,12 @@ def main() -> int:
         pit_from=pit_from,
         force=args.force,
     )
+
+    if book is not None and book.breadth_rule:
+        from src.engine import index_universe as iu
+        for line in add_overlay(ledger, added, book, result["equity_curve"], adj_close,
+                                iu.index_history(BREADTH_INDEX)):
+            print(line)
 
     # S92 (owner, 7 Nov 2026): no month is struck while the replay disagrees
     # with a frozen month the owner has not accepted. October 2026 was struck

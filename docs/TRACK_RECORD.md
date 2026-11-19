@@ -398,3 +398,31 @@ Rehearsed on 12 Oct 2026 as a dry run with the start moved to September 2026:
 a 30-stock book, survivorship-free, September +0.19% against the Nifty 500's
 -5.43% (the live record froze +0.17%; its September starts at the August close,
 so its index month includes 1 Sep).
+
+---
+
+## 10. Two more shadow records: the overlay-study leads
+
+Owner, 19 Nov 2026 ("Both, separately"; TODO S144; `docs/RISK_OVERLAYS_2026-11-19.md`).
+Neither passed the study's fixed bar; both are recorded forward so they are judged on
+months nobody could tune them on. Same machinery as section 9 (`SHADOWS` in
+`src/engine/track_record.py`), never traded, the live records and the Recommendation
+untouched.
+
+| | Near-high 90% | Breadth + long lookback |
+|---|---|---|
+| Configuration | `TRACK_RECORD_CONFIG` with `high_pct` 0.90 (buy only within 10% of the 52-week high) | the same plus lookback weights 0/10/20/30/40 |
+| Overlay | none | 50% invested (rest in cash at 6.5% a year) for a month whose signal close had 60% or fewer of the point-in-time Nifty 500 above their 200-day average; a change of exposure pays 30 bps on the share moved |
+| Ledger | `data/track_record_shadow_high90.json` | `data/track_record_shadow_breadth_long.json`; each month holds the engine's month (`strategy`, so ledger parity is the engine's) and `overlay` (breadth, exposure, the overlay's return) |
+| First month | December 2026: the book signalled at the 30 Nov close | the same |
+| Frozen by | `monthly_track_record.yml`, "Freeze the near-high and breadth shadow records" (`update_track_record.py --shadow high90` / `breadth_long`); a failure only warns | |
+| Shown | rows in "Three systems, side by side"; the breadth book's row is the overlay's return | |
+
+Review after 12 months (Dec 2027), with the same caution as section 9: a year cannot
+separate them from the live record; the review asks whether each behaves live as it
+did in the backtest (the gate holds fewer names when few stocks are near their highs;
+the breadth book is at 50% in weak breadth and keeps most of the return otherwise).
+
+Rehearsed on 19 Nov 2026 as a dry run with the start moved to October 2026 (nothing
+written): Near-high 90% October -5.35% (benchmark +0.17%); Breadth + long lookback
+engine -2.69%, breadth 43.1% on 30 Sep so 50% invested, overlay -1.20%.
