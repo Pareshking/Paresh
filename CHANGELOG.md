@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-19 — Steadier text while a page loads
+
+- Pages no longer draw once unstyled and then again styled: the site's styles now arrive with the first content instead of about three seconds after it on a slow phone connection. IBM Plex Sans loads before any text appears. While Source Serif 4 is still downloading, headlines show in the phone's own serif resized to the same width, so they keep their line breaks when the real face arrives instead of re-wrapping. Measured in Chromium on throttled connections; not yet checked on a real phone.
+
 ## 2026-11-19 — Two more paper portfolios beside the live system
 
 - From the December 2026 book, two paper portfolios are recorded every month beside the live system and the existing Recommendation, never traded: "Near-high 90%" (buy only within 10% of the 52-week high) and "Breadth + long lookback" (the same, with longer lookbacks and only 50% invested when 60% or fewer of the Nifty 500 are above their 200-day average). They come from a study of sizing and risk rules in which none beat simply staying invested; they appear as rows in "Three systems, side by side" once their first month closes in January.
