@@ -126,7 +126,7 @@ jobs:
       # labels wrapping to three lines, charts leaving width empty, frames taller than
       # what they draw and empty bands (owner, 20 Nov 2026: "Why doesn't your audit
       # capture such issues?").
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Layout audit (Dashboard, Portfolio)

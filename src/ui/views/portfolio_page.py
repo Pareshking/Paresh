@@ -529,7 +529,7 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
                      + "".join(cell(v, b) for v in r["months"]) + "".join(cell(v, b, i == 0) for i, v in enumerate(qs)) + cell(yr, b, True) + "</tr>")
     body += (f'<tr class="pf-yr pf-ghost"><th scope="rowgroup" colspan="18">{this.year + 1}<span class="dh-muted"> · from January, a row group '
              'like the one above; each year adds its own</span></th></tr>') if len(cal) == 1 else ""
-    grid = f'<div class="dh-scroll"><table class="dh-tab pf-grid">{head}<tbody>{body}</tbody></table></div>'
+    grid = f'<div class="dh-scroll"><table class="dh-tab pf-grid pf-nw">{head}<tbody>{body}</tbody></table></div>'
     # Calendar and financial years
     ys = ""
     for y, row in cal.items():
@@ -545,7 +545,7 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
                f'<td class="dh-num">{pct(mk["year"])}</td><td class="dh-num dh-b {tone(lead)}">{sg(lead)}</td><td class="dh-num">{pct(row["mom"]["year"])}</td>'
                f'<td class="dh-num">{ahead} of {nmon}</td><td class="dh-num dh-down">{pct(fy.worst) if fy else "—"}'
                f'<span class="dh-sub">market {pct(fm.worst) if fm else "—"}</span></td></tr>')
-    years = ('<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Year</th><th scope="col" class="dh-num">Book</th>'
+    years = ('<div class="dh-scroll"><table class="dh-tab dh-tab-s pf-nw"><thead><tr><th scope="col">Year</th><th scope="col" class="dh-num">Book</th>'
              '<th scope="col" class="dh-num">Market</th><th scope="col" class="dh-num">Lead</th><th scope="col" class="dh-num">Momentum 50</th>'
              f'<th scope="col" class="dh-num">Months ahead</th><th scope="col" class="dh-num">Largest fall</th></tr></thead><tbody>{ys}</tbody></table></div>')
     fys = ""
@@ -557,7 +557,7 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
         fys += (f'<tr><th scope="row">{e(lab)}{"," + part if part else ""}<span class="dh-sub">{e(partial)}</span></th>'
                 f'<td class="dh-num dh-b {tone(vals["book"])}">{pct(vals["book"])}</td><td class="dh-num">{pct(vals["market"])}</td>'
                 f'<td class="dh-num dh-b {tone(lead)}">{sg(lead)}</td><td class="dh-num">{pct(vals["mom"])}</td></tr>')
-    fyt = ('<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Year</th><th scope="col" class="dh-num">Book</th>'
+    fyt = ('<div class="dh-scroll"><table class="dh-tab dh-tab-s pf-nw"><thead><tr><th scope="col">Year</th><th scope="col" class="dh-num">Book</th>'
            '<th scope="col" class="dh-num">Market</th><th scope="col" class="dh-num">Lead</th><th scope="col" class="dh-num">Momentum 50</th>'
            f'</tr></thead><tbody>{fys}</tbody></table></div>')
     return grid, years, fyt
@@ -741,7 +741,7 @@ PF_CSS = """
 .pf-log td:last-child,.pf-log th:last-child{width:auto;white-space:normal}
 .pf-log thead th{position:sticky;top:0;background:var(--c-white);z-index:1}
 .dh-tab.pf-sys{width:auto}.pf-sys th,.pf-sys td{padding-right:24px}
-.pf-sec .dh-tab tbody th{white-space:nowrap}.pf-sec .dh-tab thead th.dh-num{white-space:normal;vertical-align:bottom}
+.pf-sec .dh-tab tbody th,.pf-nw tbody th{white-space:nowrap}.pf-sec .dh-tab thead th.dh-num{white-space:normal;vertical-align:bottom}
 @media (max-width:640px){.pf-four{grid-template-columns:1fr 1fr}.pf-head .pf-five .dh-kpi:last-child{grid-column:auto}.pf-head .pf-five .dh-kpi:first-child{grid-column:1/-1}.pf-sec .pf-five .dh-kpi:last-child:nth-child(odd){grid-column:1/-1}.dh .pf-h2{font-size:var(--fs-17)!important}
 .pf-ihead,.pf-irow{grid-template-columns:minmax(0,1fr) 84px 48px 50px;gap:4px 10px}.pf-nm small{display:block;margin:0}
 .pf-ihead>span:nth-child(4),.pf-ihead>span:nth-child(6),.pf-irow>span:nth-child(4),.pf-irow>span:nth-child(6){display:none}}
