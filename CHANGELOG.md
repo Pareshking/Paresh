@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-20 — RRG: Leading now means ahead of the benchmark
+
+- On the RRG page, 100 on each axis is now the chosen index. It used to be the average of the industries shown, so in a market where nearly every industry trailed the Nifty 500 the least weak half still read "Leading": on 18 Nov Financial Services, FMCG and Realty were 3 to 4% behind the index over 12 weeks and were shown as Leading. The quadrants now mean what their names say, as the method's author defines them. Expect far fewer industries in Leading while large companies lead the market.
+
 ## 2026-11-19 — Steadier text while a page loads
 
 - Pages no longer draw once unstyled and then again styled: the site's styles now arrive with the first content instead of about three seconds after it on a slow phone connection. IBM Plex Sans loads before any text appears. While Source Serif 4 is still downloading, headlines show in the phone's own serif resized to the same width, so they keep their line breaks when the real face arrives instead of re-wrapping. Measured in Chromium on throttled connections; not yet checked on a real phone.

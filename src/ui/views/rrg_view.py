@@ -135,13 +135,18 @@ def compute_rrg_data(
         return pd.DataFrame()
 
     spread = 6.5
-    # Population SD (ddof=0): these ARE the whole cross-section of industries
-    # (or stocks) on the chart, not a sample drawn from one, and it is the
-    # site's one volatility/dispersion convention (owner, 11 Nov 2026;
-    # docs/TRACK_RECORD.md, TODO S119). The quadrant a name lands in cannot
-    # move -- it turns on the sign of the numerator -- but its coordinates do.
-    r_mean, r_std = all_latest_ratio.mean(), max(all_latest_ratio.std(ddof=0), 1e-8)
-    m_mean, m_std = all_latest_mom.mean(), max(all_latest_mom.std(ddof=0), 1e-8)
+    # 100 on each axis is the BENCHMARK (S147, 19 Nov 2026). A ratio of 1 means
+    # an industry's relative strength sits at its own lookback average against
+    # the index; a momentum of 1 means that ratio is not moving. The chart used
+    # to centre on the cross-section's mean, so "Leading" meant "less weak than
+    # the other industries": on 18 Nov Financial Services, FMCG and Realty were
+    # 3-4% behind the Nifty 500 over 12 weeks and still read Leading, because
+    # 17 of 20 industries were weaker still. Only the scale comes from the
+    # cross-section now (population SD, the site's one dispersion convention,
+    # TODO S119), so the points spread to a readable width; the quadrant turns
+    # on the sign of ratio - 1 and mom - 1 alone.
+    r_mean, r_std = 1.0, max(all_latest_ratio.std(ddof=0), 1e-8)
+    m_mean, m_std = 1.0, max(all_latest_mom.std(ddof=0), 1e-8)
 
     rows = []
     for ind, d in raw_data.items():
@@ -253,7 +258,9 @@ def render_rrg_view(
             index=0,
             key="rrg_bm_choice",
             help="Each industry's strength is measured against this index. "
-                 "On the chart, 100 on each axis is the average of those shown.",
+                 "On the chart, 100 on each axis is the index itself: right of it, "
+                 "an industry is gaining on the index over the lookback; above it, "
+                 "that gain is speeding up.",
         )
         tf_choice = st.segmented_control(
             "Timeframe",
