@@ -58,3 +58,19 @@ def test_the_committed_file_covers_the_live_record_daily():
     assert since.index[0] <= pd.Timestamp("2025-12-31") and gaps.max() <= 5, gaps.max()
     for key in bi.SERIES:
         assert not bi.series(key).empty, key
+
+
+def test_a_row_for_a_session_that_has_not_closed_is_dropped():
+    import sys
+    from datetime import datetime
+    sys.path.insert(0, "scripts")
+    import build_benchmark_indices as bb
+    from src.core import market_time as mt
+    real = mt.ist_now
+    try:
+        mt.ist_now = lambda: datetime(2026, 11, 20, 8, 20, tzinfo=mt.INDIA_TZ)
+        close = pd.Series([25514.30, 25434.40], index=pd.to_datetime(["2026-11-19", "2026-11-20"]))
+        kept = bb.complete_only(close)
+    finally:
+        mt.ist_now = real
+    assert list(kept.index) == [pd.Timestamp("2026-11-19")]

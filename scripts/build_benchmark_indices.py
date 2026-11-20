@@ -22,12 +22,21 @@ import time
 import pandas as pd
 import requests
 
+from src.core.market_time import session_is_complete
 from src.loaders import benchmark_indices as bi
 from src.loaders.screener_loader import fetch_series, resolve_id
 
 DELAY_S = 1.0
 DAILY_DAYS = 400
 SEED_DAYS = 10000
+
+
+def complete_only(close: pd.Series) -> pd.Series:
+    """Drop rows for sessions that have not closed. Screener's chart serves the
+    live or pre-open quote as a row dated today: on 20 Nov 2026 at 08:20 IST it
+    returned Nifty 50 at 25,434.40 for a session that had not opened."""
+    keep = [session_is_complete(d.date()) for d in close.index]
+    return close[keep]
 
 
 def _closes(slug: str, session: requests.Session, days: int) -> pd.Series | None:
@@ -37,7 +46,7 @@ def _closes(slug: str, session: requests.Session, days: int) -> pd.Series | None
         return None
     close = got[0].dropna()
     close.index = pd.DatetimeIndex(close.index).normalize()
-    return close[~close.index.duplicated(keep="last")].sort_index()
+    return complete_only(close[~close.index.duplicated(keep="last")].sort_index())
 
 
 def rows_for(key: str, slug: str, session: requests.Session, seed: bool) -> pd.DataFrame:
@@ -66,6 +75,8 @@ def main(argv=None) -> int:
 
     session = requests.Session()
     frame = bi.read()
+    if not frame.empty:   # a row written before its session closed, by an earlier run
+        frame = frame[[session_is_complete(pd.Timestamp(d).date()) for d in frame["date"]]]
     for i, (key, (name, slug, _etf)) in enumerate(bi.SERIES.items()):
         if i:
             time.sleep(DELAY_S)

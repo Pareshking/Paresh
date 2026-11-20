@@ -42,6 +42,12 @@ TOTAL_MARKET = "nifty_total_market"
 SERIES: dict[str, tuple[str, str, str | None]] = {
     TOTAL_MARKET: ("Nifty Total Market", "NFTYTOTMKT", "AONETOTAL"),
     "nifty200": ("Nifty 200", "CNX200INDE", None),
+    # The size indices again, here so every index figure on the Dashboard ends
+    # on the same session from one source (the strip mixed 18 and 19 Nov, S148).
+    "nifty50": ("Nifty 50", "NIFTY", None),
+    "midcap150": ("Nifty Midcap 150", "NMIDCAP150", None),
+    "smallcap250": ("Nifty Smallcap 250", "SMALLCA250", None),
+    "microcap250": ("Nifty Microcap 250", "NFMICRO250", None),
     "nifty200_mom30": ("Nifty200 Momentum 30", "NI200MOM30", "MOM30IETF"),
     "nifty500_mom50": ("Nifty500 Momentum 50", "NIF500MO50", "MOMENTUM50"),
     "midcap150_mom50": ("Nifty Midcap150 Momentum 50", "NFMC150M50", "MOMIDMTM"),
