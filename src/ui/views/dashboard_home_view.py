@@ -784,7 +784,8 @@ def section_leadership(rrg_now: pd.DataFrame, paths: dict, held: dict[str, int])
             + f'</span><span class="dh-mono dh-muted">{r.RS_Ratio:.1f} · {r.RS_Momentum:.1f}</span></div>'
             for i, r in g.iterrows())
         groups.append((len(g), f'<div><div class="dh-grp-h {cls}"><h3>{q}</h3><span class="dh-sub">{len(g)} industr{"y" if len(g) == 1 else "ies"}</span></div>'
-                      f'<p class="dh-sub">{note}</p>{rows}</div>'))
+                      f'<p class="dh-sub">{note}</p><div class="dh-rrg dh-rrg-h"><span>Industry · quadrant 3M ago → 1M ago → now</span>'
+                      f'<span>RS ratio · RS momentum</span></div>{rows}</div>'))
     points = [[str(i), round(float(r.RS_Ratio), 1), round(float(r.RS_Momentum), 1), int(held.get(i, 0)),
                " → ".join(paths[i][:2]) if i in paths else "—"] for i, r in rrg_now.iterrows()]
     spec = {"points": points, "heldLeaders": f"{n_held} of {len(lead)}"}
@@ -1385,6 +1386,7 @@ HOME_CSS = """
 .dh .dh-grp-h h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;color:inherit!important}
 .dh-rrg{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
 .dh-rrg>span:last-child{white-space:nowrap}
+.dh-rrg-h{font-size:var(--fs-12);color:var(--c-muted);padding:4px 0 2px}
 .dh-gl-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .dh-gls{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-gl{background:var(--c-white);padding:14px 16px}
