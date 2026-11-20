@@ -24,6 +24,7 @@ plain. Pass and fail are ✓ and ✗, not coloured dots.
 from __future__ import annotations
 
 import json
+import re
 
 from html import escape as _esc
 
@@ -231,6 +232,16 @@ def _tick(on: bool, yes: str = "Yes", no: str = "No") -> str:
             else f'<span class="tick no" title="{no}">✗</span>')
 
 
+# A sort key needs no more than 8 significant digits: a raw float's 17
+# (data-v="0.16724790293698052") were ~120 KB of the 2 MB table (20 Nov 2026,
+# TODO S141). Shown text is never touched; only the attribute the header sort reads.
+_LONG_KEY = re.compile(r'data-v="(-?\d+\.\d{9,}(?:[eE][-+]?\d+)?)"')
+
+
+def _short_sort_keys(html: str) -> str:
+    return _LONG_KEY.sub(lambda m: f'data-v="{float(m.group(1)):.8g}"', html)
+
+
 def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     sym = str(row.get("Symbol", ""))
     sym_s = _esc(sym)
@@ -364,7 +375,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
                       if poly else '<td class="c-path muted">—</td>')
     classes = " ".join(c for c in ("hl" if is_hl else "", "cut" if qr in (BUY_CUT, KEEP_CUT) else "") if c)
     hl = f' class="{classes}"' if classes else ""
-    return f'<tr data-stock="{sym_s}"{hl}>' + "".join(cells[c[0]] for c in cols) + "</tr>"
+    return _short_sort_keys(f'<tr data-stock="{sym_s}"{hl}>' + "".join(cells[c[0]] for c in cols) + "</tr>")
 
 
 _CSS = """
@@ -476,17 +487,23 @@ document.addEventListener('click',function(ev){
   if(ev.target.closest('a')&&(ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.button===1))return;
   ev.preventDefault();openStock(tr.getAttribute('data-stock'));
 });
-// Sparklines from their heights (audit F62): the rows on screen first, the
-// rest when the browser is idle.
+// Sparklines from their heights (audit F62), for the rows that are SHOWN only
+// (20 Nov 2026, TODO S141): the Screener sends all 750 rows so a header sort
+// ranks every stock, but shows 50; drawing the 700 hidden ones took ~1.2 s of
+// a throttled phone's ~1.6 s. Rows a sort or "Show all" brings into view are
+// drawn then.
 function drawSpark(td){const p=td.getAttribute('data-p');if(!p)return;const y=p.split(',');const n=y.length-1;
   let pts='';for(let i=0;i<=n;i++){pts+=(2+i*84/n).toFixed(1)+','+y[i]+' ';}
   td.innerHTML='<svg width="88" height="26" viewBox="0 0 88 26" aria-hidden="true"><polyline fill="none" stroke="'
     +(td.classList.contains('dn')?'var(--c-down)':'var(--c-up)')+'" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" points="'+pts+'"/></svg>';
   td.removeAttribute('data-p');}
-(function(){const cells=Array.from(document.querySelectorAll('td.c-path[data-p]'));
+function drawShown(){
+  const cells=Array.from(document.querySelectorAll('tbody tr')).filter(function(r){return r.offsetParent!==null;})
+    .map(function(r){return r.querySelector('td.c-path[data-p]');}).filter(Boolean);
   cells.slice(0,60).forEach(drawSpark);let i=60;
   function more(){const end=Math.min(i+120,cells.length);for(;i<end;i++)drawSpark(cells[i]);if(i<cells.length)(window.requestIdleCallback||setTimeout)(more);}
-  more();})();
+  more();}
+drawShown();
 const ths=document.querySelectorAll('thead tr.hdr th');const tbody=document.querySelector('tbody');const tbl=document.querySelector('table');
 // Sortable from the keyboard too (pre-launch audit F20, WCAG 2.1.1/4.1.2):
 // each sortable header is focusable, sorts on Enter or Space, and says how
@@ -513,6 +530,7 @@ ths.forEach(function(th,i){
       return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
     });
     rows.forEach(function(r){tbody.appendChild(r);});
+    drawShown();   // the rows this order brings into view
     // The lines under the 20th and 40th qualified stock mean something only
     // in rank order.
     const lab=(th.textContent||'');
