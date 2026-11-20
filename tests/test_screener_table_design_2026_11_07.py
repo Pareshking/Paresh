@@ -147,3 +147,29 @@ def test_a_first_click_sorts_returns_largest_first_and_rank_from_one():
     firsts = {label: d for d, label in re.findall(r'data-first="(asc|desc)"[^>]*><span>([^<]+)</span>', out)}
     assert firsts["Rank"] == "asc"
     assert any(d == "desc" for label, d in firsts.items() if "RET" in label.upper() or "1M" in label)
+
+
+def test_long_sort_keys_are_cut_to_8_significant_digits_and_shown_text_is_untouched():
+    """20 Nov 2026 (TODO S141): a raw float's 17 digits were ~90 KB of the 2 MB table."""
+    from src.ui.screener_table import _short_sort_keys
+
+    row = ('<tr data-stock="X"><td class="n" data-v="0.16724790293698052">0.17</td>'
+           '<td class="n" data-v="-64.0">x</td><td data-v="MRPL">MRPL</td>'
+           '<td class="n" data-v="1234567.891234567">₹12,34,567.891234567</td></tr>')
+    out = _short_sort_keys(row)
+    assert 'data-v="0.1672479"' in out and 'data-v="-64.0"' in out and 'data-v="MRPL"' in out
+    assert 'data-v="1234567.9"' in out
+    assert "₹12,34,567.891234567" in out, "only the sort attribute changes"
+    vals = [0.16724790293698052, 0.16724790293698099, 0.1672478]
+    keys = [float(_short_sort_keys(f'data-v="{v}"').split('"')[1]) for v in vals]
+    assert sorted(range(3), key=lambda i: keys[i]) == sorted(range(3), key=lambda i: vals[i])
+
+
+def test_only_the_shown_rows_get_their_sparkline_and_a_sort_draws_the_new_ones():
+    """20 Nov 2026: 700 of 750 rows are hidden; their charts are drawn only when shown."""
+    from src.ui.screener_table import _JS
+
+    assert "function drawShown()" in _JS and "r.offsetParent!==null" in _JS
+    sort_block = _JS[_JS.index("rows.forEach(function(r){tbody.appendChild(r);});"):]
+    assert sort_block.index("drawShown()") < sort_block.index("byrank"), "a sort redraws the rows it brings up"
+    assert "querySelectorAll('td.c-path[data-p]'));\n  cells.slice(0,60)" not in _JS
