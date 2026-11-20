@@ -114,7 +114,8 @@ def _check_requirements(text: str) -> None:
         if not re.match(r"^\| \d+ \|", line):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split(" | ")]
-        if not any(m.strip().lower() in low for m in cells[4].split("|")):
+        # " + " joins texts that must all appear; "|" separates alternatives within each.
+        if not all(any(m.strip().lower() in low for m in part.split("|")) for part in cells[4].split(" + ")):
             missing.append(f"{cells[0]}: {cells[1]}")
     order = ["1 · the book this month", "2 · what happens on", "3 · is momentum still working?", "4 · money flows",
              "5 · size, and where momentum works", "6 · where the book is strong and weak", "7 · where leadership is moving",

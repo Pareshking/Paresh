@@ -27,7 +27,9 @@ for (const f of p.frames()) {
 await b.close();
 // Kickers are upper-cased by CSS, so compare without case.
 const low = text.toLowerCase();
-const fails = rows.filter(r => !r.marker.split('|').some(m => low.includes(m.trim().toLowerCase())));
+// ' + ' joins texts that must all appear; '|' separates alternatives within each.
+const has = part => part.split('|').some(m => low.includes(m.trim().toLowerCase()));
+const fails = rows.filter(r => !r.marker.split(' + ').every(has));
 // The seven sections must appear in the agreed order.
 const orderLine = docText.split('\n').find(l => l.startsWith('Order:'));
 const order = orderLine ? orderLine.slice(6).split('→').map(x => x.trim().toLowerCase()) :
