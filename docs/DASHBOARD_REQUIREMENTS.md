@@ -7,8 +7,8 @@ This is the master list of what the Dashboard must carry, drawn from every
 owner message and every agreed proposal from 19 to 20 Nov 2026. A mock-up or a
 build is not shared until **every row passes**:
 
-    node scripts/check_dashboard_requirements.mjs <page.html>   # a mock-up
-    python -m pytest tests/test_dashboard_requirements.py       # the built page (to add when v8 is built)
+    node scripts/check_dashboard_requirements.mjs <page.html | url>   # a mock-up, or the running app
+    python scripts/headless_smoke.py                                  # the built page, in CI on every PR
 
 Each row's **Marker** is text that must appear on the rendered page (case
 sensitive, `|` separates alternatives that each count). Change a row only with
@@ -54,7 +54,7 @@ the owner's word, and note it in the Source column.
 | 36 | The book's holdings marked in leadership ("what needs attention") | Owner liked (#3), 20 Nov | §7 | Held in the book |
 | 37 | At a glance: index moves (one date), breadth, the book's risk | v6 | Glance | The book’s risk |
 | 38 | Breadth history on each date's members | Owner 20 Nov | Glance, §3 | leavers included |
-| 39 | Every chart gives values on touch and pointer | Owner 20 Nov | Charts | Latest |
+| 39 | Every chart gives values on touch and pointer | Owner 20 Nov | Charts (`static/dash_charts.js`) | Latest|DashCharts.render( |
 | 40 | Every chart: what it is, how to read it, its table | v7 (tipsheet), agreed | Charts | Show the table |
 | 41 | Data date and sources in the footer | v6 | Foot | Data to 19 Nov 2026|Data to |
 

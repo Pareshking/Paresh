@@ -292,6 +292,7 @@ class FlowEvidence:
     large_minus_broad: float           # Nifty 50 less Nifty 500 in top-quarter months, pts
     first: str
     last: str
+    heavy_months: int = 0              # months in the top quarter
 
 
 def flow_evidence(nsdl: pd.DataFrame, spreads: pd.DataFrame, bench: pd.DataFrame) -> FlowEvidence | None:
@@ -332,7 +333,7 @@ def flow_evidence(nsdl: pd.DataFrame, spreads: pd.DataFrame, bench: pd.DataFrame
         float((hi["lead_next"] > 0).mean() * 100), float((lo["lead_next"] > 0).mean() * 100),
         halves, float(d["fpi"].corr(d["nifty500"])), float(d["fpi"].corr(d["nifty500"].shift(-1))),
         float((heavy_all["nifty50"] - heavy_all["nifty500"]).mean()),
-        f"{d.index[0]:%b %Y}", f"{d.index[-1]:%b %Y}")
+        f"{d.index[0]:%b %Y}", f"{d.index[-1]:%b %Y}", int(len(heavy_all)))
 
 
 def dii_window(nse: pd.DataFrame | None) -> tuple[pd.Timestamp, pd.Timestamp, float, int, int] | None:

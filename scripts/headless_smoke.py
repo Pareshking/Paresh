@@ -13,6 +13,7 @@ both column sets, and the export. Run from the repo root:
 
 from __future__ import annotations
 
+import html
 import json
 import re
 import sys
@@ -103,6 +104,33 @@ def _check_stock_links(at: AppTest) -> None:
         _fail("a ?stock= link clicked on Sectors did not open the stock page")
 
 
+def _check_requirements(text: str) -> None:
+    """Every row of docs/DASHBOARD_REQUIREMENTS.md, and the section order, on the built Dashboard
+    (owner, 20 Nov 2026: nothing agreed may drop out between versions)."""
+    doc = (Path(__file__).resolve().parents[1] / "docs" / "DASHBOARD_REQUIREMENTS.md").read_text(encoding="utf-8")
+    low = html.unescape(text).lower()
+    missing = []
+    for line in doc.splitlines():
+        if not re.match(r"^\| \d+ \|", line):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split(" | ")]
+        if not any(m.strip().lower() in low for m in cells[4].split("|")):
+            missing.append(f"{cells[0]}: {cells[1]}")
+    order = ["1 · the book this month", "2 · what happens on", "3 · is momentum still working?", "4 · money flows",
+             "5 · size, and where momentum works", "6 · where the book is strong and weak", "7 · where leadership is moving",
+             "at a glance"]
+    pos = 0
+    for o in order:
+        i = low.find(o, pos)
+        if i < 0:
+            missing.append(f"order: {o!r} missing or out of place")
+            break
+        pos = i + len(o)
+    print(f"Dashboard requirements missing: {len(missing)}")
+    if missing:
+        _fail("the Dashboard lost agreed items: " + "; ".join(missing))
+
+
 def main() -> int:
     at = AppTest.from_file(APP, default_timeout=900)
     at.run(timeout=900)
@@ -125,6 +153,7 @@ def main() -> int:
     print(f"Dashboard drawn: {drawn}")
     if not drawn:
         _fail("the Dashboard (first page) did not draw its book and rebalance sections")
+    _check_requirements(html_text + " ".join(f.proto.srcdoc for f in _elements(at, "iframe")))
     screener = [e for e in nav if e.proto.label == "Screener"]
     if not screener:
         _fail("no Screener link in the navigation")

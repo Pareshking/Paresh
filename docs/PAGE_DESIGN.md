@@ -173,8 +173,15 @@ every page.
   the Markdown chunk, which loads later.
 - `app.py`'s code reloader needs view imports at the top, before
   `mark_loaded()`.
-- `st.html` runs no script: interactive charts go in the iframe component
-  (`lw_chart.render`) or a small custom component.
+- `st.html` runs no script: interactive charts go in a frame. The Dashboard's
+  charts are `src/ui/dash_charts.render(kind, spec)`: `st.iframe(height="content")`
+  sizes to what it draws; the kit is one cached file, `static/dash_charts.js`,
+  addressed by its hash. A page is then a list of HTML parts with charts between.
+- `st.html`'s cleaner drops inline `<svg>`: draw small static marks as an
+  `<img>` with a `data:image/svg+xml` source and the theme's colours written in
+  (`tokens.resolve`); `var(--…)` does not work inside SVG attributes anyway.
+- On touch, a lifted finger fires `pointerleave`: keep the reading instead of
+  resetting, or a tap shows nothing.
 - Cache keys must include the revision of any data file read inside the
   cached function (`_past_stamp()` for breadth history).
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-20 — Dashboard charts you can touch
+
+- Every chart on the Dashboard now shows its values under the pointer, under a finger dragged across it on a phone, or with the arrow keys; at rest it shows the latest figures. Under each chart: what it is, how to read it, and its table.
+- The month is drawn as straight-line bars in two colours, one line per 0.25%; a switch shows the last finished month, so a month that fell reads leftward from the zero line (October: the market −1.2%, the book −4.3%).
+- New charts: momentum's lead every month since 2024, foreign buying by month with the heavy-buying line, breadth by size with where it stood a month ago, the book by industry, a rotation graph of every industry with the book's holdings marked, and the Nifty 500 with how many stocks carry it (6M, 1Y, 3Y).
+- Each holding shows its rank trail as a small line; each regime signal shows where today's reading sits in its own history.
+- Strong, turning and weak industries are cards again, each with its rotation over three months.
+
 ## 2026-11-20 — Signals that have been tested, and breadth counted fairly
 
 - Every regime signal on the Dashboard now shows whether it has said anything about the next month. The rule was set before looking: momentum's lead the next month must differ by at least 1 point between months when the signal was on and off, in the direction it claims, in both halves of the record since 2010. Five pass; two do not, and they stay on the page, marked "Not confirmed". Each row shows what months like today were followed by, against the +0.8 average.

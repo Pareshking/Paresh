@@ -17,7 +17,11 @@ if (!page) { console.error('usage: check_dashboard_requirements.mjs <page.html |
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
 await p.goto(/^https?:/.test(page) ? page : 'file://' + resolve(page));
 await p.waitForSelector('.site, .dh', { timeout: 180000 }).catch(() => {}); await p.waitForTimeout(3000);
-const text = await p.evaluate(() => document.body.innerText + '\n' + [...document.querySelectorAll('summary,button,[aria-label]')].map(e => e.textContent + ' ' + (e.getAttribute('aria-label') || '')).join('\n'));
+// The page's text and every chart frame's (the Dashboard's charts are frames).
+let text = '';
+for (const f of p.frames()) {
+  try { text += await f.evaluate(() => document.body.innerText + '\n' + [...document.querySelectorAll('summary,button,[aria-label]')].map(e => e.textContent + ' ' + (e.getAttribute('aria-label') || '')).join('\n')) + '\n'; } catch { /* a frame still loading */ }
+}
 await b.close();
 // Kickers are upper-cased by CSS, so compare without case.
 const low = text.toLowerCase();

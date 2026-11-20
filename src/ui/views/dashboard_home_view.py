@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import html
 import json
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -26,6 +27,7 @@ from src.engine.actions import plan_rebalance
 from src.engine.exit_watch import SELL, UNKNOWN, WATCH, Rules, assess, least_room, nearest_rule
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.loaders import benchmark_indices as bi
+from src.ui import dash_charts as dc
 from src.ui.system_param import page_href, stock_href
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -57,11 +59,81 @@ AT_RISK_ROWS = 8
 SHORT = {"Automobile and Auto Components": "Auto", "Media Entertainment & Publication": "Media",
          "Fast Moving Consumer Goods": "FMCG", "Metals & Mining": "Metals", "Consumer Durables": "Durables",
          "Financial Services": "Financials", "Consumer Services": "Cons. Services", "Capital Goods": "Capital Goods",
-         "Oil Gas & Consumable Fuels": "Oil & Gas", "Information Technology": "IT"}
+         "Oil Gas & Consumable Fuels": "Oil & Gas", "Information Technology": "IT",
+         "Telecommunication": "Telecom"}
 TONE = {"up": "dh-up", "down": "dh-down", "watch": "dh-watch", "flat": "dh-muted", "for": "dh-up",
         "against": "dh-down", "neutral": "dh-muted"}
 
 e = html.escape
+
+
+# ── Parts: a section is HTML with charts between (S151, v8) ─────────────────
+# A chart is its own frame (src/ui/dash_charts.py), so a section is a list of
+# HTML strings and charts, drawn in order; Cols puts two lists side by side.
+
+
+@dataclass
+class Chart:
+    kind: str
+    spec: dict
+    fill: dict = field(default_factory=dict)
+
+
+@dataclass
+class Cols:
+    left: list
+    right: list
+    ratio: tuple = (2, 1)
+
+
+def html_of(parts) -> str:
+    """The HTML in a list of parts, charts left out (for tests and the requirements check)."""
+    out = []
+    for p in parts:
+        if isinstance(p, str):
+            out.append(p)
+        elif isinstance(p, Cols):
+            out.append(html_of(p.left) + html_of(p.right))
+    return "".join(out)
+
+
+def emit(parts) -> None:
+    buf: list[str] = []
+
+    def flush():
+        if buf:
+            st.html(f'<div class="dh">{"".join(buf)}</div>')
+            buf.clear()
+    for p in parts:
+        if isinstance(p, str):
+            buf.append(p)
+        elif isinstance(p, Chart):
+            flush()
+            dc.render(p.kind, p.spec, **p.fill)
+        elif isinstance(p, Cols):
+            flush()
+            a, b = st.columns(list(p.ratio), gap="large")
+            with a:
+                emit(p.left)
+            with b:
+                emit(p.right)
+    flush()
+
+
+END = '<div class="dh-end"></div>'
+
+
+def how(what: str, read: str, head: list[str], rows: list[list[str]]) -> str:
+    """Under every chart: what it is, how to read it, and its table (agreed 20 Nov, tipsheet pattern)."""
+    def cell(c):
+        t = str(c)
+        return t.replace("-", "−", 1) if t.startswith("-") else t
+    table = ('<table class="dh-tab dh-tab-s"><thead><tr>' + "".join(f'<th scope="col">{e(h)}</th>' for h in head)
+             + "</tr></thead><tbody>" + "".join("<tr>" + "".join(f"<td>{e(cell(c))}</td>" for c in r) + "</tr>" for r in rows)
+             + "</tbody></table>")
+    return (f'<div class="dh-how"><details><summary>What it is · how to read it</summary><div class="dh-how-b">'
+            f'<p><b>What it is</b>{e(what)}</p><p><b>How to read it</b>{e(read)}</p></div></details>'
+            f'<details><summary>Show the table</summary><div class="dh-scroll dh-how-t">{table}</div></details></div>')
 
 
 def _read_csv(path: Path, **kw) -> pd.DataFrame | None:
@@ -165,25 +237,28 @@ def _bars(rows: list[tuple[str, float, str, bool]], scale: float) -> str:
     return "".join(out)
 
 
-def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None, as_of: pd.Timestamp) -> str:
+def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None, as_of: pd.Timestamp,
+                 prev: dict | None = None) -> list:
+    """`prev`: {"label", "market", "book", "momentum": {key: %}} for the last finished month."""
     gap = None if bm.book_mtd is None or bm.market_mtd is None else bm.book_mtd - bm.market_mtd
     mom = bm.momentum_mtd
     lo, hi = (min(mom.values()), max(mom.values())) if mom else (None, None)
     style_lag = gap is not None and gap < 0 and hi is not None and bm.book_mtd >= hi - 0.05
+    month = f"{as_of:%B}"
     if style_lag:
-        title = ('November’s lag is <span class="dh-down">momentum’s</span>, not '
-                 '<span class="dh-up">this book’s</span>.') if as_of.month == 11 else (
-                 'This month’s lag is <span class="dh-down">momentum’s</span>, not <span class="dh-up">this book’s</span>.')
+        title = f'{month}’s lag is <span class="dh-down">momentum’s</span>, not <span class="dh-up">this book’s</span>.'
     elif gap is not None and gap >= 0:
         title = f'The book is <span class="dh-up">{e(sg(gap))} points ahead</span> of the market this month.'
     else:
         title = f'The book is <span class="dh-down">{e(sg(gap))} points behind</span> the market this month.'
     up = lambda v: f"{'up' if v >= 0 else 'down'} {abs(v):.1f}%"  # noqa: E731
-    lede = (f"The market is {up(bm.market_mtd)}. NSE's {len(mom)} momentum indices are up "
-            f"{lo:.1f} to {hi:.1f}%; the book is {up(bm.book_mtd)}."
-            if mom and bm.market_mtd is not None and bm.book_mtd is not None else "")
-    if style_lag:
-        lede += " What lagged is the style, not the stock picking."
+    lede = ""
+    if mom and bm.market_mtd is not None and bm.book_mtd is not None:
+        n = {5: "All five", 4: "All four"}.get(len(mom), f"All {len(mom)}")
+        lede = f"The market is {up(bm.market_mtd)}. {n} NSE momentum indices are up {lo:.1f} to {hi:.1f}%; the book, {up(bm.book_mtd)}, "
+        lede += "is level with the best of them." if bm.book_mtd >= hi - 0.05 else ("is ahead of them." if bm.book_mtd > hi else "is within their range.")
+        if style_lag:
+            lede += " What lagged is the style, not the stock picking."
     level = bm.level_with_momentum
     kp = _kpis([
         ("The book, month so far", sg(bm.book_mtd, unit="%"), "",
@@ -201,17 +276,39 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
          "Behind in " + ", ".join(bm.behind_months) if bm.behind_months else "Ahead every month", "dh-muted",
          "The month in progress counts as it stands"),
     ])
-    rows = [("Nifty Total Market", bm.market_mtd or 0.0, "dh-f-mkt", False), ("The book", bm.book_mtd or 0.0, "dh-f-book", True)]
-    rows += [(MOMENTUM_NAMES[k], v, "dh-f-mom", False) for k, v in sorted(mom.items(), key=lambda x: -x[1])]
-    scale = max([abs(v) for _, v, _, _ in rows] + [1.0]) * 1.1
-    return (f'<section class="dh-sec" aria-labelledby="s-month">{_kicker("1", "The book this month")}'
-            f'<h1 id="s-month" class="dh-h1">{title}</h1><p class="dh-lede">{e(lede)}</p>{kp}'
-            f'<figure class="dh-fig"><figcaption class="dh-cap"><span><b>Month so far</b> · to {as_of:%-d %b}, price return</span>'
-            f'<span><span class="dh-key dh-f-mkt"></span>market <span class="dh-key dh-f-book"></span>the book '
-            f'<span class="dh-key dh-f-mom"></span>NSE momentum indices</span></figcaption>{_bars(rows, scale)}</figure>'
-            '<p class="dh-note">Market: Nifty Total Market, the 750 stocks this site ranks. The track record’s '
-            'frozen months stay as recorded against the Nifty 500; this comparison is worked out beside them. The '
-            'book is after costs; indices are price returns.</p></section>')
+    order = sorted(mom, key=lambda k: -mom[k])
+    rows = [{"name": "Nifty Total Market", "sub": "The market, 750 stocks"}, {"name": "The book", "sub": "After costs", "bold": True}]
+    rows += [{"name": MOMENTUM_NAMES[k], "sub": "NSE"} for k in order]
+    cur = [bm.market_mtd, bm.book_mtd] + [mom[k] for k in order]
+    periods, values = [{"key": "cur", "label": f"{month} so far"}], {"cur": [_r2(v) for v in cur]}
+    if prev:
+        periods.append({"key": "prev", "label": prev["label"]})
+        values["prev"] = [_r2(prev.get("market")), _r2(prev.get("book"))] + [_r2(prev["momentum"].get(k)) for k in order]
+    every = [v for vs in values.values() for v in vs if v is not None] + [0.0]
+    step = 0.25
+    lo_s, hi_s = np.floor(min(every)) - 0.5, np.ceil(max(every)) + 0.5
+    n = int(round((hi_s - lo_s) / step))
+    axis = [t for t in range(int(np.ceil(lo_s)), int(np.floor(hi_s)) + 1) if t % 2 == 0]
+    spec = {"periods": periods, "values": values, "rows": rows, "lo": float(lo_s), "hi": float(hi_s), "step": step,
+            "axis": axis, "market": 0, "book": 1}
+    table_rows = [[r["name"]] + [("—" if values[p["key"]][i] is None else f'{sg(values[p["key"]][i], 2)}%') for p in periods]
+                  for i, r in enumerate(rows)]
+    return [
+        f'<div class="dh-sec">{_kicker("1", "The book this month")}<h1 id="s-month" class="dh-h1">{title}</h1>'
+        f'<p class="dh-lede">{e(lede)}</p>{kp}<div class="dh-cap"><b>The month</b><span>to {as_of:%-d %b}, price return</span></div></div>',
+        Chart("month", spec, {"note": "Each line is 0.25%; filled lines right of the dark zero line are a gain, left a fall.", "n": n}),
+        how("Each row is a return for the month: the market (Nifty Total Market, the 750 this site ranks), the model book, "
+            "and NSE’s momentum indices. Switch to the last finished month to compare.",
+            "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "
+            "style lagged; against the market row, how far momentum is behind.",
+            [""] + [p["label"] for p in periods], table_rows),
+        '<p class="dh-note">Market: Nifty Total Market, the 750 stocks this site ranks. January to October stay as recorded '
+        'against the Nifty 500; the Total Market comparison is worked out beside them. The book is after costs; indices are '
+        'price returns. The book’s month-by-month record is on Portfolio.</p>' + END]
+
+
+def _r2(v):
+    return None if v is None or not np.isfinite(v) else round(float(v), 2)
 
 
 def _turnover_html(t: di.Turnover | None, industry: pd.Series) -> str:
@@ -225,13 +322,46 @@ def _turnover_html(t: di.Turnover | None, industry: pd.Series) -> str:
         rows += '<tr><th scope="row" colspan="4" class="dh-sub dh-tr-g">Fell out</th></tr>'
         rows += "".join(f'<tr><th scope="row">{e(s)}<span class="dh-sub">{ind(s)}</span></th><td></td>{rk(b)}'
                         f'<td class="dh-num dh-b dh-down">{"Out" if c is None else f"#{c}"}</td></tr>' for s, b, c in t.fallers)
+    say = []
+    up_ind = pd.Series([industry.get(s) for s, *_ in t.climbers]).value_counts()
+    if len(up_ind) and up_ind.iloc[0] >= 2:
+        say.append(f"{SHORT.get(up_ind.index[0], up_ind.index[0])} are climbing in, {up_ind.iloc[0]} of the {len(t.climbers)}")
+    dn_ind = pd.Series([industry.get(s) for s, *_ in t.fallers]).value_counts()
+    if len(dn_ind) and dn_ind.iloc[0] >= 2:
+        say.append(f"{dn_ind.iloc[0]} of the {len(t.fallers)} falling out are {SHORT.get(dn_ind.index[0], dn_ind.index[0])} names")
+    line = f'<p class="dh-lede-s">{e("; ".join(say))}.</p>' if say else ""
     return (f'<div><div class="dh-lab">Leadership turnover · {t.new} of today’s top {t.top} were not there a month ago</div>'
             '<table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Rising in</th><th scope="col" class="dh-num">3M ago</th>'
-            f'<th scope="col" class="dh-num">1M ago</th><th scope="col" class="dh-num">Now</th></tr></thead><tbody>{rows}</tbody></table></div>')
+            f'<th scope="col" class="dh-num">1M ago</th><th scope="col" class="dh-num">Now</th></tr></thead><tbody>{rows}</tbody></table>{line}</div>')
+
+
+def _rank_trail_svg(t: list[int | None], cut: int) -> str:
+    """Three ranks as a small line, higher a better rank; the cut-off dashed; "Out" hollow at the floor."""
+    W, H = 88, 30
+    y = lambda r: H - 3 if r is None else 3 + (min(r, 90) - 1) / 89 * (H - 8)  # noqa: E731
+    x = lambda i: 6 + i * (W - 12) / 2  # noqa: E731
+    now, before = t[2], t[1]
+    c = ("var(--c-down)" if now is None or now > cut else "var(--c-up)" if before is None or now < before
+         else "var(--c-caution)")
+    pts = [(x(i), y(r)) for i, r in enumerate(t)]
+    dots = "".join(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="{3.5 if i == 2 else 2.5}" '
+                   f'style="fill:{"var(--c-white)" if t[i] is None else c};stroke:{c};stroke-width:1.5"></circle>' for i, (px, py) in enumerate(pts))
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">'
+           f'<line x1="2" x2="{W - 2}" y1="{y(cut):.1f}" y2="{y(cut):.1f}" style="stroke:var(--c-muted);stroke-dasharray:2 3"></line>'
+           f'<polyline points="{" ".join(f"{px:.1f},{py:.1f}" for px, py in pts)}" '
+           f'style="fill:none;stroke:{c};stroke-width:2;stroke-linejoin:round"></polyline>{dots}</svg>')
+    # st.html's cleaner drops inline SVG, so the trail is an image with the theme's colours written in.
+    from urllib.parse import quote
+
+    from src.ui.tokens import resolve
+    words = " → ".join("Out" if r is None else f"#{r}" for r in t)
+    return (f'<img class="dh-trail" width="{W}" height="{H}" alt="Rank trail {words}" '
+            f'src="data:image/svg+xml,{quote(resolve(svg))}">')
 
 
 def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check, fill, n_sess: int,
-                      rules: Rules, n_hold: int, churn: str, results_line: str, turnover: str = "") -> str:
+                      rules: Rules, n_hold: int, churn: str, results_line: str, turnover: str = "",
+                      dates: dict | None = None) -> list:
     rows = a[a["status"] != UNKNOWN].copy()
     rows["room"] = rows.apply(lambda r: least_room(r, rules), axis=1)
     rows = rows.sort_values("room", na_position="first").head(AT_RISK_ROWS)
@@ -249,6 +379,14 @@ def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check
     if worst:
         head += (f' <span class="dh-watch">{e(worst[0])} fell from #{worst[1]} to #{worst[2]} in a month</span>, '
                  f'{rules.buffer_n - worst[2]} places from the cut-off.')
+    sold = a[a["Symbol"].isin(plan.sells)]
+    shared_ind = [i for i, n in sold["Industry"].value_counts().items() if n >= 2] if "Industry" in sold else []
+    for ind in shared_ind:
+        n_ind = int((a["Industry"] == ind).sum())
+        if n_ind == int((sold["Industry"] == ind).sum()) and ind_state.get(str(ind), ("",))[0] == "behind on both":
+            word = "both" if n_ind == 2 else f"all {n_ind}"
+            head = head[:-1] + f'; <span class="dh-down">{word} {e(str(ind))} holdings go</span> as their industry slides.'
+            break
     body = []
     for _, r in rows.iterrows():
         sym = r["Symbol"]
@@ -263,24 +401,30 @@ def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check
             f'<div class="dh-hold"><div><a class="dh-mono dh-b dh-sym" href="{e(stock_href(str(sym)))}" target="_self">{e(sym)}</a><span class="dh-sub">{e(ind)}'
             + (f' · <span class="{st_tone}">{e(state)}</span>' if state else "") + '</span></div>'
             f'<div class="{"dh-muted" if status == "Clear" else ""}">{e(str(r["why"]) if r["status"] == SELL else nearest_rule(r, rules))}'
-            f'<span class="dh-sub dh-b {TONE[wt]}">{e(word)}</span></div>{rk}'
+            f'<span class="dh-sub dh-b {TONE[wt]}">{e(word)}</span></div>{rk}{_rank_trail_svg(t, rules.buffer_n)}'
             f'<span class="dh-badge {stc}">{status}</span></div>')
     buys = "".join(f'<span class="dh-chip">{e(s)}</span>' for s in plan.buys) or '<span class="dh-muted">None</span>'
     nxt = " · ".join(e(s) for s in plan.next_in_line) or "—"
-    return (f'<section class="dh-sec" aria-labelledby="s-next">{_kicker("2", f"What happens on {check:%-d %b}")}'
+    others = n_hold - len(rows)
+    last = str(rows["Symbol"].iloc[-1]) if len(rows) else ""
+    d3, d1 = (dates or {}).get("3m"), (dates or {}).get("1m")
+    when = f" (3M ago is {d3:%-d %b}, 1M ago {d1:%-d %b})" if d3 is not None and d1 is not None else ""
+    return [(f'<div class="dh-sec">{_kicker("2", f"What happens on {check:%-d %b}")}'
             f'<h2 id="s-next" class="dh-h2">{head}</h2><div class="dh-cols"><div class="dh-col2">'
             '<div class="dh-hold dh-hold-h"><span>Holding, least room first</span><span>Nearest rule · rank trend</span>'
             '<span class="dh-num">Rank 3M ago</span><span class="dh-num">1M ago</span><span class="dh-num">Now</span>'
-            '<span class="dh-num">If unchanged</span></div>' + "".join(body)
-            + f'<p class="dh-note">Checked at the {check:%a %-d %b} close, filled {fill:%a %-d %b}. Rank: how today’s '
-            'rule ranks the stock on that day, among the stocks passing the filters then, on today’s clean prices; '
-            'it can differ by a place or two from what the site showed that day. “Out”: it did not pass the filters. '
-            'Under each name, its industry against all ranked stocks.</p></div>'
+            '<span>Rank trail</span><span class="dh-num">If unchanged</span></div>' + "".join(body)
+            + f'<p class="dh-note">Checked at the {check:%a %-d %b} close, filled {fill:%a %-d %b}.'
+            + (f' The other {others} holdings have more room than {e(last)}.' if others > 0 and last else "")
+            + f' Rank: how today’s rule ranks the stock on that day{when}, among the stocks passing the filters then, on '
+            'today’s clean prices; it can differ by a place or two from what the site showed that day. “Out”: it did not '
+            f'pass the filters. The trail: higher is a better rank, the dashed line is the cut-off at #{rules.buffer_n}, a '
+            'hollow point is “Out”. Under each name, its industry against all ranked stocks.</p></div>'
             f'<div class="dh-col1"><div class="dh-lab">Would be bought</div><div class="dh-chips">{buys}</div>'
             f'<p class="dh-sub">Next in line: <span class="dh-mono">{nxt}</span></p>'
             f'<div class="dh-callout">{e(churn)} {e(results_line)}</div>{turnover}'
             f'<a class="dh-link" href="{e(page_href("actions"))}" target="_self">The plan, share by share, on Actions →</a>'
-            '</div></div></section>')
+            '</div></div></div>' + END)]
 
 
 def _trail_cell(vals: list[float | None], fmt) -> list[str]:
@@ -288,7 +432,7 @@ def _trail_cell(vals: list[float | None], fmt) -> list[str]:
     return ["—" if v is None else fmt(v) for v in vals]
 
 
-def section_momentum(lead, streak: int, signals: list[dict], average: float | None) -> str:
+def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None) -> list:
     tested = [x for x in signals if x["test"] is not None]
     passed = [x for x in tested if x["test"]["passed"]]
     better = sum(x["like"] is not None and average is not None and x["like"] >= average for x in passed)
@@ -298,8 +442,10 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
              if streak >= 2 else ".")
     if tested:
         head += (f' We tested each signal on our own record since 2010: <span class="dh-up">{len(passed)} pass</span>, '
-                 f'<span class="dh-muted">{len(tested) - len(passed)} {"is" if len(tested) - len(passed) == 1 else "are"} not confirmed</span>. '
-                 f'Today <span class="dh-up">{better} point{"s" if better != 1 else ""} to a stronger month</span>, '
+                 f'<span class="dh-muted">{len(tested) - len(passed)} {"is" if len(tested) - len(passed) == 1 else "are"} not confirmed</span>'
+                 + (', one of them a reading the page used to count for momentum. ' if any(
+                     x["key"] == "participation_jump" and x["test"] and not x["test"]["passed"] for x in signals) else '. ')
+                 + f'Today <span class="dh-up">{better} point{"s" if better != 1 else ""} to a stronger month</span>, '
                  f'<span class="dh-down">{len(passed) - better} to a weaker one</span>.')
     tiles = []
     for when, v, note in lead:
@@ -327,37 +473,57 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
         rows.append(
             f'<tr class="{"dh-faint" if d is None else ""}"><th scope="row">{e(x["name"])}<span class="dh-sub">{e(x["sub"])}</span></th>'
             + "".join(f'<td class="dh-num{" dh-muted" if k < 2 else " dh-b"}">{e(v)}</td>' for k, v in enumerate(x["cells"]))
-            + f'<td class="dh-num dh-b {cls}">{"—" if like is None else e(sg(like))}</td>'
+            + f'<td class="dh-hist">{e(x.get("hist", ""))}</td>'
+            + f'<td class="dh-num dh-b {cls}">{"—" if like is None else e(sg(like, 2))}</td>'
             f'<td><span class="dh-dbar"><span><i class="dh-f-neg" style="width:{w if d is not None and d < 0 else 0:.0f}%"></i></span>'
             f'<span><i class="dh-f-pos" style="width:{w if d is not None and d >= 0 else 0:.0f}%"></i></span></span>'
             f'<span class="dh-sub dh-b {cls}">{reads}</span></td>'
             f'<td>{badge}<span class="dh-sub">{e(why)}</span></td><td>{e(x["flip"]) if d is not None else ""}</td></tr>')
     avg = "—" if average is None else sg(average)
-    return (f'<section class="dh-sec" aria-labelledby="s-mom">{_kicker("3", "Is momentum still working?")}'
-            f'<h2 id="s-mom" class="dh-h2">{head}</h2>'
-            '<div class="dh-sub">Momentum’s lead over the market, points, longest window first</div>'
-            f'<div class="dh-tiles">{"".join(tiles)}</div>'
-            f'<div class="dh-cap"><b>What today’s readings have meant for next month</b><span>Momentum’s next-month lead after '
-            f'months like this, points · all months since 2010 average {e(avg)}</span></div>'
-            '<div class="dh-scroll"><table class="dh-tab"><thead><tr><th scope="col">Signal · when it is on</th>'
-            '<th scope="col" class="dh-num">3M ago</th><th scope="col" class="dh-num">1M ago</th><th scope="col" class="dh-num">Now</th>'
-            f'<th scope="col" class="dh-num">Months like this</th><th scope="col" class="dh-w-bar">Against the {e(avg)} average</th>'
-            '<th scope="col">Our test</th><th scope="col">What would flip it</th></tr></thead>'
-            f'<tbody>{"".join(rows)}</tbody></table></div>'
-            '<p class="dh-note"><b>The test, fixed before looking:</b> a signal passes if momentum’s next-month lead (the '
-            'top 100 of this ranking less the Nifty 500) differs by at least 1 point between months when it is on and off, '
-            'in the direction it claims, and in both halves of the record. Failures stay on the page. The signals overlap, '
-            'so their bars are not added into one score. Breadth and participation count the Nifty 500’s members on each '
-            'date, leavers included. In-sample: the thresholds were set on the record they are tested on. The first three '
-            'tiles: top 100 against the Nifty 500; the month so far: NSE’s Nifty500 Momentum 50 against Nifty Total Market. '
-            'Describing is not forecasting; the live rules stay fully invested whatever this says.</p></section>')
+    parts = [f'<div class="dh-sec">{_kicker("3", "Is momentum still working?")}<h2 id="s-mom" class="dh-h2">{head}</h2>'
+             '<div class="dh-sub">Momentum’s lead over the market, points, longest window first</div>'
+             f'<div class="dh-tiles">{"".join(tiles)}</div>'
+             '<p class="dh-note">Tiles: the top 100 of this site’s ranking against the Nifty 500, the history’s benchmark, '
+             'over 12 months, the last 3 months and the last finished month; the month so far is NSE’s Nifty500 Momentum 50 '
+             'against Nifty Total Market.</p>'
+             + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top 100 less the Nifty 500, points</span></div>'
+                if lead_bars else '') + '</div>']
+    if lead_bars:
+        parts += [Chart("bars", lead_bars, {"label": "Momentum’s lead over the Nifty 500 by month"}),
+                  how("Each month, the return of the 100 best-ranked stocks less the Nifty 500’s, in points. The last bar is the "
+                      "month so far, from Nifty500 Momentum 50 against Nifty Total Market.",
+                      "Bars above the line are months momentum led. A run below it is momentum out of favour; whether the "
+                      "year-long lead holds matters more than one month.",
+                      ["Month", "Lead, pts"], [[m, sg(v, 2)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])])]
+    parts.append(
+        f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>What today’s readings have meant for next month</b><span>Momentum’s next-month lead after '
+        f'months like this, points · all months since 2010 average {e(avg)}</span></div>'
+        '<div class="dh-scroll"><table class="dh-tab dh-tab-sig"><thead><tr><th scope="col">Signal · when it is on</th>'
+        '<th scope="col" class="dh-num">3M ago</th><th scope="col" class="dh-num">1M ago</th><th scope="col" class="dh-num">Now</th>'
+        '<th scope="col">In its own history</th>'
+        f'<th scope="col" class="dh-num">Months like this</th><th scope="col" class="dh-w-bar">Against the {e(avg)} average</th>'
+        '<th scope="col">Our test</th><th scope="col">What would flip it</th></tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody></table></div>'
+        '<p class="dh-note"><b>The test, fixed before looking:</b> a signal passes if momentum’s next-month lead (the '
+        'top 100 of this ranking less the Nifty 500) differs by at least 1 point between months when it is on and off, '
+        'in the direction it claims, and in both halves of the record. Failures stay on the page. The signals overlap, '
+        'so their bars are not added into one score. Breadth and participation count the Nifty 500’s members on each '
+        'date, leavers included. In-sample: the thresholds were set on the record they are tested on. '
+        'Describing is not forecasting; the live rules stay fully invested whatever this says.</p></div>' + END)
+    return parts
 
 
-def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[float, float] | None = None) -> str:
+def crore(v: float | None) -> str:
+    """cr() for sentences: “₹1.15 lakh crore”, not “Cr”."""
+    return cr(v).replace(" Cr", " crore")
+
+
+def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[float, float] | None = None,
+                  bars: dict | None = None, compare: tuple[float, float, int] | None = None) -> list:
     rec = f.month_rank == 1
-    head = (f'Foreign investors have bought <span class="dh-up">{e(cr(f.mtd).lstrip("+"))} this month'
+    head = (f'Foreign investors have bought <span class="dh-up">{e(crore(f.mtd).lstrip("+"))} this month'
             + (f', the most in any month since {f.months_in_record and e(_first_year(f))}</span>' if rec else '</span>')
-            + (f', after selling {e(cr(-f.before).lstrip("+"))} over the 11 months before.' if f.before < 0 else '.'))
+            + (f', after selling {e(crore(-f.before).lstrip("+"))} over the 11 months before.' if f.before < 0 else '.'))
     if dii and dii[2] < 0:
         head += ' <span class="dh-down">Domestic institutions are selling into it.</span>'
     kp = [("Foreign, month so far", cr(f.mtd), tone(f.mtd),
@@ -378,12 +544,6 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
         kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}", cr(dii[2]), tone(dii[2]),
                    f"Net sellers on {dii[4]} of {dii[3]} sessions", "dh-down" if dii[4] * 2 > dii[3] else "dh-muted",
                    "Taking the other side of foreign buying" if dii[2] < 0 and f.mtd > 0 else ""))
-    peak = max(abs(v) for _, v in f.monthly) or 1
-    bars = "".join(
-        f'<div class="dh-mb"><span class="dh-mb-l {tone(v)}">{"+" if v > 0 else "−"}{abs(v):.0f}</span>'
-        f'<span class="dh-mb-up"><i class="{"dh-f-pos" if n == f.monthly[-1][0] else "dh-f-mom"}" style="height:{max(v, 0) / peak * 100:.0f}%"></i></span>'
-        f'<span class="dh-mb-dn"><i class="dh-f-neg" style="height:{max(-v, 0) / peak * 100:.0f}%"></i></span>'
-        f'<span class="dh-mb-n">{e(n)}</span></div>' for n, v in f.monthly)
     evid = ""
     if ev is not None:
         halves = "; ".join(f"{p.replace('-', ' to ')}: {sg(h)} vs {sg(r)}" for p, h, r in ev.halves)
@@ -393,20 +553,34 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                 f'market the next month by {ev.after_heavy:.1f} points on average, against {ev.after_rest:.1f} after the rest; ahead '
                 f'{ev.hit_heavy:.0f}% of the time against {ev.hit_rest:.0f}%. '
                 + (f'It held in both halves ({halves}).' if held else f'It did not hold in both halves ({halves}).')
-                + f'<span class="dh-ev dh-ev-t">Tested here · {ev.months} months, in-sample</span></div>'
+                + f'<span class="dh-ev dh-ev-t">Tested here · {ev.months} months, {ev.heavy_months} heavy, in-sample</span></div>'
                 f'<div class="dh-ev-box"><b>No forecast for the market.</b> Flows move with the market in the same month '
                 f'(correlation {sg(ev.corr_same, 2)}) and say nothing about the next ({sg(ev.corr_next, 2)}).</div>'
                 f'<div class="dh-ev-box"><b>{"Not a large-cap story" if ev.large_minus_broad <= 0 else "A large-cap tilt"}.</b> '
                 f'In those heavy-buying months the Nifty 50 {"trailed" if ev.large_minus_broad <= 0 else "beat"} the Nifty 500 '
                 f'by {abs(ev.large_minus_broad):.2f} points on average.</div>')
-    return (f'<section class="dh-sec" aria-labelledby="s-flow">{_kicker("4", "Money flows")}'
-            f'<h2 id="s-flow" class="dh-h2">{head}</h2>{_kpis(kp)}<div class="dh-cols">'
-            f'<figure class="dh-col2 dh-fig"><figcaption class="dh-cap"><b>Foreign investors, net, each month</b> · ₹ thousand crore, NSDL equity</figcaption>'
-            f'<div class="dh-mbars" role="img" aria-label="Foreign portfolio investors’ net equity flows, last 12 months">{bars}</div></figure>'
-            f'<div class="dh-col1"><div class="dh-sub"><b>What heavy foreign buying has meant</b> · {e(ev.first) if ev else ""} to {e(ev.last) if ev else ""}</div>{evid}</div></div>'
+    cmp = ""
+    if compare is not None:
+        cmp = (f"; NSE’s provisional foreign figure over the same {compare[2]} sessions is {cr(compare[0])} against NSDL’s "
+               f"{cr(compare[1])}, which also counts primary-market buying")
+    else:
+        cmp = "; NSE’s provisional foreign figure differs from NSDL’s, which also counts primary-market buying"
+    head_html = (f'<div class="dh-sec">{_kicker("4", "Money flows")}<h2 id="s-flow" class="dh-h2">{head}</h2>{_kpis(kp)}</div>')
+    left = []
+    if bars:
+        thr = f", dashed line: a heavy-buying month, ₹{ev.threshold:,.0f} Cr or more" if ev is not None else ""
+        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore · NSDL equity{e(thr)}</span></div>',
+                Chart("bars", bars, {"label": "Foreign portfolio investors’ net equity flows by month"}),
+                how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market, from NSDL.",
+                    "Above the line is net buying. The dashed line starts the top quarter of months since 2016; after such months "
+                    "momentum has led the market by more the next month than after the rest.",
+                    ["Month", "FPI net, ₹ crore"], [[m, f"{v:,.0f}"] for m, v in zip(bars["full"][::-1], bars["values"][::-1])])]
+    right = (f'<div class="dh-col1"><div class="dh-sub"><b>What heavy foreign buying has meant</b> · {e(ev.first) if ev else ""} to '
+             f'{e(ev.last) if ev else ""}</div>{evid}</div>')
+    return [head_html, Cols(left, [right], (2, 1)),
             '<p class="dh-note">Foreign: NSDL’s confirmed FPI equity figures, exchange and primary market, a reporting date '
-            'covering the session before. Domestic institutions: NSE’s provisional daily figures, collected from 6 Nov 2026. '
-            'NSE’s provisional foreign figure differs from NSDL’s because NSDL also counts primary-market buying.</p></section>')
+            'covering the session before. Domestic institutions: NSE’s provisional daily figures, collected from 6 Nov 2026, '
+            f'so the month is not complete{e(cmp)}.</p>' + END]
 
 
 def _first_year(f: di.Flows) -> str:
@@ -414,7 +588,7 @@ def _first_year(f: di.Flows) -> str:
 
 
 def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None) -> tuple[str, str]:
-    """(the two tables, a phrase for the heading)."""
+    """(the two tables, a phrase for the heading). The Dashboard draws the left one as a chart (_shared_parts)."""
     phrase, left, right = "", "", ""
     if by_size:
         now = {n: v[2] for n, v in by_size if v[2] is not None}
@@ -457,7 +631,33 @@ def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None) -
     return f'<div class="dh-pair">{left}{right}</div>', phrase
 
 
-def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None) -> str:
+def _shared_parts(by_size, typical, book_sizes) -> list:
+    """Is the rally shared (a chart with its readings) beside the typical stock (a table)."""
+    _, phrase = _shared_html(by_size, typical, book_sizes)
+    right = _shared_html(None, typical, book_sizes)[0]
+    if not by_size:
+        return [right] if right else []
+    rows = [[n, None if v[0] is None else round(v[0]), None if v[1] is None else round(v[1]), round(v[2])]
+            for n, v in by_size if v[2] is not None]
+    now = {r[0]: r[3] for r in rows}
+    hi, lo = max(now, key=now.get), min(now, key=now.get)
+    month_ago = {r[0]: r[2] for r in rows if r[2] is not None}
+    was_best = max(month_ago, key=month_ago.get) if month_ago else None
+    held = (book_sizes or {}).get(BREADTH_TIER.get(lo, ""), 0)
+    say = ((f"A month ago {was_best.split()[0].lower()}s held up best; now " if was_best and was_best != hi else "Now ")
+           + f'<b class="dh-up">{e(hi)} is the broadest</b> and <b class="dh-down">{e(lo)} the narrowest</b>'
+           + (f", where {held:.0f}% of the book sits." if held >= 20 else "."))
+    say = say.replace("nifty 100s", "large caps").replace("microcap 250s", "microcaps").replace("smallcap 250s", "small caps").replace("midcap 150s", "mid caps")
+    left = ['<div class="dh-cap"><b>Is the rally shared?</b><span>share above the 200D EMA, by NSE size list</span></div>',
+            Chart("shared", {"rows": rows, "step": 2}, {"step": "2"}),
+            f'<p class="dh-lede-s">{say}</p>',
+            how("The share of each NSE size list trading above its own 200-day average.",
+                "Above 60% the rally is broad there, below 40% narrow. The triangle marks a month ago.",
+                ["Size", "3M ago", "1M ago", "Now"], [[r[0]] + ["—" if x is None else f"{x}%" for x in r[1:]] for r in rows])]
+    return [Cols(left, [right], (1, 1))]
+
+
+def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None) -> list:
     shared, phrase = _shared_html(by_size, typical, book_sizes)
     large = next((p for s, _, p in rows if s == "Large"), [None] * 3)
     midsmall = [x for s, _, p in rows if s in ("Mid", "Small") for x in p if x is not None]
@@ -487,7 +687,7 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None)
         + "".join(cell(v) for v in vs) + '<td></td>' + "".join(cell(v) for v in prem) + "</tr>" for s, vs, prem in rows)
     strip = "".join(f'<i class="dh-sz-{k.lower()}" style="width:{v:.0f}%">{e(k) + " " + f"{v:.0f}%" if v >= 20 else ""}</i>'
                     for k, v in book_sizes.items())
-    return (f'<section class="dh-sec" aria-labelledby="s-size">{_kicker("5", "Size, and where momentum works")}'
+    return [(f'<div class="dh-sec">{_kicker("5", "Size, and where momentum works")}'
             f'<h2 id="s-size" class="dh-h2">{head}</h2><div class="dh-sub">The book by size, NSE index lists</div>'
             f'<div class="dh-sizebar" role="img" aria-label="The book by size">{strip}</div>'
             '<div class="dh-scroll"><table class="dh-tab"><thead><tr><th scope="col" rowspan="2">Size · its index · its momentum index</th>'
@@ -495,14 +695,14 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None)
             '<th scope="colgroup" colspan="3">Momentum against its size index</th></tr><tr>'
             + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in di.WINDOWS) + '<th></th>'
             + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in di.WINDOWS)
-            + f'</tr></thead><tbody>{body}</tbody></table></div>{shared}'
-            '<p class="dh-note">Size lists and members are NSE’s as of today, so readings 3 months back leave out the few '
-            'stocks that have since moved list. Points, price returns. Market: Nifty Total Market. Smallcap250 Momentum Quality 100 also screens '
+            + f'</tr></thead><tbody>{body}</tbody></table></div></div>')] + _shared_parts(by_size, typical, book_sizes) + [
+            '<p class="dh-note">Size lists and members are NSE’s as of today, so older readings leave out stocks that have '
+            'since left them. Points, price returns. Market: Nifty Total Market. Smallcap250 Momentum Quality 100 also screens '
             'for quality; NSE has no microcap momentum index. Each momentum index is checked nightly against an ETF that '
-            'tracks it. Source: NSE indices via Screener’s index chart.</p></section>')
+            'tracks it. Source: NSE indices via Screener’s index chart.</p>' + END]
 
 
-def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dict, rrg_now: pd.DataFrame) -> str:
+def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dict, rrg_now: pd.DataFrame) -> list:
     s = sectors.set_index("Industry")
     rows = []
     for _, r in weights.iterrows():
@@ -523,48 +723,51 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dic
         head += "."
     order = {"strong": 0, "turning": 1, "weak": 2}
     srt = sorted(rows, key=lambda x: (order[x[5]], -x[2]))
-    seg = "".join(
-        f'<i class="dh-seg-{x[5]}{" dh-seg-slow" if x[5] == "strong" and x[6] == "Weakening" else ""}" style="width:{x[2]:.1f}%">'
-        f'{e(SHORT.get(x[0], x[0])) + " " + f"{x[2]:.0f}%" if x[2] >= 9 else ""}</i>' for x in srt)
-    rrg_cls = {"Leading": "dh-up", "Improving": "dh-up", "Weakening": "dh-watch", "Lagging": "dh-down"}
-    notes = {"strong": "ahead of the market over six months and one month",
-             "turning": "ahead on one window only",
-             "weak": "behind the market on both windows"}
-    body = []
-    for k, title, cls in (("strong", "Strong", "dh-up"), ("turning", "Turning", "dh-watch"), ("weak", "Weak", "dh-down")):
+    segs = [[SHORT.get(x[0], x[0]), x[1], round(x[2], 1), round(x[3], 1), round(x[4], 1), x[6], x[5]] for x in srt]
+    qb = {"Leading": "dh-qb-up", "Improving": "dh-qb-imp", "Weakening": "dh-qb-watch", "Lagging": "dh-qb-down"}
+    turning = [x for x in srt if x[5] == "turning"]
+    desc = {
+        "strong": "Ahead of the market over six months and one month."
+                  + (f" {big[0]}, the largest, has been losing pace on the RRG for three months running."
+                     if big and big[5] == "strong" and big[7] and all(q == "Weakening" for q in big[7]) else ""),
+        "turning": "Ahead on one window only" + (": " + ", ".join(
+            f"{SHORT.get(x[0], x[0])} over {'the month' if x[4] > 0 else 'six months'}" for x in turning) + "." if turning else "."),
+        "weak": "Behind the market on both windows.",
+    }
+    cards = []
+    for k, title, cls in (("strong", "Strong", "up"), ("turning", "Turning", "watch"), ("weak", "Weak", "down")):
         items = [x for x in srt if x[5] == k]
         if not items:
             continue
-        body.append(f'<tr class="dh-grp-row"><th scope="rowgroup" colspan="8"><span class="{cls}">{title} · {tot[k]:.1f}%</span>'
-                    f'<span class="dh-muted"> · {notes[k]}</span></th></tr>')
-        for x in items:
-            path = list(x[7]) if x[7] else ["—", "—", x[6]]
-            body.append(
-                f'<tr><th scope="row">{e(x[0])}</th><td class="dh-num">{x[1]}</td><td class="dh-num dh-b">{x[2]:.1f}%</td>'
-                f'<td class="dh-num {tone(x[3])}">{e(sg(x[3]))}</td><td class="dh-num {tone(x[4])}">{e(sg(x[4]))}</td>'
-                + "".join(f'<td class="{rrg_cls.get(q, "dh-muted")}{" dh-b" if i == 2 else ""}">{e(q)}</td>' for i, q in enumerate(path))
-                + '</tr>')
-    table = ('<div class="dh-scroll"><table class="dh-tab dh-tab-sw"><thead><tr><th scope="col">Industry</th>'
-             '<th scope="col" class="dh-num">Holdings</th><th scope="col" class="dh-num">Weight</th>'
-             '<th scope="col" class="dh-num">6M</th><th scope="col" class="dh-num">1M</th>'
-             '<th scope="col">RRG 3M ago</th><th scope="col">1M ago</th><th scope="col">Now</th></tr></thead>'
-             f'<tbody>{"".join(body)}</tbody></table></div>')
-    return (f'<section class="dh-sec" aria-labelledby="s-book">{_kicker("6", "Where the book is strong and weak")}'
-            f'<h2 id="s-book" class="dh-h2">{head}</h2><div class="dh-segbar" role="img" aria-label="The book by industry status">{seg}</div>'
-            f'{table}'
-            '<p class="dh-note">6M and 1M: each industry’s stocks, equal-weighted, against all ranked stocks built the same way, '
-            'in points (Sectors). RRG: the quadrant over 12 weekly readings, 3 months ago, 1 month ago and now.</p></section>')
+        body = "".join(
+            f'<div class="dh-gc-r"><div class="dh-gc-1"><span><b>{e(SHORT.get(x[0], x[0]))}</b> <span class="dh-muted">· {x[1]} '
+            f'holding{"s" if x[1] > 1 else ""}</span></span><b class="dh-mono">{x[2]:.1f}%</b></div>'
+            f'<div class="dh-gc-2"><span class="dh-muted">6M · 1M <span class="dh-mono {tone(x[3])}">{e(sg(x[3]))}</span> · '
+            f'<span class="dh-mono {tone(x[4])}">{e(sg(x[4]))}</span></span><span class="dh-qb {qb.get(x[6], "")}">{e(x[6])}</span></div>'
+            + (f'<div class="dh-gc-3">Rotation: {e(x[7][0])} → {e(x[7][1])} → <b>{e(x[7][2])}</b></div>' if x[7] else "")
+            + '</div>' for x in items)
+        cards.append(f'<div class="dh-gcard dh-g-{cls}"><div class="dh-gc-h"><h3 class="dh-{cls}">{title}</h3>'
+                     f'<b class="dh-{cls} dh-mono">{tot[k]:.1f}%</b></div><p>{e(desc[k])}</p>{body}</div>')
+    return [f'<div class="dh-sec">{_kicker("6", "Where the book is strong and weak")}<h2 id="s-book" class="dh-h2">{head}</h2></div>',
+            Chart("segbar", {"segs": segs}, {"label": "The book by industry status"}),
+            how("The book’s weight in each industry, coloured by how that industry stands against all ranked stocks over six "
+                "months and one month.", "Blue is ahead on both, amber ahead on one, rust behind on both. The cards give each "
+                "industry’s figures and its rotation.", ["Industry", "Weight", "Status"],
+                [[x[0], f"{x[2]:.1f}%", x[6].capitalize()] for x in sorted(segs, key=lambda x: -x[2])]),
+            f'<div class="dh-gcards">{"".join(cards)}</div>'
+            '<p class="dh-note">Each industry’s stocks, equal-weighted, against all ranked stocks built the same way: 6M · 1M in '
+            'points (Sectors), and the RRG quadrant over 12 weekly readings, 3 months ago → 1 month ago → now.</p>' + END]
 
 
-def section_leadership(rrg_now: pd.DataFrame, paths: dict, held: dict[str, int]) -> str:
+def section_leadership(rrg_now: pd.DataFrame, paths: dict, held: dict[str, int]) -> list:
     moves = di.rotation_moves(paths)
     lead = rrg_now[rrg_now["Quadrant"] == "Leading"]
     n_held = sum(1 for i in lead.index if held.get(i))
     parts = []
     if moves["risen"]:
-        parts.append(f'<span class="dh-up">{e(_and(moves["risen"]))} went from lagging or improving to leading in three months</span>.')
+        parts.append(f'<span class="dh-up">{e(_and([SHORT.get(x, x) for x in moves["risen"]]))} went from lagging or improving to leading in three months</span>.')
     if moves["fading"]:
-        parts.append(f'<span class="dh-watch">{e(_and(moves["fading"]))} led a month ago and {"is" if len(moves["fading"]) == 1 else "are"} now losing pace.</span>')
+        parts.append(f'<span class="dh-watch">{e(_and([SHORT.get(x, x) for x in moves["fading"]]))} led a month ago and {"is" if len(moves["fading"]) == 1 else "are"} now losing pace.</span>')
     parts.append(f'The book holds {n_held} of the {len(lead)} leaders.')
     groups = []
     meta = (("Leading", "dh-up", "Ahead of the market and pulling further ahead"),
@@ -581,23 +784,40 @@ def section_leadership(rrg_now: pd.DataFrame, paths: dict, held: dict[str, int])
             for i, r in g.iterrows())
         groups.append(f'<div><div class="dh-grp-h {cls}"><h3>{q}</h3><span class="dh-sub">{len(g)} industr{"y" if len(g) == 1 else "ies"}</span></div>'
                       f'<p class="dh-sub">{note}</p>{rows}</div>')
-    return (f'<section class="dh-sec" aria-labelledby="s-ind">{_kicker("7", "Where leadership is moving")}'
-            f'<h2 id="s-ind" class="dh-h2">{" ".join(parts)}</h2><div class="dh-groups">{"".join(groups)}</div>'
+    points = [[str(i), round(float(r.RS_Ratio), 1), round(float(r.RS_Momentum), 1), int(held.get(i, 0)),
+               " → ".join(paths[i][:2]) if i in paths else "—"] for i, r in rrg_now.iterrows()]
+    spec = {"points": points, "heldLeaders": f"{n_held} of {len(lead)}"}
+    return [f'<div class="dh-sec">{_kicker("7", "Where leadership is moving")}<h2 id="s-ind" class="dh-h2">{" ".join(parts)}</h2></div>',
+            Cols(['<div class="dh-cap"><b>Relative rotation, now</b><span>RS ratio · RS momentum · 100 = all ranked stocks, equal weight</span></div>',
+                  Chart("rrg", spec, {"label": "Relative rotation graph of every industry"}),
+                  how("Each industry’s strength against all ranked stocks (RS ratio, across) and the change in that strength (RS "
+                      "momentum, up), over 12 weekly readings; 100 is the market.",
+                      "Industries rotate clockwise: Improving, then Leading, then Weakening, then Lagging. Improving is where new "
+                      "leaders come from; Weakening is the early warning.",
+                      ["Industry", "RS ratio", "RS momentum", "Held"], [[p[0], f"{p[1]:.1f}", f"{p[2]:.1f}", str(p[3] or "")] for p in points])],
+                 [f'<div class="dh-groups dh-groups-1">{"".join(groups)}</div>'], (3, 2)),
             '<p class="dh-note">RRG, weekly, 12-week lookback: RS ratio · RS momentum, where 100 is all ranked stocks, '
-            'equal-weighted. Under each name, its quadrant 3 months and 1 month ago. Amber count: the book’s holdings.</p></section>')
+            'equal-weighted. Under each name, its quadrant 3 months and 1 month ago. Amber count: the book’s holdings.</p>' + END]
 
 
 def _and(names: list[str]) -> str:
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
-def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]]) -> str:
+def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], breadth: dict | None = None) -> list:
     cells = "".join(
         f'<div class="dh-gl"><div class="dh-gl-h"><b>{e(t)}</b><a href="{e(href)}" target="_self">{e(lbl)} →</a></div>'
         + "".join(f'<div class="dh-gl-r"><span>{e(k)}</span><span class="dh-mono {c}">{e(v)}</span></div>' for k, v, c in rows)
         + "</div>" for t, (href, lbl), rows in blocks)
-    return (f'<section class="dh-sec dh-sec-last" aria-labelledby="s-glance"><div class="dh-gl-top"><h2 id="s-glance" class="dh-h3">At a glance</h2>'
-            f'<span class="dh-sub">Reference figures; the full readings are a page away</span></div><div class="dh-gls">{cells}</div></section>')
+    parts = ['<div class="dh-sec"><div class="dh-gl-top"><h2 id="s-glance" class="dh-h3">At a glance</h2>'
+             '<span class="dh-sub">Reference figures; the full readings are a page away</span></div></div>']
+    if breadth:
+        parts += [Chart("breadth", breadth, {"note": "The index and how many stocks carry it", "label": "Nifty 500 and the share of the 750 above their 200-day average"}),
+                  how("Top: the Nifty 500. Bottom: the share of the 750 above their own 200-day average, counted over the members "
+                      "of each date, leavers included.", "When the top line rises while the bottom one falls, fewer stocks are carrying the index.",
+                      ["Date", "Nifty 500", "Above 200D EMA"],
+                      [[d, f"{n:,.1f}", "—" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]])]
+    return parts + [f'<div class="dh-gls">{cells}</div>']
 
 
 # ── The page ────────────────────────────────────────────────────────────────
@@ -740,24 +960,100 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                .sort_values("Weight", ascending=False).reset_index())
     held = dict(zip(weights["Industry"], weights["Holdings"]))
 
-    sections = [
-        _brief(bm, len(plan.sells), check, signals, average, typical),
-        section_book(bm, since, since_mkt, idx_end),
-        section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn, results_line, turnover),
-        section_momentum(lead, streak, signals, average),
-    ]
+    # v8 chart inputs (S151)
+    prev = _last_month(ledger, market, momentum, idx_end)
+    lead_bars = _lead_bars(spreads, lead)
+    fpi_bars = _fpi_bars(nsdl, ev, flows)
+    compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
+    breadth = _breadth_spec(n500, hist.get("above_200"), idx_end)
+
+    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows)]
+    parts += section_book(bm, since, since_mkt, idx_end, prev)
+    parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
+                               results_line, turnover, hist.get("dates"))
+    parts += section_momentum(lead, streak, signals, average, lead_bars)
     if flows is not None:
-        sections.append(section_flows(flows, ev, dii, share))
-    sections += [section_size(sizes, book_sizes, by_size, typical),
-                 section_strong_weak(weights, sectors, hist["rrg_paths"], hist["rrg_now"]),
-                 section_leadership(hist["rrg_now"], hist["rrg_paths"], held),
-                 section_glance(_glance(closes, idx_end, hist, risk, n500))]
-    st.html(f'<div class="dh">{"".join(sections)}<p class="dh-foot">Data to {idx_end:%-d %b %Y}. Book: this site’s model '
-            'record, after costs. Indices: NSE, via Screener’s index chart, each checked against an ETF; Nifty 500 from '
-            'NSE directly. Flows: NSDL and NSE. Industries: NSE’s classification.</p></div>')
+        parts += section_flows(flows, ev, dii, share, fpi_bars, compare)
+    parts += section_size(sizes, book_sizes, by_size, typical)
+    parts += section_strong_weak(weights, sectors, hist["rrg_paths"], hist["rrg_now"])
+    parts += section_leadership(hist["rrg_now"], hist["rrg_paths"], held)
+    parts += section_glance(_glance(closes, idx_end, hist, risk, n500), breadth)
+    parts.append(f'<p class="dh-foot">Data to {idx_end:%-d %b %Y}. Book: this site’s model record, after costs. Indices: NSE, '
+                 'via Screener’s index chart, each checked against an ETF; Nifty 500 from NSE directly. Flows: NSDL and NSE. '
+                 'Industries: NSE’s classification.</p>')
+    emit(parts)
 
 
-def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, typical) -> str:
+# ── v8 chart inputs ─────────────────────────────────────────────────────────
+
+
+def _last_month(ledger: dict, market: pd.Series, momentum: dict, as_of: pd.Timestamp) -> dict | None:
+    """The last finished month: the market, the book (as recorded) and each momentum index."""
+    p = as_of.to_period("M") - 1
+    start, end = (p - 1).to_timestamp(how="end").normalize(), p.to_timestamp(how="end").normalize()
+    rec = (ledger.get("months") or {}).get(str(p)) or {}
+    book = rec.get("strategy")
+    out = {"label": f"{p:%B}", "market": di.window_return(market, start, end),
+           "book": None if book is None else float(book) * 100,
+           "momentum": {k: di.window_return(v, start, end) for k, v in momentum.items()}}
+    return out if out["market"] is not None else None
+
+
+def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
+    """Momentum's lead each month since January 2024, the month so far last."""
+    if spreads is None or not {"month", "top", "nifty500"} <= set(spreads.columns):
+        return None
+    sp = spreads[spreads["month"] >= "2024-01"]
+    months = [pd.Period(m, "M") for m in sp["month"]]
+    vals = [round(float(t) - float(n), 2) for t, n in zip(sp["top"], sp["nifty500"])]
+    if lead and lead[-1][1] is not None and months:
+        months.append(months[-1] + 1)
+        vals.append(round(float(lead[-1][1]), 2))
+    if len(vals) < 6:
+        return None
+    return {"values": vals, "labels": [f"{m:%b} ’{m:%y}" for m in months], "full": [f"{m:%b %Y}" for m in months],
+            "unit": "pts against the market", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": ", so far", "xn": 6, "height": 200}
+
+
+def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows) -> dict | None:
+    """The last 12 months of foreign buying, ₹ crore, the heavy-buying line where tested."""
+    if nsdl is None or flows is None or "equity_net" not in nsdl:
+        return None
+    s = pd.Series(pd.to_numeric(nsdl["equity_net"], errors="coerce").values, index=pd.to_datetime(nsdl["date"])).dropna()
+    mo = s.groupby(s.index.to_period("M")).sum().iloc[-12:]
+    out = {"values": [round(float(v)) for v in mo.values], "labels": [f"{p:%b}" for p in mo.index],
+           "full": [f"{p:%b %Y}" for p in mo.index], "unit": "₹ crore, net", "money": True, "axisDiv": 1000,
+           "valueLabels": True, "xn": 12, "height": 240, "lastNote": f", to {flows.as_of:%-d %b}",
+           "above": "a heavy-buying month", "between": "net buying, below the heavy line", "belowZero": "net selling"}
+    if ev is not None:
+        out["levels"] = [round(float(ev.threshold))]
+    return out
+
+
+def _flow_compare(nse: pd.DataFrame | None, nsdl: pd.DataFrame | None) -> tuple[float, float, int] | None:
+    """(NSE provisional FPI net, NSDL net, sessions) over the sessions NSE's figures cover."""
+    if nse is None or nsdl is None or "category" not in nse or "equity_net" not in nsdl:
+        return None
+    f = nse[nse["category"].astype(str).str.upper().str.startswith("FII")]
+    if f.empty:
+        return None
+    dates = pd.to_datetime(f["date"])
+    n = pd.Series(pd.to_numeric(nsdl["equity_net"], errors="coerce").values, index=pd.to_datetime(nsdl["date"]))
+    nsdl_sum = float(n[(n.index >= dates.min()) & (n.index <= dates.max())].sum())
+    return float(pd.to_numeric(f["net"], errors="coerce").sum()), nsdl_sum, int(dates.nunique())
+
+
+def _breadth_spec(n500: pd.Series, above_200: pd.Series | None, as_of: pd.Timestamp) -> dict | None:
+    """Three years of the Nifty 500 and the share of the 750 above the 200D EMA, on the index's sessions."""
+    if n500 is None or n500.empty or above_200 is None:
+        return None
+    idx = n500[(n500.index > as_of - pd.DateOffset(years=3)) & (n500.index <= as_of)]
+    a = above_200.reindex(idx.index, method="ffill")
+    return {"dates": [f"{d:%Y-%m-%d}" for d in idx.index], "n500": [round(float(v), 1) for v in idx.values],
+            "a200": [None if pd.isna(v) else round(float(v), 1) for v in a.values]}
+
+
+def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, typical, flows=None) -> str:
     bits = []
     if bm.market_mtd is not None and bm.book_mtd is not None and bm.momentum_mtd:
         if bm.book_mtd < bm.market_mtd and bm.book_mtd >= max(bm.momentum_mtd.values()) - 0.05:
@@ -775,7 +1071,8 @@ def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, 
         n = len(passed)
         bits.append(f'Of the {n} signal{"s" if n != 1 else ""} that pass our own test, '
                     f'<span class="dh-up">{len(good)} point{"s" if len(good) != 1 else ""} to a stronger month for momentum</span>'
-                    + (", foreign buying among them," if fpi else "")
+                    + ((", record foreign buying among them," if flows is not None and flows.month_rank == 1
+                        else ", foreign buying among them,") if fpi else "")
                     + f' and <span class="dh-down">{n - len(good)} to a weaker one</span>.')
     b1 = typical["beat_share"][0] if typical else None
     if b1 is not None and b1 < 40:
@@ -827,31 +1124,43 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
     gap = lambda v: sg(v, unit="%")  # noqa: E731
     out = []
 
-    def row(key, name, sub, cells, on, flip):
+    def row(key, name, sub, cells, on, flip, hist=""):
         test = t.get(key)
         like = None
         if test and test["passed"] and on is not None:
             like = test["on"] if on else test["off"]
         out.append({"key": key, "name": name, "sub": sub, "cells": cells, "on": on, "test": test,
-                    "like": like, "flip": flip})
+                    "like": like, "flip": flip, "hist": hist})
+
+    def where(series, value, unit="days"):
+        """Where today's reading sits in its own history (v6, restored 20 Nov)."""
+        p, since = di.percentile_of(series, value)
+        if p is None:
+            return ""
+        yr = since[-4:] if since else ""
+        return (f"Higher than {p:.0f}% of {unit} since {yr}" if p >= 50
+                else f"Lower than {100 - p:.0f}% of {unit} since {yr}")
 
     if len(n500):
-        g = di.trail_of(mq._ema_gap_series(n500), as_of)
+        gs = mq._ema_gap_series(n500)
+        g = di.trail_of(gs, as_of)
         on = g[2] is not None and g[2] > 0
         row("trend_fast", "Nifty 500 vs its 200D EMA", "Above: on", [gap(v) for v in g], on,
-            "Back below the EMA" if on else "Back above the EMA")
+            "Back below the EMA" if on else "Back above the EMA", where(gs, g[2]))
     if flows is not None and "fpi" in t:
         fpi = t["fpi"]
         cut = fpi.get("threshold")
         on = cut is not None and flows.mtd >= cut
         row("fpi", "Heavy foreign buying", "FPI net, last 20 sessions, ₹ thousand crore · top quarter of months: on",
             ["—" if v is None else sg(v / 1000, 0) for v in flows.trail20], on if cut is not None else None,
-            "Settled for the month" if on else (f"₹{cut / 1000:,.0f} thousand crore in a month" if cut else ""))
+            "Settled for the month" if on else (f"₹{cut / 1000:,.0f} thousand crore in a month" if cut else ""),
+            f"Highest 20-session total since {flows.since:%Y}" if flows.last20_is_record else "")
     if len(n500):
         tr = [mq.ten_month_gap(n500, d) for d in di.trail_dates(as_of).values()]
         on = tr[2] is not None and tr[2] > 0
         row("trend_slow", "Nifty 500 vs its 10-month average", "Month-ends · above: on", [gap(v) for v in tr],
-            None if tr[2] is None else on, "A month-end below the average" if on else "A month-end above the average")
+            None if tr[2] is None else on, "A month-end below the average" if on else "A month-end above the average",
+            where(mq._ten_month_series(n500), tr[2], "month-ends"))
     if spreads is not None and "qualified" in spreads:
         q = pd.Series(pd.to_numeric(spreads["qualified"], errors="coerce").values * 100,
                       index=pd.to_datetime(spreads["date"])).dropna()
@@ -866,25 +1175,26 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         on = tr[2] is not None and tr[2] <= cut
         row("qualify", "Stocks that qualify", f"Nifty 500 above 50D EMA, near the high · {cut:.0f}% or fewer: on",
             [pct(v) for v in tr], None if tr[2] is None else on,
-            f"Above {cut:.0f}% at the next month-end" if on else f"{cut:.0f}% or fewer at a month-end")
+            f"Above {cut:.0f}% at the next month-end" if on else f"{cut:.0f}% or fewer at a month-end",
+            where(q, tr[2], "month-ends"))
     a200, a50 = n500_breadth.get("above_200"), n500_breadth.get("above_50")
     if a200 is not None and len(a200.dropna()):
         tr = di.trail_of(a200, as_of)
         on = tr[2] is not None and tr[2] <= 40
         row("breadth_thin", "Breadth thin", "Nifty 500 above the 200D EMA · 40% or fewer: on", [pct(v) for v in tr],
-            None if tr[2] is None else on, "Above 40%" if on else "Back to 40% or below")
+            None if tr[2] is None else on, "Above 40%" if on else "Back to 40% or below", where(a200, tr[2]))
     if a50 is not None and len(a50.dropna()):
         tr = di.trail_of(a50, as_of)
         jump = _since_month_end(a50, as_of)
         row("participation_jump", "Participation jump", "Nifty 500 above the 50D EMA · up 15+ pts in a month: on",
-            [pct(v) for v in tr], None if jump is None else jump >= 15, "A month without a jump")
+            [pct(v) for v in tr], None if jump is None else jump >= 15, "A month without a jump", where(a50, tr[2]))
     if len(n500):
         fh = mq._from_high_series(n500)
         tr = di.trail_of(fh, as_of)
         up = _since_month_end(fh, as_of)
         on = None if up is None or tr[2] is None else (up >= 5 and tr[2] >= -3)
         row("rebound", "Sharp rebound", "Nifty 500 from its 52W high · within 3% after a 5-pt jump: on",
-            [gap(v) for v in tr], on, "")
+            [gap(v) for v in tr], on, "", where(fh, tr[2]))
     return out
 
 
@@ -935,7 +1245,9 @@ HOME_CSS = """
 .dh-verdict{margin:0 0 12px;font-family:var(--font-serif);font-size:var(--fs-24);line-height:1.35;max-width:980px}
 .dh-pills{display:flex;flex-wrap:wrap;gap:6px 8px}
 .dh-pill{font-size:var(--fs-13);text-decoration:none;color:var(--c-ink);border:1px solid var(--c-rule);border-radius:999px;padding:6px 12px;min-height:32px;display:inline-flex;align-items:center}
-.dh-sec{padding:32px 0 36px;border-bottom:1px solid var(--c-rule);display:flex;flex-direction:column;gap:20px}
+.dh-sec{padding:32px 0 0;display:flex;flex-direction:column;gap:20px}
+.dh-sec-cont{padding-top:8px}
+.dh-end{border-bottom:1px solid var(--c-rule);padding-bottom:8px}
 .dh-sec-last{border-bottom:0}
 .dh-kick{margin:0;font-size:var(--fs-12);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--c-muted)}
 .dh .dh-h1{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-44)!important;line-height:1.08!important;letter-spacing:-.5px!important;max-width:940px}
@@ -968,7 +1280,7 @@ HOME_CSS = """
 .dh-f-pos{background:var(--c-up)}.dh-f-neg{background:var(--c-down)}
 .dh-cols{display:flex;flex-wrap:wrap;gap:28px}
 .dh-col2{flex:2 1 460px;min-width:0}.dh-col1{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:14px}
-.dh-hold{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.5fr) 84px 56px 56px 84px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
+.dh-hold{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.5fr) 84px 56px 56px 92px 84px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
 .dh-hold-h{font-size:var(--fs-12);color:var(--c-muted);border-bottom:1px solid var(--c-ink);padding:0 0 6px}
 .dh-sym{color:var(--c-ink);text-decoration:none}
 .dh-rk{font-size:var(--fs-13)}
@@ -996,6 +1308,33 @@ HOME_CSS = """
 .dh-side{display:block;font-size:var(--fs-12);font-weight:700}
 .dh-tab thead th.dh-num,.dh-hold-h .dh-num{font-family:var(--font-ui);font-weight:500}
 .dh-hl{font-weight:600}
+.dh-trail{display:block}
+.dh-hist{font-size:var(--fs-12);color:var(--c-muted);min-width:130px}
+.dh-tab.dh-tab-sig{min-width:1080px}
+.dh-how{display:flex;flex-wrap:wrap;gap:4px 24px;font-size:var(--fs-13)}
+.dh-how details{flex:1 1 280px}.dh-how details[open]:last-child{flex-basis:100%}
+.dh-how summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center;gap:6px;list-style:none;color:var(--c-ink)}
+.dh-how summary::-webkit-details-marker{display:none}
+.dh-how summary::before{content:"+";font-family:var(--font-mono);color:var(--c-muted);width:12px}
+.dh-how details[open] summary::before{content:"−"}
+.dh-how-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 24px;color:var(--c-text_2)}
+.dh-how-b p{margin:0}.dh-how-b b{display:block;color:var(--c-ink)}
+.dh-how-t{max-height:280px;overflow:auto;border:1px solid var(--c-rule_soft);border-radius:var(--r-sm)}
+.dh-how-t .dh-tab td:not(:first-child),.dh-how-t .dh-tab th:not(:first-child){text-align:right;font-family:var(--font-mono)}
+.dh-gcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px;align-items:start}
+.dh-gcard{border:1px solid var(--c-rule_soft);border-top:3px solid var(--c-rule);border-radius:var(--r-sm);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.dh-g-up{border-top-color:var(--c-up)}.dh-g-watch{border-top-color:var(--c-caution)}.dh-g-down{border-top-color:var(--c-down)}
+.dh-gc-h{display:flex;justify-content:space-between;align-items:baseline}
+.dh .dh-gc-h h3{margin:0!important;padding:0!important;font-family:var(--font-ui)!important;font-size:var(--fs-17)!important}
+.dh-gc-h b{font-size:var(--fs-24)}
+.dh-gcard>p{margin:0 0 4px;font-size:var(--fs-13);color:var(--c-muted)}
+.dh-gc-r{border-top:1px solid var(--c-rule_soft);padding:9px 0;display:flex;flex-direction:column;gap:3px;font-size:var(--fs-13)}
+.dh-gc-1,.dh-gc-2{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.dh-gc-3{font-size:var(--fs-12);color:var(--c-muted)}.dh-gc-3 b{color:var(--c-text_2);font-weight:600}
+.dh-qb{font-size:var(--fs-12);font-weight:600;border-radius:var(--r-sm);padding:2px 8px;white-space:nowrap}
+.dh-qb-up{color:var(--c-up);background:var(--c-up_tint)}.dh-qb-imp{color:var(--c-up);background:var(--c-fill)}
+.dh-qb-watch{color:var(--c-caution);background:var(--c-caution_tint)}.dh-qb-down{color:var(--c-down);background:var(--c-down_tint)}
+.dh-groups.dh-groups-1{grid-template-columns:1fr;gap:20px}
 .dh-tab.dh-tab-s{min-width:0}
 .dh-tab-s th,.dh-tab-s td{padding:6px 10px 6px 0}
 .dh-tr-g{padding-top:12px!important;font-weight:500!important}
