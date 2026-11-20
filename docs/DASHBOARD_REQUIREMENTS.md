@@ -56,7 +56,7 @@ the owner's word, and note it in the Source column.
 | 38 | Breadth history on each date's members | Owner 20 Nov | Glance, §3 | leavers included |
 | 39 | Every chart gives values on touch and pointer | Owner 20 Nov | Charts (`static/dash_charts.js`) | Latest|DashCharts.render( |
 | 40 | Every chart: what it is, how to read it, its table | v7 (tipsheet), agreed | Charts | Show the table |
-| 41 | Data date and sources in the footer | v6 | Foot | Data to 19 Nov 2026|Data to |
+| 41 | Data date in the footer; sources not shown (owner, 20 Nov) | v6; owner 20 Nov | Foot | Data to 19 Nov 2026|Data to |
 
 **Not on the Dashboard, by decision:**
 

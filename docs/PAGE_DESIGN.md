@@ -56,6 +56,7 @@ v8 with interactive charts and line bars (claude.ai artifact
 | Compare against the right benchmark and name it: live record against Nifty Total Market (the 750 we rank); 2010+ history against the Nifty 500; frozen track-record months stay as recorded, the other benchmark shown beside | Owner, 20 Nov |
 | A claim about what a reading means for next month must be **tested** on our record (section 5.6), and say Pass or Not confirmed; failures stay on the page | 20 Nov, S150 |
 | Say "describing is not forecasting" wherever signals are shown; the live rules stay fully invested | Standing caveat |
+| No source line on the page: the footer gives the data date only (sources stay in docs/DATA_CATALOGUE.md) | Owner, 20 Nov: "Let's not show source" |
 | Write for an investor: no internal names ("peer index", "spreads file"), short plain sentences, numbers with units | Owner feedback on v5 copy |
 
 ## 3. Tables

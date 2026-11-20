@@ -700,7 +700,7 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None)
             '<p class="dh-note">Size lists and members are NSE’s as of today, so older readings leave out stocks that have '
             'since left them. Points, price returns. Market: Nifty Total Market. Smallcap250 Momentum Quality 100 also screens '
             'for quality; NSE has no microcap momentum index. Each momentum index is checked nightly against an ETF that '
-            'tracks it. Source: NSE indices via Screener’s index chart.</p>' + END]
+            'tracks it.</p>' + END]
 
 
 def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dict, rrg_now: pd.DataFrame) -> list:
@@ -991,9 +991,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_strong_weak(weights, sectors, hist["rrg_paths"], hist["rrg_now"])
     parts += section_leadership(hist["rrg_now"], hist["rrg_paths"], held)
     parts += section_glance(_glance(closes, idx_end, hist, risk, n500), breadth)
-    parts.append(f'<p class="dh-foot">Data to {idx_end:%-d %b %Y}. Book: this site’s model record, after costs. Indices: NSE, '
-                 'via Screener’s index chart, each checked against an ETF; Nifty 500 from NSE directly. Flows: NSDL and NSE. '
-                 'Industries: NSE’s classification.</p>')
+    # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
+    parts.append(f'<p class="dh-foot">Data to {idx_end:%-d %b %Y}.</p>')
     emit(parts)
 
 
