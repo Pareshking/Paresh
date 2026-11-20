@@ -22,7 +22,8 @@ await p.waitForSelector('.site, .dh', { timeout: 180000 }).catch(() => {}); awai
 // The page's text and every chart frame's (the Dashboard's charts are frames).
 let text = '';
 for (const f of p.frames()) {
-  try { text += await f.evaluate(() => document.body.innerText + '\n' + [...document.querySelectorAll('summary,button,[aria-label]')].map(e => e.textContent + ' ' + (e.getAttribute('aria-label') || '')).join('\n')) + '\n'; } catch { /* a frame still loading */ }
+  // Collapsed sections count: what a reader can open is on the page.
+  try { text += await f.evaluate(() => { document.querySelectorAll('details').forEach(d => { d.open = true; }); return ''; }) + await f.evaluate(() => document.body.innerText + '\n' + [...document.querySelectorAll('summary,button,[aria-label]')].map(e => e.textContent + ' ' + (e.getAttribute('aria-label') || '')).join('\n')) + '\n'; } catch { /* a frame still loading */ }
 }
 await b.close();
 // Kickers are upper-cased by CSS, so compare without case.
