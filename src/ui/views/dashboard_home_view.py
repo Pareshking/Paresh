@@ -112,7 +112,7 @@ def emit(parts) -> None:
             dc.render(p.kind, p.spec, **p.fill)
         elif isinstance(p, Cols):
             flush()
-            a, b = st.columns(list(p.ratio), gap="large")
+            a, b = st.columns(list(p.ratio), gap="medium")
             with a:
                 emit(p.left)
             with b:
@@ -649,12 +649,13 @@ def _shared_parts(by_size, typical, book_sizes) -> list:
            + (f", where {held:.0f}% of the book sits." if held >= 20 else "."))
     say = say.replace("nifty 100s", "large caps").replace("microcap 250s", "microcaps").replace("smallcap 250s", "small caps").replace("midcap 150s", "mid caps")
     left = ['<div class="dh-cap"><b>Is the rally shared?</b><span>share above the 200D EMA, by NSE size list</span></div>',
-            Chart("shared", {"rows": rows, "step": 2}, {"step": "2"}),
-            f'<p class="dh-lede-s">{say}</p>',
+            Chart("shared", {"rows": rows, "step": 2}, {"step": "2"})]
+    # The sentence and explanation sit under the right-hand table, so neither column runs on alone (owner, 20 Nov: no extra white space).
+    right_more = [f'<p class="dh-lede-s"><b>Is the rally shared?</b> {say}</p>',
             how("The share of each NSE size list trading above its own 200-day average.",
                 "Above 60% the rally is broad there, below 40% narrow. The triangle marks a month ago.",
                 ["Size", "3M ago", "1M ago", "Now"], [[r[0]] + ["—" if x is None else f"{x}%" for x in r[1:]] for r in rows])]
-    return [Cols(left, [right], (1, 1))]
+    return [Cols(left, [right] + right_more, (1, 1))]
 
 
 def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None) -> list:
@@ -749,7 +750,7 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dic
         cards.append(f'<div class="dh-gcard dh-g-{cls}"><div class="dh-gc-h"><h3 class="dh-{cls}">{title}</h3>'
                      f'<b class="dh-{cls} dh-mono">{tot[k]:.1f}%</b></div><p>{e(desc[k])}</p>{body}</div>')
     return [f'<div class="dh-sec">{_kicker("6", "Where the book is strong and weak")}<h2 id="s-book" class="dh-h2">{head}</h2></div>',
-            Chart("segbar", {"segs": segs}, {"label": "The book by industry status"}),
+            Chart("segbar", {"segs": segs, "totals": {k: round(v, 1) for k, v in tot.items()}}, {"label": "The book by industry status"}),
             how("The book’s weight in each industry, coloured by how that industry stands against all ranked stocks over six "
                 "months and one month.", "Blue is ahead on both, amber ahead on one, rust behind on both. The cards give each "
                 "industry’s figures and its rotation.", ["Industry", "Weight", "Status"],
@@ -782,11 +783,21 @@ def section_leadership(rrg_now: pd.DataFrame, paths: dict, held: dict[str, int])
             + (f'<span class="dh-sub">{e(paths[i][0])} → {e(paths[i][1])} → now</span>' if i in paths else "")
             + f'</span><span class="dh-mono dh-muted">{r.RS_Ratio:.1f} · {r.RS_Momentum:.1f}</span></div>'
             for i, r in g.iterrows())
-        groups.append(f'<div><div class="dh-grp-h {cls}"><h3>{q}</h3><span class="dh-sub">{len(g)} industr{"y" if len(g) == 1 else "ies"}</span></div>'
-                      f'<p class="dh-sub">{note}</p>{rows}</div>')
+        groups.append((len(g), f'<div><div class="dh-grp-h {cls}"><h3>{q}</h3><span class="dh-sub">{len(g)} industr{"y" if len(g) == 1 else "ies"}</span></div>'
+                      f'<p class="dh-sub">{note}</p>{rows}</div>'))
     points = [[str(i), round(float(r.RS_Ratio), 1), round(float(r.RS_Momentum), 1), int(held.get(i, 0)),
                " → ".join(paths[i][:2]) if i in paths else "—"] for i, r in rrg_now.iterrows()]
     spec = {"points": points, "heldLeaders": f"{n_held} of {len(lead)}"}
+    # Lists beside the chart until they reach its height (about 680 px, 52 a row, 75 a heading; up to 760 is closer than a list below); the rest
+    # go below, two across, so no column runs on alone (owner, 20 Nov: no extra white space).
+    beside, below, used = [], [], 0
+    for n_rows, g in groups:
+        h = 75 + 52 * n_rows
+        if not below and (not beside or used + h <= 760):
+            beside.append((n_rows, g))
+            used += h
+        else:
+            below.append((n_rows, g))
     return [f'<div class="dh-sec">{_kicker("7", "Where leadership is moving")}<h2 id="s-ind" class="dh-h2">{" ".join(parts)}</h2></div>',
             Cols(['<div class="dh-cap"><b>Relative rotation, now</b><span>RS ratio · RS momentum · 100 = all ranked stocks, equal weight</span></div>',
                   Chart("rrg", spec, {"label": "Relative rotation graph of every industry"}),
@@ -795,7 +806,8 @@ def section_leadership(rrg_now: pd.DataFrame, paths: dict, held: dict[str, int])
                       "Industries rotate clockwise: Improving, then Leading, then Weakening, then Lagging. Improving is where new "
                       "leaders come from; Weakening is the early warning.",
                       ["Industry", "RS ratio", "RS momentum", "Held"], [[p[0], f"{p[1]:.1f}", f"{p[2]:.1f}", str(p[3] or "")] for p in points])],
-                 [f'<div class="dh-groups dh-groups-1">{"".join(groups)}</div>'], (3, 2)),
+                 [f'<div class="dh-groups dh-groups-1">{"".join(g for _, g in beside)}</div>'], (3, 2)),
+            *([f'<div class="dh-groups dh-groups-2">{"".join(g for _, g in below)}</div>'] if below else []),
             '<p class="dh-note">RRG, weekly, 12-week lookback: RS ratio · RS momentum, where 100 is all ranked stocks, '
             'equal-weighted. Under each name, its quadrant 3 months and 1 month ago. Amber count: the book’s holdings.</p>' + END]
 
@@ -1335,6 +1347,7 @@ HOME_CSS = """
 .dh-qb-up{color:var(--c-up);background:var(--c-up_tint)}.dh-qb-imp{color:var(--c-up);background:var(--c-fill)}
 .dh-qb-watch{color:var(--c-caution);background:var(--c-caution_tint)}.dh-qb-down{color:var(--c-down);background:var(--c-down_tint)}
 .dh-groups.dh-groups-1{grid-template-columns:1fr;gap:20px}
+.dh-groups.dh-groups-2{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px 40px;margin-top:8px}
 .dh-tab.dh-tab-s{min-width:0}
 .dh-tab-s th,.dh-tab-s td{padding:6px 10px 6px 0}
 .dh-tr-g{padding-top:12px!important;font-weight:500!important}

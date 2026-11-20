@@ -207,10 +207,12 @@ R.segbar = (card, s) => {
   bar.innerHTML = s.segs.map(([n, h, w, , , , g], i) => `<i role="listitem" class="seg-${g}${i % 2 ? ' alt' : ''}" style="flex:${w} 1 0" data-i="${i}" tabindex="0" aria-label="${esc(n)} ${w}%"><span>${esc(n)} ${Math.round(w)}%</span></i>`).join('');
   const show = i => { bar.querySelectorAll('i').forEach(t => t.classList.toggle('dim', i != null && +t.dataset.i !== i));
     const [n, h, w, r6, r1, q, g] = s.segs[i ?? 0];
-    ro(card, i == null ? 'Latest · the largest' : G[g], [{v: w.toFixed(1) + '%', name: `${n}, ${h} holding${h > 1 ? 's' : ''}`}, {v: sg(r6) + ' · ' + sg(r1), cls: tone(r1), name: '6M · 1M against all ranked stocks'}, {v: q, cls: Q[q] || '', name: 'on the RRG'}]); };
+    ro(card, i == null ? 'Latest · the largest' : G[g], [{v: w.toFixed(1) + '%', name: `${n}, ${h} holding${h > 1 ? 's' : ''}`}, {v: sg(r6) + ' · ' + sg(r1), cls: tone(r1), name: '6M · 1M'}, {v: q, cls: Q[q] || '', name: 'on the RRG'}]); };
   bar.querySelectorAll('i').forEach(t => { const i = +t.dataset.i; t.addEventListener('pointerenter', () => show(i)); t.addEventListener('pointerdown', () => show(i)); t.addEventListener('focus', () => show(i)); });
   bar.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') show(null); });
   const fit = () => bar.querySelectorAll('i').forEach(t => { const sp = t.querySelector('span'); sp.style.visibility = ''; if (sp.offsetWidth > t.clientWidth - 10) sp.style.visibility = 'hidden'; });
+  if (s.totals) $('.seg-key', card).innerHTML = [['strong', 'Strong', 'ahead of the market on both windows'], ['turning', 'Turning', 'ahead on one'], ['weak', 'Weak', 'behind on both']]
+    .filter(([k]) => s.totals[k] != null).map(([k, t, d]) => `<span><i class="seg-${k}"></i><b>${s.totals[k].toFixed(1)}%</b> ${t}, ${d}</span>`).join('');
   show(null); fit(); new ResizeObserver(fit).observe(bar);
 };
 

@@ -33,9 +33,9 @@ CSS = """
 --rule:var(--c-rule_strong);--rule-soft:var(--c-rule_soft);--fill:var(--c-fill);--up:var(--c-up);--up-soft:var(--c-up_tint);
 --down:var(--c-down);--down-soft:var(--c-down_tint);--caution:var(--c-caution);--caution-soft:var(--c-caution_tint);
 --tip-bg:var(--c-ink);--tip-fg:var(--c-white);--tip-muted:var(--c-quiet)}
-*{box-sizing:border-box}html,body{margin:0;background:transparent;color:var(--ink);
+*{box-sizing:border-box}html,body{margin:0;overflow-x:hidden;background:transparent;color:var(--ink);
 font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13.5px;line-height:1.45}
-.card{display:flex;flex-direction:column;gap:8px;padding:2px 2px 6px}
+.card{display:flex;flex-direction:column;gap:8px;padding:2px 10px 6px}
 .cap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 14px;font-size:12px;color:var(--muted)}
 .up{color:var(--up)}.down{color:var(--down)}.watch{color:var(--caution)}.muted{color:var(--muted)}.b{font-weight:600}
 .readout{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;align-items:flex-end;min-height:40px}
@@ -78,14 +78,22 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .segbar{display:flex;gap:2px;height:44px;border-radius:4px;overflow:hidden}
 .segbar i{display:flex;align-items:center;padding-left:8px;font-style:normal;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:pointer;color:var(--bg)}
 .segbar i.dim{opacity:.3}
+.seg-key i{width:12px;height:12px;border-radius:3px;display:inline-block}.seg-key b{font-family:'IBM Plex Mono',monospace;color:var(--ink)}
 .seg-strong{background:var(--up)}.seg-strong.alt{background:color-mix(in srgb,var(--up) 70%,var(--bg))}
 .seg-turning{background:color-mix(in srgb,var(--caution) 45%,var(--bg))}.seg-turning.alt{background:color-mix(in srgb,var(--caution) 30%,var(--bg))}
 .seg-weak{background:var(--down)}.seg-weak.alt{background:color-mix(in srgb,var(--down) 75%,var(--bg))}
 .rrg{aspect-ratio:1.45/1}
+/* On a wide screen the readout stays on one line, so the frame's measured height never
+   includes a second line that only the fallback font, before the real one loads, needed. */
+@media (min-width:601px){.readout{flex-wrap:nowrap;overflow:hidden}.readout .d{flex:0 0 100%}.readout{flex-wrap:wrap;max-height:44px}}
 @media (max-width:600px){
 .tt{--pitch:min(8px, calc((100vw - 24px) / var(--n)))}
 .trow{grid-template-columns:minmax(0,1fr) 64px}.trow .tt{grid-column:1/-1;grid-row:2;height:22px}
 .seg-axis{grid-template-columns:minmax(0,1fr)}.seg-axis>span{display:none}.seg-axis div{width:calc(var(--n) * min(8px, calc((100vw - 24px) / var(--n))))}
+}
+/* Breadth by size in a half-width column: the name above its bar, so names, bars and the three readings never collide. */
+@media (max-width:760px){
+.tt{--pitch:min(8px, calc((100vw - 24px) / var(--n)))}
 .sh-head,.shrow{grid-template-columns:minmax(0,1fr) 44px 44px 48px}.shrow .tt{grid-column:1/-1;grid-row:2}.sh-head span:nth-child(2){display:none}
 }
 """
@@ -99,7 +107,8 @@ BODY = {
                '<span class="num">3M ago</span><span class="num">1M ago</span><span class="num">Now</span></div><div id="rows" role="list"></div>'
                '<div class="key"><span><i class="k-now"></i>Now</span><span><i class="k-ago"></i>A month ago</span>'
                '<span><i class="k-line"></i>40% narrow · 60% broad</span><span>Each line {step}%</span></div>'),
-    "segbar": '<div class="readout" aria-live="polite"></div><div class="segbar" role="list" aria-label="{label}"></div>',
+    "segbar": ('<div class="readout" aria-live="polite"></div><div class="segbar" role="list" aria-label="{label}"></div>'
+               '<div class="key seg-key"></div>'),
     "rrg": ('<div class="readout" aria-live="polite"></div><div class="chart rrg" tabindex="0" role="img" aria-label="{label}"></div>'
             '<div class="key"><span><i class="dot held"></i>Held in the book, sized by holdings</span><span><i class="dot"></i>Not held</span></div>'),
     "breadth": ('<div class="cap"><span>{note}</span><span class="chips" role="group" aria-label="Period">'

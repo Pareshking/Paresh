@@ -219,5 +219,13 @@ audited first before you share it with me." Run it in a browser
 - **One name, one thing:** the same quadrant word in the same colour in table,
   badge, list and chart (Leading and Improving blue, Weakening amber,
   Lagging rust).
+- **White space** (owner, 20 Nov: "Check for any extra white space"): measure it in
+  the running app, not by eye. No empty band of 40 px or more between blocks;
+  side-by-side columns end within about 100 px of each other (move a list or a
+  note across, or put the overflow below, two across); a chart frame no taller
+  than what it draws (a browser frame is at least 150 px, so give a short chart
+  a key line rather than empty space); stacked columns on a phone use the
+  medium gap, not the large one. The Dashboard's measurements: 678 px under the
+  rotation chart and 300 px under the typical-stock table, both fixed.
 - **Layout:** no sideways scroll at 390 px; nothing clipped; labels that do not
   fit are hidden and named on tap; light and dark both looked at.
