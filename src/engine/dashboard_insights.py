@@ -432,3 +432,73 @@ def rank_trail_word(trail: list[int | None], cut: int) -> tuple[str, str]:
     if b - c >= 15:
         return "Rising fast", "up"
     return "Steady", "flat"
+
+
+# ── v7 additions (S150) ─────────────────────────────────────────────────────
+
+
+@dataclass
+class Turnover:
+    top: int
+    new: int                                         # names in today's top `top` that were not there a month ago
+    climbers: list[tuple[str, int | None, int | None, int]]   # (symbol, 3M ago, 1M ago, now), best now first
+    fallers: list[tuple[str, int, int | None]]                # (symbol, 1M ago, now), best a month ago first
+
+
+def leadership_turnover(ranks: pd.DataFrame, top: int = 40, show: int = 6) -> Turnover | None:
+    """`ranks`: index symbol, columns "3m", "1m", "now" (NaN = not ranked that day)."""
+    if ranks is None or ranks.empty or not {"1m", "now"} <= set(ranks.columns):
+        return None
+    now, m1 = ranks["now"], ranks["1m"]
+    m3 = ranks["3m"] if "3m" in ranks else pd.Series(np.nan, index=ranks.index)
+    in_now = now <= top
+    was = m1 <= top
+    new = ranks[in_now & ~was.fillna(False)].sort_values("now")
+    gone = ranks[was & ~in_now.fillna(False)].sort_values("1m")
+    iv = lambda v: None if pd.isna(v) else int(v)  # noqa: E731
+    climbers = [(str(s), iv(m3[s]), iv(m1[s]), int(now[s])) for s in new.index[:show]]
+    fallers = [(str(s), int(m1[s]), iv(now[s])) for s in gone.index[:max(show // 2, 3)]]
+    return Turnover(top, int(len(new)), climbers, fallers)
+
+
+def typical_stock(prices: pd.DataFrame, market: pd.Series, as_of: pd.Timestamp,
+                  windows=(1, 3, 6, 12)) -> dict[str, list[float | None]] | None:
+    """The 750 three ways against the market, percent: equal-weighted,
+    median stock, and the share of stocks ahead of the market."""
+    from src.engine import peer_index as pi
+    if prices is None or prices.empty or market is None or market.empty:
+        return None
+    px = prices.loc[:as_of]
+    ew = pi.equal_weight_level(px)
+    out = {"market": [], "equal_weight": [], "median": [], "beat_share": []}
+    for m in windows:
+        start = as_of - pd.DateOffset(months=m)
+        mk = window_return(market, start, as_of)
+        e_ = pi.window_return(ew, start, as_of)
+        d0, d1 = on_or_before(px.index, start), on_or_before(px.index, as_of)
+        r = ((px.loc[d1] / px.loc[d0] - 1) * 100).dropna() if d0 is not None and d1 is not None else pd.Series(dtype=float)
+        out["market"].append(mk)
+        out["equal_weight"].append(None if e_ is None else e_ * 100)
+        out["median"].append(float(r.median()) if len(r) else None)
+        out["beat_share"].append(float((r > mk).mean() * 100) if len(r) and mk is not None else None)
+    return out
+
+
+def size_breadth(prices: pd.DataFrame, lists: dict[str, list[str]], as_of: pd.Timestamp
+                 ) -> list[tuple[str, list[float | None]]]:
+    """Share above the 200D EMA by size list: 3 months ago, 1 month ago, now."""
+    from src.engine import market_questions as mq
+    out = []
+    for name, syms in lists.items():
+        cols = [s for s in syms if s in prices.columns]
+        if not cols:
+            continue
+        out.append((name, trail_of(mq._share_above_ema(prices[cols], 200), as_of)))
+    return out
+
+
+def fpi_share_of_value(flows: Flows, market_value_cr: float | None) -> tuple[float, float] | None:
+    """(this month, the 11 months before) as % of the 750's market value."""
+    if flows is None or not market_value_cr:
+        return None
+    return flows.mtd / market_value_cr * 100, flows.before / market_value_cr * 100

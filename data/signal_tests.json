@@ -1,0 +1,125 @@
+{
+ "average": 0.8,
+ "through": "2026-10",
+ "tests": {
+  "trend_fast": {
+   "key": "trend_fast",
+   "name": "Nifty 500 above its 200D EMA",
+   "claim": "stronger",
+   "on": 1.13,
+   "off": -0.14,
+   "n_on": 149,
+   "n": 201,
+   "halves": [
+    1.77,
+    0.78
+   ],
+   "first": "2010-01",
+   "last": "2026-09",
+   "passed": true,
+   "threshold": null
+  },
+  "trend_slow": {
+   "key": "trend_slow",
+   "name": "Nifty 500 above its 10-month average",
+   "claim": "stronger",
+   "on": 1.15,
+   "off": -0.03,
+   "n_on": 142,
+   "n": 201,
+   "halves": [
+    1.27,
+    1.09
+   ],
+   "first": "2010-01",
+   "last": "2026-09",
+   "passed": true,
+   "threshold": null
+  },
+  "rebound": {
+   "key": "rebound",
+   "name": "Sharp rebound: within 3% of the 52W high after a 5-pt jump in a month",
+   "claim": "weaker",
+   "on": 1.58,
+   "off": 0.78,
+   "n_on": 4,
+   "n": 201,
+   "halves": [
+    3.35,
+    -1.75
+   ],
+   "first": "2010-01",
+   "last": "2026-09",
+   "passed": false,
+   "threshold": null
+  },
+  "qualify": {
+   "key": "qualify",
+   "name": "Few stocks qualify: bottom quarter of month-ends",
+   "claim": "weaker",
+   "on": -0.38,
+   "off": 1.2,
+   "n_on": 51,
+   "n": 201,
+   "halves": [
+    -2.36,
+    -0.88
+   ],
+   "first": "2010-01",
+   "last": "2026-09",
+   "passed": true,
+   "threshold": null
+  },
+  "fpi": {
+   "key": "fpi",
+   "name": "Heavy foreign buying: top quarter of months",
+   "claim": "stronger",
+   "on": 1.4,
+   "off": 0.36,
+   "n_on": 33,
+   "n": 129,
+   "halves": [
+    0.63,
+    1.4
+   ],
+   "first": "2016-01",
+   "last": "2026-09",
+   "passed": true,
+   "threshold": 14372.0
+  },
+  "breadth_thin": {
+   "key": "breadth_thin",
+   "name": "Breadth thin: 40% or fewer above the 200D EMA",
+   "claim": "weaker",
+   "on": -0.23,
+   "off": 1.16,
+   "n_on": 52,
+   "n": 201,
+   "halves": [
+    -2.09,
+    -0.75
+   ],
+   "first": "2010-01",
+   "last": "2026-09",
+   "passed": true,
+   "threshold": null
+  },
+  "participation_jump": {
+   "key": "participation_jump",
+   "name": "Participation jump: 50D share up 15 pts in a month",
+   "claim": "stronger",
+   "on": 0.85,
+   "off": 0.79,
+   "n_on": 46,
+   "n": 201,
+   "halves": [
+    0.68,
+    -0.61
+   ],
+   "first": "2010-01",
+   "last": "2026-09",
+   "passed": false,
+   "threshold": null
+  }
+ }
+}

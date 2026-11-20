@@ -55,3 +55,20 @@ def test_strong_and_weak_is_one_table_with_a_cell_per_figure():
     assert "<table" in out and "29.8%" in out and "Strong · 29.8%" in out and "Weak · 9.7%" in out
     assert '<td class="dh-num dh-up">+6.6</td>' in out
     assert "Healthcare, the biggest at 30%, is slowing" in out
+
+
+def test_a_signal_that_did_not_pass_is_shown_but_not_used():
+    """S150: the participation jump was counted for momentum; its test does not pass."""
+    from src.ui.views import dashboard_home_view as v
+    t_pass = {"passed": True, "on": -0.23, "off": 1.16, "n_on": 52, "n": 201, "halves": [-2.1, -0.8]}
+    t_fail = {"passed": False, "on": 0.85, "off": 0.79, "n_on": 46, "n": 201, "halves": [0.7, -0.6]}
+    signals = [
+        {"key": "breadth_thin", "name": "Breadth thin", "sub": "", "cells": ["55%", "34%", "50%"], "on": False,
+         "test": t_pass, "like": 1.16, "flip": "Back to 40% or below"},
+        {"key": "participation_jump", "name": "Participation jump", "sub": "", "cells": ["50%", "20%", "56%"], "on": True,
+         "test": t_fail, "like": None, "flip": "A month without a jump"},
+    ]
+    html = v.section_momentum([("12 months", 12.2, "")], 0, signals, 0.8)
+    assert "1 pass" in html and "1 is not confirmed" in html
+    assert "Not confirmed" in html and "Not used" in html and "the halves disagree" in html
+    assert "1 point to a stronger month" in html and "0 to a weaker one" in html
