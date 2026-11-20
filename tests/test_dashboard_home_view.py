@@ -45,16 +45,34 @@ def test_book_sizes_read_book_risks_tiers():
     assert hv._book_sizes(R()) == pytest.approx({"Large": 5.0, "Mid": 5.0, "Small": 55.0, "Micro": 35.0})
 
 
-def test_strong_and_weak_is_one_table_with_a_cell_per_figure():
+def test_strong_and_weak_is_cards_with_rotation_and_a_chart():
+    """v8 (owner, 20 Nov 2026): the v7 cards, each industry's figures and rotation, the book's segments as a chart."""
     weights = pd.DataFrame({"Industry": ["Healthcare", "Capital Goods"], "Weight": [29.8, 9.7], "Holdings": [6, 2]})
     sectors = pd.DataFrame({"Industry": ["Healthcare", "Capital Goods"], "rel_6m": [6.6, -0.2], "rel_1m": [5.8, -5.2]})
     rrg = pd.DataFrame({"Quadrant": ["Weakening", "Lagging"], "RS_Ratio": [103.7, 96.4], "RS_Momentum": [99.3, 91.2]},
                        index=["Healthcare", "Capital Goods"])
     paths = {"Healthcare": ["Weakening"] * 3, "Capital Goods": ["Improving", "Weakening", "Lagging"]}
-    out = hv.section_strong_weak(weights, sectors, paths, rrg)
-    assert "<table" in out and "29.8%" in out and "Strong · 29.8%" in out and "Weak · 9.7%" in out
-    assert '<td class="dh-num dh-up">+6.6</td>' in out
+    parts = hv.section_strong_weak(weights, sectors, paths, rrg)
+    out = hv.html_of(parts)
+    assert ">Strong</h3>" in out and "29.8%" in out and ">Weak</h3>" in out and "9.7%" in out
+    assert '<span class="dh-mono dh-up">+6.6</span>' in out
+    assert "Rotation: Weakening → Weakening → <b>Weakening</b>" in out
     assert "Healthcare, the biggest at 30%, is slowing" in out
+    assert "Show the table" in out
+    charts = [p for p in parts if isinstance(p, hv.Chart)]
+    assert [c.kind for c in charts] == ["segbar"] and charts[0].spec["segs"][0][0] == "Healthcare"
+
+
+def test_rank_trail_is_an_image_the_cleaner_keeps():
+    """st.html drops inline SVG; the trail is an <img> with the theme's colours written in."""
+    img = hv._rank_trail_svg([21, 3, 38], 40)
+    assert img.startswith('<img class="dh-trail"') and "data:image/svg+xml," in img
+    assert "var(--" not in img and 'alt="Rank trail #21 → #3 → #38"' in img
+
+
+def test_every_chart_has_its_explanation_and_table():
+    h = hv.how("What.", "How.", ["Month", "Lead"], [["Oct 2026", "-3.40"]])
+    assert "What it is · how to read it" in h and "Show the table" in h and "−3.40" in h
 
 
 def test_a_signal_that_did_not_pass_is_shown_but_not_used():
@@ -68,7 +86,7 @@ def test_a_signal_that_did_not_pass_is_shown_but_not_used():
         {"key": "participation_jump", "name": "Participation jump", "sub": "", "cells": ["50%", "20%", "56%"], "on": True,
          "test": t_fail, "like": None, "flip": "A month without a jump"},
     ]
-    html = v.section_momentum([("12 months", 12.2, "")], 0, signals, 0.8)
+    html = v.html_of(v.section_momentum([("12 months", 12.2, "")], 0, signals, 0.8))
     assert "1 pass" in html and "1 is not confirmed" in html
     assert "Not confirmed" in html and "Not used" in html and "the halves disagree" in html
     assert "1 point to a stronger month" in html and "0 to a weaker one" in html

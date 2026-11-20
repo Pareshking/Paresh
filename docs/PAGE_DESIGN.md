@@ -173,8 +173,15 @@ every page.
   the Markdown chunk, which loads later.
 - `app.py`'s code reloader needs view imports at the top, before
   `mark_loaded()`.
-- `st.html` runs no script: interactive charts go in the iframe component
-  (`lw_chart.render`) or a small custom component.
+- `st.html` runs no script: interactive charts go in a frame. The Dashboard's
+  charts are `src/ui/dash_charts.render(kind, spec)`: `st.iframe(height="content")`
+  sizes to what it draws; the kit is one cached file, `static/dash_charts.js`,
+  addressed by its hash. A page is then a list of HTML parts with charts between.
+- `st.html`'s cleaner drops inline `<svg>`: draw small static marks as an
+  `<img>` with a `data:image/svg+xml` source and the theme's colours written in
+  (`tokens.resolve`); `var(--…)` does not work inside SVG attributes anyway.
+- On touch, a lifted finger fires `pointerleave`: keep the reading instead of
+  resetting, or a tap shows nothing.
 - Cache keys must include the revision of any data file read inside the
   cached function (`_past_stamp()` for breadth history).
 
@@ -212,5 +219,13 @@ audited first before you share it with me." Run it in a browser
 - **One name, one thing:** the same quadrant word in the same colour in table,
   badge, list and chart (Leading and Improving blue, Weakening amber,
   Lagging rust).
+- **White space** (owner, 20 Nov: "Check for any extra white space"): measure it in
+  the running app, not by eye. No empty band of 40 px or more between blocks;
+  side-by-side columns end within about 100 px of each other (move a list or a
+  note across, or put the overflow below, two across); a chart frame no taller
+  than what it draws (a browser frame is at least 150 px, so give a short chart
+  a key line rather than empty space); stacked columns on a phone use the
+  medium gap, not the large one. The Dashboard's measurements: 678 px under the
+  rotation chart and 300 px under the typical-stock table, both fixed.
 - **Layout:** no sideways scroll at 390 px; nothing clipped; labels that do not
   fit are hidden and named on tap; light and dark both looked at.
