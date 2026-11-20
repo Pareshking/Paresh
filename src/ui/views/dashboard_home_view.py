@@ -191,14 +191,8 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
     key_of = {d: k for k, d in dates.items() if d is not None}
     out["rank_table"] = (snap.assign(when=snap["date"].map(key_of))
                          .pivot_table(index="symbol", columns="when", values="rank", aggfunc="first"))
-    ranks = {}
-    for sym in symbols:
-        row = []
-        for d in dates.values():
-            hit = snap[(snap["date"] == d) & (snap["symbol"] == sym)]["rank"]
-            row.append(None if hit.empty or pd.isna(hit.iloc[0]) else int(hit.iloc[0]))
-        ranks[sym] = row
-    out["ranks"] = ranks
+    # The same trail Portfolio shows: one function, one definition (S151, S152).
+    out["ranks"] = di.rank_trails(px, symbols, snap)[1]
     paths: dict[str, list[str]] = {}
     for k in ("3m", "1m", "now"):
         r = compute_rrg_data(f"home_{key}_{k}", px, _rank_df, end_date_str=None if k == "now" else str(dates[k].date()))
@@ -946,18 +940,18 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     ranked_px = adj_close[[c for c in rank_df["Symbol"] if c in adj_close.columns]]
     typical = di.typical_stock(ranked_px, market, idx_end)
     from src.engine import book_risk as br
-    eq = (record or {}).get("equity_curve")
+    from src.ui.book_series import book_series
+    # The book's daily value to today, the series Portfolio draws (S152): the
+    # backtest replay alone ends at the last month-end and read −8.1% below the
+    # peak on 19 Nov when the book was −3.1%.
+    series = book_series(book, record, ledger, rank_df, adj_close, benchmark_close, MODEL_BOOK_CAPITAL)
+    eq = series.equity if series is not None else None
     risk = br.book_risk(book.set_index("Symbol")["Weight %"], adj_close, n500, eq, volume, MODEL_BOOK_CAPITAL)
     book_sizes = _book_sizes(risk)
 
     # 6, 7. industries
     # Today's weights from Portfolio's own table, so the two pages cannot differ.
-    from src.ui.views.portfolio_view import build_portfolio_tracker
-    book.attrs["as_of"] = meta.get("as_of")
-    book.attrs["fill_date"] = meta.get("fill_date")
-    _rec_as_of = pd.to_datetime(meta.get("as_of"), errors="coerce")
-    _px = adj_close.loc[:_rec_as_of] if pd.notna(_rec_as_of) else adj_close
-    tracker = build_portfolio_tracker(book, rank_df, MODEL_BOOK_CAPITAL, _px, equity_curve=history["equity"])
+    tracker = series.table if series is not None else None
     if tracker is not None and not tracker.empty and "Weight %" in tracker:
         book = book.assign(**{"Weight %": book["Symbol"].map(tracker.set_index("Symbol")["Weight %"])})
     weights = (book.assign(Industry=book["Symbol"].map(industry).fillna("—"))

@@ -272,6 +272,65 @@ R.breadth = (card, s) => {
     {name: 'of the 750 above their 200D EMA', color: css('--up'), v: s.a200[i] == null ? '—' : s.a200[i].toFixed(0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
 };
 
+/* ₹100 since the start and how far below its peak, the book and the market: two panes, one crosshair (Portfolio). */
+R.growth = (card, s) => {
+  const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
+  let panes = [];
+  const draw = () => {
+    panes = [linePane(top, {dates: s.dates, series: [
+        {name: 'The book', color: css('--ink'), values: s.book, area: true, width: 2.4, end: 'Book ' + s.book.at(-1).toFixed(1)},
+        {name: 'Nifty500 Momentum 50', color: css('--caution'), values: s.mom, end: 'Momentum ' + (s.mom.at(-1) ?? 0).toFixed(1), endDy: -5},
+        {name: 'Nifty Total Market', color: css('--muted'), values: s.market, dash: '5 4', end: 'Market ' + (s.market.at(-1) ?? 0).toFixed(1), endDy: 10}],
+        height: 230, padR: 112, noX: true, yfmt: v => v.toFixed(0), areaBase: Math.min(...s.book) * 0.95}),
+      linePane(bot, {dates: s.dates, series: [{name: 'The book', color: css('--down'), values: s.dd, area: true, width: 1.6},
+        {name: 'Nifty Total Market', color: css('--muted'), values: s.ddm, dash: '4 3', width: 1.4}],
+        height: 120, padR: 112, yfmt: v => v.toFixed(0) + '%', areaBase: 0, ticks: 3})];
+  };
+  REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
+  interact(card, () => panes, $('.readout', card), k => ({date: dlong(s.dates[k]), items: [
+    {name: 'The book', color: css('--ink'), v: '₹' + s.book[k].toFixed(1)},
+    {name: 'Momentum 50', color: css('--caution'), v: s.mom[k] == null ? '—' : '₹' + s.mom[k].toFixed(1)},
+    {name: 'Market', color: css('--muted'), v: s.market[k] == null ? '—' : '₹' + s.market[k].toFixed(1)},
+    {name: 'book below peak', color: css('--down'), v: sg(s.dd[k]) + '%', vcolor: s.dd[k] < 0 ? css('--down') : ''},
+    {name: 'market below peak', color: css('--muted'), v: s.ddm[k] == null ? '—' : sg(s.ddm[k]) + '%'}]}), () => s.dates.length - 1);
+};
+
+/* The holdings, sortable by any column (Portfolio). */
+R.holdings = (card, s) => {
+  const el = $('.hold', card), inrf = v => (v < 0 ? '−' : '') + '₹' + Math.round(Math.abs(v)).toLocaleString('en-IN');
+  const f2 = v => v.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const rk = r => r == null ? 'Out' : '#' + r;
+  const MONS = MON;
+  const ds = d => { const [y, m, dd] = d.split('-'); return `${+dd} ${MONS[+m - 1]} ’${y.slice(2)}`; };
+  const cols = [['s', 'Stock'], ['ind', 'Industry · size'], ['since', 'Entry date'], ['q', 'Qty', 1], ['ep', 'Entry<br>price', 1], ['px', 'Price', 1],
+    ['val', 'Value', 1], ['w', 'Weight', 1], ['dayp', 'Today', 1], ['pnl', 'P&amp;L from ' + esc(s.fill), 1], ['ret', 'Since entry', 1],
+    ['ema', 'vs 50D<br>EMA', 1], ['hi', 'From 52W<br>high', 1], ['rn', 'Rank<br>3M · 1M · now']];
+  let key = 'val', dir = -1;
+  const draw = () => {
+    const rows = s.rows.slice().sort((a, b) => { const va = a[key] ?? 999, vb = b[key] ?? 999; return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir; });
+    const head = cols.map(([k, t, n]) => `<th scope="col" data-k="${k}" tabindex="0" class="${n ? 'num' : ''}" aria-sort="${k === key ? (dir < 0 ? 'descending' : 'ascending') : 'none'}">${t}</th>`).join('');
+    const body = rows.map(h => {
+      const emaC = h.ema != null && h.ema < 0 ? 'down b' : '', hiC = h.hi != null && h.hi <= -s.high_cut ? 'down b' : h.hi != null && h.hi <= -12 ? 'watch' : 'muted';
+      const rC = h.rn == null || h.rn > s.rank_cut ? 'down' : '';
+      return `<tr><th scope="row" title="${esc(h.co)}"><span class="sym">${esc(h.s)}</span><span class="ss co">${esc(h.co_short)}</span></th>`
+        + `<td>${esc(h.ind)}<span class="ss"><span class="${h.tone}">${esc(h.status)}</span>${h.size ? ' · ' + esc(h.size) : ''}</span></td>`
+        + `<td class="nw">${ds(h.since)}<span class="ss">${h.days} days</span></td>`
+        + `<td class="num">${h.q.toLocaleString('en-IN')}</td><td class="num">${f2(h.ep)}</td><td class="num">${f2(h.px)}</td>`
+        + `<td class="num">${inrf(h.val)}</td><td class="num">${h.w.toFixed(1)}%</td><td class="num ${tone(h.dayp)}">${sg(h.dayp)}%</td>`
+        + `<td class="num ${tone(h.pnl)}">${h.pnl > 0 ? '+' : ''}${inrf(h.pnl)}</td><td class="num b ${tone(h.ret)}">${sg(h.ret)}%</td>`
+        + `<td class="num ${emaC}">${h.ema == null ? '—' : sg(h.ema) + '%'}</td><td class="num ${hiC}">${h.hi == null ? '—' : sg(h.hi) + '%'}</td>`
+        + `<td class="rk">${rk(h.r3)} · ${rk(h.r1)} · <b class="${rC}">${rk(h.rn)}</b></td></tr>`; }).join('');
+    const F = s.foot;
+    const foot = `<tr class="tot"><th scope="row">${s.rows.length} holdings</th><td></td><td></td><td></td><td></td><td></td><td class="num">${inrf(F.val)}</td><td class="num">${F.w.toFixed(1)}%</td>`
+      + `<td class="num ${tone(F.day)}">${sg(F.day)}%<span class="ss">${F.dayr > 0 ? '+' : ''}${inrf(F.dayr)}</span></td><td class="num ${tone(F.pnl)}">${F.pnl > 0 ? '+' : ''}${inrf(F.pnl)}<span class="ss">${sg(F.since_fill)}% before costs</span></td>`
+      + `<td></td><td class="num ${F.below_ema ? 'down' : ''}">${F.below_ema} below</td><td class="num ${F.past_high ? 'down' : ''}">${F.past_high} past −${s.high_cut}%</td><td class="${F.past_rank ? 'down' : ''}">${F.past_rank} past #${s.rank_cut}</td></tr>`;
+    el.innerHTML = `<table class="ht"><thead><tr>${head}</tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table>`;
+    el.querySelectorAll('thead th').forEach(th => { const go = () => { const k = th.dataset.k; dir = k === key ? -dir : (['s', 'ind', 'rn', 'since'].includes(k) ? 1 : -1); key = k; draw(); };
+      th.addEventListener('click', go); th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); });
+  };
+  draw();
+};
+
 window.DashCharts = {render(kind, spec) { R[kind](document.getElementById('c'), spec); }};
 
 })();

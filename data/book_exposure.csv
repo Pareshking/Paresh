@@ -1,0 +1,133 @@
+date,kind,name,weight
+2026-01-01,industry,Financial Services,40.0
+2026-01-01,industry,Metals & Mining,25.0
+2026-01-01,industry,Automobile and Auto Components,20.0
+2026-01-01,industry,Capital Goods,5.0
+2026-01-01,industry,Consumer Durables,5.0
+2026-01-01,industry,Healthcare,5.0
+2026-01-01,size,Mid,35.0
+2026-01-01,size,Large,30.0
+2026-01-01,size,Small,25.0
+2026-01-01,size,Micro,10.0
+2026-01-01,size,Other,0.0
+2026-02-01,industry,Financial Services,40.0
+2026-02-01,industry,Metals & Mining,20.0
+2026-02-01,industry,Capital Goods,15.0
+2026-02-01,industry,Automobile and Auto Components,10.0
+2026-02-01,industry,Chemicals,5.0
+2026-02-01,industry,Healthcare,5.0
+2026-02-01,industry,Information Technology,5.0
+2026-02-01,size,Mid,35.0
+2026-02-01,size,Large,30.0
+2026-02-01,size,Micro,20.0
+2026-02-01,size,Small,15.0
+2026-02-01,size,Other,0.0
+2026-03-02,industry,Financial Services,30.0
+2026-03-02,industry,Capital Goods,25.0
+2026-03-02,industry,Automobile and Auto Components,20.0
+2026-03-02,industry,Metals & Mining,10.0
+2026-03-02,industry,Healthcare,5.0
+2026-03-02,industry,Oil Gas & Consumable Fuels,5.0
+2026-03-02,industry,Services,5.0
+2026-03-02,size,Mid,40.0
+2026-03-02,size,Large,30.0
+2026-03-02,size,Small,15.0
+2026-03-02,size,Micro,15.0
+2026-03-02,size,Other,0.0
+2026-04-01,industry,Healthcare,30.0
+2026-04-01,industry,Capital Goods,25.0
+2026-04-01,industry,Automobile and Auto Components,10.0
+2026-04-01,industry,Chemicals,5.0
+2026-04-01,industry,Fast Moving Consumer Goods,5.0
+2026-04-01,industry,Media Entertainment & Publication,5.0
+2026-04-01,industry,Metals & Mining,5.0
+2026-04-01,industry,Oil Gas & Consumable Fuels,5.0
+2026-04-01,industry,Services,5.0
+2026-04-01,industry,Telecommunication,5.0
+2026-04-01,size,Micro,35.0
+2026-04-01,size,Small,30.0
+2026-04-01,size,Mid,25.0
+2026-04-01,size,Large,10.0
+2026-04-01,size,Other,0.0
+2026-05-04,industry,Capital Goods,40.0
+2026-05-04,industry,Financial Services,15.0
+2026-05-04,industry,Automobile and Auto Components,10.0
+2026-05-04,industry,Fast Moving Consumer Goods,10.0
+2026-05-04,industry,Telecommunication,10.0
+2026-05-04,industry,Healthcare,5.0
+2026-05-04,industry,Power,5.0
+2026-05-04,industry,Services,5.0
+2026-05-04,size,Micro,50.0
+2026-05-04,size,Small,30.0
+2026-05-04,size,Mid,15.0
+2026-05-04,size,Large,5.0
+2026-05-04,size,Other,0.0
+2026-06-01,industry,Capital Goods,40.0
+2026-06-01,industry,Healthcare,15.0
+2026-06-01,industry,Automobile and Auto Components,10.0
+2026-06-01,industry,Telecommunication,10.0
+2026-06-01,industry,Fast Moving Consumer Goods,5.0
+2026-06-01,industry,Financial Services,5.0
+2026-06-01,industry,Information Technology,5.0
+2026-06-01,industry,Metals & Mining,5.0
+2026-06-01,industry,Power,5.0
+2026-06-01,size,Micro,40.0
+2026-06-01,size,Mid,25.0
+2026-06-01,size,Small,25.0
+2026-06-01,size,Large,10.0
+2026-06-01,size,Other,0.0
+2026-07-01,industry,Capital Goods,40.0
+2026-07-01,industry,Healthcare,15.0
+2026-07-01,industry,Automobile and Auto Components,10.0
+2026-07-01,industry,Telecommunication,10.0
+2026-07-01,industry,Consumer Durables,5.0
+2026-07-01,industry,Fast Moving Consumer Goods,5.0
+2026-07-01,industry,Financial Services,5.0
+2026-07-01,industry,Information Technology,5.0
+2026-07-01,industry,Textiles,5.0
+2026-07-01,size,Micro,45.0
+2026-07-01,size,Small,40.0
+2026-07-01,size,Mid,15.0
+2026-07-01,size,Large,0.0
+2026-07-01,size,Other,0.0
+2026-08-03,industry,Capital Goods,35.0
+2026-08-03,industry,Automobile and Auto Components,15.0
+2026-08-03,industry,Healthcare,15.0
+2026-08-03,industry,Fast Moving Consumer Goods,10.0
+2026-08-03,industry,Financial Services,10.0
+2026-08-03,industry,Telecommunication,10.0
+2026-08-03,industry,Services,5.0
+2026-08-03,size,Small,45.0
+2026-08-03,size,Micro,45.0
+2026-08-03,size,Mid,10.0
+2026-08-03,size,Large,0.0
+2026-08-03,size,Other,0.0
+2026-09-01,industry,Capital Goods,30.0
+2026-09-01,industry,Healthcare,20.0
+2026-09-01,industry,Automobile and Auto Components,15.0
+2026-09-01,industry,Fast Moving Consumer Goods,10.0
+2026-09-01,industry,Telecommunication,10.0
+2026-09-01,industry,Chemicals,5.0
+2026-09-01,industry,Financial Services,5.0
+2026-09-01,industry,Services,5.0
+2026-09-01,size,Micro,50.0
+2026-09-01,size,Small,40.0
+2026-09-01,size,Large,5.0
+2026-09-01,size,Mid,5.0
+2026-09-01,size,Other,0.0
+2026-10-01,industry,Capital Goods,30.0
+2026-10-01,industry,Healthcare,15.0
+2026-10-01,industry,Automobile and Auto Components,10.0
+2026-10-01,industry,Telecommunication,10.0
+2026-10-01,industry,Chemicals,5.0
+2026-10-01,industry,Consumer Durables,5.0
+2026-10-01,industry,Consumer Services,5.0
+2026-10-01,industry,Fast Moving Consumer Goods,5.0
+2026-10-01,industry,Information Technology,5.0
+2026-10-01,industry,Services,5.0
+2026-10-01,industry,Textiles,5.0
+2026-10-01,size,Small,50.0
+2026-10-01,size,Micro,40.0
+2026-10-01,size,Large,5.0
+2026-10-01,size,Mid,5.0
+2026-10-01,size,Other,0.0

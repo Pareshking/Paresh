@@ -246,6 +246,19 @@ def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
     return f'<div class="xw" role="table" aria-label="Buy">{"".join(rows)}</div>'
 
 
+def _book_equity(book, record, rank_df, adj_close, benchmark_close, system) -> pd.Series | None:
+    """The model book's daily value to today (src/ui/book_series.py), for buy sizing."""
+    from src.engine.systems import inception, ledger_path
+    from src.engine.track_record import load_ledger
+    from src.ui.book_series import book_series
+    try:
+        ledger = load_ledger(ledger_path(system), inception(system))
+    except (ValueError, OSError):
+        return (record or {}).get("equity_curve")
+    series = book_series(book, record, ledger, rank_df, adj_close, benchmark_close, MODEL_BOOK_CAPITAL)
+    return series.equity if series is not None else (record or {}).get("equity_curve")
+
+
 def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         benchmark_close: pd.Series | None,
                         model_book_note: str | None = None,
@@ -309,7 +322,9 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         lwr = (source != "My holdings"
                and _hold_cap_on(cfg.get("hold_cap"), cfg.get("hold_cap_from"), check)
                and pd.Timestamp(check).month not in resets)
-        buy_w = (fixed_buy_weight((_record or {}).get("equity_curve"), resets, float(cfg.get("buy_size") or 0.05))
+        # The account today, not at the last month-end: the replay alone ends there (S152).
+        buy_w = (fixed_buy_weight(_book_equity(book, _record, rank_df, adj_close, benchmark_close, system),
+                                  resets, float(cfg.get("buy_size") or 0.05))
                  if lwr and source != "My holdings" else None)
         plan = plan_rebalance(rank_df, symbols, top_n=top_n, buffer_n=rules.buffer_n,
                               stock_cap=float(cfg["stock_cap"]),

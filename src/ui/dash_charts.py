@@ -9,7 +9,9 @@ cannot see the page's CSS variables, so `tokens.resolve` writes them in.
 Kinds: "month" (straight-line bars, a period switch), "bars" (monthly bars
 from a zero line), "shared" (breadth by size list), "segbar" (the book by
 industry), "rrg" (relative rotation) and "breadth" (the index and its breadth,
-two panes, one crosshair). Rules: docs/PAGE_DESIGN.md section 4.
+two panes, one crosshair); for Portfolio "growth" (₹100 and how far below the
+peak, the book and the market) and "holdings" (the book, sortable). Rules:
+docs/PAGE_DESIGN.md section 4.
 """
 
 from __future__ import annotations
@@ -23,7 +25,7 @@ import streamlit as st
 
 from src.ui.tokens import FONTS, resolve
 
-KINDS = ("month", "bars", "shared", "segbar", "rrg", "breadth")
+KINDS = ("month", "bars", "shared", "segbar", "rrg", "breadth", "growth", "holdings")
 # The kit's address carries its content hash, so a deploy is never drawn by a cached older kit.
 _KIT = Path(__file__).resolve().parents[2] / "static" / "dash_charts.js"
 KIT_SRC = "app/static/dash_charts.js?v=" + hashlib.sha256(_KIT.read_bytes()).hexdigest()[:12]
@@ -83,6 +85,20 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .seg-turning{background:color-mix(in srgb,var(--caution) 45%,var(--bg))}.seg-turning.alt{background:color-mix(in srgb,var(--caution) 30%,var(--bg))}
 .seg-weak{background:var(--down)}.seg-weak.alt{background:color-mix(in srgb,var(--down) 75%,var(--bg))}
 .rrg{aspect-ratio:1.45/1}
+.hold{overflow-x:auto}
+.ht{width:100%;min-width:1120px;border-collapse:collapse;font-size:12.5px}
+.ht th,.ht td{text-align:left;padding:7px 7px 7px 0;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
+.ht thead th{font-size:12px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--ink);vertical-align:bottom;cursor:pointer;user-select:none}
+.ht thead th[aria-sort="descending"]::after{content:" ↓"}.ht thead th[aria-sort="ascending"]::after{content:" ↑"}
+.ht thead th:focus-visible{outline:2px solid var(--up);outline-offset:2px}
+.ht tbody th,.ht tfoot th{font-weight:600;white-space:nowrap;position:sticky;left:0;background:var(--bg);z-index:1}
+.ht .num{width:1%;white-space:nowrap}.ht .nw{white-space:nowrap}
+.ht .sym{font-family:'IBM Plex Mono',monospace;font-weight:600}.ht .ss{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.ht .co{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ht .rk{white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}.ht .rk b{color:var(--ink)}.ht .rk b.down{color:var(--down)}
+.ht tr.tot th,.ht tr.tot td{border-top:1px solid var(--ink);font-weight:600}
+@media (max-width:640px){.ht .co{display:none}.ht{min-width:1040px}}
+
 /* On a wide screen the readout stays on one line, so the frame's measured height never
    includes a second line that only the fallback font, before the real one loads, needed. */
 @media (min-width:601px){.readout{flex-wrap:nowrap;overflow:hidden}.readout .d{flex:0 0 100%}.readout{flex-wrap:wrap;max-height:44px}}
@@ -117,6 +133,11 @@ BODY = {
                 '<button class="chip" type="button" data-range="0" aria-pressed="true">3Y</button></span></div>'
                 '<div class="readout" aria-live="polite"></div>'
                 '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div><div class="chart" data-pane="bottom" role="img"></div>'),
+    "growth": ('<div class="readout" aria-live="polite"></div>'
+               '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div>'
+               '<div class="cap"><b>Below the peak</b><span>the book (filled) and Nifty Total Market (dashed)</span></div>'
+               '<div class="chart" data-pane="bottom" role="img" aria-label="The book\'s and the market\'s fall from their peaks"></div>'),
+    "holdings": '<div class="hold" role="region" aria-label="{label}" tabindex="0"></div>',
 }
 
 
