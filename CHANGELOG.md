@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-20 — Industries are compared with the stocks they compete with
+
+- Sectors, RRG and the Dashboard's "What is leading?" now read each industry as an equal-weighted index of its stocks against the same index of every ranked stock. They used to compare it with the Nifty 500, which weights large companies more, so a rally led by large companies made nearly every industry look like it was lagging, and the pages disagreed (Financial Services, FMCG and Realty were "Leading" on RRG and "behind on both" on Sectors). Now the two pages agree.
+- The gap between the typical ranked stock and the Nifty 500 is shown on its own as size leadership, the first row of "By size": over the last month the ranked stocks, equally weighted, trailed the Nifty 500 by 6 points.
+- RRG's default benchmark is now all ranked stocks, equal-weighted; the Nifty 500 and Nifty 50 remain as choices.
+
 ## 2026-11-20 — RRG: Leading now means ahead of the benchmark
 
 - On the RRG page, 100 on each axis is now the chosen index. It used to be the average of the industries shown, so in a market where nearly every industry trailed the Nifty 500 the least weak half still read "Leading": on 18 Nov Financial Services, FMCG and Realty were 3 to 4% behind the index over 12 weeks and were shown as Leading. The quadrants now mean what their names say, as the method's author defines them. Expect far fewer industries in Leading while large companies lead the market.

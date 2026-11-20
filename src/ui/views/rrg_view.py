@@ -19,13 +19,18 @@ from src.ui.components import gap_count, render_data_quality_footer
 
 
 # The benchmarks, named once so the selector and the dispatch cannot disagree.
-# Real NSE indices, as every other page measures against (Nifty 500 is the
-# portfolio's benchmark). Value: the Yahoo symbol of the index.
+# The default is the same construction as the industries: every ranked stock,
+# equal-weighted and rebalanced daily (S147, owner 20 Nov 2026; matches
+# Sectors, src/engine/peer_index). The NSE indices stay as choices, but they
+# are cap-weighted, so against them an equal-weighted industry also carries
+# the size effect: on 18 Nov 17 of 20 industries read Lagging against the
+# Nifty 500 and 4 against the ranked market. Value: the Yahoo symbol.
+BENCHMARK_EW: str = "Ranked stocks, equal weight"
 BENCHMARK_N500: str = "Nifty 500"
 BENCHMARK_N50: str = "Nifty 50"
 BENCHMARK_SYMBOLS: dict[str, str] = {BENCHMARK_N500: BENCHMARK_SYMBOL,
                                      BENCHMARK_N50: BENCHMARK_SYMBOL_N50}
-BENCHMARK_OPTIONS: list[str] = list(BENCHMARK_SYMBOLS)
+BENCHMARK_OPTIONS: list[str] = [BENCHMARK_EW, *BENCHMARK_SYMBOLS]
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -37,7 +42,7 @@ def compute_rrg_data(
     lookback_weeks: int = 12,
     tail_weeks: int = 6,
     timeframe: str = "Weekly candle",
-    benchmark_choice: str = BENCHMARK_N500,
+    benchmark_choice: str = BENCHMARK_EW,
     end_date_str: str | None = None,
     _benchmark: pd.Series | None = None,
 ) -> pd.DataFrame:
@@ -65,8 +70,6 @@ def compute_rrg_data(
         benchmark_ret = level.pct_change(fill_method=None).reindex(daily_ret.index)
         if benchmark_ret.notna().sum() < 20:
             benchmark_ret = None
-    if benchmark_ret is None:
-        benchmark_ret = daily_ret.mean(axis=1)
 
     sectors: dict[str, list[str]] = {}
     if ind_column == "Symbol":
@@ -94,6 +97,13 @@ def compute_rrg_data(
 
     if not sectors:
         return pd.DataFrame()
+
+    # No index series (the default, or an index that could not be fetched):
+    # the market is every stock on the chart, equal-weighted and rebalanced
+    # daily, the same construction as each industry (src/engine/peer_index).
+    if benchmark_ret is None:
+        market = sorted({s for syms in sectors.values() for s in syms})
+        benchmark_ret = daily_ret[market].mean(axis=1)
 
     raw_data = {}
     # Relative strength must compare the sector and the benchmark over the SAME
@@ -224,14 +234,19 @@ def render_rrg_view(
     # starts, so they are read here first.
     scope_now = st.session_state.get("rrg_scope_pill") or "Sector Indices"
     bm_choice = st.session_state.get("rrg_bm_choice") or BENCHMARK_OPTIONS[0]
-    bm_series = fetch_benchmark_history(period="5y", symbol=BENCHMARK_SYMBOLS[bm_choice])
-    bm_used = bm_choice if len(bm_series) > 20 else "equal-weighted universe (index unavailable)"
+    if bm_choice in BENCHMARK_SYMBOLS:
+        bm_series = fetch_benchmark_history(period="5y", symbol=BENCHMARK_SYMBOLS[bm_choice])
+        bm_used = (f"the {bm_choice}" if len(bm_series) > 20
+                   else "all ranked stocks, equal-weighted (the index was unavailable)")
+    else:
+        bm_series = None
+        bm_used = "all ranked stocks, equal-weighted"
     subject = "Industries"
     if scope_now == "Top Stocks":
         subject = "Top stocks"
     elif scope_now == "TV Sectors" and "TV_Sector" in rank_df.columns:
         subject = "TV sectors"
-    head = kit.page_head("Relative rotation", f"{subject} against the {bm_used}", actions=True)
+    head = kit.page_head("Relative rotation", f"{subject} against {bm_used}", actions=True)
     with head:
         scope_pill = st.segmented_control(
             "Compare",
@@ -257,10 +272,13 @@ def render_rrg_view(
             BENCHMARK_OPTIONS,
             index=0,
             key="rrg_bm_choice",
-            help="Each industry's strength is measured against this index. "
-                 "On the chart, 100 on each axis is the index itself: right of it, "
-                 "an industry is gaining on the index over the lookback; above it, "
-                 "that gain is speeding up.",
+            help="Each industry is an equal-weighted index of its stocks. The default "
+                 "benchmark is built the same way from every ranked stock, so the chart "
+                 "shows rotation between industries. The Nifty indices weight large "
+                 "companies more, so against them a large-company rally reads as every "
+                 "industry lagging. 100 on each axis is the benchmark: right of it, an "
+                 "industry is gaining on it over the lookback; above it, that gain is "
+                 "speeding up.",
         )
         tf_choice = st.segmented_control(
             "Timeframe",

@@ -1,5 +1,5 @@
-"""The sector leadership map: return against the Nifty 500 across, the share of
-a sector's stocks above their EMA up, a month ago and today."""
+"""The sector leadership map: return against the equal-weighted market across
+(S147), the share of a sector's stocks above their EMA up, a month ago and today."""
 
 import numpy as np
 import pandas as pd
@@ -36,23 +36,30 @@ def test_breadth_and_relative_return_by_hand():
     assert (a.above_now, a.obs_now, a.y_now) == (2, 2, 1.0)
     assert (b.above_now, b.obs_now, b.y_now) == (1, 2, 0.5)
     then, now = a.Then, a.Now
-    expect = prices.loc[now, "A1"] / prices.loc[then, "A1"] - 1
-    # A flat Nifty 500: relative return is the sector's own equal-weighted mean.
-    assert abs(a.x_now - expect) < 1e-12
-    mean_b = ((prices.loc[now, ["B1", "B2"]] / prices.loc[then, ["B1", "B2"]]) - 1).mean()
-    assert abs(b.x_now - mean_b) < 1e-12
+    # By hand: daily-rebalanced equal weights. The market is every grouped
+    # stock (the single-stock sector's too); Alpha is A1 itself (A1 == A2).
+    ew = lambda cols: (1 + prices[cols].pct_change().mean(axis=1)).fillna(1).cumprod()  # noqa: E731
+    mkt = ew(["A1", "A2", "B1", "B2", "C1"])
+    m_now = mkt.loc[now] / mkt.loc[then] - 1
+    assert abs(a.x_now - ((prices.loc[now, "A1"] / prices.loc[then, "A1"] - 1) - m_now)) < 1e-12
+    beta = ew(["B1", "B2"])
+    assert abs(b.x_now - ((beta.loc[now] / beta.loc[then] - 1) - m_now)) < 1e-12
+    assert abs(a.bench_now - m_now) < 1e-12
 
 
-def test_benchmark_is_subtracted_and_read_as_of_the_session():
+def test_the_nifty_500_no_longer_moves_the_reading():
+    # S147: an equal-weighted sector against the cap-weighted Nifty 500 read a
+    # large-company rally as every sector lagging. The index may soar; x stays.
     prices, groups, bench = _frame()
-    # A benchmark that rose 10% over the latest month, and runs a day past the prices.
     board0 = sector_leadership(prices, groups, bench, span=20).set_index("Sector")
     then = board0.loc["Alpha", "Then"]
     bench = bench.copy()
     bench[bench.index > then] = 1100.0
     bench[pd.Timestamp("2026-10-13")] = 5000.0
     board = sector_leadership(prices, groups, bench, span=20).set_index("Sector")
-    assert abs((board0.loc["Alpha", "x_now"] - board.loc["Alpha", "x_now"]) - 0.10) < 1e-12
+    assert abs(board0.loc["Alpha", "x_now"] - board.loc["Alpha", "x_now"]) < 1e-12
+    # Sectors are read against their own market, so they straddle zero.
+    assert (board["x_now"] > 0).any() and (board["x_now"] < 0).any()
 
 
 def test_a_stock_without_a_print_is_not_counted_below():
