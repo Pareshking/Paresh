@@ -43,10 +43,10 @@ t-12 to t-2.
 
 | Feb 2010 - Oct 2026, 24-month window | Sharpe | Max DD | Down-market beta |
 |---|---|---|---|
-| Top-minus-bottom fifth, site composite | 0.68 | -32% | -0.31 |
+| Top-minus-bottom fifth, site composite | 0.69 | -32% | -0.31 |
 | Top-minus-bottom fifth, total 12-1 | 0.83 | -45% | -0.28 |
-| **Top-minus-bottom fifth, residual CAPM** | **1.27** | **-12%** | **-0.02** |
-| Top-20 live-shape book, site composite | 0.55 (16.7% a year) | -34.7% | 1.17 |
+| **Top-minus-bottom fifth, residual CAPM** | **1.27** | **-11%** | **-0.02** |
+| Top-20 live-shape book, site composite | 0.56 (16.7% a year) | -34.7% | 1.17 |
 | Top-20 live-shape book, residual CAPM | 0.54 (16.5%) | -38.2% | 1.18 |
 | Top-20 live-shape book, residual FF3 | 0.53 (16.1%) | -40.7% | 1.23 |
 
@@ -69,9 +69,9 @@ t-12 to t-2.
 | No overlay | 18.1% | 0.60 | -34.8% |
 | C1 vol target 22.5% | 17.7% | 0.60 | -34.3% |
 | C2 breadth < 30% halt | 15.7% | 0.52 | -34.9% |
-| C1 + C2 | 15.2% | 0.51 | -35.5% |
+| C1 + C2 | 15.2% | 0.51 | -35.4% |
 
-- **C1 is nearly inert:** average equity 96%. The 22.5% anchor (Microcap 250's
+- **C1 is nearly inert:** average equity 97%. The 22.5% anchor (Microcap 250's
   long-run volatility) sits above our book's own (~21%), and a 63-day window reads calm
   before a crash and high just before the rebound. 20% and 25% targets: no better.
   Agrees with S144 (19 Nov), where vol targets also failed.
@@ -92,15 +92,15 @@ the signal date):
 
 | Skip | CAGR | Sharpe | Max DD | 2010-17 CAGR / Sharpe | 2018-26 CAGR / Sharpe | Worst 12m (2018-26) |
 |---|---|---|---|---|---|---|
-| 0 (live) | 19.3% | 0.65 | -35.4% | 23.9% / 0.91 | 15.2% / 0.46 | -30.4% |
+| 0 (live) | 19.3% | 0.65 | -35.4% | 23.9% / 0.92 | 15.2% / 0.46 | -30.4% |
 | 1 | 20.8% | 0.72 | -32.6% | 27.3% / 1.07 | 15.3% / 0.47 | -28.3% |
-| 3 | 21.5% | 0.74 | -33.9% | 27.8% / 1.07 | 16.0% / 0.49 | -27.1% |
-| **5** | **23.3%** | **0.79** | **-32.1%** | **29.4% / 1.10** | **18.0% / 0.56** | **-26.7%** |
-| 7 | 22.2% | 0.75 | -36.9% | 28.1% / 1.09 | 17.1% / 0.52 | -31.7% |
-| 10 | 20.5% | 0.70 | -34.5% | 25.4% / 0.93 | 16.3% / 0.51 | -29.0% |
-| 21 | 19.4% | 0.64 | -35.5% | 25.4% / 0.94 | 14.3% / 0.42 | -26.6% |
+| 3 | 21.5% | 0.74 | -33.9% | 27.8% / 1.08 | 16.0% / 0.49 | -27.1% |
+| **5** | **23.3%** | **0.79** | **-32.1%** | **29.4% / 1.11** | **18.0% / 0.56** | **-26.7%** |
+| 7 | 22.2% | 0.76 | -36.9% | 28.1% / 1.10 | 17.1% / 0.52 | -31.7% |
+| 10 | 20.5% | 0.70 | -34.5% | 25.4% / 0.94 | 16.3% / 0.51 | -29.0% |
+| 21 | 19.4% | 0.64 | -35.5% | 25.4% / 0.95 | 14.3% / 0.42 | -26.6% |
 
-- **Skip 5 passes the rule, by a hair:** Sharpe +0.146 overall, +0.190 in 2010-17 and
+- **Skip 5 passes the rule, by a hair:** Sharpe +0.146 overall, +0.191 in 2010-17 and
   +0.103 in 2018-26 (the bar is +0.10); CAGR +4.0 pp, +5.5 and +2.8; worst 12 months
   better in both halves; max drawdown 9% smaller (not the 25% alternative).
 - Every skip from 1 to 10 beats skip 0 on CAGR in both halves, but only skip 5 clears
@@ -115,14 +115,14 @@ the signal date):
 
 | | No overlay | C1 | C2 | C1+C2 |
 |---|---|---|---|---|
-| Composite, skip 0 | 18.1 / 0.60 / -34.8 | 17.7 / 0.60 / -34.3 | 15.7 / 0.52 / -34.9 | 15.2 / 0.51 / -35.5 |
-| Composite, skip 5 | 21.6 / 0.73 / -34.9 | 21.0 / 0.73 / -34.9 | 20.1 / 0.70 / -32.4 | 19.4 / 0.68 / -32.4 |
+| Composite, skip 0 | 18.1 / 0.60 / -34.8 | 17.7 / 0.60 / -34.3 | 15.7 / 0.52 / -34.9 | 15.2 / 0.51 / -35.4 |
+| Composite, skip 5 | 21.6 / 0.74 / -34.9 | 21.0 / 0.73 / -34.9 | 20.1 / 0.70 / -32.4 | 19.4 / 0.68 / -32.4 |
 | Composite, skip 21 | 16.9 / 0.55 / -39.8 | 16.1 / 0.52 / -38.8 | 13.8 / 0.44 / -37.4 | 13.4 / 0.42 / -36.7 |
-| Residual, skip 0 | 15.5 / 0.50 / -39.8 | 15.0 / 0.48 / -39.8 | 12.6 / 0.39 / -40.5 | 12.4 / 0.38 / -40.5 |
-| Residual, skip 5 | 15.8 / 0.51 / -39.8 | 15.3 / 0.50 / -39.8 | 13.7 / 0.44 / -40.3 | 13.6 / 0.43 / -40.0 |
-| Residual, skip 21 | 16.8 / 0.56 / -39.6 | 16.3 / 0.54 / -39.6 | 15.1 / 0.50 / -38.3 | 14.9 / 0.49 / -38.3 |
+| Residual, skip 0 | 15.5 / 0.50 / -39.8 | 15.1 / 0.48 / -39.8 | 12.6 / 0.39 / -40.5 | 12.4 / 0.38 / -40.5 |
+| Residual, skip 5 | 15.8 / 0.52 / -39.8 | 15.3 / 0.50 / -39.8 | 13.7 / 0.44 / -40.3 | 13.6 / 0.43 / -40.0 |
+| Residual, skip 21 | 16.8 / 0.56 / -39.6 | 16.3 / 0.54 / -39.6 | 15.1 / 0.51 / -38.3 | 14.9 / 0.50 / -38.3 |
 
-(CAGR % / Sharpe / max drawdown %.) Every overlay lowers the return of every signal;
+(CAGR % / Sharpe / max drawdown %.) Every standard deviation is the population one (ddof=0, the site's convention, S119). Every overlay lowers the return of every signal;
 no combination beats skip 5 alone.
 
 ## Not checked
