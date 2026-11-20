@@ -164,6 +164,7 @@ with app_import_guard():
     from src.ui.views.guide_view import render_guide_view
     from src.ui.views.portfolio_view import render_portfolio_view
     from src.ui.views.actions_view import render_actions_view
+    from src.ui.views.dashboard_home_view import render_home_view
     from src.ui.views.ranking_view import render_ranking_view
     from src.ui.views.rrg_view import render_rrg_view
     from src.ui.views.sector_view import render_sector_view
@@ -1154,7 +1155,6 @@ def _page_dashboard() -> None:
     # leadership, sector leaders. The same book and plan as Actions.
     # Rebuilt 20 Nov 2026 from the approved mock-up (S149): verdict first,
     # against Nifty Total Market, with NSE's momentum indices and flows.
-    from src.ui.views.dashboard_home_view import render_home_view
     render_home_view(rank_df, deep_adj_close, fetch_benchmark_history(period="5y"),
                      system=system, volume=volume_data)
 

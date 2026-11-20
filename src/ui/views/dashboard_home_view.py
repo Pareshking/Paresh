@@ -193,7 +193,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
     scale = max([abs(v) for _, v, _, _ in rows] + [1.0]) * 1.1
     return (f'<section class="dh-sec" aria-labelledby="s-month">{_kicker("1", "The book this month")}'
             f'<h1 id="s-month" class="dh-h1">{title}</h1><p class="dh-lede">{e(lede)}</p>{kp}'
-            f'<figure class="dh-fig"><figcaption class="dh-cap"><b>Month so far</b> · to {as_of:%-d %b}, price return'
+            f'<figure class="dh-fig"><figcaption class="dh-cap"><span><b>Month so far</b> · to {as_of:%-d %b}, price return</span>'
             f'<span><span class="dh-key dh-f-mkt"></span>market <span class="dh-key dh-f-book"></span>the book '
             f'<span class="dh-key dh-f-mom"></span>NSE momentum indices</span></figcaption>{_bars(rows, scale)}</figure>'
             '<p class="dh-note">Market: Nifty Total Market, the 750 stocks this site ranks. The track record’s '
@@ -227,24 +227,25 @@ def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check
         stc = {"Sell": "dh-down", "Watch": "dh-watch", "Clear": "dh-up"}[status]
         t = ranks.get(sym, [None, None, None])
         word, wt = di.rank_trail_word(t, rules.buffer_n)
-        trail = " → ".join("out" if x is None else f"#{x}" for x in t)
+        rk = "".join(f'<span class="dh-num dh-rk{" dh-muted" if x is None else ""}">{"Out" if x is None else f"#{x}"}</span>' for x in t)
         ind = str(r.get("Industry") or "")
         state, st_tone = ind_state.get(ind, ("", ""))
         body.append(
             f'<div class="dh-hold"><div><a class="dh-mono dh-b dh-sym" href="{e(stock_href(str(sym)))}" target="_self">{e(sym)}</a><span class="dh-sub">{e(ind)}'
             + (f' · <span class="{st_tone}">{e(state)}</span>' if state else "") + '</span></div>'
-            f'<div class="{"dh-muted" if status == "Clear" else ""}">{e(str(r["why"]) if r["status"] == SELL else nearest_rule(r, rules))}</div>'
-            f'<div><span class="dh-mono">{e(trail)}</span><span class="dh-sub dh-b {TONE[wt]}">{e(word)}</span></div>'
+            f'<div class="{"dh-muted" if status == "Clear" else ""}">{e(str(r["why"]) if r["status"] == SELL else nearest_rule(r, rules))}'
+            f'<span class="dh-sub dh-b {TONE[wt]}">{e(word)}</span></div>{rk}'
             f'<span class="dh-badge {stc}">{status}</span></div>')
     buys = "".join(f'<span class="dh-chip">{e(s)}</span>' for s in plan.buys) or '<span class="dh-muted">None</span>'
     nxt = " · ".join(e(s) for s in plan.next_in_line) or "—"
     return (f'<section class="dh-sec" aria-labelledby="s-next">{_kicker("2", f"What happens on {check:%-d %b}")}'
             f'<h2 id="s-next" class="dh-h2">{head}</h2><div class="dh-cols"><div class="dh-col2">'
-            '<div class="dh-hold dh-hold-h"><span>Holding, least room first</span><span>Nearest rule</span>'
-            '<span>Rank 3M ago → 1M ago → now</span><span>If unchanged</span></div>' + "".join(body)
+            '<div class="dh-hold dh-hold-h"><span>Holding, least room first</span><span>Nearest rule · rank trend</span>'
+            '<span class="dh-num">Rank 3M ago</span><span class="dh-num">1M ago</span><span class="dh-num">Now</span>'
+            '<span class="dh-num">If unchanged</span></div>' + "".join(body)
             + f'<p class="dh-note">Checked at the {check:%a %-d %b} close, filled {fill:%a %-d %b}. Rank: how today’s '
             'rule ranks the stock on that day, among the stocks passing the filters then, on today’s clean prices; '
-            'it can differ by a place or two from what the site showed that day. “Out” means it did not pass. '
+            'it can differ by a place or two from what the site showed that day. “Out”: it did not pass the filters. '
             'Under each name, its industry against all ranked stocks.</p></div>'
             f'<div class="dh-col1"><div class="dh-lab">Would be bought</div><div class="dh-chips">{buys}</div>'
             f'<p class="dh-sub">Next in line: <span class="dh-mono">{nxt}</span></p>'
@@ -253,8 +254,9 @@ def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check
             '</div></div></section>')
 
 
-def _trail_cell(vals: list[float | None], fmt) -> str:
-    return " → ".join(fmt(v) for v in vals)
+def _trail_cell(vals: list[float | None], fmt) -> list[str]:
+    """Three cells: 3 months ago, 1 month ago, now."""
+    return ["—" if v is None else fmt(v) for v in vals]
 
 
 def section_momentum(lead, streak: int, signals: list[dict]) -> str:
@@ -278,17 +280,19 @@ def section_momentum(lead, streak: int, signals: list[dict]) -> str:
     side = {"for": "For", "against": "Against", "neutral": "Neutral"}
     rows = "".join(
         f'<tr><th scope="row">{e(s["name"])}<span class="dh-sub">{e(s["sub"])}</span></th>'
-        f'<td><b class="{TONE[s["side"]]}">{side[s["side"]]}</b></td>'
-        f'<td class="dh-num {TONE[s["side"]]}">{e(s["now"])}</td>'
-        f'<td><span class="dh-mono">{e(s["trail"])}</span><span class="dh-sub dh-b {TONE[s["dir"]]}">{e(s["word"])}</span></td>'
+        + "".join(f'<td class="dh-num{" dh-muted" if i < 2 else " dh-b " + TONE[s["side"]]}">{e(v)}</td>'
+                  for i, v in enumerate(s["cells"]))
+        + f'<td><span class="dh-side {TONE[s["side"]]}">{side[s["side"]]}</span>'
+        f'<span class="dh-sub dh-b {TONE[s["dir"]]}">{e(s["word"])}</span></td>'
         f'<td>{e(s["hist"])}<span class="dh-sub">{e(s["why"])}</span></td><td>{e(s["flip"])}</td>'
         f'<td><span class="dh-ev {ev[s["ev"]][1]}">{ev[s["ev"]][0]}</span></td></tr>' for s in signals)
     return (f'<section class="dh-sec" aria-labelledby="s-mom">{_kicker("3", "Is momentum still working?")}'
             f'<h2 id="s-mom" class="dh-h2">{head}</h2>'
             '<div class="dh-sub">Momentum’s lead over the market, points, longest window first</div>'
             f'<div class="dh-tiles">{"".join(tiles)}</div>'
-            '<div class="dh-scroll"><table class="dh-tab"><thead><tr><th scope="col">Signal</th><th scope="col">For momentum?</th>'
-            '<th scope="col" class="dh-num">Now</th><th scope="col">3M ago → 1M ago → now</th><th scope="col">Against its own history</th>'
+            '<div class="dh-scroll"><table class="dh-tab"><thead><tr><th scope="col">Signal</th>'
+            '<th scope="col" class="dh-num">3M ago</th><th scope="col" class="dh-num">1M ago</th><th scope="col" class="dh-num">Now</th>'
+            '<th scope="col">For momentum?</th><th scope="col">Against its own history</th>'
             f'<th scope="col">What would flip it</th><th scope="col">Evidence</th></tr></thead><tbody>{rows}</tbody></table></div>'
             '<p class="dh-note">The first three tiles are the top 100 of this site’s ranking against the Nifty 500, the '
             'history’s benchmark; the month so far is NSE’s Nifty500 Momentum 50 against Nifty Total Market. '
@@ -422,27 +426,33 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dic
         f'<i class="dh-seg-{x[5]}{" dh-seg-slow" if x[5] == "strong" and x[6] == "Weakening" else ""}" style="width:{x[2]:.1f}%">'
         f'{e(SHORT.get(x[0], x[0])) + " " + f"{x[2]:.0f}%" if x[2] >= 9 else ""}</i>' for x in srt)
     rrg_cls = {"Leading": "dh-up", "Improving": "dh-up", "Weakening": "dh-watch", "Lagging": "dh-down"}
-    notes = {"strong": "Ahead of the market over six months and one month.",
-             "turning": "Ahead on one window only.",
-             "weak": "Behind the market on both windows."}
-    cards = []
+    notes = {"strong": "ahead of the market over six months and one month",
+             "turning": "ahead on one window only",
+             "weak": "behind the market on both windows"}
+    body = []
     for k, title, cls in (("strong", "Strong", "dh-up"), ("turning", "Turning", "dh-watch"), ("weak", "Weak", "dh-down")):
         items = [x for x in srt if x[5] == k]
         if not items:
             continue
-        lines = "".join(
-            f'<div class="dh-ind"><b>{e(x[0])} <span class="dh-muted">· {x[1]} holding{"s" if x[1] != 1 else ""}</span></b>'
-            f'<b class="dh-mono">{x[2]:.1f}%</b><span class="dh-sub">6M · 1M <span class="dh-mono">{e(sg(x[3]))} · {e(sg(x[4]))}</span></span>'
-            f'<span class="dh-tag {rrg_cls.get(x[6], "")}">{e(x[6])}</span>'
-            + (f'<span class="dh-sub dh-span">Rotation, 3M ago → 1M ago → now: {e(" → ".join(x[7]))}</span>' if x[7] else "")
-            + '</div>' for x in items)
-        cards.append(f'<div class="dh-card dh-card-{k}"><div class="dh-card-h"><h3 class="{cls}">{title}</h3>'
-                     f'<b class="dh-mono {cls}">{tot[k]:.1f}%</b></div><p class="dh-sub">{notes[k]}</p>{lines}</div>')
+        body.append(f'<tr class="dh-grp-row"><th scope="rowgroup" colspan="8"><span class="{cls}">{title} · {tot[k]:.1f}%</span>'
+                    f'<span class="dh-muted"> · {notes[k]}</span></th></tr>')
+        for x in items:
+            path = list(x[7]) if x[7] else ["—", "—", x[6]]
+            body.append(
+                f'<tr><th scope="row">{e(x[0])}</th><td class="dh-num">{x[1]}</td><td class="dh-num dh-b">{x[2]:.1f}%</td>'
+                f'<td class="dh-num {tone(x[3])}">{e(sg(x[3]))}</td><td class="dh-num {tone(x[4])}">{e(sg(x[4]))}</td>'
+                + "".join(f'<td class="{rrg_cls.get(q, "dh-muted")}{" dh-b" if i == 2 else ""}">{e(q)}</td>' for i, q in enumerate(path))
+                + '</tr>')
+    table = ('<div class="dh-scroll"><table class="dh-tab dh-tab-sw"><thead><tr><th scope="col">Industry</th>'
+             '<th scope="col" class="dh-num">Holdings</th><th scope="col" class="dh-num">Weight</th>'
+             '<th scope="col" class="dh-num">6M</th><th scope="col" class="dh-num">1M</th>'
+             '<th scope="col">RRG 3M ago</th><th scope="col">1M ago</th><th scope="col">Now</th></tr></thead>'
+             f'<tbody>{"".join(body)}</tbody></table></div>')
     return (f'<section class="dh-sec" aria-labelledby="s-book">{_kicker("6", "Where the book is strong and weak")}'
             f'<h2 id="s-book" class="dh-h2">{head}</h2><div class="dh-segbar" role="img" aria-label="The book by industry status">{seg}</div>'
-            f'<div class="dh-cards">{"".join(cards)}</div>'
-            '<p class="dh-note">Each industry’s stocks, equal-weighted, against all ranked stocks built the same way: 6M · 1M '
-            'in points (Sectors), and the RRG quadrant over 12 weekly readings.</p></section>')
+            f'{table}'
+            '<p class="dh-note">6M and 1M: each industry’s stocks, equal-weighted, against all ranked stocks built the same way, '
+            'in points (Sectors). RRG: the quadrant over 12 weekly readings, 3 months ago, 1 month ago and now.</p></section>')
 
 
 def section_leadership(rrg_now: pd.DataFrame, paths: dict, held: dict[str, int]) -> str:
@@ -589,8 +599,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     if flows is not None and ev is not None:
         heavy = flows.mtd >= ev.threshold
         signals.insert(1, {
-            "name": "Heavy foreign buying", "sub": "FPI net, last 20 sessions · NSDL", "side": "for" if heavy else "neutral",
-            "now": cr(flows.last20), "trail": " → ".join(cr(v) for v in flows.trail20),
+            "name": "Heavy foreign buying", "sub": "FPI net, last 20 sessions, ₹ thousand crore · NSDL", "side": "for" if heavy else "neutral",
+            "now": cr(flows.last20), "cells": _trail_cell(flows.trail20, lambda v: sg(v / 1000, 0)),
             "word": "From selling to record buying" if (flows.trail20[1] or 0) < 0 < flows.last20 and flows.last20_is_record else "",
             "dir": "up" if flows.last20 > (flows.trail20[1] or 0) else "down",
             "hist": "Highest 20-day total since 2016" if flows.last20_is_record else "",
@@ -606,10 +616,15 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     book_sizes = _book_sizes(risk)
 
     # 6, 7. industries
-    from src.engine.actions import standing_weights
-    live_w = standing_weights(book, adj_close)   # the struck weights carried by price, as Portfolio shows them
-    if live_w is not None:
-        book = book.assign(**{"Weight %": book["Symbol"].map(live_w * 100)})
+    # Today's weights from Portfolio's own table, so the two pages cannot differ.
+    from src.ui.views.portfolio_view import build_portfolio_tracker
+    book.attrs["as_of"] = meta.get("as_of")
+    book.attrs["fill_date"] = meta.get("fill_date")
+    _rec_as_of = pd.to_datetime(meta.get("as_of"), errors="coerce")
+    _px = adj_close.loc[:_rec_as_of] if pd.notna(_rec_as_of) else adj_close
+    tracker = build_portfolio_tracker(book, rank_df, MODEL_BOOK_CAPITAL, _px, equity_curve=history["equity"])
+    if tracker is not None and not tracker.empty and "Weight %" in tracker:
+        book = book.assign(**{"Weight %": book["Symbol"].map(tracker.set_index("Symbol")["Weight %"])})
     weights = (book.assign(Industry=book["Symbol"].map(industry).fillna("—"))
                .groupby("Industry").agg(Weight=("Weight %", "sum"), Holdings=("Symbol", "count"))
                .sort_values("Weight", ascending=False).reset_index())
@@ -674,7 +689,7 @@ def _signals(spreads, hist, n500: pd.Series, as_of: pd.Timestamp, excess_by_quar
         out.append({
             "name": "Stocks that qualify", "sub": "Nifty 500 above 50D EMA, within 20% of 52W high · month-ends",
             "side": "against" if low else "neutral", "now": f"{tr[2]:.0f}%" if tr[2] is not None else "—",
-            "trail": _trail_cell(tr, lambda v: "—" if v is None else f"{v:.0f}%"),
+            "cells": _trail_cell(tr, lambda v: "—" if v is None else f"{v:.0f}%"),
             "word": "Collapsed" if tr[0] and tr[2] and tr[2] < tr[0] / 2 else ("Falling" if tr[1] and tr[2] and tr[2] < tr[1] else "Rising"),
             "dir": "down" if tr[1] and tr[2] and tr[2] < tr[1] else "up",
             "hist": f"Fewer than in {share_above:.0f}% of month-ends since {q.index[0]:%Y}" if share_above is not None else "",
@@ -686,7 +701,7 @@ def _signals(spreads, hist, n500: pd.Series, as_of: pd.Timestamp, excess_by_quar
         tr = di.trail_of(fh, as_of)
         p, since = di.percentile_of(fh, tr[2])
         out.append({"name": "Sharp rebound", "sub": "Nifty 500 from its 52W high", "side": "against" if tr[1] is not None and tr[1] <= -7 and tr[2] >= -3 else "neutral",
-                    "now": sg(tr[2], unit="%"), "trail": _trail_cell(tr, lambda v: sg(v, unit="%")),
+                    "now": sg(tr[2], unit="%"), "cells": _trail_cell(tr, lambda v: sg(v, unit="%")),
                     "word": "A V in two months" if tr[1] is not None and tr[1] <= -7 and tr[2] >= -3 else "",
                     "dir": "watch", "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
                     "why": "Last year’s losers lead when a fall reverses fast", "flip": "Index flat or down from here",
@@ -698,7 +713,7 @@ def _signals(spreads, hist, n500: pd.Series, as_of: pd.Timestamp, excess_by_quar
         rising = tr[1] is not None and tr[2] is not None and tr[2] > tr[1] + 5
         back = rising and tr[0] is not None and abs(tr[2] - tr[0]) < 5
         out.append({"name": name, "sub": sub, "side": "for" if rising else "neutral", "now": f"{tr[2]:.0f}%",
-                    "trail": _trail_cell(tr, lambda v: f"{v:.0f}%"),
+                    "cells": _trail_cell(tr, lambda v: f"{v:.0f}%"),
                     "word": "Recovered, not new strength" if back else ("Rising" if rising else ""),
                     "dir": "flat" if back else ("up" if rising else "flat"),
                     "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
@@ -708,7 +723,7 @@ def _signals(spreads, hist, n500: pd.Series, as_of: pd.Timestamp, excess_by_quar
         tr = di.trail_of(g, as_of)
         p, since = di.percentile_of(g, tr[2])
         out.append({"name": "Trend, fast", "sub": "Nifty 500 vs its 200D EMA", "side": "for" if tr[2] > 0 else "against",
-                    "now": sg(tr[2], unit="%"), "trail": _trail_cell(tr, lambda v: sg(v, unit="%")),
+                    "now": sg(tr[2], unit="%"), "cells": _trail_cell(tr, lambda v: sg(v, unit="%")),
                     "word": "Crossed back above" if tr[1] is not None and tr[1] < 0 < tr[2] else ("Above" if tr[2] > 0 else "Below"),
                     "dir": "up" if tr[2] > 0 else "down", "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
                     "why": "", "flip": "Back below the EMA" if tr[2] > 0 else "Back above the EMA", "ev": "context"})
@@ -716,7 +731,7 @@ def _signals(spreads, hist, n500: pd.Series, as_of: pd.Timestamp, excess_by_quar
         tr = [mq.ten_month_gap(n500, d) for d in di.trail_dates(as_of).values()]
         p, since = di.percentile_of(t, tr[2])
         out.append({"name": "Trend, slow", "sub": "Nifty 500 month-end vs its 10-month average", "side": "against" if (tr[2] or 0) < 0 else "for",
-                    "now": sg(tr[2], unit="%"), "trail": _trail_cell(tr, lambda v: sg(v, unit="%")),
+                    "now": sg(tr[2], unit="%"), "cells": _trail_cell(tr, lambda v: sg(v, unit="%")),
                     "word": "Turned down, not back yet" if (tr[0] or 0) > 0 > (tr[2] or 0) else "",
                     "dir": "down" if (tr[2] or 0) < 0 else "up", "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
                     "why": "Reads completed months", "flip": "A month-end above the average", "ev": "context"})
@@ -725,7 +740,7 @@ def _signals(spreads, hist, n500: pd.Series, as_of: pd.Timestamp, excess_by_quar
     p, since = di.percentile_of(sh, tr[2])
     out.append({"name": "Breadth", "sub": "Ranked stocks above their 200D EMA",
                 "side": "against" if tr[2] <= 40 else ("for" if tr[2] >= 60 else "neutral"),
-                "now": f"{tr[2]:.0f}%", "trail": _trail_cell(tr, lambda v: f"{v:.0f}%"),
+                "now": f"{tr[2]:.0f}%", "cells": _trail_cell(tr, lambda v: f"{v:.0f}%"),
                 "word": ("Recovering, below " + f"{as_of - pd.DateOffset(months=3):%B}") if tr[1] is not None and tr[0] is not None and tr[1] < tr[2] < tr[0] else "",
                 "dir": "watch", "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
                 "why": "Narrow at 40%, broad at 60%", "flip": "Narrow at 40%, broad at 60%", "ev": "context"})
@@ -781,9 +796,9 @@ HOME_CSS = """
 .dh-sec{padding:32px 0 36px;border-bottom:1px solid var(--c-rule);display:flex;flex-direction:column;gap:20px}
 .dh-sec-last{border-bottom:0}
 .dh-kick{margin:0;font-size:var(--fs-12);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--c-muted)}
-.dh-h1{margin:0;font-family:var(--font-serif);font-weight:400;font-size:var(--fs-44);line-height:1.08;letter-spacing:-.5px;max-width:940px}
-.dh-h2{margin:0;font-family:var(--font-serif);font-weight:400;font-size:var(--fs-30);line-height:1.15;max-width:960px}
-.dh-h3{margin:0;font-size:var(--fs-15);font-weight:700}
+.dh .dh-h1{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-44)!important;line-height:1.08!important;letter-spacing:-.5px!important;max-width:940px}
+.dh .dh-h2{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important;line-height:1.15!important;letter-spacing:0!important;max-width:960px}
+.dh .dh-h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;font-weight:700!important}
 .dh-lede{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:940px}
 .dh-note{margin:0;font-size:var(--fs-12);color:var(--c-muted)}
 .dh-foot{margin:24px 0 0;font-size:var(--fs-12);color:var(--c-muted)}
@@ -791,10 +806,11 @@ HOME_CSS = """
 .dh-mono{font-family:var(--font-mono)}
 .dh-b{font-weight:700}
 .dh-up{color:var(--c-up)}.dh-down{color:var(--c-down)}.dh-watch{color:var(--c-caution)}.dh-muted{color:var(--c-muted)}
+.dh h3.dh-up{color:var(--c-up)!important}.dh h3.dh-down{color:var(--c-down)!important}.dh h3.dh-watch{color:var(--c-caution)!important}
 .dh-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-kpi{background:var(--c-white);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
 .dh-k-l{font-size:var(--fs-12);color:var(--c-muted)}
-.dh-k-v{font-family:var(--font-mono);font-size:var(--fs-24);font-weight:600}
+.dh-k-v{font-size:var(--fs-24);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .dh-k-s{font-size:var(--fs-12);font-weight:600}
 .dh-k-sub{font-size:var(--fs-12);color:var(--c-muted)}
 .dh-fig{margin:0;display:flex;flex-direction:column;gap:6px}
@@ -810,9 +826,11 @@ HOME_CSS = """
 .dh-f-pos{background:var(--c-up)}.dh-f-neg{background:var(--c-down)}
 .dh-cols{display:flex;flex-wrap:wrap;gap:28px}
 .dh-col2{flex:2 1 460px;min-width:0}.dh-col1{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:14px}
-.dh-hold{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) minmax(0,1.1fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
+.dh-hold{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.5fr) 84px 56px 56px 84px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
 .dh-hold-h{font-size:var(--fs-12);color:var(--c-muted);border-bottom:1px solid var(--c-ink);padding:0 0 6px}
 .dh-sym{color:var(--c-ink);text-decoration:none}
+.dh-rk{font-size:var(--fs-13)}
+.dh-hold .dh-badge{justify-self:end}
 .dh-badge{font-size:var(--fs-12);font-weight:600;border:1px solid currentColor;border-radius:4px;padding:3px 8px;text-align:center;white-space:nowrap}
 .dh-lab{font-size:var(--fs-12);color:var(--c-muted);padding-bottom:6px;border-bottom:1px solid var(--c-ink)}
 .dh-chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -830,7 +848,11 @@ HOME_CSS = """
 .dh-tab th,.dh-tab td{text-align:left;padding:9px 12px 9px 0;border-bottom:1px solid var(--c-rule_soft);vertical-align:top}
 .dh-tab thead th{font-size:var(--fs-12);color:var(--c-muted);font-weight:500;border-bottom:1px solid var(--c-ink)}
 .dh-tab tbody th{font-weight:600}
-.dh-num{text-align:right!important;font-family:var(--font-mono);white-space:nowrap}
+.dh-grp-row th{padding-top:16px!important;font-size:var(--fs-13);border-bottom:1px solid var(--c-ink)!important}
+.dh-tab-sw{min-width:760px}
+.dh-num{text-align:right!important;font-family:var(--font-mono);white-space:nowrap;font-variant-numeric:tabular-nums}
+.dh-side{display:block;font-size:var(--fs-12);font-weight:700}
+.dh-tab thead th.dh-num,.dh-hold-h .dh-num{font-family:var(--font-ui);font-weight:500}
 .dh-hl{font-weight:600}
 .dh-ev{font-size:var(--fs-12);font-weight:600;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block}
 .dh-ev-t{color:var(--c-up);background:var(--c-up_tint)}.dh-ev-r{color:var(--c-caution);background:var(--c-caution_tint)}.dh-ev-c{color:var(--c-muted);background:var(--c-fill_soft)}
@@ -848,24 +870,25 @@ HOME_CSS = """
 .dh-sz-large{background:var(--c-ink)}.dh-sz-mid{background:var(--c-muted)}.dh-sz-small{background:var(--c-caution);color:var(--c-white)}.dh-sz-micro{background:var(--c-caution_line)}
 .dh-segbar{display:flex;height:40px;border-radius:4px;overflow:hidden;gap:2px}
 .dh-segbar i{display:flex;align-items:center;padding-left:6px;font-style:normal;font-size:var(--fs-12);font-weight:600;white-space:nowrap;overflow:hidden;color:var(--c-white)}
-.dh-seg-strong{background:var(--c-up)}.dh-seg-slow{background:var(--c-up_line)}.dh-seg-turning{background:var(--c-caution_line);color:var(--c-ink)!important}.dh-seg-weak{background:var(--c-down)}
+.dh-seg-strong{background:var(--c-up)}.dh-seg-slow{background:var(--c-up_line);color:var(--c-ink)!important}.dh-seg-turning{background:var(--c-caution_line);color:var(--c-ink)!important}.dh-seg-weak{background:var(--c-down)}
 .dh-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
 .dh-card{border:1px solid var(--c-rule_soft);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .dh-card-strong{border-top:3px solid var(--c-up)}.dh-card-turning{border-top:3px solid var(--c-caution)}.dh-card-weak{border-top:3px solid var(--c-down)}
 .dh-card-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.dh-card-h h3{margin:0;font-size:var(--fs-15)}
+.dh .dh-card-h h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important}
 .dh-ind{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:8px 0;border-top:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
 .dh-span{grid-column:1/-1}
 .dh-tag{font-size:var(--fs-12);font-weight:600;justify-self:end}
 .dh-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px}
 .dh-grp-h{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;border-bottom:2px solid currentColor}
-.dh-grp-h h3{margin:0;font-size:var(--fs-15)}
+.dh .dh-grp-h h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;color:inherit!important}
 .dh-rrg{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
+.dh-rrg>span:last-child{white-space:nowrap}
 .dh-gl-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .dh-gls{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-gl{background:var(--c-white);padding:14px 16px}
 .dh-gl-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px;font-size:var(--fs-13)}
 .dh-gl-h a{font-size:var(--fs-12);font-weight:600;color:var(--c-ink)}
 .dh-gl-r{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px solid var(--c-fill_soft);font-size:var(--fs-13)}
-@media (max-width:640px){.dh-h1{font-size:var(--fs-36)}.dh-h2{font-size:var(--fs-24)}.dh-hold{grid-template-columns:1fr auto}.dh-hold-h{display:none}}
+@media (max-width:640px){.dh .dh-h1{font-size:var(--fs-36)!important}.dh .dh-h2{font-size:var(--fs-24)!important}.dh-hold{grid-template-columns:minmax(0,1fr) 52px 52px 52px;row-gap:4px}.dh-hold>div:nth-child(2){grid-column:1/-1;grid-row:2}.dh-hold-h{display:none}.dh-hold .dh-badge{grid-column:1/-1;justify-self:start}.dh-bar{grid-template-columns:minmax(0,1fr) 56px;row-gap:4px}.dh-bar-t{grid-column:1/-1;grid-row:2}}
 """

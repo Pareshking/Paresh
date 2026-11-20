@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-20 — A new Dashboard
+
+- The Dashboard is rebuilt around what it concludes, not what it lists. It opens with a one-paragraph verdict and a row of links, then seven sections in the order an owner asks: the book this month, what happens at the next rebalance, whether momentum is working, money flows, size, where the book is strong and weak, and where leadership is moving. An "At a glance" band at the end keeps the day's index moves, breadth and the book's risk, each a click from its page.
+- The market is now Nifty Total Market, NSE's index of the same 750 stocks this site ranks. The track record's past months stay exactly as recorded against the Nifty 500; the Dashboard compares them with Total Market beside the record.
+- New data: NSE's momentum indices (Nifty200 Momentum 30, Nifty500 Momentum 50, Midcap150 Momentum 50, Smallcap250 Momentum Quality 100, Total Market Momentum Quality 50), refreshed nightly and each checked against an ETF that tracks it. This month they show the book kept pace with momentum while momentum as a style trailed the market.
+- Readings that move carry where they were 3 months and 1 month ago, side by side: the regime signals, each holding's rank, and each industry's rotation.
+- Money flows is a section of its own again, with what heavy foreign buying has meant for momentum the next month since 2016, worked out from the data on every load.
+- The day's index moves now all end on the same session, from one source; the strip above the old Dashboard mixed two days.
+
 ## 2026-11-20 — Industries are compared with the stocks they compete with
 
 - Sectors, RRG and the Dashboard's "What is leading?" now read each industry as an equal-weighted index of its stocks against the same index of every ranked stock. They used to compare it with the Nifty 500, which weights large companies more, so a rally led by large companies made nearly every industry look like it was lagging, and the pages disagreed (Financial Services, FMCG and Realty were "Leading" on RRG and "behind on both" on Sectors). Now the two pages agree.
