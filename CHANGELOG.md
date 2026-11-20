@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-20 — Shared stock links open about 7 seconds sooner
+
+- The Share button on a stock's page now gives `paresh.streamlit.app/~/+/screener?stock=…`. The short link it gave before went through Streamlit Cloud's own wrapper page first (login redirects, analytics and about 60 of its files), which cost a new visitor about 7 seconds: on a fresh browser the home page was ready in 10.3 s through the wrapper and 3.1-3.5 s on `/~/+/`; the Screener on a slowed phone in 17.4 s against 8.8 s. The longer link opens the same page.
+
 ## 2026-11-20 — Industries are compared with the stocks they compete with
 
 - Sectors, RRG and the Dashboard's "What is leading?" now read each industry as an equal-weighted index of its stocks against the same index of every ranked stock. They used to compare it with the Nifty 500, which weights large companies more, so a rally led by large companies made nearly every industry look like it was lagging, and the pages disagreed (Financial Services, FMCG and Realty were "Leading" on RRG and "behind on both" on Sectors). Now the two pages agree.

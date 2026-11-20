@@ -100,7 +100,7 @@ def test_the_stock_page_offers_watchlist_and_share():
     at.button(key="sp_watch").click().run()
     assert "In watchlist" in [b.label for b in at.button]
     codes = [c.value for c in at.code]
-    assert any(v.endswith("/?stock=S3") for v in codes), codes
+    assert any(v.endswith("/screener?stock=S3") for v in codes), codes
 
 
 def _table_rows(at) -> int:
