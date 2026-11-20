@@ -41,11 +41,13 @@ const p = await open(1280);
 let text = await read(p), extra = {};
 for (const r of rows) for (const m of r.marker.matchAll(/\[click ([^\]]+)\]/g)) extra[m[1]] = '';
 for (const label of Object.keys(extra)) {
+  // Each tap on a fresh page: one tap can change what the next would find (My holdings hides the model book's basket).
+  const p = await open(1280);
   try {
     const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const btn = p.getByRole('button', { name: new RegExp(esc) }).or(p.getByRole('tab', { name: new RegExp(esc) })).or(p.getByText(label, { exact: true }));
     await btn.first().waitFor({ timeout: 90000 }); await btn.first().click({ timeout: 8000 }); await p.waitForTimeout(5000); extra[label] = await read(p); }
-  catch { extra[label] = ''; }
+  catch (err) { console.error("could not tap", label, String(err).slice(0, 200)); extra[label] = ""; }
 }
 let phone = '';
 if (rows.some(r => r.marker.includes('[phone]'))) { const q = await open(412); phone = await read(q); }
