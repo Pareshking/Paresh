@@ -44,7 +44,7 @@ for (const label of Object.keys(extra)) {
   try {
     const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const btn = p.getByRole('button', { name: new RegExp(esc) }).or(p.getByRole('tab', { name: new RegExp(esc) })).or(p.getByText(label, { exact: true }));
-    await btn.first().click({ timeout: 8000 }); await p.waitForTimeout(5000); extra[label] = await read(p); }
+    await btn.first().waitFor({ timeout: 90000 }); await btn.first().click({ timeout: 8000 }); await p.waitForTimeout(5000); extra[label] = await read(p); }
   catch { extra[label] = ''; }
 }
 let phone = '';
