@@ -141,7 +141,8 @@ no combination beats skip 5 alone.
 
 - No change to the live system or the record. `run_backtest` gained the research option
   `score_skip` (default 0, tested to leave the live run unchanged to the last trade).
-- Lead for the owner's decision: skip 5 as a forward shadow book (as S144's leads),
-  judged on months nobody could tune it on, before any change to the live ranking.
+- Skip 5 is recorded forward as a shadow book (owner, 20 Nov 2026: "Record skip 5 as a
+  shadow book"): `SHADOWS["skip5"]`, from the December 2026 book, never traded
+  (`docs/TRACK_RECORD.md` section 11). Reviewed after 12 months.
 - A and C: not pursued for a long-only book. Residual momentum would only pay in a
   long-short book (shorting through stock futures, F&O names only), a different product.

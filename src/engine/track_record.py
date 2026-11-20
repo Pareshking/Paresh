@@ -185,6 +185,18 @@ SHADOWS: dict[str, Shadow] = {
         {**TRACK_RECORD_CONFIG, "high_pct": 0.90, "config_weights": LONG_HEAVY_WEIGHTS},
         pd.Period("2026-12", freq="M"), LEDGER_PATH.with_name("track_record_shadow_breadth_long.json"),
         breadth_rule=(0.60, 0.50)),
+    # Owner, 20 Nov 2026 ("Record skip 5 as a shadow book"; TODO S160,
+    # docs/MOMENTUM_ABC_2026-11-20.md): the live configuration with the
+    # composite read 5 sessions before the signal (run_backtest `score_skip`);
+    # gates, membership and the fill stay on the signal date. In the engine
+    # from 2010 it passed the study's bar by a hair (23.3% a year vs 19.3%,
+    # Sharpe +0.103 in 2018-26 against +0.10), on the same history it was
+    # picked on, so it is judged forward. From the December 2026 book.
+    "skip5": Shadow(
+        "skip5", "Skip 5 days (shadow)",
+        "score read 5 sessions before the signal; gates and fills on the signal day",
+        {**TRACK_RECORD_CONFIG, "score_skip": 5},
+        pd.Period("2026-12", freq="M"), LEDGER_PATH.with_name("track_record_shadow_skip5.json")),
 }
 
 
@@ -342,6 +354,9 @@ def run_backtest_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
         "weight_reset_months": tuple(cfg.get("weight_reset_months") or ()) or None,
         "stock_cap": cfg["stock_cap"],
         "sector_cap": cfg["sector_cap"],
+        # Research option, set only by a shadow book (SHADOWS["skip5"]). It is
+        # not in TRACK_RECORD_CONFIG, so no live month's fingerprint changes.
+        "score_skip": int(cfg.get("score_skip", 0)),
     }
 
 

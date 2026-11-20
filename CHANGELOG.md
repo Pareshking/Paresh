@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-20 — A fourth shadow record: Skip 5 days
+
+- Track Record's "Three systems, side by side" gains a row for "Skip 5 days" from the December 2026 book: the live strategy with each stock's score read five sessions before the rebalance, to avoid buying into a final-week spike. It is recorded month by month and never traded; nothing about the live record changes. Why: `docs/MOMENTUM_ABC_2026-11-20.md`.
+
 ## 2026-11-20 — Actions plans with the record's held weights
 
 - From the 30 Nov rebalance the record keeps each held stock at its drifted weight (up to 15%) and buys new stocks at its buy size; Actions' Kite basket was meant to do the same but planned at equal 5% weights, because the model book reached the page without its fill date. It now has it: on 20 Nov's closes the four buys are 4.77% each, not 5%. The sells and buys themselves were already right.
