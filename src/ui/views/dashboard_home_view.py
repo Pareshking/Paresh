@@ -559,28 +559,21 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                 f'<div class="dh-ev-box"><b>{"Not a large-cap story" if ev.large_minus_broad <= 0 else "A large-cap tilt"}.</b> '
                 f'In those heavy-buying months the Nifty 50 {"trailed" if ev.large_minus_broad <= 0 else "beat"} the Nifty 500 '
                 f'by {abs(ev.large_minus_broad):.2f} points on average.</div>')
-    cmp = ""
-    if compare is not None:
-        cmp = (f"; NSE’s provisional foreign figure over the same {compare[2]} sessions is {cr(compare[0])} against NSDL’s "
-               f"{cr(compare[1])}, which also counts primary-market buying")
-    else:
-        cmp = "; NSE’s provisional foreign figure differs from NSDL’s, which also counts primary-market buying"
     head_html = (f'<div class="dh-sec">{_kicker("4", "Money flows")}<h2 id="s-flow" class="dh-h2">{head}</h2>{_kpis(kp)}</div>')
     left = []
     if bars:
         thr = f", dashed line: a heavy-buying month, ₹{ev.threshold:,.0f} Cr or more" if ev is not None else ""
-        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore · NSDL equity{e(thr)}</span></div>',
+        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}</span></div>',
                 Chart("bars", bars, {"label": "Foreign portfolio investors’ net equity flows by month"}),
-                how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market, from NSDL.",
+                how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market.",
                     "Above the line is net buying. The dashed line starts the top quarter of months since 2016; after such months "
                     "momentum has led the market by more the next month than after the rest.",
                     ["Month", "FPI net, ₹ crore"], [[m, f"{v:,.0f}"] for m, v in zip(bars["full"][::-1], bars["values"][::-1])])]
     right = (f'<div class="dh-col1"><div class="dh-sub"><b>What heavy foreign buying has meant</b> · {e(ev.first) if ev else ""} to '
              f'{e(ev.last) if ev else ""}</div>{evid}</div>')
     return [head_html, Cols(left, [right], (2, 1)),
-            '<p class="dh-note">Foreign: NSDL’s confirmed FPI equity figures, exchange and primary market, a reporting date '
-            'covering the session before. Domestic institutions: NSE’s provisional daily figures, collected from 6 Nov 2026, '
-            f'so the month is not complete{e(cmp)}.</p>' + END]
+            '<p class="dh-note">Foreign: confirmed FPI equity figures, exchange and primary market. Domestic institutions: '
+            'provisional daily figures from 6 Nov 2026, so the month is not complete.</p>' + END]
 
 
 def _first_year(f: di.Flows) -> str:
@@ -699,8 +692,7 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None)
             + f'</tr></thead><tbody>{body}</tbody></table></div></div>')] + _shared_parts(by_size, typical, book_sizes) + [
             '<p class="dh-note">Size lists and members are NSE’s as of today, so older readings leave out stocks that have '
             'since left them. Points, price returns. Market: Nifty Total Market. Smallcap250 Momentum Quality 100 also screens '
-            'for quality; NSE has no microcap momentum index. Each momentum index is checked nightly against an ETF that '
-            'tracks it.</p>' + END]
+            'for quality; NSE has no microcap momentum index.</p>' + END]
 
 
 def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dict, rrg_now: pd.DataFrame) -> list:
