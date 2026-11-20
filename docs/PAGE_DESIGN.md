@@ -29,7 +29,11 @@ v8 with interactive charts and line bars (claude.ai artifact
    dark. Show what was removed and why.
 4. **Owner approves the mock-up; then build.** Mock-up first, always (owner,
    19 Nov).
-5. **Before sharing a new version, list everything the previous version had and
+5. **Before sharing a new version, run the page's requirements list** (for the
+   Dashboard, `docs/DASHBOARD_REQUIREMENTS.md` with
+   `node scripts/check_dashboard_requirements.mjs <page>`; every redesigned page
+   gets its own list, built from every owner message, not only the last
+   version). **Also list everything the previous version had and
    check it is still there.** v8 lost the strong/weak cards, the leadership
    numbers, the size table and five notes from v7; the owner caught it (20 Nov:
    "confirm nothing is missing from previous dashboard"). Then run the audit in
@@ -102,7 +106,9 @@ breadth by size):
 - Markers in the same two colours: a small muted triangle for "a month ago",
   dashed lines for thresholds (40% / 60%).
 - The number at the end of a row may carry the up/down colour; the lines do not.
-- Lines evenly spaced with no extra gap, about 5 to 6 px apart: pick the step so a
+- A fixed pitch, not stretched to the page: a 4 px line every 8 px on a
+  computer, closer on a phone, the value right after the bar (owner, 20 Nov:
+  "Look at the gaps in chart"). Lines evenly spaced with no extra gap: pick the step so a
   row holds 40 to 60 lines (owner, 20 Nov: "chart lines should be closer";
   2.5% steps looked sparse, 2% is right for a 0-100% share).
 - Where earlier readings matter, show them as numbers beside the bar (3M ago,
