@@ -46,8 +46,9 @@ function linePane(el, o){
   for(const l of o.levels||[]){ mk('line',{x1:padL,x2:W-padR,y1:Y(l.v),y2:Y(l.v),stroke:l.color,'stroke-width':1,'stroke-dasharray':'3 4'},svg);
     const t=mk('text',{x:padL+4,y:Y(l.v)-5},svg); t.textContent=l.label; t.setAttribute('style',`fill:${l.color}`); }
   if(!o.noX){ const yrs=new Set(); const step=Math.max(1,Math.ceil(n/Math.max(2,Math.floor((W-padL-padR)/84))));
-    let prevY=null;
-    for(let i=0;i<n;i+=step){ const [y,m]=o.dates[i].split('-'); const lab=o.xfmt?o.xfmt(o.dates[i]):(y!==prevY?`${MON[+m-1]} ’${y.slice(2)}`:MON[+m-1]); prevY=y;
+    let prevY=null, prevL=null;
+    for(let i=0;i<n;i+=step){ const [y,m]=o.dates[i].split('-'); const lab=o.xfmt?o.xfmt(o.dates[i]):(y!==prevY?`${MON[+m-1]} ’${y.slice(2)}`:MON[+m-1]);
+      if(lab===prevL||(!o.xfmt&&y===prevY&&MON[+m-1]===prevL)) continue; prevY=y; prevL=o.xfmt?lab:MON[+m-1];  // a month is named once
       const t=mk('text',{x:X(i),y:H-6,'text-anchor':i===0?'start':'middle'},svg); t.textContent=lab; } }
   for(const s of o.series){
     const pts=s.values.map((v,i)=>v==null?null:[X(i),Y(v)]).filter(Boolean);
@@ -69,7 +70,7 @@ function linePane(el, o){
 
 /* A bar pane: labels, values; colours by sign; rounded ends; others dim under the pointer. */
 function barPane(el,o){
-  const W=Math.max(280,el.clientWidth),H=o.height,padL=6,padR=o.padR??52,padT=14,padB=24;
+  const W=Math.max(280,el.clientWidth),H=o.height,padL=6,padR=o.padR??52,padT=14,padB=o.valueLabels&&Math.min(...o.values)<0?36:24;
   el.querySelector('svg')?.remove(); const svg=mk('svg',{viewBox:`0 0 ${W} ${H}`,height:H,'aria-hidden':'true'}); el.prepend(svg);
   const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values)*fx, hi=Math.max(0,...o.values)*fx;
   const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo)), bw=(W-padL-padR)/n, gap=Math.min(6,bw*.28);
@@ -97,6 +98,7 @@ function interact(card, panes, readout, rows, restIndex){
   const charts=[...card.querySelectorAll('.chart')], tip=document.createElement('div'); tip.className='tip'; charts[0].appendChild(tip);
   let cur=null;
   const render=(i,touch)=>{ cur=i; panes().forEach(p=>p.show(i)); const k=i??restIndex(); const r=rows(k);
+    if(typeof readout==='function') readout(r,i); else
     readout.innerHTML=`<span class="d">${i==null?'Latest · ':''}${r.date}</span>`+r.items.map(x=>`<span class="ro"><i style="background:${x.color}"></i><b style="color:${x.vcolor||'inherit'}">${x.v}</b><span>${x.name}</span></span>`).join('');
     if(i==null||touch){ tip.classList.remove('on'); return; }
     tip.innerHTML=`<div class="t-d">${r.date}</div>`+r.items.map(x=>`<div class="t-r"><span class="t-k"><i style="background:${x.color}"></i>${x.name}</span><b>${x.v}</b></div>`).join('');
@@ -272,27 +274,27 @@ R.breadth = (card, s) => {
     {name: 'of the 750 above their 200D EMA', color: css('--up'), v: s.a200[i] == null ? '—' : s.a200[i].toFixed(0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
 };
 
-/* ₹100 since the start and how far below its peak, the book and the market: two panes, one crosshair (Portfolio). */
+/* ₹100 since the start and how far below its peak, the book and the market: two panes, one crosshair (Portfolio).
+   The values sit in each pane's heading and follow the pointer, so the lines use the frame's whole width (owner, 20 Nov). */
 R.growth = (card, s) => {
   const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
   let panes = [];
-  const draw = () => {
+  const draw = () => { const W = top.clientWidth, h = Math.round(Math.max(200, Math.min(340, W * 0.32)));
     panes = [linePane(top, {dates: s.dates, series: [
-        {name: 'The book', color: css('--ink'), values: s.book, area: true, width: 2.4, end: 'Book ' + s.book.at(-1).toFixed(1)},
-        {name: 'Nifty500 Momentum 50', color: css('--caution'), values: s.mom, end: 'Momentum ' + (s.mom.at(-1) ?? 0).toFixed(1), endDy: -5},
-        {name: 'Nifty Total Market', color: css('--muted'), values: s.market, dash: '5 4', end: 'Market ' + (s.market.at(-1) ?? 0).toFixed(1), endDy: 10}],
-        height: 230, padR: 112, noX: true, yfmt: v => v.toFixed(0), areaBase: Math.min(...s.book) * 0.95}),
+        {name: 'The book', color: css('--ink'), values: s.book, area: true, width: 2.4},
+        {name: 'Nifty500 Momentum 50', color: css('--caution'), values: s.mom},
+        {name: 'Nifty Total Market', color: css('--muted'), values: s.market, dash: '5 4'}],
+        height: h, padL: 34, padR: 8, noX: true, yfmt: v => v.toFixed(0), areaBase: Math.min(...s.book) * 0.95}),
       linePane(bot, {dates: s.dates, series: [{name: 'The book', color: css('--down'), values: s.dd, area: true, width: 1.6},
         {name: 'Nifty Total Market', color: css('--muted'), values: s.ddm, dash: '4 3', width: 1.4}],
-        height: 120, padR: 112, yfmt: v => v.toFixed(0) + '%', areaBase: 0, ticks: 3})];
-  };
+        height: Math.round(h * 0.5), padL: 34, padR: 8, yfmt: v => v.toFixed(0) + '%', areaBase: 0, ticks: 3})]; };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
-  interact(card, () => panes, $('.readout', card), k => ({date: dlong(s.dates[k]), items: [
-    {name: 'The book', color: css('--ink'), v: '₹' + s.book[k].toFixed(1)},
-    {name: 'Momentum 50', color: css('--caution'), v: s.mom[k] == null ? '—' : '₹' + s.mom[k].toFixed(1)},
-    {name: 'Market', color: css('--muted'), v: s.market[k] == null ? '—' : '₹' + s.market[k].toFixed(1)},
-    {name: 'book below peak', color: css('--down'), v: sg(s.dd[k]) + '%', vcolor: s.dd[k] < 0 ? css('--down') : ''},
-    {name: 'market below peak', color: css('--muted'), v: s.ddm[k] == null ? '—' : sg(s.ddm[k]) + '%'}]}), () => s.dates.length - 1);
+  const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); b.textContent = v; b.className = c || ''; };
+  interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
+    $('.ph .d', card).textContent = (i == null ? 'Latest · ' : '') + r.date;
+    put('book', '₹' + s.book[k].toFixed(1)); put('mom', s.mom[k] == null ? '—' : '₹' + s.mom[k].toFixed(1)); put('market', s.market[k] == null ? '—' : '₹' + s.market[k].toFixed(1));
+    put('dd', sg(s.dd[k]) + '%', s.dd[k] < 0 ? 'down' : ''); put('ddm', s.ddm[k] == null ? '—' : sg(s.ddm[k]) + '%'); },
+    k => ({date: dlong(s.dates[k]), items: []}), () => s.dates.length - 1);
 };
 
 /* The holdings, sortable by any column (Portfolio). */
@@ -306,7 +308,8 @@ R.holdings = (card, s) => {
   let key = 'val', dir = -1;
   const draw = () => {
     const rows = s.rows.slice().sort((a, b) => { const va = a[key] ?? 999, vb = b[key] ?? 999; return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir; });
-    const head = cols.map(([k, t, n]) => `<th scope="col" data-k="${k}" tabindex="0" class="${n ? 'num' : ''}" aria-sort="${k === key ? (dir < 0 ? 'descending' : 'ascending') : 'none'}">${esc(t)}</th>`).join('');
+    const lab = (k, t) => { if (k !== 'rn') return esc(t); const [w, ...rest] = t.split(' '); return `${esc(w)}<span class="vh"> ${esc(rest.join(' '))}</span><span class="rk3" aria-hidden="true">${rest.join(' ').split(' · ').map(x => `<i>${esc(x)}</i>`).join('')}</span>`; };
+    const head = cols.map(([k, t, n]) => `<th scope="col" data-k="${k}" tabindex="0" class="${n ? 'num' : ''}${k === 'rn' ? ' rk' : ''}" aria-sort="${k === key ? (dir < 0 ? 'descending' : 'ascending') : 'none'}">${lab(k, t)}</th>`).join('');
     const body = rows.map(h => {
       const emaC = h.ema != null && h.ema < 0 ? 'down b' : '', hiC = h.hi != null && h.hi <= -s.high_cut ? 'down b' : h.hi != null && h.hi <= -12 ? 'watch' : 'muted';
       const rC = h.rn == null || h.rn > s.rank_cut ? 'down' : '';
@@ -317,7 +320,7 @@ R.holdings = (card, s) => {
         + `<td class="num">${inrf(h.val)}</td><td class="num">${h.w.toFixed(1)}%</td><td class="num ${tone(h.dayp)}">${sg(h.dayp)}%</td>`
         + `<td class="num ${tone(h.pnl)}">${h.pnl > 0 ? '+' : ''}${inrf(h.pnl)}</td><td class="num b ${tone(h.ret)}">${sg(h.ret)}%</td>`
         + `<td class="num ${emaC}">${h.ema == null ? '—' : sg(h.ema) + '%'}</td><td class="num ${hiC}">${h.hi == null ? '—' : sg(h.hi) + '%'}</td>`
-        + `<td class="rk">${rk(h.r3)} · ${rk(h.r1)} · <b class="${rC}">${rk(h.rn)}</b></td></tr>`; }).join('');
+        + `<td class="rk"><span class="rk3"><i>${rk(h.r3)}</i><i>${rk(h.r1)}</i><b class="${rC}">${rk(h.rn)}</b></span></td></tr>`; }).join('');
     const F = s.foot;
     const L = s.text;
     const foot = `<tr class="tot"><th scope="row">${esc(L.holdings)}</th><td></td><td></td><td></td><td></td><td></td><td class="num">${inrf(F.val)}</td><td class="num">${F.w.toFixed(1)}%</td>`

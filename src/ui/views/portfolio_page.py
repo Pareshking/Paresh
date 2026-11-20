@@ -371,7 +371,7 @@ def section_exposure(p: Page) -> list:
             "stays as it was when later lists change. Size is by NSE’s index lists on each date; industries are the record’s own.")
     return _sec([_head("pf-exp", "Industry & size", "now, against the 750, and at every rebalance since January"),
                  '<div class="dh-cap"><b>Industry exposure now</b><span>bar: the book’s weight · mark: the industry’s weight in the 750 '
-                 'by market value</span></div>', head + body,
+                 'by market value</span></div>', '<div class="pf-ilist">' + head + body + '</div>',
                  '<div class="dh-pair"><div><div class="dh-cap"><b>The book by size, each rebalance</b><span>large · mid · small · micro</span></div>'
                  + srows + key + '</div><div><div class="dh-cap"><b>Largest industries, each rebalance</b><span>% of the book</span></div>'
                  f'<div class="dh-scroll">{heat}</div></div></div>', f'<p class="dh-note">{e(note)}</p>'])
@@ -720,11 +720,11 @@ PF_CSS = """
 .pf-sc{font-size:var(--fs-13);color:var(--c-muted)}
 .pf-five{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
 .pf-four{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
-.pf-ihead,.pf-irow{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 64px 64px 84px 76px;gap:6px 14px;align-items:center}
+.pf-ihead,.pf-irow{display:grid;grid-template-columns:minmax(150px,230px) minmax(0,340px) 64px 64px 84px 76px;justify-content:start;gap:6px 16px;align-items:center}
 .pf-ihead{font-size:var(--fs-12);color:var(--c-muted);border-bottom:1px solid var(--c-ink);padding:4px 0}
 .pf-ihead .dh-num{font-family:var(--font-ui)}
-.pf-irow{padding:6px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
-.pf-nm{font-weight:600}.pf-nm small{display:block;font-weight:400;font-size:var(--fs-12);color:var(--c-muted)}
+.pf-irow{padding:5px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
+.pf-nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pf-nm small{font-weight:400;font-size:var(--fs-12);color:var(--c-muted);margin-left:6px}
 .pf-ibar{position:relative;height:14px;background:var(--c-rule_soft);border-radius:2px;display:block}
 .pf-ibar i{position:absolute;left:0;top:0;bottom:0;background:var(--c-ink);border-radius:2px}
 .pf-ibar b{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--c-caution)}
@@ -732,7 +732,7 @@ PF_CSS = """
 .pf-thin{height:20px}.pf-thin i{font-size:11px;padding-left:5px}.dh-sz-large,.dh-sz-mid{color:var(--c-white)}
 .pf-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:var(--fs-12);color:var(--c-muted);margin-top:6px}
 .pf-key span{display:flex;align-items:center;gap:6px}.pf-key i{width:12px;height:12px;border-radius:3px;display:inline-block}
-.dh-tab.pf-heat{min-width:560px}.pf-heat th,.pf-heat td{padding:5px 6px!important}.pf-hc{text-align:center!important;font-size:var(--fs-12);border:1px solid var(--c-white)}
+.dh-tab.pf-heat{min-width:560px}.pf-heat th,.pf-heat td{padding:5px 6px!important}.pf-heat thead th.dh-num{text-align:center!important}.pf-hc{text-align:center!important;font-size:var(--fs-12);border:1px solid var(--c-white)}
 .pf-hl th,.pf-hl td{background:var(--c-fill_soft)}
 .dh-tab.pf-grid{min-width:1060px}.pf-grid th,.pf-grid td{padding:7px 10px 7px 0}.pf-q{border-left:1px solid var(--c-rule)}
 .pf-yr th{font-weight:700;padding-top:12px!important;border-bottom:1px solid var(--c-rule)!important}.pf-ghost th{font-weight:400}
@@ -740,9 +740,11 @@ PF_CSS = """
 .dh-tab.pf-log{min-width:860px;font-size:var(--fs-12)}.pf-log th,.pf-log td{padding:5px 10px;white-space:nowrap;width:1%}
 .pf-log td:last-child,.pf-log th:last-child{width:auto;white-space:normal}
 .pf-log thead th{position:sticky;top:0;background:var(--c-white);z-index:1}
-.dh-tab.pf-sys{width:auto}.pf-sys th,.pf-sys td{padding-right:36px}
-@media (max-width:640px){.pf-head .pf-five .dh-kpi:first-child{grid-column:1/-1}.dh .pf-h2{font-size:var(--fs-17)!important}.pf-ihead,.pf-irow{grid-template-columns:minmax(0,1fr) 54px 54px 58px}.pf-ibar{grid-column:1/-1;grid-row:2}
-.pf-ihead span:nth-child(2),.pf-ihead span:nth-child(6),.pf-irow>span:last-child{display:none}}
+.dh-tab.pf-sys{width:auto}.pf-sys th,.pf-sys td{padding-right:24px}
+.pf-sec .dh-tab tbody th{white-space:nowrap}.pf-sec .dh-tab thead th.dh-num{white-space:normal;vertical-align:bottom}
+@media (max-width:640px){.pf-head .pf-five .dh-kpi:first-child{grid-column:1/-1}.pf-sec .pf-five .dh-kpi:last-child:nth-child(odd){grid-column:1/-1}.dh .pf-h2{font-size:var(--fs-17)!important}
+.pf-ihead,.pf-irow{grid-template-columns:minmax(0,1fr) 84px 48px 50px;gap:4px 10px}.pf-nm small{display:block;margin:0}
+.pf-ihead>span:nth-child(4),.pf-ihead>span:nth-child(6),.pf-irow>span:nth-child(4),.pf-irow>span:nth-child(6){display:none}}
 """
 
 

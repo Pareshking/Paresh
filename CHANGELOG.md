@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-20 — Portfolio, tighter and lined up
+
+- The ₹100 chart's values now sit in the heading over each pane and follow your finger; the lines use the full width on a phone (they used about half), and the chart is taller on a wide screen.
+- Every table heading sits over its column; the rank trail shows 3M, 1M and now in three columns under their own headings; trade-history numbers line up on the right.
+- Industry exposure: shorter rows, bars no wider than about 340 px, and on a phone the bar stays in its row.
+- Row labels no longer wrap to three or four lines on a phone; an odd last tile takes the full row instead of leaving an empty grey cell.
+- Trade history on a mid-size screen no longer slides sideways when a filter is tapped (rows looked blank).
+- Month-by-month bars: a value under a falling month no longer overlaps the month name.
+
 ## 2026-11-20 — Portfolio, rebuilt holdings first
 
 - Portfolio now opens like a broker's portfolio: the value, what the book has made since January against Nifty Total Market, the day's P&L against the market, the month so far, how far it is below its peak, and how much is not invested. The holdings come next, with quantity, entry date and price, today's price and value, weight, today's move, P&L since the last fill and return since entry, sortable by any column.

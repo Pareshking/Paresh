@@ -35,16 +35,20 @@ CSS = """
 --rule:var(--c-rule_strong);--rule-soft:var(--c-rule_soft);--fill:var(--c-fill);--up:var(--c-up);--up-soft:var(--c-up_tint);
 --down:var(--c-down);--down-soft:var(--c-down_tint);--caution:var(--c-caution);--caution-soft:var(--c-caution_tint);
 --tip-bg:var(--c-ink);--tip-fg:var(--c-white);--tip-muted:var(--c-quiet)}
-*{box-sizing:border-box}html,body{margin:0;overflow-x:hidden;background:transparent;color:var(--ink);
+*{box-sizing:border-box}html,body{margin:0;overflow-x:hidden;overflow-x:clip;background:transparent;color:var(--ink);
 font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13.5px;line-height:1.45}
 .card{display:flex;flex-direction:column;gap:8px;padding:2px 10px 6px}
 .cap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 14px;font-size:12px;color:var(--muted)}
 .up{color:var(--up)}.down{color:var(--down)}.watch{color:var(--caution)}.muted{color:var(--muted)}.b{font-weight:600}
-.readout{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;align-items:flex-end;min-height:40px}
-.readout .d{color:var(--muted);font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;width:100%}
+.readout{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;align-items:baseline;min-height:22px}
+.readout .d{color:var(--muted);font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px}
+.ph{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;font-size:12px;color:var(--muted)}.ph>b{color:var(--ink);font-size:13px}
+.ph .d{font-family:'IBM Plex Mono',ui-monospace,monospace;width:100%}.ph span{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap}
+.ph span b{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}.ph span b.down{color:var(--down)}
+.ph i{width:12px;height:0;border-top:2px solid;display:inline-block;transform:translateY(-3px)}.ph i.dash{border-top-style:dashed}
 .ro{display:flex;align-items:baseline;gap:6px}.ro i{width:10px;height:3px;border-radius:2px;display:inline-block;transform:translateY(-3px)}
 .ro b{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}.ro span{color:var(--muted)}
-.chips{display:flex;gap:4px;background:var(--fill);border-radius:8px;padding:3px}
+.chips{display:flex;flex-wrap:wrap;max-width:100%;gap:4px;background:var(--fill);border-radius:8px;padding:3px}
 .chip{font:600 12px 'IBM Plex Sans',system-ui,sans-serif;color:var(--muted);background:none;border:0;border-radius:6px;padding:6px 10px;min-height:32px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--bg);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .chip:focus-visible,.chart:focus-visible,.trow:focus-visible,.shrow:focus-visible,.segbar i:focus-visible{outline:2px solid var(--up);outline-offset:2px}
@@ -80,6 +84,8 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .segbar{display:flex;gap:2px;height:44px;border-radius:4px;overflow:hidden}
 .segbar i{display:flex;align-items:center;padding-left:8px;font-style:normal;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:pointer;color:var(--bg)}
 .segbar i.dim{opacity:.3}
+/* A frame is never under 150 px; on a wide screen the bar takes that room rather than leaving it empty. */
+@media (min-width:601px){.segbar{height:64px}}
 .seg-key i{width:12px;height:12px;border-radius:3px;display:inline-block}.seg-key b{font-family:'IBM Plex Mono',monospace;color:var(--ink)}
 .seg-strong{background:var(--up)}.seg-strong.alt{background:color-mix(in srgb,var(--up) 70%,var(--bg))}
 .seg-turning{background:color-mix(in srgb,var(--caution) 45%,var(--bg))}.seg-turning.alt{background:color-mix(in srgb,var(--caution) 30%,var(--bg))}
@@ -90,13 +96,15 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .ht th,.ht td{text-align:left;padding:7px 7px 7px 0;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
 .ht thead th{font-size:12px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--ink);vertical-align:bottom;cursor:pointer;user-select:none;font-family:'IBM Plex Sans',system-ui,sans-serif}
 .ht thead th.num{max-width:64px;white-space:normal;text-align:right}
-.ht thead th[aria-sort="descending"]::after{content:" ↓"}.ht thead th[aria-sort="ascending"]::after{content:" ↑"}
+.ht thead th:not(.num)[aria-sort="descending"]::after{content:" ↓"}.ht thead th:not(.num)[aria-sort="ascending"]::after{content:" ↑"}
+.ht thead th.num[aria-sort="descending"]::before{content:"↓ "}.ht thead th.num[aria-sort="ascending"]::before{content:"↑ "}
 .ht thead th:focus-visible{outline:2px solid var(--up);outline-offset:2px}
 .ht tbody th,.ht tfoot th{font-weight:600;white-space:nowrap;position:sticky;left:0;background:var(--bg);z-index:1}
 .ht .num{width:1%;white-space:nowrap}.ht td.num{text-align:right}.ht .nw{white-space:nowrap}
 .ht .sym{font-family:'IBM Plex Mono',monospace;font-weight:600}.ht .ss{display:block;font-size:12px;color:var(--muted);font-weight:400}
 .ht .co{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ht .rk{white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}.ht .rk b{color:var(--ink)}.ht .rk b.down{color:var(--down)}
+.ht td.rk{white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}.ht .rk b{color:var(--ink)}.ht .rk b.down{color:var(--down)}
+.ht .rk{text-align:right!important}th.rk{position:relative}.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.rk3{display:inline-grid;grid-template-columns:repeat(3,5ch);gap:0 8px;text-align:right}.rk3 i{font-style:normal}th.rk .rk3{display:grid;margin-top:2px}
 .ht tr.tot th,.ht tr.tot td{border-top:1px solid var(--ink);font-weight:600}
 @media (max-width:640px){.ht .co{display:none}.ht{min-width:1040px}}
 .hbody{max-height:380px;overflow:auto;border:1px solid var(--rule-soft);border-radius:4px}
@@ -104,12 +112,10 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .lt th,.lt td{text-align:left;padding:5px 10px;border-bottom:1px solid var(--rule-soft);white-space:nowrap;width:1%}
 .lt td:last-child,.lt th:last-child{width:auto;white-space:normal}
 .lt thead th{position:sticky;top:0;background:var(--bg);color:var(--muted);font-weight:500;z-index:1}
-.lt .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+.lt .num{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}.lt thead th.num{font-family:inherit}
 .hnote{margin:4px 0 0;font-size:12px;color:var(--muted)}
 
-/* On a wide screen the readout stays on one line, so the frame's measured height never
-   includes a second line that only the fallback font, before the real one loads, needed. */
-@media (min-width:601px){.readout{flex-wrap:nowrap;overflow:hidden}.readout .d{flex:0 0 100%}.readout{flex-wrap:wrap;max-height:44px}}
+/* The readout is one line where it fits: the date, then the values (owner, 20 Nov: the numbers took half the chart). */
 @media (max-width:600px){
 .tt{--pitch:min(8px, calc((100vw - 24px) / var(--n)))}
 .trow{grid-template-columns:minmax(0,1fr) 64px}.trow .tt{grid-column:1/-1;grid-row:2;height:22px}
@@ -141,9 +147,13 @@ BODY = {
                 '<button class="chip" type="button" data-range="0" aria-pressed="true">3Y</button></span></div>'
                 '<div class="readout" aria-live="polite"></div>'
                 '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div><div class="chart" data-pane="bottom" role="img"></div>'),
-    "growth": ('<div class="readout" aria-live="polite"></div>'
+    "growth": ('<div class="ph" aria-live="polite"><span class="d"></span>'
+               '<span><i style="color:var(--ink)"></i>The book <b data-v="book"></b></span>'
+               '<span><i style="color:var(--caution)"></i>Momentum 50 <b data-v="mom"></b></span>'
+               '<span><i class="dash" style="color:var(--muted)"></i>Market <b data-v="market"></b></span></div>'
                '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div>'
-               '<div class="cap"><b>Below the peak</b><span>the book (filled) and Nifty Total Market (dashed)</span></div>'
+               '<div class="ph"><b>Below the peak</b><span><i style="color:var(--down)"></i>book below peak <b data-v="dd"></b></span>'
+               '<span><i class="dash" style="color:var(--muted)"></i>market below peak <b data-v="ddm"></b></span></div>'
                '<div class="chart" data-pane="bottom" role="img" aria-label="The book\'s and the market\'s fall from their peaks"></div>'),
     "holdings": '<div class="hold" role="region" aria-label="{label}" tabindex="0"></div>',
     "history": ('<div class="cap"><span class="chips views" role="group" aria-label="View"></span>'
