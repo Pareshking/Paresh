@@ -184,10 +184,18 @@ def _t(v: float | None) -> str:
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
+def _past_stamp() -> str:
+    """The breadth history file's revision, for cache keys."""
+    from src.engine import pit_breadth
+    return str(pit_breadth.FILE.stat().st_mtime) if pit_breadth.FILE.exists() else "-"
+
+
 def _answers(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.Series,
              _size: dict[str, pd.Series]):
-    breadth = mq.breadth_answer(_prices, _bench)
-    share = mq._share_above_ema(_prices, 200)
+    from src.engine import pit_breadth
+    past = pit_breadth.load("total_market")
+    breadth = mq.breadth_answer(_prices, _bench, past)
+    share = pit_breadth.splice(mq._share_above_ema(_prices, 200), past, "above_200")
     trend = mq.trend_answer(_bench, _size, share)
     leaders = mq.leaders_answer(_prices, _industry, _bench, _size)
     return breadth, trend, leaders
@@ -214,7 +222,7 @@ def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: 
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
-    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size))])
+    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
     breadth, trend, leaders = _answers(key, px, industry, bench.dropna(), size)
     cols, drawn = [], []
     if breadth is not None:
@@ -235,8 +243,8 @@ def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: 
         return []
     grid = "mq-grid four" if len(cols) == 4 else "mq-grid"
     st.html(_CSS + f'<div class="{grid}">{"".join(cols)}</div>'
-            '<p class="mq-note">Counted over the stocks ranked today, so readings a year back leave out '
-            'stocks that have since left the index. Each vote\'s cut-off shows on hover.</p>')
+            '<p class="mq-note">Today counts the stocks ranked today; earlier readings count Nifty Total Market\'s '
+            'members on each date, leavers included. Each vote\'s cut-off shows on hover.</p>')
     return drawn
 
 
@@ -424,8 +432,10 @@ def bucket_by_last_session(s: pd.Series, freq: str) -> pd.Series:
 @st.cache_data(show_spinner=False, ttl=3600)
 def _chart_series(_key: str, _prices: pd.DataFrame, _bench: pd.Series):
     """The series behind the Breadth charts, computed once per price set."""
-    share200 = mq._share_above_ema(_prices, 200).dropna()
-    nnh = mq._net_new_highs(_prices).dropna()
+    from src.engine import pit_breadth
+    past = pit_breadth.load("total_market")
+    share200 = pit_breadth.splice(mq._share_above_ema(_prices, 200), past, "above_200").dropna()
+    nnh = pit_breadth.splice(mq._net_new_highs(_prices), past, "net_new_highs").dropna()
     weekly = nnh.groupby(nnh.index.to_period("W-FRI")).last()
     # Each bucket is dated its Friday, which for the week in progress is a date
     # that has not happened: on Monday 9 Nov 2026 the last bar read "5.5% on
@@ -565,7 +575,7 @@ def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench:
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
-    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size))])
+    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
     breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size)
     st.html(_CSS + _PAGE_CSS + _CHART_CSS + '<nav class="qp-nav" aria-label="On this page">'
             '<a href="#q-breadth">Are most stocks taking part?</a>'
@@ -585,8 +595,10 @@ def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench:
                               + f'<div class="qp-scroll">{table}</div>' + "</section>")
         st.html(sec + '<p class="qp-behind">Behind the answer</p>')
         _trend_charts(bench.dropna(), size)
-    st.html('<p class="qp-note" style="margin:10px 0 18px">Counted over the stocks ranked today, so '
-            'readings a year back leave out stocks that have since left the index.</p>')
+    st.html('<p class="qp-note" style="margin:10px 0 18px">Today counts the stocks ranked today. Every earlier '
+            'reading counts the stocks in Nifty Total Market on that date, including those that have since left it, '
+            'from NSE’s first recorded list (29 Oct 2021); counting today’s members back in time made the past look '
+            'about 5 points broader than it was.</p>')
     return breadth is not None or trend is not None
 
 
@@ -799,7 +811,7 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
-    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), "full"])
+    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp(), "full"])
     leaders, months = _leaders_full(key, px, industry, bench.dropna(), size)
     if leaders is None:
         return False

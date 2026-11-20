@@ -17,6 +17,9 @@ Read, in this order:
    `docs/MEMBERSHIP_FROM_NOTICES.md` for index membership,
    `docs/THREE_SYSTEMS.md` for the three universes.
 
+Before redesigning a page, read `docs/PAGE_DESIGN.md`: the content, table,
+chart and data-check rules the Dashboard redesign settled, with their sources.
+
 ## Rules that have been decided
 
 - Judge a fix by independent evidence (a different source, dated, quoted). A

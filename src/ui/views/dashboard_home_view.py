@@ -13,6 +13,7 @@ months stay against the Nifty 500 and are compared beside, never rewritten.
 from __future__ import annotations
 
 import html
+import json
 from pathlib import Path
 
 import numpy as np
@@ -34,7 +35,14 @@ FILES = {
     "nsdl": ROOT / "data" / "nsdl_fpi_daily.csv",
     "nse_flows": ROOT / "data" / "fii_dii_flows.csv",
     "bench": ROOT / "data" / "benchmarks.csv",
+    "tests": ROOT / "data" / "signal_tests.json",
+    "mcap": ROOT / "data" / "nse_market_caps.csv",
+    "lists": ROOT / "data" / "indices",
 }
+# NSE's size lists, today's members (data/indices); Nifty 100 = Nifty 50 + Next 50.
+SIZE_LISTS = {"Nifty 100": ("ind_nifty50list.csv", "ind_niftynext50list.csv"),
+              "Midcap 150": ("ind_niftymidcap150list.csv",), "Smallcap 250": ("ind_niftysmallcap250list.csv",),
+              "Microcap 250": ("ind_niftymicrocap250_list.csv",)}
 MOMENTUM_NAMES = {
     "midcap150_mom50": "Midcap150 Momentum 50",
     "smallcap250_mq100": "Smallcap250 Momentum Quality 100",
@@ -103,9 +111,14 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
     dates = {k: di.on_or_before(px.index, d) for k, d in di.trail_dates(as_of).items()}
     ranked = [s for s in _rank_df["Symbol"] if s in px.columns]
     out: dict = {"dates": dates}
+    from src.engine import pit_breadth
+    past = pit_breadth.load("total_market")
     for span in (50, 200):
-        out[f"above_{span}"] = mq._share_above_ema(px[ranked], span)
+        out[f"above_{span}"] = pit_breadth.splice(mq._share_above_ema(px[ranked], span), past, f"above_{span}")
     snap = snapshots(px, [d for d in dates.values() if d is not None])
+    key_of = {d: k for k, d in dates.items() if d is not None}
+    out["rank_table"] = (snap.assign(when=snap["date"].map(key_of))
+                         .pivot_table(index="symbol", columns="when", values="rank", aggfunc="first"))
     ranks = {}
     for sym in symbols:
         row = []
@@ -201,8 +214,24 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             'book is after costs; indices are price returns.</p></section>')
 
 
+def _turnover_html(t: di.Turnover | None, industry: pd.Series) -> str:
+    if t is None or not t.climbers:
+        return ""
+    ind = lambda s: e(SHORT.get(str(industry.get(s, "")), str(industry.get(s, ""))))  # noqa: E731
+    rk = lambda v, cls="dh-muted": f'<td class="dh-num {cls}">{"—" if v is None else f"#{v}"}</td>'  # noqa: E731
+    rows = "".join(f'<tr><th scope="row">{e(s)}<span class="dh-sub">{ind(s)}</span></th>{rk(a)}{rk(b)}{rk(c, "dh-b dh-up")}</tr>'
+                   for s, a, b, c in t.climbers)
+    if t.fallers:
+        rows += '<tr><th scope="row" colspan="4" class="dh-sub dh-tr-g">Fell out</th></tr>'
+        rows += "".join(f'<tr><th scope="row">{e(s)}<span class="dh-sub">{ind(s)}</span></th><td></td>{rk(b)}'
+                        f'<td class="dh-num dh-b dh-down">{"Out" if c is None else f"#{c}"}</td></tr>' for s, b, c in t.fallers)
+    return (f'<div><div class="dh-lab">Leadership turnover · {t.new} of today’s top {t.top} were not there a month ago</div>'
+            '<table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Rising in</th><th scope="col" class="dh-num">3M ago</th>'
+            f'<th scope="col" class="dh-num">1M ago</th><th scope="col" class="dh-num">Now</th></tr></thead><tbody>{rows}</tbody></table></div>')
+
+
 def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check, fill, n_sess: int,
-                      rules: Rules, n_hold: int, churn: str, results_line: str) -> str:
+                      rules: Rules, n_hold: int, churn: str, results_line: str, turnover: str = "") -> str:
     rows = a[a["status"] != UNKNOWN].copy()
     rows["room"] = rows.apply(lambda r: least_room(r, rules), axis=1)
     rows = rows.sort_values("room", na_position="first").head(AT_RISK_ROWS)
@@ -249,7 +278,7 @@ def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check
             'Under each name, its industry against all ranked stocks.</p></div>'
             f'<div class="dh-col1"><div class="dh-lab">Would be bought</div><div class="dh-chips">{buys}</div>'
             f'<p class="dh-sub">Next in line: <span class="dh-mono">{nxt}</span></p>'
-            f'<div class="dh-callout">{e(churn)} {e(results_line)}</div>'
+            f'<div class="dh-callout">{e(churn)} {e(results_line)}</div>{turnover}'
             f'<a class="dh-link" href="{e(page_href("actions"))}" target="_self">The plan, share by share, on Actions →</a>'
             '</div></div></section>')
 
@@ -259,16 +288,19 @@ def _trail_cell(vals: list[float | None], fmt) -> list[str]:
     return ["—" if v is None else fmt(v) for v in vals]
 
 
-def section_momentum(lead, streak: int, signals: list[dict]) -> str:
-    n_for = sum(s["side"] == "for" for s in signals)
-    n_against = sum(s["side"] == "against" for s in signals)
-    n_neu = len(signals) - n_for - n_against
+def section_momentum(lead, streak: int, signals: list[dict], average: float | None) -> str:
+    tested = [x for x in signals if x["test"] is not None]
+    passed = [x for x in tested if x["test"]["passed"]]
+    better = sum(x["like"] is not None and average is not None and x["like"] >= average for x in passed)
     long_ok = lead and lead[0][1] is not None and lead[0][1] > 0
     head = ("Ahead over a year" if long_ok else "Behind over a year")
     head += (f', but <span class="dh-down">{streak} losing month{"s" if streak != 1 else ""} in a row</span>.'
              if streak >= 2 else ".")
-    head += (f' Of {len(signals)} signals, <span class="dh-up">{n_for} favour momentum</span>, '
-             f'<span class="dh-down">{n_against} weigh on it</span>, {n_neu} neutral.')
+    if tested:
+        head += (f' We tested each signal on our own record since 2010: <span class="dh-up">{len(passed)} pass</span>, '
+                 f'<span class="dh-muted">{len(tested) - len(passed)} {"is" if len(tested) - len(passed) == 1 else "are"} not confirmed</span>. '
+                 f'Today <span class="dh-up">{better} point{"s" if better != 1 else ""} to a stronger month</span>, '
+                 f'<span class="dh-down">{len(passed) - better} to a weaker one</span>.')
     tiles = []
     for when, v, note in lead:
         pos = 0 if v is None or v <= 0 else min(v / 13 * 100, 100)
@@ -276,33 +308,52 @@ def section_momentum(lead, streak: int, signals: list[dict]) -> str:
         tiles.append(f'<div class="dh-tile"><span class="dh-sub">{e(when)}</span><span class="dh-big {tone(v)}">{e(sg(v))}</span>'
                      f'<span class="dh-dbar"><span><i class="dh-f-neg" style="width:{neg:.0f}%"></i></span>'
                      f'<span><i class="dh-f-pos" style="width:{pos:.0f}%"></i></span></span><span class="dh-sub">{e(note)}</span></div>')
-    ev = {"tested": ("Tested here", "dh-ev-t"), "research": ("Research", "dh-ev-r"), "context": ("Context", "dh-ev-c")}
-    side = {"for": "For", "against": "Against", "neutral": "Neutral"}
-    rows = "".join(
-        f'<tr><th scope="row">{e(s["name"])}<span class="dh-sub">{e(s["sub"])}</span></th>'
-        + "".join(f'<td class="dh-num{" dh-muted" if i < 2 else " dh-b " + TONE[s["side"]]}">{e(v)}</td>'
-                  for i, v in enumerate(s["cells"]))
-        + f'<td><span class="dh-side {TONE[s["side"]]}">{side[s["side"]]}</span>'
-        f'<span class="dh-sub dh-b {TONE[s["dir"]]}">{e(s["word"])}</span></td>'
-        f'<td>{e(s["hist"])}<span class="dh-sub">{e(s["why"])}</span></td><td>{e(s["flip"])}</td>'
-        f'<td><span class="dh-ev {ev[s["ev"]][1]}">{ev[s["ev"]][0]}</span></td></tr>' for s in signals)
+    rows = []
+    for x in signals:
+        t, like = x["test"], x["like"]
+        d = None if like is None or average is None else like - average
+        w = 0 if d is None else min(abs(d) / 1.5 * 100, 100)
+        cls = "dh-muted" if d is None else ("dh-up" if d >= 0 else "dh-down")
+        reads = "Not used" if d is None else ("Better than usual" if d >= 0 else "Worse than usual")
+        if t is None:
+            badge, why = '<span class="dh-ev dh-ev-c">Not tested</span>', ""
+        elif t["passed"]:
+            badge = '<span class="dh-ev dh-ev-t">Pass</span>'
+            why = f'{sg(t["on"], 2)} on vs {sg(t["off"], 2)} off; both halves; on in {t["n_on"]} of {t["n"]} months'
+        else:
+            badge = '<span class="dh-ev dh-ev-c">Not confirmed</span>'
+            why = f'{sg(t["on"], 2)} on vs {sg(t["off"], 2)} off, {t["n_on"]} of {t["n"]} months; ' + (
+                "the halves disagree" if t["halves"][0] * t["halves"][1] < 0 else "under the 1-point bar")
+        rows.append(
+            f'<tr class="{"dh-faint" if d is None else ""}"><th scope="row">{e(x["name"])}<span class="dh-sub">{e(x["sub"])}</span></th>'
+            + "".join(f'<td class="dh-num{" dh-muted" if k < 2 else " dh-b"}">{e(v)}</td>' for k, v in enumerate(x["cells"]))
+            + f'<td class="dh-num dh-b {cls}">{"—" if like is None else e(sg(like))}</td>'
+            f'<td><span class="dh-dbar"><span><i class="dh-f-neg" style="width:{w if d is not None and d < 0 else 0:.0f}%"></i></span>'
+            f'<span><i class="dh-f-pos" style="width:{w if d is not None and d >= 0 else 0:.0f}%"></i></span></span>'
+            f'<span class="dh-sub dh-b {cls}">{reads}</span></td>'
+            f'<td>{badge}<span class="dh-sub">{e(why)}</span></td><td>{e(x["flip"]) if d is not None else ""}</td></tr>')
+    avg = "—" if average is None else sg(average)
     return (f'<section class="dh-sec" aria-labelledby="s-mom">{_kicker("3", "Is momentum still working?")}'
             f'<h2 id="s-mom" class="dh-h2">{head}</h2>'
             '<div class="dh-sub">Momentum’s lead over the market, points, longest window first</div>'
             f'<div class="dh-tiles">{"".join(tiles)}</div>'
-            '<div class="dh-scroll"><table class="dh-tab"><thead><tr><th scope="col">Signal</th>'
+            f'<div class="dh-cap"><b>What today’s readings have meant for next month</b><span>Momentum’s next-month lead after '
+            f'months like this, points · all months since 2010 average {e(avg)}</span></div>'
+            '<div class="dh-scroll"><table class="dh-tab"><thead><tr><th scope="col">Signal · when it is on</th>'
             '<th scope="col" class="dh-num">3M ago</th><th scope="col" class="dh-num">1M ago</th><th scope="col" class="dh-num">Now</th>'
-            '<th scope="col">For momentum?</th><th scope="col">Against its own history</th>'
-            f'<th scope="col">What would flip it</th><th scope="col">Evidence</th></tr></thead><tbody>{rows}</tbody></table></div>'
-            '<p class="dh-note">The first three tiles are the top 100 of this site’s ranking against the Nifty 500, the '
-            'history’s benchmark; the month so far is NSE’s Nifty500 Momentum 50 against Nifty Total Market. '
-            '<b>Tested here</b>: on this site’s own data. <b>Research</b>: published, not yet tested here (Daniel and '
-            'Moskowitz, “Momentum crashes”, 2016). <b>Context</b>: no measured link to next month. Trails read the '
-            'session on or before the same date 3 months and 1 month back; month-end measures read the month-ends before. '
+            f'<th scope="col" class="dh-num">Months like this</th><th scope="col" class="dh-w-bar">Against the {e(avg)} average</th>'
+            '<th scope="col">Our test</th><th scope="col">What would flip it</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>'
+            '<p class="dh-note"><b>The test, fixed before looking:</b> a signal passes if momentum’s next-month lead (the '
+            'top 100 of this ranking less the Nifty 500) differs by at least 1 point between months when it is on and off, '
+            'in the direction it claims, and in both halves of the record. Failures stay on the page. The signals overlap, '
+            'so their bars are not added into one score. Breadth and participation count the Nifty 500’s members on each '
+            'date, leavers included. In-sample: the thresholds were set on the record they are tested on. The first three '
+            'tiles: top 100 against the Nifty 500; the month so far: NSE’s Nifty500 Momentum 50 against Nifty Total Market. '
             'Describing is not forecasting; the live rules stay fully invested whatever this says.</p></section>')
 
 
-def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii) -> str:
+def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[float, float] | None = None) -> str:
     rec = f.month_rank == 1
     head = (f'Foreign investors have bought <span class="dh-up">{e(cr(f.mtd).lstrip("+"))} this month'
             + (f', the most in any month since {f.months_in_record and e(_first_year(f))}</span>' if rec else '</span>')
@@ -319,6 +370,10 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii) -> str:
           ("Foreign, the 11 months before", cr(f.before), tone(f.before),
            f"Net sellers in {f.before_selling_months} of 11 months", "dh-down" if f.before_selling_months > 5 else "dh-muted",
            f"This month has bought back {f.mtd / -f.before * 100:.0f}%" if f.before < 0 and f.mtd > 0 else "")]
+    if share is not None:
+        kp.insert(1, ("Against the 750’s market value", sg(share[0], 2, "%"), tone(share[0]),
+                      "Bought this month" if share[0] > 0 else "Sold this month", tone(share[0]),
+                      f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {abs(share[1]):.2f}% of it"))
     if dii:
         kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}", cr(dii[2]), tone(dii[2]),
                    f"Net sellers on {dii[4]} of {dii[3]} sessions", "dh-down" if dii[4] * 2 > dii[3] else "dh-muted",
@@ -358,7 +413,52 @@ def _first_year(f: di.Flows) -> str:
     return f"{f.since:%Y}"
 
 
-def section_size(rows, book_sizes: dict[str, float]) -> str:
+def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None) -> tuple[str, str]:
+    """(the two tables, a phrase for the heading)."""
+    phrase, left, right = "", "", ""
+    if by_size:
+        now = {n: v[2] for n, v in by_size if v[2] is not None}
+        hi = max(now, key=now.get) if now else None
+        lo = min(now, key=now.get) if now else None
+        body = "".join(
+            f'<tr><th scope="row">{e(n)}</th>'
+            + "".join(f'<td class="dh-num dh-muted">{"—" if x is None else f"{x:.0f}%"}</td>' for x in v[:2])
+            + f'<td class="dh-num dh-b{" dh-up" if n == hi else " dh-down" if n == lo else ""}">'
+            f'{"—" if v[2] is None else f"{v[2]:.0f}%"}</td></tr>' for n, v in by_size)
+        left = ('<div><div class="dh-cap"><b>Is the rally shared?</b><span>Share above the 200D EMA, by NSE size list</span></div>'
+                '<table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Size</th><th scope="col" class="dh-num">3M ago</th>'
+                f'<th scope="col" class="dh-num">1M ago</th><th scope="col" class="dh-num">Now</th></tr></thead><tbody>{body}</tbody></table>'
+                + (f'<p class="dh-lede-s">Now <b class="dh-up">{e(hi)}</b> is the broadest and <b class="dh-down">{e(lo)}</b> the narrowest'
+                   + (f', where {held:.0f}% of the book sits.' if (held := (book_sizes or {}).get(BREADTH_TIER.get(lo, ""), 0)) >= 20 else '.')
+                   + '</p>' if hi and lo and hi != lo else "") + '</div>')
+        if hi == "Nifty 100":
+            phrase = ', even as <span class="dh-up">large caps are now the broadest part of the market</span>'
+    if typical:
+        f1 = lambda v: "—" if v is None else sg(v)  # noqa: E731
+        pc = lambda v: "—" if v is None else f"{v:.0f}%"  # noqa: E731
+        lines = [("Nifty Total Market", typical["market"], f1, None), ("Equal-weighted 750", typical["equal_weight"], f1, None),
+                 ("Median stock", typical["median"], f1, None), ("Share beating the market", typical["beat_share"], pc, 50)]
+        body = "".join(f'<tr><th scope="row">{e(n)}</th>' + "".join(
+            f'<td class="dh-num{" dh-b dh-down" if cut is not None and v is not None and v < 30 else ""}">{e(fmt(v))}</td>' for v in vals)
+            + '</tr>' for n, vals, fmt, cut in lines)
+        b1, ew12, mk12, med12 = (typical["beat_share"][0], typical["equal_weight"][-1], typical["market"][-1], typical["median"][-1])
+        say = ""
+        if b1 is not None:
+            say = f"Only {b1:.0f}% of the 750 beat the market this month." if b1 < 40 else f"{b1:.0f}% of the 750 beat the market this month."
+        if None not in (ew12, mk12, med12) and ew12 > mk12 and med12 < 0:
+            say += (f" Over a year the equal-weighted 750 beat it by {ew12 - mk12:.1f} points while <b>the median stock fell "
+                    f"{abs(med12):.1f}%</b>: a few big winners lift the average, the field a momentum book picks from.")
+        right = ('<div><div class="dh-cap"><b>The typical stock against the market</b><span>The 750, three ways · %</span></div>'
+                 '<table class="dh-tab dh-tab-s"><thead><tr><th scope="col"></th>'
+                 + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in (1, 3, 6, 12))
+                 + f'</tr></thead><tbody>{body}</tbody></table><p class="dh-lede-s">{say}</p></div>')
+    if not left and not right:
+        return "", phrase
+    return f'<div class="dh-pair">{left}{right}</div>', phrase
+
+
+def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None) -> str:
+    shared, phrase = _shared_html(by_size, typical, book_sizes)
     large = next((p for s, _, p in rows if s == "Large"), [None] * 3)
     midsmall = [x for s, _, p in rows if s in ("Mid", "Small") for x in p if x is not None]
     fail_large = all(x is not None and x <= -3 for x in large)
@@ -367,7 +467,7 @@ def section_size(rows, book_sizes: dict[str, float]) -> str:
     head = ""
     if fail_large:
         head += (f'<span class="dh-down">Large-cap momentum is failing</span>: {min(-x for x in large):.0f} to '
-                 f'{max(-x for x in large):.0f} points behind the Nifty 200 over every window. ')
+                 f'{max(-x for x in large):.0f} points behind the Nifty 200 over every window{phrase}. ')
     if level:
         head += f'<span class="dh-up">In mid and small caps it keeps level with its index</span>; that is {ms:.0f}% of this book.'
     head = head or "Momentum within each size, against its own index."
@@ -395,8 +495,9 @@ def section_size(rows, book_sizes: dict[str, float]) -> str:
             '<th scope="colgroup" colspan="3">Momentum against its size index</th></tr><tr>'
             + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in di.WINDOWS) + '<th></th>'
             + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in di.WINDOWS)
-            + f'</tr></thead><tbody>{body}</tbody></table></div>'
-            '<p class="dh-note">Points, price returns. Market: Nifty Total Market. Smallcap250 Momentum Quality 100 also screens '
+            + f'</tr></thead><tbody>{body}</tbody></table></div>{shared}'
+            '<p class="dh-note">Size lists and members are NSE’s as of today, so readings 3 months back leave out the few '
+            'stocks that have since moved list. Points, price returns. Market: Nifty Total Market. Smallcap250 Momentum Quality 100 also screens '
             'for quality; NSE has no microcap momentum index. Each momentum index is checked nightly against an ETF that '
             'tracks it. Source: NSE indices via Screener’s index chart.</p></section>')
 
@@ -507,7 +608,6 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     from src.core.config import MODEL_BOOK_CAPITAL
     from src.engine import market_questions as mq
     from src.engine.pipeline import price_fingerprint
-    from src.engine.portfolio_history import excess_by_quarter
     from src.engine.systems import inception, ledger_path
     from src.engine.track_record import load_ledger
     from src.ui import page_kit as kit
@@ -585,31 +685,41 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
         results_line = ("No results are due from the holdings or the buys before the check."
                         if due.empty else f"Results due before the check: {', '.join(due['symbol'].astype(str).unique())}.")
 
-    # 3. signals
+    turnover = _turnover_html(di.leadership_turnover(hist.get("rank_table")), industry)
+
+    # 3. signals, each with its test (S150)
     spreads = _read_csv(FILES["spreads"])
     lead = di.momentum_lead(spreads, closes["nifty500_mom50"], market, idx_end) if spreads is not None else []
     streak = di.losing_streak(spreads, lead[-1][1] if lead else None) if spreads is not None else 0
-    signals = _signals(spreads, hist, n500, idx_end, excess_by_quarter)
-
-    # 4. flows
     nsdl = _read_csv(FILES["nsdl"])
     flows = di.flows_summary(nsdl)
     ev = di.flow_evidence(nsdl, spreads, bench) if flows is not None else None
     dii = di.dii_window(_read_csv(FILES["nse_flows"]))
-    if flows is not None and ev is not None:
-        heavy = flows.mtd >= ev.threshold
-        signals.insert(1, {
-            "name": "Heavy foreign buying", "sub": "FPI net, last 20 sessions, ₹ thousand crore · NSDL", "side": "for" if heavy else "neutral",
-            "now": cr(flows.last20), "cells": _trail_cell(flows.trail20, lambda v: sg(v / 1000, 0)),
-            "word": "From selling to record buying" if (flows.trail20[1] or 0) < 0 < flows.last20 and flows.last20_is_record else "",
-            "dir": "up" if flows.last20 > (flows.trail20[1] or 0) else "down",
-            "hist": "Highest 20-day total since 2016" if flows.last20_is_record else "",
-            "why": f"Next-month momentum {sg(ev.after_heavy)} pts after heavy-buying months, {sg(ev.after_rest)} otherwise",
-            "flip": f"The top quarter starts at ₹{ev.threshold:,.0f} Cr a month" + (" (already past)" if heavy else ""),
-            "ev": "tested"})
+    tests = _load_tests()
+    signals = _signals(spreads, n500, idx_end, flows, nifty500_breadth(adj_close, as_of), tests)
+    average = tests.get("average")
 
+    # 4. flows against the 750's market value
+    share = None
+    mcap = _read_csv(FILES["mcap"])
+    if flows is not None and mcap is not None and {"Symbol", "MarketCap"} <= set(mcap.columns):
+        ranked = set(rank_df["Symbol"])
+        value_cr = float(pd.to_numeric(mcap[mcap["Symbol"].isin(ranked)]["MarketCap"], errors="coerce").sum()) / 1e7
+        share = di.fpi_share_of_value(flows, value_cr)
     # 5. size
     sizes = di.size_table(closes, market, idx_end)
+    lists = {}
+    for name, files in SIZE_LISTS.items():
+        syms = []
+        for fn in files:
+            f = _read_csv(FILES["lists"] / fn)
+            if f is not None and "Symbol" in f:
+                syms += f["Symbol"].astype(str).tolist()
+        if syms:
+            lists[name] = syms
+    by_size = di.size_breadth(adj_close, lists, as_of) if lists else None
+    ranked_px = adj_close[[c for c in rank_df["Symbol"] if c in adj_close.columns]]
+    typical = di.typical_stock(ranked_px, market, idx_end)
     from src.engine import book_risk as br
     eq = (record or {}).get("equity_curve")
     risk = br.book_risk(book.set_index("Symbol")["Weight %"], adj_close, n500, eq, volume, MODEL_BOOK_CAPITAL)
@@ -631,14 +741,14 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     held = dict(zip(weights["Industry"], weights["Holdings"]))
 
     sections = [
-        _brief(bm, len(plan.sells), flows, ev),
+        _brief(bm, len(plan.sells), check, signals, average, typical),
         section_book(bm, since, since_mkt, idx_end),
-        section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn, results_line),
-        section_momentum(lead, streak, signals),
+        section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn, results_line, turnover),
+        section_momentum(lead, streak, signals, average),
     ]
     if flows is not None:
-        sections.append(section_flows(flows, ev, dii))
-    sections += [section_size(sizes, book_sizes),
+        sections.append(section_flows(flows, ev, dii, share))
+    sections += [section_size(sizes, book_sizes, by_size, typical),
                  section_strong_weak(weights, sectors, hist["rrg_paths"], hist["rrg_now"]),
                  section_leadership(hist["rrg_now"], hist["rrg_paths"], held),
                  section_glance(_glance(closes, idx_end, hist, risk, n500))]
@@ -647,7 +757,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
             'NSE directly. Flows: NSDL and NSE. Industries: NSE’s classification.</p></div>')
 
 
-def _brief(bm: di.BookMonth, n_sells: int, flows, ev) -> str:
+def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, typical) -> str:
     bits = []
     if bm.market_mtd is not None and bm.book_mtd is not None and bm.momentum_mtd:
         if bm.book_mtd < bm.market_mtd and bm.book_mtd >= max(bm.momentum_mtd.values()) - 0.05:
@@ -657,11 +767,19 @@ def _brief(bm: di.BookMonth, n_sells: int, flows, ev) -> str:
         else:
             bits.append("The book is behind the market and behind momentum this month.")
     if n_sells:
-        bits.append(f'<span class="dh-down">{n_sells} holding{"s" if n_sells != 1 else ""} go at the next rebalance.</span>')
-    if flows is not None and ev is not None and flows.mtd >= ev.threshold:
-        bits.append('<span class="dh-up">Foreign money is pouring in'
-                    + (' at a record pace' if flows.month_rank == 1 else '') + '</span>'
-                    + (', which in the past has been followed by better months for momentum.' if ev.after_heavy > ev.after_rest else '.'))
+        bits.append(f'<span class="dh-down">{n_sells} holding{"s" if n_sells != 1 else ""} go on {check:%-d %b}.</span>')
+    passed = [x for x in signals if x["like"] is not None and average is not None]
+    if passed:
+        good = [x for x in passed if x["like"] >= average]
+        fpi = any(x["key"] == "fpi" for x in good)
+        n = len(passed)
+        bits.append(f'Of the {n} signal{"s" if n != 1 else ""} that pass our own test, '
+                    f'<span class="dh-up">{len(good)} point{"s" if len(good) != 1 else ""} to a stronger month for momentum</span>'
+                    + (", foreign buying among them," if fpi else "")
+                    + f' and <span class="dh-down">{n - len(good)} to a weaker one</span>.')
+    b1 = typical["beat_share"][0] if typical else None
+    if b1 is not None and b1 < 40:
+        bits.append(f'<span class="dh-watch">The rally is narrow: only {b1:.0f}% of the 750 beat the market this month.</span>')
     nav = "".join(f'<a href="#{a}" class="dh-pill">{e(t)}</a>' for a, t in (
         ("s-month", "1 The book"), ("s-next", "2 Next rebalance"), ("s-mom", "3 Momentum"), ("s-flow", "4 Money flows"),
         ("s-size", "5 Size"), ("s-book", "6 Strong and weak"), ("s-ind", "7 Leadership"), ("s-glance", "At a glance")))
@@ -669,84 +787,108 @@ def _brief(bm: di.BookMonth, n_sells: int, flows, ev) -> str:
             f'<nav class="dh-pills" aria-label="On this page">{nav}</nav></section>')
 
 
-def _signals(spreads, hist, n500: pd.Series, as_of: pd.Timestamp, excess_by_quarter) -> list[dict]:
+def _load_tests() -> dict:
+    try:
+        return json.loads(FILES["tests"].read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def nifty500_breadth(adj_close: pd.DataFrame, as_of: pd.Timestamp) -> dict[str, pd.Series]:
+    """Nifty 500 shares above the 50D and 200D EMA: its members on each date
+    from data/breadth_history.csv, today's members after that file ends."""
     from src.engine import market_questions as mq
+    from src.engine import membership, pit_breadth
+    from src.engine.index_universe import index_history
+    h = index_history("nifty_500")
+    now = (membership.members_on(h, as_of, canonical=True) or set()) if h else set()
+    cols = [c for c in now if c in adj_close.columns]
+    past = pit_breadth.load("nifty500")
+    out = {}
+    for span in (50, 200):
+        live = mq._share_above_ema(adj_close[cols], span) if cols else pd.Series(dtype=float)
+        out[f"above_{span}"] = pit_breadth.splice(live, past, f"above_{span}")
+    return out
+
+
+def _since_month_end(series: pd.Series, as_of: pd.Timestamp) -> float | None:
+    """Change since the last month-end before `as_of`'s month."""
+    s = series.dropna()
+    s = s[s.index <= as_of]
+    prior = s[s.index < as_of.to_period("M").to_timestamp()]
+    return None if s.empty or prior.empty else float(s.iloc[-1] - prior.iloc[-1])
+
+
+def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth: dict, tests: dict) -> list[dict]:
+    """One row per signal: today's reading, its state, and its test (data/signal_tests.json)."""
+    from src.engine import market_questions as mq
+    t = tests.get("tests", {})
+    pct = lambda v: "—" if v is None else f"{v:.0f}%"  # noqa: E731
+    gap = lambda v: sg(v, unit="%")  # noqa: E731
     out = []
+
+    def row(key, name, sub, cells, on, flip):
+        test = t.get(key)
+        like = None
+        if test and test["passed"] and on is not None:
+            like = test["on"] if on else test["off"]
+        out.append({"key": key, "name": name, "sub": sub, "cells": cells, "on": on, "test": test,
+                    "like": like, "flip": flip})
+
+    if len(n500):
+        g = di.trail_of(mq._ema_gap_series(n500), as_of)
+        on = g[2] is not None and g[2] > 0
+        row("trend_fast", "Nifty 500 vs its 200D EMA", "Above: on", [gap(v) for v in g], on,
+            "Back below the EMA" if on else "Back above the EMA")
+    if flows is not None and "fpi" in t:
+        fpi = t["fpi"]
+        cut = fpi.get("threshold")
+        on = cut is not None and flows.mtd >= cut
+        row("fpi", "Heavy foreign buying", "FPI net, last 20 sessions, ₹ thousand crore · top quarter of months: on",
+            ["—" if v is None else sg(v / 1000, 0) for v in flows.trail20], on if cut is not None else None,
+            "Settled for the month" if on else (f"₹{cut / 1000:,.0f} thousand crore in a month" if cut else ""))
+    if len(n500):
+        tr = [mq.ten_month_gap(n500, d) for d in di.trail_dates(as_of).values()]
+        on = tr[2] is not None and tr[2] > 0
+        row("trend_slow", "Nifty 500 vs its 10-month average", "Month-ends · above: on", [gap(v) for v in tr],
+            None if tr[2] is None else on, "A month-end below the average" if on else "A month-end above the average")
     if spreads is not None and "qualified" in spreads:
         q = pd.Series(pd.to_numeric(spreads["qualified"], errors="coerce").values * 100,
                       index=pd.to_datetime(spreads["date"])).dropna()
         try:
-            import json
             latest = json.loads(FILES["latest_q"].read_text())
             q.loc[pd.Timestamp(latest["date"])] = float(latest["qualified"]) * 100
         except (OSError, ValueError, KeyError, TypeError):
             pass
         q = q.sort_index()
         tr = di.month_end_trail(q, as_of)
-        share_above = float((q > tr[2]).mean() * 100) if tr[2] is not None else None
-        pe = excess_by_quarter(spreads, "qualified")
-        low = tr[2] is not None and pe is not None and tr[2] / 100 <= pe["cut"]
-        out.append({
-            "name": "Stocks that qualify", "sub": "Nifty 500 above 50D EMA, within 20% of 52W high · month-ends",
-            "side": "against" if low else "neutral", "now": f"{tr[2]:.0f}%" if tr[2] is not None else "—",
-            "cells": _trail_cell(tr, lambda v: "—" if v is None else f"{v:.0f}%"),
-            "word": "Collapsed" if tr[0] and tr[2] and tr[2] < tr[0] / 2 else ("Falling" if tr[1] and tr[2] and tr[2] < tr[1] else "Rising"),
-            "dir": "down" if tr[1] and tr[2] and tr[2] < tr[1] else "up",
-            "hist": f"Fewer than in {share_above:.0f}% of month-ends since {q.index[0]:%Y}" if share_above is not None else "",
-            "why": (f"After such months the backtest {'trailed' if pe['low'] < 0 else 'beat'} the market by {abs(pe['low']):.1f} pts"
-                    if pe else ""),
-            "flip": f"Above {pe['cut'] * 100:.0f}% at the next month-end" if pe else "", "ev": "tested"})
+        cut = float(q.quantile(0.25))
+        on = tr[2] is not None and tr[2] <= cut
+        row("qualify", "Stocks that qualify", f"Nifty 500 above 50D EMA, near the high · {cut:.0f}% or fewer: on",
+            [pct(v) for v in tr], None if tr[2] is None else on,
+            f"Above {cut:.0f}% at the next month-end" if on else f"{cut:.0f}% or fewer at a month-end")
+    a200, a50 = n500_breadth.get("above_200"), n500_breadth.get("above_50")
+    if a200 is not None and len(a200.dropna()):
+        tr = di.trail_of(a200, as_of)
+        on = tr[2] is not None and tr[2] <= 40
+        row("breadth_thin", "Breadth thin", "Nifty 500 above the 200D EMA · 40% or fewer: on", [pct(v) for v in tr],
+            None if tr[2] is None else on, "Above 40%" if on else "Back to 40% or below")
+    if a50 is not None and len(a50.dropna()):
+        tr = di.trail_of(a50, as_of)
+        jump = _since_month_end(a50, as_of)
+        row("participation_jump", "Participation jump", "Nifty 500 above the 50D EMA · up 15+ pts in a month: on",
+            [pct(v) for v in tr], None if jump is None else jump >= 15, "A month without a jump")
     if len(n500):
         fh = mq._from_high_series(n500)
         tr = di.trail_of(fh, as_of)
-        p, since = di.percentile_of(fh, tr[2])
-        out.append({"name": "Sharp rebound", "sub": "Nifty 500 from its 52W high", "side": "against" if tr[1] is not None and tr[1] <= -7 and tr[2] >= -3 else "neutral",
-                    "now": sg(tr[2], unit="%"), "cells": _trail_cell(tr, lambda v: sg(v, unit="%")),
-                    "word": "A V in two months" if tr[1] is not None and tr[1] <= -7 and tr[2] >= -3 else "",
-                    "dir": "watch", "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
-                    "why": "Last year’s losers lead when a fall reverses fast", "flip": "Index flat or down from here",
-                    "ev": "research"})
-    for span, name, sub in ((50, "Participation, short term", "Ranked stocks above their 50D EMA"),):
-        sh = hist[f"above_{span}"]
-        tr = di.trail_of(sh, as_of)
-        p, since = di.percentile_of(sh, tr[2])
-        rising = tr[1] is not None and tr[2] is not None and tr[2] > tr[1] + 5
-        back = rising and tr[0] is not None and abs(tr[2] - tr[0]) < 5
-        out.append({"name": name, "sub": sub, "side": "for" if rising else "neutral", "now": f"{tr[2]:.0f}%",
-                    "cells": _trail_cell(tr, lambda v: f"{v:.0f}%"),
-                    "word": "Recovered, not new strength" if back else ("Rising" if rising else ""),
-                    "dir": "flat" if back else ("up" if rising else "flat"),
-                    "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
-                    "why": "The rebound is reaching more stocks" if rising else "", "flip": "Back under 40%", "ev": "context"})
-    if len(n500):
-        g = mq._ema_gap_series(n500)
-        tr = di.trail_of(g, as_of)
-        p, since = di.percentile_of(g, tr[2])
-        out.append({"name": "Trend, fast", "sub": "Nifty 500 vs its 200D EMA", "side": "for" if tr[2] > 0 else "against",
-                    "now": sg(tr[2], unit="%"), "cells": _trail_cell(tr, lambda v: sg(v, unit="%")),
-                    "word": "Crossed back above" if tr[1] is not None and tr[1] < 0 < tr[2] else ("Above" if tr[2] > 0 else "Below"),
-                    "dir": "up" if tr[2] > 0 else "down", "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
-                    "why": "", "flip": "Back below the EMA" if tr[2] > 0 else "Back above the EMA", "ev": "context"})
-        t = mq._ten_month_series(n500)
-        tr = [mq.ten_month_gap(n500, d) for d in di.trail_dates(as_of).values()]
-        p, since = di.percentile_of(t, tr[2])
-        out.append({"name": "Trend, slow", "sub": "Nifty 500 month-end vs its 10-month average", "side": "against" if (tr[2] or 0) < 0 else "for",
-                    "now": sg(tr[2], unit="%"), "cells": _trail_cell(tr, lambda v: sg(v, unit="%")),
-                    "word": "Turned down, not back yet" if (tr[0] or 0) > 0 > (tr[2] or 0) else "",
-                    "dir": "down" if (tr[2] or 0) < 0 else "up", "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
-                    "why": "Reads completed months", "flip": "A month-end above the average", "ev": "context"})
-    sh = hist["above_200"]
-    tr = di.trail_of(sh, as_of)
-    p, since = di.percentile_of(sh, tr[2])
-    out.append({"name": "Breadth", "sub": "Ranked stocks above their 200D EMA",
-                "side": "against" if tr[2] <= 40 else ("for" if tr[2] >= 60 else "neutral"),
-                "now": f"{tr[2]:.0f}%", "cells": _trail_cell(tr, lambda v: f"{v:.0f}%"),
-                "word": ("Recovering, below " + f"{as_of - pd.DateOffset(months=3):%B}") if tr[1] is not None and tr[0] is not None and tr[1] < tr[2] < tr[0] else "",
-                "dir": "watch", "hist": f"{p:.0f}th percentile since {since}" if p is not None else "",
-                "why": "Narrow at 40%, broad at 60%", "flip": "Narrow at 40%, broad at 60%", "ev": "context"})
+        up = _since_month_end(fh, as_of)
+        on = None if up is None or tr[2] is None else (up >= 5 and tr[2] >= -3)
+        row("rebound", "Sharp rebound", "Nifty 500 from its 52W high · within 3% after a 5-pt jump: on",
+            [gap(v) for v in tr], on, "")
     return out
 
 
+BREADTH_TIER = {"Nifty 100": "Large", "Midcap 150": "Mid", "Smallcap 250": "Small", "Microcap 250": "Micro"}
 TIER_SIZE = {"Nifty 100": "Large", "Midcap 150": "Mid", "Smallcap 250": "Small", "Microcap 250": "Micro"}
 
 
@@ -854,6 +996,13 @@ HOME_CSS = """
 .dh-side{display:block;font-size:var(--fs-12);font-weight:700}
 .dh-tab thead th.dh-num,.dh-hold-h .dh-num{font-family:var(--font-ui);font-weight:500}
 .dh-hl{font-weight:600}
+.dh-tab.dh-tab-s{min-width:0}
+.dh-tab-s th,.dh-tab-s td{padding:6px 10px 6px 0}
+.dh-tr-g{padding-top:12px!important;font-weight:500!important}
+.dh-faint{opacity:.72}
+.dh-w-bar{width:170px}
+.dh-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:32px}
+.dh-lede-s{margin:6px 0 0;font-size:var(--fs-13)}
 .dh-ev{font-size:var(--fs-12);font-weight:600;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block}
 .dh-ev-t{color:var(--c-up);background:var(--c-up_tint)}.dh-ev-r{color:var(--c-caution);background:var(--c-caution_tint)}.dh-ev-c{color:var(--c-muted);background:var(--c-fill_soft)}
 .dh-ev-box{border-left:3px solid var(--c-rule);padding:2px 0 2px 12px;font-size:var(--fs-13)}

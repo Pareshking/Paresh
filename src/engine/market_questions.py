@@ -143,14 +143,18 @@ def _enough(counts: pd.Series) -> pd.Series:
     return counts >= floor
 
 
-def _share_above_ema(prices: pd.DataFrame, span: int) -> pd.Series:
+def _share_above_ema(prices: pd.DataFrame, span: int, members: pd.DataFrame | None = None) -> pd.Series:
+    """Share above the EMA. `members` (same shape, bool) counts a stock only on
+    the days it was in the index; its EMA still reads its whole history."""
     ema = prices.ewm(span=span, min_periods=max(int(span * 0.8), 5)).mean()
     observed = prices.notna() & ema.notna()
+    if members is not None:
+        observed &= members.reindex_like(prices).fillna(False).astype(bool)
     share = (prices > ema).where(observed).astype(float).mean(axis=1) * 100
     return share.where(_enough(observed.sum(axis=1)))
 
 
-def _net_new_highs(prices: pd.DataFrame, days: int = 5) -> pd.Series:
+def _net_new_highs(prices: pd.DataFrame, days: int = 5, members: pd.DataFrame | None = None) -> pd.Series:
     """Net new 52-week highs over the last `days` rows (a week): stocks that
     made a new high less those that made a new low, each counted once, as a
     share of the stocks that can make one. The 52 weeks are a calendar window, not
@@ -164,6 +168,8 @@ def _net_new_highs(prices: pd.DataFrame, days: int = 5) -> pd.Series:
                                else np.zeros(len(prices), bool) for c in prices.columns}, index=prices.index)
     tol = prices * 0.001
     can = prices.notna() & hi.notna() & lo.notna() & old_enough
+    if members is not None:
+        can &= members.reindex_like(prices).fillna(False).astype(bool)
     # Each stock once a week: made a new high on any of the last `days` rows,
     # less made a new low, over the stocks that could. Summing daily shares
     # counted a stock that set highs on three days three times (+140%).
@@ -174,23 +180,32 @@ def _net_new_highs(prices: pd.DataFrame, days: int = 5) -> pd.Series:
     return ((made_hi.sum(axis=1) - made_lo.sum(axis=1)) / n * 100).where(_enough(counts))
 
 
-def _beat_series(prices: pd.DataFrame, bench: pd.Series) -> tuple[pd.Series, pd.Series]:
+def _beat_series(prices: pd.DataFrame, bench: pd.Series,
+                 members: pd.DataFrame | None = None) -> tuple[pd.Series, pd.Series]:
     """The two year-long measures at each month end: share of stocks ahead of
     the Nifty 500 over the year, and the median stock less the index (pts)."""
     ends = prices.groupby(prices.index.to_period("M")).apply(lambda f: f.index[-1]).tolist()
     share, gap = {}, {}
     for t in ends:
-        a, b = _beat_index_12m(prices, bench, t)
+        a, b = _beat_index_12m(prices, bench, t, members)
         if a is not None:
             share[t], gap[t] = a, b
     return pd.Series(share, dtype=float), pd.Series(gap, dtype=float)
 
 
-def _beat_index_12m(prices: pd.DataFrame, bench: pd.Series, when: pd.Timestamp | None) -> tuple[float | None, float | None]:
+def _beat_index_12m(prices: pd.DataFrame, bench: pd.Series, when: pd.Timestamp | None,
+                    members: pd.DataFrame | None = None) -> tuple[float | None, float | None]:
     """Share of stocks ahead of the Nifty 500 over the year to `when`, and the
-    median stock's return less the index's (points)."""
+    median stock's return less the index's (points). With `members`, over the
+    stocks in the index on `when`, leavers included."""
     if when is None:
         return None, None
+    if members is not None:
+        row = members.loc[:when]
+        if row.empty:
+            return None, None
+        on = row.iloc[-1]
+        prices = prices[[c for c in on.index[on.astype(bool)] if c in prices.columns]]
     start = _on_or_before(prices.index, when - pd.DateOffset(years=1))
     if start is None:
         return None, None
@@ -210,12 +225,18 @@ def _beat_index_12m(prices: pd.DataFrame, bench: pd.Series, when: pd.Timestamp |
     return float((r > rb).mean() * 100), float((r.median() - rb) * 100)
 
 
-def breadth_answer(prices: pd.DataFrame, bench: pd.Series) -> Answer | None:
+def breadth_answer(prices: pd.DataFrame, bench: pd.Series, past: pd.DataFrame | None = None) -> Answer | None:
+    """`past`: readings on the members of each date (src/engine/pit_breadth.py).
+    With it, a month and a year back and every history figure come from the
+    members of the day; today's reading from `prices` either way."""
+    from src.engine.pit_breadth import splice
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
         return None
     prices = prices.sort_index()
     d = anchor_dates(prices.index)
-    a200, a50, nnh = _share_above_ema(prices, 200), _share_above_ema(prices, 50), _net_new_highs(prices)
+    a200 = splice(_share_above_ema(prices, 200), past, "above_200")
+    a50 = splice(_share_above_ema(prices, 50), past, "above_50")
+    nnh = splice(_net_new_highs(prices), past, "net_new_highs")
 
     def at(s: pd.Series, key):
         t = d[key]
@@ -223,13 +244,23 @@ def breadth_answer(prices: pd.DataFrame, bench: pd.Series) -> Answer | None:
 
     beat = {k: _beat_index_12m(prices, bench, d[k]) for k in d}
     beat_share, beat_gap = _beat_series(prices, bench)
+    if past is not None and {"beat_share", "beat_gap"} <= set(past.columns):
+        live_share = pd.Series({d["now"]: beat["now"][0]}, dtype=float).dropna()
+        live_gap = pd.Series({d["now"]: beat["now"][1]}, dtype=float).dropna()
+        daily_share, daily_gap = splice(live_share, past, "beat_share"), splice(live_gap, past, "beat_gap")
+        for k in ("month_ago", "year_ago"):
+            if d[k] is not None:
+                beat[k] = (_f(daily_share.get(d[k])), _f(daily_gap.get(d[k])))
+        beat_share = daily_share.groupby(daily_share.index.to_period("M")).last()
+        beat_share.index = [daily_share.loc[daily_share.index.to_period("M") == p].index[-1] for p in beat_share.index]
+        beat_gap = daily_gap.reindex(beat_share.index)
     ms = [
         _measure("Stocks above their 200D EMA", "pct", [at(a200, k) for k in d], 60, 40,
-                 "60% or more is broad, 40% or less is narrow", primary=True, history=a200.iloc[200:]),
+                 "60% or more is broad, 40% or less is narrow", primary=True, history=a200 if past is not None else a200.iloc[200:]),
         _measure("Stocks ahead of the Nifty 500 over a year", "pct", [beat[k][0] for k in d], 55, 45,
                  "55% or more is broad, 45% or less is narrow", primary=True, history=beat_share),
         _measure("Stocks above their 50D EMA", "pct", [at(a50, k) for k in d], 60, 40,
-                 "60% or more is broad, 40% or less is narrow", history=a50.iloc[50:]),
+                 "60% or more is broad, 40% or less is narrow", history=a50 if past is not None else a50.iloc[50:]),
         _measure("Net new 52W highs this week, share of stocks", "pts", [at(nnh, k) for k in d], 5, -5,
                  "+5 or more is broad, −5 or less is narrow", history=nnh),
         _measure("Median stock less the Nifty 500, a year", "pts", [beat[k][1] for k in d], 3, -3,

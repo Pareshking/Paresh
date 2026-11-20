@@ -102,3 +102,28 @@ def test_book_by_status_and_rotation_moves():
     ([57, 15, 28], "Slipping"), ([15, 28, 27], "Steady")])
 def test_rank_words_match_the_trails_seen_on_19_nov(trail, word):
     assert di.rank_trail_word(trail, 40)[0] == word
+
+
+def test_leadership_turnover_names_who_came_in_and_who_left():
+    ranks = pd.DataFrame({"3m": [50, 3, 70, 5], "1m": [60, 2, 45, 10], "now": [5, 80, 30, 12]},
+                         index=["UP", "GONE", "UP2", "STAY"])
+    t = di.leadership_turnover(ranks, top=40)
+    assert t.new == 2
+    assert [c[0] for c in t.climbers] == ["UP", "UP2"]
+    assert t.fallers == [("GONE", 2, 80)]
+
+
+def test_typical_stock_against_the_market():
+    idx = pd.bdate_range("2025-01-01", "2026-01-30")
+    px = pd.DataFrame({"A": np.linspace(100, 200, len(idx)), "B": np.linspace(100, 90, len(idx)),
+                       "C": np.linspace(100, 95, len(idx))}, index=idx)
+    market = pd.Series(np.linspace(100, 110, len(idx)), index=idx)
+    t = di.typical_stock(px, market, idx[-1], windows=(12,))
+    assert round(t["beat_share"][0]) == 33                    # only A beat the market
+    assert t["median"][0] < 0 < t["market"][0]
+
+
+def test_fpi_share_of_market_value():
+    f = di.Flows(pd.Timestamp("2026-11-19"), 1000.0, 1, 10, None, 0.0, False, 0, -2000.0, 6, [], [None] * 3)
+    assert di.fpi_share_of_value(f, 100000.0) == (1.0, -2.0)
+    assert di.fpi_share_of_value(f, None) is None

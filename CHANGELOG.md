@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-20 — Signals that have been tested, and breadth counted fairly
+
+- Every regime signal on the Dashboard now shows whether it has said anything about the next month. The rule was set before looking: momentum's lead the next month must differ by at least 1 point between months when the signal was on and off, in the direction it claims, in both halves of the record since 2010. Five pass; two do not, and they stay on the page, marked "Not confirmed". Each row shows what months like today were followed by, against the +0.8 average.
+- "Participation, short term" no longer counts for momentum: tested, a jump in the share of stocks above their 50-day average has not been followed by better months.
+- Breadth's history is now counted over the stocks that were in the index on each date, including those that have since left it. Counting today's members back in time made the past look about 5 points broader than it was, so today looked weaker against its history than it is: a year ago 47% of the 750 were above their 200-day average, not the 59% shown before. The Breadth page's history now starts at NSE's first recorded Total Market list, October 2021.
+- New on the Dashboard: leadership turnover (which names rose into the top 40 this month and which fell out), foreign buying as a share of the 750's market value, and "Is the rally shared?" — breadth by NSE size list, and the equal-weighted and median stock against the market.
+
 ## 2026-11-20 — A new Dashboard
 
 - The Dashboard is rebuilt around what it concludes, not what it lists. It opens with a one-paragraph verdict and a row of links, then seven sections in the order an owner asks: the book this month, what happens at the next rebalance, whether momentum is working, money flows, size, where the book is strong and weak, and where leadership is moving. An "At a glance" band at the end keeps the day's index moves, breadth and the book's risk, each a click from its page.
