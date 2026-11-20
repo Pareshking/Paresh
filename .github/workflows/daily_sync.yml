@@ -189,6 +189,16 @@ jobs:
         # requested here, so no session can go missing from the file.
         run: python scripts/build_benchmarks.py --update --bundles /tmp/nse-bundles || echo "::warning::Benchmark update failed; the committed file is used."
 
+      # Nifty Total Market (the live benchmark from Jan 2026) and NSE's
+      # momentum indices, from Screener's index chart: NSE's bundle does not
+      # carry them (S148, S149). Each is checked against an ETF that tracks
+      # it; a disagreement is a warning here. Non-blocking: a failure keeps
+      # the committed file.
+      - name: Extend Nifty Total Market and the momentum indices
+        env:
+          PYTHONPATH: .
+        run: python scripts/build_benchmark_indices.py --update || echo "::warning::Benchmark indices update failed; the committed file is used."
+
       # The extra universe (every stock of ₹2,000 Cr or more outside the 750,
       # src/engine/extra_universe.py): rebuilt from NSE's market-cap file
       # only when a new month-end session is in R2, else a no-op. Written to
