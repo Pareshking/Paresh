@@ -37,10 +37,12 @@ jobs:
         run: python -m pytest -q tests/test_nse_sample_check.py tests/test_nse_bundle.py
       - name: Fetch the calendar and the sources to check against
         if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest"
+          # Authenticated (gh), so it keeps working if the repository goes private.
           for f in prices_full.parquet screener_prices.parquet prices.parquet; do
-            curl -sSfL -o "$f" "$base/$f" || echo "::warning::could not fetch $f"
+            gh release download data-latest --repo "$GITHUB_REPOSITORY" --clobber --pattern "$f" --output "$f" || echo "::warning::could not fetch $f"
           done
       - name: Sample checks
         if: github.event_name != 'pull_request'

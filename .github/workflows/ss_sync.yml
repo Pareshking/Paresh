@@ -159,8 +159,7 @@ jobs:
         run: |
           set -euo pipefail
           [ -f data_cache/ss/manifest.json ] || { echo "No SS store to check."; exit 0; }
-          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest"
-          curl -sSfL -o screener_store.parquet "$base/screener_prices.parquet"
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --clobber --pattern screener_prices.parquet --output screener_store.parquet
           START=$(date -u -d "$REPORT_DAYS days ago" +%F)
           python scripts/reconcile_report.py --ss data_cache/ss --screener screener_store.parquet \
             --start "$START" --out reports/reconcile
