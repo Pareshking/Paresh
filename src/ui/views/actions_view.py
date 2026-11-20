@@ -310,28 +310,15 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                       "the strategy needs about 18 months of price history to form one.")
     else:
         a = assess(rank_df, symbols, rules)
-        # The caps the model book's own run uses, read from the pinned record
-        # config, so the weights here are its weights.
-        # The six-monthly reset from the 30 Nov 2026 signal (owner, 8 Nov): for the
-        # model book, between resets the plan strikes the record's weights from the
-        # book as it stands; at a March or September check every name is equal
-        # weight. Your own holdings' weights are not known, so they stay equal.
-        from src.engine.actions import fixed_buy_weight, standing_weights
-        from src.engine.backtester import _hold_cap_on
-        resets = tuple(cfg.get("weight_reset_months") or ())
-        lwr = (source != "My holdings"
-               and _hold_cap_on(cfg.get("hold_cap"), cfg.get("hold_cap_from"), check)
-               and pd.Timestamp(check).month not in resets)
-        # The account today, not at the last month-end: the replay alone ends there (S154).
-        buy_w = (fixed_buy_weight(_book_equity(book, _record, rank_df, adj_close, benchmark_close, system),
-                                  resets, float(cfg.get("buy_size") or 0.05))
-                 if lwr and source != "My holdings" else None)
-        plan = plan_rebalance(rank_df, symbols, top_n=top_n, buffer_n=rules.buffer_n,
-                              stock_cap=float(cfg["stock_cap"]),
-                              sector_cap=float(cfg["sector_cap"]),
-                              standing=standing_weights(book, adj_close) if lwr else None,
-                              hold_cap=cfg.get("hold_cap") if lwr else None,
-                              buy_weight=buy_w)
+        # The model book's plan comes from the one function the Dashboard uses too (S154):
+        # held weights, hold cap and buy size between the six-monthly resets. Your own
+        # holdings' weights are not known, so they stay equal weight.
+        if source == "My holdings":
+            plan = plan_rebalance(rank_df, symbols, top_n=top_n, buffer_n=rules.buffer_n,
+                                  stock_cap=float(cfg["stock_cap"]), sector_cap=float(cfg["sector_cap"]))
+        else:
+            from src.ui.model_plan import model_plan
+            plan = model_plan(book, _record, rank_df, adj_close, benchmark_close, system, check)
         n_unknown = int((a["status"] == UNKNOWN).sum())
         n_watch = int(a[a["Symbol"].isin(plan.holds)]["status"].eq(WATCH).sum())
         kit.readings([

@@ -23,7 +23,6 @@ import streamlit as st
 
 from src.core.market_time import ist_now
 from src.engine import dashboard_insights as di
-from src.engine.actions import plan_rebalance
 from src.engine.exit_watch import SELL, UNKNOWN, WATCH, Rules, assess, least_room, nearest_rule
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.loaders import benchmark_indices as bi
@@ -868,9 +867,9 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     since_mkt = di.window_return(market, inc, idx_end)
 
     a = assess(rank_df, symbols, rules)
-    plan = plan_rebalance(rank_df, symbols, top_n=int(cfg["top_n"]), buffer_n=rules.buffer_n,
-                          stock_cap=float(cfg["stock_cap"]), sector_cap=float(cfg["sector_cap"]))
     check, fill = next_rebalance(as_of)
+    from src.ui.model_plan import model_plan
+    plan = model_plan(book, record, rank_df, adj_close, benchmark_close, system, check)   # the same plan as Actions (S154)
     n_sess = _sessions_between(as_of, check)
 
     key = f"{price_fingerprint(adj_close)}"
