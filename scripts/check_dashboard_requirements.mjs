@@ -41,7 +41,10 @@ const p = await open(1280);
 let text = await read(p), extra = {};
 for (const r of rows) for (const m of r.marker.matchAll(/\[click ([^\]]+)\]/g)) extra[m[1]] = '';
 for (const label of Object.keys(extra)) {
-  try { await p.getByText(label, { exact: true }).first().click({ timeout: 5000 }); await p.waitForTimeout(5000); extra[label] = await read(p); }
+  try {
+    const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const btn = p.getByRole('button', { name: new RegExp(esc) }).or(p.getByRole('tab', { name: new RegExp(esc) })).or(p.getByText(label, { exact: true }));
+    await btn.first().click({ timeout: 8000 }); await p.waitForTimeout(5000); extra[label] = await read(p); }
   catch { extra[label] = ''; }
 }
 let phone = '';
