@@ -557,8 +557,8 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
     left = []
     if bars:
         thr = f", dashed line: a heavy-buying month, ₹{ev.threshold:,.0f} Cr or more" if ev is not None else ""
-        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}; tap a month for '
-                f'domestic institutions where collected</span></div>',
+        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}; grey: domestic institutions '
+                f'beside foreign, from 6 Nov 2026 (NSE keeps no earlier daily figures)</span></div>',
                 Chart("bars", bars, {"label": "Foreign portfolio investors’ net equity flows by month"}),
                 how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market.",
                     "Above the line is net buying. The dashed line starts the top quarter of months since 2016; after such months "

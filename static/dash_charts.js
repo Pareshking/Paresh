@@ -72,22 +72,30 @@ function linePane(el, o){
 function barPane(el,o){
   const W=Math.max(280,el.clientWidth),H=o.height,padL=6,padR=o.padR??52,padT=14,padB=o.valueLabels&&Math.min(...o.values)<0?36:24;
   el.querySelector('svg')?.remove(); const svg=mk('svg',{viewBox:`0 0 ${W} ${H}`,height:H,'aria-hidden':'true'}); el.prepend(svg);
-  const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values)*fx, hi=Math.max(0,...o.values)*fx;
+  const v2=(o.values2||[]).filter(v=>v!=null);   // a second series beside the first, where it exists (domestic flows)
+  const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values,...v2)*fx, hi=Math.max(0,...o.values,...v2)*fx;
   const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo)), bw=(W-padL-padR)/n, gap=Math.min(6,bw*.28);
   for(const t of niceTicks(lo,hi,4)){ mk('line',{x1:padL,x2:W-padR,y1:Y(t),y2:Y(t),stroke:t===0?css('--ink'):css('--rule-soft'),'stroke-width':1,opacity:t===0?.5:1},svg);
     mk('text',{x:W-padR+8,y:Y(t)+4},svg).textContent=String(o.yfmt(t)).replace('-','−'); }
   for(const l of o.levels||[]){ mk('line',{x1:padL,x2:W-padR,y1:Y(l.v),y2:Y(l.v),stroke:l.color,'stroke-dasharray':'3 4'},svg);
     if(l.label){ const t=mk('text',{x:padL+2,y:Y(l.v)+(l.below?13:-5)},svg); t.textContent=l.label; t.setAttribute('style',`fill:${l.color}`); } }
   const r=Math.min(3,bw/4), bars=[];
-  o.values.forEach((v,i)=>{ const x=padL+i*bw+gap/2, w=Math.max(1,bw-gap), y0=Y(0), y1=Y(v), h=Math.abs(y1-y0);
+  const bar=(x,w,v,fill)=>{ const y0=Y(0), y1=Y(v), h=Math.abs(y1-y0), up=v>=0, top=up?y1:y0, rr=Math.min(r,h/2);
+    const d=up?`M${x},${y0}V${top+rr}Q${x},${top} ${x+rr},${top}H${x+w-rr}Q${x+w},${top} ${x+w},${top+rr}V${y0}Z`
+              :`M${x},${y0}V${y1-rr}Q${x},${y1} ${x+rr},${y1}H${x+w-rr}Q${x+w},${y1} ${x+w},${y1-rr}V${y0}Z`;
+    return mk('path',{d,fill},svg); };
+  const two=v2.length>0;
+  o.values.forEach((v,i)=>{ const x=padL+i*bw+gap/2, w=Math.max(1,(bw-gap)*(two&&o.values2[i]!=null?0.56:1)), y0=Y(0), y1=Y(v), h=Math.abs(y1-y0);
     const up=v>=0, top=up?y1:y0, rr=Math.min(r,h/2);
     const d=up?`M${x},${y0}V${top+rr}Q${x},${top} ${x+rr},${top}H${x+w-rr}Q${x+w},${top} ${x+w},${top+rr}V${y0}Z`
               :`M${x},${y0}V${y1-rr}Q${x},${y1} ${x+rr},${y1}H${x+w-rr}Q${x+w},${y1} ${x+w},${y1-rr}V${y0}Z`;
     const last=i===n-1 && o.markLast;
-    bars.push(mk('path',{d,fill:up?css('--up'):css('--down'),opacity:last||!o.markLast?1:.72},svg)); });
+    bars.push(mk('path',{d,fill:up?css('--up'):css('--down'),opacity:last||!o.markLast?1:.72},svg));
+    const u=o.values2&&o.values2[i]; if(u!=null){ const w2=(bw-gap)*0.4, x2=x+w+(bw-gap)*0.04; bar(x2,w2,u,css('--muted'));
+      if(o.valueLabels){ const t=mk('text',{x:x2+w2/2,y:u>=0?Y(u)-5:Y(u)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css('--muted')}`); } } });
   const step=Math.max(1,Math.ceil(n/Math.min(o.xn||6,Math.max(2,Math.floor((W-padL-padR)/78)))));
   for(let i=0;i<n;i+=step){ const t=mk('text',{x:padL+i*bw+bw/2,y:H-6,'text-anchor':'middle'},svg); t.textContent=o.xlab(i); }
-  if(o.valueLabels){ o.values.forEach((v,i)=>{ const t=mk('text',{x:padL+i*bw+bw/2,y:v>=0?Y(v)-5:Y(v)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(v); t.setAttribute('style',`fill:${v>=0?css('--up'):css('--down')}`); }); }
+  if(o.valueLabels){ o.values.forEach((v,i)=>{ const t=mk('text',{x:two&&o.values2[i]!=null?padL+i*bw+gap/2+(bw-gap)*0.28:padL+i*bw+bw/2,y:v>=0?Y(v)-5:Y(v)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(v); t.setAttribute('style',`fill:${v>=0?css('--up'):css('--down')}`); }); }
   if(o.markLast){ const i=n-1,v=o.values[i]; const t=mk('text',{x:padL+i*bw+bw/2,y:v>=0?Y(v)-5:Y(v)+13,'text-anchor':'end',class:'lbl-end'},svg); t.textContent=o.lastLabel; t.setAttribute('style',`fill:${v>=0?css('--up'):css('--down')}`); }
   return { n, W, X:i=>padL+i*bw+bw/2, show(i){ bars.forEach((b,k)=>b.style.opacity = i==null ? '' : (k===i?1:.3)); },
     index(px){ return Math.max(0,Math.min(n-1,Math.floor((px-padL)/bw))); } };
@@ -184,14 +192,14 @@ R.month = (card, s) => {
 /* Monthly bars from a zero line: momentum's lead, foreign flows. */
 R.bars = (card, s) => {
   const el = $('.chart', card); let pane;
-  const draw = () => { pane = barPane(el, {values: s.values, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
+  const draw = () => { pane = barPane(el, {values: s.values, values2: s.also ? s.also.map(a => a && a[1]) : null, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
     markLast: !!s.lastLabel, lastLabel: s.lastLabel, padR: 38, valueLabels: s.valueLabels ? v => sg(v / (s.axisDiv || 1), s.vdp ?? 0) : null,
     levels: (s.levels || []).map(l => ({v: l, color: css('--up')}))}); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   interact(card, () => [pane], $('.readout', card), k => { const v = s.values[k], c = v >= 0 ? css('--up') : css('--down');
     const lvl = s.levels && s.levels.length ? ' · ' + (v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between) : '';
     const items = [{name: s.unit + lvl, color: c, v: s.money ? inr(v) : sg(v, s.dp ?? 1), vcolor: c}];
-    const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css('--caution'), v: inr(a[1]), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
+    const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css('--muted'), v: inr(a[1]), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
     return {date: s.full[k] + (k === s.values.length - 1 && s.lastNote ? s.lastNote : ''), items}; }, () => s.values.length - 1);
 };
 
