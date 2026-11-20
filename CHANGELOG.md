@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-11-20 — Portfolio, tighter and lined up
+## 2026-11-20 — Portfolio and Dashboard, tighter and lined up
 
 - The ₹100 chart's values now sit in the heading over each pane and follow your finger; the lines use the full width on a phone (they used about half), and the chart is taller on a wide screen.
 - Every table heading sits over its column; the rank trail shows 3M, 1M and now in three columns under their own headings; trade-history numbers line up on the right.
@@ -8,6 +8,8 @@
 - Row labels no longer wrap to three or four lines on a phone; an odd last tile takes the full row instead of leaving an empty grey cell.
 - Trade history on a mid-size screen no longer slides sideways when a filter is tapped (rows looked blank).
 - Month-by-month bars: a value under a falling month no longer overlaps the month name.
+- Trade history's buttons are now "Trades" and "Rebalance lines".
+- Dashboard: tiles sit two across on a phone; the signals table's history column is wider, so its rows are shorter; the foreign-flows chart shows domestic institutions beside foreign investors for the months we have their daily figures (from 6 Nov 2026: −₹37,999 Cr against +₹1,22,265 Cr).
 
 ## 2026-11-20 — Portfolio, rebuilt holdings first
 

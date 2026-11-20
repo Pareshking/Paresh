@@ -685,8 +685,8 @@ def history_spec(trades: pd.DataFrame, tb: pd.DataFrame | None, rebal: list) -> 
             lines.append([f"{start:%b %Y}" if pd.notna(start) else "", "BUY" if "BUY" in a else "SELL" if "SELL" in a else "HOLD",
                           str(r["Symbol"]), num(r.get("Price")), num(r.get("Weight %")), str(r.get("Reason / Signal", ""))])
     return {"trades": rows, "lines": lines, "rebal": [[f"{d:%b}", b, sl, k, f"{d:%-d %b %Y}"] for d, b, sl, k in rebal],
-            "views": [["trades", "Trades, entry to exit", "Trades, entry to exit: all, winners, losers or open"],
-                      ["lines", "Rebalance lines, month by month", "Rebalance lines, month by month: all, buy, sell or hold"]],
+            "views": [["trades", "Trades", "Trades, entry to exit: all, winners, losers or open"],
+                      ["lines", "Rebalance lines", "Rebalance lines, month by month: all, buy, sell or hold"]],
             "filters": {"trades": [["all", "All"], ["win", "Winners"], ["loss", "Losers"], ["open", "Open"]],
                         "lines": [["all", "All"], ["BUY", "Buy"], ["SELL", "Sell"], ["HOLD", "Hold"]]}}
 
@@ -742,7 +742,7 @@ PF_CSS = """
 .pf-log thead th{position:sticky;top:0;background:var(--c-white);z-index:1}
 .dh-tab.pf-sys{width:auto}.pf-sys th,.pf-sys td{padding-right:24px}
 .pf-sec .dh-tab tbody th{white-space:nowrap}.pf-sec .dh-tab thead th.dh-num{white-space:normal;vertical-align:bottom}
-@media (max-width:640px){.pf-head .pf-five .dh-kpi:first-child{grid-column:1/-1}.pf-sec .pf-five .dh-kpi:last-child:nth-child(odd){grid-column:1/-1}.dh .pf-h2{font-size:var(--fs-17)!important}
+@media (max-width:640px){.pf-four{grid-template-columns:1fr 1fr}.pf-head .pf-five .dh-kpi:last-child{grid-column:auto}.pf-head .pf-five .dh-kpi:first-child{grid-column:1/-1}.pf-sec .pf-five .dh-kpi:last-child:nth-child(odd){grid-column:1/-1}.dh .pf-h2{font-size:var(--fs-17)!important}
 .pf-ihead,.pf-irow{grid-template-columns:minmax(0,1fr) 84px 48px 50px;gap:4px 10px}.pf-nm small{display:block;margin:0}
 .pf-ihead>span:nth-child(4),.pf-ihead>span:nth-child(6),.pf-irow>span:nth-child(4),.pf-irow>span:nth-child(6){display:none}}
 """

@@ -189,8 +189,9 @@ R.bars = (card, s) => {
     levels: (s.levels || []).map(l => ({v: l, color: css('--up')}))}); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   interact(card, () => [pane], $('.readout', card), k => { const v = s.values[k], c = v >= 0 ? css('--up') : css('--down');
-    const items = [{name: s.unit, color: c, v: s.money ? inr(v) : sg(v, s.dp ?? 1), vcolor: c}];
-    if (s.levels && s.levels.length) items.push({name: v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between, color: '', v: '·'});
+    const lvl = s.levels && s.levels.length ? ' · ' + (v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between) : '';
+    const items = [{name: s.unit + lvl, color: c, v: s.money ? inr(v) : sg(v, s.dp ?? 1), vcolor: c}];
+    const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css('--caution'), v: inr(a[1]), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
     return {date: s.full[k] + (k === s.values.length - 1 && s.lastNote ? s.lastNote : ''), items}; }, () => s.values.length - 1);
 };
 

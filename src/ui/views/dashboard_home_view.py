@@ -557,12 +557,15 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
     left = []
     if bars:
         thr = f", dashed line: a heavy-buying month, ₹{ev.threshold:,.0f} Cr or more" if ev is not None else ""
-        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}</span></div>',
+        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}; tap a month for '
+                f'domestic institutions where collected</span></div>',
                 Chart("bars", bars, {"label": "Foreign portfolio investors’ net equity flows by month"}),
                 how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market.",
                     "Above the line is net buying. The dashed line starts the top quarter of months since 2016; after such months "
                     "momentum has led the market by more the next month than after the rest.",
-                    ["Month", "FPI net, ₹ crore"], [[m, f"{v:,.0f}"] for m, v in zip(bars["full"][::-1], bars["values"][::-1])])]
+                    ["Month", "FPI net, ₹ crore", "DII net, ₹ crore"],
+                    [[m, f"{v:,.0f}", "—" if not a else f"{a[1]:,.0f}"] for m, v, a in
+                     zip(bars["full"][::-1], bars["values"][::-1], (bars.get("also") or [None] * len(bars["values"]))[::-1])])]
     right = (f'<div class="dh-col1"><div class="dh-sub"><b>What heavy foreign buying has meant</b> · {e(ev.first) if ev else ""} to '
              f'{e(ev.last) if ev else ""}</div>{evid}</div>')
     return [head_html, Cols(left, [right], (2, 1)),
@@ -962,7 +965,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     # v8 chart inputs (S151)
     prev = _last_month(ledger, market, momentum, idx_end)
     lead_bars = _lead_bars(spreads, lead)
-    fpi_bars = _fpi_bars(nsdl, ev, flows)
+    fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_flows"]))
     compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
     breadth = _breadth_spec(n500, hist.get("above_200"), idx_end)
 
@@ -1013,18 +1016,34 @@ def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
             "unit": "pts against the market", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": ", so far", "xn": 6, "height": 200}
 
 
-def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows) -> dict | None:
-    """The last 12 months of foreign buying, ₹ crore, the heavy-buying line where tested."""
+def _dii_months(nse: pd.DataFrame | None) -> dict:
+    """{month: (net ₹ crore, first day, last day)} for domestic institutions in NSE's provisional
+    daily file (data/fii_dii_flows.csv). NSE keeps no history, so the months start on 6 Nov 2026."""
+    if nse is None or nse.empty or "category" not in nse:
+        return {}
+    x = nse[nse["category"].astype(str).str.upper() == "DII"].copy()
+    x["date"] = pd.to_datetime(x["date"])
+    x["net"] = pd.to_numeric(x["net"], errors="coerce")
+    return {p: (float(g["net"].sum()), g["date"].min(), g["date"].max()) for p, g in x.groupby(x["date"].dt.to_period("M"))}
+
+
+def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = None) -> dict | None:
+    """The last 12 months of foreign buying, ₹ crore, the heavy-buying line where tested; domestic
+    institutions in the readout for the months NSE's daily file covers (owner, 20 Nov: "DII is also big now")."""
     if nsdl is None or flows is None or "equity_net" not in nsdl:
         return None
     s = pd.Series(pd.to_numeric(nsdl["equity_net"], errors="coerce").values, index=pd.to_datetime(nsdl["date"])).dropna()
     mo = s.groupby(s.index.to_period("M")).sum().iloc[-12:]
     out = {"values": [round(float(v)) for v in mo.values], "labels": [f"{p:%b}" for p in mo.index],
-           "full": [f"{p:%b %Y}" for p in mo.index], "unit": "₹ crore, net", "money": True, "axisDiv": 1000,
+           "full": [f"{p:%b %Y}" for p in mo.index], "unit": "foreign", "money": True, "axisDiv": 1000,
            "valueLabels": True, "xn": 12, "height": 240, "lastNote": f", to {flows.as_of:%-d %b}",
            "above": "a heavy-buying month", "between": "net buying, below the heavy line", "belowZero": "net selling"}
     if ev is not None:
         out["levels"] = [round(float(ev.threshold))]
+    dii = _dii_months(nse)
+    if dii:
+        out["also"] = [None if p not in dii else
+                       [f"domestic, {dii[p][1]:%-d}–{dii[p][2]:%-d %b}", round(dii[p][0])] for p in mo.index]
     return out
 
 
@@ -1259,7 +1278,7 @@ HOME_CSS = """
 .dh-b{font-weight:700}
 .dh-up{color:var(--c-up)}.dh-down{color:var(--c-down)}.dh-watch{color:var(--c-caution)}.dh-muted{color:var(--c-muted)}
 .dh h3.dh-up{color:var(--c-up)!important}.dh h3.dh-down{color:var(--c-down)!important}.dh h3.dh-watch{color:var(--c-caution)!important}
-.dh-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
+.dh-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-kpi{background:var(--c-white);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
 .dh-k-l{font-size:var(--fs-12);color:var(--c-muted)}
 .dh-k-v{font-size:var(--fs-24);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
@@ -1296,6 +1315,7 @@ HOME_CSS = """
 .dh-dbar span{display:flex}.dh-dbar span:first-child{justify-content:flex-end}.dh-dbar span:last-child{border-left:1px solid var(--c-ink)}
 .dh-dbar i{display:block;height:6px}
 .dh-scroll{overflow-x:auto}
+@media (max-width:640px){.dh-kpis{grid-template-columns:1fr 1fr}.dh-kpis>:last-child:nth-child(odd){grid-column:1/-1}}
 .dh-tab{width:100%;min-width:900px;border-collapse:collapse;font-size:var(--fs-13)}
 .dh-tab th,.dh-tab td{text-align:left;padding:9px 12px 9px 0;border-bottom:1px solid var(--c-rule_soft);vertical-align:top}
 .dh-tab thead th{font-size:var(--fs-12);color:var(--c-muted);font-weight:500;border-bottom:1px solid var(--c-ink)}
@@ -1307,7 +1327,7 @@ HOME_CSS = """
 .dh-tab thead th.dh-num,.dh-hold-h .dh-num{font-family:var(--font-ui);font-weight:500}
 .dh-hl{font-weight:600}
 .dh-trail{display:block}
-.dh-hist{font-size:var(--fs-12);color:var(--c-muted);min-width:130px}
+.dh-hist{font-size:var(--fs-12);color:var(--c-muted);min-width:240px}
 .dh-tab.dh-tab-sig{min-width:1080px}
 .dh-how{display:flex;flex-wrap:wrap;gap:4px 24px;font-size:var(--fs-13)}
 .dh-how details{flex:1 1 280px}.dh-how details[open]:last-child{flex-basis:100%}
