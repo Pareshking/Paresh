@@ -9,7 +9,7 @@
 - Trade history on a mid-size screen no longer slides sideways when a filter is tapped (rows looked blank).
 - Month-by-month bars: a value under a falling month no longer overlaps the month name.
 - Trade history's buttons are now "Trades" and "Rebalance lines".
-- Dashboard: tiles sit two across on a phone; the signals table's history column is wider, so its rows are shorter; the foreign-flows chart shows domestic institutions beside foreign investors for the months we have their daily figures (from 6 Nov 2026: −₹37,999 Cr against +₹1,22,265 Cr).
+- Dashboard: tiles sit two across on a phone; the signals table's history column is wider, so its rows are shorter; the foreign-flows chart stacks domestic institutions on the same bar as foreign investors (a sale runs down from zero) for the months we have their daily figures (from 6 Nov 2026: −₹37,999 Cr against +₹1,22,265 Cr).
 
 ## 2026-11-20 — Portfolio, rebuilt holdings first
 

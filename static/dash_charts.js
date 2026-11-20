@@ -73,29 +73,32 @@ function barPane(el,o){
   const W=Math.max(280,el.clientWidth),H=o.height,padL=6,padR=o.padR??52,padT=14,padB=o.valueLabels&&Math.min(...o.values)<0?36:24;
   el.querySelector('svg')?.remove(); const svg=mk('svg',{viewBox:`0 0 ${W} ${H}`,height:H,'aria-hidden':'true'}); el.prepend(svg);
   const v2=(o.values2||[]).filter(v=>v!=null);   // a second series beside the first, where it exists (domestic flows)
-  const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values,...v2)*fx, hi=Math.max(0,...o.values,...v2)*fx;
+  // Stacked on one column: a second value of the same sign sits beyond the first; of the other sign it runs from zero.
+  const ends=o.values.map((v,i)=>{ const u=o.values2?o.values2[i]:null; if(u==null) return [v]; return (u>=0)===(v>=0)?[v+u]:[v,u]; }).flat();
+  const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values,...ends)*fx, hi=Math.max(0,...o.values,...ends)*fx;
   const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo)), bw=(W-padL-padR)/n, gap=Math.min(6,bw*.28);
   for(const t of niceTicks(lo,hi,4)){ mk('line',{x1:padL,x2:W-padR,y1:Y(t),y2:Y(t),stroke:t===0?css('--ink'):css('--rule-soft'),'stroke-width':1,opacity:t===0?.5:1},svg);
     mk('text',{x:W-padR+8,y:Y(t)+4},svg).textContent=String(o.yfmt(t)).replace('-','−'); }
   for(const l of o.levels||[]){ mk('line',{x1:padL,x2:W-padR,y1:Y(l.v),y2:Y(l.v),stroke:l.color,'stroke-dasharray':'3 4'},svg);
     if(l.label){ const t=mk('text',{x:padL+2,y:Y(l.v)+(l.below?13:-5)},svg); t.textContent=l.label; t.setAttribute('style',`fill:${l.color}`); } }
   const r=Math.min(3,bw/4), bars=[];
-  const bar=(x,w,v,fill)=>{ const y0=Y(0), y1=Y(v), h=Math.abs(y1-y0), up=v>=0, top=up?y1:y0, rr=Math.min(r,h/2);
+  const bar=(x,w,v,fill,base=0)=>{ const y0=Y(base), y1=Y(base+v), h=Math.abs(y1-y0), up=v>=0, top=up?y1:y0, rr=Math.min(r,h/2);
     const d=up?`M${x},${y0}V${top+rr}Q${x},${top} ${x+rr},${top}H${x+w-rr}Q${x+w},${top} ${x+w},${top+rr}V${y0}Z`
               :`M${x},${y0}V${y1-rr}Q${x},${y1} ${x+rr},${y1}H${x+w-rr}Q${x+w},${y1} ${x+w},${y1-rr}V${y0}Z`;
     return mk('path',{d,fill},svg); };
-  const two=v2.length>0;
-  o.values.forEach((v,i)=>{ const x=padL+i*bw+gap/2, w=Math.max(1,(bw-gap)*(two&&o.values2[i]!=null?0.56:1)), y0=Y(0), y1=Y(v), h=Math.abs(y1-y0);
+  o.values.forEach((v,i)=>{ const x=padL+i*bw+gap/2, w=Math.max(1,bw-gap), y0=Y(0), y1=Y(v), h=Math.abs(y1-y0);
     const up=v>=0, top=up?y1:y0, rr=Math.min(r,h/2);
     const d=up?`M${x},${y0}V${top+rr}Q${x},${top} ${x+rr},${top}H${x+w-rr}Q${x+w},${top} ${x+w},${top+rr}V${y0}Z`
               :`M${x},${y0}V${y1-rr}Q${x},${y1} ${x+rr},${y1}H${x+w-rr}Q${x+w},${y1} ${x+w},${y1-rr}V${y0}Z`;
     const last=i===n-1 && o.markLast;
     bars.push(mk('path',{d,fill:up?css('--up'):css('--down'),opacity:last||!o.markLast?1:.72},svg));
-    const u=o.values2&&o.values2[i]; if(u!=null){ const w2=(bw-gap)*0.4, x2=x+w+(bw-gap)*0.04; bar(x2,w2,u,css('--muted'));
-      if(o.valueLabels){ const t=mk('text',{x:x2+w2/2,y:u>=0?Y(u)-5:Y(u)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css('--muted')}`); } } });
+    const u=o.values2&&o.values2[i]; if(u!=null){ const same=(u>=0)===(v>=0), base=same?v:0, end=base+u; bar(x,w,u,css('--muted'),base);
+      if(o.valueLabels){ const t=mk('text',{x:x+w/2,y:end>=0?Y(end)-5:Y(end)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css('--muted')}`); } } });
   const step=Math.max(1,Math.ceil(n/Math.min(o.xn||6,Math.max(2,Math.floor((W-padL-padR)/78)))));
   for(let i=0;i<n;i+=step){ const t=mk('text',{x:padL+i*bw+bw/2,y:H-6,'text-anchor':'middle'},svg); t.textContent=o.xlab(i); }
-  if(o.valueLabels){ o.values.forEach((v,i)=>{ const t=mk('text',{x:two&&o.values2[i]!=null?padL+i*bw+gap/2+(bw-gap)*0.28:padL+i*bw+bw/2,y:v>=0?Y(v)-5:Y(v)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(v); t.setAttribute('style',`fill:${v>=0?css('--up'):css('--down')}`); }); }
+  if(o.valueLabels){ o.values.forEach((v,i)=>{ const u=o.values2?o.values2[i]:null, inside=u!=null&&(u>=0)===(v>=0);
+    const t=mk('text',{x:padL+i*bw+bw/2,y:inside?(v>=0?Y(v)+13:Y(v)-5):(v>=0?Y(v)-5:Y(v)+13),'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(v);
+    t.setAttribute('style',inside?`fill:${css('--bg')};stroke:none`:`fill:${v>=0?css('--up'):css('--down')}`); }); }
   if(o.markLast){ const i=n-1,v=o.values[i]; const t=mk('text',{x:padL+i*bw+bw/2,y:v>=0?Y(v)-5:Y(v)+13,'text-anchor':'end',class:'lbl-end'},svg); t.textContent=o.lastLabel; t.setAttribute('style',`fill:${v>=0?css('--up'):css('--down')}`); }
   return { n, W, X:i=>padL+i*bw+bw/2, show(i){ bars.forEach((b,k)=>b.style.opacity = i==null ? '' : (k===i?1:.3)); },
     index(px){ return Math.max(0,Math.min(n-1,Math.floor((px-padL)/bw))); } };
