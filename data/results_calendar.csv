@@ -1,10 +1,4 @@
 symbol,date,purpose,results,detail,source
-AUGMONT,2026-09-21,Financial Results,1,"To consider and approve the Un-Audited Financial Results (Standalone And Consolidated) For The Quarter Ended 30Th June 2026, As Per Regulati",held
-LUMINO,2026-09-21,Financial Results,1,"To consider and approve the unaudited standalone and consolidated financial results for the quarter ended June 30, 2026",held
-RELIABLE,2026-09-21,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
-SHAREINDIA,2026-09-21,Fund Raising,0,"SHAREINDIA : The Company has informed the Exchange that a Meeting of the Board of Directors scheduled to be held on Friday, September 18, 20",held
-SURYODAY,2026-09-21,Fund Raising,0,Prior intimation of Board Meeting for considering raising of funds by issue of Non-Convertible Debentures on Private Placement basis,held
-SYMBIOTEC,2026-09-21,Financial Results,1,"To consider and approve the financial results for the period ended Jun 30, 2026",held
 CINEVISTA,2026-09-22,Other business matters,0,To consider other business matters,held
 MANBA,2026-09-22,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
 RAMASTEEL,2026-09-22,Fund Raising,0,Board Meeting Intimation for Raising Of Funds By Way Of Issue Of Equity Shares And/Or Other Securities Along With Any Other Business.,held
@@ -2647,9 +2641,9 @@ INDIANB,2026-11-20,Fund Raising,0,To consider additional Capital Raising Plan of
 SUKHJITS,2026-11-20,Buyback,0,"Sukhjit Starch & Chemicals Ltd- has informed NSE that the meeting of the Board of Directors of the Company is scheduled on 20/11/2026, inter",held
 TTKHLTCARE,2026-11-20,Bonus/Other business matters,0,To consider bonus and other business matters,held
 VALECHAENG,2026-11-20,Financial Results,1,"VALECHAENG : 20-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 13, 2026 has been re-scheduled.",held
-EMBDL,2026-11-21,Fund Raising,0,Consideration And Approval Of The Raising Of Funds By Way Of Issuance Of Non-Convertible Debentures By Duly Constituted Committee Of Board O,calendar
-LAXMICOT,2026-11-21,Other business matters,0,To consider other business matters,calendar
-VIVIANA,2026-11-21,Fund Raising,0,To consider Fund Raising,calendar
+EMBDL,2026-11-21,Fund Raising,0,Consideration And Approval Of The Raising Of Funds By Way Of Issuance Of Non-Convertible Debentures By Duly Constituted Committee Of Board O,held
+LAXMICOT,2026-11-21,Other business matters,0,To consider other business matters,held
+VIVIANA,2026-11-21,Fund Raising,0,To consider Fund Raising,held
 BCSSL,2026-11-23,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 DALBHARAT,2026-11-23,Buyback/Other business matters,0,To consider buyback for equity shares and other business matters,calendar
 SFCTECH,2026-11-23,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
@@ -2662,7 +2656,9 @@ ENRIN,2026-11-25,Financial Results/Dividend,1,"To consider and approve the finan
 SATIN,2026-11-25,Fund Raising,0,"Working Committee Meeting is scheduled on 25/11/2026 ,inter alia, to consider and approve for Issuance Of Listed, Secured/Unsecured, Non-Con",calendar
 SIMBHALS,2026-11-25,Financial Results,1,Simbhaoli Sugars Limited has informed the Exchange about IRP Convened Meeting scheduled to be held on 25 November 2026 inter-alia to conside,calendar
 COMSYN,2026-11-26,Other business matters,0,"To consider related to allotment of upto 3,25,000 warrants.",calendar
+PATANJALI,2026-11-26,Dividend,0,"To consider, approve and declare 2nd Interim Dividend for the financial year 2026-27 to the shareholders of the Company.",calendar
 BRNL,2026-11-28,Financial Results,1,"BRNL : 28-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 14, 2026 has been re-scheduled. Furth",calendar
+ORTINGLOBE,2026-11-28,Fund Raising/Other business matters,0,1. The approval of increase in authorised share capital of the company subject to the approval of the members.2. To consider the proposal to,calendar
 SUKHJITS,2026-12-02,Buyback,0,"SUKHJITS : 02-Dec-2026 : The Company has informed the Exchange that a Board meeting to be held on November 20, 2026 has been re-scheduled. F",calendar
 LATTEYS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 RNBDENIMS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
