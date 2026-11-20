@@ -1,5 +1,10 @@
 # Changelog
 
+
+## 2026-11-20 — Actions plans with the record's held weights
+
+- From the 30 Nov rebalance the record keeps each held stock at its drifted weight (up to 15%) and buys new stocks at its buy size; Actions' Kite basket was meant to do the same but planned at equal 5% weights, because the model book reached the page without its fill date. It now has it: on 20 Nov's closes the four buys are 4.77% each, not 5%. The sells and buys themselves were already right.
+- The Dashboard's "What happens on 30 Nov" and Actions now build the plan with one function, so they cannot show different trades or weights.
 ## 2026-11-20 — Portfolio and Dashboard, tighter and lined up
 
 - The ₹100 chart's values now sit in the heading over each pane and follow your finger; the lines use the full width on a phone (they used about half), and the chart is taller on a wide screen.
