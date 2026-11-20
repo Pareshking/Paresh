@@ -117,12 +117,14 @@ def main() -> int:
     if len(nav) < MIN_NAV_LINKS:
         _fail(f"{len(nav)} navigation links, expected at least {MIN_NAV_LINKS}")
 
-    # The first page is the Dashboard since 7 Nov 2026 (owner): check it drew
-    # its book block, then open the Screener by its menu link for the table.
+    # The first page is the Dashboard since 7 Nov 2026 (owner), rebuilt on
+    # 20 Nov (S149): check it drew the book's month and the rebalance plan,
+    # then open the Screener by its menu link for the table.
     html_text = " ".join(str(getattr(e.proto, "body", "")) for e in _elements(at, "html"))
-    print(f"Dashboard drawn: {'Book at risk' in html_text}")
-    if "Book at risk" not in html_text:
-        _fail("the Dashboard (first page) did not draw its Book at risk block")
+    drawn = 'id="s-month"' in html_text and 'id="s-next"' in html_text
+    print(f"Dashboard drawn: {drawn}")
+    if not drawn:
+        _fail("the Dashboard (first page) did not draw its book and rebalance sections")
     screener = [e for e in nav if e.proto.label == "Screener"]
     if not screener:
         _fail("no Screener link in the navigation")
