@@ -8,7 +8,9 @@ Actions recorded in `CHANGELOG.md` (dated below), and the rules in
     node scripts/check_dashboard_requirements.mjs <url> docs/ACTIONS_REQUIREMENTS.md
 
 Each row's **Marker** is text that must appear on the rendered page (case insensitive,
-`|` separates alternatives, ` + ` joins texts that must all appear). A row is changed
+`|` separates alternatives, ` + ` joins texts that must all appear; `[click X]` reads
+the page after tapping X, `[phone]` reads it at 412 px; a row the page cannot show
+today names the test that covers it). A row is changed
 or dropped only with the owner's word. The section order is set when the owner
 approves the design, and then added here as an `Order:` line.
 
@@ -26,18 +28,18 @@ approves the design, and then added here as an `Order:` line.
 |---|---|---|---|---|
 | 1 | Plain title and the condition the plan rests on | Live page | Top | Actions + If today's prices hold |
 | 2 | Model book or my holdings, one switch | Live page | Top | Model book + My holdings |
-| 3 | My holdings: typed list with an optional buy price, or the Kite holdings CSV; kept in this browser only | Live page | Top, My holdings | Upload from Kite |
+| 3 | My holdings: typed list with an optional buy price, or the Kite holdings CSV; kept in this browser only | Live page | Top, My holdings | [click My holdings] Upload from Kite |
 | 4 | Counts: sell, buy, hold, and how many holds are close to a rule | Live page | Figures | Sell + Buy + Hold + close to a rule\|all clear of the rules |
 | 5 | Next rebalance: the check day, sessions away (NSE holidays counted), the fill day; a caveat when NSE's holidays are not yet published | Owner 13 Oct (holidays), live page | Figures | Next rebalance + sessions away\|session away + fills |
-| 6 | Kite basket: capital box starting at the model book's ₹1 crore, buy orders at target weight, CSV | Owner 12 Oct, 7 Nov | Top | Kite basket + Download basket CSV |
+| 6 | Kite basket: capital box starting at the model book's ₹1 crore, buy orders at target weight, CSV | Owner 12 Oct, 7 Nov | Top | Kite basket + [click Kite basket] Download basket CSV |
 | 7 | Sell: each holding, its industry, the rule it broke, held since, return since entry; "sell in full" | Live page | Sell | Sell in full |
 | 8 | Buy: each stock, industry, qualified rank, price, 3M, 6M, distance from the 52W high | Live page | Buy | Qualified + From 52W high |
 | 9 | Next in line after the buys | Live page | Buy | Next in line |
 | 10 | Hold: status, rank buffer (place among the qualified, places to go), cushion to the 50D EMA, cushion to the 52W-high line, the closest rule, return since entry | Live page | Hold | Rank buffer + 50D EMA + from 52W high + Closest to |
 | 11 | Holds ordered by least room on any rule, a full rank buffer counted as a 20% fall, said on the page | Owner Nov (CHANGELOG, PVRINOX order) | Hold | least room on any rule |
-| 12 | A holding that cannot be ranked is said so, not hidden | Live page | Figures | not ranked\|No rule can be checked |
+| 12 | A holding that cannot be ranked is said so, not hidden (today's book has none; the case is covered by `tests/test_actions_requirements.py`) | Live page | Figures | Hold |
 | 13 | Buy candidates: the qualified list, collapsed | Live page | End | Buy candidates |
-| 14 | A phone drops columns only with a note saying which | Design audit 9 Nov | Sell, Buy | On a wider screen |
+| 14 | A phone drops columns only with a note saying which | Design audit 9 Nov | Sell, Buy | [phone] On a wider screen |
 | 15 | Plans say Buy / Sell / Hold (trades that happened say Bought / Sold / Held) | Owner Oct (CHANGELOG) | Everywhere | Buy + Sell + Hold |
 | 16 | Works for each system (750, Nano Cap, Combined) | Owner 7 Oct (CHANGELOG) | Whole page | Actions |
 
@@ -46,7 +48,7 @@ approves the design, and then added here as an `Order:` line.
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
 | 17 | The plan is the Dashboard's plan: same sells, buys, holds, next in line, from one function (`src/ui/model_plan.py`) | S154, found 20 Nov 2026 | Whole page | Sell + Buy |
-| 18 | Between the six-monthly resets, weights are the record's: held names keep their drift up to the hold cap, each buy gets the record's buy size of today's account | Owner 8 Nov (S154 fix 20 Nov: the book's fill date was missing, the plan fell back to equal weight) | Kite basket, Buy | target weight |
+| 18 | Between the six-monthly resets, weights are the record's: held names keep their drift up to the hold cap, each buy gets the record's buy size of today's account | Owner 8 Nov (S154 fix 20 Nov: the book's fill date was missing, the plan fell back to equal weight; the weights are covered by `tests/test_model_plan_one_source.py`) | Kite basket, Buy | [click Kite basket] target weight |
 | 19 | Ranks are the one rank among filter-passers, the same trail as Dashboard and Portfolio | S154 | Hold, Buy | Qualified |
 | 20 | No data sources on the page; the data date only | Owner 20 Nov (Dashboard) | Footer | Data to |
 | 21 | Numbers right-aligned under right-aligned headings; no label wrapping to three lines; nothing past the screen edge (layout audit clean at 412 and 1400 px) | Owner 20 Nov (Portfolio review) | Whole page | Actions |
