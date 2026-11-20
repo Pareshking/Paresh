@@ -508,7 +508,7 @@ def fpi_share_of_value(flows: Flows, market_value_cr: float | None) -> tuple[flo
 def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None) -> tuple[dict, dict]:
     """Each stock's rank 3 months ago, a month ago and now, under today's rule.
 
-    One definition for every page (S151, S152): `rank_history.snapshots`, the rank
+    One definition for every page (S151, S154): `rank_history.snapshots`, the rank
     among the stocks that pass the rule's filters on that date; None is "Out".
     Returns (dates, {symbol: [3m, 1m, now]}).
     """

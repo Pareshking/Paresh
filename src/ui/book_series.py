@@ -1,4 +1,4 @@
-"""The model book's daily value: one series for every page (S152, owner 20 Nov 2026).
+"""The model book's daily value: one series for every page (S154, owner 20 Nov 2026).
 
 `record['equity_curve']` is the backtest replay and ends at the last completed
 month by design (engine/model_record.with_live_month); the month in progress

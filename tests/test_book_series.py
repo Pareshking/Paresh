@@ -1,4 +1,4 @@
-"""One daily series for the book on every page (S152)."""
+"""One daily series for the book on every page (S154)."""
 from __future__ import annotations
 
 import numpy as np

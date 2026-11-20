@@ -19,7 +19,7 @@ Order: current book → industry & size → returns → equity, drawdown & risk 
 | 2 | The live record against Nifty Total Market, named | Owner 20 Nov (S149) | §1, §2 | Nifty Total Market |
 | 3 | Frozen months stay as recorded against the Nifty 500; Total Market beside, labelled | Owner 20 Nov | §2 | as recorded |
 | 4 | Drawdown: three measures, each named (today below the peak, worst daily, worst month-end) | S146, settled 20 Nov | §1 | Below its peak today |
-| 5 | The worst fall named as peak to trough on daily closes, with its dates and recovery, beside the worst single day (owner, 20 Nov: "Check worst fall daily"; −13.5% is 29 Jan → 23 Mar, the worst day −4.2%) | S146, S152 | Equity & drawdown | Largest fall from a peak + 29 Jan → 23 Mar, recovered 22 Apr + Worst day |
+| 5 | The worst fall named as peak to trough on daily closes, with its dates and recovery, beside the worst single day (owner, 20 Nov: "Check worst fall daily"; −13.5% is 29 Jan → 23 Mar, the worst day −4.2%) | S146, S154 | Equity & drawdown | Largest fall from a peak + 29 Jan → 23 Mar, recovered 22 Apr + Worst day |
 | 6 | The worst month-end fall named as such | S146 | §1 | Worst month-end |
 | 7 | ₹100 since 1 Jan: the book, the market and a momentum index, with the drawdown under it | Moved from the Dashboard, owner 19 Nov | §1 | ₹100 on 1 Jan |
 | 8 | Month by month: the book, the market, the lead; losing months read leftward | Owner 20 Nov (line bars) | §2 | Month by month |
@@ -66,4 +66,4 @@ Order: current book → industry & size → returns → equity, drawdown & risk 
 **Not on this page, by decision:** the Dashboard's market sections (signals,
 flows, size leadership). **Proposed to drop, awaiting the owner's word:** the
 13-column "Ranks by month" table (its ranks are the rank trail in Current book,
-under one definition, S152).
+under one definition, S154).

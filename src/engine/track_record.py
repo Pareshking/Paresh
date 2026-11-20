@@ -259,6 +259,9 @@ def empty_ledger(inception: pd.Period = INCEPTION) -> dict[str, Any]:
     }
 
 
+_NOT_YET_LOGGED: set[str] = set()
+
+
 def _current_month() -> pd.Period:
     """Current UTC calendar month used only to classify missing ledgers."""
     # The UTC wall clock, made naive first: to_period on an aware timestamp warns
@@ -281,11 +284,16 @@ def load_ledger(path: Path | str = LEDGER_PATH,
         # (1st - 5th of the next month): Nano Cap and Combined started in Oct 2026
         # and warned every day of October.
         if expected_start is not None and _current_month() <= expected_start:
-            logger.info(
-                "Track-record ledger %s has no frozen month yet; first month is %s.",
-                p,
-                expected_start,
-            )
+            # Once per file per process: every Streamlit rerun reads the
+            # ledgers, and the same line repeated on each click (log, 20 Nov
+            # 2026) said nothing new.
+            if str(p) not in _NOT_YET_LOGGED:
+                _NOT_YET_LOGGED.add(str(p))
+                logger.info(
+                    "Track-record ledger %s has no frozen month yet; first month is %s.",
+                    p,
+                    expected_start,
+                )
         else:
             logger.warning("No track-record ledger at %s; reporting an empty record.", p)
         return empty_ledger(expected_start or INCEPTION)

@@ -322,7 +322,7 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         lwr = (source != "My holdings"
                and _hold_cap_on(cfg.get("hold_cap"), cfg.get("hold_cap_from"), check)
                and pd.Timestamp(check).month not in resets)
-        # The account today, not at the last month-end: the replay alone ends there (S152).
+        # The account today, not at the last month-end: the replay alone ends there (S154).
         buy_w = (fixed_buy_weight(_book_equity(book, _record, rank_df, adj_close, benchmark_close, system),
                                   resets, float(cfg.get("buy_size") or 0.05))
                  if lwr and source != "My holdings" else None)

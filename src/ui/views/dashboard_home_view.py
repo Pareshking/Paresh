@@ -191,7 +191,7 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
     key_of = {d: k for k, d in dates.items() if d is not None}
     out["rank_table"] = (snap.assign(when=snap["date"].map(key_of))
                          .pivot_table(index="symbol", columns="when", values="rank", aggfunc="first"))
-    # The same trail Portfolio shows: one function, one definition (S151, S152).
+    # The same trail Portfolio shows: one function, one definition (S151, S154).
     out["ranks"] = di.rank_trails(px, symbols, snap)[1]
     paths: dict[str, list[str]] = {}
     for k in ("3m", "1m", "now"):
@@ -944,7 +944,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     typical = di.typical_stock(ranked_px, market, idx_end)
     from src.engine import book_risk as br
     from src.ui.book_series import book_series
-    # The book's daily value to today, the series Portfolio draws (S152): the
+    # The book's daily value to today, the series Portfolio draws (S154): the
     # backtest replay alone ends at the last month-end and read −8.1% below the
     # peak on 19 Nov when the book was −3.1%.
     series = book_series(book, record, ledger, rank_df, adj_close, benchmark_close, MODEL_BOOK_CAPITAL)

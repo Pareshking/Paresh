@@ -205,7 +205,7 @@ every page.
 - A view switch that reruns the page (a segmented control) hides the other view
   from the checks and costs a reload; switch views inside one frame instead.
 
-## 6a. One series, one definition (S152, 20 Nov)
+## 6a. One series, one definition (S154, 20 Nov)
 
 - The book's value over time is `src/ui/book_series.py` on every page; never
   `record['equity_curve']` raw, which ends at the last month-end.
