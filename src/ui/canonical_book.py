@@ -60,4 +60,11 @@ def current_book(
         )
 
     book["Symbol"] = book["Symbol"].astype(str)
-    return book.sort_values("Symbol").reset_index(drop=True), result
+    book = book.sort_values("Symbol").reset_index(drop=True)
+    # The fill date and as-of travel with the book, so every page reads them from one
+    # place. Actions' standing weights need the fill date; without it the 30 Nov plan
+    # fell back to equal weight instead of the record's held weights (found 20 Nov 2026).
+    meta = result.get("live_meta") or {}
+    book.attrs["as_of"] = meta.get("as_of")
+    book.attrs["fill_date"] = meta.get("fill_date")
+    return book, result
