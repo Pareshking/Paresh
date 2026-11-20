@@ -55,22 +55,49 @@ def test_breadth_answer_counts_the_stocks_ahead_of_the_index():
     assert a.verdict in ("Broad", "Very broad")
 
 
-def test_leaders_groups_industries_by_six_months_and_one_month():
+def test_leaders_groups_industries_against_the_equal_weighted_market():
+    # S147: an industry is read against the equal-weighted market of the ranked
+    # stocks, not the cap-weighted Nifty 500. A flat third industry keeps the
+    # market below the two that move.
     idx = _days(200)
     n = len(idx)
     up_all = np.linspace(100, 160, n)
-    late_turn = np.r_[np.linspace(100, 60, n - 22), np.linspace(60, 70, 22)]
+    late_turn = np.r_[np.linspace(100, 60, n - 22), np.linspace(60, 62, 22)]
     flat = np.full(n, 100.0)
     cols = {}
     for i in range(5):
         cols[f"L{i}"] = up_all
         cols[f"G{i}"] = late_turn
+        cols[f"F{i}"] = flat
     prices = pd.DataFrame(cols, index=idx)
-    industry = pd.Series({**{f"L{i}": "Leaders" for i in range(5)}, **{f"G{i}": "Turning" for i in range(5)}})
-    out = mq.leaders_answer(prices, industry, pd.Series(flat, index=idx), None)
+    industry = pd.Series({**{f"L{i}": "Leaders" for i in range(5)}, **{f"G{i}": "Turning" for i in range(5)},
+                          **{f"F{i}": "Flat" for i in range(5)}})
+    # A Nifty 500 that soared: the industries' groups must not move with it.
+    soaring = pd.Series(np.linspace(100, 400, n), index=idx)
+    out = mq.leaders_answer(prices, industry, soaring, None)
     g = out.sectors.set_index("Industry")["group"]
     assert g["Leaders"] == "ahead on both" and g["Turning"] == "gaining"
-    assert "1 of 2 industries" in out.sentence and "Leaders" in out.sentence
+    assert "1 of 3 industries" in out.sentence and "Leaders" in out.sentence
+    # The market (every ranked stock, equal weight) trailed that index: size leadership.
+    six, one = out.market_vs_index
+    assert six is not None and six < 0 and one is not None and one < 0
+
+
+def test_leaders_reads_the_industry_less_the_market_by_hand():
+    idx = _days(200)
+    n = len(idx)
+    a = np.linspace(100, 150, n)
+    b = np.linspace(100, 90, n)
+    prices = pd.DataFrame({**{f"A{i}": a for i in range(5)}, **{f"B{i}": b for i in range(5)}}, index=idx)
+    industry = pd.Series({**{f"A{i}": "A" for i in range(5)}, **{f"B{i}": "B" for i in range(5)}})
+    out = mq.leaders_answer(prices, industry, pd.Series(100.0, index=idx), None).sectors.set_index("Industry")
+    # By hand: the market is the daily mean of the two paths, compounded.
+    pa, pb = pd.Series(a, index=idx), pd.Series(b, index=idx)
+    market = (1 + (pa.pct_change() + pb.pct_change()) / 2).fillna(1).cumprod()
+    t0 = idx[idx.searchsorted(idx[-1] - pd.DateOffset(months=6), side="right") - 1]
+    want = ((pa.iloc[-1] / pa.loc[t0]) - (market.iloc[-1] / market.loc[t0])) * 100
+    assert out.loc["A", "rel_6m"] == pytest.approx(want, abs=1e-9)
+    assert out.loc["B", "rel_6m"] < 0 < out.loc["A", "rel_6m"]
 
 
 def test_a_past_verdict_needs_most_of_the_weight():
@@ -113,17 +140,27 @@ def test_changes_are_largest_first_against_each_measures_band():
 def test_industry_months_counts_the_current_run_and_marks_the_month_to_date():
     idx = pd.bdate_range("2025-10-01", "2026-11-06")
     bench = pd.Series(100.0, index=idx)
-    # "Ahead" gains 1% a month from June; flat before. "Behind" loses 1% a month all year.
+    # Against the equal-weighted market (S147). "Riser" gains 2% a month all
+    # year; "Ahead" is flat to June, then gains 1% a month; "Behind" loses 1%
+    # a month. The market gains about 0.3% a month to June and 0.7% after, so
+    # Ahead trails it until June and leads it from July.
     month_no = (idx.year - 2025) * 12 + idx.month
     ahead = pd.Series(np.where(idx >= "2026-06-01", 1.01 ** (month_no - month_no[idx >= "2026-06-01"][0]), 1.0), index=idx)
     behind = pd.Series(0.99 ** (month_no - month_no[0]), index=idx)
-    prices = pd.DataFrame({**{f"A{i}": ahead for i in range(5)}, **{f"B{i}": behind for i in range(5)}})
-    industry = pd.Series({**{f"A{i}": "Ahead" for i in range(5)}, **{f"B{i}": "Behind" for i in range(5)}})
+    riser = pd.Series(1.02 ** (month_no - month_no[0]), index=idx)
+    prices = pd.DataFrame({**{f"A{i}": ahead for i in range(5)}, **{f"B{i}": behind for i in range(5)},
+                           **{f"R{i}": riser for i in range(5)}})
+    industry = pd.Series({**{f"A{i}": "Ahead" for i in range(5)}, **{f"B{i}": "Behind" for i in range(5)},
+                          **{f"R{i}": "Riser" for i in range(5)}})
     out = mq.industry_months(prices, industry, bench)
     assert out.columns[-3] == "Nov MTD" and list(out.columns[-2:]) == ["run", "total"]
-    assert out.loc["Ahead", "run"] == 4          # Jul, Aug, Sep, Oct ahead (June's first close is the base)
+    assert out.loc["Ahead", "run"] == 4          # Jul, Aug, Sep, Oct ahead; June (its base month) behind
     assert out.loc["Behind", "run"] <= -11
-    assert out.index[0] == "Ahead"
+    assert out.loc["Riser", "run"] >= 11
+    assert list(out.index) == ["Riser", "Ahead", "Behind"]
+    # Each month is the industry less the market: the three sum to zero.
+    month = out.columns[-4]
+    assert out[month].sum() == pytest.approx(0.0, abs=1e-9)
 
 
 def test_net_new_highs_uses_a_calendar_year_on_sparse_history():

@@ -4,10 +4,11 @@ most of its stocks agree?
 
 Two readings per sector, a month apart:
 
-- x: the sector's 1-month return less the Nifty 500's over the same closes.
-  The sector return is the equal-weighted mean of its stocks' price returns
-  (adjusted closes), not an NSE sector index: we hold no sector index series,
-  and an equal weight shows the breadth an index can hide.
+- x: the sector's return over the period less the market's over the same
+  closes. Both are daily-rebalanced equal-weighted indices (S147,
+  src/engine/peer_index): the sector's of its own stocks, the market's of
+  every grouped stock. An equal-weighted sector against the cap-weighted
+  Nifty 500 read a large-company rally as every sector lagging.
 - y: the share of its stocks above their N-day EMA, out of the stocks that have
   both a close and an EMA that day (a stock with no print is not "below").
 
@@ -22,6 +23,8 @@ contributions are the largest returns over the latest period.
 from __future__ import annotations
 
 import pandas as pd
+
+from src.engine import peer_index as pi
 
 EMA_SPANS: tuple[int, ...] = (20, 50, 100, 200)
 # A group of one is a stock, not a sector.
@@ -78,11 +81,13 @@ def sector_leadership(
     if dates is None or bench.empty:
         return pd.DataFrame(columns=cols)
     before, then, now = dates
-    b = {d: bench.asof(d) for d in dates}
-    if any(pd.isna(v) for v in b.values()):
+    # `bench` (the Nifty 500) only gates that there is a market to read; the
+    # comparison is against the equal-weighted market of these stocks.
+    levels, market, _ = pi.industry_levels(prices, groups, min_stocks=min_stocks)
+    bench_then = pi.window_return(market, before, then)
+    bench_now = pi.window_return(market, then, now)
+    if bench_then is None or bench_now is None:
         return pd.DataFrame(columns=cols)
-    bench_then = b[then] / b[before] - 1
-    bench_now = b[now] / b[then] - 1
 
     ema = prices.ewm(span=span, min_periods=max(int(span * 0.8), 5)).mean()
     snap = {}
@@ -101,15 +106,18 @@ def sector_leadership(
         a_t, o_t = snap[then][0][members].sum(), snap[then][1][members].sum()
         a_n, o_n = snap[now][0][members].sum(), snap[now][1][members].sum()
         rt, rn = r_then[members].dropna(), r_now[members].dropna()
-        if not o_t or not o_n or rt.empty or rn.empty:
+        lvl = levels.get(str(name))
+        st_then = None if lvl is None else pi.window_return(lvl, before, then)
+        st_now = None if lvl is None else pi.window_return(lvl, then, now)
+        if not o_t or not o_n or rt.empty or rn.empty or st_then is None or st_now is None:
             continue
         rows.append({
             "Sector": str(name), "Stocks": len(members), "Then": then, "Now": now,
-            "x_then": float(rt.mean() - bench_then), "x_now": float(rn.mean() - bench_now),
+            "x_then": float(st_then - bench_then), "x_now": float(st_now - bench_now),
             "y_then": float(a_t / o_t), "y_now": float(a_n / o_n),
             "above_then": int(a_t), "obs_then": int(o_t),
             "above_now": int(a_n), "obs_now": int(o_n),
-            "ret_now": float(rn.mean()), "bench_now": float(bench_now),
+            "ret_now": float(st_now), "bench_now": float(bench_now),
             "Months": int(months),
             # The two largest contributions to the latest period's move.
             "Leaders": [(str(k), float(v)) for k, v in rn.sort_values(ascending=False).head(2).items()],

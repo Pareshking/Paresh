@@ -25,7 +25,7 @@ def test_the_run_example_reads_the_live_rows_back():
     for month in ("Oct", "Sep", "Aug", "Jul"):
         assert month in text
     assert "Jun was +3.1, ahead, so the count stops there and Run reads 4 behind" in text
-    assert "all behind the Nifty 500" in text
+    assert "all behind all ranked stocks" in text   # S147: the market, equal-weighted
     assert "Its 12 months, \u22124.0, is the twelve completed months added up." in text
     assert "Nov" not in text.split("Its 12 months")[0].replace("Nov MTD", ""), "the month so far is not in the run"
     print(text)

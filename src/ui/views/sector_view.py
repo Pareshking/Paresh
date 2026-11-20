@@ -64,7 +64,7 @@ def _ago(months: int) -> str:
 
 
 def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, col: str) -> None:
-    """Sector leadership: return against the Nifty 500 across, breadth up, one
+    """Sector leadership: return against all ranked stocks across, breadth up, one
     or three months ago and today, for the 20/50/100/200-day EMA."""
     if col not in rank_df.columns or adj_close is None or adj_close.empty:
         return
@@ -81,7 +81,7 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
     ])
 
     with kit.card("Sector leadership map", "sec_lead", f"hollow dot {_ago(months)} · filled dot today"):
-        kit.caption(f"Right: beat the Nifty 500 over the {'month' if months == 1 else f'{months} months'}. "
+        kit.caption(f"Right: beat all ranked stocks, equal-weighted, over the {'month' if months == 1 else f'{months} months'}. "
                     "Up: more of its stocks above the EMA. The leader is blue, the laggard rust, the rest grey; tap one to pick it out.")
         with st.container(horizontal=True, gap="small", vertical_alignment="center", key="sec_lead_controls"):
             st.segmented_control("EMA", list(EMA_SPANS), default=200, required=True, key="sec_lead_span",
@@ -152,22 +152,22 @@ def leadership_explainer(r: pd.Series, name: str, span: int) -> str:
     half = "above" if y1 >= 50 else "below"
     n = int(r["Stocks"])
     lifts = "; ".join(
-        f"{html.escape(sym)} {_fmt.pct(rv * 100, fraction=False)}, which adds {_fmt.signed(rv * 100 / n, 2)} points to the sector's {_fmt.pct(ret, fraction=False)}"
+        f"{html.escape(sym)} {_fmt.pct(rv * 100, fraction=False)}, which adds about {_fmt.signed(rv * 100 / n, 2)} points to the sector's {_fmt.pct(ret, fraction=False)}"
         for sym, rv in (r.get("Leaders") or [])[:2])
-    return f"""**Across: did the sector beat the Nifty 500 over the {period}?**  
-Each of the {n} {html.escape(name)} stocks' price change from the {then:%-d %b} close to the {now:%-d %b} close, averaged with equal weight: **{_fmt.pct(ret, fraction=False)}**. The Nifty 500 over the same closes: **{_fmt.pct(bench, fraction=False)}**. The difference, {_fmt.signed(ret, 2)} − ({_fmt.signed(bench, 2)}) = **{_fmt.signed(x1, 2)}%**, places the filled dot {side} the 0 line. The hollow dot is the same sum for the {period} before: {_fmt.pct(x0, fraction=False)}.
+    return f"""**Across: did the sector beat the market over the {period}?**  
+The {n} {html.escape(name)} stocks as an equal-weighted index, each day's return the average of its stocks' that day, from the {then:%-d %b} close to the {now:%-d %b} close: **{_fmt.pct(ret, fraction=False)}**. Every ranked stock, built the same way, over the same closes: **{_fmt.pct(bench, fraction=False)}**. The difference, {_fmt.signed(ret, 2)} − ({_fmt.signed(bench, 2)}) = **{_fmt.signed(x1, 2)}%**, places the filled dot {side} the 0 line. The hollow dot is the same sum for the {period} before: {_fmt.pct(x0, fraction=False)}.
 
 **Up: how many of its stocks are in an uptrend?**  
 A stock counts when its close is above its own {span}-day EMA (exponential average of its closes). Today {int(r['above_now'])} of {int(r['obs_now'])} = **{y1:.0f}%**; {_ago(m)} {int(r['above_then'])} of {int(r['obs_then'])} = {y0:.0f}%. Only stocks with a close and an EMA that day are counted; an EMA needs {int(span * 0.8)} sessions of prices, so a recent listing can be missing.
 
 **Heavy lifting**  
-With equal weight each stock adds its own return ÷ {n} to the sector's. The two largest over the {period}: {lifts or "none"}.
+With equal weight each stock adds roughly its own return ÷ {n} to the sector's (exactly so only if no stock's weight drifted). The two largest over the {period}: {lifts or "none"}.
 
 **The line: hollow dot ({_ago(m)}) to filled dot (today)**  
 It moved {abs(dx):.1f} points {'right' if dx >= 0 else 'left'} and {abs(dy):.0f} points {'up' if dy >= 0 else 'down'}: {_reading(dx, dy)} Today it sits {side} 0 and {half} the 50% line.
 
 **The four directions**  
-Right and up: broad strength building. Right and down: beating the index on a few names. Left and up: lagging, but more stocks recovering. Left and down: weak and weakening. A longer line is a bigger change.
+Right and up: broad strength building. Right and down: beating the market on a few names. Left and up: lagging, but more stocks recovering. Left and down: weak and weakening. A longer line is a bigger change.
 """
 
 

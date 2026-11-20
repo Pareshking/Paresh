@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import inspect
 
+import itertools
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -641,7 +643,7 @@ def test_rrg_benchmark_selector_is_not_inert():
     series. Same defect class as the screener's N50/NN50 collision -- a
     substring test standing in for an identity.
     """
-    from src.ui.views.rrg_view import BENCHMARK_OPTIONS, compute_rrg_data
+    from src.ui.views.rrg_view import BENCHMARK_EW, BENCHMARK_OPTIONS, BENCHMARK_SYMBOLS, compute_rrg_data
 
     rng = np.random.default_rng(4)
     N, T = 300, 400
@@ -657,22 +659,26 @@ def test_rrg_benchmark_selector_is_not_inert():
         "Market Cap (Cr)": np.linspace(500000, 500, N),
     })
 
-    # The selector must change the chart: each index is its own return series.
+    # The selector must change the chart: each index is its own return series,
+    # and the default (S147) is the ranked stocks themselves, equal-weighted,
+    # which the page passes as no index series.
     bench = {
         opt: pd.Series(100 * np.exp(np.cumsum(np.random.default_rng(10 + i).normal(0.0004, 0.01, T))), index=idx)
-        for i, opt in enumerate(BENCHMARK_OPTIONS)
+        for i, opt in enumerate(BENCHMARK_SYMBOLS)
     }
     results = {}
     for opt in BENCHMARK_OPTIONS:
-        out = compute_rrg_data(f"rrg_{opt}", px, rank_df, benchmark_choice=opt, _benchmark=bench[opt])
+        out = compute_rrg_data(f"rrg_{opt}", px, rank_df, benchmark_choice=opt, _benchmark=bench.get(opt))
         assert not out.empty, f"{opt} produced no coordinates"
         results[opt] = out.set_index("Industry")["RS_Ratio"].round(6)
-    a, b = (results[o] for o in BENCHMARK_OPTIONS)
-    assert not a.equals(b), "the benchmarks give identical output"
+    for a, b in itertools.combinations(BENCHMARK_OPTIONS, 2):
+        assert not results[a].equals(results[b]), f"{a} and {b} give identical output"
 
-    # Real indices only: every option is an NSE index and says so.
-    for opt in BENCHMARK_OPTIONS:
-        assert opt.startswith("Nifty"), opt
+    # The default is the equal-weighted market; every other option is a real
+    # NSE index and says so (S147, owner 20 Nov 2026).
+    assert BENCHMARK_OPTIONS[0] == BENCHMARK_EW
+    for opt in BENCHMARK_OPTIONS[1:]:
+        assert opt.startswith("Nifty") and opt in BENCHMARK_SYMBOLS, opt
     # No benchmark available: the chart still draws, from the universe's own return.
     assert not compute_rrg_data("rrg_fallback", px, rank_df).empty
 

@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
+from src.engine import peer_index as pi
+
 UP, MID, DOWN = "up", "mid", "down"
 
 
@@ -356,6 +358,9 @@ class Leaders:
     size: list[tuple[str, float | None, float | None]]          # name, 6M rel, 1M rel (pts)
     sectors: pd.DataFrame                                         # Industry, Stocks, rel_6m, rel_1m, group
     as_of: pd.Timestamp
+    # Size leadership (S147): the equal-weighted ranked market less the
+    # Nifty 500, points, over 6M and 1M. Below zero, large companies led.
+    market_vs_index: tuple[float | None, float | None] = (None, None)
 
 
 def _rel(close: pd.Series, bench: pd.Series, when: pd.Timestamp, months: int) -> float | None:
@@ -380,37 +385,29 @@ def _rel(close: pd.Series, bench: pd.Series, when: pd.Timestamp, months: int) ->
 
 def leaders_answer(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
                    size_closes: dict[str, pd.Series] | None, min_stocks: int = 5) -> Leaders | None:
-    """Industries by the median stock's return less the Nifty 500 over six
-    months and one month: ahead on both, gaining (ahead over the month only),
-    fading (ahead over six months only), behind on both. Size indices the same way."""
+    """Industries by their equal-weighted return less the equal-weighted
+    market's (every ranked stock) over six months and one month: ahead on
+    both, gaining (ahead over the month only), fading (ahead over six months
+    only), behind on both. The cap-weighted size indices are read against the
+    Nifty 500, cap against cap; the market against the Nifty 500 is size
+    leadership. One construction per comparison (S147, src/engine/peer_index)."""
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
         return None
     prices = prices.sort_index()
     when = prices.index[-1]
     b = bench.dropna()
+    levels, market, counts = pi.industry_levels(prices, industry, min_stocks=min_stocks)
     rows = []
-    groups = industry.dropna().astype(str)
-    groups = groups[groups.index.isin(prices.columns)]
-    for name, syms in groups.groupby(groups).groups.items():
-        syms = list(syms)
-        if len(syms) < min_stocks:
-            continue
-        rel = {}
-        for m in (6, 1):
-            t0 = _on_or_before(prices.index, when - pd.DateOffset(months=m))
-            b0, b1 = _on_or_before(b.index, when - pd.DateOffset(months=m)), _on_or_before(b.index, when)
-            if t0 is None or b0 is None or b1 is None:
-                rel[m] = None
-                continue
-            r = (prices.loc[when, syms] / prices.loc[t0, syms] - 1).dropna()
-            rel[m] = None if r.empty else (float(r.median()) - float(b.loc[b1] / b.loc[b0] - 1)) * 100
+    for name, level in levels.items():
+        rel = {m: pi.relative_points(level, market, when - pd.DateOffset(months=m), when) for m in (6, 1)}
         if rel[6] is None or rel[1] is None:
             continue
         group = ("ahead on both" if rel[6] > 0 and rel[1] > 0 else
                  "gaining" if rel[1] > 0 else "fading" if rel[6] > 0 else "behind on both")
-        rows.append({"Industry": name, "Stocks": len(syms), "rel_6m": rel[6], "rel_1m": rel[1], "group": group})
+        rows.append({"Industry": name, "Stocks": counts[name], "rel_6m": rel[6], "rel_1m": rel[1], "group": group})
     sectors = pd.DataFrame(rows, columns=["Industry", "Stocks", "rel_6m", "rel_1m", "group"])
     sectors = sectors.sort_values("rel_6m", ascending=False).reset_index(drop=True)
+    gap = tuple(pi.size_gap(market, b, when - pd.DateOffset(months=m), when) for m in (6, 1))
 
     size = []
     for name, s in (size_closes or {}).items():
@@ -427,7 +424,7 @@ def leaders_answer(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
         bits.append(f"{len(both)} of {len(sectors)} industries are ahead over both six months and one month"
                     + (f", led by {', '.join(lead_names)}" if lead_names else ""))
     sentence = ("; ".join(bits) + ".") if bits else "Not enough history to say."
-    return Leaders(sentence, size, sectors, when)
+    return Leaders(sentence, size, sectors, when, gap)
 
 
 # ── Shared ──────────────────────────────────────────────────────────────────
@@ -509,16 +506,16 @@ def what_would_change(a: Answer) -> dict[str, list[tuple[Measure, float]]]:
 
 def industry_months(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
                     months: int = 12, min_stocks: int = 5) -> pd.DataFrame:
-    """Each industry's median stock return less the Nifty 500's, per calendar
-    month, for the last `months` completed months and the month to date
-    (points). Columns are month labels ("Nov 2025" … "Nov 2026 MTD"), plus
-    "run" (completed months in a row ahead, +n, or behind, -n, ending with the
-    last completed month) and "total" (the completed months' points summed),
-    sorted by total."""
+    """Each industry's equal-weighted return less the equal-weighted market's,
+    per calendar month, for the last `months` completed months and the month
+    to date (points; S147, src/engine/peer_index). Columns are month labels
+    ("Nov 2025" … "Nov 2026 MTD"), plus "run" (completed months in a row
+    ahead, +n, or behind, -n, ending with the last completed month) and
+    "total" (the completed months' points summed), sorted by total. `bench`
+    is kept for the caller's signature; the comparison no longer reads it."""
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
         return pd.DataFrame()
     px = prices.sort_index()
-    b = bench.dropna().sort_index()
     last = px.index[-1]
     month_ends = px.groupby(px.index.to_period("M")).apply(lambda f: f.index[-1])
     cur = last.to_period("M")
@@ -527,22 +524,11 @@ def industry_months(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
         return pd.DataFrame()
     periods = done[1:] + [cur]
     ends = [month_ends[p] for p in done] + [last]
-    groups = industry.dropna().astype(str)
-    groups = groups[groups.index.isin(px.columns)]
+    levels, market, _ = pi.industry_levels(px, industry, min_stocks=min_stocks)
     rows = {}
-    for name, syms in groups.groupby(groups).groups.items():
-        syms = list(syms)
-        if len(syms) < min_stocks:
-            continue
-        vals = []
-        for t0, t1 in zip(ends[:-1], ends[1:]):
-            r = (px.loc[t1, syms] / px.loc[t0, syms] - 1).dropna()
-            b0, b1 = _on_or_before(b.index, t0), _on_or_before(b.index, t1)
-            if r.empty or b0 is None or b1 is None:
-                vals.append(np.nan)
-            else:
-                vals.append((float(r.median()) - float(b.loc[b1] / b.loc[b0] - 1)) * 100)
-        rows[name] = vals
+    for name, level in levels.items():
+        vals = [pi.relative_points(level, market, t0, t1) for t0, t1 in zip(ends[:-1], ends[1:])]
+        rows[name] = [np.nan if v is None else v for v in vals]
     labels = [p.strftime("%b %Y") for p in periods[:-1]] + [periods[-1].strftime("%b") + " MTD"]
     out = pd.DataFrame.from_dict(rows, orient="index", columns=labels)
     complete = out.iloc[:, :-1]

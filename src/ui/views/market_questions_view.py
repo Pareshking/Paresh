@@ -173,9 +173,9 @@ def _leaders_html(ld: mq.Leaders, href: str) -> str:
         f'<section class="mq" aria-label="What is leading?"><h2 id="{DASH_ANCHORS["lead"]}">What is leading?</h2>'
         f'<p class="mq-v">{html.escape(verdict)}</p><p class="mq-s">{html.escape(ld.sentence)}</p>'
         # The size indices' figures are the Size leadership block's, below.
-        + ('<table><thead><tr><th scope="col">Industries, median stock against the Nifty 500</th>'
+        + ('<table><thead><tr><th scope="col">Industries against all ranked stocks</th>'
            f'<th scope="col" style="text-align:left">6M and 1M</th></tr></thead><tbody>{"".join(groups)}</tbody></table>')
-        + f'<p class="mq-ch">Industries are NSE\'s, at least five stocks each; points are the median stock\'s return less the Nifty 500\'s.</p>'
+        + f'<p class="mq-ch">Industries are NSE\'s, at least five stocks each; points are the industry\'s return less all ranked stocks\', each equal-weighted.</p>'
         f'<a class="mq-more" href="{html.escape(href)}" target="_self">Sectors →</a></section>')
 
 
@@ -654,7 +654,7 @@ def run_example(months: pd.DataFrame) -> str:
     parts = [f"{short(c)} {_fmt.signed(row[c], 1)}" for c in inside]
     listed = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
     text = (f"For example, {name}: {listed} points, "
-            f"{'all ' if len(parts) > 1 else ''}{'ahead of' if n > 0 else 'behind'} the Nifty 500")
+            f"{'all ' if len(parts) > 1 else ''}{'ahead of' if n > 0 else 'behind'} all ranked stocks")
     before = completed[: len(completed) - abs(n)]
     if before and pd.notna(row[before[-1]]):
         other = "behind" if n > 0 else "ahead"
@@ -669,7 +669,7 @@ def run_example(months: pd.DataFrame) -> str:
 
 
 def _rel_bars_html(sec: pd.DataFrame) -> str:
-    """Each industry's six months against the Nifty 500 as a bar from zero,
+    """Each industry's six months against all ranked stocks as a bar from zero,
     with a dot for the last month: the quadrants as a picture."""
     if sec is None or sec.empty:
         return ""
@@ -684,9 +684,9 @@ def _rel_bars_html(sec: pd.DataFrame) -> str:
             f'<span class="rb-t"><i class="rb-z"></i><i class="rb-b {tone}" style="left:{left:.1f}%;width:{width:.1f}%"></i>'
             f'<i class="rb-d" style="left:{x(r.rel_1m):.1f}%" title="Last month {_num(r.rel_1m, "pts")}"></i></span>'
             f'<span class="rb-v">{_num(r.rel_6m, "pts")}<small> · {_num(r.rel_1m, "pts")}</small></span></div>')
-    return ('<h3 style="margin-top:6px">Six months against the Nifty 500, and the last month</h3>'
-            '<p class="qp-note" style="margin:0 0 8px">Bars: the median stock\'s six-month return less the '
-            'Nifty 500\'s. Rings: the last month. Right of the line is ahead of the index.</p>'
+    return ('<h3 style="margin-top:6px">Six months against all ranked stocks, and the last month</h3>'
+            '<p class="qp-note" style="margin:0 0 8px">Bars: the industry\'s six-month return less all ranked '
+            'stocks\', each equal-weighted. Rings: the last month. Right of the line is ahead of the market.</p>'
             '<style>.rb-row{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr) 120px;gap:12px;'
             'align-items:center;padding:3px 0;font-size:13.5px}.rb-n{color:var(--c-text_2);white-space:nowrap;'
             'overflow:hidden;text-overflow:ellipsis}.rb-t{position:relative;height:14px}'
@@ -697,7 +697,7 @@ def _rel_bars_html(sec: pd.DataFrame) -> str:
             '.rb-v{text-align:right;font-variant-numeric:tabular-nums;color:var(--c-ink)}'
             '.rb-v small{color:var(--c-muted);font-size:12px}'
             '@media (max-width:700px){.rb-row{grid-template-columns:110px minmax(0,1fr) 84px}}</style>'
-            f'<div role="img" aria-label="Industries by six months against the Nifty 500, with the last month">'
+            f'<div role="img" aria-label="Industries by six months against all ranked stocks, with the last month">'
             f'{"".join(rows)}</div>')
 
 
@@ -707,7 +707,13 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
     best = max((x for x in ld.size if x[1] is not None), key=lambda x: x[1], default=None)
     verdict = "; ".join([x for x in [best[0] if best else "", ", ".join(both)] if x]) or "No clear leader"
 
-    size_rows = "".join(
+    # Size leadership first (S147): the equal-weighted ranked market against
+    # the Nifty 500. Below zero, large companies led; the industries above are
+    # read against that market, so this gap is not in them.
+    gap6, gap1 = getattr(ld, "market_vs_index", (None, None))
+    size_rows = (f'<tr><td>All ranked stocks, equal weight</td><td class="{_t(gap6)}">{_num(gap6, "pts")}</td>'
+                 f'<td class="{_t(gap1)}">{_num(gap1, "pts")}</td></tr>' if gap6 is not None or gap1 is not None else "")
+    size_rows += "".join(
         f'<tr><td>{html.escape(n)}</td><td class="{_t(r6)}">{_num(r6, "pts")}</td>'
         f'<td class="{_t(r1)}">{_num(r1, "pts")}</td></tr>' for n, r6, r1 in ld.size)
     size_html = ('<h3>By size, against the Nifty 500</h3><table><thead><tr><th scope="col">Index</th>'
@@ -724,8 +730,8 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
                      f'{items}</div>')
     bars_html = _rel_bars_html(sec)
     quad_html = ('<h3>Industries by six months and one month</h3>'
-                 '<p class="qp-note" style="margin:0 0 6px">Each figure is the median stock\'s return less '
-                 'the Nifty 500\'s, in points: over six months, then over one month.</p>'
+                 '<p class="qp-note" style="margin:0 0 6px">Each figure is the industry\'s return less all '
+                 'ranked stocks\', each equal-weighted, in points: over six months, then over one month.</p>'
                  f'<div class="qp-quad">{"".join(quads)}</div>' + bars_html)
 
     heat_html = ""
@@ -737,7 +743,7 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
         if longest and len(lead_run):
             n = int(lead_run["run"].iloc[0])
             run_line = (f'<p class="qp-s">{html.escape(lead_run.index[0])} has {"beaten" if n > 0 else "trailed"} '
-                        f'the Nifty 500 in each of the last {abs(n)} completed months, the longest current run.</p>')
+                        f'all ranked stocks in each of the last {abs(n)} completed months, the longest current run.</p>')
         head = "".join(f'<th scope="col">{html.escape(c.replace(" 20", " ’"))}</th>' for c in cols)
         body = []
         for name, r in months.iterrows():
@@ -747,12 +753,12 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
             body.append(f'<tr><td>{html.escape(name)}</td>{cells}<td class="run">{_run_text(int(r["run"]))}</td>'
                         f'<td class="tot {_t(r["total"])}">{_num(r["total"], "pts")}</td></tr>')
         example = run_example(months)
-        heat_html = ('<h3>Month by month against the Nifty 500</h3>' + run_line +
+        heat_html = ('<h3>Month by month against all ranked stocks</h3>' + run_line +
                      '<div class="qp-heat"><table><thead><tr><th scope="col">Industry</th>' + head +
                      '<th scope="col">Run</th><th scope="col">12 months</th></tr></thead>'
                      f'<tbody>{"".join(body)}</tbody></table></div>'
-                     '<p class="qp-note">Each cell is the median stock\'s return in that month less the '
-                     'Nifty 500\'s, in points; deeper shades are 4 points or more. The last column before Run '
+                     '<p class="qp-note">Each cell is the industry\'s return in that month less all ranked '
+                     'stocks\', each equal-weighted, in points; deeper shades are 4 points or more. The last column before Run '
                      'is the month so far. Run counts completed months in a row on the same side.</p>'
                      + (f'<p class="qp-note">{html.escape(example)}</p>' if example else ""))
 
@@ -772,9 +778,11 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
             f'<p class="qp-s">{html.escape(ld.sentence)}</p>{size_html}</div>'
             f'<div>{would}</div></div>{quad_html}{heat_html}'
             '<p class="qp-note">Industries are NSE\'s, at least five stocks each, counted over the stocks '
-            'ranked today; points are the median stock\'s return less the Nifty 500\'s. The Dashboard\'s '
-            '"Which sectors lead?" reads NSE\'s sector indices instead, which weight large companies more, '
-            'so the two can name different leaders.</p></section>')
+            'ranked today. Each industry is an equal-weighted index of its stocks and is compared with the '
+            'same index of every ranked stock, so a rally led by large companies does not read as every '
+            'industry lagging; that gap is the first row of By size. The Dashboard\'s "Which sectors lead?" '
+            'reads NSE\'s sector indices against the Nifty 500, both weighted by company size, so the two '
+            'can name different leaders.</p></section>')
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
