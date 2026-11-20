@@ -336,8 +336,13 @@ def render_header_kpi_bar(
     near_high: int | None = None,
     nav_pages: list | None = None,
     active_page: object | None = None,
+    show_market: bool = True,
 ) -> None:
     """Top bar (brand, page links, data status, and responsive menu) and market line.
+
+    `show_market=False` leaves the market line out: the Dashboard (S149) shows
+    those readings in its own sections, with their trails, so the line there
+    only repeated them.
 
     Desktop exposes every primary page directly; the compact menu is reserved
     for narrower viewports where the full navigation no longer fits.
@@ -456,7 +461,7 @@ def render_header_kpi_bar(
     if pending:
         st.html(f'<div class="stale-notice stale-notice-info" role="status">{html.escape(pending)}</div>')
     # The skip link's target sits in the same element, so it adds no block.
-    st.html(market_html + '<span id="content" class="skip-target" tabindex="-1"></span>')
+    st.html((market_html if show_market else "") + '<span id="content" class="skip-target" tabindex="-1"></span>')
 
 
 def signal_chips_html(signals: list[SignalAlert]) -> str:
