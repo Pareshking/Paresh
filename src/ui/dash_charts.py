@@ -34,7 +34,7 @@ CSS = """
 :root{--bg:var(--c-white);--ink:var(--c-ink);--text2:var(--c-text_2);--muted:var(--c-muted);--faint:var(--c-faint);
 --rule:var(--c-rule_strong);--rule-soft:var(--c-rule_soft);--fill:var(--c-fill);--up:var(--c-up);--up-soft:var(--c-up_tint);
 --down:var(--c-down);--down-soft:var(--c-down_tint);--caution:var(--c-caution);--caution-soft:var(--c-caution_tint);
---tip-bg:var(--c-ink);--tip-fg:var(--c-white);--tip-muted:var(--c-quiet)}
+--teal:var(--c-teal);--tip-bg:var(--c-ink);--tip-fg:var(--c-white);--tip-muted:var(--c-quiet)}
 *{box-sizing:border-box}html,body{margin:0;overflow-x:hidden;overflow-x:clip;background:transparent;color:var(--ink);
 font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13.5px;line-height:1.45}
 .card{display:flex;flex-direction:column;gap:8px;padding:2px 10px 6px}
