@@ -22,6 +22,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from src.engine.metrics import drawdown
+
 YEAR = 250  # sessions in a year, for annualising
 
 
@@ -100,8 +102,7 @@ def falls(value: pd.Series) -> Fall | None:
     v = _clean(value)
     if len(v) < 2:
         return None
-    peak = v.cummax()
-    dd = v / peak - 1
+    dd = drawdown(v)
     low = dd.idxmin()
     pk = v.loc[:low].idxmax()
     back = v[(v.index > low) & (v >= v.loc[pk])]
@@ -115,16 +116,15 @@ def worst_month_end(monthly: list[float]) -> tuple[float, int] | None:
     """The largest fall counting month-end values only: (%, index of that month)."""
     if not monthly:
         return None
-    v = np.cumprod([1 + m / 100 for m in monthly])
-    v = np.concatenate([[1.0], v])
-    dd = v / np.maximum.accumulate(v) - 1
-    i = int(dd.argmin())
-    return float(dd[i] * 100), i - 1
+    v = pd.Series(np.concatenate([[1.0], np.cumprod([1 + m / 100 for m in monthly])]))
+    dd = drawdown(v)
+    i = int(dd.values.argmin())
+    return float(dd.iloc[i] * 100), i - 1
 
 
 def drawdown_series(value: pd.Series) -> pd.Series:
     v = _clean(value)
-    return (v / v.cummax() - 1) * 100
+    return drawdown(v) * 100
 
 
 # ── Risk ────────────────────────────────────────────────────────────────────
@@ -145,8 +145,10 @@ def _risk(b: pd.Series, m: pd.Series, label: str) -> Risk | None:
     if len(x) < 20:
         return None
     x.columns = ["b", "m"]
-    return Risk(label, len(x), float(x.b.std() * np.sqrt(YEAR) * 100), float(x.m.std() * np.sqrt(YEAR) * 100),
-                float(x.cov().loc["b", "m"] / x.m.var()), float((x.b - x.m).std() * np.sqrt(YEAR) * 100))
+    # Population SDs, ddof=0, as everywhere on the site (TODO S119).
+    beta = float(((x.b - x.b.mean()) * (x.m - x.m.mean())).mean() / x.m.var(ddof=0))
+    return Risk(label, len(x), float(x.b.std(ddof=0) * np.sqrt(YEAR) * 100), float(x.m.std(ddof=0) * np.sqrt(YEAR) * 100),
+                beta, float((x.b - x.m).std(ddof=0) * np.sqrt(YEAR) * 100))
 
 
 def risk(book: pd.Series, market: pd.Series) -> list[Risk]:

@@ -218,7 +218,7 @@ def months_of(p: Page) -> dict[str, dict]:
             per = pd.Period(str(r["Period"]), "M")
             if pd.notna(r["Strategy Net"]):
                 book[per] = float(r["Strategy Net"]) * 100
-            if pd.notna(r["Benchmark"]) and r.get("Origin") in ("Recorded", "Backfilled"):
+            if pd.notna(r["Benchmark"]):
                 n5[per] = float(r["Benchmark"]) * 100
     ps = sorted(book)
     mkt = pr.month_returns(p.market, ps, p.as_of)
@@ -254,8 +254,8 @@ def header(p: Page) -> list:
     nav = "".join(f'<a class="dh-pill" href="#{a}">{e(t)}</a>' for a, t in NAV)
     sub = ("The model book: ₹1 crore put in on 1 January 2026, run by the Nifty 750 rules, "
            f"{len(tab)} stocks. Returns are after costs.")
-    return [f'<header class="pf-head"><h1 class="pf-title">Portfolio</h1><p class="pf-sub">{e(sub)}</p>',
-            _kpis(cells, "pf-five"), f'<nav class="dh-pills pf-nav" aria-label="On this page">{nav}</nav></header>']
+    return [f'<div class="pf-head"><h1 class="pf-title">Portfolio</h1><p class="pf-sub">{e(sub)}</p>',
+            _kpis(cells, "pf-five"), f'<div class="dh-pills pf-nav" role="navigation" aria-label="On this page">{nav}</div></div>']
 
 
 NAV = (("pf-book", "Current book"), ("pf-exp", "Industry & size"), ("pf-ret", "Returns"), ("pf-eq", "Equity, drawdown & risk"),
@@ -296,7 +296,14 @@ def holdings_spec(p: Page) -> dict:
             "past_high": sum(1 for x in rows if x["hi"] is not None and x["hi"] <= -hc),
             "past_rank": sum(1 for x in rows if x["rn"] is None or x["rn"] > cut)}
     fill = pd.to_datetime(p.meta.get("fill_date"), errors="coerce")
-    return {"rows": rows, "foot": foot, "high_cut": hc, "rank_cut": cut, "fill": dshort(fill) if pd.notna(fill) else "the fill"}
+    fill_s = dshort(fill) if pd.notna(fill) else "the fill"
+    # Labels from here, not the kit, so the page's words are in the page (and in the CI check without a browser).
+    cols = [["s", "Stock", 0], ["ind", "Industry · size", 0], ["since", "Entry date", 0], ["q", "Qty", 1], ["ep", "Entry price", 1],
+            ["px", "Price", 1], ["val", "Value", 1], ["w", "Weight", 1], ["dayp", "Today", 1], ["pnl", f"P&L from {fill_s}", 1],
+            ["ret", "Since entry", 1], ["ema", "vs 50D EMA", 1], ["hi", "From 52W high", 1], ["rn", "Rank 3M · 1M · now", 0]]
+    text = {"holdings": f"{len(rows)} holdings", "before": "before costs", "below": "below", "past_high": f"past −{hc}%",
+            "past_rank": f"past #{cut}"}
+    return {"rows": rows, "foot": foot, "high_cut": hc, "rank_cut": cut, "fill": fill_s, "cols": cols, "text": text}
 
 
 def section_book(p: Page) -> list:
@@ -452,7 +459,8 @@ def section_equity(p: Page) -> list:
                       ("How they move together, 90 sessions", "—" if p.correlation is None else f"{p.correlation:.2f}", "",
                        "Average correlation of the holdings", "", "Low: the list is well spread" if p.correlation is not None and p.correlation < 0.3 else "")]
     windows = " · ".join(f"{r.label}, {r.sessions} sessions" for r in risks[:1])
-    more = ("" if len(risks) > 1 else " · from the record’s second year also the last 12 months and each year")
+    second = (p.equity.index[0] + pd.Timedelta(days=1) + pd.DateOffset(years=1))
+    more = ("" if len(risks) > 1 else f" · from {second:%B %Y} also the last 12 months and each year")
     rtable = ""
     if len(risks) > 1:
         rtable = ('<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Window</th><th scope="col" class="dh-num">Sessions</th>'
@@ -561,7 +569,7 @@ def month_bars_spec(p: Page) -> dict:
     this = pd.Period(p.as_of, "M")
     return {"values": [round(m["lead"][k], 1) if m["lead"][k] is not None else 0.0 for k in ps],
             "labels": [f"{k:%b}" for k in ps], "full": [f"{k:%B %Y}" + (", so far" if k == this else "") for k in ps],
-            "unit": "pts against the market", "xn": 12, "valueLabels": True, "height": 170}
+            "unit": "pts against the market", "xn": 12, "valueLabels": True, "vdp": 1, "height": 170}
 
 
 def day_section(p: Page) -> list:
@@ -653,41 +661,34 @@ def section_trades_top(p: Page, s: dict) -> list:
             f'<tbody>{bw}</tbody></table></div></div></div>']
 
 
-def _px(v) -> str:
-    return "—" if v is None or pd.isna(v) else f"{float(v):.2f}"
+HISTORY_NOTE = ("A trade is one stock from the day it was bought to the day it was sold. A rebalance line is one stock’s action in one "
+                "month (bought, sold or kept), so a stock held five months has five lines and one trade. Signal is the close the rule read; "
+                "the fill is the next session. Prices are NSE’s closes, so each trade can be checked against NSE’s own files.")
 
 
-def trades_rows_html(t: pd.DataFrame) -> str:
-    def d(v):
-        return "—" if v is None or pd.isna(v) else f"{pd.Timestamp(v):%-d %b %Y}"
-    body = "".join(
-        f'<tr><td><b>{e(r["Symbol"])}</b></td><td>{d(r["Entry signal date"])}</td><td>{d(r["Entry date"])}</td>'
-        f'<td class="dh-num">{r["Entry price"]:.2f}</td><td class="dh-num">{"—" if pd.isna(r["Entry rank"]) else "#" + str(int(r["Entry rank"]))}</td>'
-        f'<td>{d(r["Exit signal date"])}</td><td>{"Held" if r["Status"] == "Open" else d(r["Exit date"])}</td>'
-        f'<td class="dh-num">{_px(r["Exit price"])}</td>'
-        f'<td class="dh-num {tone(r["Return %"])}">{pct(r["Return %"])}</td><td class="dh-num">{int(r["Days held"])}</td>'
-        f'<td>{e(str(r["Exit rule"]).replace(" (< 50 EMA)", ""))}</td></tr>' for _, r in t.iterrows())
-    return ('<div class="dh-scroll pf-tall"><table class="dh-tab pf-log"><thead><tr><th scope="col">Stock</th><th scope="col">Signal</th>'
-            '<th scope="col">Bought</th><th scope="col" class="dh-num">Price</th><th scope="col" class="dh-num">Rank</th><th scope="col">Signal</th>'
-            '<th scope="col">Sold</th><th scope="col" class="dh-num">Price</th><th scope="col" class="dh-num">Return</th>'
-            f'<th scope="col" class="dh-num">Days</th><th scope="col">Why it closed</th></tr></thead><tbody>{body}</tbody></table></div>')
+def history_spec(trades: pd.DataFrame, tb: pd.DataFrame | None, rebal: list) -> dict:
+    def iso(v):
+        return None if v is None or pd.isna(v) else f"{pd.Timestamp(v):%Y-%m-%d}"
 
-
-def lines_html(tb: pd.DataFrame) -> str:
-    def act(a):
-        return ("Buy", "dh-up") if "BUY" in a else ("Sell", "dh-down") if "SELL" in a else ("Hold", "dh-muted")
-    body = ""
-    for _, r in tb.iloc[::-1].iterrows():
-        a, c = act(str(r["Action"]))
-        start = pd.to_datetime(str(r["Period"]).split("→")[0].strip(), errors="coerce")
-        px = pd.to_numeric(r.get("Price"), errors="coerce")
-        w = pd.to_numeric(r.get("Weight %"), errors="coerce")
-        body += (f'<tr><td>{start:%b %Y}</td><td class="{c}">{a}</td><td><b>{e(str(r["Symbol"]))}</b></td>'
-                 f'<td class="dh-num">{"—" if pd.isna(px) else f"{px:.2f}"}</td><td class="dh-num">{"—" if pd.isna(w) else f"{w:.1f}%"}</td>'
-                 f'<td>{e(str(r.get("Reason / Signal", "")))}</td></tr>')
-    return ('<div class="dh-scroll pf-tall"><table class="dh-tab pf-log"><thead><tr><th scope="col">Month</th><th scope="col">Action</th>'
-            '<th scope="col">Stock</th><th scope="col" class="dh-num">Price</th><th scope="col" class="dh-num">Weight</th><th scope="col">Why</th>'
-            f'</tr></thead><tbody>{body}</tbody></table></div>')
+    def num(v):
+        return None if v is None or pd.isna(v) else float(v)
+    rows = [[r["Symbol"], r["Industry"], iso(r["Entry signal date"]), iso(r["Entry date"]), round(float(r["Entry price"]), 2),
+             None if pd.isna(r["Entry rank"]) else int(r["Entry rank"]), num(r["Entry weight %"]), iso(r["Exit signal date"]),
+             iso(r["Exit date"]), None if num(r["Exit price"]) is None else round(num(r["Exit price"]), 2),
+             None if pd.isna(r["Exit rank"]) else int(r["Exit rank"]), round(float(r["Return %"]), 2), int(r["Days held"]),
+             str(r["Exit rule"]).replace(" (< 50 EMA)", ""), r["Status"]] for _, r in trades.iterrows()]
+    lines = []
+    if isinstance(tb, pd.DataFrame) and len(tb):
+        for _, r in tb.iloc[::-1].iterrows():
+            a = str(r["Action"])
+            start = pd.to_datetime(str(r["Period"]).split("→")[0].strip(), errors="coerce")
+            lines.append([f"{start:%b %Y}" if pd.notna(start) else "", "BUY" if "BUY" in a else "SELL" if "SELL" in a else "HOLD",
+                          str(r["Symbol"]), num(r.get("Price")), num(r.get("Weight %")), str(r.get("Reason / Signal", ""))])
+    return {"trades": rows, "lines": lines, "rebal": [[f"{d:%b}", b, sl, k, f"{d:%-d %b %Y}"] for d, b, sl, k in rebal],
+            "views": [["trades", "Trades, entry to exit", "Trades, entry to exit: all, winners, losers or open"],
+                      ["lines", "Rebalance lines, month by month", "Rebalance lines, month by month: all, buy, sell or hold"]],
+            "filters": {"trades": [["all", "All"], ["win", "Winners"], ["loss", "Losers"], ["open", "Open"]],
+                        "lines": [["all", "All"], ["BUY", "Buy"], ["SELL", "Sell"], ["HOLD", "Hold"]]}}
 
 
 def section_systems(p: Page) -> list:
@@ -699,7 +700,7 @@ def section_systems(p: Page) -> list:
         f'<td class="dh-num {tone(m)}">{pct(m)}</td><td class="dh-num {tone(c)}">{pct(c)}</td><td class="dh-num {tone(o)}">{pct(o)}</td><td>{e(started)}</td></tr>'
         for n, sub, m, c, o, started in p.systems[1:])
     from src.engine.track_record import SHADOWS
-    shadows = ", ".join(f"{b.name} (from {b.inception.strftime('%b %Y')})" for b in SHADOWS.values())
+    shadows = ", ".join(f"{b.name.replace(' (shadow)', '')} (from {b.inception.strftime('%b %Y')})" for b in SHADOWS.values())
     return _sec([_head("pf-sys", "Three systems, side by side", "compared over the same window"),
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s pf-sys"><thead><tr><th scope="col">System</th><th scope="col" class="dh-num">This month</th>'
                  f'<th scope="col" class="dh-num">Since {e(common)}, all three</th><th scope="col" class="dh-num">Since its own start</th><th scope="col">Started</th>'
@@ -711,17 +712,17 @@ def section_systems(p: Page) -> list:
 PF_CSS = """
 .pf-head{padding:18px 0 14px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--c-rule)}
 .dh .pf-title{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-36)!important;line-height:1.1!important}
-.pf-sub{margin:0;font-size:var(--fs-14);color:var(--c-text_2)}
+.pf-sub{margin:0;font-size:var(--fs-15);color:var(--c-text_2)}
 .pf-nav{border-top:1px solid var(--c-rule_soft);padding-top:10px}
 .pf-sec{padding-top:26px;gap:16px}
 .pf-shead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;scroll-margin-top:64px}
-.dh .pf-h2{margin:0!important;padding:0!important;font-family:var(--font-ui)!important;font-size:var(--fs-20)!important;font-weight:700!important;letter-spacing:0!important}
+.dh .pf-h2{margin:0!important;padding:0!important;font-family:var(--font-ui)!important;font-size:var(--fs-24)!important;font-weight:700!important;letter-spacing:0!important}
 .pf-sc{font-size:var(--fs-13);color:var(--c-muted)}
-.pf-kpis .dh-k-v{font-size:var(--fs-20)}
 .pf-five{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
 .pf-four{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
 .pf-ihead,.pf-irow{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 64px 64px 84px 76px;gap:6px 14px;align-items:center}
 .pf-ihead{font-size:var(--fs-12);color:var(--c-muted);border-bottom:1px solid var(--c-ink);padding:4px 0}
+.pf-ihead .dh-num{font-family:var(--font-ui)}
 .pf-irow{padding:6px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
 .pf-nm{font-weight:600}.pf-nm small{display:block;font-weight:400;font-size:var(--fs-12);color:var(--c-muted)}
 .pf-ibar{position:relative;height:14px;background:var(--c-rule_soft);border-radius:2px;display:block}
@@ -740,7 +741,7 @@ PF_CSS = """
 .pf-log td:last-child,.pf-log th:last-child{width:auto;white-space:normal}
 .pf-log thead th{position:sticky;top:0;background:var(--c-white);z-index:1}
 .dh-tab.pf-sys{width:auto}.pf-sys th,.pf-sys td{padding-right:36px}
-@media (max-width:640px){.pf-ihead,.pf-irow{grid-template-columns:minmax(0,1fr) 54px 54px 58px}.pf-ibar{grid-column:1/-1;grid-row:2}
+@media (max-width:640px){.pf-head .pf-five .dh-kpi:first-child{grid-column:1/-1}.dh .pf-h2{font-size:var(--fs-17)!important}.pf-ihead,.pf-irow{grid-template-columns:minmax(0,1fr) 54px 54px 58px}.pf-ibar{grid-column:1/-1;grid-row:2}
 .pf-ihead span:nth-child(2),.pf-ihead span:nth-child(6),.pf-irow>span:last-child{display:none}}
 """
 
@@ -823,36 +824,14 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
                              if "Industry" in p.rank_df else None)
     n_lines = 0 if not isinstance(tb, pd.DataFrame) else len(tb)
     with st.expander("Trade history: every trade and every rebalance line, with CSV to check them", expanded=False):
-        view = st.segmented_control("View", ["Trades, entry to exit", "Rebalance lines, month by month"],
-                                    default="Trades, entry to exit", key="pf_hist_view", label_visibility="collapsed")
-        if view == "Rebalance lines, month by month":
-            reb = s.get("rebal") or []
-            if reb:
-                emit([Chart("bars", {"values": [b for _, b, _, _ in reb], "labels": [f"{d:%b}" for d, *_ in reb],
-                                     "full": [f"Rebalance of {d:%-d %b %Y}: {b} bought, {sl} sold, {k} kept" for d, b, sl, k in reb],
-                                     "unit": "bought", "dp": 0, "xn": 12, "valueLabels": True, "height": 160},
-                            {"label": "Holdings bought at each rebalance"})])
-            act = st.pills("Action", ["All", "Buy", "Sell", "Hold"], default="All", key="pf_lines_act", label_visibility="collapsed") or "All"
-            lv = tb if act == "All" else tb[tb["Action"].astype(str).str.contains(act.upper())]
-            emit([lines_html(lv)])
-            st.download_button(f"Export CSV · {n_lines} lines", tb.to_csv(index=False).encode(), f"model_book_rebalances_{p.as_of:%Y%m%d}.csv",
-                               "text/csv", key="pf_dl_lines")
-        else:
-            pick = st.pills("Trades", ["All", "Winners", "Losers", "Open"], default="All", key="pf_trades_pick", label_visibility="collapsed") or "All"
-            tv = trades
-            if pick == "Open":
-                tv = trades[trades["Status"] == "Open"]
-            elif pick == "Winners":
-                tv = trades[(trades["Status"] == "Closed") & (trades["Return %"] > 0)]
-            elif pick == "Losers":
-                tv = trades[(trades["Status"] == "Closed") & (trades["Return %"] <= 0)]
-            emit([trades_rows_html(tv)])
+        emit([Chart("history", history_spec(trades, tb, s.get("rebal") or []), {"label": "Every trade and every rebalance line", "note": HISTORY_NOTE})])
+        a, b = st.columns(2)
+        with a:
             st.download_button(f"Export CSV · {len(trades)} trades, {len(pr.TRADE_FIELDS)} fields", trades.to_csv(index=False).encode(),
                                f"model_book_trades_{p.as_of:%Y%m%d}.csv", "text/csv", key="pf_dl_trades")
-        st.html('<div class="dh"><p class="dh-note">A trade is one stock from the day it was bought to the day it was sold. A rebalance line is '
-                'one stock’s action in one month (bought, sold or kept), so a stock held five months has five lines and one trade. Signal is '
-                'the close the rule read; the fill is the next session. Prices are NSE’s closes, so each trade can be checked against NSE’s '
-                'own files.</p></div>')
+        with b:
+            st.download_button(f"Export CSV · {n_lines} lines", tb.to_csv(index=False).encode() if n_lines else b"",
+                               f"model_book_rebalances_{p.as_of:%Y%m%d}.csv", "text/csv", key="pf_dl_lines")
     emit([END] + section_systems(p) + [f'<p class="dh-foot">Data to {p.as_of:%-d %b %Y}.</p>'])
 
 

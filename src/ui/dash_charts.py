@@ -25,7 +25,7 @@ import streamlit as st
 
 from src.ui.tokens import FONTS, resolve
 
-KINDS = ("month", "bars", "shared", "segbar", "rrg", "breadth", "growth", "holdings")
+KINDS = ("month", "bars", "shared", "segbar", "rrg", "breadth", "growth", "holdings", "history")
 # The kit's address carries its content hash, so a deploy is never drawn by a cached older kit.
 _KIT = Path(__file__).resolve().parents[2] / "static" / "dash_charts.js"
 KIT_SRC = "app/static/dash_charts.js?v=" + hashlib.sha256(_KIT.read_bytes()).hexdigest()[:12]
@@ -88,16 +88,24 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .hold{overflow-x:auto}
 .ht{width:100%;min-width:1120px;border-collapse:collapse;font-size:12.5px}
 .ht th,.ht td{text-align:left;padding:7px 7px 7px 0;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
-.ht thead th{font-size:12px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--ink);vertical-align:bottom;cursor:pointer;user-select:none}
+.ht thead th{font-size:12px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--ink);vertical-align:bottom;cursor:pointer;user-select:none;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.ht thead th.num{max-width:64px;white-space:normal;text-align:right}
 .ht thead th[aria-sort="descending"]::after{content:" ↓"}.ht thead th[aria-sort="ascending"]::after{content:" ↑"}
 .ht thead th:focus-visible{outline:2px solid var(--up);outline-offset:2px}
 .ht tbody th,.ht tfoot th{font-weight:600;white-space:nowrap;position:sticky;left:0;background:var(--bg);z-index:1}
-.ht .num{width:1%;white-space:nowrap}.ht .nw{white-space:nowrap}
+.ht .num{width:1%;white-space:nowrap}.ht td.num{text-align:right}.ht .nw{white-space:nowrap}
 .ht .sym{font-family:'IBM Plex Mono',monospace;font-weight:600}.ht .ss{display:block;font-size:12px;color:var(--muted);font-weight:400}
 .ht .co{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ht .rk{white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}.ht .rk b{color:var(--ink)}.ht .rk b.down{color:var(--down)}
 .ht tr.tot th,.ht tr.tot td{border-top:1px solid var(--ink);font-weight:600}
 @media (max-width:640px){.ht .co{display:none}.ht{min-width:1040px}}
+.hbody{max-height:380px;overflow:auto;border:1px solid var(--rule-soft);border-radius:4px}
+.lt{width:100%;min-width:860px;border-collapse:collapse;font-size:12px}
+.lt th,.lt td{text-align:left;padding:5px 10px;border-bottom:1px solid var(--rule-soft);white-space:nowrap;width:1%}
+.lt td:last-child,.lt th:last-child{width:auto;white-space:normal}
+.lt thead th{position:sticky;top:0;background:var(--bg);color:var(--muted);font-weight:500;z-index:1}
+.lt .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+.hnote{margin:4px 0 0;font-size:12px;color:var(--muted)}
 
 /* On a wide screen the readout stays on one line, so the frame's measured height never
    includes a second line that only the fallback font, before the real one loads, needed. */
@@ -138,6 +146,12 @@ BODY = {
                '<div class="cap"><b>Below the peak</b><span>the book (filled) and Nifty Total Market (dashed)</span></div>'
                '<div class="chart" data-pane="bottom" role="img" aria-label="The book\'s and the market\'s fall from their peaks"></div>'),
     "holdings": '<div class="hold" role="region" aria-label="{label}" tabindex="0"></div>',
+    "history": ('<div class="cap"><span class="chips views" role="group" aria-label="View"></span>'
+                '<span class="chips filters" role="group" aria-label="Show"></span></div>'
+                '<div class="hbars" hidden><div class="readout" aria-live="polite"></div>'
+                '<div class="chart" tabindex="0" role="img" aria-label="Holdings bought at each rebalance"></div></div>'
+                '<div class="hbody" role="region" aria-label="{label}" tabindex="0"></div>'
+                '<p class="hnote">{note}</p>'),
 }
 
 

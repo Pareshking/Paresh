@@ -185,12 +185,30 @@ every page.
   resetting, or a tap shows nothing.
 - Cache keys must include the revision of any data file read inside the
   cached function (`_past_stamp()` for breadth history).
+- `st.html`'s cleaner drops `<header>` (and everything in it); use a `<div>`
+  (Portfolio, 20 Nov: the title, tiles and section links vanished).
+- The CI check (`scripts/headless_smoke.py`) runs without a browser, so text a
+  chart frame's script builds is invisible to it: pass every label a reader
+  sees (column headers, filter names) in the spec from Python. The spec's JSON
+  writes non-ASCII as `\uXXXX`; the check reads it back as text.
+- A view switch that reruns the page (a segmented control) hides the other view
+  from the checks and costs a reload; switch views inside one frame instead.
+
+## 6a. One series, one definition (S152, 20 Nov)
+
+- The book's value over time is `src/ui/book_series.py` on every page; never
+  `record['equity_curve']` raw, which ends at the last month-end.
+- A past rank is `dashboard_insights.rank_trails` (rank among stocks that pass
+  the rule's filters on that date; "Out" when it fails one) on every page.
+- Drawdown terms (`src/engine/portfolio_report.py`): below its peak, largest
+  fall from a peak (with peak, low and recovery dates), worst day, worst
+  month-end. Never "worst fall, daily".
 
 ## 7. Pages to do next, and what applies
 
 | Page | First data checks | Design carried over |
 |---|---|---|
-| Portfolio | Weights and returns agree with the Dashboard; drawdown shows one value (S146) | Verdict, line bars for months, ₹100 chart, clean tables |
+| Portfolio | **Built 20 Nov** (mock-up v3): one daily series with the Dashboard and Actions; drawdown terms defined; rank trail shared | Holdings first, ₹100 chart with both drawdowns, calendar by year, hidden trade history |
 | Actions | Rank trails as on the Dashboard; buys and sells match the plan | Holdings table with rank trail, turnover |
 | Breadth | Point-in-time history done (S150); charts restyled | Two-pane crosshair chart, line bars by size |
 | Sectors / RRG | Equal-weight construction shared (S147) | RRG scatter with held industries; strong/weak table |

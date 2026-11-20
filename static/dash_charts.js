@@ -183,7 +183,7 @@ R.month = (card, s) => {
 R.bars = (card, s) => {
   const el = $('.chart', card); let pane;
   const draw = () => { pane = barPane(el, {values: s.values, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
-    markLast: !!s.lastLabel, lastLabel: s.lastLabel, padR: 38, valueLabels: s.valueLabels ? v => sg(v / (s.axisDiv || 1), 0) : null,
+    markLast: !!s.lastLabel, lastLabel: s.lastLabel, padR: 38, valueLabels: s.valueLabels ? v => sg(v / (s.axisDiv || 1), s.vdp ?? 0) : null,
     levels: (s.levels || []).map(l => ({v: l, color: css('--up')}))}); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   interact(card, () => [pane], $('.readout', card), k => { const v = s.values[k], c = v >= 0 ? css('--up') : css('--down');
@@ -302,13 +302,11 @@ R.holdings = (card, s) => {
   const rk = r => r == null ? 'Out' : '#' + r;
   const MONS = MON;
   const ds = d => { const [y, m, dd] = d.split('-'); return `${+dd} ${MONS[+m - 1]} ’${y.slice(2)}`; };
-  const cols = [['s', 'Stock'], ['ind', 'Industry · size'], ['since', 'Entry date'], ['q', 'Qty', 1], ['ep', 'Entry<br>price', 1], ['px', 'Price', 1],
-    ['val', 'Value', 1], ['w', 'Weight', 1], ['dayp', 'Today', 1], ['pnl', 'P&amp;L from ' + esc(s.fill), 1], ['ret', 'Since entry', 1],
-    ['ema', 'vs 50D<br>EMA', 1], ['hi', 'From 52W<br>high', 1], ['rn', 'Rank<br>3M · 1M · now']];
+  const cols = s.cols;
   let key = 'val', dir = -1;
   const draw = () => {
     const rows = s.rows.slice().sort((a, b) => { const va = a[key] ?? 999, vb = b[key] ?? 999; return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir; });
-    const head = cols.map(([k, t, n]) => `<th scope="col" data-k="${k}" tabindex="0" class="${n ? 'num' : ''}" aria-sort="${k === key ? (dir < 0 ? 'descending' : 'ascending') : 'none'}">${t}</th>`).join('');
+    const head = cols.map(([k, t, n]) => `<th scope="col" data-k="${k}" tabindex="0" class="${n ? 'num' : ''}" aria-sort="${k === key ? (dir < 0 ? 'descending' : 'ascending') : 'none'}">${esc(t)}</th>`).join('');
     const body = rows.map(h => {
       const emaC = h.ema != null && h.ema < 0 ? 'down b' : '', hiC = h.hi != null && h.hi <= -s.high_cut ? 'down b' : h.hi != null && h.hi <= -12 ? 'watch' : 'muted';
       const rC = h.rn == null || h.rn > s.rank_cut ? 'down' : '';
@@ -321,14 +319,46 @@ R.holdings = (card, s) => {
         + `<td class="num ${emaC}">${h.ema == null ? '—' : sg(h.ema) + '%'}</td><td class="num ${hiC}">${h.hi == null ? '—' : sg(h.hi) + '%'}</td>`
         + `<td class="rk">${rk(h.r3)} · ${rk(h.r1)} · <b class="${rC}">${rk(h.rn)}</b></td></tr>`; }).join('');
     const F = s.foot;
-    const foot = `<tr class="tot"><th scope="row">${s.rows.length} holdings</th><td></td><td></td><td></td><td></td><td></td><td class="num">${inrf(F.val)}</td><td class="num">${F.w.toFixed(1)}%</td>`
-      + `<td class="num ${tone(F.day)}">${sg(F.day)}%<span class="ss">${F.dayr > 0 ? '+' : ''}${inrf(F.dayr)}</span></td><td class="num ${tone(F.pnl)}">${F.pnl > 0 ? '+' : ''}${inrf(F.pnl)}<span class="ss">${sg(F.since_fill)}% before costs</span></td>`
-      + `<td></td><td class="num ${F.below_ema ? 'down' : ''}">${F.below_ema} below</td><td class="num ${F.past_high ? 'down' : ''}">${F.past_high} past −${s.high_cut}%</td><td class="${F.past_rank ? 'down' : ''}">${F.past_rank} past #${s.rank_cut}</td></tr>`;
+    const L = s.text;
+    const foot = `<tr class="tot"><th scope="row">${esc(L.holdings)}</th><td></td><td></td><td></td><td></td><td></td><td class="num">${inrf(F.val)}</td><td class="num">${F.w.toFixed(1)}%</td>`
+      + `<td class="num ${tone(F.day)}">${sg(F.day)}%<span class="ss">${F.dayr > 0 ? '+' : ''}${inrf(F.dayr)}</span></td><td class="num ${tone(F.pnl)}">${F.pnl > 0 ? '+' : ''}${inrf(F.pnl)}<span class="ss">${sg(F.since_fill)}% ${esc(L.before)}</span></td>`
+      + `<td></td><td class="num ${F.below_ema ? 'down' : ''}">${F.below_ema} ${esc(L.below)}</td><td class="num ${F.past_high ? 'down' : ''}">${F.past_high} ${esc(L.past_high)}</td><td class="${F.past_rank ? 'down' : ''}">${F.past_rank} ${esc(L.past_rank)}</td></tr>`;
     el.innerHTML = `<table class="ht"><thead><tr>${head}</tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table>`;
     el.querySelectorAll('thead th').forEach(th => { const go = () => { const k = th.dataset.k; dir = k === key ? -dir : (['s', 'ind', 'rn', 'since'].includes(k) ? 1 : -1); key = k; draw(); };
       th.addEventListener('click', go); th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); });
   };
   draw();
+};
+
+/* Every trade and every rebalance line: two views, filters, the rebalance bars (Portfolio, hidden until opened). */
+R.history = (card, s) => {
+  const vsw = $('.views', card), fsw = $('.filters', card), body = $('.hbody', card), bars = $('.hbars', card);
+  let view = 'trades', filt = 'all', pane = null;
+  const ds = v => v ? dlong(v) : '—';
+  const sets = s.filters;
+  vsw.innerHTML = s.views.map(([k, t, a], i) => `<button class="chip" type="button" data-v="${k}" aria-pressed="${i === 0}" aria-label="${esc(a)}">${esc(t)}</button>`).join('');
+  const chipsFor = () => { fsw.innerHTML = sets[view].map(([k, t], i) => `<button class="chip" type="button" data-f="${k}" aria-pressed="${k === filt}">${t}</button>`).join(''); };
+  const draw = () => {
+    bars.hidden = view !== 'lines';
+    if (view === 'lines' && !pane) { const el = $('.chart', bars);
+      const go = () => { pane = barPane(el, {values: s.rebal.map(r => r[1]), height: 150, yfmt: v => v.toFixed(0), xlab: i => s.rebal[i][0], xn: 12, valueLabels: v => String(v), padR: 30}); };
+      REDRAW.push(go); go(); new ResizeObserver(go).observe(el);
+      interact(bars, () => [pane], $('.readout', bars), k => ({date: 'Rebalance of ' + s.rebal[k][4], items: [
+        {name: 'bought', v: String(s.rebal[k][1]), color: css('--up')}, {name: 'sold', v: String(s.rebal[k][2]), color: css('--down')}, {name: 'kept', v: String(s.rebal[k][3]), color: css('--muted')}]}), () => s.rebal.length - 1); }
+    if (view === 'trades') {
+      const r = s.trades.filter(x => filt === 'all' || (filt === 'open' ? x[14] === 'Open' : x[14] !== 'Open' && (filt === 'win' ? x[11] > 0 : x[11] <= 0)));
+      body.innerHTML = `<table class="lt"><thead><tr><th>Stock</th><th>Signal</th><th>Bought</th><th class="num">Price</th><th class="num">Rank</th><th>Signal</th><th>Sold</th><th class="num">Price</th><th class="num">Return</th><th class="num">Days</th><th>Why it closed</th></tr></thead><tbody>`
+        + r.map(x => `<tr><td><b>${esc(x[0])}</b></td><td>${ds(x[2])}</td><td>${ds(x[3])}</td><td class="num">${x[4].toFixed(2)}</td><td class="num">${x[5] == null ? '—' : '#' + x[5]}</td><td>${x[14] === 'Open' ? '—' : ds(x[7])}</td><td>${x[14] === 'Open' ? 'Held' : ds(x[8])}</td><td class="num">${x[9] == null ? '—' : x[9].toFixed(2)}</td><td class="num ${tone(x[11])}">${sg(x[11])}%</td><td class="num">${x[12]}</td><td>${esc(x[13])}</td></tr>`).join('') + '</tbody></table>';
+    } else {
+      const r = s.lines.filter(x => filt === 'all' || x[1] === filt);
+      const A = {BUY: ['Buy', 'up'], SELL: ['Sell', 'down'], HOLD: ['Hold', 'muted']};
+      body.innerHTML = `<table class="lt"><thead><tr><th>Month</th><th>Action</th><th>Stock</th><th class="num">Price</th><th class="num">Weight</th><th>Why</th></tr></thead><tbody>`
+        + r.map(x => `<tr><td>${esc(x[0])}</td><td class="${A[x[1]][1]}">${A[x[1]][0]}</td><td><b>${esc(x[2])}</b></td><td class="num">${x[3] == null ? '—' : x[3].toFixed(2)}</td><td class="num">${x[4] == null ? '—' : x[4].toFixed(1) + '%'}</td><td>${esc(x[5])}</td></tr>`).join('') + '</tbody></table>';
+    }
+  };
+  vsw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; vsw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); view = b.dataset.v; filt = 'all'; chipsFor(); draw(); });
+  fsw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; fsw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); filt = b.dataset.f; draw(); });
+  chipsFor(); draw();
 };
 
 window.DashCharts = {render(kind, spec) { R[kind](document.getElementById('c'), spec); }};

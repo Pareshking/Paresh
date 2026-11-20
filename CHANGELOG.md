@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-11-20 — Portfolio, rebuilt holdings first
+
+- Portfolio now opens like a broker's portfolio: the value, what the book has made since January against Nifty Total Market, the day's P&L against the market, the month so far, how far it is below its peak, and how much is not invested. The holdings come next, with quantity, entry date and price, today's price and value, weight, today's move, P&L since the last fill and return since entry, sortable by any column.
+- Each holding shows how close it is to an exit rule: its distance from the 50-day average, from its 52-week high, and its rank trail; a holding past a line is marked red.
+- Industry exposure is shown against each industry's weight in the 750, including large industries the book does not hold. The book's industry and size at every rebalance are now kept: it began the year 65% in large and mid companies and is now 90% small and micro.
+- Returns by period (today to the financial year, with 1, 3 and 5 years and a yearly rate added as the record ages), and this year against size indices, including a mix held in the book's own size split.
+- The ₹100 chart now draws the market's drawdown beside the book's. Drawdown terms are defined: below its peak (−3.1%), the largest fall from a peak (−13.5%, 29 Jan to 23 Mar, recovered 22 Apr), the worst day (−4.2%) and the worst month-end (−9.9%). Risk: volatility, beta, tracking error with a worked example, up and down capture, and how the holdings move together.
+- Calendar returns have a row group per year, with quarters, the year and the financial year, and Nifty500 Momentum 50 beside the book.
+- Every trade and every rebalance line sit in one section, hidden until opened, each with a CSV of every field so trades can be checked against NSE's files.
+- The three systems are compared over the window all three have traded.
+- The Dashboard's "Below its peak" and the Actions page's buy sizing now use the book's value to today, as Portfolio does; the Dashboard showed −8.1% on 19 Nov from a series that ended on 30 Oct (the book was −3.1%).
+
 ## 2026-11-20 — Dashboard charts you can touch
 
 - Every chart on the Dashboard now shows its values under the pointer, under a finger dragged across it on a phone, or with the arrow keys; at rest it shows the latest figures. Under each chart: what it is, how to read it, and its table.

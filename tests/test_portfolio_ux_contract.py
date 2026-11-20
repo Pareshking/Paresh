@@ -9,44 +9,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PORTFOLIO_VIEW = ROOT / "src/ui/views/portfolio_view.py"
 THEME = ROOT / "src/ui/theme.py"
+PAGE = ROOT / "src/ui/views/portfolio_page.py"
 
 
-def test_portfolio_primary_columns_are_first_and_single_table_is_preserved():
-    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    start = source.index('    display_cols = [')
-    end = source.index('    ]', start) + 6
-    block = source[start:end]
-
-    expected = [
-        '"Symbol"',
-        '"Current Price"',
-        # The return column carries no rupee basis and says so (S111).
-        '"Return since Entry %"',
-        '"P&L since Rebalance (₹)"',
-        '"Weight %"',
-        '"Target Weight %"',
-        '"Weight Drift %"',
-        '"Day P&L (₹)"',
-        '"Sector / Industry"',
-    ]
-    # Company is not a column (the symbol is enough, and on a phone it pushed
-    # price and P&L off screen); Status was always "Held"; 3M/6M/12M returns
-    # belong to the screener.
-    for dropped in ('"Company"', '"Status"', '"3M Return"', '"6M Return"', '"12M Return"'):
-        assert dropped not in block
-    # S111: no column is "shares today x the first entry price", nor a P&L from it.
-    for dropped in ('"Invested Value (₹)"', '"P&L (₹)"', '"P&L %"'):
-        assert dropped not in block
+def test_portfolio_holdings_columns_in_the_agreed_order():
+    # Mock-up v3, owner approved 20 Nov 2026: a broker's columns, the entry date,
+    # and how close each holding is to an exit rule; one table, sortable.
+    page = PAGE.read_text(encoding="utf-8")
+    block = page[page.index("    cols = [[\"s\", \"Stock\""):page.index("    text = {\"holdings\"")]
+    expected = ['"Stock"', '"Industry · size"', '"Entry date"', '"Qty"', '"Entry price"', '"Price"', '"Value"', '"Weight"',
+                '"Today"', 'f"P&L from {fill_s}"', '"Since entry"', '"vs 50D EMA"', '"From 52W high"', '"Rank 3M · 1M · now"']
     positions = [block.index(item) for item in expected]
     assert positions == sorted(positions)
-    assert 'render_saas_table(current_view, max_height=620, variant="portfolio")' in source
+    # S111: no column is "shares today x the first entry price", nor a P&L from it.
+    assert "Invested Value" not in block and '"P&L %"' not in block
+    assert 'Chart("holdings", spec' in PAGE.read_text(encoding="utf-8")
 
 
 def test_portfolio_copy_avoids_internal_accounting_language_in_primary_sections():
-    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    primary = source[source.index('kit.page_head('):source.index('display_cols = [')]
-    assert "current-book unrealised" not in primary
-    assert "frozen Track Record" not in primary
+    source = PAGE.read_text(encoding="utf-8")
+    assert "current-book unrealised" not in source
+    assert "frozen Track Record" not in source
     assert "Historical ending value" not in source
 
 
@@ -57,16 +40,17 @@ def test_portfolio_table_variant_is_scoped_to_portfolio():
     assert ".saas-table-wrapper.portfolio" in source
 
 
-def test_portfolio_is_one_flowing_page_with_no_history_tabs():
-    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    assert "history_tab" not in source and "segmented_control" not in source
-    for card in ("Equity & drawdown", "Calendar returns", "Trades", "Rebalances", "Industry exposure"):
-        assert f'kit.card("{card}"' in source
-    # The correlation heatmap is a collapsed section, like Actions' Buy candidates.
-    assert "with st.expander(_corr_label, expanded=False):" in source
-    # Equity and drawdown share one card, so one tab fewer.
-    assert "drawdown=dd_d.tolist()" in source and "kit.drawdown_chart(" not in source
-    assert 'Latest portfolio activity' not in source
+def test_portfolio_sections_in_order_and_the_trade_history_hidden_in_one_place():
+    # Owner, 20 Nov 2026: holdings first; "Rebalance and trades are two different
+    # sections, why? Can't it be one and hidden?"
+    source = PAGE.read_text(encoding="utf-8")
+    for fn in ("def page_parts(", "def render("):
+        body = source[source.index(fn):]
+        calls = ["header(p)", "section_book(p)", "section_exposure(p)", "section_returns(p)", "section_equity(p)",
+                 '_head("pf-cal", "Calendar returns"', "day_section(p)", "section_trades_top(p, s)", "section_systems(p)"]
+        at = [body.index(c) for c in calls]
+        assert at == sorted(at), fn
+    assert source.count("st.expander(") == 1 and "Trade history: every trade and every rebalance line" in source
 
 
 def test_portfolio_pnl_cells_use_explicit_sign_semantics():
@@ -76,35 +60,30 @@ def test_portfolio_pnl_cells_use_explicit_sign_semantics():
     assert '.saas-table-wrapper.portfolio .portfolio-pos' in source
     assert '.saas-table-wrapper.portfolio .portfolio-neg' in source
 
-def test_portfolio_equity_chart_uses_absolute_values_without_growth_factor_scaling():
-    # Guard the chart contract against accidental 100x factor formatting.
-    page_kit = (ROOT / "src/ui/page_kit.py").read_text(encoding="utf-8")
-    portfolio = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    assert "def equity_chart(" in page_kit
-    assert "v * 100" not in page_kit
-    assert "kit.equity_chart(" in portfolio
-    assert "kit.growth_chart(" not in portfolio
-    assert "lw.series_points(dates, strategy)" in page_kit
+def test_portfolio_growth_chart_is_100_at_the_start_with_both_drawdowns():
+    # Approved mock-up v3: ₹100 on 1 Jan, the market's drawdown drawn with the book's
+    # (owner, 20 Nov: "Showing only portfolio DD, not index benchmark ... overlay ??").
+    source = PAGE.read_text(encoding="utf-8")
+    spec = source[source.index("def growth_spec("):source.index("def section_equity(")]
+    assert '"book": [round(float(v) / base * 100, 2)' in spec and '"ddm":' in spec and '"dd":' in spec
+
 
 def test_portfolio_monthly_view_is_calendar_grid_with_live_mtd():
     source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    assert "build_combined_grid(" in source and "_render_calendar_returns(grid)" in source
-    assert 'Daily account value; frozen months follow the Track Record\'s month returns.' not in source
     assert '"monthly_grid": pd.DataFrame(monthly_grid_rows)' in source
     assert '"mtd_period": live_period_key' in source
     assert 'Origin": "Live MTD"' in source
-    # Owner, 7 Oct 2026: the quarter / FY convention and "live month-to-date" are not shown.
-    assert "Quarters are calendar" not in source and "is live month-to-date." not in source
+    page = PAGE.read_text(encoding="utf-8")
+    cal = page[page.index("def calendar_html("):page.index("def month_bars_spec(")]
+    # One row group per year; the month in progress is named as such.
+    assert 'so far" if y == this.year' in cal and "pr.calendar(m)" in cal and "pr.financial_years(" in cal
 
 
-def test_portfolio_equity_card_reports_the_marked_month_not_cumulative_return():
-    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    equity = source[source.index('kit.card("Equity & drawdown"'):source.index('kit.card("Calendar returns"')]
-    assert 'labels["prefix"].split(" ")[0]' in equity
-    assert 'f"{month} strategy"' in equity and 'f"{month} Nifty 500"' in equity
-    assert 'f"{month} alpha"' in equity
+def test_portfolio_header_reports_the_month_so_far_beside_the_market():
+    source = PAGE.read_text(encoding="utf-8")
+    head = source[source.index("def header("):source.index("NAV = (")]
+    assert 'f"Month so far · {this:%b}"' in head and "behind" in head and "Nifty Total Market" in head
     assert "MTD gap" not in source
-    assert 'st.metric("Since inception", f"{historical_return:+.1%}"' not in equity
 
 
 def test_the_history_builder_carries_the_live_month_for_the_calendar():
@@ -168,14 +147,13 @@ def test_actions_explains_a_fill_due_on_the_first_of_the_month():
 
 def test_record_caption_and_correlation_card_wording():
     # Owner, 7 Oct 2026: no annualised figure for a record under a year, the
-    # drawdown named for what it is, and the correlation reading in the heading.
+    # drawdown named for what it is; the correlation reading kept (20 Nov).
     record = (PORTFOLIO_VIEW.parent / "track_record_view.py").read_text(encoding="utf-8")
     assert "not a CAGR)" not in record and "worst month-to-month fall" not in record
     assert "largest fall from a peak" in record and "if elapsed >= 1:" in record
-    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
+    source = PAGE.read_text(encoding="utf-8")
     assert "1.00 = move exactly together" not in source
-    head = source[source.index("_corr_label = ("):source.index("with st.expander(_corr_label")]
-    assert "How they move together" in head and "correlation_note(_corr_mean)" in head
+    assert '"How they move together, 90 sessions"' in source
 
 
 def test_the_menu_button_is_the_only_navigation_on_every_screen():
@@ -243,13 +221,12 @@ def test_production_qa_does_not_wait_for_the_removed_live_month_note():
     # and failed on ecf5878. A running month is evidenced by the Equity tiles.
     qa = (ROOT / "scripts/portfolio_production_qa.py").read_text(encoding="utf-8")
     assert '"is live month-to-date"' not in qa
-    assert '"calendar_live_month_marked": equity_month or' in qa
+    assert '"calendar_live_month_marked": bool(re.search(' in qa
 
 
 def test_header_tiles_say_which_return_is_the_account():
-    # Owner, 14 Nov 2026: "Since last rebalance" +7.8% beside "MTD return" +7.4%
-    # left unclear which was the portfolio's return. The account tile says
-    # "Portfolio"; the holdings tile names its fill and that it is before costs.
+    # Owner, 14 Nov 2026: the account tile is the portfolio's; owner, 20 Nov: "add
+    # the uninvested line" under it, so holdings + not invested = the value.
     import pandas as pd
 
     from src.ui.views.portfolio_view import _month_labels, tile_labels
@@ -258,19 +235,10 @@ def test_header_tiles_say_which_return_is_the_account():
     tiles = tile_labels("2026-11-02", _month_labels("2026-11", "mtd", nov13)["prefix"])
     assert tiles["holdings"] == "Holdings since 2 Nov"
     assert "before costs" in tiles["holdings_note"]
-    assert tiles["account_month"] == "Portfolio · Nov MTD"
-    # A finished month awaiting its freeze is not called MTD on the tile either.
-    closed = _month_labels("2026-09", "closed", pd.Timestamp("2026-10-01"))["prefix"]
-    assert tile_labels(None, closed) == {
-        "holdings": "Holdings since rebalance",
-        "holdings_note": "Today's stocks only, before costs",
-        "account_month": "Portfolio · Sep (closed)",
-    }
-    source = PORTFOLIO_VIEW.read_text(encoding="utf-8")
-    start = source.index("    kit.readings([")
-    block = source[start:source.index('"Portfolio snapshot")', start)]
-    assert 'tiles["holdings"]' in block and 'tiles["account_month"]' in block
-    assert '"Since last rebalance"' not in block and '"MTD return"' not in block
+    source = PAGE.read_text(encoding="utf-8")
+    head = source[source.index("def header("):source.index("NAV = (")]
+    assert '"Portfolio value"' in head and 'not invested"' in head and '"Since inception, after costs"' in head
+    assert '"Since last rebalance"' not in head and '"MTD return"' not in head
 
 
 def test_production_qa_waits_for_the_month_tiles_not_only_the_headings(monkeypatch):
@@ -289,10 +257,10 @@ def test_production_qa_waits_for_the_month_tiles_not_only_the_headings(monkeypat
     spec = importlib.util.spec_from_file_location("pqa", ROOT / "scripts/portfolio_production_qa.py")
     pqa = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pqa)
-    reads = iter(["Equity & drawdown  Calendar returns",
-                  # Run 44116558226: "alpha" drawn, the other two tiles not yet.
-                  "Equity & drawdown  Nov alpha -1.0%  Calendar returns",
-                  "Equity & drawdown  Nov strategy +7.4%  Nov Nifty 500 +8.4%  Nov alpha -1.0%  Calendar returns"])
+    reads = iter(["Month so far · Nov  Calendar returns",
+                  # Run 44116558226: the page still streaming, the footer not yet drawn.
+                  "Month so far · Nov  Equity, drawdown & risk  Calendar returns",
+                  "Month so far · Nov  Equity, drawdown & risk  Calendar returns  Three systems  Data to 19 Nov 2026."])
 
     class Loc:
         def __init__(self, sel):
@@ -311,4 +279,4 @@ def test_production_qa_waits_for_the_month_tiles_not_only_the_headings(monkeypat
     monkeypatch.setattr(pqa, "app_frame", lambda page: Frame())
     monkeypatch.setattr(pqa.time, "sleep", lambda s: None)
     text = pqa.settle_view(object(), "calendar returns", also=pqa.MONTH_TILE)
-    assert "Nov strategy" in text and "Nov Nifty 500" in text
+    assert "Data to 19 Nov" in text and "Month so far · Nov" in text
