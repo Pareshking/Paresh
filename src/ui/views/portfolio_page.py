@@ -124,7 +124,8 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     market, mom = idx[bi.TOTAL_MARKET], idx["nifty500_mom50"]
     table = series.table
     syms = table["Symbol"].astype(str).tolist()
-    _, trails = di.rank_trails(series.prices, syms)
+    from src.engine.exit_watch import qualified_ranks
+    _, trails = di.rank_trails(series.prices, syms, now=qualified_ranks(rank_df))   # now: the plan's rank (S154)
     industry = rank_df.set_index("Symbol")["Industry"] if "Industry" in rank_df else pd.Series(dtype=str)
     n500 = _n500()
     leaders = mq.leaders_answer(series.prices, industry, n500, None)

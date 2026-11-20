@@ -188,10 +188,14 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
         out[f"above_{span}"] = pit_breadth.splice(mq._share_above_ema(px[ranked], span), past, f"above_{span}")
     snap = snapshots(px, [d for d in dates.values() if d is not None])
     key_of = {d: k for k, d in dates.items() if d is not None}
+    from src.engine.exit_watch import qualified_ranks
+    qnow = qualified_ranks(_rank_df)       # today: the ranking the plan trades on (S154)
     out["rank_table"] = (snap.assign(when=snap["date"].map(key_of))
                          .pivot_table(index="symbol", columns="when", values="rank", aggfunc="first"))
-    # The same trail Portfolio shows: one function, one definition (S151, S154).
-    out["ranks"] = di.rank_trails(px, symbols, snap)[1]
+    if "now" in out["rank_table"]:
+        out["rank_table"]["now"] = out["rank_table"].index.map(lambda s: qnow.get(s))
+    # The same trail Portfolio and Actions show: one function, one definition (S151, S154).
+    out["ranks"] = di.rank_trails(px, symbols, snap, now=qnow)[1]
     paths: dict[str, list[str]] = {}
     for k in ("3m", "1m", "now"):
         r = compute_rrg_data(f"home_{key}_{k}", px, _rank_df, end_date_str=None if k == "now" else str(dates[k].date()))

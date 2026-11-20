@@ -505,12 +505,15 @@ def fpi_share_of_value(flows: Flows, market_value_cr: float | None) -> tuple[flo
     return flows.mtd / market_value_cr * 100, flows.before / market_value_cr * 100
 
 
-def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None) -> tuple[dict, dict]:
+def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None,
+                now: pd.Series | None = None) -> tuple[dict, dict]:
     """Each stock's rank 3 months ago, a month ago and now, under today's rule.
 
     One definition for every page (S151, S154): `rank_history.snapshots`, the rank
     among the stocks that pass the rule's filters on that date; None is "Out".
-    Returns (dates, {symbol: [3m, 1m, now]}).
+    `now`, when given, is today's place among the qualified from the ranking the plan
+    trades on (`exit_watch.qualified_ranks`), so the trail's last point is the plan's
+    rank on every page (Actions redesign, 20 Nov 2026). Returns (dates, {symbol: [3m, 1m, now]}).
     """
     from src.engine.rank_history import snapshots
     px = prices.sort_index()
@@ -523,5 +526,8 @@ def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None)
         for d in dates.values():
             hit = snap[(snap["date"] == d) & (snap["symbol"] == sym)]["rank"]
             row.append(None if hit.empty or pd.isna(hit.iloc[0]) else int(hit.iloc[0]))
+        if now is not None:
+            q = now.get(sym)
+            row[-1] = None if q is None or pd.isna(q) else int(q)
         ranks[sym] = row
     return dates, ranks

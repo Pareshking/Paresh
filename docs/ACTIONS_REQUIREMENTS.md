@@ -61,7 +61,7 @@ approves the design, and then added here as an `Order:` line.
 | 23 | Each buy shows its rupee amount and share count on the page, at the record's weight, not only in the CSV | Owner 20 Nov | Buy | Amount + Shares |
 | 24 | Each hold shows its rank trail, 3M · 1M · now, from the same function as Dashboard and Portfolio (`dashboard_insights.rank_trails`) | Owner 20 Nov; PAGE_DESIGN §7 | Hold | 3M · 1M · now |
 | 25 | What could still change before the close: holds within a few places or percent of a line, and the next-in-line names that would come in | Owner 20 Nov | After the counts | could still change |
-| 26 | The data date shown; the data-quality counts (gaps, short histories) kept, with no sources named (read from "add all five"; to confirm) | Owner 20 Nov | Footer | Data to |
+| 26 | The data date shown; the data-quality counts (gaps, short histories) kept, with no sources named (owner confirmed 20 Nov: "keep counts and date") | Owner 20 Nov | Footer | Data to |
 
 Why a buy is under 5% (owner asked, 20 Nov): the 8 Nov rule gives a buy the smaller
 of (a) 5% of the account at the last reset fill in rupees (₹7.19 lakh, 4.92% of
