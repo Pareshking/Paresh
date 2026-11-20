@@ -115,9 +115,11 @@ jobs:
       - name: Fetch Screener's store to check against
         id: fetch_screener
         if: github.event_name != 'pull_request' && steps.restore_screener.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest"
-          if curl -sSfL -o screener_prices.parquet.part "$base/screener_prices.parquet"; then
+          # Authenticated (gh), so it keeps working if the repository goes private.
+          if gh release download data-latest --repo "$GITHUB_REPOSITORY" --clobber --pattern screener_prices.parquet --output screener_prices.parquet.part; then
             # A half-written or error-page download must not be cached under the
             # key that says "these are the published bytes": every later fire of
             # the day would then read it. Only a parquet that opens and has rows

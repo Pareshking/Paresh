@@ -35,10 +35,12 @@ jobs:
         run: python -m pytest -q tests/test_nse_adjusted.py tests/test_nse_bundle.py
       - name: Fetch Screener and the published rankings
         if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/data-latest"
+          # Authenticated (gh), so it keeps working if the repository goes private.
           for f in screener_prices.parquet rankings.parquet rankings_nano.parquet rankings_combined.parquet; do
-            curl -sSfL -o "$f" "$base/$f" || echo "::warning::could not fetch $f"
+            gh release download data-latest --repo "$GITHUB_REPOSITORY" --clobber --pattern "$f" --output "$f" || echo "::warning::could not fetch $f"
           done
       - name: Compare
         if: github.event_name != 'pull_request'
