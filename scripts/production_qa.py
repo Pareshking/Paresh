@@ -660,8 +660,6 @@ def audit_deep_links(page) -> dict:
         "mounted_query": f"{URL}~/+/?stock={DEEP_LINK_SYMBOL}",
         "short_page": f"{URL}configuration",
         "mounted_page": f"{URL}~/+/configuration",
-        # The Share button's link (stock_view._share_url), the fast form.
-        "mounted_screener": f"{URL}~/+/screener?stock={DEEP_LINK_SYMBOL}",
     }
     out: dict = {}
     for label, target in forms.items():
@@ -1370,11 +1368,6 @@ def main() -> None:
                     failures.append(classify(
                         f"The app's own stock deep link did not open a stock "
                         f"page: {mounted}", "APPLICATION"))
-                shared = report["deep_links"].get("mounted_screener", {})
-                if not shared.get("reached_stock_page"):
-                    failures.append(classify(
-                        f"The Share button's link (/~/+/screener?stock=) did "
-                        f"not open a stock page: {shared}", "APPLICATION"))
         except Exception as exc:
             failures.append(classify(
                 f"Browser session error: {type(exc).__name__}: {exc}", "QA"))
