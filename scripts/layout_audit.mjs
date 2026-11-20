@@ -90,6 +90,7 @@ for (const w of widths) {
   const gaps = await p.evaluate(() => {
     const main = document.querySelector('[data-testid="stMainBlockContainer"]') || document.querySelector('[data-testid="stMain"]');
     const els = [...main.querySelectorAll('.dh *, iframe, [data-testid="stExpander"], [data-testid="stButtonGroup"], [data-testid="stDownloadButton"]')]
+      .filter(e => !e.checkVisibility || e.checkVisibility())   // a closed expander's contents are measured but not seen
       .map(e => e.getBoundingClientRect()).filter(r => r.height > 0 && r.width > 0).map(r => [r.top + scrollY, r.bottom + scrollY]);
     const top = Math.min(...els.map(e => e[0])), bot = Math.max(...els.map(e => e[1]));
     const cover = new Uint8Array(Math.ceil(bot) + 2); for (const [t, b] of els) for (let y = Math.floor(t); y < Math.ceil(b); y++) cover[y] = 1;
