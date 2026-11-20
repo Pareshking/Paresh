@@ -77,9 +77,15 @@ for (const w of widths) {
     const where = f === p.mainFrame() ? 'page' : (((await f.content().catch(() => '')).match(/render\("(\w+)"/) || [])[1] || null);
     if (!where) continue;
     for (const [k, d] of await f.evaluate(probe).catch(() => [])) found.push([where, k, d]);
-    if (f !== p.mainFrame()) { const fe = await f.frameElement(); const fb = await fe.boundingBox();
-      const inner = await f.evaluate(() => Math.round(document.getElementById('c').getBoundingClientRect().bottom));
-      if (fb && fb.height - inner > 24) found.push([where, 'frame taller than its drawing', `${Math.round(fb.height - inner)} px spare`]); }
+    if (f !== p.mainFrame()) { const fe = await f.frameElement();
+      // A frame is sized by Streamlit from its first drawing, which can be in the fallback font; it shrinks
+      // once the web font has loaded. Measure again after a pause before calling it too tall.
+      const spare = async () => { const fb = await fe.boundingBox();
+        const inner = await f.evaluate(() => Math.round(document.getElementById('c').getBoundingClientRect().bottom));
+        return fb ? Math.round(fb.height - inner) : 0; };
+      let sp = await spare();
+      if (sp > 24) { await f.evaluate(() => document.fonts.ready); await p.waitForTimeout(5000); sp = await spare(); }
+      if (sp > 24) found.push([where, 'frame taller than its drawing', `${sp} px spare`]); }
   }
   const gaps = await p.evaluate(() => {
     const main = document.querySelector('[data-testid="stMainBlockContainer"]') || document.querySelector('[data-testid="stMain"]');
