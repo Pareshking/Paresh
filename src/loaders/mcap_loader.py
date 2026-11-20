@@ -94,26 +94,26 @@ def _fetch_mcap_from_pr_zip(target_date: datetime | date) -> dict[str, float]:
         )
         df = df[df[col_mcap].notna() & (df[col_mcap] > 0)]
 
-        # NSE equity series that can appear in the bhavcopy for a main-board
-        # constituent.  EQ is normal rolling settlement.  BE is trade-for-trade
-        # (enhanced surveillance, circuit stocks).  BL/BT are block-deal windows.
-        # Non-equity instruments (SM=SME, ST/GB=bonds, RL/W1-W3=rights/warrants)
-        # share the same bhavcopy file and must be excluded.
+        # Series that can carry a main-board index constituent.  EQ is normal
+        # rolling settlement, BE trade-for-trade, BL/BT block-deal windows.
+        # RR (REITs) and IV (InvITs) are index constituents too: the Total
+        # Market list carries BAGMANE, BIRET and EMBASSY as RR, and NSE's mcap
+        # file prints their cap (PR201126.zip: BAGMANE Rs 359,686,000,000 =
+        # 3,400,000,000 units x 105.80). Leaving RR out cost all three their
+        # live cap (log, 20 Nov 2026: 2,598 = EQ 2,407 + BE 191). SME (SM/ST/
+        # SZ), BZ and the rest stay out.
         #
-        # When a symbol appears under more than one equity series on the same day
-        # (uncommon but possible), prefer EQ because its closing price is the
-        # regular market close; block-deal prices can differ.
-        _EQUITY_SERIES = {"EQ", "BE", "BL", "BT"}
+        # Several series for one symbol on one day: the best rank wins, EQ
+        # first (the regular close), then BE/RR/IV, then block-deal windows --
+        # the same order nse_adjusted.SERIES_RANK uses for prices.
+        _SERIES_RANK = {"EQ": 0, "BE": 1, "RR": 1, "IV": 1, "BL": 2, "BT": 2}
         col_series = next((c for c in df.columns if c.lower().strip() == "series"), None)
         if col_series is not None:
             df = df.copy()
-            s = df[col_series].astype(str).str.strip().str.upper()
-            df = df[s.isin(_EQUITY_SERIES)]
-            # Sort so EQ rows come first; drop_duplicates(keep="first") then
-            # picks EQ over BE/BL/BT when multiple rows exist for one symbol.
-            df = df.assign(_eq=(s == "EQ").astype(int)).sort_values(
-                "_eq", ascending=False
-            ).drop(columns="_eq")
+            rank = df[col_series].astype(str).str.strip().str.upper().map(_SERIES_RANK)
+            df = (df.assign(_r=rank)[rank.notna()]
+                    .sort_values("_r", kind="stable")
+                    .drop(columns="_r"))
         df = df.drop_duplicates(subset=[col_sym], keep="first")
 
         result: dict[str, float] = df.set_index(col_sym)[col_mcap].to_dict()
@@ -276,6 +276,12 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                         if filled:
                             master.update(filled)
                             metrics.note("mcap_repo_gap_fill", len(filled))
+                            # Which caps are yesterday's file, not today's NSE:
+                            # the sync keeps their old AsOf/Source rather than
+                            # re-dating them (BIRET sat at one value, re-stamped
+                            # "today, pr_live_zip", from 16 to 19 Nov 2026).
+                            metrics.note("mcap_repo_gap_fill_list",
+                                         ",".join(sorted(filled)))
                             logger.info(
                                 "Repo snapshot gap-fill: %d symbol(s) not in today's bhavcopy: %s",
                                 len(filled), ", ".join(sorted(filled)),

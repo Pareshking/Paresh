@@ -24,6 +24,33 @@ from src.loaders.tv_loader import reconcile_and_update_tv_classification
 PRECOMPUTE_FAILURES = "precompute_failures.txt"
 
 
+def carry_forward_gap_fill(snapshot, previous_path: str, gap_fill_list: str):
+    """Keep the old AsOf/Source on caps that came from the previous snapshot.
+
+    The loader tops up symbols missing from today's bhavcopy with the committed
+    file. Writing those rows back stamped with today's date and "pr_live_zip"
+    re-dated a stale number every night: BIRET stayed at Rs 21,867 Cr, labelled
+    fresh, from 16 to 19 Nov 2026, while NSE's own file had Rs 26,560 Cr.
+    """
+    import pandas as pd
+
+    filled = {s for s in gap_fill_list.split(",") if s}
+    if not filled or not os.path.exists(previous_path):
+        return snapshot
+    try:
+        prev = pd.read_csv(previous_path, dtype=str)
+    except Exception:
+        return snapshot
+    prev["Symbol"] = prev["Symbol"].astype(str).str.strip().str.upper()
+    prev = prev.drop_duplicates("Symbol").set_index("Symbol")
+    out = snapshot.copy()
+    rows = out["Symbol"].isin(filled)
+    for col in ("AsOf", "Source"):
+        old = out.loc[rows, "Symbol"].map(prev[col]) if col in prev.columns else None
+        out.loc[rows, col] = old.fillna("") if old is not None else ""
+    return out
+
+
 def _cache_dir() -> str:
     from src.core.config import PRICES_FILE
     return os.path.dirname(PRICES_FILE)
@@ -298,6 +325,8 @@ def run_daily_sync() -> None:
         # figure; Yahoo derives it from price x its own share count, and a
         # reader comparing the two deserves to know which they are looking at.
         snapshot["Source"] = _mcap_path
+        snapshot = carry_forward_gap_fill(
+            snapshot, REPO_MCAP_FILE, str(_facts.get("mcap_repo_gap_fill_list") or ""))
         snapshot.to_csv(REPO_MCAP_FILE, index=False)
         print(
             f"Repository market cap snapshot written: {len(snapshot)} symbols "
