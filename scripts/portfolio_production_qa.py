@@ -52,12 +52,11 @@ def wait_ready(page):
     return app_frame(page), last or {"state": "timeout"}
 
 
-# The Equity card's month tiles ("<Mon> strategy / Nifty 500 / alpha"): the
-# last text on the page to render. All three: run 44116558226 (17 Nov 2026)
-# matched "alpha" on a page still at 2,303 of ~3,166 characters, its
-# "strategy" and "Nifty 500" tiles not yet drawn.
-MONTH_TILE = re.compile(
-    r"(?=.*\b[a-z]{3} strategy\b)(?=.*\b[a-z]{3} nifty 500\b)(?=.*\b[a-z]{3} alpha\b)", re.S)
+# The page is drawn top to bottom; its last text is the footer's data date, and
+# the month tile ("Month so far · Nov") is in the header. Both: a read that
+# came before the page finished streaming (run 44116558226, 17 Nov 2026) must
+# not pass. Portfolio v3 (owner approved 20 Nov 2026).
+MONTH_TILE = re.compile(r"(?=.*month so far · [a-z]{3})(?=.*data to \d)", re.S)
 
 
 def settle_view(page, marker: str, timeout_s: int = 90, also=None) -> str:
@@ -172,7 +171,7 @@ def main() -> int:
                         # #304 replaced the Performance/Activity toggles with
                         # always-visible cards.
                         "history_cards_present": all(c in body_folded for c in (
-                            "equity & drawdown", "calendar returns", "trades", "rebalances")),
+                            "equity, drawdown & risk", "calendar returns", "trades", "trade history")),
                         "pre_inception_2022_visible": "2022" in body,
                         "runtime_exception": bool(exception),
                         "horizontal_overflow_px": overflow,
@@ -190,7 +189,7 @@ def main() -> int:
                         )
                     if not checks["history_cards_present"]:
                         report["failures"].append(
-                            f"{name}: Equity / Calendar / Trades / Rebalances cards missing"
+                            f"{name}: Equity / Calendar / Trades / Trade history sections missing"
                         )
                     if checks["pre_inception_2022_visible"]:
                         report["failures"].append(
@@ -211,14 +210,13 @@ def main() -> int:
                     # card notes a month that is closed but not yet frozen, or has no
                     # return yet. A month simply running has no note (owner, 7 Oct
                     # 2026, #397): the Equity card's month tiles are its evidence.
-                    equity_month = bool(re.search(r"\b[a-z]{3} strategy\b", body_folded))
+                    equity_month = bool(re.search(r"month so far · [a-z]{3}", body_folded))
                     mtd_checks = {
                         "equity_mtd_strategy_present": equity_month,
-                        "equity_mtd_benchmark_present": bool(re.search(r"\b[a-z]{3} nifty 500\b", body_folded)),
-                        "equity_mtd_gap_present": bool(re.search(r"\b[a-z]{3} alpha\b", body_folded)),
+                        "equity_mtd_benchmark_present": "nifty total market" in body_folded,
+                        "equity_mtd_gap_present": bool(re.search(r"pts (ahead of|behind) the market", body_folded)),
                         "calendar_grid_present": "calendar returns" in body_folded,
-                        "calendar_live_month_marked": equity_month or any(w in body_folded for w in (
-                            "is closed, not yet frozen", "mtd has no return yet")),
+                        "calendar_live_month_marked": bool(re.search(r"\b[a-z]{3} so far\b", body_folded)),
                         "cumulative_42pct_visible": "+42.4%" in body,
                     }
                     checks.update(mtd_checks)

@@ -121,6 +121,24 @@ jobs:
       - name: Headless Streamlit runtime smoke test
         run: python scripts/headless_smoke.py
 
+      # The smoke test reads text and cannot see layout. This drives the running app in
+      # Chromium at phone and desktop widths and fails on headings off their columns,
+      # labels wrapping to three lines, charts leaving width empty, frames taller than
+      # what they draw and empty bands (owner, 20 Nov 2026: "Why doesn't your audit
+      # capture such issues?").
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Layout audit (Dashboard, Portfolio)
+        run: |
+          mkdir -p artifacts
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+          streamlit run app.py --server.port 8501 --server.headless true > artifacts/layout_app.log 2>&1 &
+          for i in $(seq 1 90); do curl -sf http://localhost:8501/_stcore/health >/dev/null && break; sleep 2; done
+          node scripts/layout_audit.mjs http://localhost:8501/ 412,1400
+          node scripts/layout_audit.mjs http://localhost:8501/portfolio 412,1400 --open
+
       - name: Upload V1 validation artifacts
         uses: actions/upload-artifact@v7
         with:

@@ -45,7 +45,12 @@ def test_backtest_mtd_is_the_accounts_not_a_weighted_holdings_average():
 
 
 def test_portfolio_drawdown_names_its_basis():
-    assert '"Max drawdown, daily"' in (VIEWS / "portfolio_view.py").read_text(encoding="utf-8")
+    # Owner, 20 Nov 2026: "Is our daily % fall wording correct?" Each measure named
+    # for what it is (src/engine/portfolio_report.py's definitions).
+    src = (VIEWS / "portfolio_page.py").read_text(encoding="utf-8")
+    for name in ('"Largest fall from a peak"', '"Worst day"', '"Worst month-end"', '"Below its peak today"'):
+        assert name in src
+    assert "Max drawdown, daily" not in src
 
 
 def test_configuration_does_not_report_an_unused_price_file_as_missing():

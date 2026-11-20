@@ -46,8 +46,9 @@ function linePane(el, o){
   for(const l of o.levels||[]){ mk('line',{x1:padL,x2:W-padR,y1:Y(l.v),y2:Y(l.v),stroke:l.color,'stroke-width':1,'stroke-dasharray':'3 4'},svg);
     const t=mk('text',{x:padL+4,y:Y(l.v)-5},svg); t.textContent=l.label; t.setAttribute('style',`fill:${l.color}`); }
   if(!o.noX){ const yrs=new Set(); const step=Math.max(1,Math.ceil(n/Math.max(2,Math.floor((W-padL-padR)/84))));
-    let prevY=null;
-    for(let i=0;i<n;i+=step){ const [y,m]=o.dates[i].split('-'); const lab=o.xfmt?o.xfmt(o.dates[i]):(y!==prevY?`${MON[+m-1]} ’${y.slice(2)}`:MON[+m-1]); prevY=y;
+    let prevY=null, prevL=null;
+    for(let i=0;i<n;i+=step){ const [y,m]=o.dates[i].split('-'); const lab=o.xfmt?o.xfmt(o.dates[i]):(y!==prevY?`${MON[+m-1]} ’${y.slice(2)}`:MON[+m-1]);
+      if(lab===prevL||(!o.xfmt&&y===prevY&&MON[+m-1]===prevL)) continue; prevY=y; prevL=o.xfmt?lab:MON[+m-1];  // a month is named once
       const t=mk('text',{x:X(i),y:H-6,'text-anchor':i===0?'start':'middle'},svg); t.textContent=lab; } }
   for(const s of o.series){
     const pts=s.values.map((v,i)=>v==null?null:[X(i),Y(v)]).filter(Boolean);
@@ -69,24 +70,35 @@ function linePane(el, o){
 
 /* A bar pane: labels, values; colours by sign; rounded ends; others dim under the pointer. */
 function barPane(el,o){
-  const W=Math.max(280,el.clientWidth),H=o.height,padL=6,padR=o.padR??52,padT=14,padB=24;
+  const W=Math.max(280,el.clientWidth),H=o.height,padL=6,padR=o.padR??52,padT=14,padB=o.valueLabels&&Math.min(...o.values)<0?36:24;
   el.querySelector('svg')?.remove(); const svg=mk('svg',{viewBox:`0 0 ${W} ${H}`,height:H,'aria-hidden':'true'}); el.prepend(svg);
-  const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values)*fx, hi=Math.max(0,...o.values)*fx;
+  const v2=(o.values2||[]).filter(v=>v!=null);   // a second series beside the first, where it exists (domestic flows)
+  // Stacked on one column: a second value of the same sign sits beyond the first; of the other sign it runs from zero.
+  const ends=o.values.map((v,i)=>{ const u=o.values2?o.values2[i]:null; if(u==null) return [v]; return (u>=0)===(v>=0)?[v+u]:[v,u]; }).flat();
+  const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values,...ends)*fx, hi=Math.max(0,...o.values,...ends)*fx;
   const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo)), bw=(W-padL-padR)/n, gap=Math.min(6,bw*.28);
   for(const t of niceTicks(lo,hi,4)){ mk('line',{x1:padL,x2:W-padR,y1:Y(t),y2:Y(t),stroke:t===0?css('--ink'):css('--rule-soft'),'stroke-width':1,opacity:t===0?.5:1},svg);
     mk('text',{x:W-padR+8,y:Y(t)+4},svg).textContent=String(o.yfmt(t)).replace('-','−'); }
   for(const l of o.levels||[]){ mk('line',{x1:padL,x2:W-padR,y1:Y(l.v),y2:Y(l.v),stroke:l.color,'stroke-dasharray':'3 4'},svg);
     if(l.label){ const t=mk('text',{x:padL+2,y:Y(l.v)+(l.below?13:-5)},svg); t.textContent=l.label; t.setAttribute('style',`fill:${l.color}`); } }
   const r=Math.min(3,bw/4), bars=[];
+  const bar=(x,w,v,fill,base=0)=>{ const y0=Y(base), y1=Y(base+v), h=Math.abs(y1-y0), up=v>=0, top=up?y1:y0, rr=Math.min(r,h/2);
+    const d=up?`M${x},${y0}V${top+rr}Q${x},${top} ${x+rr},${top}H${x+w-rr}Q${x+w},${top} ${x+w},${top+rr}V${y0}Z`
+              :`M${x},${y0}V${y1-rr}Q${x},${y1} ${x+rr},${y1}H${x+w-rr}Q${x+w},${y1} ${x+w},${y1-rr}V${y0}Z`;
+    return mk('path',{d,fill},svg); };
   o.values.forEach((v,i)=>{ const x=padL+i*bw+gap/2, w=Math.max(1,bw-gap), y0=Y(0), y1=Y(v), h=Math.abs(y1-y0);
     const up=v>=0, top=up?y1:y0, rr=Math.min(r,h/2);
     const d=up?`M${x},${y0}V${top+rr}Q${x},${top} ${x+rr},${top}H${x+w-rr}Q${x+w},${top} ${x+w},${top+rr}V${y0}Z`
               :`M${x},${y0}V${y1-rr}Q${x},${y1} ${x+rr},${y1}H${x+w-rr}Q${x+w},${y1} ${x+w},${y1-rr}V${y0}Z`;
     const last=i===n-1 && o.markLast;
-    bars.push(mk('path',{d,fill:up?css('--up'):css('--down'),opacity:last||!o.markLast?1:.72},svg)); });
+    bars.push(mk('path',{d,fill:up?css('--up'):css('--down'),opacity:last||!o.markLast?1:.72},svg));
+    const u=o.values2&&o.values2[i]; if(u!=null){ const same=(u>=0)===(v>=0), base=same?v:0, end=base+u; bar(x,w,u,css('--teal'),base);
+      if(o.valueLabels){ const t=mk('text',{x:x+w/2,y:end>=0?Y(end)-5:Y(end)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css('--teal')}`); } } });
   const step=Math.max(1,Math.ceil(n/Math.min(o.xn||6,Math.max(2,Math.floor((W-padL-padR)/78)))));
   for(let i=0;i<n;i+=step){ const t=mk('text',{x:padL+i*bw+bw/2,y:H-6,'text-anchor':'middle'},svg); t.textContent=o.xlab(i); }
-  if(o.valueLabels){ o.values.forEach((v,i)=>{ const t=mk('text',{x:padL+i*bw+bw/2,y:v>=0?Y(v)-5:Y(v)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(v); t.setAttribute('style',`fill:${v>=0?css('--up'):css('--down')}`); }); }
+  if(o.valueLabels){ o.values.forEach((v,i)=>{ const u=o.values2?o.values2[i]:null, inside=u!=null&&(u>=0)===(v>=0);
+    const t=mk('text',{x:padL+i*bw+bw/2,y:inside?(v>=0?Y(v)+13:Y(v)-5):(v>=0?Y(v)-5:Y(v)+13),'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(v);
+    t.setAttribute('style',inside?`fill:${css('--bg')};stroke:none`:`fill:${v>=0?css('--up'):css('--down')}`); }); }
   if(o.markLast){ const i=n-1,v=o.values[i]; const t=mk('text',{x:padL+i*bw+bw/2,y:v>=0?Y(v)-5:Y(v)+13,'text-anchor':'end',class:'lbl-end'},svg); t.textContent=o.lastLabel; t.setAttribute('style',`fill:${v>=0?css('--up'):css('--down')}`); }
   return { n, W, X:i=>padL+i*bw+bw/2, show(i){ bars.forEach((b,k)=>b.style.opacity = i==null ? '' : (k===i?1:.3)); },
     index(px){ return Math.max(0,Math.min(n-1,Math.floor((px-padL)/bw))); } };
@@ -97,6 +109,7 @@ function interact(card, panes, readout, rows, restIndex){
   const charts=[...card.querySelectorAll('.chart')], tip=document.createElement('div'); tip.className='tip'; charts[0].appendChild(tip);
   let cur=null;
   const render=(i,touch)=>{ cur=i; panes().forEach(p=>p.show(i)); const k=i??restIndex(); const r=rows(k);
+    if(typeof readout==='function') readout(r,i); else
     readout.innerHTML=`<span class="d">${i==null?'Latest · ':''}${r.date}</span>`+r.items.map(x=>`<span class="ro"><i style="background:${x.color}"></i><b style="color:${x.vcolor||'inherit'}">${x.v}</b><span>${x.name}</span></span>`).join('');
     if(i==null||touch){ tip.classList.remove('on'); return; }
     tip.innerHTML=`<div class="t-d">${r.date}</div>`+r.items.map(x=>`<div class="t-r"><span class="t-k"><i style="background:${x.color}"></i>${x.name}</span><b>${x.v}</b></div>`).join('');
@@ -182,13 +195,14 @@ R.month = (card, s) => {
 /* Monthly bars from a zero line: momentum's lead, foreign flows. */
 R.bars = (card, s) => {
   const el = $('.chart', card); let pane;
-  const draw = () => { pane = barPane(el, {values: s.values, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
-    markLast: !!s.lastLabel, lastLabel: s.lastLabel, padR: 38, valueLabels: s.valueLabels ? v => sg(v / (s.axisDiv || 1), 0) : null,
+  const draw = () => { pane = barPane(el, {values: s.values, values2: s.also ? s.also.map(a => a && a[1]) : null, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
+    markLast: !!s.lastLabel, lastLabel: s.lastLabel, padR: 38, valueLabels: s.valueLabels ? v => sg(v / (s.axisDiv || 1), s.vdp ?? 0) : null,
     levels: (s.levels || []).map(l => ({v: l, color: css('--up')}))}); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   interact(card, () => [pane], $('.readout', card), k => { const v = s.values[k], c = v >= 0 ? css('--up') : css('--down');
-    const items = [{name: s.unit, color: c, v: s.money ? inr(v) : sg(v, s.dp ?? 1), vcolor: c}];
-    if (s.levels && s.levels.length) items.push({name: v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between, color: '', v: '·'});
+    const lvl = s.levels && s.levels.length ? ' · ' + (v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between) : '';
+    const items = [{name: s.unit + lvl, color: c, v: s.money ? inr(v) : sg(v, s.dp ?? 1), vcolor: c}];
+    const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css('--teal'), v: inr(a[1]), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
     return {date: s.full[k] + (k === s.values.length - 1 && s.lastNote ? s.lastNote : ''), items}; }, () => s.values.length - 1);
 };
 
@@ -270,6 +284,96 @@ R.breadth = (card, s) => {
   interact(card, () => panes, $('.readout', card), k => { const i = from + k; return {date: dlong(s.dates[i]), items: [
     {name: 'Nifty 500', color: css('--ink'), v: s.n500[i].toLocaleString('en-IN', {minimumFractionDigits: 1, maximumFractionDigits: 1})},
     {name: 'of the 750 above their 200D EMA', color: css('--up'), v: s.a200[i] == null ? '—' : s.a200[i].toFixed(0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
+};
+
+/* ₹100 since the start and how far below its peak, the book and the market: two panes, one crosshair (Portfolio).
+   The values sit in each pane's heading and follow the pointer, so the lines use the frame's whole width (owner, 20 Nov). */
+R.growth = (card, s) => {
+  const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
+  let panes = [];
+  const draw = () => { const W = top.clientWidth, h = Math.round(Math.max(200, Math.min(340, W * 0.32)));
+    panes = [linePane(top, {dates: s.dates, series: [
+        {name: 'The book', color: css('--ink'), values: s.book, area: true, width: 2.4},
+        {name: 'Nifty500 Momentum 50', color: css('--caution'), values: s.mom},
+        {name: 'Nifty Total Market', color: css('--muted'), values: s.market, dash: '5 4'}],
+        height: h, padL: 34, padR: 8, noX: true, yfmt: v => v.toFixed(0), areaBase: Math.min(...s.book) * 0.95}),
+      linePane(bot, {dates: s.dates, series: [{name: 'The book', color: css('--down'), values: s.dd, area: true, width: 1.6},
+        {name: 'Nifty Total Market', color: css('--muted'), values: s.ddm, dash: '4 3', width: 1.4}],
+        height: Math.round(h * 0.5), padL: 34, padR: 8, yfmt: v => v.toFixed(0) + '%', areaBase: 0, ticks: 3})]; };
+  REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
+  const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); b.textContent = v; b.className = c || ''; };
+  interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
+    $('.ph .d', card).textContent = (i == null ? 'Latest · ' : '') + r.date;
+    put('book', '₹' + s.book[k].toFixed(1)); put('mom', s.mom[k] == null ? '—' : '₹' + s.mom[k].toFixed(1)); put('market', s.market[k] == null ? '—' : '₹' + s.market[k].toFixed(1));
+    put('dd', sg(s.dd[k]) + '%', s.dd[k] < 0 ? 'down' : ''); put('ddm', s.ddm[k] == null ? '—' : sg(s.ddm[k]) + '%'); },
+    k => ({date: dlong(s.dates[k]), items: []}), () => s.dates.length - 1);
+};
+
+/* The holdings, sortable by any column (Portfolio). */
+R.holdings = (card, s) => {
+  const el = $('.hold', card), inrf = v => (v < 0 ? '−' : '') + '₹' + Math.round(Math.abs(v)).toLocaleString('en-IN');
+  const f2 = v => v.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const rk = r => r == null ? 'Out' : '#' + r;
+  const MONS = MON;
+  const ds = d => { const [y, m, dd] = d.split('-'); return `${+dd} ${MONS[+m - 1]} ’${y.slice(2)}`; };
+  const cols = s.cols;
+  let key = 'val', dir = -1;
+  const draw = () => {
+    const rows = s.rows.slice().sort((a, b) => { const va = a[key] ?? 999, vb = b[key] ?? 999; return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir; });
+    const lab = (k, t) => { if (k !== 'rn') return esc(t); const [w, ...rest] = t.split(' '); return `${esc(w)}<span class="vh"> ${esc(rest.join(' '))}</span><span class="rk3" aria-hidden="true">${rest.join(' ').split(' · ').map(x => `<i>${esc(x)}</i>`).join('')}</span>`; };
+    const head = cols.map(([k, t, n]) => `<th scope="col" data-k="${k}" tabindex="0" class="${n ? 'num' : ''}${k === 'rn' ? ' rk' : ''}" aria-sort="${k === key ? (dir < 0 ? 'descending' : 'ascending') : 'none'}">${lab(k, t)}</th>`).join('');
+    const body = rows.map(h => {
+      const emaC = h.ema != null && h.ema < 0 ? 'down b' : '', hiC = h.hi != null && h.hi <= -s.high_cut ? 'down b' : h.hi != null && h.hi <= -12 ? 'watch' : 'muted';
+      const rC = h.rn == null || h.rn > s.rank_cut ? 'down' : '';
+      return `<tr><th scope="row" title="${esc(h.co)}"><span class="sym">${esc(h.s)}</span><span class="ss co">${esc(h.co_short)}</span></th>`
+        + `<td>${esc(h.ind)}<span class="ss"><span class="${h.tone}">${esc(h.status)}</span>${h.size ? ' · ' + esc(h.size) : ''}</span></td>`
+        + `<td class="nw">${ds(h.since)}<span class="ss">${h.days} days</span></td>`
+        + `<td class="num">${h.q.toLocaleString('en-IN')}</td><td class="num">${f2(h.ep)}</td><td class="num">${f2(h.px)}</td>`
+        + `<td class="num">${inrf(h.val)}</td><td class="num">${h.w.toFixed(1)}%</td><td class="num ${tone(h.dayp)}">${sg(h.dayp)}%</td>`
+        + `<td class="num ${tone(h.pnl)}">${h.pnl > 0 ? '+' : ''}${inrf(h.pnl)}</td><td class="num b ${tone(h.ret)}">${sg(h.ret)}%</td>`
+        + `<td class="num ${emaC}">${h.ema == null ? '—' : sg(h.ema) + '%'}</td><td class="num ${hiC}">${h.hi == null ? '—' : sg(h.hi) + '%'}</td>`
+        + `<td class="rk"><span class="rk3"><i>${rk(h.r3)}</i><i>${rk(h.r1)}</i><b class="${rC}">${rk(h.rn)}</b></span></td></tr>`; }).join('');
+    const F = s.foot;
+    const L = s.text;
+    const foot = `<tr class="tot"><th scope="row">${esc(L.holdings)}</th><td></td><td></td><td></td><td></td><td></td><td class="num">${inrf(F.val)}</td><td class="num">${F.w.toFixed(1)}%</td>`
+      + `<td class="num ${tone(F.day)}">${sg(F.day)}%<span class="ss">${F.dayr > 0 ? '+' : ''}${inrf(F.dayr)}</span></td><td class="num ${tone(F.pnl)}">${F.pnl > 0 ? '+' : ''}${inrf(F.pnl)}<span class="ss">${sg(F.since_fill)}% ${esc(L.before)}</span></td>`
+      + `<td></td><td class="num ${F.below_ema ? 'down' : ''}">${F.below_ema} ${esc(L.below)}</td><td class="num ${F.past_high ? 'down' : ''}">${F.past_high} ${esc(L.past_high)}</td><td class="${F.past_rank ? 'down' : ''}">${F.past_rank} ${esc(L.past_rank)}</td></tr>`;
+    el.innerHTML = `<table class="ht"><thead><tr>${head}</tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table>`;
+    el.querySelectorAll('thead th').forEach(th => { const go = () => { const k = th.dataset.k; dir = k === key ? -dir : (['s', 'ind', 'rn', 'since'].includes(k) ? 1 : -1); key = k; draw(); };
+      th.addEventListener('click', go); th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); });
+  };
+  draw();
+};
+
+/* Every trade and every rebalance line: two views, filters, the rebalance bars (Portfolio, hidden until opened). */
+R.history = (card, s) => {
+  const vsw = $('.views', card), fsw = $('.filters', card), body = $('.hbody', card), bars = $('.hbars', card);
+  let view = 'trades', filt = 'all', pane = null;
+  const ds = v => v ? dlong(v) : '—';
+  const sets = s.filters;
+  vsw.innerHTML = s.views.map(([k, t, a], i) => `<button class="chip" type="button" data-v="${k}" aria-pressed="${i === 0}" aria-label="${esc(a)}">${esc(t)}</button>`).join('');
+  const chipsFor = () => { fsw.innerHTML = sets[view].map(([k, t], i) => `<button class="chip" type="button" data-f="${k}" aria-pressed="${k === filt}">${t}</button>`).join(''); };
+  const draw = () => {
+    bars.hidden = view !== 'lines';
+    if (view === 'lines' && !pane) { const el = $('.chart', bars);
+      const go = () => { pane = barPane(el, {values: s.rebal.map(r => r[1]), height: 150, yfmt: v => v.toFixed(0), xlab: i => s.rebal[i][0], xn: 12, valueLabels: v => String(v), padR: 30}); };
+      REDRAW.push(go); go(); new ResizeObserver(go).observe(el);
+      interact(bars, () => [pane], $('.readout', bars), k => ({date: 'Rebalance of ' + s.rebal[k][4], items: [
+        {name: 'bought', v: String(s.rebal[k][1]), color: css('--up')}, {name: 'sold', v: String(s.rebal[k][2]), color: css('--down')}, {name: 'kept', v: String(s.rebal[k][3]), color: css('--muted')}]}), () => s.rebal.length - 1); }
+    if (view === 'trades') {
+      const r = s.trades.filter(x => filt === 'all' || (filt === 'open' ? x[14] === 'Open' : x[14] !== 'Open' && (filt === 'win' ? x[11] > 0 : x[11] <= 0)));
+      body.innerHTML = `<table class="lt"><thead><tr><th>Stock</th><th>Signal</th><th>Bought</th><th class="num">Price</th><th class="num">Rank</th><th>Signal</th><th>Sold</th><th class="num">Price</th><th class="num">Return</th><th class="num">Days</th><th>Why it closed</th></tr></thead><tbody>`
+        + r.map(x => `<tr><td><b>${esc(x[0])}</b></td><td>${ds(x[2])}</td><td>${ds(x[3])}</td><td class="num">${x[4].toFixed(2)}</td><td class="num">${x[5] == null ? '—' : '#' + x[5]}</td><td>${x[14] === 'Open' ? '—' : ds(x[7])}</td><td>${x[14] === 'Open' ? 'Held' : ds(x[8])}</td><td class="num">${x[9] == null ? '—' : x[9].toFixed(2)}</td><td class="num ${tone(x[11])}">${sg(x[11])}%</td><td class="num">${x[12]}</td><td>${esc(x[13])}</td></tr>`).join('') + '</tbody></table>';
+    } else {
+      const r = s.lines.filter(x => filt === 'all' || x[1] === filt);
+      const A = {BUY: ['Buy', 'up'], SELL: ['Sell', 'down'], HOLD: ['Hold', 'muted']};
+      body.innerHTML = `<table class="lt"><thead><tr><th>Month</th><th>Action</th><th>Stock</th><th class="num">Price</th><th class="num">Weight</th><th>Why</th></tr></thead><tbody>`
+        + r.map(x => `<tr><td>${esc(x[0])}</td><td class="${A[x[1]][1]}">${A[x[1]][0]}</td><td><b>${esc(x[2])}</b></td><td class="num">${x[3] == null ? '—' : x[3].toFixed(2)}</td><td class="num">${x[4] == null ? '—' : x[4].toFixed(1) + '%'}</td><td>${esc(x[5])}</td></tr>`).join('') + '</tbody></table>';
+    }
+  };
+  vsw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; vsw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); view = b.dataset.v; filt = 'all'; chipsFor(); draw(); });
+  fsw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; fsw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); filt = b.dataset.f; draw(); });
+  chipsFor(); draw();
 };
 
 window.DashCharts = {render(kind, spec) { R[kind](document.getElementById('c'), spec); }};

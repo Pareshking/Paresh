@@ -121,6 +121,23 @@ def add_overlay(ledger: dict, added: list[str], book, curve: pd.Series, closes: 
     return lines
 
 
+def _keep_exposure(tradebook) -> None:
+    """The 750 book's industry and size at each rebalance the file lacks (src/engine/book_exposure.py)."""
+    import json
+    from src.engine import book_exposure as bx
+    try:
+        membership = json.loads((Path(__file__).resolve().parents[1] / "data" / "membership_history.json").read_text())
+        syms = sorted(set(tradebook["Symbol"].astype(str))) if tradebook is not None and len(tradebook) else []
+        new = bx.exposure(tradebook, record_sector_map(syms), membership)
+        kept = bx.load()
+        out = bx.merge(kept, new)
+        if len(out) != len(kept):
+            bx.save(out)
+            print(f"→ book exposure: {out['date'].nunique()} rebalances kept ({out['date'].nunique() - kept['date'].nunique() if len(kept) else out['date'].nunique()} new)")
+    except Exception as exc:  # the ledger is what matters; never stop a freeze over this
+        print(f"::warning::book exposure not updated: {exc}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--system", default=SYSTEM_750, choices=list(SYSTEMS))
@@ -387,6 +404,8 @@ def main() -> int:
     if args.dry_run:
         print("→ dry run; nothing written")
         return 0
+    if system == SYSTEM_750 and not book:
+        _keep_exposure(result.get("tradebook"))
     if not added and not args.force:
         print("→ no new closed months; file untouched")
         return 0

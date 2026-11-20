@@ -104,21 +104,24 @@ def _check_stock_links(at: AppTest) -> None:
         _fail("a ?stock= link clicked on Sectors did not open the stock page")
 
 
-def _check_requirements(text: str) -> None:
-    """Every row of docs/DASHBOARD_REQUIREMENTS.md, and the section order, on the built Dashboard
+def _check_requirements(text: str, doc_name: str = "DASHBOARD_REQUIREMENTS.md", page: str = "Dashboard") -> None:
+    """Every row of a page's requirements list, and its section order, on the built page
     (owner, 20 Nov 2026: nothing agreed may drop out between versions)."""
-    doc = (Path(__file__).resolve().parents[1] / "docs" / "DASHBOARD_REQUIREMENTS.md").read_text(encoding="utf-8")
+    doc = (Path(__file__).resolve().parents[1] / "docs" / doc_name).read_text(encoding="utf-8")
     low = html.unescape(text).lower()
     missing = []
     for line in doc.splitlines():
         if not re.match(r"^\| \d+ \|", line):
             continue
         cells = [c.strip() for c in line.strip().strip("|").split(" | ")]
-        if not any(m.strip().lower() in low for m in cells[4].split("|")):
+        # " + " joins texts that must all appear; "|" separates alternatives within each.
+        if not all(any(m.strip().lower() in low for m in part.split("|")) for part in cells[4].split(" + ")):
             missing.append(f"{cells[0]}: {cells[1]}")
-    order = ["1 · the book this month", "2 · what happens on", "3 · is momentum still working?", "4 · money flows",
-             "5 · size, and where momentum works", "6 · where the book is strong and weak", "7 · where leadership is moving",
-             "at a glance"]
+    order_line = next((ln for ln in doc.splitlines() if ln.startswith("Order:")), None)
+    order = ([o.strip().lower() for o in order_line[6:].split("→")] if order_line else
+             ["1 · the book this month", "2 · what happens on", "3 · is momentum still working?", "4 · money flows",
+              "5 · size, and where momentum works", "6 · where the book is strong and weak", "7 · where leadership is moving",
+              "at a glance"])
     pos = 0
     for o in order:
         i = low.find(o, pos)
@@ -126,9 +129,30 @@ def _check_requirements(text: str) -> None:
             missing.append(f"order: {o!r} missing or out of place")
             break
         pos = i + len(o)
-    print(f"Dashboard requirements missing: {len(missing)}")
+    print(f"{page} requirements missing: {len(missing)}")
     if missing:
-        _fail("the Dashboard lost agreed items: " + "; ".join(missing))
+        _fail(f"the {page} lost agreed items: " + "; ".join(missing))
+
+
+def _page_text(at: AppTest) -> str:
+    """What a reader can see: the HTML, every chart frame's document, the buttons."""
+    return (" ".join(str(getattr(e.proto, "body", "")) for e in _elements(at, "html"))
+            # A chart's spec is JSON in its frame, its non-ASCII written as \\uXXXX: read it as text.
+            + re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)),
+                     " ".join(f.proto.srcdoc for f in _elements(at, "iframe")))
+            + " ".join(b.label for b in at.get("download_button"))
+            + " ".join(x.label for x in at.get("expander")))
+
+
+def _check_portfolio(at: AppTest, nav: list) -> None:
+    """Portfolio v3 (owner approved 20 Nov 2026): docs/PORTFOLIO_REQUIREMENTS.md on the built page."""
+    link = [e for e in nav if e.proto.label == "Portfolio"]
+    if not link:
+        _fail("no Portfolio link in the navigation")
+    at._page_hash = link[0].proto.page_script_hash
+    at.run(timeout=900)
+    _check_clean(at, "Portfolio")
+    _check_requirements(_page_text(at), "PORTFOLIO_REQUIREMENTS.md", "Portfolio")
 
 
 def main() -> int:
@@ -154,6 +178,7 @@ def main() -> int:
     if not drawn:
         _fail("the Dashboard (first page) did not draw its book and rebalance sections")
     _check_requirements(html_text + " ".join(f.proto.srcdoc for f in _elements(at, "iframe")))
+    _check_portfolio(at, nav)
     screener = [e for e in nav if e.proto.label == "Screener"]
     if not screener:
         _fail("no Screener link in the navigation")

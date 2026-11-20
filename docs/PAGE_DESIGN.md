@@ -69,6 +69,10 @@ v8 with interactive charts and line bars (claude.ai artifact
 | Group rows with a heading row (Strong · 69.8% · what it means), not with colour alone | v7 strong/weak table |
 | Colour only the cell that carries the meaning (now, the value that crossed a line); past columns muted | v7 |
 | Wide tables scroll inside their own box; the page never scrolls sideways | Phone check |
+| A heading sits exactly over its column: right edge over numbers, centre over centred cells; a sort arrow goes before a number heading so the text keeps its edge; a cell that holds several figures (rank 3M · 1M · now) gives each its own fixed column under its own heading | Owner, 20 Nov, Portfolio ("headings and columns not aligned") |
+| Row labels do not wrap: the label column is `nowrap`, number headings may wrap instead | Owner, 20 Nov ("This year, since start" took four lines at 412 px) |
+| A bar track is at most about 340 px wide; on a phone the bar stays in the row, the column that the bar's mark already shows is hidden | Owner, 20 Nov ("Using full horizontal page is not a good idea") |
+| An odd last tile in a two-across grid on a phone takes the full row, so no empty grey cell | Owner, 20 Nov ("lots of unnecessary white space") |
 
 ## 4. Charts
 
@@ -88,6 +92,13 @@ v8 with interactive charts and line bars (claude.ai artifact
 - Light and dark themes both designed; colours from tokens only.
 - Time series stay on Lightweight Charts (`src/ui/lw_chart.py`), restyled;
   small bar charts can be plain SVG in the same frame.
+
+- A chart's values sit in the heading over each pane and follow the pointer; no end labels in a
+  right margin, so the lines use the whole width (owner, 20 Nov: "currently half of it is just to show
+  the number"). A readout is one line where it fits. A chart's height follows its width (about a third)
+  so a desktop chart is not a thin strip. A month is named once on a date axis.
+- A chart frame clips sideways (`overflow-x: clip`) and its chip rows wrap: a chip past the edge
+  scrolled the whole frame sideways when tapped, leaving the table's rows looking blank (owner, 20 Nov).
 
 ### 4.2 Line bars (owner's "IIIIIIIII" chart, 20 Nov)
 
@@ -185,12 +196,30 @@ every page.
   resetting, or a tap shows nothing.
 - Cache keys must include the revision of any data file read inside the
   cached function (`_past_stamp()` for breadth history).
+- `st.html`'s cleaner drops `<header>` (and everything in it); use a `<div>`
+  (Portfolio, 20 Nov: the title, tiles and section links vanished).
+- The CI check (`scripts/headless_smoke.py`) runs without a browser, so text a
+  chart frame's script builds is invisible to it: pass every label a reader
+  sees (column headers, filter names) in the spec from Python. The spec's JSON
+  writes non-ASCII as `\uXXXX`; the check reads it back as text.
+- A view switch that reruns the page (a segmented control) hides the other view
+  from the checks and costs a reload; switch views inside one frame instead.
+
+## 6a. One series, one definition (S154, 20 Nov)
+
+- The book's value over time is `src/ui/book_series.py` on every page; never
+  `record['equity_curve']` raw, which ends at the last month-end.
+- A past rank is `dashboard_insights.rank_trails` (rank among stocks that pass
+  the rule's filters on that date; "Out" when it fails one) on every page.
+- Drawdown terms (`src/engine/portfolio_report.py`): below its peak, largest
+  fall from a peak (with peak, low and recovery dates), worst day, worst
+  month-end. Never "worst fall, daily".
 
 ## 7. Pages to do next, and what applies
 
 | Page | First data checks | Design carried over |
 |---|---|---|
-| Portfolio | Weights and returns agree with the Dashboard; drawdown shows one value (S146) | Verdict, line bars for months, ₹100 chart, clean tables |
+| Portfolio | **Built 20 Nov** (mock-up v3): one daily series with the Dashboard and Actions; drawdown terms defined; rank trail shared | Holdings first, ₹100 chart with both drawdowns, calendar by year, hidden trade history |
 | Actions | Rank trails as on the Dashboard; buys and sells match the plan | Holdings table with rank trail, turnover |
 | Breadth | Point-in-time history done (S150); charts restyled | Two-pane crosshair chart, line bars by size |
 | Sectors / RRG | Equal-weight construction shared (S147) | RRG scatter with held industries; strong/weak table |
@@ -230,3 +259,14 @@ audited first before you share it with me." Run it in a browser
   rotation chart and 300 px under the typical-stock table, both fixed.
 - **Layout:** no sideways scroll at 390 px; nothing clipped; labels that do not
   fit are hidden and named on tap; light and dark both looked at.
+- **Measured, not looked at** (owner, 20 Nov, on the built Portfolio: "Why doesn't
+  your audit capture such issues?"). The requirements check and the smoke test read
+  text, so headings off their columns, a 692 px bar track and a chart drawn on 202 of
+  360 px all passed. `scripts/layout_audit.mjs <url> 412,1400 [--open]` measures
+  where text and marks are drawn, in the page and in every chart frame, and fails on:
+  a heading not over its column (right edge over right-aligned numbers, left edge
+  over text, centre over centred cells); figures set left; a row label wrapping to
+  three lines; a chart whose marks use under 80% of its width, or whose readout
+  takes over a quarter of the frame; a bar track wider than 520 px; a frame 24 px
+  taller than its drawing; an empty band of 48 px; anything wider than the screen.
+  CI runs it on the Dashboard and Portfolio (`v1-full-validation.yml`).
