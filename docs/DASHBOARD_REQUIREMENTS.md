@@ -43,7 +43,7 @@ the owner's word, and note it in the Source column.
 | 25 | Foreign buying as a share of the 750's market value | v7 (tipsheet) | §4 | Against the 750’s market value |
 | 26 | Domestic institutions beside foreign | v6 | §4 | Domestic institutions |
 | 27 | What heavy foreign buying has meant, tested | v6 | §4 | Better months for momentum next |
-| 28 | FPI vs NSE provisional figures explained | v6 | §4 note | which also counts primary-market buying |
+| 28 | What the foreign and domestic figures are (confirmed vs provisional), no sources named (owner, 20 Nov) | v6; owner 20 Nov | §4 note | exchange and primary market |
 | 29 | Size leadership against momentum indices, 1M 3M 6M | Owner 20 Nov | §5 table | Momentum against its size index |
 | 30 | The book by size bar | Owner liked (#4), 20 Nov | §5 | The book by size |
 | 31 | Is the rally shared: breadth by size, with 3M ago and 1M ago | v7 (tipsheet) | §5 | Is the rally shared? |
@@ -56,7 +56,7 @@ the owner's word, and note it in the Source column.
 | 38 | Breadth history on each date's members | Owner 20 Nov | Glance, §3 | leavers included |
 | 39 | Every chart gives values on touch and pointer | Owner 20 Nov | Charts (`static/dash_charts.js`) | Latest|DashCharts.render( |
 | 40 | Every chart: what it is, how to read it, its table | v7 (tipsheet), agreed | Charts | Show the table |
-| 41 | Data date and sources in the footer | v6 | Foot | Data to 19 Nov 2026|Data to |
+| 41 | Data date in the footer; sources not shown (owner, 20 Nov) | v6; owner 20 Nov | Foot | Data to 19 Nov 2026|Data to |
 
 **Not on the Dashboard, by decision:**
 

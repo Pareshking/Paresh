@@ -7,6 +7,7 @@
 - New charts: momentum's lead every month since 2024, foreign buying by month with the heavy-buying line, breadth by size with where it stood a month ago, the book by industry, a rotation graph of every industry with the book's holdings marked, and the Nifty 500 with how many stocks carry it (6M, 1Y, 3Y).
 - Each holding shows its rank trail as a small line; each regime signal shows where today's reading sits in its own history.
 - Strong, turning and weak industries are cards again, each with its rotation over three months.
+- The Dashboard's footer gives the data date only; data sources are no longer listed on the page.
 
 ## 2026-11-20 — Signals that have been tested, and breadth counted fairly
 
