@@ -29,9 +29,14 @@ v8 with interactive charts and line bars (claude.ai artifact
    dark. Show what was removed and why.
 4. **Owner approves the mock-up; then build.** Mock-up first, always (owner,
    19 Nov).
-5. **Verify on the running app**: Chromium at 412 and 1400 px, no element past
+5. **Before sharing a new version, list everything the previous version had and
+   check it is still there.** v8 lost the strong/weak cards, the leadership
+   numbers, the size table and five notes from v7; the owner caught it (20 Nov:
+   "confirm nothing is missing from previous dashboard"). Then run the audit in
+   section 8.
+6. **Verify on the running app**: Chromium at 412 and 1400 px, no element past
    the right edge outside a scroll box; `scripts/headless_smoke.py`; full tests.
-6. Record what changed in `CHANGELOG.md`, what is left in `docs/TODO.md`, and
+7. Record what changed in `CHANGELOG.md`, what is left in `docs/TODO.md`, and
    any new rule here.
 
 ## 2. Content
@@ -97,6 +102,11 @@ breadth by size):
 - Markers in the same two colours: a small muted triangle for "a month ago",
   dashed lines for thresholds (40% / 60%).
 - The number at the end of a row may carry the up/down colour; the lines do not.
+- Lines evenly spaced with no extra gap, about 5 to 6 px apart: pick the step so a
+  row holds 40 to 60 lines (owner, 20 Nov: "chart lines should be closer";
+  2.5% steps looked sparse, 2% is right for a 0-100% share).
+- Where earlier readings matter, show them as numbers beside the bar (3M ago,
+  1M ago, now) rather than only on tap: everything visible.
 
 ### 4.3 Which chart for what
 
@@ -173,3 +183,28 @@ every page.
 | Backtest / Track record | Nifty 500 for 2010+; frozen months as recorded, Total Market beside | ₹100 chart, monthly bars, tested claims only |
 | Stock page | Prices against a second source | Crosshair readout, rank trail |
 | Every page's index strip | One source, one date (S148) | — |
+
+## 8. The audit before a mock-up or page is shared
+
+Owner, 20 Nov: "Ensure to have colours, text, typography, formatting etc
+audited first before you share it with me." Run it in a browser
+(the Dashboard used a Playwright script over the rendered page):
+
+- **Fonts by role:** headings Source Serif 4; text IBM Plex Sans; every figure
+  in a table, tile or readout IBM Plex Mono with tabular figures.
+- **Signs:** a minus is U+2212, never a hyphen (axis labels included); a gain
+  carries "+".
+- **Units:** "crore" in headlines and sentences, "Cr" in tiles, tables and
+  notes; "pts" for points; % with no space.
+- **Case:** sentence case everywhere; capitals only in the small kicker over a
+  section, and in tickers.
+- **Headlines:** each a full sentence ending in a full stop.
+- **Colours:** text uses only the theme's ink, secondary, muted, up, down and
+  caution; count them. Caution and down must be told apart in both themes:
+  #B54708 and #A4441A were too alike, the Dashboard mock-up moved caution to
+  #A86A00 (light) and #E3B341 (dark), a theme change waiting for the owner.
+- **One name, one thing:** the same quadrant word in the same colour in table,
+  badge, list and chart (Leading and Improving blue, Weakening amber,
+  Lagging rust).
+- **Layout:** no sideways scroll at 390 px; nothing clipped; labels that do not
+  fit are hidden and named on tap; light and dark both looked at.
