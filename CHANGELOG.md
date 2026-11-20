@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-20 — REIT market caps from NSE
+
+- BAGMANE, BIRET and EMBASSY now show the market cap NSE publishes each day. BAGMANE had none; BIRET and EMBASSY showed a figure frozen since mid-November (BIRET ₹21,867 Cr against NSE's ₹26,543 Cr). Ranks and the record are unchanged: the cap is shown, not used to rank.
+
 ## 2026-11-20 — Dashboard charts you can touch
 
 - Every chart on the Dashboard now shows its values under the pointer, under a finger dragged across it on a phone, or with the arrow keys; at rest it shows the latest figures. Under each chart: what it is, how to read it, and its table.
