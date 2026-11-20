@@ -695,32 +695,21 @@ def _render_data_health(row: pd.Series) -> None:
 
 # ── Actions: back, watchlist, share ──────────────────────────────────────────
 
-def _share_url(sym: str, address: str | None = None) -> str:
-    """The link to this stock's page that opens fastest.
+def _share_url(sym: str) -> str:
+    """The short, public link to this stock's page.
 
-    On Streamlit Cloud that is the app's own mount, /~/+/screener?stock=X.
-    The short form (/?stock=X) goes through Cloud's wrapper page first: two
-    login redirects, analytics and about 60 of its own files. Measured on a
-    fresh browser, 20 Nov 2026: home page ready in 10.3 s through the wrapper,
-    3.1-3.5 s on /~/+/; Screener on a slowed phone 17.4 s against 8.8 s.
-    Production QA opens this form on every run (audit_deep_links,
-    "mounted_screener"), so a rename of /~/+/ by Streamlit shows up there.
-    Off Cloud (local runs) there is no mount: /screener?stock=X.
+    Built from the address the reader is on, minus Streamlit Cloud's /~/+/
+    mount and any page path: the short form is the one production QA has
+    confirmed reaches the stock page (audit_deep_links, "short_query").
     """
     from urllib.parse import urlsplit
 
-    if address is None:
-        try:
-            address = str(st.context.url or "")
-        except Exception:
-            address = ""
     try:
-        parts = urlsplit(address)
+        parts = urlsplit(str(st.context.url or ""))
         base = f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else ""
-        mounted = "/~/+/" in (parts.path or "") or parts.netloc.endswith(".streamlit.app")
     except Exception:
-        base, mounted = "", False
-    return f"{base}{'/~/+' if mounted else ''}/screener?stock={_quote(sym, safe='')}"
+        base = ""
+    return f"{base}/?stock={_quote(sym, safe='')}"
 
 
 def _render_exit_status(sym: str, rank_df: pd.DataFrame) -> None:
