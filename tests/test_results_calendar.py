@@ -127,5 +127,8 @@ def test_short_purpose_reads_nse_purposes_plainly():
     assert rc.short_purpose("Other business matters") == "Board meeting"
 
 
-
-
+def test_no_file_means_no_calendar_and_an_empty_window_has_no_meetings(tmp_path):
+    assert rc.load(tmp_path / "missing.csv") is None
+    assert rc.for_book(None, ["A"], [], pd.Timestamp("2026-11-08")) is None
+    bc = rc.for_book(_cal(), ["NOBODY"], [], pd.Timestamp("2026-11-08"))
+    assert bc is not None and bc.upcoming.empty

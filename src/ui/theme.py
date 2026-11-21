@@ -1,7 +1,6 @@
 import hashlib
 import re
 import time
-from collections.abc import Sequence
 from html import escape as _esc
 
 import numpy as np
@@ -1457,10 +1456,10 @@ _PAGE_CSS = ("""
            the layout as it is. */
         @media (pointer: coarse) {
             /* Padding alone was not enough: measured at 390px with touch, a
-               .db-sym link came out 38.2px and .mq-more 42.8px, because the
+               stock link came out 38.2px and a "more" link 42.8px, because the
                line box they pad is only 16px. Set the height and centre the
                text in it (10 Nov 2026, launch slot 3). */
-            .db-sym a, .xw-s a, .t50-stock, .ib-leads a, .pg-onward, .db-kv a, .mq-more,
+            .xw-s a, .t50-stock, .ib-leads a, .pg-onward,
             .t50-chip {
                 display: inline-flex; align-items: center; min-height: 44px;
                 padding: 0; margin: 0;
@@ -1508,8 +1507,7 @@ _PAGE_CSS = ("""
            leaderboard's numeric columns and the peers table keep Mono. */
         [data-testid="stMetricLabel"], [data-testid="stMetricValue"], [data-testid="stMetricDelta"],
         .t50-num, .t50-change, .t50-rank, .t50-return, .pg-bar-v, .gc-legend b, .mo-v,
-        .ib-n, .ib-3m b, .sp-ladder .lv, .gp-dd .lbl, .gp-ret .lbl, .gp-sh b,
-        .db-rule, .db-size td b, .db-size td, .db-sectors td {
+        .ib-n, .ib-3m b, .sp-ladder .lv, .gp-dd .lbl, .gp-ret .lbl, .gp-sh b {
             font-family: var(--font-ui) !important; font-variant-numeric: tabular-nums;
         }
         [data-testid="stMetric"] [data-testid="stMetricLabel"],
@@ -1943,83 +1941,6 @@ _PAGE_CSS = ("""
         .mkt-status { margin-left: auto; padding: 4px 0 4px 12px; border-right: 0; }
         .mkt-status-row { display: flex; justify-content: flex-end; margin: 6px 0 4px; }
 
-        /* ── Dashboard (src/ui/views/dashboard_view.py) ──────────────
-           Two columns on a desktop, one on a phone; tight vertical rhythm
-           (owner, 7 Nov: "unnecessary white spaces and large gaps"). */
-        .st-key-db_page { gap: 18px !important; }
-        .st-key-db_page [data-testid="stHorizontalBlock"] { gap: 36px !important; align-items: flex-start !important; }
-        .st-key-db_page [class*="st-key-pgcard_db_"] { padding: 10px 0 0 !important; gap: 6px !important; }
-        .st-key-db_page [class*="st-key-pgcard_db_"] .pg-card-h h2 { font-size: var(--fs-15) !important; }
-        .st-key-db_page .pg-cap { font-size: var(--fs-12); margin-top: 2px; }
-        .db-risk { display: grid; font-size: var(--fs-13); }
-        .db-risk-row { display: grid; grid-template-columns: minmax(120px,1.25fr) 112px minmax(130px,1.25fr) minmax(60px,0.7fr);
-            align-items: center; column-gap: 14px; min-height: 34px; padding: 3px 0; border-bottom: 1px solid var(--c-rule_soft); }
-        .db-risk-row.db-head { min-height: 26px; font-size: var(--fs-12); font-weight: 600; color: var(--c-muted);
-            border-bottom: 1px solid var(--c-rule); }
-        .db-sym { line-height: 1.2; }
-        .db-sym a { font-weight: 600; color: var(--c-ink) !important; text-decoration: none; }
-        .db-sym small { display: block; font-size: var(--fs-12); color: var(--c-muted); white-space: normal; line-height: 1.3; }
-        .db-status { font-size: var(--fs-12); font-weight: 600; color: var(--c-text_2); }
-        .db-risk-row.watch .db-status { color: var(--c-caution); }
-        .db-risk-row.sell .db-status { color: var(--c-down); }
-        .db-rule { font-family: var(--font-mono); font-size: var(--fs-12); color: var(--c-text_2); }
-        .db-bar { display: block; height: 5px; background: var(--c-fill); }
-        .db-bar i { display: block; height: 100%; background: var(--c-ink); }
-        .db-risk-row.watch .db-bar i { background: var(--c-caution); }
-        .db-risk-row.sell .db-bar i { background: var(--c-down); }
-        /* Label-value rows in the site's table style (owner, 8 Nov 2026: Next rebalance's
-           bold grey labels did not match the question cards' hairline tables): label left
-           in the secondary text colour, value beside it, a hairline under each row. */
-        .db-kv { display: grid; grid-template-columns: minmax(92px, max-content) 1fr; gap: 0 16px; margin: 4px 0 0 !important; padding: 0 !important; font-size: var(--fs-13); line-height: 1.45; border-top: 1px solid var(--c-rule_strong); }
-        .db-kv dt { color: var(--c-text_2); font-weight: 400; margin: 0 !important; padding: 7px 0 !important; border-bottom: 1px solid var(--c-rule); }
-        .db-kv dd { margin: 0 !important; padding: 7px 0 !important; color: var(--c-ink); border-bottom: 1px solid var(--c-rule); }
-        .db-kv a, .db-sectors a { color: var(--c-ink) !important; }
-        .db-lede { margin: 0 0 4px; font-size: var(--fs-13); color: var(--c-ink); }
-        /* Streamlit fades st.caption to opacity 0.6, which took our muted grey to
-           3.5:1 on white (audit, 8 Nov 2026; WCAG AA needs 4.5:1). Full opacity
-           keeps the muted token's own colour, about 6.6:1. */
-        [data-testid="stCaptionContainer"] { opacity: 1 !important; color: var(--c-muted) !important; }
-        /* Coming up for the book: days on a rule, ticker in bold (as tipsheet's "Coming up") */
-        .db-cal { margin-top: 4px; }
-        .db-cal-day h3 { font-family: inherit !important; font-size: var(--fs-12) !important; font-weight: 600 !important; color: var(--c-ink) !important; margin: 10px 0 0 !important; padding: 0 0 4px !important; border-bottom: 1px solid var(--c-rule_strong); letter-spacing: 0; }
-        .db-cal-day ul { list-style: none; margin: 0 !important; padding: 0 !important; }
-        .db-cal-day li { margin: 0 !important; padding: 5px 0 !important; font-size: var(--fs-13); color: var(--c-text_2); border-bottom: 1px solid var(--c-rule); }
-        .db-cal-day li b { color: var(--c-ink); font-weight: 600; margin-right: 6px; }
-        .db-cal-tag { font-size: var(--fs-12); color: var(--c-muted); border: 1px solid var(--c-rule_strong); border-radius: 2px; padding: 0 4px; margin-right: 6px; }
-        .db-cal-check { color: var(--c-muted) !important; font-style: italic; }
-        /* A card's figures as rows: label left, figure right, hairlines (as .mq tables) */
-        .db-fig { width: 100%; border-collapse: collapse; font-size: var(--fs-13); font-variant-numeric: tabular-nums; margin: 8px 0 2px; }
-        .db-fig th { font-size: var(--fs-12); font-weight: 500; color: var(--c-muted); text-align: right; padding: 4px 0 4px 8px; border-bottom: 1px solid var(--c-rule_strong); }
-        .db-fig th:first-child, .db-fig td:first-child { text-align: left; padding-left: 0; }
-        .db-fig td { padding: 6px 0 6px 8px; border-bottom: 1px solid var(--c-rule); text-align: right; color: var(--c-ink); }
-        .db-fig td:first-child { color: var(--c-text_2); }
-        .db-fig td.down { color: var(--c-down); } .db-fig td.up { color: var(--c-up); } .db-fig td.mid { color: var(--c-muted); }
-        /* S91 panels: momentum health and flows */
-        .db-big { font-family: var(--font-serif, Georgia, serif); font-size: 36px; line-height: 1.1; color: var(--c-ink); margin: 0 0 6px; }
-        .db-big span { font-family: inherit; font-size: var(--fs-13); color: var(--c-muted); margin-left: 6px; }
-        .db-big.up, .db-kv b.up { color: var(--c-up); }
-        .db-big.down, .db-kv b.down { color: var(--c-down); }
-        .db-flag { margin: 4px 0; font-size: var(--fs-13); font-weight: 600; color: var(--c-down); }
-        .db-note { margin: 6px 0 0; font-size: var(--fs-13); color: var(--c-muted); }
-        .db-mh img { display: block; margin-top: 8px; }
-        .db-size, .db-sectors { width: 100%; border-collapse: collapse; font-size: var(--fs-13); }
-        .db-size th, .db-size td, .db-sectors th, .db-sectors td { padding: 6px 8px 6px 0;
-            border-bottom: 1px solid var(--c-rule_soft); text-align: right; font-weight: 400; }
-        .db-size th:first-child, .db-sectors th { text-align: left; font-weight: 600; color: var(--c-ink); }
-        .db-size thead th { font-size: var(--fs-12); font-weight: 600; color: var(--c-muted); border-bottom: 1px solid var(--c-rule); }
-        .db-size thead th small { display: block; font-size: var(--fs-12); font-weight: 400; color: var(--c-muted); }
-        .db-size td small { display: inline-block; min-width: 46px; margin-left: 6px; font-size: var(--fs-12); font-weight: 400; color: var(--c-muted); }
-        .db-size td b, .db-size td, .db-sectors td { font-family: var(--font-mono); }
-        .db-size td b { font-weight: 600; }
-        .db-size tr.db-base th, .db-size tr.db-base td { color: var(--c-muted); }
-        .db-size .up, .db-sectors .up { color: var(--c-up); } .db-size .down, .db-sectors .down { color: var(--c-down); }
-        .db-sectors td.db-n { color: var(--c-muted); font-family: var(--font-ui); font-size: var(--fs-12); }
-        @media (max-width: 640px) {
-            .st-key-db_page [data-testid="stHorizontalBlock"] { gap: 18px !important; }
-            .db-risk-row { grid-template-columns: 1fr auto; row-gap: 2px; padding: 6px 0; }
-            .db-risk-row.db-head { display: none; }
-            .db-rule { grid-column: 1 / -1; } .db-bar { grid-column: 1 / -1; }
-        }
         </style>
         """)
 
@@ -2129,81 +2050,6 @@ def _is_pct_text_column(col: pd.Series) -> bool:
         return False
     vals = [str(v).strip() for v in col.dropna() if str(v).strip() not in ("", "—", "-")]
     return bool(vals) and all(_PCT_TEXT.fullmatch(v) for v in vals)
-
-
-# --- The figure tables (`db-fig`), fragment mode ---------------------------
-#
-# The Dashboard's "The book / Now / Nifty 500" table and its panels' "Last 12
-# months / Points" table were two format strings inside the views that drew
-# them (docs/UI_ARCHITECTURE.md section 10, renderer #4). They are page
-# FRAGMENTS: the page's own `.db-fig` rules style them, and nothing is resolved
-# into them, so they follow a theme change. `render_saas_table` below is the
-# other mode -- a whole document in an iframe with the theme written in -- and
-# it cannot draw these: it returns None rather than markup (these tables sit
-# inside a card's HTML), it reformats values rather than taking the display
-# strings the views compute, and it INFERS a column's side from words in the
-# header. Here the side is DECLARED. The two disagree: `render_saas_table`
-# would read "Now" and "Points" as text columns and move them to the left.
-#
-# The `.db-fig` stylesheet puts the first column left and every other column
-# right. A column that declares that side carries no markup of its own, so a
-# table's output is byte-for-byte what the format strings produced; a column
-# that declares the other side gets an inline `text-align`, the idiom the
-# question cards already use.
-_FIG_ALIGNMENTS = ("left", "center", "right")
-
-
-def figure_table_align(n_columns: int) -> list[str]:
-    """What the `.db-fig` stylesheet aligns each of `n_columns` columns to."""
-    return ["left" if i == 0 else "right" for i in range(n_columns)]
-
-
-def _fig_style(side: str, column: int, n_columns: int) -> str:
-    if side not in _FIG_ALIGNMENTS:
-        raise ValueError(f"unknown alignment {side!r}; one of {_FIG_ALIGNMENTS}")
-    if side == figure_table_align(n_columns)[column]:
-        return ""
-    return f' style="text-align:{side}"'
-
-
-def figure_table_html(
-    headers: Sequence[str],
-    rows: Sequence[Sequence[str | tuple[str, str]]],
-    *,
-    align: Sequence[str] | None = None,
-    table_class: str = "db-fig",
-) -> str:
-    """One `db-fig` figure table, as markup for a card to embed.
-
-    `headers` are the column headings. Each row is one cell per column: a plain
-    string for a cell with no tone, or a `(text, tone)` pair for one that
-    carries a tone class (`up`, `down`, `mid`, or `""` for none). Every heading
-    and every cell is escaped. `align` declares each column's side and defaults
-    to the stylesheet's own (first left, the rest right).
-    """
-    n = len(headers)
-    sides = list(align) if align is not None else figure_table_align(n)
-    if len(sides) != n:
-        raise ValueError(f"{len(sides)} alignments for {n} columns")
-    head = "".join(
-        f'<th scope="col"{_fig_style(sides[i], i, n)}>{_esc(str(h))}</th>'
-        for i, h in enumerate(headers)
-    )
-    body = []
-    for row in rows:
-        if len(row) != n:
-            raise ValueError(f"{len(row)} cells for {n} columns")
-        cells = []
-        for i, cell in enumerate(row):
-            style = _fig_style(sides[i], i, n)
-            if isinstance(cell, tuple):
-                text, tone = cell
-                cells.append(f'<td class="{tone}"{style}>{_esc(str(text))}</td>')
-            else:
-                cells.append(f"<td{style}>{_esc(str(cell))}</td>")
-        body.append(f'<tr>{"".join(cells)}</tr>')
-    return (f'<table class="{table_class}"><thead><tr>{head}</tr></thead>'
-            f'<tbody>{"".join(body)}</tbody></table>')
 
 
 def render_saas_table(

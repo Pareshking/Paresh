@@ -11,7 +11,7 @@ APP = (ROOT / "app.py").read_text(encoding="utf-8")
 
 
 def test_market_page_is_served_at_market():
-    assert 'st.Page(_page_breadth, title="Market", url_path="market")' in APP
+    assert 'st.Page(_page_market, title="Market", url_path="market")' in APP
     assert 'url_path="breadth"' not in APP
 
 

@@ -59,30 +59,3 @@ def portfolio_months(close: pd.DataFrame, bench: pd.Series, index_key: str = "ni
     return out.reset_index(drop=True)[["month", "portfolio", "nifty500"]]
 
 
-def excess_by_quarter(d: pd.DataFrame, col: str) -> dict | None:
-    """The portfolio's next-month lead over the Nifty 500 after the lowest
-    quarter of `col` against the rest, overall and in 5-year blocks.
-
-    `d`: data/momentum_health.csv (a row's `col` is read at its formation
-    month-end; its `portfolio` and `nifty500` are the following month's)."""
-    need = {col, "portfolio", "nifty500", "month"}
-    if not need <= set(d.columns):
-        return None
-    x = d[["month", col, "portfolio", "nifty500"]].copy()
-    for c in (col, "portfolio", "nifty500"):
-        x[c] = pd.to_numeric(x[c], errors="coerce")
-    x = x.dropna(subset=[col, "portfolio", "nifty500"])
-    if len(x) < 48:
-        return None
-    x = x.assign(excess=x["portfolio"] - x["nifty500"],
-                 year=x["month"].astype(str).str[:4].astype(int))
-    cut = float(x[col].quantile(0.25))
-    low, rest = x[x[col] <= cut], x[x[col] > cut]
-    blocks = []
-    for lo in range(int(x["year"].min()), int(x["year"].max()) + 1, 5):
-        g = x[(x["year"] >= lo) & (x["year"] < lo + 5)]
-        gl, gr = g[g[col] <= cut], g[g[col] > cut]
-        if len(gl) >= 3 and len(gr) >= 3:
-            blocks.append((lo, float(gl["excess"].mean()) < float(gr["excess"].mean())))
-    return {"cut": cut, "low": float(low["excess"].mean()), "rest": float(rest["excess"].mean()),
-            "months_low": len(low), "blocks": blocks, "since": int(x["year"].min())}

@@ -51,8 +51,6 @@ def test_size_tiers_come_from_nses_lists(tmp_path):
     assert br.tier_of(["AAA", "BBB", "ZZZ"], tmp_path) == {"AAA": "Nifty 100", "BBB": "Smallcap 250", "ZZZ": "Outside"}
 
 
-
-
 def test_the_index_drawdown_covers_the_records_dates_only():
     px, bench = _prices()
     eq = pd.Series([100.0, 101.0, 102.0], index=bench.index[:3])
