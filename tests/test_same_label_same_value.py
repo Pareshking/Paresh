@@ -68,3 +68,11 @@ def test_an_index_without_the_pages_session_reads_as_missing_not_yesterday():
     home = (ROOT / "src/ui/views/dashboard_home_view.py").read_text(encoding="utf-8")
     page = (ROOT / "src/ui/views/portfolio_page.py").read_text(encoding="utf-8")
     assert "di.as_of(v, idx_end)" in home and "di.as_of(v, end)" in page
+
+
+def test_weight_now_is_portfolios_weight_column_on_every_page():
+    # 21 Nov 2026: Actions read Healthcare 29.5% from the drifted struck weights, Portfolio 29.4%.
+    home = (ROOT / "src/ui/views/dashboard_home_view.py").read_text(encoding="utf-8")
+    actions = (ROOT / "src/ui/views/actions_page.py").read_text(encoding="utf-8")
+    assert 'series.table.set_index("Symbol")["Weight %"]' in home
+    assert 'series.table.set_index("Symbol")["Weight %"]' in actions
