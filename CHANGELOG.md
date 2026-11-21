@@ -3,7 +3,12 @@
 ## 2026-11-21 — Breadth every night
 
 - The Market page's breadth readings (share above the 200D and 50D EMA, net new highs, share beating the index) now move every night, the night of the session. Until now they were rebuilt from a price file refreshed only on Saturdays, so on a weekday they could end up to a week behind (on 21 Nov they ended on 16 Nov).
-- The 2010+ backtest's price file is extended every night too, with the same checks as before.
+- The 2010+ backtest's price file is extended every night too. Its checks against the independent price histories still run every Saturday, with the full rebuild.
+
+## 2026-11-21 — The Market page's address is /market
+
+- The Market page is at **/market**. The old address, /breadth, still works: it opens /market, keeping any `?system=` in the link, so bookmarks hold.
+- Every other old address (/qualified, /exit-watch, /track-record, /dashboard, /home) now keeps its `?system=` the same way when it redirects.
 
 ## 2026-11-21 — Desktop: every page in the top bar
 
