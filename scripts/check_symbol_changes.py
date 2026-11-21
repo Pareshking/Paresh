@@ -142,10 +142,14 @@ def main() -> int:
                          "716 sessions.")
     args = ap.parse_args()
 
-    if not CLOSES.exists():
-        print("SKIP  data/nse_prices/closes.parquet is not here; nothing to check")
+    sys.path.insert(0, str(ROOT))
+    from src.loaders.nse_prices import closes_path
+
+    path = closes_path(CLOSES.parent)      # the local file, else the published copy
+    if path is None:
+        print("SKIP  the NSE closes are neither here nor reachable; nothing to check")
         return 0
-    close = pd.read_parquet(CLOSES)
+    close = pd.read_parquet(path)
     ledger = json.loads(NOTES.read_text(encoding="utf-8")).get("renames", {})
 
     sys.path.insert(0, str(ROOT))
