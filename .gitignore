@@ -96,3 +96,7 @@ Thumbs.db
 
 # The parity gate writes this report beside itself on every run.
 parity_report.json
+
+# The NSE two-year closes live on R2 (nse/closes_2y) and the release (nse_closes.parquet),
+# not in git (owner, 21 Nov 2026; TODO S178). src/loaders/nse_prices.closes_path() reads them.
+data/nse_prices/closes.parquet
