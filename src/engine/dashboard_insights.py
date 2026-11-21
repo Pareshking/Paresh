@@ -43,6 +43,18 @@ def value_at(series: pd.Series | None, when: pd.Timestamp) -> float | None:
     return None if d is None else float(s.loc[d])
 
 
+def as_of(close: pd.Series | None, end: pd.Timestamp) -> pd.Series:
+    """The series if it has a close for `end`, else empty (S148, 21 Nov 2026).
+
+    Every reader looks a close up "on or before" a date, so an index missing the
+    page's session gave yesterday's figure under today's caption ("Indices, 19 Nov"
+    showed Nifty 50 for 18 Nov). Empty reads as "—" everywhere instead."""
+    if close is None:
+        return pd.Series(dtype=float)
+    s = close.dropna()
+    return s if len(s) and s.index.max() >= pd.Timestamp(end) else s.iloc[0:0]
+
+
 def window_return(close: pd.Series | None, start: pd.Timestamp, end: pd.Timestamp) -> float | None:
     """Percent from the close on or before `start` to the close on or before `end`."""
     a, b = value_at(close, start), value_at(close, end)

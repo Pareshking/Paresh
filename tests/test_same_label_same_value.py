@@ -55,3 +55,16 @@ def test_volatility_and_beta_are_portfolios_figures_on_the_dashboard():
     home = (ROOT / "src/ui/views/dashboard_home_view.py").read_text(encoding="utf-8")
     assert "pr.risk(eq, market)" in home
     assert "risk.beta" not in home and "risk.vol" not in home
+
+
+def test_an_index_without_the_pages_session_reads_as_missing_not_yesterday():
+    # S148 / S154 (c), 21 Nov 2026: "Indices, 19 Nov" showed Nifty 50's 18 Nov move.
+    idx = pd.bdate_range("2026-11-02", "2026-11-19")
+    behind = pd.Series(range(len(idx)), index=idx, dtype=float).iloc[:-1]
+    assert di.as_of(behind, idx[-1]).empty
+    assert di.window_return(di.as_of(behind, idx[-1]), idx[0], idx[-1]) is None
+    level = pd.Series(range(1, len(idx) + 1), index=idx, dtype=float)
+    assert len(di.as_of(level, idx[-1])) == len(idx)
+    home = (ROOT / "src/ui/views/dashboard_home_view.py").read_text(encoding="utf-8")
+    page = (ROOT / "src/ui/views/portfolio_page.py").read_text(encoding="utf-8")
+    assert "di.as_of(v, idx_end)" in home and "di.as_of(v, end)" in page

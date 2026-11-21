@@ -121,6 +121,10 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     as_of = series.as_of or pd.Timestamp(series.equity.index[-1])
     frame = bi.read()
     idx = {k: bi.series(k, frame=frame).loc[:as_of] for k in bi.SERIES}
+    # An index not yet published for the book's session: Nifty Total Market keeps its history (the note
+    # under Returns says it is a session behind); the comparison indices read "—" rather than a stale close (S148).
+    end = idx[bi.TOTAL_MARKET].dropna().index.max() if len(idx[bi.TOTAL_MARKET].dropna()) else as_of
+    idx = {k: (v if k in (bi.TOTAL_MARKET, "nifty500_mom50") else di.as_of(v, end)) for k, v in idx.items()}
     market, mom = idx[bi.TOTAL_MARKET], idx["nifty500_mom50"]
     table = series.table
     syms = table["Symbol"].astype(str).tolist()

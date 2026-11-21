@@ -376,9 +376,11 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
         since = dict(zip(book["Symbol"], pd.to_numeric(book["Return %"], errors="coerce")))
         held = {s: dshort(d) + f" ’{pd.Timestamp(d):%y}" for s, d in zip(book["Symbol"], pd.to_datetime(book["Entry Date"], errors="coerce"))
                 if pd.notna(d)}
-        from src.engine.actions import standing_weights
-        now_w = standing_weights(book, adj_close)
-        if now_w is None:
+        # The book now: each holding's value over the book's value today, Portfolio's Weight column (S154; it read
+        # Healthcare 29.5% from the drifted struck weights against Portfolio's 29.4%, found 21 Nov 2026).
+        if series is not None and "Weight %" in series.table:
+            now_w = pd.to_numeric(series.table.set_index("Symbol")["Weight %"], errors="coerce").fillna(0) / 100
+        else:
             now_w = pd.to_numeric(book.set_index("Symbol")["Weight %"], errors="coerce").fillna(0) / 100
         try:
             from src.engine import swap_evidence as sw

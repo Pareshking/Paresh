@@ -881,8 +881,11 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     frame = bi.read()
     closes = {k: bi.series(k, frame=frame) for k in bi.SERIES}
     market = closes[bi.TOTAL_MARKET]
-    # Index figures end on one session: the last both prices and indices have.
+    # Index figures end on one session: the last both prices and indices have. An index
+    # without a close for that session reads "—", never the session before (S148).
     idx_end = min(as_of, market.index[-1]) if len(market) else as_of
+    closes = {k: di.as_of(v, idx_end) for k, v in closes.items()}
+    market = closes[bi.TOTAL_MARKET]
     momentum = {k: closes[k] for k in MOMENTUM_NAMES}
     bm = di.book_month(ledger.get("months", {}), book_mtd, market, momentum, idx_end)
     inc = pd.Period(str(ledger.get("inception", "2026-01")), freq="M").to_timestamp() - pd.Timedelta(days=1)
@@ -971,7 +974,10 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     series = book_series(book, record, ledger, rank_df, adj_close, benchmark_close, MODEL_BOOK_CAPITAL)
     eq = series.equity if series is not None else None
     # Exit time on the book's value today, as the Actions basket (it used the ₹1 crore start).
-    risk = br.book_risk(book.set_index("Symbol")["Weight %"], adj_close, n500, eq, volume,
+    # Today's weights, Portfolio's Weight column, so "the book by size" is the same "now" as Portfolio and Actions (S154).
+    w_now = (series.table.set_index("Symbol")["Weight %"] if series is not None and "Weight %" in series.table
+             else book.set_index("Symbol")["Weight %"])
+    risk = br.book_risk(w_now, adj_close, n500, eq, volume,
                         float(series.value) if series is not None else MODEL_BOOK_CAPITAL)
     # Volatility and beta as Portfolio shows them: the book's daily series against Nifty Total Market,
     # the same function (S154; the card showed 16.7% and 0.77 from today's weights against the Nifty 500
