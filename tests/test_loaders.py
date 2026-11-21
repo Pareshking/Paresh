@@ -24,6 +24,9 @@ def patch_constants(monkeypatch):
     monkeypatch.setattr(indices_loader, "DATA_DIR", tmp_dir, raising=False)
     monkeypatch.setattr(indices_loader, "REPO_DATA_DIR", tmp_dir, raising=False)
     monkeypatch.setattr(indices_loader, "INDICES_LOCAL", {}, raising=False)
+    # The recorded-only lists too (Nifty 1000, S175): no real request, no write into data/.
+    monkeypatch.setattr(indices_loader, "RECORDED_INDICES_URLS", {}, raising=False)
+    monkeypatch.setattr(indices_loader, "RECORDED_INDICES_LOCAL", {}, raising=False)
     monkeypatch.setattr(
         indices_loader,
         "SYNC_META_FILE",

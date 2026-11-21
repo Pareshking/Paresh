@@ -122,6 +122,7 @@ def test_an_unserved_new_member_no_longer_holds_back_every_stock(monkeypatch, tm
     monkeypatch.setattr(sync, "_drop_unsettled", lambda frame: (frame, []))
     monkeypatch.setattr(sync, "_deep_check_due", lambda: False)
     monkeypatch.setattr(sync, "EXTRA_LIST", "/nonexistent/ind_nanocap_list.csv")
+    monkeypatch.setattr(sync, "RECORDED_LIST", "/nonexistent/ind_nifty1000_list.csv")
 
     def fake_fetch(symbols, **kwargs):
         served = [s for s in symbols if s != "TRIVENIPT"]      # no Screener page yet
@@ -154,6 +155,7 @@ def test_an_existing_member_losing_its_history_still_stops_the_night(monkeypatch
     monkeypatch.setattr(sync, "_drop_unsettled", lambda frame: (frame, []))
     monkeypatch.setattr(sync, "_deep_check_due", lambda: False)
     monkeypatch.setattr(sync, "EXTRA_LIST", "/nonexistent/ind_nanocap_list.csv")
+    monkeypatch.setattr(sync, "RECORDED_LIST", "/nonexistent/ind_nifty1000_list.csv")
     monkeypatch.setattr(sync.sl, "fetch_universe", lambda symbols, **kw: (_frame(["AAA"]), kw["ids"], []))
     monkeypatch.setattr(sync.sl, "merge_into_store", lambda frame, **kw: (_frame(["AAA"]), 1, 0))
 

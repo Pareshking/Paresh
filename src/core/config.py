@@ -159,6 +159,19 @@ INDICES_LOCAL: Final[dict[str, str]] = {
     "NIFTY TOTAL MARKET": os.path.join(INDICES_DIR, "ind_niftytotalmarket_list.csv"),
 }
 
+# Downloaded every night and recorded in data/membership_history.json, but NOT
+# ranked: nothing that reads INDICES_URLS sees these (the ranked universe is the
+# union of INDICES_URLS). Nifty 1000 is the 750 plus 250 more, ~30 of which we
+# hold no prices for yet (owner, 21 Nov 2026; TODO S175). Its membership is
+# point in time only from the day we start recording it, so it starts now.
+RECORDED_INDICES_URLS: Final[dict[str, str]] = {
+    "NIFTY 1000": "https://niftyindices.com/IndexConstituent/ind_nifty1000_list.csv",
+}
+
+RECORDED_INDICES_LOCAL: Final[dict[str, str]] = {
+    "NIFTY 1000": os.path.join(INDICES_DIR, "ind_nifty1000_list.csv"),
+}
+
 SHORT_FORMS: Final[dict[str, str]] = {
     "NIFTY 50": "N50", "NIFTY NEXT 50": "NN50", "NIFTY MIDCAP 150": "MID150",
     "NIFTY SMALLCAP 250": "SMALL250", "NIFTY MICROCAP 250": "MICRO250", "NIFTY TOTAL MARKET": "",

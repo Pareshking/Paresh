@@ -83,6 +83,7 @@ def test_run_forces_new_symbols_before_regular_sweep(monkeypatch, tmp_path):
     monkeypatch.setattr(sync, "session_is_complete", lambda date: True)
     monkeypatch.setattr(sync, "_deep_check_due", lambda: False)
     monkeypatch.setattr(sync, "EXTRA_LIST", "/nonexistent/ind_nanocap_list.csv")
+    monkeypatch.setattr(sync, "RECORDED_LIST", "/nonexistent/ind_nifty1000_list.csv")
 
     def fake_fetch(symbols, **kwargs):
         calls.append((list(symbols), kwargs.get("days")))
@@ -112,6 +113,7 @@ def test_extra_universe_is_fetched_after_the_750_and_never_gates_the_night(monke
     extra = tmp_path / "ind_nanocap_list.csv"
     pd.DataFrame({"Symbol": ["AAA", "XOLD", "XNEW", "XGONE", "DUMMYX"]}).to_csv(extra, index=False)
     monkeypatch.setattr(sync, "EXTRA_LIST", str(extra))
+    monkeypatch.setattr(sync, "RECORDED_LIST", "/nonexistent/ind_nifty1000_list.csv")
     monkeypatch.setattr(sync, "fetch_indices_data",
                         lambda selected: pd.DataFrame({"Symbol": ["AAA"]}))
     monkeypatch.setattr(sync.sl, "load_store", lambda: _frame(["AAA", "XOLD", "XGONE"]))
