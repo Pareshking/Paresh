@@ -82,7 +82,25 @@ the same view but is its own redesign (PAGE_DESIGN §7, "Stock page").
 - **Not checked:** prices against a second source (the nightly checks own that; this
   page shows the ranking's own closes); Nano Cap and Combined views.
 
-## Decisions for the owner
+## Decided (owner, 21 Nov 2026: "With all your decisions")
+
+Mock-up v1 (artifact `Q4hR2uCVg4EzbwfKJcYWDh`) approved with the three recommendations
+below. Built the same day; the built page meets 27 of 27 checks and the layout audit is
+clean at 412 and 1400 px.
+
+Order: Screener → Qualified: → What moved since → Data to
+
+- **A, as built.** Past ranks are read on the last session on or before the same date
+  N months back (`calendar_momentum.rank_history_position`), in the engine as well, and
+  the rule is in the ranking's contract digest (`pipeline.RANK_HISTORY_ANCHOR`), so a
+  table published under the old rule is not served. The table shows the rank among the
+  ranked stocks 3M and 1M ago, and the qualified place 3M ago, 1M ago and now from the
+  Dashboard's own `rank_trails`: KOTAKBANK reads 65 (rank) and 54 (qualified) on 19 Oct
+  on the Screener, 54 on the Dashboard.
+- **B, as built.** Top 50 here, every row; the Dashboard keeps its top-40 count.
+- **C, as built.** 150 places; the count is on the preset (267 on 20 Nov).
+
+## The recommendations as put to the owner
 
 - **A. "A month ago".** Recommended: the Dashboard's dates (on or before) on both pages,
   from one function; the Screener keeps the rank among all 750 as its rank and shows the

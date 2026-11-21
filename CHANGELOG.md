@@ -1,7 +1,17 @@
 # Changelog
 
+## 2026-11-21 — Screener in the new design; one date for "a month ago"
 
-
+- The title answers the first question ("49 of the top 50 can be bought; 23 of the 50 are new this month."), with Screener as the kicker, as on Dashboard, Portfolio, Actions, Breadth and Sectors.
+- Rank 3 months and a month ago are numbers in their own columns, with the qualified place on the same dates and now beside them; the ▲/▼ change columns are gone (Big movers adds a "Places, 1M" column to sort on). "Out" means not among the qualified that day, the Dashboard's word.
+- **One date for "a month ago" on every page.** The ranking read past ranks on the first session on or after the same date a month back (21 Oct); the Dashboard, Portfolio and Actions on the last session on or before it (19 Oct). Both now read the session on or before. The rule is part of the ranking's contract, so the first night after this ships the app ranks for itself until the nightly job republishes (running Daily sync by hand clears it at once).
+- Index names instead of codes (Microcap 250, not MICRO250); industries in the short names every page uses (FMCG, Auto, Durables), from one map for the whole site; Sectors' "Cons. Durables" is now "Durables".
+- The book's two lines are named on their rows ("The book buys to here: the 20th qualified").
+- Column groups and headings in sentence case (Rank before, Qualified, Company, 1 month, Filters and highs).
+- The key under the filters is in short lines, two columns on a wide screen.
+- What moved: a headline that states the finding, every row shown (no "View all"), the rank on the date counted from against today, Held tags.
+- The foot gives the data date and counts only; "Ranked from: Personal" and "Data from: release files" are gone. A dataset that is behind is still named, in the caution colour.
+- The Screener joins the layout audit and requirements check in CI (`docs/SCREENER_REQUIREMENTS.md`).
 
 ## 2026-11-21 — Sectors in the new design
 

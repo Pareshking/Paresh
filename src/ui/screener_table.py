@@ -37,6 +37,7 @@ from src.ui.system_param import stock_href
 from src.ui.system_param import suffix as system_suffix
 from src.ui.theme import _spark_window_key, is_tick_true
 from src.ui import formats as _fmt
+from src.ui.industry_names import short_industry
 
 # Readable names for the index tags the ranking stores.
 INDEX_NAMES = {
@@ -53,52 +54,67 @@ PERIOD_WINDOWS = (1, 3, 6, 9, 12)
 # high_pct 0.80), drawn under those qualified places in rank order.
 BUY_CUT, KEEP_CUT, NEAR_HIGH_GAP_PCT = 20, 40, 20
 _ALL = {
-    "rank": ("Rank", "num"), "stock": ("Symbol", "text"), "price": ("CMP", "num"),
-    "d1m": ("1M Δ", "num"), "d3m": ("3M Δ", "num"),
+    "rank": ("Rank", "num"), "stock": ("Stock", "text"), "price": ("Price", "num"),
+    # Rank among the 750 three months and a month ago, read on the session on or
+    # before that date: the date every page's rank trail uses (S154; Screener
+    # decision A, 21 Nov 2026). They replace the ▲/▼ change columns (PAGE_DESIGN
+    # §2: 3M ago, 1M ago and now side by side, as numbers).
+    "p3": ("3M ago", "num"), "p1": ("1M ago", "num"),
+    # Places moved in a month: shown only for Big movers, which sorts on it.
+    "d1m": ("Places, 1M", "num"),
     # S87 (owner, 7 Nov): place among the stocks that pass both filters (the
-    # list the book buys from: top 20, kept while in the top 40) and the
-    # composite score the ranking is sorted by.
-    "qrank": ("Qualified #", "num"), "score": ("Score", "num"),
+    # list the book buys from: top 20, kept while in the top 40), now and on the
+    # trail's two dates, from the Dashboard's own function (`rank_trails`), and
+    # the composite score the ranking is sorted by.
+    "q3": ("3M ago", "num"), "q1": ("1M ago", "num"),
+    "qrank": ("Now", "num"), "score": ("Score", "num"),
     "idx": ("Index", "text"), "ind": ("Industry", "text"),
-    "mcap": ("MCAP (Cr)", "num"),
-    "hi": ("From 52W high", "num"), "ath": ("% ATH", "num"), "ema": ("vs 50D EMA", "num"),
+    "mcap": ("Market cap, Cr", "num"),
+    "hi": ("From 52W high", "num"), "ath": ("From all-time high", "num"), "ema": ("vs 50D EMA", "num"),
     "vol": ("Volume", "text"),
-    "above": ("Above 50D EMA", "num"), "near": ("Near 52W high", "num"), "athf": ("At ATH", "num"),
-    "nh1": ("New Highs 1M", "num"), "nh3": ("New Highs 3M", "num"),
-    "stop": ("Stop Loss", "num"), "chand": ("Chand Exit", "num"),
-    "gap": ("Gap", "text"), "ffill": ("FFill %", "num"), "hz": ("Horizons", "num"),
-    "spark": ("60D Spark", None),
+    "above": ("Above 50D EMA", "num"), "near": ("Near 52W high", "num"), "athf": ("At all-time high", "num"),
+    "nh1": ("New highs 1M", "num"), "nh3": ("New highs 3M", "num"),
+    "stop": ("Stop loss", "num"), "chand": ("Chandelier exit", "num"),
+    "gap": ("Price gap", "text"), "ffill": ("Filled", "num"), "hz": ("Horizons", "num"),
+    "spark": ("60D", None),
 }
 for _w in PERIOD_WINDOWS:
-    _ALL[f"r{_w}"] = (f"{_w}M Ret", "num")
+    _ALL[f"r{_w}"] = (f"{_w}M return", "num")
     _ALL[f"sh{_w}"] = (f"{_w}M Sharpe", "num")
-    _ALL[f"dd{_w}"] = (f"Max DD {_w}M", "num")
+    _ALL[f"dd{_w}"] = (f"{_w}M largest fall", "num")
+# Columns where 1 is best: a first click sorts them smallest first.
+_RANK_KEYS = ("rank", "p3", "p1", "q3", "q1", "qrank")
 
 # Full Quant is the master: the research view's own columns, in its own order.
 # Executive and Core are this set with columns hidden, nothing else. Sharpe is
 # a quant-view statistic (not comparable like a return) and the drawdown shown
 # outside Quant is the 3M one.
 _QUANT_KEYS = (
-    ("rank", "stock", "price", "qrank", "score", "d1m", "d3m", "idx", "ind", "mcap")
+    ("rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "score", "idx", "ind", "mcap")
     + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
     + ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3", "stop", "chand",
        "gap", "ffill", "hz", "spark")
 )
-_CORE_KEYS = ("rank", "stock", "price", "qrank", "d1m", "d3m", "idx", "ind", "mcap",
+_CORE_KEYS = ("rank", "stock", "price", "p3", "p1", "qrank", "idx", "ind", "mcap",
               "r1", "r3", "r6", "r12", "dd3", "hi", "ema", "vol", "above", "near", "spark")
-_EXEC_KEYS = ("rank", "stock", "price", "qrank", "d1m", "idx", "ind", "r3", "r12", "dd3",
+_EXEC_KEYS = ("rank", "stock", "price", "p1", "qrank", "idx", "ind", "r3", "r12", "dd3",
               "hi", "ema", "above", "near", "spark")
 # Group labels over the columns, in order.
+# Sentence case, as every other table's labels (PAGE_DESIGN §3); the pinned
+# rank and stock carry no group label.
 _QUANT_GROUPS = (
-    ("Identity", ("rank", "stock", "price")),
-    ("Rank dynamics", ("qrank", "score", "d1m", "d3m")),
-    ("Classification", ("idx", "ind", "mcap")),
-    *((f"{w}M factor momentum", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
-    ("Technicals & filters", ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")),
-    ("Risk & exits", ("stop", "chand")),
+    ("", ("rank", "stock", "price")),
+    ("Rank before", ("p3", "p1", "d1m")),
+    ("Qualified", ("q3", "q1", "qrank")),
+    ("Score", ("score",)),
+    ("Company", ("idx", "ind", "mcap")),
+    *((f"{w} month{'s' if w > 1 else ''}", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
+    ("Filters and highs", ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")),
+    ("Exits", ("stop", "chand")),
     ("Data health", ("gap", "ffill", "hz")),
     ("Trend", ("spark",)),
 )
+_WINDOW_GROUPS = {f"{w} month{'s' if w > 1 else ''}" for w in PERIOD_WINDOWS}
 _RISK_KEYS = ("stop", "chand")
 # A ranking built from closing prices carries no ATR, so those columns would be
 # an em dash on every row; they are dropped with their headers.
@@ -109,14 +125,20 @@ PHONE_ROW_PX = 36   # Ledger density (owner, 7 Nov); the phone list keeps 44 for
 VISIBLE_ROWS = 25
 
 
-def columns_for(density: str, available=None) -> list[tuple[str, str, str | None]]:
+def columns_for(density: str, available=None, movers: bool = False) -> list[tuple[str, str, str | None]]:
     """The columns of a view. `available` is the ranking's column names, used to
-    drop the ATR-derived ones when the ranking carries none."""
+    drop the ATR-derived ones when the ranking carries none. `movers` adds the
+    places moved in a month after the past ranks (Big movers sorts on it)."""
     d = str(density)
     keys = _EXEC_KEYS if d.startswith("Executive") else (
         _QUANT_KEYS if d.startswith(("Full", "Quant")) else _CORE_KEYS)
     if available is not None and not any(c in available for c in _ATR_COLUMNS):
         keys = tuple(k for k in keys if k not in _RISK_KEYS)
+    if available is not None and "Qualified (-1M)" not in available:
+        keys = tuple(k for k in keys if k not in ("q3", "q1"))
+    if movers:
+        at = keys.index("p1") + 1 if "p1" in keys else 3
+        keys = keys[:at] + ("d1m",) + keys[at:]
     return [(k, *_ALL[k]) for k in keys]
 
 
@@ -135,7 +157,7 @@ def column_groups(keys: list[str]) -> list[tuple[str, int, bool]]:
     table scrolls sideways, so their group label is its own pinned cell.
     """
     group_of = {k: label for label, ks in _QUANT_GROUPS for k in ks}
-    windowed = {label: ks for label, ks in _QUANT_GROUPS if "momentum" in label}
+    windowed = {label: ks for label, ks in _QUANT_GROUPS if label in _WINDOW_GROUPS}
     partial = any(not set(ks) <= set(keys) for ks in windowed.values())
 
     def label(k: str) -> str:
@@ -254,7 +276,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     # The phone list's only line under the symbol, cut to ~130px: the
     # industry alone fits, where "industry · index · company" was cut in the
     # middle of the index name. The company name is the link's tooltip.
-    sub = ind if ind and ind != "nan" else ""
+    sub = short_industry(ind)
     rank = _num(row.get("Rank"))
     cmp_v = _num(row.get("CMP"))
     r3 = _num(row.get("3M Return"))
@@ -263,11 +285,20 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     cells["rank"] = (f'<td class="c-rank" data-v="{rank if rank is not None else ""}">'
                      f'{int(rank) if rank is not None else "—"}</td>')
     qr = _num(row.get("Qualified Rank"))
-    cut_note = ("" if qr is None else
-                " title=\"The book buys from the top 20 qualified\"" if qr == BUY_CUT else
-                " title=\"The book keeps a holding while it is in the top 40 qualified\"" if qr == KEEP_CUT else "")
-    cells["qrank"] = (f'<td class="n" data-v="{"" if qr is None else qr}"{cut_note}>'
-                      f'{"—" if qr is None else int(qr)}</td>')
+    # "Out": not among the qualified that day, the word the Dashboard's rank
+    # trail uses for the same thing (S154).
+    for key, col, cls in (("q3", "Qualified (-3M)", " past"), ("q1", "Qualified (-1M)", " past"),
+                          ("qrank", "Qualified Rank", "")):
+        q = _num(row.get(col))
+        cells[key] = (f'<td class="n{cls}" data-v="{"" if q is None else q}">'
+                      f'{"Out" if q is None else int(q)}</td>')
+    for key, col in (("p3", "Rank (-3M)"), ("p1", "Rank (-1M)")):
+        p_ = _num(row.get(col))
+        cells[key] = (f'<td class="n past" data-v="{"" if p_ is None else p_}">'
+                      f'{"—" if p_ is None else int(p_)}</td>')
+    # The book's two lines, named on the row they fall under (rank order only).
+    cut_txt = ("The book buys to here: the 20th qualified" if qr == BUY_CUT else
+               "A holding is kept to here: the 40th qualified" if qr == KEEP_CUT else "")
     sc = _num(row.get("Score"))
     cells["score"] = (f'<td class="n" data-v="{"" if sc is None else sc}">'
                       f'{"—" if sc is None else f"{sc:.2f}"}</td>')
@@ -277,7 +308,8 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
         f'data-stock="{sym_s}" title="Open {_esc(name) if name and name != "nan" else sym_s}"><span class="sym">{sym_s}'
         f'{"<em class=me>This stock</em>" if is_hl else ""}'
         f'{"<em class=held title=\'In the model book\'>Held</em>" if held else ""}</span>'
-        f'<span class="sub">{_esc(sub)}</span></a></td>'
+        f'<span class="sub">{_esc(sub)}</span>'
+        f'{f"<span class=cutnote>{cut_txt}</span>" if cut_txt else ""}</a></td>'
     )
     r3_txt = "—" if r3 is None else f"{'+' if r3 > 0 else '−' if r3 < 0 else ''}{abs(r3) * 100:.1f}%"
     r3_cls = "" if r3 is None else ("pos" if r3 > 0 else "neg" if r3 < 0 else "")
@@ -288,13 +320,10 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
         f'{_price_html(cmp_v)}'
         f'<span class="m-only {r3_cls}">{r3_txt} 3M</span></td>'
     )
-    for key, col in (("d1m", "Rank Δ 1M"), ("d3m", "Rank Δ 3M")):
-        d = _num(row.get(col))
-        if d is None:
-            cells[key] = '<td class="n" data-v="">—</td>'
-        else:
-            chip = ("up", f"▲ {int(d)}") if d > 0 else ("down", f"▼ {abs(int(d))}") if d < 0 else ("flat", "— 0")
-            cells[key] = f'<td class="n" data-v="{d}"><span class="chip {chip[0]}">{chip[1]}</span></td>'
+    d = _num(row.get("Rank Δ 1M"))
+    cells["d1m"] = ('<td class="n" data-v="">—</td>' if d is None else
+                    f'<td class="n {"pos" if d > 0 else "neg" if d < 0 else ""}" data-v="{d}">'
+                    f'{_signed(d, 0) if d else "0"}</td>')
     mc = _num(row.get("Market Cap (Cr)"))
     cells["mcap"] = (f'<td class="n" data-v="{"" if mc is None else mc}">'
                      f'{"—" if mc is None else _fmt.inr(mc)}</td>')
@@ -340,11 +369,16 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     cells["hz"] = (f'<td class="n{" muted" if hz is None else "" if hz >= n_w else " neg"}" '
                    f'data-v="{"" if hz is None else hz}">{"—" if hz is None else f"{int(hz)}/{n_w}"}</td>')
     tag = str(row.get("Indices") or "").split(",")[0].strip()
-    idx_html = (f'<span class="tag">{_esc(tag)}</span>' if tag
+    # The index's name, not the ranking's tag (MICRO250): no internal names
+    # on the page (PAGE_DESIGN §2). Sorted by size, largest first.
+    idx_name = INDEX_NAMES.get(tag, tag)
+    idx_order = list(INDEX_NAMES).index(tag) if tag in INDEX_NAMES else 9
+    idx_html = (f'<span class="tag">{_esc(idx_name)}</span>' if tag
                 else '<span class="muted">—</span>')
-    cells["idx"] = f'<td data-v="{_esc(tag)}">{idx_html}</td>'
+    cells["idx"] = f'<td data-v="{idx_order}">{idx_html}</td>'
     ind_full = str(row.get("Industry") or "").strip()
-    ind_txt = ind_full if len(ind_full) <= 21 else ind_full[:20] + "…"
+    ind_short = short_industry(ind_full)
+    ind_txt = ind_short if len(ind_short) <= 24 else ind_short[:23] + "…"
     cells["ind"] = f'<td data-v="{_esc(ind_full)}" title="{_esc(ind_full)}">{_esc(ind_txt) or "—"}</td>'
     # A failed filter says by how much (S87 item 6): the distance below the
     # 50D EMA, and below the 52W high against the within-20% rule.
@@ -397,7 +431,7 @@ thead th.t-left{text-align:left}
 thead th{text-transform:none;letter-spacing:0;font-size: var(--fs-12)}
 thead tr.grp-row th{font-size: var(--fs-12)}
 td.n.pos,td.n.neg{font-weight:600}
-thead tr.grp-row th{top:0;height:28px;font-size: var(--fs-12);font-weight:600;letter-spacing:0em;text-transform:uppercase;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
+thead tr.grp-row th{top:0;height:28px;font-size: var(--fs-12);font-weight:500;letter-spacing:0em;text-transform:none;text-align:center;color:var(--c-muted);border-bottom:1px solid var(--c-rule);border-left:1px solid var(--c-rule);cursor:default}
 thead tr.grp-row + tr.hdr th{top:28px}
 .tag{display:inline-block;font-size: var(--fs-12);font-weight:600;padding:0;border-radius:0;background:transparent;color:var(--c-text_2);border:0}
 td.c-tick{text-align:center}
@@ -412,6 +446,11 @@ td{height:""" + str(ROW_PX) + """px;padding:0 10px;border-bottom:1px solid var(-
 tbody tr:hover td{background:var(--c-subtle);cursor:pointer}
 td.n{text-align:right;font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
 .pos{color:var(--c-up)}.neg{color:var(--c-down)}.muted{color:var(--c-muted)}
+td.n.past{color:var(--c-faint)}
+/* The book's lines are named on their row, in rank order only (Screener redesign, 21 Nov 2026). */
+.cutnote{display:none;font-size: var(--fs-12);font-weight:500;color:var(--c-text_2);white-space:nowrap}
+table.byrank tr.cut .cutnote{display:block}
+table.byrank tr.cut td.c-stock .sub{display:none!important}
 tr.hdr th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
 thead tr.hdr th:nth-child(1){z-index:4}
 tr.hdr th:nth-child(2),td.c-stock{position:sticky;left:52px;z-index:2;text-align:left;max-width:380px;box-shadow:1px 0 0 var(--c-rule_soft)}
@@ -533,8 +572,8 @@ ths.forEach(function(th,i){
     drawShown();   // the rows this order brings into view
     // The lines under the 20th and 40th qualified stock mean something only
     // in rank order.
-    const lab=(th.textContent||'');
-    tbl.classList.toggle('byrank',dir==='asc'&&(lab.indexOf('Rank')===0||lab.indexOf('Qualified')===0));
+    const k=th.getAttribute('data-k');
+    tbl.classList.toggle('byrank',dir==='asc'&&(k==='rank'||k==='qrank'));
   });
 });
 """
@@ -549,7 +588,7 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     stock page's peers). `sort_key`/`sort_desc` name the column the rows
     arrive sorted by, so its header carries the arrow: the column headers are
     the page's one sort control."""
-    cols = columns_for(density, view.columns)
+    cols = columns_for(density, view.columns, movers=sort_key == "d1m")
     paths: dict = {}
     if prices_df is not None and not prices_df.empty:
         window = prices_df.iloc[-min(60, len(prices_df)):]
@@ -576,8 +615,8 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
                 if k == "spark" else f"<span>{_esc(label)}</span>")
         # A first click sorts a figure largest first (audit F72: returns opened
         # worst first); a rank, where 1 is best, still opens ascending.
-        first = ' data-first="asc"' if (t != "num" or k == "rank") else ' data-first="desc"'
-        head_cells.append(f'<th class="{cls.strip()}" data-type="{t or ""}"{first}{dir_attr}>{text}{arrow}</th>')
+        first = ' data-first="asc"' if (t != "num" or k in _RANK_KEYS) else ' data-first="desc"'
+        head_cells.append(f'<th class="{cls.strip()}" data-k="{k}" data-type="{t or ""}"{first}{dir_attr}>{text}{arrow}</th>')
     head = "".join(head_cells)
     parts = [
         f'<th colspan="{n}" class="grp{" pin" if pinned else ""}">{_esc(label)}</th>'

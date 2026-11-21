@@ -47,6 +47,10 @@ RANKING_COVERAGE_FLOOR: float = 1.00
 # set in the pipeline digest so an older published ranking cannot be accepted
 # after the stock-page history has been expanded.
 RANK_HISTORY_MONTHS: tuple[int, ...] = (6, 3, 2, 1)
+# Which session a past rank is read on: the last on or before the same date N
+# months back (S154, 21 Nov 2026; it was the first on or after). In the digest,
+# so a table published under the old rule is not served as the new one.
+RANK_HISTORY_ANCHOR: str = "on_or_before"
 
 
 def _settings_digest() -> str:
@@ -81,6 +85,7 @@ def _settings_digest() -> str:
         ANCHOR_STALENESS_LIMIT,
         RANKING_COVERAGE_FLOOR,
         list(RANK_HISTORY_MONTHS),
+        RANK_HISTORY_ANCHOR,
     ]
     # The price frame itself changes with the weekly fill (TODO S23), and the
     # price fingerprint would see that; the setting is named here as well so a

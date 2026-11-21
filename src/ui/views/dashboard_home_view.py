@@ -57,11 +57,7 @@ SIZE_LABELS = {"nifty200": "Nifty 200", "midcap150": "Midcap 150", "smallcap250"
                "microcap250": "Microcap 250", "nifty200_mom30": "Nifty200 Momentum 30",
                "midcap150_mom50": "Midcap150 Momentum 50", "smallcap250_mq100": "Smallcap250 Momentum Quality 100"}
 AT_RISK_ROWS = 8
-SHORT = {"Automobile and Auto Components": "Auto", "Media Entertainment & Publication": "Media",
-         "Fast Moving Consumer Goods": "FMCG", "Metals & Mining": "Metals", "Consumer Durables": "Durables",
-         "Financial Services": "Financials", "Consumer Services": "Cons. Services", "Capital Goods": "Capital Goods",
-         "Oil Gas & Consumable Fuels": "Oil & Gas", "Information Technology": "IT",
-         "Telecommunication": "Telecom"}
+from src.ui.industry_names import INDUSTRY_SHORT as SHORT  # noqa: E402  one map for every page
 TONE = {"up": "dh-up", "down": "dh-down", "watch": "dh-watch", "flat": "dh-muted", "for": "dh-up",
         "against": "dh-down", "neutral": "dh-muted"}
 
