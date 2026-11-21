@@ -68,7 +68,7 @@ const orderLine = docText.split('\n').find(l => l.startsWith('Order:'));
 const isDashboard = !process.argv[3] || /DASHBOARD_REQUIREMENTS/.test(process.argv[3]);
 // A page whose order is not yet agreed has no Order line: nothing to check (the Dashboard keeps its built-in order).
 const order = orderLine ? orderLine.slice(6).split('→').map(x => x.trim().toLowerCase()) : !isDashboard ? [] :
-  ['1 · the book this month', '2 · what happens on', '3 · is momentum still working?', '4 · money flows', '5 · size, and where momentum works', '6 · where the book is strong and weak', '7 · where leadership is moving', 'at a glance'];
+  ['1 · the book this month', '2 · what happens on', '3 · is momentum still working?', '4 · money flows', '5 · size, and where momentum works', '6 · where the book is strong and weak', 'at a glance'];
 let pos = 0, inOrder = true;
 for (const o of order) { const i = low.indexOf(o, pos); if (i < 0) { inOrder = false; break; } pos = i + o.length; }
 if (!inOrder) fails.push({n: 'order', req: 'sections in the agreed order', marker: order.join(' → ')});

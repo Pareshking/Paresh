@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-21 — RRG removed
+
+- The RRG page is gone from the menu (owner, 21 Nov 2026). Its formula is not published, and the reconstruction placed NSE's sector indices in the same quadrant as StockCharts' official RRG on only 35% of index-weeks (25% by chance); it also disagreed with Sectors on 10 of 19 industries (`docs/RRG_ANALYSIS_2026-11-21.md`). Industry leadership stays on Sectors.
+- Dashboard: section 7, "Where leadership is moving", is removed; its space is kept for the Indices page (S170). Section 6's cards show each industry's six-month and one-month figures against the market and no longer carry an RRG quadrant or rotation line.
+- The Guide's rotation-graph section is removed. Old `/rrg` links are not redirected (owner: "not required").
+
 ## 2026-11-21 — Verdicts read today, not the last month-end
 
 - **Breadth: "Is the market in an uptrend?" read October's close for most of November.** Four of its eight measures (the Nifty 500 and each size index against its 10-month average) read the 30 Oct month-end. On 20 Nov the page said "No clear trend, 3 up, 4 down" while every index stood above its 10-month average. They now read today's close against the last ten monthly closes, this month at today's close, as a monthly chart draws it; each row also names the month-end reading. On 20 Nov: "Strong uptrend, 7 of 8 up, 0 down"; the Nifty 500 is 6.1% above its average today, 3.1% below at the 30 Oct close.

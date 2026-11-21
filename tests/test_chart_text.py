@@ -34,17 +34,6 @@ def test_summary_text_is_escaped():
     assert "<b>x</b>" not in out and "&lt;b&gt;x&lt;/b&gt;" in out
 
 
-def test_rrg_summary_names_industries_by_quadrant():
-    text = charts.rrg_summary([
-        {"industry": "Pharma", "rs_ratio": 104, "quadrant": "Leading"},
-        {"industry": "Banks", "rs_ratio": 97, "quadrant": "Lagging"},
-        {"industry": "Metals", "rs_ratio": 106, "quadrant": "Leading"},
-    ])
-    assert text == "Leading: Metals, Pharma. Lagging: Banks."
-    assert "Leading: Metals" in charts._build_rrg_html("{}", text)
-    assert 'id="scroller" aria-hidden="true"' in charts._build_rrg_html("{}", text)
-
-
 def test_correlation_summary_names_the_most_and_least_alike_pair():
     c = pd.DataFrame([[1, 0.8, 0.1], [0.8, 1, -0.2], [0.1, -0.2, 1]],
                      index=list("ABC"), columns=list("ABC"), dtype=float)

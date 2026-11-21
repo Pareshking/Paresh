@@ -48,7 +48,7 @@ POLL_S = 5
 METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "600"))
 TABS = [
     "Dashboard", "Portfolio", "Actions", "Watchlist", "Screener", "Sectors",
-    "RRG", "Market Breadth", "Backtest", "Configuration",
+    "Market Breadth", "Backtest", "Configuration",
     "Guide",
 ]
 

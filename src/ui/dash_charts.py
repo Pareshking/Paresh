@@ -8,7 +8,7 @@ cannot see the page's CSS variables, so `tokens.resolve` writes them in.
 
 Kinds: "month" (straight-line bars, a period switch), "bars" (monthly bars
 from a zero line), "shared" (breadth by size list), "segbar" (the book by
-industry), "rrg" (relative rotation) and "breadth" (the index and its breadth,
+industry) and "breadth" (the index and its breadth,
 two panes, one crosshair); for Portfolio "growth" (₹100 and how far below the
 peak, the book and the market) and "holdings" (the book, sortable). Rules:
 docs/PAGE_DESIGN.md section 4.
@@ -25,7 +25,7 @@ import streamlit as st
 
 from src.ui.tokens import FONTS, resolve
 
-KINDS = ("month", "bars", "shared", "segbar", "rrg", "breadth", "growth", "holdings", "history", "lines")
+KINDS = ("month", "bars", "shared", "segbar", "breadth", "growth", "holdings", "history", "lines")
 # The kit's address carries its content hash, so a deploy is never drawn by a cached older kit.
 _KIT = Path(__file__).resolve().parents[2] / "static" / "dash_charts.js"
 KIT_SRC = "app/static/dash_charts.js?v=" + hashlib.sha256(_KIT.read_bytes()).hexdigest()[:12]
@@ -92,7 +92,6 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .seg-strong{background:var(--up)}.seg-strong.alt{background:color-mix(in srgb,var(--up) 70%,var(--bg))}
 .seg-turning{background:color-mix(in srgb,var(--caution) 45%,var(--bg))}.seg-turning.alt{background:color-mix(in srgb,var(--caution) 30%,var(--bg))}
 .seg-weak{background:var(--down)}.seg-weak.alt{background:color-mix(in srgb,var(--down) 75%,var(--bg))}
-.rrg{aspect-ratio:1.45/1}
 .hold{overflow-x:auto}
 .ht{width:100%;min-width:1120px;border-collapse:collapse;font-size:13.5px}
 .ht th,.ht td{text-align:left;padding:7px 5px 7px 0;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
@@ -141,8 +140,6 @@ BODY = {
                '<span><i class="k-line"></i>40% narrow · 60% broad</span><span>Each line {step}%</span></div>'),
     "segbar": ('<div class="readout" aria-live="polite"></div><div class="segbar" role="list" aria-label="{label}"></div>'
                '<div class="key seg-key"></div>'),
-    "rrg": ('<div class="readout" aria-live="polite"></div><div class="chart rrg" tabindex="0" role="img" aria-label="{label}"></div>'
-            '<div class="key"><span><i class="dot held"></i>Held in the book, sized by holdings</span><span><i class="dot"></i>Not held</span></div>'),
     "breadth": ('<div class="cap"><span>{note}</span><span class="chips" role="group" aria-label="Period">'
                 '<button class="chip" type="button" data-range="126" aria-pressed="false">6M</button>'
                 '<button class="chip" type="button" data-range="252" aria-pressed="false">1Y</button>'

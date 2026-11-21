@@ -166,7 +166,6 @@ with app_import_guard():
     from src.ui.views.actions_view import render_actions_view
     from src.ui.views.dashboard_home_view import render_home_view
     from src.ui.views.ranking_view import render_ranking_view, system_note
-    from src.ui.views.rrg_view import render_rrg_view
     from src.ui.views.sector_view import render_sector_view
     from src.ui.views.watchlist_view import render_watchlist_view
     
@@ -937,7 +936,7 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
         calc, rank_df = _build_engine_and_rank()
 
     return {
-        # No page asks for the engine any more. Sectors and RRG read the
+        # No page asks for the engine any more. Sectors reads the
         # ranking table; Portfolio read one price frame off it and now takes
         # that frame directly (below). Building it eagerly made every reader
         # pay 30 seconds for an object their first page never touched, and
@@ -1182,14 +1181,6 @@ def _page_sectors() -> None:
                        benchmark_close=fetch_benchmark_history(period="5y"))
 
 
-def _page_rrg() -> None:
-    # No get_calc() here. This page never read the engine -- it took it as an
-    # argument and ignored it -- so on the common cold start, where the
-    # precomputed ranking is accepted and `calc` is still None, opening RRG
-    # built the whole engine to satisfy an unused parameter.
-    render_rrg_view(rank_df, adj_close)
-
-
 def _page_portfolio() -> None:
     # The pinned model book: no Configuration limits reach it, and no engine is
     # built for it -- it reads the ranking's price frame, nothing else (S115).
@@ -1276,7 +1267,6 @@ _PAGES = [
     st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
     st.Page(_page_screener, title="Screener", url_path="screener"),
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
-    st.Page(_page_rrg, title="RRG", url_path="rrg"),
     st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
     st.Page(_page_backtest, title="Backtest", url_path="backtest"),
     st.Page(_page_configuration, title="Configuration", url_path="configuration"),

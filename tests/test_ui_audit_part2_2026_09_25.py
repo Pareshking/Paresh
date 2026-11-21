@@ -1,14 +1,10 @@
 """Regressions from the line-by-line UI audit, part 2 (2026-09-25)."""
-import re
-import shutil
-import subprocess
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from src.engine.momentum import CARRIED_MARK
-from src.ui import charts, components, screener_table
+from src.ui import components, screener_table
 from src.ui.views import breadth_view, stock_view
 
 
@@ -93,14 +89,3 @@ def test_breadth_by_index_matches_exact_tags():
     assert breadth_view.index_members(df, "NIFTY MIDCAP 150") == ["C"]
     assert breadth_view.index_members(df, "NIFTY MICROCAP 250") == ["D"]
 
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="needs node to parse the page scripts")
-def test_chart_pages_escape_names_and_still_parse(tmp_path, monkeypatch):
-    pages = [
-        charts._build_rrg_html(charts._script_json([])),
-    ]
-    for i, page in enumerate(pages):
-        assert "function esc(" in page
-        js = tmp_path / f"p{i}.js"
-        js.write_text("\n".join(re.findall(r"<script>(.*?)</script>", page, re.S)))
-        assert subprocess.run(["node", "--check", str(js)], capture_output=True).returncode == 0
