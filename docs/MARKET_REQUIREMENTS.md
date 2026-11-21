@@ -1,11 +1,13 @@
-# Breadth requirements: everything agreed, in one list
+# Market page requirements: everything agreed, in one list
+
+The page was called Breadth until 21 Nov 2026; the dated entries below keep that name.
 
 Started 21 Nov 2026, before any change, from the live page that day
-(`src/ui/views/breadth_view.py`, `market_questions_view.py`), the owner's decisions in
+(`src/ui/views/market_view.py`, `market_questions_view.py`), the owner's decisions in
 `CHANGELOG.md` (dated below), and the rules learned on Dashboard, Portfolio and Actions
 (`docs/PAGE_DESIGN.md` §2a, `docs/FIGURE_INVENTORY.md`). Checked with:
 
-    node scripts/check_dashboard_requirements.mjs <url> docs/BREADTH_REQUIREMENTS.md
+    node scripts/check_dashboard_requirements.mjs <url> docs/MARKET_REQUIREMENTS.md
 
 A row is changed or dropped only with the owner's word. The `Order:` line is added when
 the owner approves the section order.

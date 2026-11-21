@@ -615,9 +615,9 @@ _CHART_CSS = """<style>
 </style>"""
 
 
-def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
-                             size: dict[str, pd.Series]) -> bool:
-    """The Breadth page's two questions, each followed by the charts behind
+def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
+                                  size: dict[str, pd.Series]) -> bool:
+    """The Market page's two questions, each followed by the charts behind
     its answer. Returns False when there is not enough data to answer them."""
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
         return False
