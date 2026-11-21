@@ -1,4 +1,9 @@
-# Sector ↔ NSE sector index map: proposed, not approved
+# Sector ↔ NSE sector index map: approved by the owner, 21 Nov 2026
+
+**Owner, 21 Nov 2026:** every question answered as recommended below, and MQ4 yes: Nifty Consumer Services and Nifty
+Commercial & Transport Services move to "Sector" and are the headlines for Consumer Services and Services, so 18
+sectors have an index and 37 indices sit on the page (`SECTORS_REQUIREMENTS.md`, "Owner's decisions", items 1-6).
+MQ7 waits (a TODO). Committing the map as `data/reference/nse_sector_index_map.csv` is part of the build.
 
 Written 21 Nov 2026 for `SECTORS_REQUIREMENTS.md` row P3 (owner, 21 Nov 2026: NSE's sector indices move to
 Sectors, beside each group's equal-weighted figure, "with an industry ↔ index map to show the owner first").

@@ -49,11 +49,11 @@ HEADLINE = {
     "Automobile and Auto Components": "nifty_auto",
     "Chemicals": "nifty_chemicals",
     "Fast Moving Consumer Goods": "nifty_fmcg",
-    "Consumer Services": None,
+    "Consumer Services": "nifty_consumer_services",          # owner, 21 Nov 2026 (MQ4): moved to Sector
     "Consumer Durables": "nifty_consumer_durables",
     "Information Technology": "nifty_it",
     "Metals & Mining": "nifty_metal",
-    "Services": None,
+    "Services": "nifty_commercial_transport_services",       # owner, 21 Nov 2026 (MQ4): moved to Sector
     "Construction": "nifty_construction",
     "Power": "nifty_power",
     "Realty": "nifty_realty",
@@ -79,6 +79,8 @@ FINER = {
     "Consumer Services": ["nifty_retail"],
     "Fast Moving Consumer Goods": ["nifty_sugar_ethanol"],
 }
+# Owner, 21 Nov 2026 (MQ4): these two leave Theme for Sector; nse_index_groups.csv changes in the build.
+REGROUP = ("nifty_consumer_services", "nifty_commercial_transport_services")
 MIN_STOCKS = 5          # "What is leading?" reads sectors with five or more ranked stocks
 WINDOWS = (1, 3, 6, 9, 12)
 
@@ -124,6 +126,8 @@ def main() -> None:
     from src.ui.views.market_questions_view import total_market
     tm = total_market().dropna()
     f = ip.frames(ni.read_compact(), ni.groups())
+    for k in REGROUP:
+        f.groups[k] = "Sector"
 
     # One session for every figure (S148): the last one all three sources hold.
     as_of = min(close.index[-1], tm.index[-1], f.as_of)
@@ -264,8 +268,27 @@ def main() -> None:
                "high": r2(r["% High"]),          # already in % (returns are fractions)
                "ema": bool(r["Above 50 EMA"]), "near": bool(r["Near 52W High"])} for _, r in mem.iterrows()]
 
+    # The leadership map (kept, owner 21 Nov 2026): the live page's function, 200D EMA and 1M by default,
+    # five or more stocks so the map counts the same 19 sectors as the rest of the page.
+    from src.engine.sector_breadth import sector_leadership
+    lmap = sector_leadership(px, industry, tm, 200, min_stocks=MIN_STOCKS, months=1)
+    map_rows = [{"name": r.Sector, "stocks": int(r.Stocks), "x0": r2(r.x_then * 100), "x1": r2(r.x_now * 100),
+                 "y0": r2(r.y_then * 100), "y1": r2(r.y_now * 100), "above0": int(r.above_then), "obs0": int(r.obs_then),
+                 "above1": int(r.above_now), "obs1": int(r.obs_now), "ret": r2(r.ret_now * 100, 2),
+                 "bench": r2(r.bench_now * 100, 2), "leaders": [[s, r2(v * 100)] for s, v in r.Leaders]}
+                for r in lmap.itertuples()]
+    lmap_dates = {"then": f"{pd.Timestamp(lmap['Then'].iloc[0]):%-d %b}", "now": f"{pd.Timestamp(lmap['Now'].iloc[0]):%-d %b}"}
+
+    # The second state: a TradingView grouping chosen (the live page's choices; committed nse_tv_classification.csv).
+    tv = pd.read_csv(ROOT / "data" / "nse_tv_classification.csv").drop_duplicates("Symbol").set_index("Symbol")["TV_Sector"]
+    tv = tv.reindex(industry.index)
+    tv_ld = mq.leaders_answer(px, tv, tm, {}, market_name="Nifty Total Market")
+    tv_rows = [{"name": r.Industry, "stocks": int(r.Stocks), "lead6": r2(r.rel_6m), "lead1": r2(r.rel_1m), "group": r.group}
+               for r in tv_ld.sectors.itertuples()]
+
     from src.ui.components import gap_count
     out = {
+        "map": map_rows, "map_dates": lmap_dates, "tv": tv_rows, "tv_missing": int(tv.isna().sum()),
         "as_of": f"{as_of:%-d %b %Y}", "as_of_iso": f"{as_of:%Y-%m-%d}", "d1": f"{d1:%-d %b}", "d3": f"{d3:%-d %b}",
         "ranked": len(rank), "price_gaps": int(gap_count(rank)),
         "short_history": int((rank.get("Short History") == "Yes").sum()),
