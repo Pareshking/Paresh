@@ -25,7 +25,7 @@ import streamlit as st
 
 from src.ui.tokens import FONTS, resolve
 
-KINDS = ("month", "bars", "shared", "segbar", "breadth", "growth", "holdings", "history", "lines", "trows", "rel")
+KINDS = ("month", "bars", "shared", "segbar", "breadth", "growth", "holdings", "history", "lines", "trows", "rel", "btgrowth")
 # The kit's address carries its content hash, so a deploy is never drawn by a cached older kit.
 _KIT = Path(__file__).resolve().parents[2] / "static" / "dash_charts.js"
 KIT_SRC = "app/static/dash_charts.js?v=" + hashlib.sha256(_KIT.read_bytes()).hexdigest()[:12]
@@ -168,6 +168,10 @@ BODY = {
             '<div class="readout" aria-live="polite"></div>'
             '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div>'
             '<div class="chart" data-pane="bottom" role="img" aria-label="How far the line sits below its best"></div>'),
+    "btgrowth": ('<div class="ph p1" aria-live="polite"></div>'
+                 '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div>'
+                 '<div class="ph p2"></div>'
+                 '<div class="chart" data-pane="bottom" role="img" aria-label="How far each sits below its own peak"></div>'),
     "history": ('<div class="cap"><span class="chips views" role="group" aria-label="View"></span>'
                 '<span class="chips filters" role="group" aria-label="Show"></span></div>'
                 '<div class="hbars" hidden><div class="readout" aria-live="polite"></div>'

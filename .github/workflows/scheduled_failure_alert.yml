@@ -24,6 +24,7 @@ on:
       - FII and DII flows (daily)
       - NSDL FPI daily (official FII history)
       - Momentum health (monthly)
+      - Backtest reference (weekly)
       - Monthly Track Record Freeze
       - NSE daily bundle collection
       - NSE history audit

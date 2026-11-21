@@ -404,8 +404,9 @@ def render(kit, left, right) -> None:
             st.html(out)
             kit.caption("Each month-end, the share of the Nifty 500's members (as they stood then) passing the "
                         "same filters the model applies. Line: the last 24 month-ends. The backtest is the record's "
-                        "configuration on NSE's adjusted closes over the Nifty 500 as it stood (Backtest's History "
-                        "from 2010), rebuilt each month; a reading, not a forecast.")
+                        "configuration on NSE's adjusted closes over the Nifty 500 as it stood, with the record's "
+                        "monthly reset before Nov 2026 (the Backtest page applies the six-monthly reset throughout), "
+                        "rebuilt each month; a reading, not a forecast.")
     with right, kit.card("Flows", "db_flows", "foreign and domestic institutions"):
         nse = _load(FLOWS_FILE)
         out = nsdl_flows_html(_load(NSDL_FILE), nse)

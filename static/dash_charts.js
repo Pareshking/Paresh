@@ -40,7 +40,7 @@ function linePane(el, o){
   if(o.range){lo=o.range[0];hi=o.range[1];} else {const pad=(hi-lo)*0.08;lo-=pad;hi+=pad;}
   const X=i=>padL+(W-padL-padR)*(n<2?0:i/(n-1)), Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo));
   for(const b of o.bands||[]) mk('rect',{x:padL,width:W-padL-padR,y:Y(b.to),height:Y(b.from)-Y(b.to),fill:b.fill},svg);
-  for(const t of niceTicks(lo,hi,o.ticks||4)){ if(t<lo||t>hi) continue;
+  for(const t of (o.tickVals||niceTicks(lo,hi,o.ticks||4))){ if(t<lo||t>hi) continue;
     mk('line',{x1:padL,x2:W-padR,y1:Y(t),y2:Y(t),stroke:css('--rule-soft'),'stroke-width':1},svg);
     mk('text',{x:padL-6,y:Y(t)+4,'text-anchor':'end'},svg).textContent=String(o.yfmt(t)).replace('-','−'); }
   for(const l of o.levels||[]){ mk('line',{x1:padL,x2:W-padR,y1:Y(l.v),y2:Y(l.v),stroke:l.color,'stroke-width':1,'stroke-dasharray':'3 4'},svg);
@@ -418,6 +418,36 @@ R.rel = (card, s) => {
     {name: x.label, color: css('--ink'), v: x.rel[i].toFixed(1)},
     {name: 'below its best', color: css('--down'), v: sg(x.dd[i]) + '%', vcolor: x.dd[i] < 0 ? css('--down') : ''}]}; },
     () => s.styles[k].dates.length - 1);
+};
+
+/* Backtest (S174): ₹100 on a log scale, the rule and the indices, and how far each sits below its own
+   peak: two panes, one crosshair, the values in each pane's heading. spec: dates, series[{key, name, color
+   (token), values, dd, dash, width}], ticks [100, 200, 500 ...]. A series with no value yet reads "—". */
+R.btgrowth = (card, s) => {
+  const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
+  const h1 = $('.ph.p1', card), h2 = $('.ph.p2', card), L = v => v == null ? null : Math.log10(v);
+  const key = x => `<i class="${x.dash ? 'dash' : ''}" style="color:${css('--' + x.color)}"></i>`;
+  h1.innerHTML = '<span class="d"></span>' + s.series.map((x, i) => `<span>${key(x)}${esc(x.name)} <b data-v="g${i}"></b></span>`).join('');
+  h2.innerHTML = '<b>' + esc(s.ddHead || 'Below its peak') + '</b>' + s.series.map((x, i) => `<span>${key(x)}${esc(x.short || x.name)} <b data-v="d${i}"></b></span>`).join('');
+  let panes = [];
+  const draw = () => { const W = top.clientWidth, h = Math.round(Math.max(200, Math.min(360, W * 0.33)));
+    const all = s.series.flatMap(x => x.values.filter(v => v != null));
+    panes = [linePane(top, {dates: s.dates, series: s.series.map((x, i) => ({name: x.name, color: css('--' + x.color), values: x.values.map(L),
+        area: i === 0, width: x.width || (i === 0 ? 2.2 : 1.6), dash: x.dash ? '5 4' : ''})),
+        height: h, padL: 48, padR: 8, noX: true, yfmt: v => Math.round(Math.pow(10, v)).toLocaleString('en-IN'),
+        tickVals: (s.ticks || []).map(L), areaBase: L(Math.min(...all) * 0.95)}),
+      linePane(bot, {dates: s.dates, series: s.series.map((x, i) => ({name: x.name, color: css(i === 0 ? '--down' : '--' + x.color), values: x.dd,
+        area: i === 0, width: i === 0 ? 1.6 : 1.3, dash: x.dash ? '4 3' : ''})),
+        height: Math.round(h * 0.45), padL: 48, padR: 8, yfmt: v => v.toFixed(0) + '%', areaBase: 0, ticks: 3,
+        xfmt: d => d.slice(0, 4)})]; };
+  REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
+  const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); if (b) { b.textContent = v; b.className = c || ''; } };
+  interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
+    $('.ph.p1 .d', card).textContent = (i == null ? 'Latest · ' : '') + r.date;
+    s.series.forEach((x, j) => { const v = x.values[k], d = x.dd[k];
+      put('g' + j, v == null ? '—' : '₹' + Math.round(v).toLocaleString('en-IN'));
+      put('d' + j, d == null ? '—' : sg(d) + '%', d != null && d < 0 && j === 0 ? 'down' : ''); }); },
+    k => ({date: dlong(s.dates[k]), items: []}), () => s.dates.length - 1);
 };
 
 window.DashCharts = {render(kind, spec) { R[kind](document.getElementById('c'), spec); }};

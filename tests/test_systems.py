@@ -52,11 +52,8 @@ def test_a_ledger_freezes_nothing_before_its_own_inception():
     assert out["inception"] == "2026-10"
 
 
-def test_each_backtest_starts_at_canonical_inception_and_grows_monthly():
-    from src.engine.systems import backtest_months
-    assert backtest_months("750", "2026-02-01") == 1
-    assert backtest_months("750", "2026-09-25") == 8
-    assert backtest_months("nano", "2026-09-30") == 0        # September still running
-    assert backtest_months("nano", "2026-10-01") == 1        # September complete
-    assert backtest_months("combined", "2026-11-02") == 2
-    assert backtest_months("nano", "2027-09-01") == 12
+def test_the_backtest_no_longer_reports_by_system():
+    # S174 (owner, 21 Nov 2026): the Backtest's Live tab, the only reader of
+    # systems.backtest_months, is gone; the page runs on NSE's long file only.
+    from src.engine import systems
+    assert not hasattr(systems, "backtest_months")
