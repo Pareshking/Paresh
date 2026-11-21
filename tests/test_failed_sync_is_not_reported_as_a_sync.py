@@ -45,6 +45,14 @@ def meta_file(tmp_path, monkeypatch):
             for name, real in indices_loader.INDICES_LOCAL.items()
         },
     )
+    monkeypatch.setattr(  # the recorded-only lists too (Nifty 1000, S175)
+        indices_loader,
+        "RECORDED_INDICES_LOCAL",
+        {
+            name: str(idx_dir / os.path.basename(real))
+            for name, real in indices_loader.RECORDED_INDICES_LOCAL.items()
+        },
+    )
     monkeypatch.setattr(indices_loader.time, "sleep", lambda *_: None)
     return path
 

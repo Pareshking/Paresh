@@ -4,12 +4,17 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import pandas as pd
-from src.core.config import INDICES_LOCAL
+from src.core.config import INDICES_LOCAL, RECORDED_INDICES_LOCAL
 from src.core.tickers import is_tradeable_symbol
 from src.core.membership_history import load_history, save_history
+from src.engine import nifty1000_backfill
 
-INDEX_KEYS = {name: name.lower().replace(" ", "_") for name in INDICES_LOCAL}
+# The ranked lists and the recorded-only ones (Nifty 1000, S175): both are point in time from here.
+RECORDED = {**INDICES_LOCAL, **RECORDED_INDICES_LOCAL}
+INDEX_KEYS = {name: name.lower().replace(" ", "_") for name in RECORDED}
 INDIA = ZoneInfo("Asia/Kolkata")
+# Indices whose record starts before the first list we hold (owner, 21 Nov 2026: Nifty 1000 from 1 Nov).
+BACKFILL = {"nifty_1000": nifty1000_backfill.reconstruct}
 
 def clean(values):
     return sorted({str(v).strip().upper() for v in values if is_tradeable_symbol(v)})
@@ -18,7 +23,7 @@ def main():
     history = load_history()
     observed = datetime.now(INDIA).date().isoformat()
     changes = {}
-    for index_name, path in INDICES_LOCAL.items():
+    for index_name, path in RECORDED.items():
         if not os.path.exists(path):
             continue
         frame = pd.read_csv(path)
@@ -29,6 +34,12 @@ def main():
         current = clean(frame[sym_col].tolist())
         key = INDEX_KEYS[index_name]
         entry = history["indices"].get(key)
+        if entry is None and key in BACKFILL and "nifty_total_market" in history["indices"]:
+            # First sight of an index the owner wants from an earlier date: rebuilt from that
+            # date by its own rule, with a note that it is a reconstruction (S175).
+            history["indices"][key] = BACKFILL[key](history["indices"]["nifty_total_market"], current, observed)
+            changes[key] = {"added": current, "removed": []}
+            continue
         if entry is None:
             history["indices"][key] = {"baseline": {"date": observed, "symbols": current}, "changes": []}
             changes[key] = {"added": [], "removed": []}

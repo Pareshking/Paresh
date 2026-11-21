@@ -24,6 +24,10 @@ def frozen_view(history: dict, through: str = FROZEN_THROUGH) -> dict:
     view = {"indices": {}}
     for key in sorted(history["indices"]):
         entry = history["indices"][key]
+        # An index first recorded after the freeze date has no frozen past (Nifty 1000, from
+        # 21 Nov 2026, S175): leaving it out keeps the hash of what WAS frozen unchanged.
+        if entry["baseline"]["date"] > through:
+            continue
         view["indices"][key] = {"baseline": entry["baseline"],
                                 "changes": [c for c in entry["changes"] if c["date"] <= through]}
     for part in PARTS:

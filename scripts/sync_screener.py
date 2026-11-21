@@ -176,20 +176,26 @@ def _deep_check_due(today: date | None = None, path: str = SCREENER_DEEP_CHECK_F
 
 
 EXTRA_LIST = os.path.join(os.path.dirname(__file__), "..", "data", "indices", "ind_nanocap_list.csv")
+# Nifty 1000 (recorded, not yet ranked): its members outside the 750 are collected the same way,
+# so their history is in the store before the Nifty 1000 system ranks them (S175, PR 2).
+RECORDED_LIST = os.path.join(os.path.dirname(__file__), "..", "data", "indices", "ind_nifty1000_list.csv")
 
 
 def extra_symbols(core: list[str], path: str | None = None) -> list[str]:
-    """The extra universe's stocks not already in the 750 (empty without a list).
+    """The stocks of the extra lists not already in the 750 (empty without a list).
 
+    The lists are the ₹2,000 Cr list and the Nifty 1000 (or `path` alone).
     Collected after the 750 and best effort: none of them is part of the
     coverage gate, so a stock Screener cannot serve never fails the night the
     750 depend on (src/engine/extra_universe.py).
     """
-    path = path or EXTRA_LIST
-    if not os.path.exists(path):
-        return []
-    frame = pd.read_csv(path)
-    return sorted(set(_tradable_universe_symbols(frame["Symbol"].dropna().tolist())) - set(core))
+    out: set[str] = set()
+    for p in ([path] if path else [EXTRA_LIST, RECORDED_LIST]):
+        if not os.path.exists(p):
+            continue
+        frame = pd.read_csv(p)
+        out |= set(_tradable_universe_symbols(frame["Symbol"].dropna().tolist()))
+    return sorted(out - set(core))
 
 
 def _record_deep_check(today: date | None = None, path: str = SCREENER_DEEP_CHECK_FILE) -> None:

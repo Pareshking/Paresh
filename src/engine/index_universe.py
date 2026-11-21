@@ -35,6 +35,10 @@ INDICES: dict[str, str] = {
 }
 DEFAULT_INDEX = "nifty_500"
 NIFTY_100_PARTS = ("nifty_50", "nifty_next_50")
+# Lists recorded but not ranked (src/core/config.RECORDED_INDICES_URLS): kept out of
+# all_ever_members, so the long NSE price file does not take in ~250 stocks before their
+# prices are backfilled and audited (S175, owner 21 Nov 2026: record first, prices next).
+RECORDED_ONLY = ("nifty_1000",)
 
 
 def _stored(full: dict[str, Any], key: str) -> dict[str, Any] | None:
@@ -95,6 +99,8 @@ def all_ever_members(full: dict[str, Any] | None = None) -> set[str]:
         return set()
     out = ever_members(full)
     for key in (full.get("indices") or {}):
+        if key in RECORDED_ONLY:
+            continue
         out |= ever_members(_stored(full, key))
     return out
 

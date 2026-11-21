@@ -128,7 +128,7 @@ with app_import_guard():
     from src.loaders.indices_loader import fetch_indices_data
     from src.loaders import extra_universe_loader as extra_loader
     from src.engine.extra_universe import (
-        SYSTEM_750, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
+        SYSTEM_750, SYSTEM_1000, SYSTEM_COMBINED, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
     )
     from src.core.universe_reconciliation import reconcile_symbols
     from src.loaders.mcap_loader import fetch_market_caps
@@ -742,8 +742,7 @@ def run_momentum_pipeline(
 def _system_universe(system: str, indices: list[str]) -> pd.DataFrame:
     """The stocks a system ranks: the 750, Nano Cap, or both as one list."""
     base = fetch_indices_data(indices) if system != SYSTEM_NANO else pd.DataFrame(columns=["Symbol"])
-    extra = extra_loader.fetch_members() if system != SYSTEM_750 else pd.DataFrame(columns=["Symbol"])
-    return extra_loader.system_universe(system, base, extra)
+    return extra_loader.system_universe(system, base, extra_loader.extra_members(system))
 
 
 def load_all_data(indices: list[str], system: str = SYSTEM_750):
@@ -1101,7 +1100,8 @@ rank_df = _with_tv(rank_df)
 # ── The system ───────────────────────────────────────────────────────────────
 # Owner, 2026-09-27: three systems in one app, chosen in Configuration, and
 # every page follows the choice. The data above is the chosen system's.
-if system != SYSTEM_750:
+if system in (SYSTEM_NANO, SYSTEM_COMBINED):
+    # The Nifty 1000 keeps NSE's industry: NSE's list names one for all 1,000 (S175).
     # One taxonomy per system. NSE's industry names exist only for the 750, so
     # Combined would mix two (37 "industries" where there are ~20): Nano Cap
     # and Combined group every stock by its TradingView sector, falling back
@@ -1117,6 +1117,11 @@ def _system_line() -> None:
     if system == SYSTEM_750:
         return
     members = set(data["idx_info"]["Symbol"]) if data.get("idx_info") is not None else set()
+    if system == SYSTEM_1000:
+        kit.note(*system_note(system_name, rank_df["Symbol"], members, nano=False,
+                              reason="not ranked yet (under three months of prices with us; "
+                                     "their history is being collected)"))
+        return
     kit.note(*system_note(system_name, rank_df["Symbol"], members, nano=system == SYSTEM_NANO))
 
 

@@ -6,6 +6,13 @@
 - To make room, the prices date ("Prices · closes of 20 Nov", amber when a source is stale) moves from the top bar to the right-hand end of the market line on desktop. The Dashboard, which has no market line, shows it in a row of its own under the bar. On a phone it stays in the bar.
 - The Market page's label above its title now reads "Market" (it read "Breadth"), and the Dashboard's link to it under "Breadth, ranked stocks" is named "Market".
 
+## 2026-11-21 — Four systems: Nifty 1000 added, Nano Cap renamed "> ₹2,000 Cr"
+
+- Configuration → System offers **Nifty 750, Nifty 1000, > ₹2,000 Cr and Combined**. Nifty 1000 is NSE's index: the 750 plus NIFTY NANOCAP 250, our name for NSE's other 250 (not an index NSE publishes). Its record starts with November 2026; November is reconstructed, because NSE first published the index on 16 Nov.
+- "Nano Cap" is shown as **> ₹2,000 Cr**: every stock of ₹2,000 Cr or more outside the 750. Nothing else about it changes; old `?sys=nano` links still work.
+- Nifty 1000 keeps NSE's industry names. Until their prices are collected, 58 of its stocks are listed under the Screener as "not ranked yet".
+- Portfolio, every system: the headline and the "₹1 crore put in on…" line name the system's own start and rules (they said 1 January and the Nifty 750 for every system), the market's return since the start is measured from that start, and a fall reads "down 8.3%", not "up -8.3%". A system's first days show a note instead of failing: no growth chart before two sessions, no day-by-day before six, no trade figures before the first exit. Combined's Portfolio no longer fails while no closed trade is a loser.
+
 ## 2026-11-21 — Menu: seven pages in the top bar, no sections
 
 - The top bar on a desktop now links Dashboard, Actions, Screener, Portfolio, Market, Indices and Sectors (it had the first four).
