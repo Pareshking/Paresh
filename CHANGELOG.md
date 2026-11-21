@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-21 — Nifty Total Market: three April 2023 closes back on their days
+
+- Three Nifty Total Market closes from April 2023 sat under the wrong dates, which drew a false −14.9% day on 4 Oct 2023 in anything reading 2023 against the market. NSE printed those three days' files with the month first; the collector now checks every file's date against the day it asked for, and the three days were fetched again from NSE. Every session now matches NSE's daily index files.
+
 ## 2026-11-21 — Menu: seven pages in the top bar, no sections
 
 - The top bar on a desktop now links Dashboard, Actions, Screener, Portfolio, Market, Indices and Sectors (it had the first four).
