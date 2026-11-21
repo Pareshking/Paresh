@@ -92,3 +92,52 @@ def test_the_committed_tables_load():
     al = ni.load_aliases()
     assert al["cnx_nifty"] == "nifty_50" and al["cnx_finance"] == "nifty_financial_services"
     assert ni.CORRECTIONS.exists()
+
+
+def test_a_slash_date_is_the_session_not_a_dropped_file():
+    # 59 files, Jun 2014 - Jun 2015, print 09/06/2014; they were once dropped silently.
+    rows = ni.parse_file(_file("CNX Nifty,09/06/2014,-,-,-,7654.60,1,1,1,1,21,3,1"), ALIASES,
+                         pd.Timestamp("2014-06-09"))
+    assert list(rows["date"]) == [pd.Timestamp("2014-06-09")]
+
+
+def test_a_month_first_date_is_read_as_the_session_asked_for():
+    # NSE's file for 10 Apr 2023 says 04-10-2023; read day-first it would be 4 Oct.
+    rows = ni.parse_file(_file("Nifty 50,04-10-2023,-,-,-,17624.05,24.9,.14,1,1,20.75,4.13,1.41"), ALIASES,
+                         pd.Timestamp("2023-04-10"))
+    assert list(rows["date"]) == [pd.Timestamp("2023-04-10")]
+
+
+def test_a_file_dated_another_day_is_refused():
+    with pytest.raises(ni.NotAnIndexFile, match="asked for 21 Nov 2026"):
+        ni.parse_file(_file("Nifty 50,20-11-2026,-,-,-,25800.60,1,1,1,1,21,3,1"), ALIASES,
+                      pd.Timestamp("2026-11-21"))
+
+
+def test_an_unreadable_date_refuses_the_file():
+    with pytest.raises(ni.NotAnIndexFile, match="unreadable Index Date"):
+        ni.parse_file(_file("Nifty 50,2026.11.20,-,-,-,25800.60,1,1,1,1,21,3,1"), ALIASES)
+
+
+def test_a_saved_file_names_its_session():
+    assert ni.session_from_name("ind_close_all_10042023") == pd.Timestamp("2023-04-10")
+    assert ni.session_from_name("20140609") == pd.Timestamp("2014-06-09")
+    assert ni.session_from_name("notes") is None
+
+
+def _rows(name, dates, start=100.0):
+    lines = [f"{name},{d:%d-%m-%Y},-,-,-,{start + i},1,1,1,1,20,3,1" for i, d in enumerate(dates)]
+    return ni.parse_file(_file(*lines), {})
+
+
+def test_a_back_calculated_row_years_before_launch_is_not_live_history():
+    # NSE's regenerated 7 Jul 2016 file lists Nifty Total Market (launched 2021):
+    # one row, then nothing for many sessions, then its live run.
+    days = pd.bdate_range("2016-07-07", periods=70)
+    store = ni.merge(_rows("Nifty Total Market", [days[0]], 3914.55),
+                     _rows("Nifty Total Market", days[40:], 7000))
+    store = ni.merge(store, _rows("Nifty 50", days))
+    s = ni.series(store, "nifty_total_market")
+    assert s.index[0] == days[40] and len(s) == 30
+    assert ni.series(store, "nifty_total_market", live_only=False).index[0] == days[0]
+    assert len(ni.series(store, "nifty_50")) == 70

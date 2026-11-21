@@ -12,8 +12,8 @@ P/E, P/B and dividend yield. The archive starts on 21 Feb 2012 (30 indices) and 
 169 indices on 20 Nov 2026. Earlier dates return an HTML page, not a CSV.
 
 Facts the parser relies on (docs/INDICES_RESEARCH_DATA_2026-11-21.md, section 0):
-`-` means no value; decimals may lack a leading zero (".82"); dates are DD-MM-YYYY;
-one date per file. Each index enters the archive at its launch, so this store holds
+`-` means no value; decimals may lack a leading zero (".82"); one date per file,
+usually DD-MM-YYYY but sometimes DD/MM/YYYY or month-first (see _session_dates). Each index enters the archive at its launch, so this store holds
 live history only, never NSE's back-calculated years (a known bias in strategy
 indices). Prices are price-index levels, not total return.
 
@@ -89,9 +89,43 @@ def apply_corrections(rows: pd.DataFrame, path: Path | None = None) -> pd.DataFr
     return out
 
 
-def parse_file(raw: bytes, aliases: dict[str, str] | None = None) -> pd.DataFrame:
-    """One session's file as store rows. Raises NotAnIndexFile on an HTML answer
-    or a file without the expected columns."""
+def _session_dates(col: pd.Series, session: pd.Timestamp | None) -> pd.Series:
+    """The file's Index Date column as timestamps, checked against the session the
+    file was asked for. NSE has printed it three ways: 20-11-2026 (usual),
+    09/06/2014 (59 files, Jun 2014 - Jun 2015) and month-first 04-10-2023 (the
+    files for 6, 10 and 11 Apr 2023). A month-first date that is the session is
+    the session; any other date that is not the session refuses the file, so a
+    stale file served under a new name never enters as a new day."""
+    text = col.astype(str).str.strip().str.replace("/", "-", regex=False)
+    day_first = pd.to_datetime(text, format="%d-%m-%Y", errors="coerce")
+    if session is None:
+        if day_first.isna().any():
+            raise NotAnIndexFile(f"unreadable Index Date: {text[day_first.isna()].iloc[0]!r}")
+        return day_first
+    session = pd.Timestamp(session).normalize()
+    if (day_first == session).all():
+        return day_first
+    month_first = pd.to_datetime(text, format="%m-%d-%Y", errors="coerce")
+    if (month_first == session).all():
+        return month_first
+    raise NotAnIndexFile(f"dated {text.iloc[0]!r}, asked for {session:%d %b %Y}")
+
+
+def session_from_name(name: str) -> pd.Timestamp | None:
+    """The session a saved file is for, from NSE's name (ind_close_all_DDMMYYYY)
+    or a YYYYMMDD name; None when the name says neither."""
+    m = re.search(r"ind_close_all_(\d{2})(\d{2})(\d{4})", name)
+    if m:
+        return pd.Timestamp(f"{m[3]}-{m[2]}-{m[1]}")
+    m = re.fullmatch(r"(\d{4})(\d{2})(\d{2})(?:\.csv)?", name)
+    return pd.Timestamp(f"{m[1]}-{m[2]}-{m[3]}") if m else None
+
+
+def parse_file(raw: bytes, aliases: dict[str, str] | None = None,
+               session: pd.Timestamp | None = None) -> pd.DataFrame:
+    """One session's file as store rows. `session` is the day the file was asked
+    for; when given, the file must be that day's. Raises NotAnIndexFile on an HTML
+    answer, a file without the expected columns, or a date that is not the session."""
     head = raw[:200].lstrip().lower()
     if head.startswith(b"<") or b"<html" in head:
         raise NotAnIndexFile("an HTML page, not the all-indices CSV")
@@ -106,14 +140,15 @@ def parse_file(raw: bytes, aliases: dict[str, str] | None = None) -> pd.DataFram
     f = f.rename(columns=COLUMNS)
     f = f[[c for c in COLUMNS.values() if c in f.columns]].copy()
     f["name"] = f["name"].astype(str).str.strip()
-    f["date"] = pd.to_datetime(f["date"].astype(str).str.strip(), format="%d-%m-%Y", errors="coerce")
+    f = f[f["name"].ne("") & f["name"].ne("nan")]
+    f["date"] = _session_dates(f["date"], session)
     for c in NUMERIC:
         if c not in f.columns:
             f[c] = np.nan
             continue
         v = f[c].astype(str).str.strip().str.replace(",", "", regex=False)
         f[c] = pd.to_numeric(v.where(~v.isin({"-", "", "nan", "NaN"})), errors="coerce")
-    f = f[f["date"].notna() & f["close"].notna() & (f["name"] != "")]
+    f = f[f["close"].notna()]
     # The same row printed twice, identical in every field (15 Sep 2014, GSEC10):
     # one copy is the row.
     f = f.drop_duplicates()
@@ -176,7 +211,38 @@ def seams(store: pd.DataFrame) -> pd.DataFrame:
                                       "points_change", "continuous"])
 
 
-def series(store: pd.DataFrame, key: str, field: str = "close") -> pd.Series:
-    """One index's daily values by date."""
+# An index is live from the first row that starts LIVE_RUN rows with no gap of more
+# than LIVE_GAP sessions. NSE regenerated two archive files (7 Jul 2016, 12 Apr 2023)
+# with back-calculated values for indices launched years later (Nifty Total Market
+# in the 2016 file); those lone rows stay in the store, as NSE published them, and
+# readers start each series at its launch.
+LIVE_RUN, LIVE_GAP = 20, 10
+
+
+def live_from(store: pd.DataFrame, keys: list[str] | None = None) -> dict[str, pd.Timestamp]:
+    """{key: first live session}, gaps counted in the whole store's sessions."""
+    sess = pd.Index(sorted(store["date"].unique()))
+    pos = pd.Series(np.arange(len(sess)), index=sess)
+    rows = store if keys is None else store[store["key"].isin(keys)]
+    out = {}
+    for key, g in rows.sort_values("date").groupby("key"):
+        si, d = pos[g["date"]].to_numpy(), g["date"].to_numpy()
+        n = len(si)
+        out[key] = pd.Timestamp(d[0])
+        for i in range(n):
+            j = min(i + LIVE_RUN, n)
+            if j - i >= min(LIVE_RUN, n) and (np.diff(si[i:j]) <= LIVE_GAP).all():
+                out[key] = pd.Timestamp(d[i])
+                break
+    return out
+
+
+def series(store: pd.DataFrame, key: str, field: str = "close", *, live_only: bool = True) -> pd.Series:
+    """One index's daily values by date, from its launch unless `live_only` is False.
+    Returns are computed from closes: NSE's points change is not always against the
+    previous session (13 Mar 2023's file measures from 9 Mar)."""
     g = store[store["key"] == key]
-    return pd.Series(g[field].to_numpy(dtype="float64"), index=pd.DatetimeIndex(g["date"]), name=key).sort_index()
+    s = pd.Series(g[field].to_numpy(dtype="float64"), index=pd.DatetimeIndex(g["date"]), name=key).sort_index()
+    if live_only and len(s):
+        s = s[s.index >= live_from(store, [key])[key]]
+    return s

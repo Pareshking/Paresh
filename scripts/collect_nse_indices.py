@@ -2,7 +2,8 @@
 """Build or extend the store of every NSE index (S168, src/loaders/nse_indices.py).
 
     python scripts/collect_nse_indices.py --store nse_indices.parquet --raw-dir DIR
-        # build from NSE's files already downloaded (one per session, any name)
+        # build from NSE's files already downloaded, named ind_close_all_DDMMYYYY
+        # or YYYYMMDD so each is checked against its session
     python scripts/collect_nse_indices.py --store nse_indices.parquet --fetch --from-r2
         # start from the published store in R2, download every session after its
         # last date, then add them (the nightly run)
@@ -15,7 +16,8 @@ failure, not an invitation to download fourteen years again.
 Writes the store only when every new row passes the guard: no index printed twice
 in one session, and no stored close changed by more than a paisa. Exits 1 and
 writes nothing otherwise. A session NSE has no file for (a holiday, 404) is
-skipped; an answer that is not the CSV (an HTML page) is reported and skipped.
+skipped; an answer that is not that session's CSV (an HTML page, or a file
+dated another day) is reported and skipped.
 
 Prints one summary line, `NSE_INDICES rows=... keys=... first=... last=... added=...`,
 and the rename seams with whether each is continuous (points change equals the
@@ -59,7 +61,7 @@ def from_dir(directory: Path, aliases: dict) -> tuple[pd.DataFrame, list[str]]:
     frames, skipped = [], []
     for path in sorted(directory.glob("*.csv")):
         try:
-            frames.append(ni.parse_file(path.read_bytes(), aliases))
+            frames.append(ni.parse_file(path.read_bytes(), aliases, ni.session_from_name(path.stem)))
         except ni.NotAnIndexFile as exc:
             skipped.append(f"{path.name}: {exc}")
     return (pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=ni.STORE_COLUMNS)), skipped
@@ -76,7 +78,7 @@ def fetch_since(last: pd.Timestamp | None, aliases: dict, until: pd.Timestamp) -
         if raw is None:
             continue
         try:
-            frames.append(ni.parse_file(raw, aliases))
+            frames.append(ni.parse_file(raw, aliases, day))
         except ni.NotAnIndexFile as exc:
             skipped.append(f"{day:%Y-%m-%d}: {exc}")
     return (pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=ni.STORE_COLUMNS)), skipped
