@@ -48,3 +48,10 @@ def test_every_page_passes_the_plans_rank_to_the_trail():
         assert "rank_trails(" in text and "now=q" in text, page
     portfolio = (ROOT / "src/ui/views/portfolio_page.py").read_text(encoding="utf-8")
     assert 'r["% 50 EMA"]' in portfolio and 'r["% High"]' in portfolio
+
+
+def test_volatility_and_beta_are_portfolios_figures_on_the_dashboard():
+    # 21 Nov 2026: the Dashboard showed 16.7% and 0.77 under the labels Portfolio used for 22.7% and 1.0.
+    home = (ROOT / "src/ui/views/dashboard_home_view.py").read_text(encoding="utf-8")
+    assert "pr.risk(eq, market)" in home
+    assert "risk.beta" not in home and "risk.vol" not in home

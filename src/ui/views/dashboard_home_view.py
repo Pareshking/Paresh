@@ -35,6 +35,7 @@ FILES = {
     "latest_q": ROOT / "data" / "momentum_health_latest.json",
     "nsdl": ROOT / "data" / "nsdl_fpi_daily.csv",
     "nse_flows": ROOT / "data" / "fii_dii_flows.csv",
+    "nse_dii": ROOT / "data" / "nse_dii.csv",
     "bench": ROOT / "data" / "benchmarks.csv",
     "tests": ROOT / "data" / "signal_tests.json",
     "mcap": ROOT / "data" / "nse_market_caps.csv",
@@ -540,7 +541,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                       "Bought this month" if share[0] > 0 else "Sold this month", tone(share[0]),
                       f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {abs(share[1]):.2f}% of it"))
     if dii:
-        kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}", cr(dii[2]), tone(dii[2]),
+        kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}, on NSE", cr(dii[2]), tone(dii[2]),
                    f"Net sellers on {dii[4]} of {dii[3]} sessions", "dh-down" if dii[4] * 2 > dii[3] else "dh-muted",
                    "Taking the other side of foreign buying" if dii[2] < 0 and f.mtd > 0 else ""))
     evid = ""
@@ -562,8 +563,8 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
     left = []
     if bars:
         thr = f", dashed line: a heavy-buying month, ₹{ev.threshold:,.0f} Cr or more" if ev is not None else ""
-        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}; teal: domestic institutions, '
-                f'stacked on the same bar (a sale runs down from zero), from 6 Nov 2026 (NSE keeps no earlier daily figures)</span></div>',
+        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}; teal: domestic institutions on NSE, '
+                f'stacked on the same bar (a sale runs down from zero)</span></div>',
                 Chart("bars", bars, {"label": "Foreign portfolio investors’ net equity flows by month"}),
                 f'<p class="dh-note dh-band-note">{e(bars["band_note"])}</p>' if bars.get("band_note") else "",
                 how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market.",
@@ -576,7 +577,9 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
              f'{e(ev.last) if ev else ""}</div>{evid}</div>')
     return [head_html, Cols(left, [right], (2, 1)),
             '<p class="dh-note">Foreign: confirmed FPI equity figures, exchange and primary market. Domestic institutions: '
-            'provisional daily figures from 6 Nov 2026, so the month is not complete.</p>' + END]
+            'trades on NSE; a finished month is the total for banks, insurers, mutual funds, pension funds and other '
+            'financial institutions, the month in progress banks, insurers and mutual funds to the latest day published '
+            '(about two sessions behind).</p>' + END]
 
 
 def _first_year(f: di.Flows) -> str:
@@ -922,7 +925,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     nsdl = _read_csv(FILES["nsdl"])
     flows = di.flows_summary(nsdl)
     ev = di.flow_evidence(nsdl, spreads, bench) if flows is not None else None
-    dii = di.dii_window(_read_csv(FILES["nse_flows"]))
+    dii = _dii_now(_read_csv(FILES["nse_dii"], dtype={"period": str}))
     tests = _load_tests()
     signals = _signals(spreads, n500, idx_end, flows, nifty500_breadth(adj_close, as_of), tests)
     average = tests.get("average")
@@ -955,7 +958,14 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     # peak on 19 Nov when the book was −3.1%.
     series = book_series(book, record, ledger, rank_df, adj_close, benchmark_close, MODEL_BOOK_CAPITAL)
     eq = series.equity if series is not None else None
-    risk = br.book_risk(book.set_index("Symbol")["Weight %"], adj_close, n500, eq, volume, MODEL_BOOK_CAPITAL)
+    # Exit time on the book's value today, as the Actions basket (it used the ₹1 crore start).
+    risk = br.book_risk(book.set_index("Symbol")["Weight %"], adj_close, n500, eq, volume,
+                        float(series.value) if series is not None else MODEL_BOOK_CAPITAL)
+    # Volatility and beta as Portfolio shows them: the book's daily series against Nifty Total Market,
+    # the same function (S154; the card showed 16.7% and 0.77 from today's weights against the Nifty 500
+    # while Portfolio showed 22.7% and 1.0 under the same label, found 21 Nov 2026).
+    from src.engine import portfolio_report as pr
+    record_risk = (pr.risk(eq, market) or [None])[0] if eq is not None else None
     book_sizes = _book_sizes(risk)
 
     # 6, 7. industries
@@ -971,7 +981,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     # v8 chart inputs (S151)
     prev = _last_month(ledger, market, momentum, idx_end)
     lead_bars = _lead_bars(spreads, lead)
-    fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_flows"]))
+    fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_dii"], dtype={"period": str}))
     compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
     breadth = _breadth_spec(n500, hist.get("above_200"), idx_end)
 
@@ -985,7 +995,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_size(sizes, book_sizes, by_size, typical)
     parts += section_strong_weak(weights, sectors, hist["rrg_paths"], hist["rrg_now"])
     parts += section_leadership(hist["rrg_now"], hist["rrg_paths"], held)
-    parts += section_glance(_glance(closes, idx_end, hist, risk, n500), breadth)
+    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk), breadth)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
     parts.append(f'<p class="dh-foot">Data to {idx_end:%-d %b %Y}.</p>')
     emit(parts)
@@ -1029,14 +1039,33 @@ def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
 
 
 def _dii_months(nse: pd.DataFrame | None) -> dict:
-    """{month: (net ₹ crore, first day, last day)} for domestic institutions in NSE's provisional
-    daily file (data/fii_dii_flows.csv). NSE keeps no history, so the months start on 6 Nov 2026."""
-    if nse is None or nse.empty or "category" not in nse:
+    """{month: (net ₹ crore, first day, last day, sessions, selling sessions, whole)} for domestic institutions'
+    trades on NSE (data/nse_dii.csv, scripts/collect_nse_dii.py; S153, 21 Nov 2026). A finished month is NSE's
+    total for domestic institutions; the month in progress is banks, insurers and mutual funds, the categories
+    the daily figures list, to the latest day published (whole=False)."""
+    if nse is None or nse.empty or "kind" not in nse:
         return {}
-    x = nse[nse["category"].astype(str).str.upper() == "DII"].copy()
-    x["date"] = pd.to_datetime(x["date"])
-    x["net"] = pd.to_numeric(x["net"], errors="coerce")
-    return {p: (float(g["net"].sum()), g["date"].min(), g["date"].max()) for p, g in x.groupby(x["date"].dt.to_period("M"))}
+    nse = nse.assign(period=nse["period"].astype(str), net=pd.to_numeric(nse["net"], errors="coerce"))
+    out: dict = {}
+    for _, r in nse[nse["kind"] == "month"].iterrows():
+        p = pd.Period(r["period"], "M")
+        out[p] = (float(r["net"]), p.start_time, p.end_time, None, None, True)
+    days = nse[nse["kind"] == "day"].assign(date=lambda d: pd.to_datetime(d["period"]))
+    for p, g in days.groupby(days["date"].dt.to_period("M")):
+        if p in out:
+            continue
+        out[p] = (float(g["net"].sum()), g["date"].min(), g["date"].max(), len(g), int((g["net"] < 0).sum()), False)
+    return out
+
+
+def _dii_now(nse: pd.DataFrame | None):
+    """The tile: (from, to, net, sessions, selling sessions) for the month in progress, or None."""
+    months = _dii_months(nse)
+    live = [(p, v) for p, v in months.items() if not v[5]]
+    if not live:
+        return None
+    p, v = max(live)
+    return v[1], v[2], v[0], v[3], v[4]
 
 
 def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = None) -> dict | None:
@@ -1061,7 +1090,8 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
     dii = _dii_months(nse)
     if dii:
         out["also"] = [None if p not in dii else
-                       [f"domestic, {dii[p][1]:%-d}–{dii[p][2]:%-d %b}", round(dii[p][0])] for p in mo.index]
+                       [("domestic" if dii[p][5] else f"domestic, {dii[p][1]:%-d}–{dii[p][2]:%-d %b} (banks, insurers, MFs)"),
+                        round(dii[p][0])] for p in mo.index]
     return out
 
 
@@ -1246,7 +1276,7 @@ def _book_sizes(risk) -> dict[str, float]:
     return m
 
 
-def _glance(closes, as_of, hist, risk, n500) -> list:
+def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:
     def day(key):
         s = closes[key].dropna()
         s = s[s.index <= as_of]
@@ -1258,10 +1288,10 @@ def _glance(closes, as_of, hist, risk, n500) -> list:
     t50, t200 = di.trail_of(a50, as_of), di.trail_of(a200, as_of)
     rows_b = [("Above their 200D EMA", f"{t200[2]:.0f}% ({t200[1]:.0f}% a month ago)", ""),
               ("Above their 50D EMA", f"{t50[2]:.0f}% ({t50[1]:.0f}% a month ago)", "")]
-    beta, vol, ivol = risk.beta, risk.vol, risk.bench_vol
-    rows_r = [(f"Beta, {risk.sessions} sessions", f"{beta:.2f}" if beta is not None else "—", ""),
-              ("Volatility, a year", (f"{vol * 100:.1f}% vs {ivol * 100:.1f}%" if vol and ivol else "—"),
-               "dh-watch" if vol and ivol and vol > ivol else "")]
+    rr = record_risk
+    rows_r = [(f"Beta, {rr.label[0].lower()}{rr.label[1:]}" if rr else "Beta", f"{rr.beta:.1f}" if rr else "—", ""),
+              ("Volatility, a year", f"{rr.vol:.1f}% vs {rr.market_vol:.1f}%" if rr else "—",
+               "dh-watch" if rr and rr.vol > rr.market_vol else "")]
     if risk.exit_days is not None and len(risk.exit_days):
         rows_r.append((f"Slowest exit, {risk.exit_days.index[0]}", f"{float(risk.exit_days.iloc[0]):.2f} days",
                        "dh-up" if float(risk.exit_days.iloc[0]) < 1 else "dh-watch"))

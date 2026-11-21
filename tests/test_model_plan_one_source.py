@@ -44,4 +44,5 @@ def test_the_dashboard_and_actions_build_the_model_plan_in_one_place():
     actions = (ROOT / "src/ui/views/actions_page.py").read_text(encoding="utf-8")   # the page since the 20 Nov rebuild
     assert "plan_rebalance(" not in home and "model_plan(" in home
     assert "model_plan(" in actions
-    assert "standing_weights(" not in actions        # only model_plan reads held weights
+    # Actions may read today's weights to show the book now; only model_plan plans with them.
+    assert "standing=" not in actions

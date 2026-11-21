@@ -34,6 +34,14 @@ jobs:
         env:
           PYTHONPATH: .
         run: python scripts/collect_fii_dii.py
+      # NSE's category-wise turnover: DII monthly from 2021 and each day, two sessions behind
+      # (S153, 21 Nov 2026). Refuses to write when its daily and monthly figures disagree.
+      - name: NSE DII history (category-wise turnover)
+        env:
+          PYTHONPATH: .
+        run: |
+          pip install xlrd==2.0.2
+          python scripts/collect_nse_dii.py
       # Owner, 8 Nov: one day's flow is misleading; the panel needs history.
       # NSE and MSEI publish only the latest day. NSDL's FPI reports go back
       # years but refused the Claude session that built this; record whether
@@ -50,7 +58,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data/fii_dii_flows.csv
+          git add data/fii_dii_flows.csv data/nse_dii.csv
           if git diff --staged --quiet; then
             echo "Unchanged."
             exit 0
