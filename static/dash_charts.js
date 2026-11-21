@@ -220,57 +220,17 @@ R.shared = (card, s) => {
 
 /* The book by industry: one segment per industry, labelled where it fits. */
 R.segbar = (card, s) => {
-  const bar = $('.segbar', card), Q = {Leading: 'up', Improving: 'up', Weakening: 'watch', Lagging: 'down'}, G = {strong: 'Strong', turning: 'Turning', weak: 'Weak'};
+  const bar = $('.segbar', card), G = {strong: 'Strong', turning: 'Turning', weak: 'Weak'};
   bar.innerHTML = s.segs.map(([n, h, w, , , , g], i) => `<i role="listitem" class="seg-${g}${i % 2 ? ' alt' : ''}" style="flex:${w} 1 0" data-i="${i}" tabindex="0" aria-label="${esc(n)} ${w}%"><span>${esc(n)} ${Math.round(w)}%</span></i>`).join('');
   const show = i => { bar.querySelectorAll('i').forEach(t => t.classList.toggle('dim', i != null && +t.dataset.i !== i));
-    const [n, h, w, r6, r1, q, g] = s.segs[i ?? 0];
-    ro(card, i == null ? 'Latest · the largest' : G[g], [{v: w.toFixed(1) + '%', name: `${n}, ${h} holding${h > 1 ? 's' : ''}`}, {v: sg(r6) + ' · ' + sg(r1), cls: tone(r1), name: '6M · 1M'}, {v: q, cls: Q[q] || '', name: 'on the RRG'}]); };
+    const [n, h, w, r6, r1, , g] = s.segs[i ?? 0];
+    ro(card, i == null ? 'Latest · the largest' : G[g], [{v: w.toFixed(1) + '%', name: `${n}, ${h} holding${h > 1 ? 's' : ''}`}, {v: sg(r6) + ' · ' + sg(r1), cls: tone(r1), name: '6M · 1M'}]); };
   bar.querySelectorAll('i').forEach(t => { const i = +t.dataset.i; t.addEventListener('pointerenter', () => show(i)); t.addEventListener('pointerdown', () => show(i)); t.addEventListener('focus', () => show(i)); });
   bar.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') show(null); });
   const fit = () => bar.querySelectorAll('i').forEach(t => { const sp = t.querySelector('span'); sp.style.visibility = ''; if (sp.offsetWidth > t.clientWidth - 10) sp.style.visibility = 'hidden'; });
   if (s.totals) $('.seg-key', card).innerHTML = [['strong', 'Strong', 'ahead of the market on both windows'], ['turning', 'Turning', 'ahead on one'], ['weak', 'Weak', 'behind on both']]
     .filter(([k]) => s.totals[k] != null).map(([k, t, d]) => `<span><i class="seg-${k}"></i><b>${s.totals[k].toFixed(1)}%</b> ${t}, ${d}</span>`).join('');
   show(null); fit(); new ResizeObserver(fit).observe(bar);
-};
-
-/* Relative rotation: every industry, the book's holdings filled and sized. */
-R.rrg = (card, s) => {
-  const P = [...s.points].sort((a, b) => b[3] - a[3]), el = $('.chart', card);
-  const quad = (r, m) => r >= 100 ? (m >= 100 ? 'Leading' : 'Weakening') : (m >= 100 ? 'Improving' : 'Lagging');
-  const xs = P.map(p => p[1]), ys = P.map(p => p[2]);
-  const xlo = Math.min(97, ...xs) - 2, xhi = Math.max(103, ...xs) + 2, ylo = Math.min(97, ...ys) - 2.5, yhi = Math.max(103, ...ys) + 2;
-  let sel = null;
-  const short = n => n.replace('Automobile and Auto Components', 'Auto').replace('Media Entertainment & Publication', 'Media').replace('Fast Moving Consumer Goods', 'FMCG').replace('Oil Gas & Consumable Fuels', 'Oil & Gas').replace('Information Technology', 'IT').replace('Consumer ', 'Cons. ');
-  const draw = () => { const W = Math.max(300, el.clientWidth), H = Math.round(W / 1.45), pad = 30;
-    el.querySelector('svg')?.remove(); const svg = mk('svg', {viewBox: `0 0 ${W} ${H}`, height: H, 'aria-hidden': 'true'}); el.prepend(svg);
-    const X = v => pad + (W - 2 * pad) * (v - xlo) / (xhi - xlo), Y = v => pad + (H - 2 * pad) * (1 - (v - ylo) / (yhi - ylo));
-    [[100, xhi, 100, yhi, css('--up-soft')], [100, xhi, ylo, 100, css('--caution-soft')], [xlo, 100, ylo, 100, css('--down-soft')]]
-      .forEach(([a, b, c, d, f]) => mk('rect', {x: X(a), y: Y(d), width: X(b) - X(a), height: Y(c) - Y(d), fill: f}, svg));
-    mk('line', {x1: X(100), x2: X(100), y1: pad, y2: H - pad, stroke: css('--muted'), 'stroke-width': 1}, svg);
-    mk('line', {x1: pad, x2: W - pad, y1: Y(100), y2: Y(100), stroke: css('--muted'), 'stroke-width': 1}, svg);
-    [['Leading', X(xhi) - 6, pad + 14, 'end', '--up'], ['Improving', X(xlo) + 6, pad + 14, 'start', '--muted'], ['Weakening', X(xhi) - 6, H - pad - 8, 'end', '--caution'], ['Lagging', X(xlo) + 6, H - pad - 8, 'start', '--down']]
-      .forEach(([t, x, y, a, c]) => { const e = mk('text', {x, y, 'text-anchor': a, class: 'lbl-end'}, svg); e.textContent = t; e.setAttribute('style', `fill:${css(c)}`); });
-    niceTicks(xlo, xhi, 6).forEach(t => { const e = mk('text', {x: X(t), y: H - 8, 'text-anchor': 'middle'}, svg); e.textContent = t; });
-    niceTicks(ylo, yhi, 4).forEach(t => { const e = mk('text', {x: 4, y: Y(t) + 4}, svg); e.textContent = t; });
-    const placed = [];
-    P.forEach((p, i) => { const cx = X(p[1]), cy = Y(p[2]), held = p[3] > 0, on = sel === i;
-      mk('circle', {cx, cy, r: held ? 5 + Math.min(p[3], 6) : 4.5, fill: held ? css('--caution') : css('--bg'), stroke: held ? css('--bg') : css('--muted'), 'stroke-width': 1.5, opacity: sel == null || on ? 1 : .35}, svg);
-      const clash = placed.some(([x, y]) => Math.abs(x - cx) < 90 && Math.abs(y - cy) < 14);
-      if (on || (sel == null && !clash && (held || p[1] === Math.max(...xs) || p[1] === Math.min(...xs)))) { placed.push([cx, cy]);
-        const e = mk('text', {x: cx + 9, y: cy + 4, class: 'lbl-end'}, svg); e.textContent = short(p[0]); e.setAttribute('style', `fill:${css('--ink')};font-weight:${on ? 700 : 500}`);
-        if (cx > W - 120) { e.setAttribute('x', cx - 9); e.setAttribute('text-anchor', 'end'); } } });
-    el._m = {X, Y, W, H}; };
-  REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
-  const Qc = {Leading: 'up', Improving: 'up', Weakening: 'watch', Lagging: 'down'};
-  const read = i => { if (i == null) { ro(card, 'Tap a dot', [{v: s.heldLeaders, name: 'leaders held by the book'}]); return; }
-    const p = P[i], q = quad(p[1], p[2]); ro(card, p[0], [{v: p[1].toFixed(1), name: 'RS ratio'}, {v: p[2].toFixed(1), name: 'RS momentum'}, {v: q, cls: Qc[q], name: `was ${p[4]}`}, {v: p[3] || '—', name: 'held'}]); };
-  const pick = e => { const b = el.getBoundingClientRect(), m = el._m, sx = (e.clientX - b.left) / b.width * m.W, sy = (e.clientY - b.top) / b.height * m.H;
-    let best = null, bd = 1e9; P.forEach((p, i) => { const d = Math.hypot(m.X(p[1]) - sx, m.Y(p[2]) - sy); if (d < bd) { bd = d; best = i; } });
-    sel = bd < 40 ? best : null; draw(); read(sel); };
-  el.addEventListener('pointermove', pick); el.addEventListener('pointerdown', pick);
-  el.addEventListener('pointerleave', e => { if (e.pointerType === 'touch') return; sel = null; draw(); read(null); });
-  el.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); sel = ((sel ?? -1) + (e.key === 'ArrowRight' ? 1 : P.length - 1)) % P.length; draw(); read(sel); } });
-  read(null);
 };
 
 /* The index and how many stocks carry it: two panes, one crosshair, 6M / 1Y / 3Y. */

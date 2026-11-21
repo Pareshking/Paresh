@@ -60,7 +60,6 @@ REQUIRED_FILES = (
     "src/engine/momentum_crash.py",
     "src/engine/portfolio.py",
     "src/engine/calendar_momentum.py",
-    "src/ui/views/rrg_view.py",
 )
 
 

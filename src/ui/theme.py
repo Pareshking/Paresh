@@ -1303,48 +1303,6 @@ _PAGE_CSS = ("""
             font-size: 0.82rem !important;
         }
 
-        /* ── RRG Active Selection Buttons: Universal Left Alignment ── */
-        /* RRG: the chart's frame, the selection bar, the quadrant lists */
-        .st-key-rrg_frame iframe { height: 780px !important; width: 100% !important; }
-        .st-key-rrg_selbar { gap: 8px !important; flex-wrap: wrap !important; }
-        .st-key-rrg_selbar button { min-height: 32px !important; height: 32px !important; padding: 0 12px !important;
-            border-radius: 4px !important; font-size: var(--fs-12) !important; font-weight: 600 !important; }
-        .st-key-rrg_selbar button p { font-size: var(--fs-12) !important; font-weight: 600 !important; }
-        [class*="st-key-btn_rrg_lead_"] button { background: var(--c-up_tint) !important; border-color: var(--c-up_line_2) !important; color: var(--c-up) !important; border-radius: 4px !important; }
-        [class*="st-key-btn_rrg_imp_"] button { background: var(--c-up_tint) !important; border-color: var(--c-up_line_2) !important; color: var(--c-up) !important; border-radius: 4px !important; }
-        [class*="st-key-btn_rrg_weak_"] button { background: var(--c-caution_tint) !important; border-color: var(--c-caution_line) !important; color: var(--c-caution) !important; border-radius: 4px !important; }
-        [class*="st-key-btn_rrg_lag_"] button { background: var(--c-down_tint) !important; border-color: var(--c-down_line_3) !important; color: var(--c-down) !important; border-radius: 4px !important; }
-        [class*="st-key-btn_rrg_lead_"] button p { color: var(--c-up) !important; }
-        [class*="st-key-btn_rrg_imp_"] button p { color: var(--c-up) !important; }
-        [class*="st-key-btn_rrg_weak_"] button p { color: var(--c-caution) !important; }
-        [class*="st-key-btn_rrg_lag_"] button p { color: var(--c-down) !important; }
-        [class*="st-key-del_rrg_"] button { background: var(--c-white) !important; border: 1px solid var(--c-rule) !important; }
-        /* Phone rules come after the base ones so they win at equal specificity. */
-        @media (max-width: 760px) {
-            .st-key-rrg_frame iframe { height: 600px !important; }
-            .st-key-rrg_frame .stElementContainer { height: auto !important; flex: 0 0 auto !important; }
-            /* One row that scrolls sideways, so the chart starts sooner. */
-            .st-key-rrg_selbar { flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 4px; }
-            .st-key-rrg_selbar > div { flex: none !important; }
-            .st-key-rrg_selbar button p { white-space: nowrap !important; }
-        }
-        .rq-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-        .rq { border: 1px solid var(--c-rule); border-radius: 4px; overflow: hidden; background: var(--c-white); }
-        .rq-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 10px 14px; }
-        .rq-h b { font-size: var(--fs-13); }
-        .rq-h span { font-size: var(--fs-12); color: var(--c-text_2); }
-        .rq.lead .rq-h { background: var(--c-up_tint); } .rq.lead .rq-h b { color: var(--c-up); }
-        .rq.imp .rq-h { background: var(--c-up_tint); } .rq.imp .rq-h b { color: var(--c-up); }
-        .rq.weak .rq-h { background: var(--c-caution_tint); } .rq.weak .rq-h b { color: var(--c-caution); }
-        .rq.lag .rq-h { background: var(--c-down_tint); } .rq.lag .rq-h b { color: var(--c-down); }
-        .rq-i { display: flex; justify-content: space-between; gap: 8px; margin: 0 14px; padding: 7px 0;
-            border-bottom: 1px solid var(--c-rule_soft); font-size: var(--fs-13); }
-        .rq-i:last-child { border-bottom: 0; }
-        .rq-i span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .rq-i a { color: var(--c-ink) !important; text-decoration: none !important; font-weight: 600; }
-        .rq-i b { font-family: var(--font-mono); font-size: var(--fs-12); font-weight: 500; color: var(--c-text_2); white-space: nowrap; }
-        .rq-none { color: var(--c-muted); }
-        @media (max-width: 900px) { .rq-grid { grid-template-columns: 1fr; } }
 
 
 
@@ -1550,7 +1508,7 @@ _PAGE_CSS = ("""
            leaderboard's numeric columns and the peers table keep Mono. */
         [data-testid="stMetricLabel"], [data-testid="stMetricValue"], [data-testid="stMetricDelta"],
         .t50-num, .t50-change, .t50-rank, .t50-return, .pg-bar-v, .gc-legend b, .mo-v,
-        .ib-n, .ib-3m b, .sp-ladder .lv, .gp-dd .lbl, .gp-ret .lbl, .gp-sh b, .rq-i b,
+        .ib-n, .ib-3m b, .sp-ladder .lv, .gp-dd .lbl, .gp-ret .lbl, .gp-sh b,
         .db-rule, .db-size td b, .db-size td, .db-sectors td {
             font-family: var(--font-ui) !important; font-variant-numeric: tabular-nums;
         }
@@ -1560,15 +1518,6 @@ _PAGE_CSS = ("""
             font-family: var(--font-ui) !important; text-transform: none !important; letter-spacing: 0 !important;
         }
         [class*="st-key-mrow_"] [data-testid="stMetricLabel"] { display: flex !important; justify-content: center !important; }
-
-        /* RRG quadrant lists in Ledger (audit F56): open columns under a rule,
-           the quadrant's name in its colour, no tinted header or box. */
-        .rq { border: 0 !important; border-radius: 0 !important; border-top: 1px solid var(--c-rule_strong) !important; background: transparent !important; }
-        .rq.lead .rq-h, .rq.imp .rq-h, .rq.weak .rq-h, .rq.lag .rq-h { background: transparent !important; }
-        .rq-h { padding: 10px 0 !important; }
-        .rq-h b { font-weight: 600; }
-        .rq-i { margin: 0 !important; }
-        @media (max-width: 760px) { .rq-grid { grid-template-columns: 1fr 1fr !important; } }
 
         /* Readers who ask their system for less motion get none (audit F74). */
         @media (prefers-reduced-motion: reduce) {

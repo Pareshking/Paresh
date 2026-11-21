@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # are not routes: Streamlit served the dashboard for them, and the check then
 # measured the dashboard twice under another page's name.
 PAGES = ["", "portfolio", "actions", "watchlist", "screener", "sectors",
-         "rrg", "breadth", "backtest", "configuration", "guide"]
+         "breadth", "backtest", "configuration", "guide"]
 
 
 def _headings_fault(levels: list[int]) -> str:

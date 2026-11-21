@@ -1,5 +1,5 @@
 """Chart libraries are served once from ./static, not copied into each frame (audit F60)."""
-from src.ui import charts, highcharts_lib, lw_chart
+from src.ui import highcharts_lib, lw_chart
 
 
 def test_libraries_are_in_the_static_folder():
@@ -16,7 +16,6 @@ def test_frames_load_the_library_by_address_with_a_pinned_fallback():
     hc = highcharts_lib.lib("highcharts-heatmap.js")
     assert hc.index("highstock.js") < hc.index("highcharts-heatmap.js")
     assert "highcharts@13.1.1/modules/heatmap.js" in hc and "</script>" not in hc
-    assert len(charts._build_rrg_html("{}", "Leading: A.")) < 50_000
 
 
 def test_streamlit_serves_the_static_folder():

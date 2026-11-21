@@ -45,19 +45,16 @@ def test_book_sizes_read_book_risks_tiers():
     assert hv._book_sizes(R()) == pytest.approx({"Large": 5.0, "Mid": 5.0, "Small": 55.0, "Micro": 35.0})
 
 
-def test_strong_and_weak_is_cards_with_rotation_and_a_chart():
-    """v8 (owner, 20 Nov 2026): the v7 cards, each industry's figures and rotation, the book's segments as a chart."""
+def test_strong_and_weak_is_cards_and_a_chart_without_rrg():
+    """v8 (owner, 20 Nov 2026): the v7 cards with each industry's figures, the book's segments as a chart.
+    RRG's quadrants and rotation removed with the RRG page (owner, 21 Nov 2026, S169)."""
     weights = pd.DataFrame({"Industry": ["Healthcare", "Capital Goods"], "Weight": [29.8, 9.7], "Holdings": [6, 2]})
     sectors = pd.DataFrame({"Industry": ["Healthcare", "Capital Goods"], "rel_6m": [6.6, -0.2], "rel_1m": [5.8, -5.2]})
-    rrg = pd.DataFrame({"Quadrant": ["Weakening", "Lagging"], "RS_Ratio": [103.7, 96.4], "RS_Momentum": [99.3, 91.2]},
-                       index=["Healthcare", "Capital Goods"])
-    paths = {"Healthcare": ["Weakening"] * 3, "Capital Goods": ["Improving", "Weakening", "Lagging"]}
-    parts = hv.section_strong_weak(weights, sectors, paths, rrg)
+    parts = hv.section_strong_weak(weights, sectors)
     out = hv.html_of(parts)
     assert ">Strong</h3>" in out and "29.8%" in out and ">Weak</h3>" in out and "9.7%" in out
     assert '<span class="dh-mono dh-up">+6.6</span>' in out
-    assert "Rotation: Weakening → Weakening → <b>Weakening</b>" in out
-    assert "Healthcare, the biggest at 30%, is slowing" in out
+    assert "Rotation" not in out and "RRG" not in out and "Weakening" not in out
     assert "Show the table" in out
     charts = [p for p in parts if isinstance(p, hv.Chart)]
     assert [c.kind for c in charts] == ["segbar"] and charts[0].spec["segs"][0][0] == "Healthcare"

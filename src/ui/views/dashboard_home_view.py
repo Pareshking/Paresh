@@ -181,10 +181,9 @@ def tone(v: float | None) -> str:
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, symbols: tuple) -> dict:
-    """The costly reads: breadth series, rank snapshots, RRG at three dates."""
+    """The costly reads: breadth series and rank snapshots."""
     from src.engine import market_questions as mq
     from src.engine.rank_history import snapshots
-    from src.ui.views.rrg_view import compute_rrg_data
 
     px = _adj_close.sort_index()
     as_of = px.index[-1]
@@ -205,14 +204,6 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
         out["rank_table"]["now"] = out["rank_table"].index.map(lambda s: qnow.get(s))
     # The same trail Portfolio and Actions show: one function, one definition (S151, S154).
     out["ranks"] = di.rank_trails(px, symbols, snap, now=qnow)[1]
-    paths: dict[str, list[str]] = {}
-    for k in ("3m", "1m", "now"):
-        r = compute_rrg_data(f"home_{key}_{k}", px, _rank_df, end_date_str=None if k == "now" else str(dates[k].date()))
-        for ind, quad in (r.set_index("Industry")["Quadrant"].items() if len(r) else []):
-            paths.setdefault(str(ind), []).append(str(quad))
-    out["rrg_paths"] = {k: v for k, v in paths.items() if len(v) == 3}
-    out["rrg_now"] = (compute_rrg_data(f"home_{key}_now", px, _rank_df)
-                      .set_index("Industry")[["RS_Ratio", "RS_Momentum", "Quadrant"]])
     return out
 
 
@@ -726,7 +717,8 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None)
             'for quality; NSE has no microcap momentum index.</p>' + END]
 
 
-def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dict, rrg_now: pd.DataFrame) -> list:
+def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame) -> list:
+    """The book's weight by industry status, Sectors' measures only (RRG removed, owner 21 Nov 2026)."""
     s = sectors.set_index("Industry")
     rows = []
     for _, r in weights.iterrows():
@@ -734,26 +726,18 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dic
         if ind not in s.index:
             continue
         a, b = float(s.loc[ind, "rel_6m"]), float(s.loc[ind, "rel_1m"])
-        rows.append((ind, int(r["Holdings"]), float(r["Weight"]), a, b, di.industry_bucket(a, b),
-                     str(rrg_now.loc[ind, "Quadrant"]) if ind in rrg_now.index else "—", paths.get(ind)))
+        rows.append((ind, int(r["Holdings"]), float(r["Weight"]), a, b, di.industry_bucket(a, b)))
     tot = {k: sum(x[2] for x in rows if x[5] == k) for k in ("strong", "turning", "weak")}
-    big = max(rows, key=lambda x: x[2]) if rows else None
     weak_names = [x[0] for x in rows if x[5] == "weak"]
     head = (f'<span class="dh-up">{tot["strong"]:.0f}% sits in industries beating the market.</span> '
             f'<span class="dh-down">{tot["weak"]:.0f}% sits in {len(weak_names)} that lag</span>')
-    if big and big[6] == "Weakening":
-        head += f', and <span class="dh-watch">{e(big[0])}, the biggest at {big[2]:.0f}%, is slowing</span>.'
-    else:
-        head += "."
+    head += "."
     order = {"strong": 0, "turning": 1, "weak": 2}
     srt = sorted(rows, key=lambda x: (order[x[5]], -x[2]))
-    segs = [[SHORT.get(x[0], x[0]), x[1], round(x[2], 1), round(x[3], 1), round(x[4], 1), x[6], x[5]] for x in srt]
-    qb = {"Leading": "dh-qb-up", "Improving": "dh-qb-imp", "Weakening": "dh-qb-watch", "Lagging": "dh-qb-down"}
+    segs = [[SHORT.get(x[0], x[0]), x[1], round(x[2], 1), round(x[3], 1), round(x[4], 1), "", x[5]] for x in srt]
     turning = [x for x in srt if x[5] == "turning"]
     desc = {
-        "strong": "Ahead of the market over six months and one month."
-                  + (f" {big[0]}, the largest, has been losing pace on the RRG for three months running."
-                     if big and big[5] == "strong" and big[7] and all(q == "Weakening" for q in big[7]) else ""),
+        "strong": "Ahead of the market over six months and one month.",
         "turning": "Ahead on one window only" + (": " + ", ".join(
             f"{SHORT.get(x[0], x[0])} over {'the month' if x[4] > 0 else 'six months'}" for x in turning) + "." if turning else "."),
         "weak": "Behind the market on both windows.",
@@ -767,8 +751,7 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dic
             f'<div class="dh-gc-r"><div class="dh-gc-1"><span><b>{e(SHORT.get(x[0], x[0]))}</b> <span class="dh-muted">· {x[1]} '
             f'holding{"s" if x[1] > 1 else ""}</span></span><b class="dh-mono">{x[2]:.1f}%</b></div>'
             f'<div class="dh-gc-2"><span class="dh-muted">6M · 1M <span class="dh-mono {tone(x[3])}">{e(sg(x[3]))}</span> · '
-            f'<span class="dh-mono {tone(x[4])}">{e(sg(x[4]))}</span></span><span class="dh-qb {qb.get(x[6], "")}">{e(x[6])}</span></div>'
-            + (f'<div class="dh-gc-3">Rotation: {e(x[7][0])} → {e(x[7][1])} → <b>{e(x[7][2])}</b></div>' if x[7] else "")
+            f'<span class="dh-mono {tone(x[4])}">{e(sg(x[4]))}</span></span></div>'
             + '</div>' for x in items)
         cards.append(f'<div class="dh-gcard dh-g-{cls}"><div class="dh-gc-h"><h3 class="dh-{cls}">{title}</h3>'
                      f'<b class="dh-{cls} dh-mono">{tot[k]:.1f}%</b></div><p>{e(desc[k])}</p>{body}</div>')
@@ -776,64 +759,11 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame, paths: dic
             Chart("segbar", {"segs": segs, "totals": {k: round(v, 1) for k, v in tot.items()}}, {"label": "The book by industry status"}),
             how("The book’s weight in each industry, coloured by how that industry stands against all ranked stocks over six "
                 "months and one month.", "Blue is ahead on both, amber ahead on one, rust behind on both. The cards give each "
-                "industry’s figures and its rotation.", ["Industry", "Weight", "Status"],
+                "industry’s figures.", ["Industry", "Weight", "Status"],
                 [[x[0], f"{x[2]:.1f}%", x[6].capitalize()] for x in sorted(segs, key=lambda x: -x[2])]),
             f'<div class="dh-gcards">{"".join(cards)}</div>'
             '<p class="dh-note">Each industry’s stocks, equal-weighted, against all ranked stocks built the same way: 6M · 1M in '
-            'points (Sectors), and the RRG quadrant over 12 weekly readings, 3 months ago → 1 month ago → now.</p>' + END]
-
-
-def section_leadership(rrg_now: pd.DataFrame, paths: dict, held: dict[str, int]) -> list:
-    moves = di.rotation_moves(paths)
-    lead = rrg_now[rrg_now["Quadrant"] == "Leading"]
-    n_held = sum(1 for i in lead.index if held.get(i))
-    parts = []
-    if moves["risen"]:
-        parts.append(f'<span class="dh-up">{e(_and([SHORT.get(x, x) for x in moves["risen"]]))} went from lagging or improving to leading in three months</span>.')
-    if moves["fading"]:
-        parts.append(f'<span class="dh-watch">{e(_and([SHORT.get(x, x) for x in moves["fading"]]))} led a month ago and {"is" if len(moves["fading"]) == 1 else "are"} now losing pace.</span>')
-    parts.append(f'The book holds {n_held} of the {len(lead)} leaders.')
-    groups = []
-    meta = (("Leading", "dh-up", "Ahead of the market and pulling further ahead"),
-            ("Improving", "dh-up", "Behind but turning up: where new leaders come from"),
-            ("Weakening", "dh-watch", "Still ahead but losing pace"),
-            ("Lagging", "dh-down", "Behind and falling further behind"))
-    for q, cls, note in meta:
-        g = rrg_now[rrg_now["Quadrant"] == q].sort_values("RS_Ratio", ascending=False)
-        rows = "".join(
-            f'<div class="dh-rrg"><span>{e(i)}'
-            + (f' <b class="dh-watch">{held[i]}</b>' if held.get(i) else "")
-            + (f'<span class="dh-sub">{e(paths[i][0])} → {e(paths[i][1])} → now</span>' if i in paths else "")
-            + f'</span><span class="dh-mono dh-muted">{r.RS_Ratio:.1f} · {r.RS_Momentum:.1f}</span></div>'
-            for i, r in g.iterrows())
-        groups.append((len(g), f'<div><div class="dh-grp-h {cls}"><h3>{q}</h3><span class="dh-sub">{len(g)} industr{"y" if len(g) == 1 else "ies"}</span></div>'
-                      f'<p class="dh-sub">{note}</p><div class="dh-rrg dh-rrg-h"><span>Industry · quadrant 3M ago → 1M ago → now</span>'
-                      f'<span>RS ratio · RS momentum</span></div>{rows}</div>'))
-    points = [[str(i), round(float(r.RS_Ratio), 1), round(float(r.RS_Momentum), 1), int(held.get(i, 0)),
-               " → ".join(paths[i][:2]) if i in paths else "—"] for i, r in rrg_now.iterrows()]
-    spec = {"points": points, "heldLeaders": f"{n_held} of {len(lead)}"}
-    # Lists beside the chart until they reach its height (about 680 px, 52 a row, 75 a heading; up to 760 is closer than a list below); the rest
-    # go below, two across, so no column runs on alone (owner, 20 Nov: no extra white space).
-    beside, below, used = [], [], 0
-    for n_rows, g in groups:
-        h = 75 + 52 * n_rows
-        if not below and (not beside or used + h <= 760):
-            beside.append((n_rows, g))
-            used += h
-        else:
-            below.append((n_rows, g))
-    return [f'<div class="dh-sec">{_kicker("7", "Where leadership is moving")}<h2 id="s-ind" class="dh-h2">{" ".join(parts)}</h2></div>',
-            Cols(['<div class="dh-cap"><b>Relative rotation, now</b><span>RS ratio · RS momentum · 100 = all ranked stocks, equal weight</span></div>',
-                  Chart("rrg", spec, {"label": "Relative rotation graph of every industry"}),
-                  how("Each industry’s strength against all ranked stocks (RS ratio, across) and the change in that strength (RS "
-                      "momentum, up), over 12 weekly readings; 100 is the market.",
-                      "Industries rotate clockwise: Improving, then Leading, then Weakening, then Lagging. Improving is where new "
-                      "leaders come from; Weakening is the early warning.",
-                      ["Industry", "RS ratio", "RS momentum", "Held"], [[p[0], f"{p[1]:.1f}", f"{p[2]:.1f}", str(p[3] or "")] for p in points])],
-                 [f'<div class="dh-groups dh-groups-1">{"".join(g for _, g in beside)}</div>'], (3, 2)),
-            *([f'<div class="dh-groups dh-groups-2">{"".join(g for _, g in below)}</div>'] if below else []),
-            '<p class="dh-note">RRG, weekly, 12-week lookback: RS ratio · RS momentum, where 100 is all ranked stocks, '
-            'equal-weighted. Under each name, its quadrant 3 months and 1 month ago. Amber count: the book’s holdings.</p>' + END]
+            'points, as on Sectors.</p>' + END]
 
 
 def _and(names: list[str]) -> str:
@@ -1008,7 +938,6 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     weights = (book.assign(Industry=book["Symbol"].map(industry).fillna("—"))
                .groupby("Industry").agg(Weight=("Weight %", "sum"), Holdings=("Symbol", "count"))
                .sort_values("Weight", ascending=False).reset_index())
-    held = dict(zip(weights["Industry"], weights["Holdings"]))
 
     # v8 chart inputs (S151)
     prev = _last_month(ledger, market, momentum, idx_end)
@@ -1025,8 +954,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare)
     parts += section_size(sizes, book_sizes, by_size, typical)
-    parts += section_strong_weak(weights, sectors, hist["rrg_paths"], hist["rrg_now"])
-    parts += section_leadership(hist["rrg_now"], hist["rrg_paths"], held)
+    parts += section_strong_weak(weights, sectors)
     parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk), breadth)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
     parts.append(f'<p class="dh-foot">Data to {idx_end:%-d %b %Y}.</p>')
@@ -1204,7 +1132,7 @@ def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, 
         bits.append(f'<span class="dh-watch">The rally is narrow: only {b1:.0f}% of the 750 beat the market this month.</span>')
     nav = "".join(f'<a href="#{a}" class="dh-pill">{e(t)}</a>' for a, t in (
         ("s-month", "1 The book"), ("s-next", "2 Next rebalance"), ("s-mom", "3 Momentum"), ("s-flow", "4 Money flows"),
-        ("s-size", "5 Size"), ("s-book", "6 Strong and weak"), ("s-ind", "7 Leadership"), ("s-glance", "At a glance")))
+        ("s-size", "5 Size"), ("s-book", "6 Strong and weak"), ("s-glance", "At a glance")))
     return (f'<section class="dh-brief" aria-label="Today in brief"><p class="dh-verdict">{" ".join(bits)}</p>'
             f'<nav class="dh-pills" aria-label="On this page">{nav}</nav></section>')
 
@@ -1547,9 +1475,6 @@ HOME_CSS = """
 .dh-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px}
 .dh-grp-h{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;border-bottom:2px solid currentColor}
 .dh .dh-grp-h h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;color:inherit!important}
-.dh-rrg{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
-.dh-rrg>span:last-child{white-space:nowrap}
-.dh-rrg-h{font-size:var(--fs-12);color:var(--c-muted);padding:4px 0 2px}
 .dh-gl-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .dh-gls{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-gl{background:var(--c-white);padding:14px 16px}

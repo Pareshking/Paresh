@@ -120,7 +120,7 @@ def _check_requirements(text: str, doc_name: str = "DASHBOARD_REQUIREMENTS.md", 
     order_line = next((ln for ln in doc.splitlines() if ln.startswith("Order:")), None)
     order = ([o.strip().lower() for o in order_line[6:].split("→")] if order_line else
              ["1 · the book this month", "2 · what happens on", "3 · is momentum still working?", "4 · money flows",
-              "5 · size, and where momentum works", "6 · where the book is strong and weak", "7 · where leadership is moving",
+              "5 · size, and where momentum works", "6 · where the book is strong and weak",
               "at a glance"])
     pos = 0
     for o in order:
