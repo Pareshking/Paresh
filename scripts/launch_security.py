@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGES = ["", "portfolio", "actions", "watchlist", "screener", "sectors",
-         "rrg", "breadth", "backtest", "configuration", "guide"]
+         "breadth", "indices", "backtest", "configuration", "guide"]
 
 # A secret is a long random-looking value under a telling name.
 SECRET_RE = re.compile(

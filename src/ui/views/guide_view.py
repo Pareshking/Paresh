@@ -5,7 +5,6 @@ statement here is checked against the code it describes:
 
 * windows, Sharpe, winsorising and renormalising: src/engine/calendar_momentum.py
 * filters, buffer, costs, weighting: src/engine/backtester.py, track_record.py
-* the rotation graph: src/ui/views/rrg_view.py
 
 No outcome is promised and no allocation is advised: the model has no regime
 switch, no stops and no cash target, so the Guide does not suggest any.
@@ -70,7 +69,7 @@ def _body() -> str:
 <div class="gd">
 <nav aria-label="On this page">
 <a href="#steps">The five steps</a><a href="#score">The score</a><a href="#filters">Filters</a>
-<a href="#book">The book</a><a href="#weights">Weighting</a><a href="#rrg">Rotation graph</a>
+<a href="#book">The book</a><a href="#weights">Weighting</a>
 <a href="#acting">Acting on it</a><a href="#faq">Questions</a>
 </nav>
 
@@ -169,19 +168,6 @@ one over its volatility over the last 63 sessions.</p>
 <pre>w_i = (1 / σ_i) / Σ_j (1 / σ_j)</pre>
 <p>It gives calmer stocks more weight. Whether that lowers the book's volatility or drawdown depends
 on the period; the Backtest shows both side by side.</p>
-
-<h2 id="rrg">Rotation graph</h2>
-<p>For each industry, the average daily return of its stocks is compounded and divided by the
-benchmark's compounded return: its relative-strength line.</p>
-<ul>
-<li><b>RS-Ratio</b> (across): the line, smoothed with an exponential average over about six weeks,
-divided by its own twelve-week average.</li>
-<li><b>RS-Momentum</b> (up): RS-Ratio divided by its value one week earlier.</li>
-</ul>
-<p>Both are then expressed across industries as 100 + 6.5 × z-score, so 100 is the average industry.
-The four quarters: <b>Leading</b> (both above 100), <b>Weakening</b> (ratio above, momentum below),
-<b>Lagging</b> (both below), <b>Improving</b> (ratio below, momentum above). Industries often move
-through them clockwise. The graph is a picture of rotation; it does not feed the ranking.</p>
 
 <h2 id="acting">Acting on it</h2>
 <ol>

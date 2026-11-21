@@ -76,7 +76,9 @@ function barPane(el,o){
   // Stacked on one column: a second value of the same sign sits beyond the first; of the other sign it runs from zero.
   const ends=o.values.map((v,i)=>{ const u=o.values2?o.values2[i]:null; if(u==null) return [v]; return (u>=0)===(v>=0)?[v+u]:[v,u]; }).flat();
   const bnd=o.band||[];   // the usual range [low, high, label], shaded behind the bars (tipsheet benchmark, 21 Nov 2026)
-  const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values,...ends,...bnd.slice(0,2))*fx, hi=Math.max(0,...o.values,...ends,...bnd.slice(0,2))*fx;
+  const dv=(o.dots||[]).filter(v=>v!=null), n=o.values.length, fx=o.valueLabels?1.22:1.08;
+  let lo=Math.min(0,...o.values,...ends,...dv,...bnd.slice(0,2))*fx, hi=Math.max(0,...o.values,...ends,...dv,...bnd.slice(0,2))*fx;
+  if(o.range){lo=o.range[0];hi=o.range[1];}
   const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo)), bw=(W-padL-padR)/n, gap=Math.min(6,bw*.28);
   if(bnd.length){ mk('rect',{x:padL,width:W-padL-padR,y:Y(bnd[1]),height:Math.max(1,Y(bnd[0])-Y(bnd[1])),fill:css('--caution-soft')},svg);
     if(bnd[2]){ const t=mk('text',{x:padL+4,y:Y(bnd[1])+12,class:'lbl-band'},svg); t.textContent=bnd[2]; } }
@@ -97,6 +99,7 @@ function barPane(el,o){
     bars.push(mk('path',{d,fill:up?css('--up'):css('--down'),opacity:last||!o.markLast?1:.72},svg));
     const u=o.values2&&o.values2[i]; if(u!=null){ const same=(u>=0)===(v>=0), base=same?v:0, end=base+u; bar(x,w,u,css(o.color2||'--teal'),base);
       if(o.valueLabels){ const t=mk('text',{x:x+w/2,y:end>=0?Y(end)-5:Y(end)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css(o.color2||'--teal')}`); } } });
+  (o.dots||[]).forEach((v,i)=>{ if(v!=null) mk('circle',{cx:padL+i*bw+bw/2,cy:Y(v),r:Math.max(2.5,Math.min(4,bw/5)),fill:css('--ink')},svg); });
   const step=Math.max(1,Math.ceil(n/Math.min(o.xn||6,Math.max(2,Math.floor((W-padL-padR)/78)))));
   for(let i=0;i<n;i+=step){ const first=i===0&&bw<40; const t=mk('text',{x:first?padL:padL+i*bw+bw/2,y:H-6,'text-anchor':first?'start':'middle'},svg); t.textContent=o.xlab(i); }
   if(o.valueLabels){ o.values.forEach((v,i)=>{ const u=o.values2?o.values2[i]:null, inside=u!=null&&(u>=0)===(v>=0);
@@ -200,11 +203,12 @@ R.bars = (card, s) => {
   const el = $('.chart', card); let pane;
   const draw = () => { pane = barPane(el, {values: s.values, values2: s.also ? s.also.map(a => a && a[1]) : null, color2: s.color2, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
     markLast: !!s.lastLabel, lastLabel: s.lastLabel, padR: 38, valueLabels: s.valueLabels ? v => sg(v / (s.axisDiv || 1), s.vdp ?? 0) : null,
-    levels: (s.levels || []).map(l => ({v: l, color: css('--up')})), band: s.band}); };
+    levels: (s.levels || []).map(l => ({v: l, color: css('--up')})), band: s.band, dots: s.dots, range: s.range}); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   interact(card, () => [pane], $('.readout', card), k => { const v = s.values[k], c = v >= 0 ? css('--up') : css('--down');
     const lvl = s.levels && s.levels.length ? ' · ' + (v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between) : '';
     const items = [{name: s.unit + lvl, color: c, v: s.money ? inr(v) : sg(v, s.dp ?? 1), vcolor: c}];
+    if (s.dots && s.dots[k] != null) items.push({name: s.dotName || '', color: css('--ink'), v: sg(s.dots[k], s.dp ?? 1), vcolor: css('--down')});
     const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css(s.color2 || '--teal'), v: s.money ? inr(a[1]) : sg(a[1], s.dp ?? 1), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
     return {date: s.full[k] + (k === s.values.length - 1 && s.lastNote ? s.lastNote : ''), items}; }, () => s.values.length - 1);
 };
@@ -220,57 +224,17 @@ R.shared = (card, s) => {
 
 /* The book by industry: one segment per industry, labelled where it fits. */
 R.segbar = (card, s) => {
-  const bar = $('.segbar', card), Q = {Leading: 'up', Improving: 'up', Weakening: 'watch', Lagging: 'down'}, G = {strong: 'Strong', turning: 'Turning', weak: 'Weak'};
+  const bar = $('.segbar', card), G = {strong: 'Strong', turning: 'Turning', weak: 'Weak'};
   bar.innerHTML = s.segs.map(([n, h, w, , , , g], i) => `<i role="listitem" class="seg-${g}${i % 2 ? ' alt' : ''}" style="flex:${w} 1 0" data-i="${i}" tabindex="0" aria-label="${esc(n)} ${w}%"><span>${esc(n)} ${Math.round(w)}%</span></i>`).join('');
   const show = i => { bar.querySelectorAll('i').forEach(t => t.classList.toggle('dim', i != null && +t.dataset.i !== i));
-    const [n, h, w, r6, r1, q, g] = s.segs[i ?? 0];
-    ro(card, i == null ? 'Latest · the largest' : G[g], [{v: w.toFixed(1) + '%', name: `${n}, ${h} holding${h > 1 ? 's' : ''}`}, {v: sg(r6) + ' · ' + sg(r1), cls: tone(r1), name: '6M · 1M'}, {v: q, cls: Q[q] || '', name: 'on the RRG'}]); };
+    const [n, h, w, r6, r1, , g] = s.segs[i ?? 0];
+    ro(card, i == null ? 'Latest · the largest' : G[g], [{v: w.toFixed(1) + '%', name: `${n}, ${h} holding${h > 1 ? 's' : ''}`}, {v: sg(r6) + ' · ' + sg(r1), cls: tone(r1), name: '6M · 1M'}]); };
   bar.querySelectorAll('i').forEach(t => { const i = +t.dataset.i; t.addEventListener('pointerenter', () => show(i)); t.addEventListener('pointerdown', () => show(i)); t.addEventListener('focus', () => show(i)); });
   bar.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') show(null); });
   const fit = () => bar.querySelectorAll('i').forEach(t => { const sp = t.querySelector('span'); sp.style.visibility = ''; if (sp.offsetWidth > t.clientWidth - 10) sp.style.visibility = 'hidden'; });
   if (s.totals) $('.seg-key', card).innerHTML = [['strong', 'Strong', 'ahead of the market on both windows'], ['turning', 'Turning', 'ahead on one'], ['weak', 'Weak', 'behind on both']]
     .filter(([k]) => s.totals[k] != null).map(([k, t, d]) => `<span><i class="seg-${k}"></i><b>${s.totals[k].toFixed(1)}%</b> ${t}, ${d}</span>`).join('');
   show(null); fit(); new ResizeObserver(fit).observe(bar);
-};
-
-/* Relative rotation: every industry, the book's holdings filled and sized. */
-R.rrg = (card, s) => {
-  const P = [...s.points].sort((a, b) => b[3] - a[3]), el = $('.chart', card);
-  const quad = (r, m) => r >= 100 ? (m >= 100 ? 'Leading' : 'Weakening') : (m >= 100 ? 'Improving' : 'Lagging');
-  const xs = P.map(p => p[1]), ys = P.map(p => p[2]);
-  const xlo = Math.min(97, ...xs) - 2, xhi = Math.max(103, ...xs) + 2, ylo = Math.min(97, ...ys) - 2.5, yhi = Math.max(103, ...ys) + 2;
-  let sel = null;
-  const short = n => n.replace('Automobile and Auto Components', 'Auto').replace('Media Entertainment & Publication', 'Media').replace('Fast Moving Consumer Goods', 'FMCG').replace('Oil Gas & Consumable Fuels', 'Oil & Gas').replace('Information Technology', 'IT').replace('Consumer ', 'Cons. ');
-  const draw = () => { const W = Math.max(300, el.clientWidth), H = Math.round(W / 1.45), pad = 30;
-    el.querySelector('svg')?.remove(); const svg = mk('svg', {viewBox: `0 0 ${W} ${H}`, height: H, 'aria-hidden': 'true'}); el.prepend(svg);
-    const X = v => pad + (W - 2 * pad) * (v - xlo) / (xhi - xlo), Y = v => pad + (H - 2 * pad) * (1 - (v - ylo) / (yhi - ylo));
-    [[100, xhi, 100, yhi, css('--up-soft')], [100, xhi, ylo, 100, css('--caution-soft')], [xlo, 100, ylo, 100, css('--down-soft')]]
-      .forEach(([a, b, c, d, f]) => mk('rect', {x: X(a), y: Y(d), width: X(b) - X(a), height: Y(c) - Y(d), fill: f}, svg));
-    mk('line', {x1: X(100), x2: X(100), y1: pad, y2: H - pad, stroke: css('--muted'), 'stroke-width': 1}, svg);
-    mk('line', {x1: pad, x2: W - pad, y1: Y(100), y2: Y(100), stroke: css('--muted'), 'stroke-width': 1}, svg);
-    [['Leading', X(xhi) - 6, pad + 14, 'end', '--up'], ['Improving', X(xlo) + 6, pad + 14, 'start', '--muted'], ['Weakening', X(xhi) - 6, H - pad - 8, 'end', '--caution'], ['Lagging', X(xlo) + 6, H - pad - 8, 'start', '--down']]
-      .forEach(([t, x, y, a, c]) => { const e = mk('text', {x, y, 'text-anchor': a, class: 'lbl-end'}, svg); e.textContent = t; e.setAttribute('style', `fill:${css(c)}`); });
-    niceTicks(xlo, xhi, 6).forEach(t => { const e = mk('text', {x: X(t), y: H - 8, 'text-anchor': 'middle'}, svg); e.textContent = t; });
-    niceTicks(ylo, yhi, 4).forEach(t => { const e = mk('text', {x: 4, y: Y(t) + 4}, svg); e.textContent = t; });
-    const placed = [];
-    P.forEach((p, i) => { const cx = X(p[1]), cy = Y(p[2]), held = p[3] > 0, on = sel === i;
-      mk('circle', {cx, cy, r: held ? 5 + Math.min(p[3], 6) : 4.5, fill: held ? css('--caution') : css('--bg'), stroke: held ? css('--bg') : css('--muted'), 'stroke-width': 1.5, opacity: sel == null || on ? 1 : .35}, svg);
-      const clash = placed.some(([x, y]) => Math.abs(x - cx) < 90 && Math.abs(y - cy) < 14);
-      if (on || (sel == null && !clash && (held || p[1] === Math.max(...xs) || p[1] === Math.min(...xs)))) { placed.push([cx, cy]);
-        const e = mk('text', {x: cx + 9, y: cy + 4, class: 'lbl-end'}, svg); e.textContent = short(p[0]); e.setAttribute('style', `fill:${css('--ink')};font-weight:${on ? 700 : 500}`);
-        if (cx > W - 120) { e.setAttribute('x', cx - 9); e.setAttribute('text-anchor', 'end'); } } });
-    el._m = {X, Y, W, H}; };
-  REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
-  const Qc = {Leading: 'up', Improving: 'up', Weakening: 'watch', Lagging: 'down'};
-  const read = i => { if (i == null) { ro(card, 'Tap a dot', [{v: s.heldLeaders, name: 'leaders held by the book'}]); return; }
-    const p = P[i], q = quad(p[1], p[2]); ro(card, p[0], [{v: p[1].toFixed(1), name: 'RS ratio'}, {v: p[2].toFixed(1), name: 'RS momentum'}, {v: q, cls: Qc[q], name: `was ${p[4]}`}, {v: p[3] || '—', name: 'held'}]); };
-  const pick = e => { const b = el.getBoundingClientRect(), m = el._m, sx = (e.clientX - b.left) / b.width * m.W, sy = (e.clientY - b.top) / b.height * m.H;
-    let best = null, bd = 1e9; P.forEach((p, i) => { const d = Math.hypot(m.X(p[1]) - sx, m.Y(p[2]) - sy); if (d < bd) { bd = d; best = i; } });
-    sel = bd < 40 ? best : null; draw(); read(sel); };
-  el.addEventListener('pointermove', pick); el.addEventListener('pointerdown', pick);
-  el.addEventListener('pointerleave', e => { if (e.pointerType === 'touch') return; sel = null; draw(); read(null); });
-  el.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); sel = ((sel ?? -1) + (e.key === 'ArrowRight' ? 1 : P.length - 1)) % P.length; draw(); read(sel); } });
-  read(null);
 };
 
 /* The index and how many stocks carry it: two panes, one crosshair, 6M / 1Y / 3Y. */
@@ -390,7 +354,8 @@ R.lines = (card, s) => {
   const draw = () => { const W = el.clientWidth, h = s.height || Math.round(Math.max(200, Math.min(320, W * 0.3)));
     pane = linePane(el, {dates: s.dates.slice(from), series: s.series.map(x => ({name: x.name, color: css('--' + x.color), values: x.values.slice(from), dash: x.dash ? '5 4' : '', width: x.width || 2})),
       height: h, padL: 44, padR: 8, yfmt: fmt, range: s.range, ticks: 4,
-      levels: (s.levels || []).map(l => ({v: l.v, label: l.label, color: css('--' + (l.color || 'muted'))}))}); };
+      levels: (s.levels || []).map(l => ({v: l.v, label: l.label, color: css('--' + (l.color || 'muted'))})),
+      bands: (s.bands || []).map(b => ({from: b.from, to: b.to, fill: css('--' + (b.color || 'up-soft'))}))}); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   if (s.chips) { const sw = $('.chips', card);
     sw.innerHTML = s.chips.map(([t, n], i) => `<button class="chip" type="button" data-range="${n}" aria-pressed="${i === s.chips.length - 1}">${esc(t)}</button>`).join('');
@@ -399,6 +364,40 @@ R.lines = (card, s) => {
     $('.d', head).textContent = (i == null ? 'Latest · ' : '') + dlong(s.dates[k]);
     s.series.forEach((x, j) => { const v = x.values[k]; $(`[data-v="${j}"]`, head).textContent = v == null ? '—' : show(v); }); },
     k => ({date: dlong(s.dates[from + k]), items: []}), () => s.dates.length - 1 - from);
+};
+
+/* Rows of readings with a line bar (Indices, S170): a name and its note, the bar on one scale for
+   every row, then the readings as numbers. spec: head [label...], rows [{name, sub, bar, ago, vals:[...], cls:[...]}],
+   lo, hi, step, lines, unit (the bar's), dp. */
+R.trows = (card, s) => {
+  const nv = s.head.length;
+  card.style.setProperty('--nv', nv);
+  card.style.setProperty('--tn', Math.round((s.hi - s.lo) / s.step));
+  $('.tr-head', card).innerHTML = '<span>' + esc(s.label || '') + '</span><span>' + esc(s.barHead || '') + '</span>' + s.head.map(h => `<span class="num">${esc(h)}</span>`).join('');
+  $('#rows', card).innerHTML = s.rows.map(r => `<div class="trrow" role="listitem"><div class="nm"><b>${esc(r.name)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</div>`
+    + track(r.bar, {lo: s.lo, hi: s.hi, step: s.step, ago: r.ago, lines: s.lines || []})
+    + r.vals.map((v, j) => `<span class="num ${(r.cls || [])[j] || ''}">${esc(v)}</span>`).join('') + '</div>').join('');
+  rowsInteract(card, '.trrow', j => { const r = s.rows[j ?? 0];
+    ro(card, j == null ? s.rest || 'Latest' : r.name, (r.read || []).map(x => ({v: x[0], name: x[1], cls: x[2] || ''}))); });
+};
+
+/* A style against its parent: the relative line (100 at launch) and how far it sits below its best,
+   two panes, one crosshair, one chip per style (Indices, S170). */
+R.rel = (card, s) => {
+  const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card), sw = $('.chips', card);
+  let k = 0, panes = [];
+  sw.innerHTML = s.styles.map((x, i) => `<button class="chip" type="button" data-range="${i}" aria-pressed="${i === 0}">${esc(x.style)}</button>`).join('');
+  const draw = () => { const x = s.styles[k], W = top.clientWidth, h = Math.round(Math.max(190, Math.min(300, W * 0.3)));
+    panes = [linePane(top, {dates: x.dates, series: [{name: x.label, color: css('--ink'), values: x.rel, area: true, width: 1.8}],
+               height: h, padL: 44, padR: 8, noX: true, yfmt: v => v.toFixed(0), levels: [{v: 100, label: '', color: css('--muted')}]}),
+             linePane(bot, {dates: x.dates, series: [{name: 'Below its best', color: css('--down'), values: x.dd, area: true, width: 1.4}],
+               height: Math.round(h * 0.5), padL: 44, padR: 8, yfmt: v => v.toFixed(0) + '%', areaBase: 0, ticks: 3})]; };
+  REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
+  chips(card, i => { k = i; draw(); });
+  interact(card, () => panes, $('.readout', card), i => { const x = s.styles[k]; return {date: dlong(x.dates[i]), items: [
+    {name: x.label, color: css('--ink'), v: x.rel[i].toFixed(1)},
+    {name: 'below its best', color: css('--down'), v: sg(x.dd[i]) + '%', vcolor: x.dd[i] < 0 ? css('--down') : ''}]}; },
+    () => s.styles[k].dates.length - 1);
 };
 
 window.DashCharts = {render(kind, spec) { R[kind](document.getElementById('c'), spec); }};

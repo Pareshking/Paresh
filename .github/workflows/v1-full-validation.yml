@@ -129,7 +129,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: Layout audit (Dashboard, Portfolio, Actions, Breadth, Sectors) and requirements
+      - name: Layout audit (Dashboard, Portfolio, Actions, Breadth, Sectors, Screener, Indices) and requirements
         run: |
           mkdir -p artifacts
           npm install --no-save --no-package-lock playwright@1.63.0
@@ -146,6 +146,8 @@ jobs:
           node scripts/check_dashboard_requirements.mjs http://localhost:8501/sectors docs/SECTORS_REQUIREMENTS.md
           node scripts/layout_audit.mjs http://localhost:8501/screener 412,1400
           node scripts/check_dashboard_requirements.mjs http://localhost:8501/screener docs/SCREENER_REQUIREMENTS.md
+          node scripts/layout_audit.mjs http://localhost:8501/indices 412,1400
+          node scripts/check_dashboard_requirements.mjs http://localhost:8501/indices docs/INDICES_REQUIREMENTS.md
 
       - name: Upload V1 validation artifacts
         uses: actions/upload-artifact@v7

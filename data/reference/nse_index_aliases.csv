@@ -1,0 +1,51 @@
+name_raw,key,evidence
+S&P CNX Nifty,nifty_50,IISL PR 11 Feb 2013 (S&P licence ended 31 Jan 2013); IISL PR 22 Sep 2015 (CNX to Nifty from 9 Nov 2015)
+CNX Nifty,nifty_50,IISL PR 22 Sep 2015: renamed Nifty 50 from 9 Nov 2015
+Nifty 50,nifty_50,current name
+S&P CNX 500,nifty_500,IISL PR 11 Feb 2013; IISL PR 22 Sep 2015
+CNX 500,nifty_500,IISL PR 22 Sep 2015
+Nifty 500,nifty_500,current name
+CNX Nifty Junior,nifty_next_50,IISL PR 22 Sep 2015
+Nifty Next 50,nifty_next_50,current name
+CNX 100,nifty_100,IISL PR 22 Sep 2015
+Nifty 100,nifty_100,current name
+CNX 200,nifty_200,IISL PR 22 Sep 2015
+Nifty 200,nifty_200,current name
+CNX Auto,nifty_auto,IISL PR 22 Sep 2015
+CNX Bank,nifty_bank,IISL PR 22 Sep 2015
+Bank Nifty,nifty_bank,older file name
+CNX Finance,nifty_financial_services,IISL PR 22 Sep 2015 (CNX Finance became Nifty Financial Services)
+CNX FMCG,nifty_fmcg,IISL PR 22 Sep 2015
+CNX IT,nifty_it,IISL PR 22 Sep 2015
+CNX Media,nifty_media,IISL PR 22 Sep 2015
+CNX Metal,nifty_metal,IISL PR 22 Sep 2015
+CNX Pharma,nifty_pharma,IISL PR 22 Sep 2015
+CNX PSU Bank,nifty_psu_bank,IISL PR 22 Sep 2015
+CNX Realty,nifty_realty,IISL PR 22 Sep 2015
+CNX Energy,nifty_energy,IISL PR 22 Sep 2015
+CNX Infra,nifty_infrastructure,IISL PR 22 Sep 2015
+CNX Infrastructure,nifty_infrastructure,IISL PR 22 Sep 2015
+CNX Service Sector,nifty_services_sector,IISL PR 22 Sep 2015 (became Nifty Services Sector)
+CNX Commodities,nifty_commodities,IISL PR 22 Sep 2015
+CNX Consumption,nifty_india_consumption,IISL PR 22 Sep 2015 (became Nifty India Consumption)
+CNX MNC,nifty_mnc,IISL PR 22 Sep 2015
+CNX PSE,nifty_pse,IISL PR 22 Sep 2015
+CNX Dividend Opportunities,nifty_dividend_opportunities_50,IISL PR 22 Sep 2015
+CNX Low Volatility,nifty_low_volatility_50,IISL PR 22 Sep 2015
+CNX Alpha Index,nifty_alpha_50,IISL PR 22 Sep 2015
+CNX High Beta,nifty_high_beta_50,IISL PR 22 Sep 2015
+CNX 100 Equal Weight,nifty100_equal_weight,IISL PR 22 Sep 2015
+NV 20,nifty50_value_20,IISL PR 22 Sep 2015
+NI15,nifty_growth_sectors_15,IISL PR 22 Sep 2015
+LIX 15,nifty100_liquid_15,IISL PR 22 Sep 2015
+LIX15 Midcap,nifty_midcap_liquid_15,IISL PR 22 Sep 2015
+CNX Midcap,nifty_midcap_100,IISL PR 22 Sep 2015; rules changed 1 Apr 2016 (drawn from Midcap 150)
+Nifty Free Float Midcap 100,nifty_midcap_100,files: renamed by 1 Apr 2016 then NIFTY Midcap 100 by Jul 2019
+Nifty Midcap 100,nifty_midcap_100,current name
+CNX Smallcap,nifty_smallcap_100,IISL PR 22 Sep 2015; rules changed 1 Apr 2016
+Nifty Free Float Smallcap 100,nifty_smallcap_100,files: renamed by 1 Apr 2016 then NIFTY Smallcap 100 by Jul 2019
+Nifty Smallcap 100,nifty_smallcap_100,current name
+NSE Quality 30,nifty100_quality_30,IISL PR 22 Sep 2015; files to Jul 2019
+Nifty Quality 30,nifty100_quality_30,files: NIFTY100 Quality 30 by Jul 2019
+NIFTY100 Quality 30,nifty100_quality_30,current name
+Nifty India Internet & E-Commerce,nifty_india_internet,files: 2 May to 5 May 2025; points change on 5 May equals the close difference

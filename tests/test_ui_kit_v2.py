@@ -61,7 +61,6 @@ def test_callout_escapes_its_text():
 MIGRATED = {
     "br_lb_days": "breadth_view.py",
     "hl_win_sel": "breadth_view.py",
-    "rrg_tf_choice": "rrg_view.py",
     "qual_top_n": "qualified_view.py",
     "sector_rank_by": "sector_view.py",
     "cfg_system_radio": "config_view.py",

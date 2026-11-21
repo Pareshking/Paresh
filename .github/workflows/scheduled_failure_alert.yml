@@ -37,6 +37,7 @@ on:
       - R2 dated market-cap publication
       - R2 observed trading-session publication
       - R2 research index price history
+      - NSE indices (every index, daily)
       - R2 retention
       - R2 recovery audit
       - R2 session continuity audit

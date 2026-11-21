@@ -162,23 +162,6 @@ def _script_tags_balance(html: str) -> bool:
     return len(re.findall(r"<script\b", html)) == len(re.findall(r"</script\s*>", html))
 
 
-def test_rrg_chart_payload_cannot_close_its_script_block(monkeypatch):
-    from src.ui import charts
-
-    box: dict[str, str] = {}
-    monkeypatch.setattr(charts.st, "iframe", lambda html, **kw: box.setdefault("html", html))
-    monkeypatch.setattr(charts.st, "info", lambda *a, **kw: None)
-
-    charts.render_rrg_chart(pd.DataFrame([{
-        "Industry": BREAKOUT, "RS_Ratio": 100.0, "RS_Momentum": 100.0,
-        "Quadrant": "Leading", "Stocks": 3, "Trail_R": [100.0], "Trail_M": [100.0],
-    }]))
-
-    html = box["html"]
-    assert BREAKOUT not in html
-    assert _script_tags_balance(html)
-
-
 def test_script_json_preserves_the_value_it_escapes():
     """The escape must be invisible to JavaScript -- "<\\/" is just "/"."""
     import json

@@ -18,7 +18,7 @@ the owner's word, and note it in the Source column.
 |---|---|---|---|---|
 | 1 | Everything visible; no "more questions" or clicks to reach content | Owner 19 Nov | Whole page | The book this month |
 | 2 | One-paragraph verdict first, with section links | Owner 19 Nov; tipsheet pattern | Top | Of the 5 signals that pass our own test |
-| 3 | Sections in the agreed order, numbered | Owner 20 Nov ("correct order") | Page | 7 · Where leadership is moving |
+| 3 | Sections in the agreed order, numbered | Owner 20 Nov ("correct order"); §7 removed with RRG, owner 21 Nov | Page | 6 · Where the book is strong and weak |
 | 4 | Headline of each section states the finding, coloured by impact | Owner 19 Nov | Each section | November’s lag is |
 | 5 | Market = Nifty Total Market, named | Owner 20 Nov | §1 | Nifty Total Market |
 | 6 | Frozen months kept, Total Market compared beside | Owner 20 Nov | §1 note | January to October stay as recorded against the Nifty 500 |
@@ -48,12 +48,10 @@ the owner's word, and note it in the Source column.
 | 30 | The book by size bar | Owner liked (#4), 20 Nov | §5 | The book by size |
 | 31 | Is the rally shared: breadth by size, with 3M ago and 1M ago | v7 (tipsheet) | §5 | Is the rally shared? |
 | 32 | The typical stock: equal-weight and median against the market | v7 (tipsheet) | §5 | The typical stock against the market |
-| 33 | Where the book is strong and weak, as cards with rotation | Owner liked (#1), 20 Nov | §6 | Rotation: |
-| 34 | RRG quadrants, 100 = the benchmark, EW construction shared with Sectors | Owner 20 Nov | §7 | 100 = all ranked stocks, equal weight |
-| 35 | Leadership lists with RS ratio · momentum and the path under each name | v7, owner's screenshot 20 Nov | §7 | Behind but turning up |
-| 36 | The book's holdings marked in leadership ("what needs attention") | Owner liked (#3), 20 Nov | §7 | Held in the book |
+| 33 | Where the book is strong and weak, as cards with each industry's six-month and one-month figures | Owner liked (#1), 20 Nov; the RRG rotation line and quadrant badge removed, owner 21 Nov | §6 | Ahead of the market over six months and one month |
 | 37 | At a glance: index moves (one date), breadth, the book's risk | v6 | Glance | The book’s risk |
 | 38 | Breadth history on each date's members | Owner 20 Nov | Glance, §3 | leavers included |
+| 39 | At a glance: "Valuation and styles", three lines from the Indices page (the Nifty 500's P/E percentile now, 1M and 3M; the styles leading and trailing their parents over 12 months) and a link; the index moves link to Indices, not Breadth | Owner 21 Nov (S170, INDICES_REQUIREMENTS row 17) | Glance | Valuation and styles |
 | 39 | Every chart gives values on touch and pointer | Owner 20 Nov | Charts (`static/dash_charts.js`) | Latest|DashCharts.render( |
 | 40 | Every chart: what it is, how to read it, its table | v7 (tipsheet), agreed | Charts | Show the table |
 | 41 | Data date in the footer; sources not shown (owner, 20 Nov) | v6; owner 20 Nov | Foot | Data to 19 Nov 2026|Data to |
@@ -65,3 +63,11 @@ the owner's word, and note it in the Source column.
 - Long tables of all industries or all breadth measures: on Sectors and Breadth (20 Nov).
 - One-day index moves as tiles: only in At a glance (v5).
 - Theme amber change: proposed 20 Nov, waiting for the owner.
+
+## Dropped (owner, 21 Nov 2026: RRG removed, "remove it and let's use that space once we have our indices page ready")
+
+- 34 · RRG quadrants, 100 = the benchmark, EW construction shared with Sectors (§7).
+- 35 · Leadership lists with RS ratio · momentum and the path under each name (§7).
+- 36 · The book's holdings marked in leadership (§7). The space is kept for the Indices page (S170). Used 21 Nov: row 39.
+
+Order: 1 · The book this month → 2 · What happens on → 3 · Is momentum still working? → 4 · Money flows → 5 · Size, and where momentum works → 6 · Where the book is strong and weak → At a glance

@@ -316,7 +316,7 @@ def _status_pill_html() -> str:
 
 _MENU_GROUPS = (
     ("My book", ("Dashboard", "Portfolio", "Actions", "Watchlist")),
-    ("Market", ("Screener", "Sectors", "RRG", "Market Breadth")),
+    ("Market", ("Screener", "Sectors", "Market Breadth", "Indices")),
     ("Method", ("Backtest", "Configuration", "Guide")),
 )
 _QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio")

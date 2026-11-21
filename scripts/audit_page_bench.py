@@ -31,8 +31,8 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGES = ["", "portfolio", "actions", "sectors", "rrg", "watchlist",
-         "breadth", "backtest", "configuration", "guide", "?stock=RELIANCE"]
+PAGES = ["", "portfolio", "actions", "sectors", "watchlist",
+         "breadth", "indices", "backtest", "configuration", "guide", "?stock=RELIANCE"]
 SETTLE_S = 1.5
 PAGE_TIMEOUT_S = 300
 

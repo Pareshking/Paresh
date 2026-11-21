@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-11-21 — Indices page
+
+- New page **Indices** (menu: Market), built from the mock-up approved 21 Nov 2026 on NSE's own daily index files:
+  - **Valuation:** P/E of the Nifty 50, Nifty 500, Total Market, Midcap 150, Smallcap 250 and Microcap 250, 3 months ago, a month ago and now, with its percentile since 31 Mar 2021 (the day NSE changed the earnings basis), and the Nifty 500's weekly P/E since 2012 with the old basis drawn apart.
+  - **Styles:** momentum, quality, value, low volatility, alpha and equal weight, each against the index it picks from, as a 12-month lead read on three dates, with the dividend-yield gap.
+  - **How long a style can lag:** each style's line against its parent and its fall from its best, with the worst fall and its recovery.
+  - **Calendar years:** each style's lead by year, and how many years it led.
+  - **Size, year by year:** each year's return and the worst fall within it for large, mid, small and micro caps.
+  - **Every index:** NSE's 112 broad, theme and strategy indices at 1M, 3M, 6M, 9M and 1Y. NSE's sector indices will appear on Sectors.
+- Price returns throughout: NSE's total-return series cannot be reached from here, so each style shows its dividend-yield gap instead.
+- Dashboard, At a glance: a "Valuation and styles" card with three lines from the page, and the index moves now link to Indices instead of Breadth.
+- The page reads a copy of the index store kept in the repository: a frozen history file plus a small file of later sessions that the nightly `nse_indices` job rewrites.
+- Building the full history found more faults in NSE's archive, each now handled by a rule (`docs/DATA_CORRECTNESS.md` section 5):
+  - dates printed three ways: 59 files had been dropped silently, and three were month-first;
+  - 18 weekend sessions;
+  - 12 trading days with no file: 11 are filled from the next day's points change and marked as derived, and one stays a gap;
+  - two regenerated files list indices before their launch;
+  - the P/E and P/B basis changes.
+
+## 2026-11-21 — Every NSE index, daily, from 2012 (collector; first run after merge)
+
+- New nightly job `nse_indices` keeps every index NSE publishes in its daily all-indices file (169 on 20 Nov 2026: broad, size, sector, thematic and strategy indices such as momentum, quality, value and low volatility), with open, high, low, close, volume, turnover, P/E, P/B and dividend yield, from the archive's first file (21 Feb 2012). One request a night adds the new session; the first, full build is run once by hand.
+- It refuses to write when a new row would change a stored close or when NSE prints an index twice with different values. Two faults in NSE's own files were found building it: 15 Sep 2014 prints a government-bond index twice (identical, kept once), and 8 Feb 2013 labels the High Beta index as a second "CNX Alpha Index" (relabelled, with the evidence, in `data/reference/nse_index_corrections.csv`).
+- Renamed indices are joined under one name (the S&P names dropped on 8 Feb 2013, CNX to Nifty on 9 Nov 2015), each join checked: the first day's points change must equal the change in level.
+- Found while checking the old index job: `r2_nse_index_prices` has been on its fallback (niftyindices.com refuses GitHub's servers), so its "NSE index" rows were Screener's index charts, while the job reported success.
+
+## 2026-11-21 — RRG removed
+
+- The RRG page is gone from the menu (owner, 21 Nov 2026). Its formula is not published, and the reconstruction placed NSE's sector indices in the same quadrant as StockCharts' official RRG on only 35% of index-weeks (25% by chance); it also disagreed with Sectors on 10 of 19 industries (`docs/RRG_ANALYSIS_2026-11-21.md`). Industry leadership stays on Sectors.
+- Dashboard: section 7, "Where leadership is moving", is removed; its space is kept for the Indices page (S170). Section 6's cards show each industry's six-month and one-month figures against the market and no longer carry an RRG quadrant or rotation line.
+- The Guide's rotation-graph section is removed. Old `/rrg` links are not redirected (owner: "not required").
+
 ## 2026-11-21 — Verdicts read today, not the last month-end
 
 - **Breadth: "Is the market in an uptrend?" read October's close for most of November.** Four of its eight measures (the Nifty 500 and each size index against its 10-month average) read the 30 Oct month-end. On 20 Nov the page said "No clear trend, 3 up, 4 down" while every index stood above its 10-month average. They now read today's close against the last ten monthly closes, this month at today's close, as a monthly chart draws it; each row also names the month-end reading. On 20 Nov: "Strong uptrend, 7 of 8 up, 0 down"; the Nifty 500 is 6.1% above its average today, 3.1% below at the 30 Oct close.
