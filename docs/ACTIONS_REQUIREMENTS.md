@@ -67,8 +67,8 @@ approves the design, and then added here as an `Order:` line.
 | 29 | The evidence: what swaps have added so far (buys against the names sold, first month and three months, against Nifty Total Market), with its limits stated (months, in-sample, before costs) | Owner 21 Nov; checked 21 Nov: buys +3.1 pts first month, sold names +0.2 | Sell or Buy | what swaps have added |
 
 Not added (owner, 21 Nov): order size against traded value, this rebalance's cost, sells
-"could still flip" marking. Open as TODO: NSE price bands (needs collection), tax on sells
-(rates to check against the current Finance Act).
+"could still flip" marking. NSE price bands (S161) and tax on sells (S162) closed
+permanently by the owner, 21 Nov.
 
 Why a buy is under 5% (owner asked, 20 Nov): the 8 Nov rule gives a buy the smaller
 of (a) 5% of the account at the last reset fill in rupees (₹7.19 lakh, 4.92% of
