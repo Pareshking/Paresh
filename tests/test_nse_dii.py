@@ -47,3 +47,18 @@ def test_the_dashboard_reads_finished_months_whole_and_the_live_month_from_days(
     assert m[pd.Period("2026-10", "M")][0] == 47969.0 and m[pd.Period("2026-10", "M")][5]
     now = _dii_now(f)
     assert now[2] == -3924.0 and now[3] == 2 and now[4] == 2 and now[1] == pd.Timestamp("2026-11-03")
+
+
+def test_a_month_collected_from_its_first_session_on_all_exchanges_replaces_nse(monkeypatch, tmp_path):
+    import src.ui.views.dashboard_home_view as h
+    days = pd.bdate_range("2026-12-01", "2026-12-04")
+    f = tmp_path / "flows.csv"
+    pd.DataFrame({"date": days.strftime("%Y-%m-%d"), "category": "DII", "buy": 0, "sell": 0, "net": [-1.0, -2.0, 3.0, -4.0],
+                  "fetched_at": ""}).to_csv(f, index=False)
+    monkeypatch.setitem(h.FILES, "nse_flows", f)
+    m = h._all_exchange_months()
+    v = m[pd.Period("2026-12", "M")]
+    assert v[0] == -4.0 and v[3] == 4 and v[6] == "all exchanges" and not v[5]
+    # November started on 6 Nov in the file, so it is not taken
+    pd.DataFrame({"date": ["2026-11-06"], "category": "DII", "buy": 0, "sell": 0, "net": [-1.0], "fetched_at": ""}).to_csv(f, index=False)
+    assert h._all_exchange_months() == {}

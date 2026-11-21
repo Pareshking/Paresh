@@ -552,7 +552,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                       "Bought this month" if share[0] > 0 else "Sold this month", tone(share[0]),
                       f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {abs(share[1]):.2f}% of it"))
     if dii:
-        kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}, on NSE", cr(dii[2]), tone(dii[2]),
+        kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}, {dii[5] if len(dii) > 5 else 'on NSE'}", cr(dii[2]), tone(dii[2]),
                    f"Net sellers on {dii[4]} of {dii[3]} sessions", "dh-down" if dii[4] * 2 > dii[3] else "dh-muted",
                    "Taking the other side of foreign buying" if dii[2] < 0 and f.mtd > 0 else ""))
     evid = ""
@@ -589,9 +589,9 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
              f'{e(ev.last) if ev else ""}</div>{evid}</div>')
     return [head_html, Cols(left, [right], (2, 1)),
             '<p class="dh-note">Foreign: confirmed FPI equity figures, exchange and primary market. Domestic institutions: '
-            'trades on NSE; a finished month is the total for banks, insurers, mutual funds, pension funds and other '
-            'financial institutions, the month in progress banks, insurers and mutual funds to the latest day published '
-            '(about two sessions behind).</p>' + END]
+            'trades on NSE to October 2026 (the total for banks, insurers, mutual funds, pension funds and other financial '
+            'institutions); from November all exchanges, provisional, once a month is collected from its first session; '
+            'a month in progress on NSE alone is banks, insurers and mutual funds to the latest day published.</p>' + END]
 
 
 def _first_year(f: di.Flows) -> str:
@@ -1073,6 +1073,31 @@ def _dii_months(nse: pd.DataFrame | None) -> dict:
         if p in out:
             continue
         out[p] = (float(g["net"].sum()), g["date"].min(), g["date"].max(), len(g), int((g["net"] < 0).sum()), False)
+    # All exchanges (NSE's provisional report, collected each evening since 6 Nov 2026) for a month it covers from
+    # its first session: BSE and MSEI are about a tenth of the market and not in NSE's own files (S153, 21 Nov 2026).
+    allx = _all_exchange_months()
+    for p, v in allx.items():
+        out[p] = v
+    return out
+
+
+def _all_exchange_months() -> dict:
+    """{month: (net, first, last, sessions, selling sessions, whole)} from data/fii_dii_flows.csv, for months whose
+    first session is in the file and with no session missing up to the last one collected."""
+    from src.loaders.nse_calendar import published_holidays
+    f = _read_csv(FILES["nse_flows"])
+    if f is None or f.empty or "category" not in f:
+        return {}
+    x = f[f["category"].astype(str).str.upper() == "DII"].assign(date=lambda d: pd.to_datetime(d["date"]),
+                                                                  net=lambda d: pd.to_numeric(d["net"], errors="coerce"))
+    cal = pd.offsets.CustomBusinessDay(holidays=published_holidays())
+    out = {}
+    for p, g in x.groupby(x["date"].dt.to_period("M")):
+        want = pd.date_range(p.start_time, g["date"].max(), freq=cal)
+        if len(want) and set(want) <= set(g["date"]):
+            whole = g["date"].max() >= pd.date_range(p.start_time, p.end_time, freq=cal)[-1]
+            out[p] = (float(g["net"].sum()), g["date"].min(), g["date"].max(), len(g), int((g["net"] < 0).sum()), bool(whole))
+            out[p] = out[p] + ("all exchanges",)
     return out
 
 
@@ -1083,7 +1108,7 @@ def _dii_now(nse: pd.DataFrame | None):
     if not live:
         return None
     p, v = max(live)
-    return v[1], v[2], v[0], v[3], v[4]
+    return v[1], v[2], v[0], v[3], v[4], (v[6] if len(v) > 6 else "on NSE")
 
 
 def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = None) -> dict | None:
@@ -1108,7 +1133,9 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
     dii = _dii_months(nse)
     if dii:
         out["also"] = [None if p not in dii else
-                       [("domestic" if dii[p][5] else f"domestic, {dii[p][1]:%-d}–{dii[p][2]:%-d %b} (banks, insurers, MFs)"),
+                       [("domestic" + (", all exchanges" if len(dii[p]) > 6 else "") if dii[p][5]
+                         else f"domestic, {dii[p][1]:%-d}–{dii[p][2]:%-d %b}"
+                         + (", all exchanges" if len(dii[p]) > 6 else " (banks, insurers, MFs)")),
                         round(dii[p][0])] for p in mo.index]
     return out
 
