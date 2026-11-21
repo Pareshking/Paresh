@@ -59,8 +59,7 @@ jobs:
       - name: Add the new sessions (refuses to change a stored close)
         run: |
           python scripts/collect_nse_indices.py --store nse_indices.parquet --fetch --from-r2 \
-            ${{ inputs.backfill && '--backfill' || '' }} \
-            ${{ inputs.until && format('--until {0}', inputs.until) || '' }}
+            ${{ inputs.backfill && '--backfill' || '' }} --until "${{ inputs.until }}"
       - name: Publish to R2
         run: |
           python scripts/r2_publish.py \
