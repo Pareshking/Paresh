@@ -449,6 +449,11 @@ and 7 did not clear the bar, and 2025-26 showed no gain. Review after 12 months 
 2027): a year cannot prove it; the review asks whether it keeps up with the live record
 and trails it in no more than about half the months.
 
+Expectation after the 21 Nov universe tests (`docs/MOMENTUM_ABC_2026-11-20.md`): about +1 pp
+a year over the live record, not +4: on random Nifty 500 universes skip 5 led in 92% of
+draws by a median 1.6 pp, and the full list's gap was luckier than every draw; no size
+segment showed it.
+
 `score_skip` is not a key of `TRACK_RECORD_CONFIG`, so no live month's configuration
 fingerprint changes.
 

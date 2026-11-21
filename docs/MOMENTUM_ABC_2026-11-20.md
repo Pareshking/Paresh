@@ -111,6 +111,64 @@ the signal date):
 - Likely mechanism: short-term reversal. A stock that spiked in the final week tends to
   give some back; the 1-month window carries 10% of the composite's weight.
 
+## Skip 5 across universes (21 Nov 2026)
+
+Owner, 21 Nov 2026: is the skip-5 edge in other universes, and does it survive a different
+list of names? `scripts/research/score_skip_universes.py`, the engine with the record's
+configuration, NSE long closes of 16 Nov 2026.
+
+**Every index with point-in-time membership, from its first month** (CAGR; gap = skip 5
+minus skip 0, points a month; t of the monthly gap):
+
+| Universe | From | Skip 0 | Skip 3 | Skip 5 | Skip 7 | Gap | t | Months ahead |
+|---|---|---|---|---|---|---|---|---|
+| Nifty 50 | 2010 | 4.5% | 4.8% | 4.5% | 4.1% | 0.00 | -0.04 | 51% |
+| Nifty Next 50 | 2010 | 10.9% | 10.3% | 10.1% | 10.4% | -0.06 | -1.77 | 45% |
+| Nifty 100 | 2010 | 9.9% | 9.9% | 8.9% | 9.7% | -0.08 | -1.84 | 45% |
+| Midcap 150 | Apr 2016 | 18.8% | 19.9% | 20.4% | 18.1% | +0.11 | 1.17 | 52% |
+| Smallcap 250 | Apr 2016 | 23.0% | 23.2% | 22.3% | 22.8% | -0.06 | -0.47 | 43% |
+| Microcap 250 | Oct 2021 | 27.4% | 27.8% | 26.8% | 28.0% | -0.02 | -0.13 | 44% |
+| Nifty 500 | 2010 | 19.3% | 21.5% | 23.3% | 22.2% | +0.29 | 2.71 | 56% |
+| Nifty 750 | Nov 2021 | 15.7% | 16.7% | 21.2% | 19.4% | +0.41 | 1.76 | 67% |
+
+- No size segment shows it; only the two broad lists do, and they are one result (the 750
+  holds the 500, over years inside the 500's). The 500's gain from April 2016 (+0.26 a month)
+  is not in its parts over the same months (Midcap 150 +0.11, Smallcap 250 -0.06).
+- The Nifty 50 row is near-uninformative: 20 holdings kept to the top 40 of 50 is close
+  to the index.
+- The 750's skip-0 run reproduces the frozen live record for 2026 (six of ten months to
+  0.01 pts; the rest within 0.25, Screener vs NSE prices).
+
+**Size mix of the book** (average share of holdings at each rebalance):
+
+| | Nifty 100 | Midcap 150 | Smallcap 250 | Microcap 250 |
+|---|---|---|---|---|
+| Nifty 500 from Apr 2016, skip 0 / skip 5 | 23% / 23% | 34% / 34% | 42% / 42% | - |
+| Nifty 750 from Nov 2021, skip 0 / skip 5 | 14% / 14% | 21% / 22% | 26% / 27% | 39% / 36% |
+
+Skip 5 does not tilt the book to a size: the gain is not a hidden size bet.
+
+**Random universes** (pass rule fixed before results: skip 5 ahead in at least 75% of
+draws and a median gap above 0). 100 draws each; a draw drops a random 20% of the index's
+ever-members, the same names for both skips:
+
+| | Draws | Skip 5 ahead | Median CAGR gap | 10th-90th percentile | Full list |
+|---|---|---|---|---|---|
+| Nifty 500, 2010-26 | 100 | **92%** | **+1.6 pp** | +0.5 to +2.5 pp | +4.0 pp |
+| Nifty 750, Nov 2021-26 | 100 | 73% | +1.0 pp | -1.7 to +3.1 pp | +5.5 pp |
+
+- Nifty 500 passes: the sign does not hang on a few names. The 750 misses by 2 draws
+  (60 months only).
+- **The full lists' gaps are luckier than every draw** (500: +4.0 against a draw maximum
+  of +3.6; 750: +5.5 against +5.4). A fair expectation is about +1 to +1.5 pp a year, not 4.
+- The draws share 80% of their names and all of their history: they test robustness to
+  the list, not to the period. Skip 5 was still picked on 2010-26.
+
+Read together: a small edge on broad lists, robust to which names are in them, absent
+inside every size segment and unexplained by size. The shadow book (section 11 of
+`docs/TRACK_RECORD.md`) is the test; expect a gap of about 1 pp a year, which 12 months
+cannot separate from noise.
+
 ## A, B and C combined (simplified book, full period)
 
 | | No overlay | C1 | C2 | C1+C2 |
