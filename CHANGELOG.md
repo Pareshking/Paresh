@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-11-21 — Sectors, made over: NSE's sector indices beside each sector
+
+Built from mock-up v2, which the owner approved ("Sector and Backtest approved"). The 21 rows are in `docs/SECTORS_REQUIREMENTS.md`.
+- The title says which sectors lead the 750 on both six months and one month, and which trail.
+- **Which sectors lead** is now one table. Groups (ahead on both, gaining, fading, behind on both) are heading rows. Each sector's six-month lead shows 3 months ago, a month ago and now, beside its one-month lead. The first row is the 750 against Nifty Total Market.
+  - This table replaces the four lists and the bar chart, so no figure appears twice.
+  - "What would change the answer" stays, now with a link to the Dashboard's size section. The size-index rows have gone; that section already has them.
+- **Broad or narrow** (new) sets each sector's ranked stocks against NSE's index for that sector over 3M and 1M, with a one-year chart for each sector.
+- **NSE's sector indices** (new): all 37, each under its sector. Each group has the sector's own equal-weighted line first, then the indices, with 1M, 3M, 6M, 9M, 1Y, distance from the 52W high and P/E.
+  - They moved here from Indices.
+  - Nifty Consumer Services and Nifty Commercial & Transport Services now count as sector indices. Indices lists 110 broad, theme and strategy indices instead of 112.
+- **Month by month** now shows only red or blue for each figure's sign; the heat shades are gone.
+- **The sector leadership map** is kept. Its EMA and period switches and its sector picker now work inside the chart, so the page no longer reloads. Its worked example says leads in pts and compares with "the 750".
+- **Inside each sector** takes over the leaderboard, as one sortable table. It shows the share of each sector's stocks above the 200D EMA (3 months ago, a month ago and now) beside the Screener's flags and the leaders.
+- **The grouping switch** (NSE sector, TradingView sector, TradingView industry) now regroups every section. With a TradingView grouping, the NSE index sections give way to one line: "NSE's indices match NSE's sectors; switch to NSE sectors to see them."
+- **Names:** NSE's 22 groups are called "sectors", the word NSE uses. The equal-weighted yardstick is "the 750". Leads are in pts. "Construction Materials" is shortened to "Constr. Materials" on every page.
+- **Removed:** the old Dashboard view (`dashboard_view.py`) and `sector_indices.py`. Nothing in the app reached them.
+
 ## 2026-11-21 — Nifty Total Market: three April 2023 closes back on their days
 
 - Three Nifty Total Market closes from April 2023 sat under the wrong dates, which drew a false −14.9% day on 4 Oct 2023 in anything reading 2023 against the market. NSE printed those three days' files with the month first; the collector now checks every file's date against the day it asked for, and the three days were fetched again from NSE. Every session now matches NSE's daily index files.

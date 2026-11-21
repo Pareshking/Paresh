@@ -16,14 +16,12 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 import pytest
 
 from src.ui import theme
 
 VIEWS = Path(__file__).resolve().parents[1] / "src" / "ui" / "views"
-FIGURE_TABLE_VIEWS = ("dashboard_view.py", "dashboard_panels.py")
+FIGURE_TABLE_VIEWS = ("dashboard_panels.py",)  # dashboard_view.py deleted 21 Nov 2026 (unreachable)
 
 
 def _source(name: str) -> str:
@@ -43,53 +41,9 @@ def test_the_views_no_longer_build_a_figure_table_themselves():
         # ... and it does still draw one, through the shared renderer.
         assert "figure_table_html" in src, f"{name} draws no figure table at all"
         seen_calls += src.count("theme.figure_table_html(")
-    assert seen_calls == 2, f"expected both figure tables, found {seen_calls}"
+    assert seen_calls == 1, f"expected the figure table, found {seen_calls}"
 
 
-def test_the_shared_renderer_is_what_produces_the_dashboards_figure_tables(monkeypatch):
-    """Break the shared renderer and both tables break: nothing else draws them."""
-    from src.engine import book_risk as br
-    from src.ui.views import dashboard_panels as dp
-    from src.ui.views import dashboard_view as dv
-
-    days = pd.bdate_range("2026-01-01", periods=200)
-    rng = np.random.default_rng(3)
-    m = rng.normal(0.0005, 0.01, 200)
-    px = pd.DataFrame(
-        {"AAA": 100 * np.cumprod(1 + 1.5 * m), "BBB": 100 * np.cumprod(1 + 0.5 * m)},
-        index=days)
-    bench = pd.Series(100 * np.cumprod(1 + m), index=days)
-    res = br.book_risk(pd.Series({"AAA": 50, "BBB": 50}), px, bench)
-
-    out = dv.book_risk_html(res, pd.Timestamp("2026-10-30"))
-    assert '<table class="db-fig">' in out and "Volatility, a year" in out
-
-    spreads = pd.DataFrame({
-        "month": pd.period_range("2023-01", periods=36, freq="M").astype(str),
-        "top": rng.normal(2.0, 4.0, 36),
-        "bottom": rng.normal(0.0, 4.0, 36),
-        "nifty500": rng.normal(1.0, 3.0, 36),
-        "ew": rng.normal(1.2, 3.0, 36),
-    })
-    panel = dp.long_only_html(spreads)
-    assert panel is not None, "the momentum health panel drew nothing to check"
-    assert '<table class="db-fig">' in panel and "Last 12 months" in panel
-
-    calls: list[tuple] = []
-    real = theme.figure_table_html
-
-    def spy(headers, rows, **kw):
-        calls.append((tuple(headers), kw.get("align")))
-        return real(headers, rows, **kw)
-
-    monkeypatch.setattr(theme, "figure_table_html", spy)
-    assert dv.book_risk_html(res, pd.Timestamp("2026-10-30")) == out
-    assert dp.long_only_html(spreads) == panel
-    assert [c[0] for c in calls] == [
-        ("The book", "Now", "Nifty 500"), ("Last 12 months", "Points")]
-    # Alignment is declared at the call site, never inferred from the header.
-    assert [c[1] for c in calls] == [
-        ("left", "right", "right"), ("left", "right")]
 
 
 def test_the_markup_is_what_the_hand_built_format_strings_produced():

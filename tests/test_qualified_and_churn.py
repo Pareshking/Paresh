@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 
 from src.ui.views import dashboard_panels as dp
-from src.ui.views import dashboard_view as dv
 
 
 def _spreads(n=60, last_share=0.15):
@@ -55,9 +54,3 @@ def test_no_qualified_column_or_too_short_history_draws_nothing():
     assert dp.qualified_html(None) is None
 
 
-def test_the_churn_row_compares_the_plan_with_the_records_months():
-    books = {f"2026-{m:02d}": pd.DataFrame({"Action": ["Bought"] * b + ["Held"] * (20 - b)})
-             for m, b in ((1, 20), (2, 9), (3, 5))}
-    row = dv._churn_row({"month_books": books}, 2, 20)
-    assert "2 of 20 would change" in row and "against 7 a month" in row and "(5 to 9)" in row
-    assert dv._churn_row({}, 2, 20) == ""

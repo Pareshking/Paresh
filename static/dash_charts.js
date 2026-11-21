@@ -394,10 +394,14 @@ R.trows = (card, s) => {
   card.style.setProperty('--nv', nv);
   card.style.setProperty('--tn', Math.round((s.hi - s.lo) / s.step));
   $('.tr-head', card).innerHTML = '<span>' + esc(s.label || '') + '</span><span>' + esc(s.barHead || '') + '</span>' + s.head.map(h => `<span class="num">${esc(h)}</span>`).join('');
-  $('#rows', card).innerHTML = s.rows.map(r => `<div class="trrow" role="listitem"><div class="nm"><b>${esc(r.name)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</div>`
+  /* A row with `heading` is a group heading (Sectors, 21 Nov 2026: groups as heading rows, not colour alone);
+     a row with `ref` is a reference row, ruled off from the rest. */
+  const data = s.rows.filter(r => !r.heading);
+  $('#rows', card).innerHTML = s.rows.map(r => r.heading ? `<div class="trgrp" role="presentation"><b>${esc(r.heading)}</b>${r.sub ? ` <span>${esc(r.sub)}</span>` : ''}</div>`
+    : `<div class="trrow${r.ref ? ' ref' : ''}" role="listitem"><div class="nm"><b>${esc(r.name)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</div>`
     + track(r.bar, {lo: s.lo, hi: s.hi, step: s.step, ago: r.ago, lines: s.lines || []})
     + r.vals.map((v, j) => `<span class="num ${(r.cls || [])[j] || ''}">${esc(v)}</span>`).join('') + '</div>').join('');
-  rowsInteract(card, '.trrow', j => { const r = s.rows[j ?? 0];
+  rowsInteract(card, '.trrow', j => { const r = data[j ?? 0];
     ro(card, j == null ? s.rest || 'Latest' : r.name, (r.read || []).map(x => ({v: x[0], name: x[1], cls: x[2] || ''}))); });
 };
 
@@ -418,6 +422,136 @@ R.rel = (card, s) => {
     {name: x.label, color: css('--ink'), v: x.rel[i].toFixed(1)},
     {name: 'below its best', color: css('--down'), v: sg(x.dd[i]) + '%', vcolor: x.dd[i] < 0 ? css('--down') : ''}]}; },
     () => s.styles[k].dates.length - 1);
+};
+
+/* A sector and its NSE index over a year, both 100 on the first shared session; one chip per sector
+   (Sectors, 21 Nov 2026). spec: pairs [{short, ours_name, index, dates, ours, nse}], start, text {gap, latest, month_end}. */
+R.pairs = (card, s) => {
+  const el = $('.chart', card), head = $('.ph', card), sw = $('.chips', card), tb = $('.ptab', card), T = s.text || {};
+  let k = s.start || 0, pane;
+  sw.innerHTML = s.pairs.map((x, i) => `<button class="chip" type="button" data-range="${i}" aria-pressed="${i === k}">${esc(x.short)}</button>`).join('');
+  const table = x => { const ends = x.dates.map((d, i) => [d, i]).filter(([d, i]) => i === x.dates.length - 1 || d.slice(0, 7) !== x.dates[i + 1].slice(0, 7));
+    tb.innerHTML = `<table class="lt"><thead><tr><th>${esc(T.month_end || 'Month end')}</th><th class="num">${esc(x.ours_name)}</th><th class="num">${esc(x.index)}</th></tr></thead><tbody>`
+      + ends.map(([d, i]) => `<tr><td>${dlong(d)}</td><td class="num">${x.ours[i].toFixed(1)}</td><td class="num">${x.nse[i].toFixed(1)}</td></tr>`).join('') + '</tbody></table>'; };
+  const draw = () => { const x = s.pairs[k], W = el.clientWidth, h = Math.round(Math.max(200, Math.min(320, W * 0.3)));
+    pane = linePane(el, {dates: x.dates, series: [{name: x.ours_name, color: css('--ink'), values: x.ours, area: true, width: 1.8},
+      {name: x.index, color: css('--up'), values: x.nse, width: 1.6}], height: h, padL: 44, padR: 8, yfmt: v => v.toFixed(0),
+      levels: [{v: 100, label: '', color: css('--muted')}]}); table(x); };
+  REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
+  sw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return;
+    sw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); k = +b.dataset.range; draw(); el.dispatchEvent(new Event('blur')); });
+  interact(card, () => [pane], (r, i) => { const x = s.pairs[k], j = Math.min(i ?? x.dates.length - 1, x.dates.length - 1);
+    head.innerHTML = `<span class="d">${i == null ? esc(T.latest || 'Latest') + ' · ' : ''}${dlong(x.dates[j])}</span>`
+      + `<span><i style="color:${css('--ink')}"></i>${esc(x.ours_name)} <b>${x.ours[j].toFixed(1)}</b></span>`
+      + `<span><i style="color:${css('--up')}"></i>${esc(x.index)} <b>${x.nse[j].toFixed(1)}</b></span>`
+      + `<span>${esc(T.gap || 'gap')} <b class="${x.ours[j] - x.nse[j] < 0 ? 'down' : ''}">${sg(x.ours[j] - x.nse[j])}</b></span>`; },
+    () => ({date: '', items: []}), () => s.pairs[k].dates.length - 1);
+};
+
+/* The sector leadership map (kept, owner 21 Nov 2026): across, the lead over the 750 over the period; up, the share
+   above the EMA; a hollow dot then, a filled dot now. The EMA and period switch inside the frame (no page rerun),
+   a picker, values under the pointer, and the worked example for the picked sector, or the first ahead on narrow
+   breadth, or the leader. spec: views {"<span>-<months>": rows}, spans, periods, start, short {name: short}, text {...}. */
+R.lmap = (card, s) => {
+  const el = $('.chart', card), T = s.text, sh = n => (s.short || {})[n] || n;
+  const esw = $('.ema', card), psw = $('.per', card), pick = $('.pick', card);
+  let span = s.start[0], per = s.start[1], focus = '', hover = null, geo = null;
+  esw.innerHTML = s.spans.map(n => `<button class="chip" type="button" data-v="${n}" aria-pressed="${n === span}">${n}${esc(T.ema)}</button>`).join('');
+  psw.innerHTML = s.periods.map(n => `<button class="chip" type="button" data-v="${n}" aria-pressed="${n === per}">${n}M</button>`).join('');
+  const rows = () => s.views[`${span}-${per}`] || [];
+  const pts1 = v => sg(v) + ' ' + T.pts;
+  const fillPick = () => { const v = pick.value; pick.innerHTML = `<option value="">${esc(T.all)}</option>` + rows().slice().sort((a, b) => sh(a.name).localeCompare(sh(b.name)))
+      .map(r => `<option value="${esc(r.name)}">${esc(sh(r.name))}</option>`).join(''); pick.value = rows().some(r => r.name === v) ? v : ''; focus = pick.value; };
+  const ends = () => { const R = rows(); return R.length ? [R.reduce((a, r) => r.x1 > a.x1 ? r : a), R.reduce((a, r) => r.x1 < a.x1 ? r : a)] : [null, null]; };
+  const col = r => { const [lead, lag] = ends(); return r === lead ? css('--up') : r === lag ? css('--down') : css('--muted'); };
+  const read = () => { const R = rows(), [lead] = ends(); const r = hover || R.find(q => q.name === focus) || lead; if (!r) return;
+    $('.readout', card).innerHTML = `<span class="d">${hover ? '' : esc(T.latest) + ' · '}${esc(sh(r.name))} · ${r.stocks} ${esc(T.stocks)}</span>`
+      + `<span class="ro"><span>${esc(r.then)}</span><b>${pts1(r.x0)}</b><span>${Math.round(r.y0)}% ${esc(T.above)}</span></span>`
+      + `<span class="ro"><span>${esc(r.now)}</span><b class="${tone(r.x1)}">${pts1(r.x1)}</b><span>${Math.round(r.y1)}% ${esc(T.above)}</span></span>`; };
+  const example = () => { const R = rows(); if (!R.length) { $('.mex', card).innerHTML = ''; return; }
+    const [lead] = ends(), narrow = R.filter(r => r.x1 > 0 && r.y1 < 50);
+    const ex = R.find(r => r.name === focus) || narrow[0] || lead, n = ex.stocks, per1 = per === 1 ? T.month : `${per} ${T.months}`;
+    const dx = ex.x1 - ex.x0, dy = ex.y1 - ex.y0, flat = Math.abs(dy) < 0.5, side = ex.x1 >= 0 ? T.right_of : T.left_of, half = ex.y1 >= 50 ? T.above_w : T.below_w;
+    // "Same share" when breadth did not move (found for the Sectors build, 21 Nov 2026: it read "more of its stocks").
+    const reading = flat ? (dx >= 0 ? T.r_flat_up : T.r_flat_down) : dx >= 0 && dy >= 0 ? T.r_ru : dx >= 0 ? T.r_rd : dy >= 0 ? T.r_lu : T.r_ld;
+    const lifts = ex.leaders.map(([sym, v]) => `${esc(sym)} ${sg(v)}%, ${T.adds} ${sg(v / n, 2)} ${T.pts}`).join('; ');
+    $('.mex', card).innerHTML = `<p class="mh">${esc(T.how)}: ${esc(sh(ex.name))}</p>`
+      + `<p><b>${esc(T.q_across.replace('{p}', per1))}</b> ${esc(T.a_across.replace('{n}', n).replace('{name}', sh(ex.name)).replace('{then}', ex.then).replace('{now}', ex.now))} <b>${sg(ex.ret, 2)}%</b>. ${esc(T.a_market)} <b>${sg(ex.bench, 2)}%</b>. ${esc(T.a_diff)} <b>${pts1(ex.x1)}</b>, ${esc(side)}. ${esc(T.a_hollow)} ${pts1(ex.x0)}.</p>`
+      + `<p><b>${esc(T.q_up)}</b> ${esc(T.a_up.replace('{span}', span))} ${ex.a1} / ${ex.o1} = <b>${Math.round(ex.y1)}%</b>; ${esc(T.ago_word)} ${ex.a0} / ${ex.o0} = ${Math.round(ex.y0)}%. ${esc(T.a_up2.replace('{need}', Math.round(span * 0.8)))}</p>`
+      + `<p><b>${esc(T.q_lift)}</b> ${esc(T.a_lift.replace('{n}', n))} ${lifts}.</p>`
+      + `<p><b>${esc(T.q_line)}</b> ${esc(T.a_line)} ${Math.abs(dx).toFixed(1)} ${T.pts} ${dx >= 0 ? T.right : T.left}, ${flat ? T.no_move : Math.abs(dy).toFixed(0) + ' ' + T.pts + ' ' + (dy >= 0 ? T.up : T.down)}: ${esc(reading)} ${esc(T.today.replace('{side}', side).replace('{half}', half))} ${esc(T.four)}</p>`;
+    const fell = R.filter(r => Math.round(r.y1) < Math.round(r.y0)).length;
+    $('.mcap', card).textContent = `${R[0].then} → ${R[0].now}: ${T.fell.replace('{n}', fell).replace('{of}', R.length)}`
+      + (narrow.length ? ` ${T.narrow.replace('{span}', span)} ${narrow.map(r => sh(r.name)).join(', ')}.` : '');
+    $('.mtab', card).innerHTML = `<table class="lt"><thead><tr><th>${esc(T.sector)}</th><th class="num">${esc(T.lead)} ${esc(R[0].then)}</th><th class="num">${esc(T.lead)} ${esc(R[0].now)}</th><th class="num">${esc(T.share)} ${esc(R[0].then)}</th><th class="num">${esc(T.share)} ${esc(R[0].now)}</th></tr></thead><tbody>`
+      + R.slice().sort((a, b) => b.x1 - a.x1).map(r => `<tr><td>${esc(sh(r.name))}</td><td class="num">${sg(r.x0)}</td><td class="num ${tone(r.x1)}">${sg(r.x1)}</td><td class="num">${Math.round(r.y0)}%</td><td class="num">${Math.round(r.y1)}%</td></tr>`).join('') + '</tbody></table>'; };
+  const draw = () => { const R = rows(), W = Math.max(280, el.clientWidth), phone = W < 560, H = Math.min(520, Math.max(300, Math.round(W * (phone ? 0.95 : 0.5))));
+    const L = 40, Rp = phone ? 8 : 16, Tp = 12, B = 30;
+    el.querySelector('svg')?.remove(); const svg = mk('svg', {viewBox: `0 0 ${W} ${H}`, height: H, 'aria-hidden': 'true'}); el.prepend(svg);
+    if (!R.length) return;
+    const lim = Math.ceil(Math.max(2, ...R.flatMap(r => [Math.abs(r.x0), Math.abs(r.x1)])) / 2) * 2 + 1;
+    const X = v => L + (W - L - Rp) * (v + lim) / (2 * lim), Y = v => Tp + (H - Tp - B) * (100 - v) / 100;
+    for (let v = 0; v <= 100; v += 25) { mk('line', {x1: L, x2: W - Rp, y1: Y(v), y2: Y(v), stroke: css(v === 50 ? '--rule' : '--rule-soft'), 'stroke-width': v === 50 ? 1.2 : 1}, svg);
+      mk('text', {x: L - 6, y: Y(v) + 4, 'text-anchor': 'end'}, svg).textContent = v + '%'; }
+    const st = lim > 12 ? 5 : lim > 6 ? 4 : 2;
+    for (let v = -Math.floor(lim / st) * st; v <= lim; v += st) { mk('line', {x1: X(v), x2: X(v), y1: Tp, y2: H - B, stroke: v === 0 ? css('--ink') : css('--rule-soft'), 'stroke-width': v === 0 ? 1.2 : 1, opacity: v === 0 ? .6 : 1}, svg);
+      mk('text', {x: X(v), y: H - B + 14, 'text-anchor': 'middle'}, svg).textContent = v === 0 ? '0' : sg(v, 0); }
+    mk('text', {x: W - Rp, y: H - 2, 'text-anchor': 'end'}, svg).textContent = T.x_axis;
+    mk('text', {x: L + 4, y: Tp + 10}, svg).textContent = T.y_axis.replace('{span}', span);
+    const [lead, lag] = ends(), on = r => !focus || r.name === focus;
+    const order = R.slice().sort((a, b) => (a === lead || a === lag || a.name === focus) - (b === lead || b === lag || b.name === focus));
+    for (const r of order) { const c = col(r), g = mk('g', {opacity: on(r) ? 1 : .22}, svg);
+      mk('line', {x1: X(r.x0), y1: Y(r.y0), x2: X(r.x1), y2: Y(r.y1), stroke: c, 'stroke-width': 1.4}, g);
+      mk('circle', {cx: X(r.x0), cy: Y(r.y0), r: 3.5, fill: css('--bg'), stroke: c, 'stroke-width': 1.4}, g);
+      mk('circle', {cx: X(r.x1), cy: Y(r.y1), r: 4.5, fill: c}, g); }
+    // Labels beside the filled dot, reading leftward near the right edge, nudged apart; on a phone only the leader,
+    // the laggard, the picked and the touched sector are named (PAGE_DESIGN 8: labels that do not fit are named on tap).
+    const placed = [];
+    for (const r of R.filter(r => on(r) && (!phone || r === lead || r === lag || r.name === focus || (hover && hover.name === r.name))).sort((a, b) => Y(a.y1) - Y(b.y1))) {
+      const left = X(r.x1) > W - 110, tx = X(r.x1) + (left ? -8 : 8); let ty = Y(r.y1) + 4;
+      for (const q of placed) if (Math.abs(q.ty - ty) < 13 && Math.abs(q.tx - tx) < 110) ty = q.ty + 13;
+      placed.push({tx, ty});
+      const t = mk('text', {x: tx, y: ty, 'text-anchor': left ? 'end' : 'start', class: 'lbl-end'}, svg); t.textContent = sh(r.name);
+      t.setAttribute('style', `fill:${r === lead || r === lag ? col(r) : css('--text2')}`); }
+    if (hover) mk('circle', {cx: X(hover.x1), cy: Y(hover.y1), r: 8, fill: 'none', stroke: css('--ink'), 'stroke-width': 1.2}, svg);
+    geo = {X, Y, W}; read(); };
+  const near = e => { if (!geo) return; const b = el.getBoundingClientRect(), k = geo.W / b.width, px = (e.clientX - b.left) * k, py = (e.clientY - b.top) * k;
+    let best = null, d = 1e12; for (const r of rows()) { const dd = (geo.X(r.x1) - px) ** 2 + (geo.Y(r.y1) - py) ** 2; if (dd < d) { d = dd; best = r; } }
+    hover = best; draw(); };
+  el.addEventListener('pointermove', near); el.addEventListener('pointerdown', near);
+  el.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') { hover = null; draw(); } });
+  el.addEventListener('keydown', e => { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; e.preventDefault();
+    const srt = rows().slice().sort((a, b) => a.x1 - b.x1), i = srt.indexOf(hover || ends()[0]);
+    hover = srt[Math.max(0, Math.min(srt.length - 1, i + (e.key === 'ArrowLeft' ? -1 : 1)))]; draw(); });
+  const sw = (box, set) => box.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return;
+    box.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); set(+b.dataset.v); hover = null; fillPick(); draw(); example(); });
+  sw(esw, v => { span = v; }); sw(psw, v => { per = v; });
+  pick.addEventListener('change', () => { focus = pick.value; hover = null; draw(); example(); });
+  fillPick(); REDRAW.push(draw); draw(); example(); new ResizeObserver(draw).observe(el);
+};
+
+/* A sortable table with a line-bar column (Sectors' "Inside each sector", 21 Nov 2026). spec: cols [{k, label, num,
+   bar}], rows [{name, sub, ref, v: {k: value}, t: {k: text}, c: {k: class}}], sort, bar {lo, hi, step, lines, ago}.
+   The reference row stays first; a heading sorts on a click, Enter or Space. */
+R.stable = (card, s) => {
+  const el = $('.stab', card), B = s.bar || {};
+  let key = s.sort, dir = -1;
+  const draw = () => {
+    const ref = s.rows.filter(r => r.ref), rest = s.rows.filter(r => !r.ref).sort((a, b) => {
+      const va = key === 'name' ? a.name : a.v[key], vb = key === 'name' ? b.name : b.v[key];
+      if (va == null) return 1; if (vb == null) return -1;
+      return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir; });
+    const head = s.cols.map(c => `<th scope="col" data-k="${c.k}" tabindex="0" class="${c.num ? 'num' : ''}" aria-sort="${c.k === key ? (dir < 0 ? 'descending' : 'ascending') : 'none'}">${esc(c.label)}</th>`).join('');
+    const cell = (r, c) => { if (c.k === 'name') return `<th scope="row">${esc(r.name)}${r.sub ? `<span class="ss">${esc(r.sub)}</span>` : ''}</th>`;
+      const t = (r.t || {})[c.k] ?? (r.v[c.k] == null ? '—' : String(r.v[c.k])), cls = (r.c || {})[c.k] || '';
+      if (c.bar) return `<td class="bar"><div class="bw">${track(r.v[c.k], {lo: B.lo, hi: B.hi, step: B.step, lines: B.lines || [], ago: r.v[B.ago]})}<span class="num ${cls}">${esc(t)}</span></div></td>`;
+      return `<td class="${c.num ? 'num ' : ''}${cls}">${esc(t)}</td>`; };
+    const row = r => `<tr${r.ref ? ' class="ref"' : ''}>${s.cols.map(c => cell(r, c)).join('')}</tr>`;
+    el.innerHTML = `<table class="ht st"><thead><tr>${head}</tr></thead><tbody>${ref.map(row).join('')}${rest.map(row).join('')}</tbody></table>`;
+    el.querySelectorAll('thead th').forEach(th => { const go = () => { const k = th.dataset.k; dir = k === key ? -dir : (k === 'name' ? 1 : -1); key = k; draw(); };
+      th.addEventListener('click', go); th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); });
+  };
+  draw();
 };
 
 window.DashCharts = {render(kind, spec) { R[kind](document.getElementById('c'), spec); }};
