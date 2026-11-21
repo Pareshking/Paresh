@@ -143,9 +143,8 @@ DEPLOY_WAIT_S = int(os.getenv("UMIYA_DEPLOY_WAIT_S", "300"))
 METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "180"))
 
 TABS = [
-    "Dashboard", "Portfolio", "Actions", "Watchlist", "Screener", "Sectors",
-    "Market Breadth", "Indices", "Backtest", "Configuration",
-    "Guide",
+    "Dashboard", "Actions", "Screener", "Portfolio", "Market", "Indices", "Sectors",
+    "Watchlist", "Backtest", "Configuration", "Guide",
 ]
 VIEWPORTS = {
     "desktop_1920x1080": (1920, 1080),
