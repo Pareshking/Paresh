@@ -150,3 +150,26 @@ def test_a_back_calculated_row_two_sessions_before_launch_is_not_live():
     store = ni.merge(_rows("Nifty100 Low Volatility 30", [days[0], *days[2:]], 6635.95),
                      _rows("Nifty 50", days))
     assert ni.series(store, "nifty100_low_volatility_30").index[0] == days[2]
+
+
+def test_a_missing_day_is_derived_from_the_next_sessions_points_change():
+    # 9 Oct 2013: NSE has no file; 10 Oct's close minus its points change is 9 Oct's
+    # close (6007.45, which Kaggle's collector also holds).
+    a = ni.parse_file(_file("CNX Nifty,08-10-2013,-,-,-,5928.40,1,1,1,1,18,3,1"), ALIASES)
+    c = ni.parse_file(_file("CNX Nifty,10-10-2013,-,-,-,6020.95,13.50,.22,1,1,18,3,1"), ALIASES)
+    store = ni.derive_missing(ni.merge(ni.merge(None, a), c), [pd.Timestamp("2013-10-09")])
+    row = store[store["date"] == pd.Timestamp("2013-10-09")].iloc[0]
+    assert row["close"] == 6007.45 and bool(row["derived"]) and pd.isna(row["pe"])
+    assert len(ni.derive_missing(store, [pd.Timestamp("2013-10-09")])) == len(store)   # once only
+    assert not ni.merge(None, a)["derived"].any()
+
+
+def test_a_derived_close_that_jumps_is_refused():
+    a = ni.parse_file(_file("CNX Nifty,08-10-2013,-,-,-,5928.40,1,1,1,1,18,3,1"), ALIASES)
+    c = ni.parse_file(_file("CNX Nifty,10-10-2013,-,-,-,6020.95,3000,1,1,1,18,3,1"), ALIASES)
+    store = ni.derive_missing(ni.merge(ni.merge(None, a), c), [pd.Timestamp("2013-10-09")])
+    assert pd.Timestamp("2013-10-09") not in set(store["date"])
+
+
+def test_the_missing_sessions_table_lists_eleven_derivable_days():
+    assert len(ni.missing_sessions()) == 11

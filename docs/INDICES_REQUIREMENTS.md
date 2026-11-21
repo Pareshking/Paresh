@@ -43,7 +43,8 @@ participation on Breadth, and the book's own momentum on the Dashboard.
 | 9 | Each style row shows its live date, the day NSE's daily file first listed it (Momentum 25 Aug 2020, matching NSE's press release). Only live history is used: no back-calculated years | Literature item 2; Huang, Song & Xiang 2024 | Section 2 | live since |
 | 10 | **Style drawdowns.** A two-pane chart for the chosen style, picked by chips: the relative line (style ÷ parent, 100 at launch) and its fall from the relative peak, with one crosshair. Beside it, a table per style: fall now, worst fall with its dates, and the date it recovered or "not yet" | Design §5.4 | Section 3 | Worst relative fall |
 | 11 | **Calendar years.** A table with one row per year and one column per style, giving the lead over the parent. Each style starts at its first full live year, and this year is marked year to date. Figures carry only the sign colour, no heat colours. The heading counts the years each style led | Design §5.3 | Section 4 | year to date |
-| 12 | **Size by year.** One row of small multiples each for large (Nifty 100), mid (Midcap 100), small (Smallcap 100) and micro (Microcap 250, from 2022). Each calendar year's return is a bar and its worst fall within the year a dot, all on one scale. The heading gives the median fall per size | Design §5.5; JPM Guide practice | Section 5 | within the year |
+| 12 | **Size by year.** One row of small multiples each for large (Nifty 100), mid (Midcap 150), small (Smallcap 250) and micro (Microcap 250, from 2022), the size indices the rest of the site uses, all from 2017 (NSE's file lists 150 and 250 from Apr 2016). Each calendar year's return is a bar and its worst fall within the year a dot, all on one scale. The heading gives the median fall per size | Design §5.5; JPM Guide practice; owner 21 Nov ("why don't we use Midcap 150, Smallcap 250") | Section 5 | within the year |
+| 18 | **Every index.** Every NSE stock index (148 on 20 Nov) in four families: broad market, sector, theme, strategy (`data/reference/nse_index_groups.csv`; the grouping is ours, after NSE's four headings). Each family is a table sorted by 1-year price return, with 1M, 3M, 1Y, distance from the 1-year high and P/E. Indices younger than a year are listed last with their launch date. Each family's heading states its leader, laggard and count up. The sector note says Sectors measures something else: industries inside the 750, equal-weighted. Bond, rate, leveraged and inverse indices, VIX and the dollar Nifty are left out | Owner 21 Nov ("Where are the other indices for theme, sector, industries") | Section 6 | Every index |
 | 13 | Data to the page's session at the foot, with the count of indices read; no source named | Owner 20, 21 Nov; PAGE_DESIGN | Foot | Data to |
 | 14 | Every figure ends on the page's session; "1M ago" and "3M ago" are the last session on or before the same date (the Dashboard's rule) | S148, S154 | Whole page | Data to |
 | 15 | Headings in the serif, each a sentence stating the finding; notes 13.5 px, lines of about 80 characters; tables use sentence-case headers and Plex Mono right-aligned figures | PAGE_DESIGN §2, §3 | Sections | Indices |
@@ -53,7 +54,6 @@ participation on Breadth, and the book's own momentum on the Dashboard.
 ## Not on this page, and why
 
 - **Day changes, an 8-window return table, heat carpets.** The first are on the Dashboard's glance. The other two carry too many figures, with meaning in colour alone (Design §2.7).
-- **Sector indices.** They belong on Sectors (owner, 21 Nov: "focus our energy on sector page").
 - **Trend status of each index.** Breadth answers it, and a second framing of the same index's trend would compete.
 - **The momentum-crash flag** (Daniel & Moskowitz). It is a TEST item with about one bear state since 2012, so it waits for a test.
 - **P/E bands with buy or sell levels, RSI/MACD, seasonality, flows as a predictor, the market-cap-to-GDP ratio.** Literature §5.
@@ -78,7 +78,14 @@ participation on Breadth, and the book's own momentum on the Dashboard.
   - Total return. NSE's TRI is unreachable from here and from GitHub's runners.
   - Launch dates against NSE's press releases, except Nifty200 Momentum 30.
 
-## Decisions for the owner
+## Decided (owner, 21 Nov 2026: "yes with your recommendation")
+
+A, B, C and D as recommended below. B is built: `nse_indices.derive_missing` fills the 11 days listed in
+`data/reference/nse_index_missing_sessions.csv` (529 rows, `derived` true), the Nifty 50
+and Nifty 500 equal the Kaggle/SS closes on all of them. Mock-up v2 (artifact
+GLYdKBPes3KsBxAEzdCqxz, same link) carries rows 12 and 18 as changed; awaiting approval of v2.
+
+## Decisions as put to the owner
 
 - **A. Returns basis.** NSE's TRI cannot be reached, so total return is not available as decided. Recommended: price returns, with each style's yield gap printed beside it (row 8). Rejected: a home-made "price plus yield" series, because it is our own construction presented as an index.
 - **B. The 11 derivable missing days.** For 11 of the 12 days NSE has no file, the next session's close minus its points change gives the missing close. It matched the Kaggle/SS close exactly in 22 of 22 checks. Recommended: fill them by that rule for every index, with each filled row marked as derived. Alternative: leave the gaps, since they barely move monthly or yearly figures.

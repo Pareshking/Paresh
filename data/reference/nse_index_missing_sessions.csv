@@ -1,0 +1,13 @@
+date,derivable,evidence
+2013-10-09,yes,"404 on nsearchives and archives (21 Nov 2026); BSE EQ091013_CSV.ZIP and NSE cm09OCT2013bhav.csv.zip exist; Nifty 50 derived 6007.45 = Kaggle"
+2014-03-19,yes,"404 both hosts; BSE and NSE equity bhavcopies exist; Nifty 50 derived 6524.05 = Kaggle"
+2014-12-15,yes,"404 both hosts; BSE and NSE equity bhavcopies exist; Nifty 50 derived 8219.60 = Kaggle"
+2015-02-02,yes,"404 both hosts; BSE and NSE equity bhavcopies exist; Nifty 50 derived 8797.40 = Kaggle"
+2015-03-12,no,"404 both hosts; bhavcopies exist; 13 Mar is missing too, so no next-day points change to derive from"
+2015-03-13,yes,"404 both hosts; bhavcopies exist; Nifty 50 derived 8647.75 = Kaggle"
+2015-05-19,yes,"404 both hosts; bhavcopies exist; Nifty 50 derived 8365.65 = Kaggle"
+2015-07-08,yes,"404 both hosts; bhavcopies exist; Nifty 50 derived 8363.05 = Kaggle"
+2015-09-04,yes,"404 both hosts; bhavcopies exist; Nifty 50 derived 7655.05 = Kaggle"
+2015-10-16,yes,"404 both hosts; bhavcopies exist; Nifty 50 derived 8238.15 = SS"
+2015-12-01,yes,"404 both hosts; bhavcopies exist; Nifty 50 derived 7954.90 = SS"
+2016-06-20,yes,"404 both hosts; bhavcopies exist; Nifty 50 derived 8238.50 = SS"

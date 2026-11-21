@@ -1,0 +1,170 @@
+key,group,name
+india_vix,not a stock index,India VIX
+nifty_alpha_low_volatility_30,Strategy,NIFTY Alpha Low-Volatility 30
+nifty_alpha_quality_low_volatility_30,Strategy,NIFTY Alpha Quality Low-Volatility 30
+nifty_alpha_quality_value_low_volatility_30,Strategy,NIFTY Alpha Quality Value Low-Volatility 30
+nifty_largemidcap_250,Broad market,NIFTY LargeMidcap 250
+nifty_midcap_100,Broad market,NIFTY Midcap 100
+nifty_midcap150_quality_50,Strategy,NIFTY Midcap150 Quality 50
+nifty_quality_low_volatility_30,Strategy,NIFTY Quality Low-Volatility 30
+nifty_sme_emerge,Broad market,NIFTY SME EMERGE
+nifty_smallcap_100,Broad market,NIFTY Smallcap 100
+nifty100_alpha_30,Strategy,NIFTY100 Alpha 30
+nifty100_esg,Strategy,NIFTY100 ESG
+nifty100_enhanced_esg,Strategy,NIFTY100 Enhanced ESG
+nifty100_quality_30,Strategy,NIFTY100 Quality 30
+nifty200_quality_30,Strategy,NIFTY200 Quality 30
+nifty50_equal_weight,Strategy,NIFTY50 Equal Weight
+nifty500_value_50,Strategy,NIFTY500 Value 50
+nifty_10_yr_benchmark_g_sec,not a stock index,Nifty 10 yr Benchmark G-Sec
+nifty_10_yr_benchmark_g_sec_clean_price,not a stock index,Nifty 10 yr Benchmark G-Sec (Clean Price)
+nifty_100,Broad market,Nifty 100
+nifty_1000,Broad market,Nifty 1000
+nifty_11_15_yr_g_sec_index,not a stock index,Nifty 11-15 yr G-Sec Index
+nifty_15_yr_and_above_g_sec_index,not a stock index,Nifty 15 yr and above G-Sec Index
+nifty_1d_rate_index,not a stock index,Nifty 1D Rate Index
+nifty_200,Broad market,Nifty 200
+nifty_4_8_yr_g_sec_index,not a stock index,Nifty 4-8 yr G-Sec Index
+nifty_50,Broad market,Nifty 50
+nifty_50_arbitrage,not a stock index,Nifty 50 Arbitrage
+nifty_50_futures_index,not a stock index,Nifty 50 Futures Index
+nifty_50_futures_tr_index,not a stock index,Nifty 50 Futures TR Index
+nifty_500,Broad market,Nifty 500
+nifty_8_13_yr_g_sec,not a stock index,Nifty 8-13 yr G-Sec
+nifty_ai_catalysts,Theme,Nifty AI Catalysts
+nifty_alpha_50,Strategy,Nifty Alpha 50
+nifty_auto,Sector,Nifty Auto
+nifty_bharat_bond_index_april_2030,not a stock index,Nifty BHARAT Bond Index - April 2030
+nifty_bharat_bond_index_april_2031,not a stock index,Nifty BHARAT Bond Index - April 2031
+nifty_bharat_bond_index_april_2032,not a stock index,Nifty BHARAT Bond Index - April 2032
+nifty_bharat_bond_index_april_2033,not a stock index,Nifty BHARAT Bond Index - April 2033
+nifty_bank,Sector,Nifty Bank
+nifty_cpse,Theme,Nifty CPSE
+nifty_capital_goods,Sector,Nifty Capital Goods
+nifty_capital_markets,Sector,Nifty Capital Markets
+nifty_cement,Sector,Nifty Cement
+nifty_chemicals,Sector,Nifty Chemicals
+nifty_commercial_transport_services,Theme,Nifty Commercial & Transport Services
+nifty_commodities,Theme,Nifty Commodities
+nifty_composite_g_sec_index,not a stock index,Nifty Composite G-sec Index
+nifty_conglomerate_50,Theme,Nifty Conglomerate 50
+nifty_construction,Sector,Nifty Construction
+nifty_consumer_durables,Sector,Nifty Consumer Durables
+nifty_consumer_services,Theme,Nifty Consumer Services
+nifty_core_housing,Theme,Nifty Core Housing
+nifty_dividend_opportunities_50,Strategy,Nifty Dividend Opportunities 50
+nifty_ev_new_age_automotive,Theme,Nifty EV & New Age Automotive
+nifty_energy,Sector,Nifty Energy
+nifty_fmcg,Sector,Nifty FMCG
+nifty_financial_services,Sector,Nifty Financial Services
+nifty_financial_services_25_50,Sector,Nifty Financial Services 25/50
+nifty_financial_services_ex_bank,Sector,Nifty Financial Services Ex-Bank
+nifty_growth_sectors_15,Strategy,Nifty Growth Sectors 15
+nifty_healthcare_index,Sector,Nifty Healthcare Index
+nifty_high_beta_50,Strategy,Nifty High Beta 50
+nifty_high_dividend_yield_15,Strategy,Nifty High Dividend Yield 15
+nifty_hospitals,Sector,Nifty Hospitals
+nifty_housing,Theme,Nifty Housing
+nifty_housing_finance,Sector,Nifty Housing Finance
+nifty_ipo,Theme,Nifty IPO
+nifty_it,Sector,Nifty IT
+nifty_india_consumption,Theme,Nifty India Consumption
+nifty_india_corporate_group_index_aditya_birla_group,Theme,Nifty India Corporate Group Index - Aditya Birla Group
+nifty_india_corporate_group_index_mahindra_group,Theme,Nifty India Corporate Group Index - Mahindra Group
+nifty_india_corporate_group_index_tata_group,Theme,Nifty India Corporate Group Index - Tata Group
+nifty_india_corporate_group_index_tata_group_25_cap,Theme,Nifty India Corporate Group Index - Tata Group 25% Cap
+nifty_india_defence,Theme,Nifty India Defence
+nifty_india_defence_equal_weight,Theme,Nifty India Defence Equal Weight
+nifty_india_digital,Theme,Nifty India Digital
+nifty_india_fpi_150,Theme,Nifty India FPI 150
+nifty_india_infrastructure_logistics,Theme,Nifty India Infrastructure & Logistics
+nifty_india_internet,Theme,Nifty India Internet
+nifty_india_manufacturing,Theme,Nifty India Manufacturing
+nifty_india_new_age_consumption,Theme,Nifty India New Age Consumption
+nifty_india_railways_psu,Theme,Nifty India Railways PSU
+nifty_india_select_5_corporate_groups_maatr,Theme,Nifty India Select 5 Corporate Groups (MAATR)
+nifty_india_tourism,Theme,Nifty India Tourism
+nifty_infrastructure,Theme,Nifty Infrastructure
+nifty_insurance,Sector,Nifty Insurance
+nifty_low_volatility_50,Strategy,Nifty Low Volatility 50
+nifty_mnc,Theme,Nifty MNC
+nifty_media,Sector,Nifty Media
+nifty_metal,Sector,Nifty Metal
+nifty_microcap_250,Broad market,Nifty Microcap 250
+nifty_midsmall_financial_services,Sector,Nifty MidSmall Financial Services
+nifty_midsmall_healthcare,Sector,Nifty MidSmall Healthcare
+nifty_midsmall_it_telecom,Sector,Nifty MidSmall IT & Telecom
+nifty_midsmall_india_consumption,Theme,Nifty MidSmall India Consumption
+nifty_midsmallcap_400,Broad market,Nifty MidSmallcap 400
+nifty_midsmallcap400_50_50,Broad market,Nifty MidSmallcap400 50:50
+nifty_midsmallcap400_momentum_quality_100,Strategy,Nifty MidSmallcap400 Momentum Quality 100
+nifty_midcap_150,Broad market,Nifty Midcap 150
+nifty_midcap_50,Broad market,Nifty Midcap 50
+nifty_midcap_liquid_15,Strategy,Nifty Midcap Liquid 15
+nifty_midcap_select,Broad market,Nifty Midcap Select
+nifty_midcap150_momentum_50,Strategy,Nifty Midcap150 Momentum 50
+nifty_mobility,Theme,Nifty Mobility
+nifty_nbfc,Sector,Nifty NBFC
+nifty_next_100,Broad market,Nifty Next 100
+nifty_next_50,Broad market,Nifty Next 50
+nifty_non_cyclical_consumer,Theme,Nifty Non-Cyclical Consumer
+nifty_oil_gas,Sector,Nifty Oil & Gas
+nifty_pse,Theme,Nifty PSE
+nifty_psu_bank,Sector,Nifty PSU Bank
+nifty_pharma,Sector,Nifty Pharma
+nifty_power,Sector,Nifty Power
+nifty_private_bank,Sector,Nifty Private Bank
+nifty_reits_invits,Theme,Nifty REITs & InvITs
+nifty_reits_invits_90_10,Theme,Nifty REITs & InvITs 90:10
+nifty_reits_realty,Theme,Nifty REITs & Realty
+nifty_realty,Sector,Nifty Realty
+nifty_retail,Sector,Nifty Retail
+nifty_rural,Theme,Nifty Rural
+nifty_services_sector,Theme,Nifty Services Sector
+nifty_shariah_25,Strategy,Nifty Shariah 25
+nifty_small_finance_banks_microfinance_institutions,Sector,Nifty Small Finance Banks & Microfinance Institutions
+nifty_smallcap_250,Broad market,Nifty Smallcap 250
+nifty_smallcap_50,Broad market,Nifty Smallcap 50
+nifty_smallcap_500,Broad market,Nifty Smallcap 500
+nifty_smallcap250_momentum_quality_100,Strategy,Nifty Smallcap250 Momentum Quality 100
+nifty_smallcap250_quality_50,Strategy,Nifty Smallcap250 Quality 50
+nifty_sugar_ethanol,Sector,Nifty Sugar & Ethanol
+nifty_telecommunications,Sector,Nifty Telecommunications
+nifty_top_10_equal_weight,Strategy,Nifty Top 10 Equal Weight
+nifty_top_15_equal_weight,Strategy,Nifty Top 15 Equal Weight
+nifty_top_20_equal_weight,Strategy,Nifty Top 20 Equal Weight
+nifty_total_market,Broad market,Nifty Total Market
+nifty_total_market_momentum_quality_50,Strategy,Nifty Total Market Momentum Quality 50
+nifty_transportation_logistics,Theme,Nifty Transportation & Logistics
+nifty_waves,Theme,Nifty Waves
+nifty100_esg_sector_leaders,Strategy,Nifty100 ESG Sector Leaders
+nifty100_equal_weight,Strategy,Nifty100 Equal Weight
+nifty100_liquid_15,Strategy,Nifty100 Liquid 15
+nifty100_low_volatility_30,Strategy,Nifty100 Low Volatility 30
+nifty1000_equal_weight,Strategy,Nifty1000 Equal Weight
+nifty200_alpha_30,Strategy,Nifty200 Alpha 30
+nifty200_momentum_30,Strategy,Nifty200 Momentum 30
+nifty200_value_30,Strategy,Nifty200 Value 30
+nifty50_dividend_points,not a stock index,Nifty50 Dividend Points
+nifty50_pr_1x_inverse,not a stock index,Nifty50 PR 1x Inverse
+nifty50_pr_2x_leverage,not a stock index,Nifty50 PR 2x Leverage
+nifty50_shariah,Strategy,Nifty50 Shariah
+nifty50_tr_1x_inverse,not a stock index,Nifty50 TR 1x Inverse
+nifty50_tr_2x_leverage,not a stock index,Nifty50 TR 2x Leverage
+nifty50_usd,not a stock index,Nifty50 USD
+nifty50_value_20,Strategy,Nifty50 Value 20
+nifty500_ahimsa,Strategy,Nifty500 Ahimsa
+nifty500_equal_weight,Strategy,Nifty500 Equal Weight
+nifty500_flexicap_quality_30,Strategy,Nifty500 Flexicap Quality 30
+nifty500_growth_50,Strategy,Nifty500 Growth 50
+nifty500_healthcare,Sector,Nifty500 Healthcare
+nifty500_largemidsmall_equal_cap_weighted,Broad market,Nifty500 LargeMidSmall Equal-Cap Weighted
+nifty500_low_volatility_50,Strategy,Nifty500 Low Volatility 50
+nifty500_momentum_50,Strategy,Nifty500 Momentum 50
+nifty500_multicap_50_25_25,Broad market,Nifty500 Multicap 50:25:25
+nifty500_multicap_india_manufacturing_50_30_20,Theme,Nifty500 Multicap India Manufacturing 50:30:20
+nifty500_multicap_infrastructure_50_30_20,Theme,Nifty500 Multicap Infrastructure 50:30:20
+nifty500_multicap_momentum_quality_50,Strategy,Nifty500 Multicap Momentum Quality 50
+nifty500_multifactor_mqvlv_50,Strategy,Nifty500 Multifactor MQVLv 50
+nifty500_quality_50,Strategy,Nifty500 Quality 50
+nifty500_shariah,Strategy,Nifty500 Shariah

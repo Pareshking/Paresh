@@ -36,6 +36,10 @@ DATASET = "indices/nse_close_all"
 ALIASES = Path(__file__).resolve().parents[2] / "data" / "reference" / "nse_index_aliases.csv"
 # Rows NSE mislabelled, relabelled with their evidence (a name, never a price).
 CORRECTIONS = Path(__file__).resolve().parents[2] / "data" / "reference" / "nse_index_corrections.csv"
+# Trading days NSE's archive has no file for, with their evidence.
+MISSING = Path(__file__).resolve().parents[2] / "data" / "reference" / "nse_index_missing_sessions.csv"
+# A derived close more than this far from the session before is refused.
+DERIVED_MAX_MOVE = 0.20
 
 COLUMNS = {
     "Index Name": "name", "Index Date": "date", "Open Index Value": "open",
@@ -45,7 +49,9 @@ COLUMNS = {
 }
 NUMERIC = ["open", "high", "low", "close", "points_change", "change_pct", "volume",
            "turnover_cr", "pe", "pb", "div_yield"]
-STORE_COLUMNS = ["date", "key", "name"] + NUMERIC
+# `derived` marks a close NSE published no file for, worked out from the next
+# session's close and points change (owner, 21 Nov 2026: decision B).
+STORE_COLUMNS = ["date", "key", "name"] + NUMERIC + ["derived"]
 # A stored close may move by rounding only (a paisa); anything more is a restatement
 # or a mislabelled row, and the writer refuses it.
 CLOSE_TOLERANCE = 0.011
@@ -155,6 +161,7 @@ def parse_file(raw: bytes, aliases: dict[str, str] | None = None,
     f = apply_corrections(f)
     al = load_aliases() if aliases is None else aliases
     f["key"] = f["name"].map(lambda n: key_for(n, al))
+    f["derived"] = False
     return f[STORE_COLUMNS].reset_index(drop=True)
 
 
@@ -183,12 +190,55 @@ def merge(stored: pd.DataFrame | None, new: pd.DataFrame) -> pd.DataFrame:
     if len(bad):
         raise ValueError("a stored close would change: "
                          + "; ".join(f"{r.date:%Y-%m-%d} {r.key} {r.close_stored} -> {r.close}" for r in bad.head(10).itertuples()))
+    if stored is not None and "derived" not in stored.columns:
+        stored = stored.assign(derived=False)
     if stored is None or stored.empty:
         out = new
     else:
         out = pd.concat([stored, new[~new.set_index(["date", "key"]).index.isin(
             stored.set_index(["date", "key"]).index)]], ignore_index=True)
     return out.sort_values(["date", "key"]).reset_index(drop=True)[STORE_COLUMNS]
+
+
+def missing_sessions(path: Path | None = None) -> list[pd.Timestamp]:
+    """Trading days with no NSE file whose close can be derived (`derivable` yes)."""
+    p = MISSING if path is None else path
+    if not p.exists():
+        return []
+    t = pd.read_csv(p, dtype=str)
+    return [pd.Timestamp(d) for d, ok in zip(t["date"], t["derivable"]) if ok.strip() == "yes"]
+
+
+def derive_missing(store: pd.DataFrame, days: list[pd.Timestamp] | None = None) -> pd.DataFrame:
+    """The store with a derived row for each listed missing day: close = the next
+    session's close minus its points change, for every index listed on both the
+    session before and the session after. Checked 21 Nov 2026: exact for the
+    Nifty 50 and Nifty 500 on all 11 days against Kaggle and SS. Idempotent."""
+    days = missing_sessions() if days is None else days
+    if store.empty or not days:
+        return store
+    store = store if "derived" in store.columns else store.assign(derived=False)
+    sess = pd.DatetimeIndex(sorted(store["date"].unique()))
+    rows = []
+    for day in days:
+        day = pd.Timestamp(day)
+        if day in sess or day <= sess[0] or day >= sess[-1]:
+            continue
+        before, after = sess[sess < day][-1], sess[sess > day][0]
+        a = store[store["date"] == after].set_index("key")
+        b = store[store["date"] == before].set_index("key")
+        both = a.index.intersection(b.index)
+        a, b = a.loc[both], b.loc[both]
+        close = a["close"] - a["points_change"]
+        ok = close.notna() & ((close / b["close"] - 1).abs() <= DERIVED_MAX_MOVE)
+        for key in close.index[ok]:
+            r = {c: np.nan for c in NUMERIC}
+            r.update(date=day, key=key, name=a.at[key, "name"], close=round(float(close[key]), 2), derived=True)
+            rows.append(r)
+    if not rows:
+        return store
+    add = pd.DataFrame(rows)[STORE_COLUMNS]
+    return pd.concat([store, add], ignore_index=True).sort_values(["date", "key"]).reset_index(drop=True)
 
 
 def seams(store: pd.DataFrame) -> pd.DataFrame:

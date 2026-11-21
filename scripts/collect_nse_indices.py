@@ -125,10 +125,12 @@ def main() -> int:
     except ValueError as exc:
         print(f"::error::NSE indices NOT written: {exc}")
         return 1
+    # Decision B (owner, 21 Nov 2026): days NSE has no file for, derived and marked.
+    out = ni.derive_missing(out)
     added = len(out) - (0 if stored is None else len(stored))
     out.to_parquet(args.store, index=False)
     print(f"NSE_INDICES rows={len(out)} keys={out['key'].nunique()} first={out['date'].min():%Y-%m-%d} "
-          f"last={out['date'].max():%Y-%m-%d} added={added}")
+          f"last={out['date'].max():%Y-%m-%d} added={added} derived={int(out['derived'].sum())}")
     sm = ni.seams(out)
     for r in sm.itertuples():
         print(f"SEAM {r.key} {r.date:%Y-%m-%d} {r.old!r} -> {r.new!r} continuous={r.continuous}")
