@@ -29,6 +29,9 @@ learned on the four redesigned pages (`docs/PAGE_DESIGN.md` §2a, `docs/FIGURE_I
 | 9 | Industry or sector grouping switch (NSE industry) | Live page | Top | NSE industry |
 | 10 | RRG and Sectors agree on each industry's standing: one construction for an industry and its benchmark; 100 is the benchmark | S147, owner 19-20 Nov | Whole page | Sectors |
 
+Row 10's RRG half is moot since 21 Nov 2026: the RRG page was removed (S169, #587). The construction it pinned stays:
+Sectors' answer and its leadership map build each industry the same way (`tests/test_industry_pages_agree.py`).
+
 ## Rules learned on the four pages (21 Nov 2026)
 
 | # | Requirement | Source | Where | Marker |
@@ -69,7 +72,8 @@ NSE's sector indices move here from the Indices page (S170), so a reader asking 
 one place. Themes, strategy and broad indices stay on Indices; Breadth, Sectors and Indices stay separate pages
 (not merged: about 15 sections on one page, three questions on different time scales, and the Dashboard is
 already the page that summarises; a "Market" heading grouping the three in the menu is the alternative if the
-menu feels long).
+menu feels long). Later the same day the menu lost its headings (#590), every page went into the desktop top bar (#592),
+and Breadth became the Market page at `/market` (#590, #592, #596).
 
 Numbered P1-P3 until built, so the requirements check does not read them yet; each gets a number and its marker when the redesign builds it.
 

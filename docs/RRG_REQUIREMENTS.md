@@ -1,5 +1,16 @@
 # RRG requirements: everything agreed, in one list
 
+> **Superseded, 21 Nov 2026: the RRG page was removed (S169, #587).** Kept as the record of what
+> was agreed; nothing below is built or checked any more. Why (owner, 21 Nov: "How about we remove
+> the RRG instead? And must focus our energy on sector page"): the JdK formula is not published,
+> and our reconstruction put NSE's sector indices in StockCharts' quadrant on 35% of index-weeks
+> (25% by chance); it also read 10 of 19 industries differently from Sectors
+> (`docs/RRG_ANALYSIS_2026-11-21.md`). What went: `src/ui/views/rrg_view.py`, `compute_rrg_data`,
+> the menu entry, the Guide's rotation-graph section, the Dashboard's section 7 and the quadrant
+> badges on its section 6 (`docs/DASHBOARD_REQUIREMENTS.md`, rows 34-36 dropped). Industry
+> leadership is on Sectors. `/rrg` is not redirected (owner: "not required"): it is neither a page
+> nor a moved address in `app.py` (`_PAGES`, `_MOVED`). No CI step reads this list.
+
 Started 21 Nov 2026, before any change, from four places: every item on the live RRG page that
 day (`src/ui/views/rrg_view.py`, `src/ui/charts.py` `render_rrg_chart`), the owner's decisions
 about RRG recorded in `CHANGELOG.md` (dated below), the rules learned on Dashboard, Portfolio,
