@@ -34,7 +34,7 @@ refuses the Nifty 1000 (TODO S175).
 
 - Configuration → System (radio, short name + one-line caption). Every page
   follows the choice: Screener, Actions, Sectors, RRG, Portfolio, Watchlist,
-  Breadth, Backtest, Track Record. Holdings and watchlist are shared.
+  Market, Backtest, Track Record. Holdings and watchlist are shared.
 - The choice lives in the session (`cfg_system`) **and** in the address as
   `?sys=1000` / `?sys=nano` / `?sys=combined` (nothing for the 750), because a stock link
   reloads the page and a reload is a new session (`src/ui/system_param.py`).

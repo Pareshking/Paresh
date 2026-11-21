@@ -1,5 +1,8 @@
 """
-Market Breadth View Controller.
+The Market page (/market): are most stocks taking part, and is the market in an uptrend.
+
+Called Breadth, at /breadth, until 21 Nov 2026; the breadth measures it draws keep
+their names (src/engine/breadth.py).
 """
 
 import pandas as pd
@@ -18,7 +21,7 @@ from src.ui.page_kit import _series_of
 from src.ui.components import gap_count
 from src.ui.theme import render_saas_table
 from src.loaders.index_levels import nse_benchmarks
-from src.ui.views.market_questions_view import render_breadth_questions, size_closes
+from src.ui.views.market_questions_view import render_market_page_questions, size_closes
 
 
 def index_members(rank_df: pd.DataFrame, index_name: str) -> list[str]:
@@ -64,18 +67,18 @@ def _highs_lows_chart(hl_df: pd.DataFrame, is_pct: bool) -> None:
               label="New highs against new lows each session")
 
 
-def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
+def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         history_prices: pd.DataFrame | None = None,
                         benchmark_close: pd.Series | None = None) -> None:
     """Two questions first (owner, 7 Nov: tipsheet's question pages as the
     model): are most stocks taking part, and is the market in an uptrend; each
     with its verdict, evidence, what changed and what would change it. Then
     today's charts and the stocks making new highs and lows."""
-    # The title answers both questions (render_breadth_questions); index closes from the Dashboard's file (S154).
+    # The title answers both questions (render_market_page_questions); index closes from the Dashboard's file (S154).
     bench = nse_benchmarks()
     nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
                 else _series_of(bench, "nifty500"))
-    render_breadth_questions(rank_df, history_prices if history_prices is not None else adj_close,
+    render_market_page_questions(rank_df, history_prices if history_prices is not None else adj_close,
                              nifty500, size_closes())
 
     with st.container(key="br_chart_head", horizontal=True, vertical_alignment="center", gap="small"):
