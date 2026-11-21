@@ -39,7 +39,7 @@ An element is every figure, chart series, table column and number in a label or 
   - [ ] it refuses to write bad data (a guard like S91's or S153's reconciliation) and keeps the committed file
   - [ ] a failure raises an alert (the scheduled-failure issue), not a silent skip
   - [ ] it writes only what changed (no daily commit of an unchanged file)
-- [ ] **(d) Dates.** On the live site, every figure ends on its page's session or says that it does not (the S148 rule).
+- [ ] **(d) Dates (S164).** `breadth_history.csv` ends 16 Nov while prices end 20 Nov (found 21 Nov). On the live site, every figure ends on its page's session or says that it does not (the S148 rule).
 - [ ] **(e) One source per figure** on every page (S154), not only Dashboard, Portfolio, Actions and Breadth; a test for each shared label.
 - [ ] **(f) Costs** against the private-repo budget (S142): GitHub Actions minutes, R2 storage and operations, Streamlit memory.
 
@@ -52,3 +52,4 @@ An element is every figure, chart series, table column and number in a label or 
 - [ ] **Reachability:** which figures depend on a source that only GitHub's runners, or only the app, can reach (BSE's FII/DII pages refused this container; R2 was not reachable locally).
 - [ ] **First runs of the jobs added on 21 Nov:** the NSE DII step in `fii_dii.yml` and the Total Market collector, checked on GitHub.
 - [ ] **Data dictionary:** each file's columns, units, start date and writer, kept beside `docs/DATA_CATALOGUE.md`.
+- [ ] **One benchmark (S165)** and **industry practice (S166)** run beside this audit; their own rows in `docs/TODO.md`.
