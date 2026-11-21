@@ -53,7 +53,7 @@ MOMENTUM_NAMES = {
     "total_market_mq50": "Total Market Momentum Quality 50",
     "nifty500_mom50": "Nifty500 Momentum 50",
 }
-SIZE_LABELS = {"nifty200": "Nifty 200", "midcap150": "Midcap 150", "smallcap250": "Smallcap 250",
+SIZE_LABELS = {"nifty100": "Nifty 100", "nifty200": "Nifty 200", "midcap150": "Midcap 150", "smallcap250": "Smallcap 250",
                "microcap250": "Microcap 250", "nifty200_mom30": "Nifty200 Momentum 30",
                "midcap150_mom50": "Midcap150 Momentum 50", "smallcap250_mq100": "Smallcap250 Momentum Quality 100"}
 AT_RISK_ROWS = 8
@@ -445,7 +445,28 @@ def _trail_cell(vals: list[float | None], fmt) -> list[str]:
     return ["—" if v is None else fmt(v) for v in vals]
 
 
-def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None) -> list:
+def _lag_note(lag) -> str:
+    """How long this ranking's momentum can lag, from its own record (owner, 21 Nov 2026, from the Indices review):
+    NSE's momentum indices are large and mid caps, the book mostly small and micro."""
+    if lag is None:
+        return ""
+    txt = f"Against the Nifty 500 the top 100 is {abs(lag.now):.1f}% below its {lag.best:%B %Y} best (month-ends to {lag.as_of:%B %Y})."
+    if lag.episodes:
+        d = lag.episodes[0]
+        txt += (f" Its deepest fall since 2010 was {abs(d.depth):.1f}%, {d.peak:%B %Y} to {d.low:%B %Y}, "
+                + ("not yet made back" if d.recovered is None else f"made back by {d.recovered:%B %Y}"))
+        prev = next((x for x in lag.episodes[1:] if x.months_to_recover is not None), None)
+        if prev is not None:
+            txt += (f"; the one before, {abs(prev.depth):.1f}% in {prev.peak.year + (prev.peak.month == 12)}–{str(prev.low.year)[2:]}, "
+                    f"took {prev.months_to_recover} months from its peak to recover")
+        txt += "."
+    txt += " A description, not a forecast: the recovery time rests on one earlier fall. "
+    return (f'<p class="dh-note">{e(txt)}<a class="dh-link" href="{e(page_href("indices"))}" target="_self">'
+            "NSE’s momentum indices, style by style, on Indices →</a></p>")
+
+
+def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None,
+                     lag: di.MomentumLag | None = None) -> list:
     tested = [x for x in signals if x["test"] is not None]
     passed = [x for x in tested if x["test"]["passed"]]
     better = sum(x["like"] is not None and average is not None and x["like"] >= average for x in passed)
@@ -495,14 +516,15 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
             f'<td>{badge}<span class="dh-sub">{e(why)}</span></td><td>{e(x["flip"]) if d is not None else ""}</td></tr>')
     avg = "—" if average is None else sg(average)
     parts = [f'<div class="dh-sec">{_kicker("3", "Is momentum still working?")}<h2 id="s-mom" class="dh-h2">{head}</h2>'
-             '<div class="dh-sub">Momentum’s lead over the market, points, longest window first</div>'
+             '<div class="dh-sub">This ranking’s top 100 against the Nifty 500, points, longest window first</div>'
              f'<div class="dh-tiles">{"".join(tiles)}</div>'
              '<p class="dh-note">Tiles: the top 100 of this site’s ranking against the Nifty 500, the history’s benchmark, '
              'over 12 months, the last 3 months and the last finished month; the month so far is NSE’s Nifty500 Momentum 50 '
              'against Nifty Total Market.</p>'
              + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top 100 less the Nifty 500, points</span></div>'
                 if lead_bars else '')
-             + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '') + '</div>']
+             + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '')
+             + _lag_note(lag) + '</div>']
     if lead_bars:
         parts += [Chart("bars", lead_bars, {"label": "Momentum’s lead over the Nifty 500 by month"}),
                   how("Each month, the return of the 100 best-ranked stocks less the Nifty 500’s, in points. The last bar is the "
@@ -687,8 +709,9 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None)
     if level:
         head += f'<span class="dh-up">In mid and small caps it keeps level with its index</span>; that is {ms:.0f}% of this book.'
     head = head or "Momentum within each size, against its own index."
-    parents = {"Large": "nifty200", "Mid": "midcap150", "Small": "smallcap250", "Micro": "microcap250"}
-    moms = {"Large": "nifty200_mom30", "Mid": "midcap150_mom50", "Small": "smallcap250_mq100", "Micro": None}
+    parents = {sz: p for sz, p, _, _ in di.SIZES}
+    moms = {sz: m for sz, _, m, _ in di.SIZES}
+    mom_parents = {sz: mp for sz, _, _, mp in di.SIZES}
 
     def cell(v):
         if v is None:
@@ -698,7 +721,8 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None)
 
     body = "".join(
         f'<tr><th scope="row">{e(s)}<span class="dh-sub">{e(SIZE_LABELS[parents[s]])} · '
-        f'{e(SIZE_LABELS[moms[s]]) if moms[s] else "no momentum index"}</span></th>'
+        f'{e(SIZE_LABELS[moms[s]]) if moms[s] else "no momentum index"}'
+        f'{" against the " + e(SIZE_LABELS[mom_parents[s]]) if moms[s] and mom_parents[s] != parents[s] else ""}</span></th>'
         f'<td class="dh-num{" dh-b dh-watch" if book_sizes.get(s, 0) >= 20 else " dh-muted"}">{book_sizes.get(s, 0):.0f}%</td>'
         + "".join(cell(v) for v in vs) + '<td></td>' + "".join(cell(v) for v in prem) + "</tr>" for s, vs, prem in rows)
     strip = "".join(f'<i class="dh-sz-{k.lower()}" style="width:{v:.0f}%">{e(k) + " " + f"{v:.0f}%" if v >= 20 else ""}</i>'
@@ -823,6 +847,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
     frame = bi.read()
     closes = {k: bi.series(k, frame=frame) for k in bi.SERIES}
+    closes["nifty100"] = _nse_close("nifty_100")      # Large = Nifty 100 (owner, 21 Nov 2026), from NSE's daily files
     market = closes[bi.TOTAL_MARKET]
     # Index figures end on one session: the last both prices and indices have. An index
     # without a close for that session reads "—", never the session before (S148).
@@ -950,12 +975,12 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_book(bm, since, since_mkt, idx_end, prev)
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
                                results_line, turnover, hist.get("dates"))
-    parts += section_momentum(lead, streak, signals, average, lead_bars)
+    parts += section_momentum(lead, streak, signals, average, lead_bars, di.momentum_lag(spreads) if spreads is not None else None)
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare)
     parts += section_size(sizes, book_sizes, by_size, typical)
     parts += section_strong_weak(weights, sectors)
-    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(), breadth)
+    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(idx_end), breadth)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
     parts.append(f'<p class="dh-foot">Data to {idx_end:%-d %b %Y}.</p>')
     emit(parts)
@@ -1326,19 +1351,32 @@ def indices_glance_rows(f) -> list[tuple[str, str, str]]:
                      f"{_ordinal(v.pct_now)} · 1M {_ordinal(v.pct_1m)} · 3M {_ordinal(v.pct_3m)}", ""))
     st_ = sorted((s for s in ip.styles(f) if s.lead_now is not None), key=lambda s: -s.lead_now)
     if st_:
-        rows.append((f"Leading style, {st_[0].style.lower()}", f"{sg(st_[0].lead_now)} pts in 12M", tone(st_[0].lead_now)))
-        rows.append((f"Trailing style, {st_[-1].style.lower()}", f"{sg(st_[-1].lead_now)} pts in 12M", tone(st_[-1].lead_now)))
+        for word, x in (("Leading", st_[0]), ("Trailing", st_[-1])):
+            rows.append((f"{word} style: {x.style.lower()}, {x.name.replace('NIFTY', 'Nifty')}",
+                         f"{sg(x.lead_now)} pts, 12M", tone(x.lead_now)))
     return rows
 
 
-def _indices_glance() -> list:
+def _nse_close(key: str) -> pd.Series:
+    """One index's close from the app's copy of NSE's daily index files; empty if absent."""
     try:
         from src.ui import indices_data
         f = indices_data.frames()
-        rows = [] if f is None else indices_glance_rows(f)
+        return f.close[key].dropna() if f is not None and key in f.close else pd.Series(dtype=float)
+    except Exception:  # noqa: BLE001 -- a missing copy reads "—", it does not stop the Dashboard
+        return pd.Series(dtype=float)
+
+
+def _indices_glance(as_of: pd.Timestamp) -> list:
+    """Read on the Dashboard's own session (`as_of`), not the index store's last day."""
+    try:
+        from src.ui import indices_data
+        f = indices_data.frames()
+        f = None if f is None else f.until(as_of)
+        rows = [] if f is None or f.close.empty else indices_glance_rows(f)
     except Exception:  # noqa: BLE001 -- the Dashboard draws without this card rather than fail
-        rows = []
-    return [("Valuation and styles", (page_href("indices"), "Indices"), rows)] if rows else []
+        rows, f = [], None
+    return [(f"Valuation and styles, {f.as_of:%-d %b}", (page_href("indices"), "Indices"), rows)] if rows else []
 
 
 def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:

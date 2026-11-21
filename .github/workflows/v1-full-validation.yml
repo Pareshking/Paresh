@@ -130,8 +130,17 @@ jobs:
         with:
           node-version: 22
       - name: Layout audit (Dashboard, Portfolio, Actions, Breadth, Sectors, Screener, Indices) and requirements
+        # The app here reads R2 as the live site does (S172, 21 Nov 2026): without the keys
+        # it fell back to the release files and drew partial figures the live site did not.
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           mkdir -p artifacts
+          python -c "from src.loaders import app_source as a; from src.storage.r2 import R2Archive; c = a.r2_config(); assert c, 'no R2 keys in this job'; print('R2 answered:', sum(1 for _ in zip(range(5), R2Archive(c).list_keys())), 'keys listed')"
           npm install --no-save --no-package-lock playwright@1.63.0
           npx playwright install --with-deps chromium
           streamlit run app.py --server.port 8501 --server.headless true > artifacts/layout_app.log 2>&1 &

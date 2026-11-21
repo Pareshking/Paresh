@@ -856,7 +856,7 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame, market_name: str 
             'same index of every ranked stock, so a rally led by large companies does not read as every '
             f'industry lagging; that gap is the first row of By size. The size indices are read against {html.escape(market_name)}, '
             'company size against company size. The leaderboard below ranks by the typical (median) stock; '
-            'everything here uses the equal-weighted average, the RRG\'s construction.</p></section>')
+            'everything else here uses the equal-weighted average.</p></section>')
 
 
 @st.cache_data(show_spinner=False, ttl=3600)

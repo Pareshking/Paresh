@@ -80,10 +80,15 @@ def test_flow_evidence_finds_a_planted_effect_and_reports_both_halves():
 def test_size_table_reads_size_against_market_and_momentum_against_its_size():
     end = pd.Timestamp("2026-11-19")
     mk = _line("2026-01-01", end, 100, 110)
-    closes = {"nifty200": _line("2026-01-01", end, 100, 112), "nifty200_mom30": _line("2026-01-01", end, 100, 105),
+    # Large is the Nifty 100 (owner, 21 Nov 2026); its momentum index is read against the Nifty 200 it picks from.
+    closes = {"nifty100": _line("2026-01-01", end, 100, 108), "nifty200": _line("2026-01-01", end, 100, 112),
+              "nifty200_mom30": _line("2026-01-01", end, 100, 105),
               "midcap150": mk, "midcap150_mom50": mk, "smallcap250": mk, "smallcap250_mq100": mk, "microcap250": mk}
     rows = dict((s, (v, p)) for s, v, p in di.size_table(closes, mk, end))
-    assert rows["Large"][0][2] > 0 and rows["Large"][1][2] < 0
+    six = end - pd.DateOffset(months=6)
+    assert rows["Large"][0][2] == pytest.approx(di.window_return(closes["nifty100"], six, end) - di.window_return(mk, six, end))
+    assert rows["Large"][1][2] == pytest.approx(di.window_return(closes["nifty200_mom30"], six, end)
+                                                - di.window_return(closes["nifty200"], six, end)) and rows["Large"][1][2] < 0
     assert rows["Micro"][1] == [None, None, None]
 
 

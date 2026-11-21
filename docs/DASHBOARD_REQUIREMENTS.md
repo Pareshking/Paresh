@@ -44,21 +44,22 @@ the owner's word, and note it in the Source column.
 | 26 | Domestic institutions beside foreign | v6 | §4 | Domestic institutions |
 | 27 | What heavy foreign buying has meant, tested | v6 | §4 | Better months for momentum next |
 | 28 | What the foreign and domestic figures are (confirmed vs provisional), no sources named (owner, 20 Nov) | v6; owner 20 Nov | §4 note | exchange and primary market |
-| 29 | Size leadership against momentum indices, 1M 3M 6M | Owner 20 Nov | §5 table | Momentum against its size index |
+| 29 | Size leadership against momentum indices, 1M 3M 6M. Large is the Nifty 100 (SEBI's top 100, as on Indices); its momentum index, Nifty200 Momentum 30, is read against the Nifty 200 it picks from, and the row says so (owner, 21 Nov 2026) | Owner 20, 21 Nov | §5 table | Momentum against its size index + Nifty 100 |
 | 30 | The book by size bar | Owner liked (#4), 20 Nov | §5 | The book by size |
 | 31 | Is the rally shared: breadth by size, with 3M ago and 1M ago | v7 (tipsheet) | §5 | Is the rally shared? |
 | 32 | The typical stock: equal-weight and median against the market | v7 (tipsheet) | §5 | The typical stock against the market |
 | 33 | Where the book is strong and weak, as cards with each industry's six-month and one-month figures | Owner liked (#1), 20 Nov; the RRG rotation line and quadrant badge removed, owner 21 Nov | §6 | Ahead of the market over six months and one month |
 | 37 | At a glance: index moves (one date), breadth, the book's risk | v6 | Glance | The book’s risk |
 | 38 | Breadth history on each date's members | Owner 20 Nov | Glance, §3 | leavers included |
-| 39 | At a glance: "Valuation and styles", three lines from the Indices page (the Nifty 500's P/E percentile now, 1M and 3M; the styles leading and trailing their parents over 12 months) and a link; the index moves link to Indices, not Breadth | Owner 21 Nov (S170, INDICES_REQUIREMENTS row 17) | Glance | Valuation and styles |
 | 39 | Every chart gives values on touch and pointer | Owner 20 Nov | Charts (`static/dash_charts.js`) | Latest|DashCharts.render( |
 | 40 | Every chart: what it is, how to read it, its table | v7 (tipsheet), agreed | Charts | Show the table |
 | 41 | Data date in the footer; sources not shown (owner, 20 Nov) | v6; owner 20 Nov | Foot | Data to 19 Nov 2026|Data to |
+| 42 | At a glance: "Valuation and styles", three lines from the Indices page read on the Dashboard's session (the Nifty 500's P/E percentile now, 1M and 3M; the styles leading and trailing their parents over 12 months, each with its NSE index named) and a link; the index moves link to Indices, not Breadth | Owner 21 Nov (S170, INDICES_REQUIREMENTS row 17) | Glance | Valuation and styles |
+| 43 | §3: how far this ranking's top 100 sits below its best against the Nifty 500, its deepest fall since 2010 and the one before with its recovery time, from the site's own record, stated as a description, not a forecast; the tiles' caption names what they measure ("This ranking's top 100 against the Nifty 500"); a link to NSE's momentum indices on Indices (owner, 21 Nov 2026, from the Indices review) | Owner 21 Nov | §3 | below its + This ranking’s top 100 against the Nifty 500 |
 
 **Not on the Dashboard, by decision:**
 
-- Valuation percentiles: we hold no earnings data (20 Nov).
+- Valuation by size and the normal fall within a year by size: on Indices (21 Nov). Index P/E is not the P/E of the book's stocks, and the book's own volatility (about 31.5% a year against the market's 19.6%) makes an index yardstick misleading.
 - Per-month portfolio returns and the ₹100 line: on Portfolio (owner, 19 Nov).
 - Long tables of all industries or all breadth measures: on Sectors and Breadth (20 Nov).
 - One-day index moves as tiles: only in At a glance (v5).
