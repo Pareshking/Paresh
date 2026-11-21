@@ -654,15 +654,18 @@ def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     return out.sort_values("Places_gained", ascending=False).head(n)
 
 
-def system_note(system_name: str, ranked, members, *, nano: bool) -> tuple[str, str]:
-    """The Screener's footnote for Nano Cap and Combined: what is ranked, and the
-    stocks too new to rank (owner, 27 Sep 2026)."""
+def system_note(system_name: str, ranked, members, *, nano: bool,
+                reason: str = "too new to rank (under three months of prices)") -> tuple[str, str]:
+    """The Screener's footnote for the systems beyond the 750: what is ranked, and the
+    stocks too new to rank (owner, 27 Sep 2026). The Nifty 1000 passes its own
+    reason: most of its unranked stocks are not new, their history is still being
+    collected (S175)."""
     ranked_set = {str(x) for x in ranked}
     members = {str(x) for x in members}
     unranked = sorted(members - ranked_set)
     head = (f"{system_name} · {len(ranked_set)} of {len(members)} stocks ranked"
             + (" among themselves." if nano else " as one list."))
-    body = (f"{len(unranked)} too new to rank (under three months of prices): "
+    body = (f"{len(unranked)} {reason}: "
             + ", ".join(unranked[:12]) + (" and more." if len(unranked) > 12 else ".")) if unranked else ""
     return head, body
 

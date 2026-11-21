@@ -179,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--adjusted", default="nse_adjusted_close.parquet")
     args = ap.parse_args(argv)
 
-    from src.engine.extra_universe import SYSTEMS, SYSTEM_NAMES, SYSTEM_NANO
+    from src.engine.extra_universe import SYSTEMS, SYSTEM_1000, SYSTEM_NAMES, SYSTEM_NANO
     from src.loaders import extra_universe_loader as xl
     from src.loaders.indices_loader import fetch_indices_data
     from src.loaders.ranking_store import asset_name, read_snapshot
@@ -250,7 +250,8 @@ def main(argv: list[str] | None = None) -> int:
     base = fetch_indices_data(["NIFTY TOTAL MARKET"])
     extra = xl.members()
     for system in SYSTEMS:
-        idx_info = xl.system_universe(system, base if system != SYSTEM_NANO else base.iloc[0:0], extra)
+        listed = xl.nifty_1000_members() if system == SYSTEM_1000 else extra
+        idx_info = xl.system_universe(system, base if system != SYSTEM_NANO else base.iloc[0:0], listed)
         symbols = idx_info["Symbol"].unique().tolist()
         published, contract = read_snapshot(os.path.join(args.published_dir, asset_name(system)))
         progress(f"ranking {SYSTEM_NAMES[system]} ({len(symbols)} symbols)")

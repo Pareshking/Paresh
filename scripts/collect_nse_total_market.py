@@ -14,7 +14,7 @@ when a close disagrees with data/benchmark_indices.csv by more than 0.05% on a d
 
 Each file's date is checked against the session it was asked for, with the rule of src/loaders/nse_indices.py
 (S168): NSE printed the files for 6, 10 and 11 Apr 2023 month-first, and reading them day-first filed those closes
-under 4 Jun, 4 Oct and 4 Nov 2023 (S175, found 21 Nov 2026).
+under 4 Jun, 4 Oct and 4 Nov 2023 (S176, found 21 Nov 2026).
 
     python scripts/collect_nse_total_market.py --refetch 2023-06-04 2023-10-04 2023-11-04
 

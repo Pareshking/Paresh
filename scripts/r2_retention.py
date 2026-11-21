@@ -124,7 +124,7 @@ PROTECTED_DATASETS: tuple[str, ...] = (
     "market_caps/",
     "classifications/",
     "calculations/",                    # the ranking archive
-    "snapshots/rankings*",              # rankings, rankings_nano, rankings_combined
+    "snapshots/rankings*",              # rankings, rankings_nano, rankings_combined, rankings_1000
 )
 
 # Protected datasets the owner allowed to be thinned to their newest copies,
@@ -158,6 +158,7 @@ PROTECTED_SUPERSEDED_ONLY: dict[str, str] = {
     "snapshots/rankings": "snapshots/rankings",
     "snapshots/rankings_nano": "snapshots/rankings_nano",
     "snapshots/rankings_combined": "snapshots/rankings_combined",
+    "snapshots/rankings_1000": "snapshots/rankings_1000",
 }
 
 # A scheduled run deletes at most this many keys; a larger plan waits for a

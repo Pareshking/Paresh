@@ -109,6 +109,7 @@ class Page:
     indices: dict
     systems: list = field(default_factory=list)
     correlation: float | None = None
+    system: str = "750"
 
 
 def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: str, benchmark_close) -> Page:
@@ -152,7 +153,7 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
                 table=table, history=series.history, meta=meta, record=record, ledger=ledger, rank_df=rank_df,
                 prices=series.prices, cfg=dict(TRACK_RECORD_CONFIG), trails=trails, industry_state=state,
                 sizes=sizes, exposure=exposure, market_weights=mw, indices=idx, systems=systems,
-                correlation=corr)
+                correlation=corr, system=system)
 
 
 def _n500() -> pd.Series:
@@ -176,11 +177,11 @@ def _market_weights(rank_df: pd.DataFrame) -> dict[str, float]:
 
 def _systems(prices, benchmark_close, system, market, as_of) -> list[tuple]:
     """(name, this month %, since the common start %, since its own start %, started) for each live system."""
-    from src.engine.extra_universe import SYSTEMS
+    from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
     from src.engine.systems import inception, ledger_path
     from src.engine.track_record import load_ledger
     from src.ui.views.track_record_view import _comparison_price_frame, _record_mtd
-    names = {"750": ("Nifty 750", "this book"), "nano": ("Nano Cap", ""), "combined": ("Combined", "")}
+    names = {sid: (n, "this book" if sid == SYSTEM_750 else "") for sid, n in SYSTEM_NAMES.items()}
     got = {}
     for sid in SYSTEMS:
         try:
@@ -236,7 +237,13 @@ def header(p: Page) -> list:
     t = p.history
     since = t.get("strategy_total_return")
     since = float(since) * 100 if since is not None and np.isfinite(since) else None
-    mkt_since = pr.ret(p.market, p.equity.index[0], p.as_of)
+    # From the close before the system's first month, not the equity's first point: with no
+    # frozen month that point is the live month's end (S175: Nifty 1000 read 5.5 points ahead
+    # on its Portfolio and 4.3 behind on its Dashboard). For the 750 the two are the same day.
+    from src.engine.extra_universe import SYSTEM_NAMES
+    from src.engine.systems import inception
+    begun = inception(p.system).start_time
+    mkt_since = pr.ret(p.market, begun - pd.Timedelta(days=1), p.as_of)
     # The book's own latest day; the market's only when its index has that session (S148: one date for both).
     eq = p.equity.dropna()
     mk = p.market.dropna()
@@ -262,11 +269,13 @@ def header(p: Page) -> list:
              ("Below its peak today", pct(f.now) if f else "—", "dh-watch" if f and f.now < 0 else "",
               f"Peak {dshort(f.peak_now)}" if f else "", "", f"Largest fall from a peak {pct(f.worst)}" if f else "")]
     nav = "".join(f'<a class="dh-pill" href="#{a}">{e(t)}</a>' for a, t in NAV)
-    sub = ("The model book: ₹1 crore put in on 1 January 2026, run by the Nifty 750 rules, "
-           f"{len(tab)} stocks. Returns are after costs.")
+    # Each system's own start and rules: the 750 from 1 Jan 2026, the others from their
+    # inception (Nifty 1000 1 Nov, > ₹2,000 Cr and Combined 1 Oct 2026).
+    sub = (f"The model book: ₹1 crore put in on {begun:%-d %B %Y}, run by the "
+           f"{SYSTEM_NAMES.get(p.system, 'Nifty 750')} rules, {len(tab)} stocks. Returns are after costs.")
     lead = None if since is None or mkt_since is None else since - mkt_since
     answer = ("The model book" if since is None else
-              f"The book is up {since:.1f}% since 1 January" + ("" if lead is None else
+              f"The book is {'up' if since >= 0 else 'down'} {abs(since):.1f}% since {begun:%-d %B}" + ("" if lead is None else
               f", {abs(lead):.1f} points {'ahead of' if lead >= 0 else 'behind'} the market") + ".")
     # The title answers the reader's first question; the page's name is the kicker (tipsheet benchmark, 21 Nov 2026).
     return [f'<div class="pf-head"><p class="pf-kick">Portfolio</p><h1 class="pf-title">{e(answer)}</h1><p class="pf-sub">{e(sub)}</p>',
@@ -447,6 +456,12 @@ def growth_spec(p: Page) -> dict:
             "ddm": [None if pd.isna(v) else round(float(v), 2) for v in ddm]}
 
 
+def _start(p: Page) -> pd.Timestamp:
+    """The first day of the system's record (the 750: 1 Jan 2026)."""
+    from src.engine.systems import inception
+    return inception(p.system).start_time
+
+
 def section_equity(p: Page) -> list:
     spec = growth_spec(p)
     f, fm = pr.falls(p.equity), pr.falls(pr._clean(p.market).loc[p.equity.index[0]:p.as_of])
@@ -494,8 +509,10 @@ def section_equity(p: Page) -> list:
                             for r in risks) + "</tbody></table></div>")
     te = rk.tracking if rk else 0
     ex_hi, ex_lo = 10 + te, 10 - te
-    return _sec([_head("pf-eq", "Equity, drawdown & risk", "₹100 on 1 Jan, daily"),
-                 Chart("growth", spec, {"label": "Growth of ₹100: the book, Nifty500 Momentum 50 and Nifty Total Market"}),
+    return _sec([_head("pf-eq", "Equity, drawdown & risk", f"₹100 on {_start(p):%-d %b}, daily"),
+                 (Chart("growth", spec, {"label": "Growth of ₹100: the book, Nifty500 Momentum 50 and Nifty Total Market"})
+                  if len(spec["dates"]) > 1 else   # a system's first days (Nifty 1000, Nov 2026): one point draws no line
+                  f'<p class="dh-note">The growth chart starts once the book has two sessions; it has {len(spec["dates"])}.</p>'),
                  how("Top: what ₹100 put in at the start has grown to, the book after costs against NSE’s Nifty500 Momentum 50 and Nifty "
                      "Total Market. Bottom: drawdown, how far each sat below its own highest close so far, every day.",
                      "A drawdown is today’s value against the highest value before it: (value ÷ peak) − 1. The largest fall from a peak "
@@ -597,6 +614,10 @@ def month_bars_spec(p: Page) -> dict:
 
 def day_section(p: Page) -> list:
     g = pr.daily_gaps(p.equity, p.market)
+    if len(g) < 6:
+        # A system's first week (Nifty 1000 from Nov 2026, S175): five sessions back is not there yet.
+        return _sec([_head("pf-day", "Day by day against the market", "Day P&L in context"),
+                     f'<p class="dh-note">Day by day starts once the book has six sessions; it has {len(g)}.</p>'])
     last = g.tail(20)
     five = (pr.ret(p.equity, g.index[-6], g.index[-1]), pr.ret(pr._clean(p.market).reindex(p.equity.index).ffill(), g.index[-6], g.index[-1]))
     t = g.iloc[-1]
@@ -650,9 +671,20 @@ def trade_stats(p: Page) -> dict:
             "exits": exits, "best": closed.nlargest(3, "r"), "worst": closed.nsmallest(3, "r"), "rebal": bought}
 
 
+def _days(v) -> str:
+    """A median holding period, or a dash when there is none to take."""
+    return "—" if v is None or pd.isna(v) else f"{v:.0f}"
+
+
 def section_trades_top(p: Page, s: dict) -> list:
     if not s:
         return _sec([_head("pf-trades", "Trades", "no trades yet")])
+    if not s.get("closed"):
+        # A system's first month (Nifty 1000 from Nov 2026, S175): trades are open, none closed.
+        # Left open like the full section below: render() closes it.
+        return ['<section class="dh-sec pf-sec">',
+                _head("pf-trades", "Trades", f"0 closed · {s.get('open', 0)} open · {len(s.get('rebal') or [])} rebalances"),
+                '<p class="dh-note">No trade has closed yet; these figures start with the first exit.</p>']
     reb = s["rebal"]
     after = [b for _, b, _, _ in reb[1:]]
     avg = sum(after) / len(after) if after else None
@@ -662,7 +694,8 @@ def section_trades_top(p: Page, s: dict) -> list:
              ("Average win", pct(s["avg_win"]), "dh-up", f"Median {pct(s['med_win'])}", "", "A few large winners carry it"
               if s["avg_win"] and s["med_win"] and s["avg_win"] > 2 * s["med_win"] else ""),
              ("Average loss", pct(s["avg_loss"]), "dh-down", f"Median {pct(s['med_loss'])}", "", ""),
-             ("Held, median", f"{s['hold']:.0f} days", "", f"Winners {s['hold_win']:.0f} · losers {s['hold_loss']:.0f}", "", ""),
+             # A side with no closed trade has no median (Combined, 21 Nov 2026: no closed loser yet).
+             ("Held, median", _days(s["hold"]) + " days", "", f"Winners {_days(s['hold_win'])} · losers {_days(s['hold_loss'])}", "", ""),
              ("Changed at a rebalance", f"{avg:.0f} of 20" if avg else "—", "", f"On average, from {reb[1][0]:%B}" if len(reb) > 1 else "", "",
               f"{reb[-1][0]:%B} {reb[-1][1]}, {lo[0]:%B} {lo[1]}" if lo else "")]
     ex = "".join(f'<tr><th scope="row">{e(n)}<span class="dh-sub">{e(sub)}</span></th><td class="dh-num">{k}</td>'

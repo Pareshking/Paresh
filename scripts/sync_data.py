@@ -252,7 +252,20 @@ def run_daily_sync() -> None:
     # correct if the cadence or the window ever changes. Prices keep FORCE_FULL:
     # that fetch is incremental by design and a daily full 2y re-download would
     # be both slow and rude.
-    mcaps = fetch_market_caps(symbols, force_refresh=True)
+    # The Nifty 1000's 250 beyond the 750 too (S175): the same NSE file carries them,
+    # so this costs no request, and the Nifty 1000 system reads their caps from the
+    # committed snapshot like the 750's.
+    from src.core.config import RECORDED_INDICES_LOCAL
+    cap_symbols = list(symbols)
+    n1000_path = RECORDED_INDICES_LOCAL.get("NIFTY 1000")
+    if n1000_path and os.path.exists(n1000_path):
+        import pandas as pd
+        n1000 = pd.read_csv(n1000_path)
+        n1000.columns = [str(c).strip() for c in n1000.columns]
+        seen = set(cap_symbols)
+        cap_symbols += [s for s in n1000.get("Symbol", pd.Series(dtype=str)).astype(str).str.strip().str.upper()
+                        if s not in seen]
+    mcaps = fetch_market_caps(cap_symbols, force_refresh=True)
     print(f"Market cap cache updated for {len(mcaps)} tickers.")
 
     # 5a. Write down which date NSE just confirmed.
@@ -373,7 +386,8 @@ def run_daily_sync() -> None:
     print("\n--- 5d. Precomputing the Ranking ---")
     clear_precompute_failures()
     try:
-        _precompute_rankings(symbols, universe_df, mcaps)
+        # The 750's caps only: the snapshot above also holds the Nifty 1000's other 250.
+        _precompute_rankings(symbols, universe_df, mcaps.reindex(symbols).dropna())
     except Exception as exc:
         # Production computes the ranking itself when this is missing, so the
         # rest of the sync goes on; the run fails at its last step (S85).

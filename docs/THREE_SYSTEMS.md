@@ -1,25 +1,34 @@
-# Three systems — Nifty 750, Nano Cap, Combined
+# Four systems — Nifty 750, Nifty 1000, > ₹2,000 Cr, Combined
 
-One app, three universes, one strategy. Owner decisions of 2026-09-27; built in
-#240 and #242–#246. Update this file with every PR that changes how a system is
-defined, ranked, booked or recorded.
+One app, four universes, one strategy. Owner decisions of 2026-09-27 (the first
+three; built in #240 and #242–#246) and 2026-11-21 (Nifty 1000, and Nano Cap
+shown as "> ₹2,000 Cr"; S175). The file keeps its name so links to it hold.
+Update this file with every PR that changes how a system is defined, ranked,
+booked or recorded.
 
-_Last updated: 2026-09-30_
+_Last updated: 2026-11-21_
 
 ## The systems
 
-| | Nifty 750 (default) | Nano Cap | Combined |
-|---|---|---|---|
-| Stocks | NSE's Nifty Total Market | every main-board stock ≥ ₹2,000 Cr outside the 750 | both, ranked as one list |
-| Key | `750` | `nano` | `combined` |
-| Membership | NSE constituents, `data/membership_history.json` | month-end list, `data/nanocap_membership.json` | union of the two on each date |
-| Industry | NSE industry | TradingView sector (`scripts/classify_missing.py`) | TradingView sector |
-| Track record | since Jan 2026, `data/track_record.json` | from Oct 2026, `data/track_record_nano.json` | from Oct 2026, `data/track_record_combined.json` |
-| Backtest | last 6 completed months | from Sep 2026, a month more each month-end | same as Nano Cap |
+| | Nifty 750 (default) | Nifty 1000 | > ₹2,000 Cr (key `nano`) | Combined |
+|---|---|---|---|---|
+| Stocks | NSE's Nifty Total Market | NSE's Nifty 1000: the 750 plus **NIFTY NANOCAP 250** (our name for NSE's other 250; not an index NSE publishes; tag `NANO250`) | every main-board stock ≥ ₹2,000 Cr outside the 750 | the 750 and > ₹2,000 Cr, ranked as one list |
+| Key | `750` | `1000` | `nano` (unchanged: ledger, nightly files, `?sys=nano`) | `combined` |
+| Membership | NSE constituents, `data/membership_history.json` | `membership_history.json` `indices.nifty_1000`, from 30 Oct 2026; **reconstructed** until NSE's first list we record (NSE first published the index on 16 Nov 2026), see the entry's `note` and `src/engine/nifty1000_backfill.py` | month-end list, `data/nanocap_membership.json` | union of the 750 and > ₹2,000 Cr on each date |
+| Industry | NSE industry | NSE industry (NSE's list names one for all 1,000) | TradingView sector (`scripts/classify_missing.py`) | TradingView sector |
+| Market caps | NSE's file, `data/nse_market_caps.csv` | the same file, which the daily sync now writes for all 1,000 | the list's own month-end figures | both |
+| Track record | since Jan 2026, `data/track_record.json` | from Nov 2026, `data/track_record_1000.json`; **November is reconstructed** (its 30 Oct book uses a list not public until 16 Nov); a month is frozen only when every member has a close on its signal day | from Oct 2026, `data/track_record_nano.json` | from Oct 2026, `data/track_record_combined.json` |
+| Backtest | last 6 completed months | from Nov 2026, a month more each month-end | from Sep 2026, a month more each month-end | same as > ₹2,000 Cr |
 
-The strategy is the same for all three (`TRACK_RECORD_CONFIG`). What differs is
+The strategy is the same for all four (`TRACK_RECORD_CONFIG`). What differs is
 who may be held, since when, and where the frozen months are kept — all of it
 in `src/engine/systems.py` and nowhere else.
+
+Nifty 1000 prices: the 750's as before; the other 250 are collected by the
+nightly Screener sync on the ₹2,000 Cr list's best-effort path (from 22 Nov
+2026). On 21 Nov, 58 of the 250 had no price history with us; until they do,
+they are listed as "not ranked yet" under the Screener and the monthly freeze
+refuses the Nifty 1000 (TODO S175).
 
 ## Choosing a system
 
@@ -27,11 +36,12 @@ in `src/engine/systems.py` and nowhere else.
   follows the choice: Screener, Actions, Sectors, RRG, Portfolio, Watchlist,
   Breadth, Backtest, Track Record. Holdings and watchlist are shared.
 - The choice lives in the session (`cfg_system`) **and** in the address as
-  `?sys=nano` / `?sys=combined` (nothing for the 750), because a stock link
+  `?sys=1000` / `?sys=nano` / `?sys=combined` (nothing for the 750), because a stock link
   reloads the page and a reload is a new session (`src/ui/system_param.py`).
   Every stock link carries it; Back keeps it; a shared link opens the same
   system.
-- If Nano Cap or Combined cannot be loaded, the app says so and shows the 750.
+- If Nifty 1000, > ₹2,000 Cr or Combined cannot be loaded, the app says so and shows the 750.
+- Nifty 1000 is offered once its list (`data/indices/ind_nifty1000_list.csv`) is on disk.
 
 ## Membership
 

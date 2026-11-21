@@ -201,7 +201,7 @@ Each item was put to the owner with a recommendation, an example and the counter
 | Item 13 | Month table colours (H) | **Sign colour only** |
 
 Not put to a vote: MQ7 (NSE's finer indices against the 750's own banks, NBFCs and so on) waits for each stock's basic
-industry, a TODO; I (Total Market from NSE's daily files, and the collector's date fix) is a data repair, S175.
+industry, a TODO; I (Total Market from NSE's daily files, and the collector's date fix) is a data repair, S176.
 
 Next: mock-up v2 with items 10 and 12, shown to the owner before the build. **Done:** `docs/mockups/sectors_v2.html` (rows M1-M21 above updated to match; M13 now excepts the grouping control's TradingView labels).
 
@@ -240,7 +240,7 @@ Next: mock-up v2 with items 10 and 12, shown to the owner before the build. **Do
   8,237.65 as 4 Oct 2023, replacing that day's real 9,608.10, so the series shows a false 15% one-day fall and
   rebound; and 11 Apr's 8,280.95 as 4 Nov 2023, a Saturday. NSE's daily index files in the S168 copy have all of
   them right; the two sources agree on the other 1,253 shared sessions. Recommended: read Total Market from the S168
-  copy on this page, and fix `scripts/collect_nse_total_market.py` with the S168 date rule (TODO S175). No figure on
+  copy on this page, and fix `scripts/collect_nse_total_market.py` with the S168 date rule (TODO S176). No figure on
   the 20 Nov page is affected (its windows start in Nov 2025); readings over 2023 on other pages are. Against: none
   for this page.
 

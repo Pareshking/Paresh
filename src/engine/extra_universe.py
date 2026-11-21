@@ -26,14 +26,26 @@ NAME = "NANO CAP"
 # cfg_system). Every page follows the choice; each system is ranked, booked and
 # recorded on its own.
 SYSTEM_750 = "750"
+SYSTEM_1000 = "1000"
 SYSTEM_NANO = "nano"
 SYSTEM_COMBINED = "combined"
-SYSTEMS = (SYSTEM_750, SYSTEM_NANO, SYSTEM_COMBINED)
-SYSTEM_NAMES = {SYSTEM_750: "Nifty 750", SYSTEM_NANO: "Nano Cap", SYSTEM_COMBINED: "Combined"}
+# Owner, 21 Nov 2026 (S175): four systems. Nifty 1000 is NSE's index (the 750
+# plus 250 more); "nano" keeps its key, so its ledger, nightly files and
+# ?sys=nano links are unchanged, and is shown as "> ₹2,000 Cr" (it is every
+# stock of ₹2,000 Cr or more outside the 750, not NSE's nano caps).
+SYSTEMS = (SYSTEM_750, SYSTEM_1000, SYSTEM_NANO, SYSTEM_COMBINED)
+SYSTEM_NAMES = {SYSTEM_750: "Nifty 750", SYSTEM_1000: "Nifty 1000",
+                SYSTEM_NANO: "> ₹2,000 Cr", SYSTEM_COMBINED: "Combined"}
 # The month each system's live record starts. The 750's is the record's own
-# INCEPTION (src/engine/track_record.py); the other two start with the first
-# book signalled after they were built, at the 30 Sep 2026 close.
-SYSTEM_INCEPTION = {SYSTEM_NANO: "2026-10", SYSTEM_COMBINED: "2026-10"}
+# INCEPTION (src/engine/track_record.py); Nano Cap and Combined start with the
+# first book signalled after they were built, at the 30 Sep 2026 close; the
+# Nifty 1000 with November 2026 (owner, 21 Nov: "start date is 01-Nov"), whose
+# membership is reconstructed until NSE's first list (src/engine/nifty1000_backfill.py).
+SYSTEM_INCEPTION = {SYSTEM_1000: "2026-11", SYSTEM_NANO: "2026-10", SYSTEM_COMBINED: "2026-10"}
+# The 250 the Nifty 1000 adds to the 750, as one group beside NSE's size tiers
+# (owner's name). Our own cut, not an index NSE publishes.
+NANOCAP_250_NAME = "NIFTY NANOCAP 250"
+NANOCAP_250_SHORT = "NANO250"
 SHORT_FORM = "NANO"
 FLOOR_RUPEES = 2_000 * 10_000_000        # ₹2,000 Cr
 SERIES = ("EQ", "BE")                     # main board; SME (SM/ST) is excluded
@@ -80,6 +92,26 @@ def members(market_caps: pd.DataFrame, exclude: set[str],
         "ISIN Code": "",
         "MarketCapCr": (m["mcap"] / 10_000_000).round(0).values,
     })
+
+
+def with_isins(listed: pd.DataFrame, equity_list: pd.DataFrame | None) -> pd.DataFrame:
+    """The list with each stock's ISIN from NSE's equity list (EQUITY_L.csv), by symbol.
+
+    NSE's market-cap file carries no ISIN, so the list was written with the
+    column blank and could only be matched by ticker, which a rename breaks
+    (S175). A symbol the equity list lacks keeps a blank, never a guess.
+    """
+    if equity_list is None or equity_list.empty:
+        return listed
+    e = equity_list.copy()
+    e.columns = [str(c).strip() for c in e.columns]
+    if "SYMBOL" not in e or "ISIN NUMBER" not in e:
+        return listed
+    isin = (e.assign(SYMBOL=e["SYMBOL"].astype(str).str.strip().str.upper())
+              .drop_duplicates("SYMBOL").set_index("SYMBOL")["ISIN NUMBER"].astype(str).str.strip())
+    out = listed.copy()
+    out["ISIN Code"] = out["Symbol"].map(isin).fillna("").values
+    return out
 
 
 def _last_weekday(year: int, month: int) -> date:

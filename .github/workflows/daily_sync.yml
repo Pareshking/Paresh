@@ -283,7 +283,7 @@ jobs:
       - name: Precompute the Nano Cap and Combined rankings
         env:
           PYTHONPATH: .
-        run: python scripts/precompute_systems.py || echo "::warning::Nano Cap / Combined precompute failed; the app will compute them."
+        run: python scripts/precompute_systems.py || echo "::warning::Nano Cap / Combined / Nifty 1000 precompute failed; the app will compute them."
 
       # Explicitly save, with the SAME rotating key the restore asked for, so
       # there is exactly one writer. Splitting restore from save also removes
@@ -313,7 +313,7 @@ jobs:
               --notes "Rolling data published by the daily sync. Replaced in place; not intended as a versioned release." \
               --latest=false
 
-          for SYS in nano combined; do
+          for SYS in nano combined 1000; do
             R="${{ github.workspace }}/data_cache/rankings_${SYS}.parquet"
             if [ -f "$R" ]; then
               cp "$R" "${{ github.workspace }}/rankings_${SYS}.parquet"
@@ -350,7 +350,7 @@ jobs:
           set -euo pipefail
 
           # Nano Cap and Combined rankings, when the precompute produced them.
-          for SYS in nano combined; do
+          for SYS in nano combined 1000; do
             if [ -f "rankings_${SYS}.parquet" ]; then
               python scripts/r2_publish.py \
                 --path "rankings_${SYS}.parquet" \

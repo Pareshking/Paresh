@@ -20,6 +20,8 @@ from src.core.config import (
     HTTP_HEADERS,
     INDICES_LOCAL,
     INDICES_URLS,
+    RECORDED_INDICES_LOCAL,
+    RECORDED_INDICES_URLS,
     REPO_DATA_DIR,
     SHORT_FORMS,
 )
@@ -114,6 +116,45 @@ def _download_index_csv(
         if delay:
             time.sleep(delay)
     return None
+
+
+# A recorded list shorter than this share of its name's count is a broken
+# download, not a reconstitution: keep yesterday's file rather than record a
+# mass exit (Nifty 1000 has 1,000 members by construction).
+_RECORDED_MIN_ROWS = {"NIFTY 1000": 950}
+
+
+def _sync_recorded_indices(results: dict[str, Any]) -> None:
+    """Download the lists that are recorded but not ranked (RECORDED_INDICES_URLS).
+
+    Kept out of results["downloaded"]/["errors"], which decide whether the
+    ranked universe's sync was complete: a failed Nifty 1000 download must not
+    mark the 750's sync as failed, nor its count enter the universe size.
+    """
+    results.setdefault("recorded", {})
+    results.setdefault("recorded_errors", {})
+    for idx_name, url in RECORDED_INDICES_URLS.items():
+        text = _download_index_csv(idx_name, url, delays=(1, 1, 1), accept=_has_symbol_column)
+        if text is None:
+            results["recorded_errors"][idx_name] = "download failed; keeping the committed list"
+            logger.warning(f"[SYNC] {idx_name}: download failed; keeping the committed list")
+            continue
+        try:
+            df = pd.read_csv(io.StringIO(text))
+        except Exception as e:
+            results["recorded_errors"][idx_name] = f"unreadable: {e}"
+            continue
+        floor = _RECORDED_MIN_ROWS.get(idx_name, 1)
+        if len(df) < floor:
+            results["recorded_errors"][idx_name] = f"{len(df)} rows, fewer than {floor}; keeping the committed list"
+            logger.warning(f"[SYNC] {idx_name}: only {len(df)} rows; keeping the committed list")
+            continue
+        path = RECORDED_INDICES_LOCAL[idx_name]
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        results["recorded"][idx_name] = {"count": len(df), "time": datetime.now().isoformat()}
+        logger.info(f"[SYNC] Recorded {idx_name} ({len(df)} constituents) -> {path}")
 
 
 def _has_symbol_column(text: str) -> bool:
@@ -249,6 +290,8 @@ def sync_official_nse_indices(force: bool = True) -> dict[str, Any]:
         if not downloaded_ok:
             results["errors"][idx_name] = "Live fetch failed; using existing fallback"
             results["success"] = False
+
+    _sync_recorded_indices(results)
 
     # A run that fetched NOTHING must not stamp itself as a sync.
     #
