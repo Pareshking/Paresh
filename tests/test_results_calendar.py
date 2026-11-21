@@ -127,20 +127,8 @@ def test_short_purpose_reads_nse_purposes_plainly():
     assert rc.short_purpose("Other business matters") == "Board meeting"
 
 
-def test_the_card_lists_days_with_the_check_in_place_and_escapes():
-    from src.ui.views import dashboard_view as dv
-    cal = _cal()
-    cal.loc[len(cal)] = ["A<B", pd.Timestamp("2026-11-30"), "Financial Results", 1]
-    bc = rc.for_book(cal, ["CUPID", "MBAPL", "A<B"], [], pd.Timestamp("2026-11-08"))
-    out = dv.calendar_html(bc, pd.Timestamp("2026-11-30"))
-    assert "Wed, 11 Nov" in out and "Sat, 14 Nov" in out and "Mon, 30 Nov" in out
-    assert "Rebalance check" in out and "A&lt;B" in out and "A<B" not in out
-    assert out.index("Wed, 11 Nov") < out.index("Mon, 30 Nov")
-
-
-def test_no_file_means_no_card_and_an_empty_window_says_so(tmp_path):
-    from src.ui.views import dashboard_view as dv
+def test_no_file_means_no_calendar_and_an_empty_window_has_no_meetings(tmp_path):
     assert rc.load(tmp_path / "missing.csv") is None
     assert rc.for_book(None, ["A"], [], pd.Timestamp("2026-11-08")) is None
     bc = rc.for_book(_cal(), ["NOBODY"], [], pd.Timestamp("2026-11-08"))
-    assert "No board meetings announced" in dv.calendar_html(bc, pd.Timestamp("2026-11-30"))
+    assert bc is not None and bc.upcoming.empty

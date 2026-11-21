@@ -384,9 +384,6 @@ body .qp h3{font-size: var(--fs-15)!important}
 body .qp li{font-size: var(--fs-15)}
 body .qp td.big{font-family:var(--font-serif);font-size:var(--fs-24);font-weight:400;line-height:1.1}
 body .qp td.big span.sub{font-family:var(--font-ui);font-size: var(--fs-12);color:var(--c-muted);line-height:1.45;display:inline-block;margin-top:2px}
-body .mq h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;line-height:1.15!important}
-body .mq-v{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-30);letter-spacing:-0.3px}
-body .mq-s{font-size: var(--fs-15)}
 .pg-card-h h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important}
 .br-charts-h{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important}
 .rng{position:relative;width:170px;height:14px;display:inline-block;vertical-align:middle}

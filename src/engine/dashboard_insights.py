@@ -2,7 +2,7 @@
 insightful, not showing same data but inference from that data").
 
 Pure functions over data the app already holds; the view
-(src/ui/views/dashboard_view.py) only formats what these return.
+(src/ui/views/dashboard_home_view.py) only formats what these return.
 
 - The market is Nifty Total Market, the 750 stocks this site ranks
   (data/benchmark_indices.csv). The frozen track-record months stay against
