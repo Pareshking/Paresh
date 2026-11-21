@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-21 — Charts no longer jump on hover
+
+- Every chart's readout above the drawing keeps the height of its longest reading, so moving across the bars no longer pushes the chart down and back up. The foreign-investors chart was the worst case: the month in progress names its dates ("domestic, 2–18 Nov (banks, insurers, MFs)") and wrapped to a second line that the other months did not need. The readout still sits on one line wherever every reading fits.
+
 ## 2026-11-21 — Dashboard: what the Indices page adds
 
 - §3 (Momentum): a note from the site's own record on how far this ranking's top 100 sits below its best against the Nifty 500, its deepest fall since 2010 and the one before with how long it took to recover. A description, not a forecast. The caption now reads "This ranking’s top 100 against the Nifty 500", so it is not confused with NSE's Nifty200 Momentum 30 on Indices.

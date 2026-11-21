@@ -115,8 +115,7 @@ function interact(card, panes, readout, rows, restIndex){
   const charts=[...card.querySelectorAll('.chart')], tip=document.createElement('div'); tip.className='tip'; charts[0].appendChild(tip);
   let cur=null;
   const render=(i,touch)=>{ cur=i; panes().forEach(p=>p.show(i)); const k=i??restIndex(); const r=rows(k);
-    if(typeof readout==='function') readout(r,i); else
-    readout.innerHTML=`<span class="d">${i==null?'Latest · ':''}${r.date}</span>`+r.items.map(x=>`<span class="ro"><i style="background:${x.color}"></i><b style="color:${x.vcolor||'inherit'}">${x.v}</b><span>${x.name}</span></span>`).join('');
+    if(typeof readout==='function') readout(r,i); else readout.innerHTML=roHtml(r,i);
     if(i==null||touch){ tip.classList.remove('on'); return; }
     tip.innerHTML=`<div class="t-d">${r.date}</div>`+r.items.map(x=>`<div class="t-r"><span class="t-k"><i style="background:${x.color}"></i>${x.name}</span><b>${x.v}</b></div>`).join('');
     const p=panes()[0], x=p.X?p.X(i):(p.index&&null), cw=charts[0].clientWidth;
@@ -130,8 +129,19 @@ function interact(card, panes, readout, rows, restIndex){
   }
   charts[0].addEventListener('keydown',e=>{ const n=panes()[0].n; if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ e.preventDefault(); render(Math.max(0,Math.min(n-1,(cur??n-1)+(e.key==='ArrowLeft'?-1:1)))); } if(e.key==='Escape') render(null); });
   charts[0].addEventListener('blur',()=>render(null));
+  /* The readout keeps the height of its tallest reading, so a reading that wraps to a second line
+     (a month in progress names its dates) never pushes the chart down as the pointer moves (owner, 21 Nov). */
+  if(typeof readout!=='function'){ let w=0;
+    const fit=()=>{ const n=panes()[0].n, step=Math.max(1,Math.floor(n/80)); readout.style.minHeight=''; let h=0;
+      const ks=[]; for(let k=0;k<n;k+=step) ks.push(k); ks.push(n-1);
+      for(const k of ks){ readout.innerHTML=roHtml(rows(k),k); h=Math.max(h,readout.offsetHeight); }
+      readout.innerHTML=roHtml(rows(restIndex()),null); h=Math.max(h,readout.offsetHeight);
+      readout.style.minHeight=h+'px'; render(cur); };
+    if(window.ResizeObserver) new ResizeObserver(()=>{ const nw=readout.clientWidth; if(nw&&nw!==w){ w=nw; fit(); } }).observe(readout);
+  }
   render(null);
 }
+const roHtml=(r,i)=>`<span class="d">${i==null?'Latest · ':''}${r.date}</span>`+r.items.map(x=>`<span class="ro"><i style="background:${x.color}"></i><b style="color:${x.vcolor||'inherit'}">${x.v}</b><span>${x.name}</span></span>`).join('');
 
 function _unusedTable(card, head, rows){
   const btn=card.querySelector('[data-table]'), box=card.querySelector('.tbl');
