@@ -5,7 +5,7 @@ A-G as recommended (section "Owner's decisions" below). Built on the branch of S
 rows and the section order met on the running app (`check_dashboard_requirements.mjs`), layout
 audit clean at 412, 1024 and 1400 px with the expanders open; the page joins CI's step.
 
-**Built, what differs from the mock-up and why:**
+**Built, what differs from the mock-up and why** (the headline on the page's own industry map, 18.75% against the mock-up's 18.56%, accepted by the owner, 21 Nov 2026: "yes with your recommendation"):
 - The page's own industry map (today's list, then TradingView, then
   `data/reference/historical_industries.csv`, each leaver its own group) is the one the page always
   used; the mock-up's figures used the record's map, which leaves leavers in a shared "Other" the
