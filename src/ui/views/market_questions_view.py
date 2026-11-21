@@ -193,11 +193,29 @@ def _answers(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.
              _size: dict[str, pd.Series]):
     from src.engine import pit_breadth
     past = pit_breadth.load("total_market")
-    breadth = mq.breadth_answer(_prices, _bench, past)
+    # "Ahead of the market" against Nifty Total Market, daily from NSE (owner, 21 Nov 2026), the market every page
+    # compares against; the Nifty 500 where Total Market is not there (its one-year readings start Nov 2022).
+    tm = total_market()
+    breadth = (mq.breadth_answer(_prices, tm, past, market="Nifty Total Market") if len(tm)
+               else mq.breadth_answer(_prices, _bench, past))
     share = pit_breadth.splice(mq._share_above_ema(_prices, 200), past, "above_200")
     trend = mq.trend_answer(_bench, _size, share)
     leaders = mq.leaders_answer(_prices, _industry, _bench, _size)
     return breadth, trend, leaders
+
+
+def total_market() -> pd.Series:
+    """Nifty Total Market's daily close: NSE's archive (data/nse_total_market.csv, from its first session) joined
+    with data/benchmark_indices.csv for the latest sessions."""
+    from pathlib import Path
+    from src.loaders import benchmark_indices as bi
+    f = Path(__file__).resolve().parents[3] / "data" / "nse_total_market.csv"
+    nse = pd.Series(dtype=float)
+    if f.exists():
+        t = pd.read_csv(f, parse_dates=["date"])
+        nse = pd.Series(pd.to_numeric(t["close"], errors="coerce").values, index=t["date"]).dropna()
+    ours = bi.series(bi.TOTAL_MARKET).dropna()
+    return pd.concat([nse, ours[ours.index > (nse.index.max() if len(nse) else pd.Timestamp(0))]]).sort_index()
 
 
 def size_closes(levels: pd.DataFrame | None = None, ok: bool = True) -> dict[str, pd.Series]:

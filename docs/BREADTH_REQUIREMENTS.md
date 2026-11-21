@@ -45,17 +45,18 @@ the owner approves the section order.
 | 16 | Serif headings and tile figures, notes 13.5 px, long notes in two columns on a wide screen, "What it is" open on a wide screen | PAGE_DESIGN §2a | Whole page | Breadth |
 | 17 | Data date only, no sources named on the page; the data-quality counts kept | Owner 20, 21 Nov | Footer | Data to |
 | 18 | Layout audit clean at 412 and 1400 px; numbers right-aligned under right-aligned headings | Owner 20 Nov | Whole page | Breadth |
+| 19 | "Ahead of the market" over a year and the median stock against it read Nifty Total Market, named on the page | Owner 21 Nov ("Yes") | Breadth question | ahead of Nifty Total Market |
 
 ## Decided (owner, 21 Nov 2026: "go as recommended")
 
 - **Overlap with the Dashboard:** the Dashboard keeps its short versions; this page is the full reading.
 - **Today's charts:** the 50D and 200D EMA participation lines count the members of each date (history to its
   last date, today's count after it); the other averages count today's ranked stocks, said in each line's name.
-- **Benchmark:** recommended Nifty Total Market for "ahead of the market over a year" and "median stock less the
-  market". Not done, and reported to the owner: NSE's Total Market starts in Oct/Nov 2021, so a one-year reading on
-  it can only start in Nov 2022, a year shorter than the Nifty 500's members-of-the-day history (Oct 2021); over the
-  last eight month-ends the two read within 1.6 points (share) and 1.0 (median). Kept on the Nifty 500, labelled,
-  until the owner says otherwise.
+- **Benchmark (owner, 21 Nov 2026: "Yes", Total Market with the shorter history):** "Stocks ahead of the market
+  over a year" and "Median stock less the market" read Nifty Total Market, daily from NSE's archive
+  (`data/nse_total_market.csv`, `scripts/collect_nse_total_market.py`, checked against `benchmark_indices.csv`);
+  their history starts Nov 2022, a year after Total Market's first session. The trend rules keep the Nifty 500
+  (history from 2000); the signal tests' Nifty 500 universe keeps the Nifty 500.
 
 ## Figures that also appear on another page
 

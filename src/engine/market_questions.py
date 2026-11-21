@@ -225,7 +225,8 @@ def _beat_index_12m(prices: pd.DataFrame, bench: pd.Series, when: pd.Timestamp |
     return float((r > rb).mean() * 100), float((r.median() - rb) * 100)
 
 
-def breadth_answer(prices: pd.DataFrame, bench: pd.Series, past: pd.DataFrame | None = None) -> Answer | None:
+def breadth_answer(prices: pd.DataFrame, bench: pd.Series, past: pd.DataFrame | None = None,
+                   market: str = "the Nifty 500") -> Answer | None:
     """`past`: readings on the members of each date (src/engine/pit_breadth.py).
     With it, a month and a year back and every history figure come from the
     members of the day; today's reading from `prices` either way."""
@@ -257,27 +258,27 @@ def breadth_answer(prices: pd.DataFrame, bench: pd.Series, past: pd.DataFrame | 
     ms = [
         _measure("Stocks above their 200D EMA", "pct", [at(a200, k) for k in d], 60, 40,
                  "60% or more is broad, 40% or less is narrow", primary=True, history=a200 if past is not None else a200.iloc[200:]),
-        _measure("Stocks ahead of the Nifty 500 over a year", "pct", [beat[k][0] for k in d], 55, 45,
+        _measure(f"Stocks ahead of {market} over a year", "pct", [beat[k][0] for k in d], 55, 45,
                  "55% or more is broad, 45% or less is narrow", primary=True, history=beat_share),
         _measure("Stocks above their 50D EMA", "pct", [at(a50, k) for k in d], 60, 40,
                  "60% or more is broad, 40% or less is narrow", history=a50 if past is not None else a50.iloc[50:]),
         _measure("Net new 52W highs this week, share of stocks", "pts", [at(nnh, k) for k in d], 5, -5,
                  "+5 or more is broad, −5 or less is narrow", history=nnh),
-        _measure("Median stock less the Nifty 500, a year", "pts", [beat[k][1] for k in d], 3, -3,
+        _measure(f"Median stock less {market}, a year", "pts", [beat[k][1] for k in d], 3, -3,
                  "+3 pts or more is broad, −3 or less is narrow", history=beat_gap),
     ]
     return _answer("Are most stocks taking part?", ms,
                    ("Very narrow", "Narrow", "About usual", "Broad", "Very broad"),
-                   lambda word, m: _breadth_sentence(word, ms))
+                   lambda word, m: _breadth_sentence(word, ms, market))
 
 
-def _breadth_sentence(word: str, ms: list[Measure]) -> str:
+def _breadth_sentence(word: str, ms: list[Measure], market: str = "the Nifty 500") -> str:
     a200, beat = ms[0].now, ms[1].now
     parts = []
     if a200 is not None:
         parts.append(f"{a200:.0f}% of the ranked stocks are above their 200D EMA")
     if beat is not None:
-        parts.append(f"{beat:.0f}% beat the Nifty 500 over the year")
+        parts.append(f"{beat:.0f}% beat {market} over the year")
     text = " and ".join(parts) + "."
     return text[:1].upper() + text[1:] if parts else ""
 
