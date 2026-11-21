@@ -57,6 +57,7 @@ font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-s
 .chart text{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;fill:var(--faint);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
 .chart text.lbl-end{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:600}
 .chart text.lbl-v{font-weight:600}
+.chart text.lbl-band{font-family:'IBM Plex Sans',system-ui,sans-serif;font-style:italic;font-size:11px;fill:var(--muted)}
 .tip{position:absolute;top:0;pointer-events:none;background:var(--tip-bg);color:var(--tip-fg);border-radius:8px;padding:8px 10px;font-size:12px;
 box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;z-index:2}
 .tip.on{opacity:1;transform:none}.tip .t-d{color:var(--tip-muted);font-family:'IBM Plex Mono',monospace;font-size:11px;margin-bottom:3px}
@@ -92,8 +93,8 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .seg-weak{background:var(--down)}.seg-weak.alt{background:color-mix(in srgb,var(--down) 75%,var(--bg))}
 .rrg{aspect-ratio:1.45/1}
 .hold{overflow-x:auto}
-.ht{width:100%;min-width:1120px;border-collapse:collapse;font-size:12.5px}
-.ht th,.ht td{text-align:left;padding:7px 7px 7px 0;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
+.ht{width:100%;min-width:1120px;border-collapse:collapse;font-size:13.5px}
+.ht th,.ht td{text-align:left;padding:7px 5px 7px 0;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
 .ht thead th{font-size:12px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--ink);vertical-align:bottom;cursor:pointer;user-select:none;font-family:'IBM Plex Sans',system-ui,sans-serif}
 .ht thead th.num{max-width:64px;white-space:normal;text-align:right}
 .ht thead th:not(.num)[aria-sort="descending"]::after{content:" ↓"}.ht thead th:not(.num)[aria-sort="ascending"]::after{content:" ↑"}
@@ -101,19 +102,19 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .ht thead th:focus-visible{outline:2px solid var(--up);outline-offset:2px}
 .ht tbody th,.ht tfoot th{font-weight:600;white-space:nowrap;position:sticky;left:0;background:var(--bg);z-index:1}
 .ht .num{width:1%;white-space:nowrap}.ht td.num{text-align:right}.ht .nw{white-space:nowrap}
-.ht .sym{font-family:'IBM Plex Mono',monospace;font-weight:600}.ht .ss{display:block;font-size:12px;color:var(--muted);font-weight:400}
-.ht .co{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ht .sym{font-family:'IBM Plex Mono',monospace;font-weight:600}.ht .ss{display:block;font-size:12px;color:var(--muted);font-weight:400;white-space:nowrap}
+.ht .co{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ht td.rk{white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}.ht .rk b{color:var(--ink)}.ht .rk b.down{color:var(--down)}
 .ht .rk{text-align:right!important}th.rk{position:relative}.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.rk3{display:inline-grid;grid-template-columns:repeat(3,5ch);gap:0 8px;text-align:right}.rk3 i{font-style:normal}th.rk .rk3{display:grid;margin-top:2px}
 .ht tr.tot th,.ht tr.tot td{border-top:1px solid var(--ink);font-weight:600}
 @media (max-width:640px){.ht .co{display:none}.ht{min-width:1040px}}
 .hbody{max-height:380px;overflow:auto;border:1px solid var(--rule-soft);border-radius:4px}
-.lt{width:100%;min-width:860px;border-collapse:collapse;font-size:12px}
+.lt{width:100%;min-width:860px;border-collapse:collapse;font-size:13.5px}
 .lt th,.lt td{text-align:left;padding:5px 10px;border-bottom:1px solid var(--rule-soft);white-space:nowrap;width:1%}
 .lt td:last-child,.lt th:last-child{width:auto;white-space:normal}
 .lt thead th{position:sticky;top:0;background:var(--bg);color:var(--muted);font-weight:500;z-index:1}
 .lt .num{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}.lt thead th.num{font-family:inherit}
-.hnote{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.hnote{margin:4px 0 0;font-size:13.5px;color:var(--muted);max-width:72ch}
 
 /* The readout is one line where it fits: the date, then the values (owner, 20 Nov: the numbers took half the chart). */
 @media (max-width:600px){

@@ -75,8 +75,11 @@ function barPane(el,o){
   const v2=(o.values2||[]).filter(v=>v!=null);   // a second series beside the first, where it exists (domestic flows)
   // Stacked on one column: a second value of the same sign sits beyond the first; of the other sign it runs from zero.
   const ends=o.values.map((v,i)=>{ const u=o.values2?o.values2[i]:null; if(u==null) return [v]; return (u>=0)===(v>=0)?[v+u]:[v,u]; }).flat();
-  const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values,...ends)*fx, hi=Math.max(0,...o.values,...ends)*fx;
+  const bnd=o.band||[];   // the usual range [low, high, label], shaded behind the bars (tipsheet benchmark, 21 Nov 2026)
+  const n=o.values.length, fx=o.valueLabels?1.22:1.08, lo=Math.min(0,...o.values,...ends,...bnd.slice(0,2))*fx, hi=Math.max(0,...o.values,...ends,...bnd.slice(0,2))*fx;
   const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo)), bw=(W-padL-padR)/n, gap=Math.min(6,bw*.28);
+  if(bnd.length){ mk('rect',{x:padL,width:W-padL-padR,y:Y(bnd[1]),height:Math.max(1,Y(bnd[0])-Y(bnd[1])),fill:css('--caution-soft')},svg);
+    if(bnd[2]){ const t=mk('text',{x:padL+4,y:Y(bnd[1])+12,class:'lbl-band'},svg); t.textContent=bnd[2]; } }
   for(const t of niceTicks(lo,hi,4)){ mk('line',{x1:padL,x2:W-padR,y1:Y(t),y2:Y(t),stroke:t===0?css('--ink'):css('--rule-soft'),'stroke-width':1,opacity:t===0?.5:1},svg);
     mk('text',{x:W-padR+8,y:Y(t)+4},svg).textContent=String(o.yfmt(t)).replace('-','−'); }
   for(const l of o.levels||[]){ mk('line',{x1:padL,x2:W-padR,y1:Y(l.v),y2:Y(l.v),stroke:l.color,'stroke-dasharray':'3 4'},svg);
@@ -95,7 +98,7 @@ function barPane(el,o){
     const u=o.values2&&o.values2[i]; if(u!=null){ const same=(u>=0)===(v>=0), base=same?v:0, end=base+u; bar(x,w,u,css('--teal'),base);
       if(o.valueLabels){ const t=mk('text',{x:x+w/2,y:end>=0?Y(end)-5:Y(end)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css('--teal')}`); } } });
   const step=Math.max(1,Math.ceil(n/Math.min(o.xn||6,Math.max(2,Math.floor((W-padL-padR)/78)))));
-  for(let i=0;i<n;i+=step){ const t=mk('text',{x:padL+i*bw+bw/2,y:H-6,'text-anchor':'middle'},svg); t.textContent=o.xlab(i); }
+  for(let i=0;i<n;i+=step){ const first=i===0&&bw<40; const t=mk('text',{x:first?padL:padL+i*bw+bw/2,y:H-6,'text-anchor':first?'start':'middle'},svg); t.textContent=o.xlab(i); }
   if(o.valueLabels){ o.values.forEach((v,i)=>{ const u=o.values2?o.values2[i]:null, inside=u!=null&&(u>=0)===(v>=0);
     const t=mk('text',{x:padL+i*bw+bw/2,y:inside?(v>=0?Y(v)+13:Y(v)-5):(v>=0?Y(v)-5:Y(v)+13),'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(v);
     t.setAttribute('style',inside?`fill:${css('--bg')};stroke:none`:`fill:${v>=0?css('--up'):css('--down')}`); }); }
@@ -197,7 +200,7 @@ R.bars = (card, s) => {
   const el = $('.chart', card); let pane;
   const draw = () => { pane = barPane(el, {values: s.values, values2: s.also ? s.also.map(a => a && a[1]) : null, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
     markLast: !!s.lastLabel, lastLabel: s.lastLabel, padR: 38, valueLabels: s.valueLabels ? v => sg(v / (s.axisDiv || 1), s.vdp ?? 0) : null,
-    levels: (s.levels || []).map(l => ({v: l, color: css('--up')}))}); };
+    levels: (s.levels || []).map(l => ({v: l, color: css('--up')})), band: s.band}); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   interact(card, () => [pane], $('.readout', card), k => { const v = s.values[k], c = v >= 0 ? css('--up') : css('--down');
     const lvl = s.levels && s.levels.length ? ' · ' + (v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between) : '';

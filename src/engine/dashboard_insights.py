@@ -43,6 +43,18 @@ def value_at(series: pd.Series | None, when: pd.Timestamp) -> float | None:
     return None if d is None else float(s.loc[d])
 
 
+def as_of(close: pd.Series | None, end: pd.Timestamp) -> pd.Series:
+    """The series if it has a close for `end`, else empty (S148, 21 Nov 2026).
+
+    Every reader looks a close up "on or before" a date, so an index missing the
+    page's session gave yesterday's figure under today's caption ("Indices, 19 Nov"
+    showed Nifty 50 for 18 Nov). Empty reads as "—" everywhere instead."""
+    if close is None:
+        return pd.Series(dtype=float)
+    s = close.dropna()
+    return s if len(s) and s.index.max() >= pd.Timestamp(end) else s.iloc[0:0]
+
+
 def window_return(close: pd.Series | None, start: pd.Timestamp, end: pd.Timestamp) -> float | None:
     """Percent from the close on or before `start` to the close on or before `end`."""
     a, b = value_at(close, start), value_at(close, end)
@@ -505,12 +517,15 @@ def fpi_share_of_value(flows: Flows, market_value_cr: float | None) -> tuple[flo
     return flows.mtd / market_value_cr * 100, flows.before / market_value_cr * 100
 
 
-def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None) -> tuple[dict, dict]:
+def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None,
+                now: pd.Series | None = None) -> tuple[dict, dict]:
     """Each stock's rank 3 months ago, a month ago and now, under today's rule.
 
     One definition for every page (S151, S154): `rank_history.snapshots`, the rank
     among the stocks that pass the rule's filters on that date; None is "Out".
-    Returns (dates, {symbol: [3m, 1m, now]}).
+    `now`, when given, is today's place among the qualified from the ranking the plan
+    trades on (`exit_watch.qualified_ranks`), so the trail's last point is the plan's
+    rank on every page (Actions redesign, 20 Nov 2026). Returns (dates, {symbol: [3m, 1m, now]}).
     """
     from src.engine.rank_history import snapshots
     px = prices.sort_index()
@@ -523,5 +538,8 @@ def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None)
         for d in dates.values():
             hit = snap[(snap["date"] == d) & (snap["symbol"] == sym)]["rank"]
             row.append(None if hit.empty or pd.isna(hit.iloc[0]) else int(hit.iloc[0]))
+        if now is not None:
+            q = now.get(sym)
+            row[-1] = None if q is None or pd.isna(q) else int(q)
         ranks[sym] = row
     return dates, ranks

@@ -41,7 +41,8 @@ def test_a_book_without_its_fill_date_is_refused_not_planned_at_equal_weight(mon
 
 def test_the_dashboard_and_actions_build_the_model_plan_in_one_place():
     home = (ROOT / "src/ui/views/dashboard_home_view.py").read_text(encoding="utf-8")
-    actions = (ROOT / "src/ui/views/actions_view.py").read_text(encoding="utf-8")
+    actions = (ROOT / "src/ui/views/actions_page.py").read_text(encoding="utf-8")   # the page since the 20 Nov rebuild
     assert "plan_rebalance(" not in home and "model_plan(" in home
     assert "model_plan(" in actions
-    assert "standing_weights(" not in actions        # only model_plan reads held weights
+    # Actions may read today's weights to show the book now; only model_plan plans with them.
+    assert "standing=" not in actions

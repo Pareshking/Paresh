@@ -16,29 +16,18 @@ import pandas as pd
 import streamlit as st
 
 from src.ui.system_param import stock_href
-from src.core.market_time import ist_now
-from src.loaders.nse_calendar import holiday_caveat, published_holidays
+from src.loaders.nse_calendar import published_holidays
 from src.engine.exit_watch import (
-    RANK_SCALE,
     STATUS_LABEL,
     UNKNOWN,
-    WATCH,
     Rules,
-    assess,
     holdings_from_kite_csv,
     nearest_rule,
     parse_holdings,
-    qualified_ranks,
 )
 from src.core.config import MODEL_BOOK_CAPITAL
-from src.engine.actions import buy_orders, plan_rebalance
-from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.ui import holdings_store
-from src.ui import page_kit as kit
-from src.ui.components import gap_count, render_data_quality_footer
-from src.ui.views.qualified_view import render_qualified_view
-from src.ui.canonical_book import current_book
-from src.ui.widget_state import remember, resolve
+from src.ui.widget_state import resolve
 from src.ui import formats as _fmt
 
 SOURCES = ["Model book", "My holdings"]
@@ -268,133 +257,6 @@ def render_actions_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     record_run().live_book is exposed through current_book(); Actions does
     not maintain a second model-book implementation.
     """
-    holdings_store.sync()
-    cfg = TRACK_RECORD_CONFIG
-    rules = Rules(buffer_n=int(cfg["buffer_n"]), high_pct=float(cfg["high_pct"]))
-
-    as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else pd.Timestamp(ist_now().date())
-    check, fill = next_rebalance(as_of)
-    n_sess = _sessions_between(as_of, check)
-    timing_note = fill_due_note(as_of, fill, pd.Timestamp(ist_now().date()))
-
-    # The dates are in the "Next rebalance" tile; the subtitle does not repeat them.
-    head = kit.page_head("Actions", "If today's prices hold.", actions=True)
-    with head:
-        sources = SOURCES if model_book_note is None else ["My holdings"]
-        source = st.segmented_control("Holdings", sources, default=sources[0], key="xw_source",
-                                      label_visibility="collapsed") or sources[0]
-    if model_book_note is not None:
-        kit.note("No model book yet.", model_book_note)
-
-    book, _record = None, None
-    if source == "My holdings":
-        _edit_holdings()
-        symbols, since, _basis = _my_holdings(rank_df)
-        entries = lambda s: ""  # noqa: E731 -- buy dates are not recorded for your holdings
-        top_n = len(symbols)
-    else:
-        with st.spinner("Loading the model book…"):
-            book, _record = current_book(adj_close, benchmark_close, system)
-        symbols = [] if book is None or book.empty else book["Symbol"].tolist()
-        since = ({} if not symbols else
-                 dict(zip(book["Symbol"], pd.to_numeric(book["Return %"], errors="coerce"))))
-        entries = lambda s: _held_since(book, s)  # noqa: E731
-        top_n = int(cfg["top_n"])
-
-    if not symbols:
-        if source == "My holdings":
-            kit.empty("Add your holdings above,",
-                      "or upload the holdings CSV from Kite, to see what to do with them.")
-        else:
-            kit.empty("The model book is not available:",
-                      "the strategy needs about 18 months of price history to form one.")
-    else:
-        a = assess(rank_df, symbols, rules)
-        # The model book's plan comes from the one function the Dashboard uses too (S154):
-        # held weights, hold cap and buy size between the six-monthly resets. Your own
-        # holdings' weights are not known, so they stay equal weight.
-        if source == "My holdings":
-            plan = plan_rebalance(rank_df, symbols, top_n=top_n, buffer_n=rules.buffer_n,
-                                  stock_cap=float(cfg["stock_cap"]), sector_cap=float(cfg["sector_cap"]))
-        else:
-            from src.ui.model_plan import model_plan
-            plan = model_plan(book, _record, rank_df, adj_close, benchmark_close, system, check)
-        n_unknown = int((a["status"] == UNKNOWN).sum())
-        n_watch = int(a[a["Symbol"].isin(plan.holds)]["status"].eq(WATCH).sum())
-        kit.readings([
-            kit.Reading("Sell", f"{len(plan.sells)}", "break a rule at today's close",
-                        "down" if plan.sells else ""),
-            kit.Reading("Buy", f"{len(plan.buys)}", "", "up" if plan.buys else ""),
-            kit.Reading("Hold", f"{len(plan.holds)}",
-                        f"{n_watch} close to a rule" if n_watch else "all clear of the rules"),
-            kit.Reading("Next rebalance", _day(check, weekday=True),
-                        (timing_note.strip()
-                         or f"{n_sess} session{'s' if n_sess != 1 else ''} away · fills {_day(fill, weekday=True)}")
-                        + (" · NSE holidays not yet published" if holiday_caveat(check, fill) else "")),
-        ], "Actions")
-        if n_unknown:
-            kit.note(f"{n_unknown} holding{'s are' if n_unknown != 1 else ' is'} not ranked; "
-                     "no rule can be checked.")
-
-        # The basket used to read a Portfolio capital input removed on 30 Sep, so
-        # it sized every basket on ₹10 lakh against Portfolio's ₹20 lakh. Now the
-        # reader sets it here, starting at Portfolio's (owner, 12 Oct 2026).
-        with head, st.popover("Kite basket", icon=":material/download:", type="primary"):
-            capital = float(st.number_input(
-                "Capital (₹)", min_value=KITE_MIN_CAPITAL, max_value=KITE_MAX_CAPITAL,
-                step=100_000, value=kite_capital(), key=KITE_CAPITAL_KEY,
-                help=f"{_fmt.inr(MODEL_BOOK_CAPITAL)} is the model book on Portfolio. "
-                     "For your own holdings, enter your account's size.",
-            ))
-            remember(KITE_CAPITAL_KEY, int(capital))
-            orders = buy_orders(plan, rank_df, capital)
-            st.download_button(
-                "Download basket CSV", orders.to_csv(index=False).encode(),
-                f"kite_actions_{ist_now():%Y%m%d}.csv", "text/csv", type="primary",
-                key="dl_actions_basket", icon=":material/download:", disabled=orders.empty,
-            )
-            kit.caption(f"Buy orders only, each at its target weight of {_fmt.inr(capital)}.")
-
-        with kit.card("Sell", "ac_sell"):
-            if plan.sells:
-                st.html(sells_html(a, plan.sells, since, entries))
-                # A phone drops a column rather than cramming it; say so
-                # (design audit, 9 Nov 2026: it was dropped silently).
-                st.html('<p class="db-note ac-more">On a wider screen each row '
-                        'also shows how long the holding has been held.</p>')
-                kit.caption("Sell in full; sells are not in the Kite basket.")
-            else:
-                kit.caption("None.")
-
-        qrank = qualified_ranks(rank_df)
-        with kit.card("Buy", "ac_buy", "best qualified, not held"):
-            if plan.buys:
-                st.html(buys_html(rank_df, plan.buys, qrank))
-                st.html('<p class="db-note ac-more">On a wider screen each row '
-                        'also shows the price, the 3- and 6-month returns and '
-                        'the distance from the 52-week high.</p>')
-                chips = "".join(
-                    f'<a class="t50-chip" href="{stock_href(s)}" target="_self">'
-                    f'<span class="t50-rank">{int(qrank.get(s, 0))}</span>'
-                    f'<span>{html.escape(s)}</span></a>'
-                    for s in plan.next_in_line)
-                if chips:
-                    st.html(f'<div class="ac-next"><span>Next in line:</span>{chips}</div>')
-            else:
-                kit.caption("None.")
-
-        holds = a[a["Symbol"].isin(plan.holds) | (a["status"] == UNKNOWN)]
-        with kit.card("Hold", "ac_hold", "closest to a sale first"):
-            st.html(rows_html(holds, since, rules))
-            kit.caption("Order: least room on any rule first. A full rank buffer "
-                        f"({rules.buffer_n} places) counts as a {RANK_SCALE:.0%} fall, "
-                        "as the bars are drawn.")
-
-    with st.expander("Buy candidates · the qualified list", expanded=False):
-        render_qualified_view(rank_df, adj_close, embedded=True)
-
-    render_data_quality_footer(
-        total_stocks=len(rank_df),
-        gap_count=gap_count(rank_df),
-        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
-    )
+    # Rebuilt from docs/ACTIONS_REQUIREMENTS.md (owner, 20 Nov 2026); the helpers below stay for it.
+    from src.ui.views import actions_page
+    actions_page.render(rank_df, adj_close, benchmark_close, system, model_book_note)

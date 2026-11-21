@@ -1,6 +1,15 @@
 # Changelog
 
 
+
+## 2026-11-21 — Actions rebuilt; one design across Dashboard, Portfolio and Actions; DII history
+
+- Actions opens with the answer ("5 sells and 5 buys on Mon 30 Nov: ₹34.0 lakh out, ₹34.1 lakh in"), then what could still change before the close (holds near a line, next in line, results and ex-dates before the fill), sells with shares and amounts, buys with weight, amount and shares and why a buy is under 5%, what the record's swaps have added so far, the book's industry and size after the trades, and holds with the rank trail.
+- The model book's Kite basket carries its sells with share counts and sizes buys on the book's value today; it sized them on the ₹1 crore start.
+- One type system on all three pages: serif titles that answer the first question, serif section headings and tile figures, larger notes, long notes in two columns on a wide screen, "What it is" in plain sight on a wide screen, usual ranges shaded on the momentum-lead and foreign-flow charts.
+- Domestic institutions now have history: NSE's own monthly figures from January 2021 and each day, drawn on the flows chart for every month. November on NSE to 18 Nov: −₹49,809 crore (the earlier figure started on 6 Nov).
+- The Dashboard's risk card shows Portfolio's figures (volatility 22.7% against 15.6%, beta 1.0); it showed different numbers under the same labels.
+- Portfolio lists every industry the book has held at each rebalance (16, not 5), and no longer shows a 0.0% market day when the index file is a session behind the prices.
 ## 2026-11-20 — A fourth shadow record: Skip 5 days
 
 - Track Record's "Three systems, side by side" gains a row for "Skip 5 days" from the December 2026 book: the live strategy with each stock's score read five sessions before the rebalance, to avoid buying into a final-week spike. It is recorded month by month and never traded; nothing about the live record changes. Why: `docs/MOMENTUM_ABC_2026-11-20.md`.

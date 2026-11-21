@@ -59,6 +59,18 @@ v8 with interactive charts and line bars (claude.ai artifact
 | No source line on the page: the footer gives the data date only (sources stay in docs/DATA_CATALOGUE.md) | Owner, 20 Nov: "Let's not show source" |
 | Write for an investor: no internal names ("peer index", "spreads file"), short plain sentences, numbers with units | Owner feedback on v5 copy |
 
+## 2a. One type system for every page (benchmarked against tipsheet.markets, owner 21 Nov 2026: "Want everything corrected")
+
+| Rule | Measured before |
+|---|---|
+| A page title answers the reader's first question, in the serif, with the page's name as a small kicker above it ("Portfolio" / "The book is up 46.1% since 1 January, 45.5 points ahead of the market.") | Portfolio and Actions titles were the page's name only |
+| Section headings in the serif (Source Serif 4, 400), 30 px, 24 px on a phone, on every page | Dashboard serif 30 px; Portfolio and Actions IBM Plex Sans 24 px bold |
+| Tile figures in the serif at 30 px, regular weight; mono stays in tables, where it lines figures up | Dashboard sans 24 px semibold; Portfolio mono 24 px |
+| Notes 13.5 px, ledes 17 px, tables 13.5 px (frames too) | Notes 12 px; holdings and trade-history tables 12–12.5 px |
+| Prose no wider than about 80 characters a line; a note of five lines or more flows in two columns on a wide screen, so lines stay short and the right half is not left empty; titles up to about 36 characters a line | Notes ran 1,240 px on a desktop; a 70-character cap then left half the desktop empty (owner, 21 Nov: "Why paragraph and title are having blank space?") |
+| "What it is · how to read it" in plain sight on a wide screen, folded on a phone; "Show the table" stays folded | Folded everywhere |
+| A bar chart with a long history shades its usual range (the middle half of all months) and names it | No usual range on any bar chart |
+
 ## 3. Tables
 
 | Rule | Why / source |

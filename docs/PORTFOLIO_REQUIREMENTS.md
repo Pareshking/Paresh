@@ -64,6 +64,5 @@ Order: current book → industry & size → returns → equity, drawdown & risk 
 **Dropped by the owner, 20 Nov:** the cash tile and row (row 25) and the note that Backtest can differ from the record (row 36).
 
 **Not on this page, by decision:** the Dashboard's market sections (signals,
-flows, size leadership). **Proposed to drop, awaiting the owner's word:** the
-13-column "Ranks by month" table (its ranks are the rank trail in Current book,
-under one definition, S154).
+flows, size leadership). **Dropped (owner agreed, 21 Nov 2026):** the 13-column "Ranks by month" table;
+its ranks are the rank trail in Current book, under one definition (S154).

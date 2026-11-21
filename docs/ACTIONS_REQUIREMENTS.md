@@ -53,18 +53,28 @@ approves the design, and then added here as an `Order:` line.
 | 20 | No data sources on the page; the data date only | Owner 20 Nov (Dashboard) | Footer | Data to |
 | 21 | Numbers right-aligned under right-aligned headings; no label wrapping to three lines; nothing past the screen edge (layout audit clean at 412 and 1400 px) | Owner 20 Nov (Portfolio review) | Whole page | Actions |
 
-## Open, for the owner to decide (not requirements until agreed)
+## Added by the owner, 20 Nov 2026 ("add all five")
 
-- **Sell orders sized for the model book.** The page says sells are not in the basket
-  because it does not know your share counts. For the model book it does (Portfolio's
-  Qty column), so the basket could carry sells with quantities.
-- **Each buy in rupees and shares on the page**, not only in the CSV.
-- **The rank trail (3M · 1M · now) on each hold**, as on the Dashboard and Portfolio
-  (PAGE_DESIGN §7 lists it for Actions).
-- **What could change before the close**: holds within a few places or a few percent of
-  a line, and the next-in-line names that would come in.
-- **The data-quality footer** names counts of gaps and short histories; under row 20 it
-  stays only if it is not a source list.
+| # | Requirement | Source | Where | Marker |
+|---|---|---|---|---|
+| 22 | The Kite basket carries the model book's sells too, with share counts from the book (your own holdings: buys only, as their counts are not known) | Owner 20 Nov | Kite basket | [click Kite basket] sell orders |
+| 23 | Each buy shows its rupee amount and share count on the page, at the record's weight, not only in the CSV | Owner 20 Nov | Buy | Amount + Shares |
+| 24 | Each hold shows its rank trail, 3M · 1M · now, from the same function as Dashboard and Portfolio (`dashboard_insights.rank_trails`) | Owner 20 Nov; PAGE_DESIGN §7 | Hold | 3M · 1M · now |
+| 25 | What could still change before the close: holds within a few places or percent of a line, and the next-in-line names that would come in | Owner 20 Nov | After the counts | could still change |
+| 26 | The data date shown; the data-quality counts (gaps, short histories) kept, with no sources named (owner confirmed 20 Nov: "keep counts and date") | Owner 20 Nov | Footer | Data to |
+| 27 | The book's industry and size after the trades, against now | Owner 21 Nov (fund-manager review) | After Buy | after the trades |
+| 28 | Results or corporate actions due before the fill, for every sell, buy and hold | Owner 21 Nov | What could still change | before the fill |
+| 29 | The evidence: what swaps have added so far (buys against the names sold, first month and three months, against Nifty Total Market), with its limits stated (months, in-sample, before costs) | Owner 21 Nov; checked 21 Nov: buys +3.1 pts first month, sold names +0.2 | Sell or Buy | what swaps have added |
+
+Not added (owner, 21 Nov): order size against traded value, this rebalance's cost, sells
+"could still flip" marking. NSE price bands (S161) and tax on sells (S162) closed
+permanently by the owner, 21 Nov.
+
+Why a buy is under 5% (owner asked, 20 Nov): the 8 Nov rule gives a buy the smaller
+of (a) 5% of the account at the last reset fill in rupees (₹7.19 lakh, 4.92% of
+today's ₹1.46 crore) and (b) an equal share of the cash the sells free, since no kept
+name is trimmed to fund a buy (four sells worth 19.08% → 4.77% each). The page says
+which applied.
 
 ## Every figure on the page, where it is made, and where else it appears (S154 (a) for Actions)
 

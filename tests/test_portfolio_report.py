@@ -66,3 +66,12 @@ def test_open_trades_get_their_rank_signal_and_weight_from_the_rebalance_line():
     assert list(t.columns) == pr.TRADE_FIELDS
     assert row["Entry rank"] == 11 and row["Entry weight %"] == 5.0 and row["Industry"] == "Healthcare"
     assert row["Entry signal date"] == pd.Timestamp("2026-10-30") and row["Exit date"] is None
+
+
+def test_an_index_a_session_behind_has_no_today_figure():
+    # 21 Nov 2026: prices to 20 Nov, Nifty Total Market to 19 Nov; Today read the market at 0.0%.
+    b = _series("2025-12-31", "2026-11-20")
+    m = b.loc[:"2026-11-19"]
+    row = dict((r[0], r[1:]) for r in pr.periods(b, m, m, b.index[-1]))
+    assert row["Today"][0] is not None and row["Today"][1] is None and row["Today"][2] is None
+    assert row["1 week"][1] is not None

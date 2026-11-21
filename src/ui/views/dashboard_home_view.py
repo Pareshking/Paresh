@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -35,6 +36,7 @@ FILES = {
     "latest_q": ROOT / "data" / "momentum_health_latest.json",
     "nsdl": ROOT / "data" / "nsdl_fpi_daily.csv",
     "nse_flows": ROOT / "data" / "fii_dii_flows.csv",
+    "nse_dii": ROOT / "data" / "nse_dii.csv",
     "bench": ROOT / "data" / "benchmarks.csv",
     "tests": ROOT / "data" / "signal_tests.json",
     "mcap": ROOT / "data" / "nse_market_caps.csv",
@@ -96,12 +98,22 @@ def html_of(parts) -> str:
     return "".join(out)
 
 
+_NOTE = re.compile(r'<p class="dh-note">(.*?)</p>', re.S)
+
+
+def _long_notes(html_text: str) -> str:
+    """A note long enough to run five lines or more flows in two columns on a wide screen: short lines, no empty
+    right half (owner, 21 Nov 2026: "Why paragraph and title are having blank space?")."""
+    return _NOTE.sub(lambda m: (f'<p class="dh-note dh-note-long">{m.group(1)}</p>'
+                                if len(re.sub(r"<[^>]+>", "", m.group(1))) > 380 else m.group(0)), html_text)
+
+
 def emit(parts) -> None:
     buf: list[str] = []
 
     def flush():
         if buf:
-            st.html(f'<div class="dh">{"".join(buf)}</div>')
+            st.html(f'<div class="dh">{_long_notes("".join(buf))}</div>')
             buf.clear()
     for p in parts:
         if isinstance(p, str):
@@ -130,8 +142,9 @@ def how(what: str, read: str, head: list[str], rows: list[list[str]]) -> str:
     table = ('<table class="dh-tab dh-tab-s"><thead><tr>' + "".join(f'<th scope="col">{e(h)}</th>' for h in head)
              + "</tr></thead><tbody>" + "".join("<tr>" + "".join(f"<td>{e(cell(c))}</td>" for c in r) + "</tr>" for r in rows)
              + "</tbody></table>")
-    return (f'<div class="dh-how"><details><summary>What it is · how to read it</summary><div class="dh-how-b">'
-            f'<p><b>What it is</b>{e(what)}</p><p><b>How to read it</b>{e(read)}</p></div></details>'
+    body = f'<p><b>What it is</b>{e(what)}</p><p><b>How to read it</b>{e(read)}</p>'
+    return (f'<div class="dh-how"><div class="dh-how-b dh-how-wide">{body}</div>'
+            f'<details class="dh-how-narrow"><summary>What it is · how to read it</summary><div class="dh-how-b">{body}</div></details>'
             f'<details><summary>Show the table</summary><div class="dh-scroll dh-how-t">{table}</div></details></div>')
 
 
@@ -188,10 +201,14 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
         out[f"above_{span}"] = pit_breadth.splice(mq._share_above_ema(px[ranked], span), past, f"above_{span}")
     snap = snapshots(px, [d for d in dates.values() if d is not None])
     key_of = {d: k for k, d in dates.items() if d is not None}
+    from src.engine.exit_watch import qualified_ranks
+    qnow = qualified_ranks(_rank_df)       # today: the ranking the plan trades on (S154)
     out["rank_table"] = (snap.assign(when=snap["date"].map(key_of))
                          .pivot_table(index="symbol", columns="when", values="rank", aggfunc="first"))
-    # The same trail Portfolio shows: one function, one definition (S151, S154).
-    out["ranks"] = di.rank_trails(px, symbols, snap)[1]
+    if "now" in out["rank_table"]:
+        out["rank_table"]["now"] = out["rank_table"].index.map(lambda s: qnow.get(s))
+    # The same trail Portfolio and Actions show: one function, one definition (S151, S154).
+    out["ranks"] = di.rank_trails(px, symbols, snap, now=qnow)[1]
     paths: dict[str, list[str]] = {}
     for k in ("3m", "1m", "now"):
         r = compute_rrg_data(f"home_{key}_{k}", px, _rank_df, end_date_str=None if k == "now" else str(dates[k].date()))
@@ -480,7 +497,8 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
              'over 12 months, the last 3 months and the last finished month; the month so far is NSE’s Nifty500 Momentum 50 '
              'against Nifty Total Market.</p>'
              + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top 100 less the Nifty 500, points</span></div>'
-                if lead_bars else '') + '</div>']
+                if lead_bars else '')
+             + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '') + '</div>']
     if lead_bars:
         parts += [Chart("bars", lead_bars, {"label": "Momentum’s lead over the Nifty 500 by month"}),
                   how("Each month, the return of the 100 best-ranked stocks less the Nifty 500’s, in points. The last bar is the "
@@ -534,7 +552,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                       "Bought this month" if share[0] > 0 else "Sold this month", tone(share[0]),
                       f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {abs(share[1]):.2f}% of it"))
     if dii:
-        kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}", cr(dii[2]), tone(dii[2]),
+        kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}, {dii[5] if len(dii) > 5 else 'on NSE'}", cr(dii[2]), tone(dii[2]),
                    f"Net sellers on {dii[4]} of {dii[3]} sessions", "dh-down" if dii[4] * 2 > dii[3] else "dh-muted",
                    "Taking the other side of foreign buying" if dii[2] < 0 and f.mtd > 0 else ""))
     evid = ""
@@ -556,10 +574,12 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
     left = []
     if bars:
         thr = f", dashed line: a heavy-buying month, ₹{ev.threshold:,.0f} Cr or more" if ev is not None else ""
-        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}; teal: domestic institutions, on the same bar '
-                f'beside foreign, from 6 Nov 2026 (NSE keeps no earlier daily figures)</span></div>',
+        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}; teal: domestic institutions on NSE, '
+                f'stacked on the same bar (a sale runs down from zero)</span></div>',
                 Chart("bars", bars, {"label": "Foreign portfolio investors’ net equity flows by month"}),
-                how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market.",
+                f'<p class="dh-note dh-band-note">{e(bars["band_note"])}</p>' if bars.get("band_note") else "",
+                how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market; in teal, "
+                    "domestic institutions’ net purchases on NSE (banks, insurers, mutual funds, pension funds).",
                     "Above the line is net buying. The dashed line starts the top quarter of months since 2016; after such months "
                     "momentum has led the market by more the next month than after the rest.",
                     ["Month", "FPI net, ₹ crore", "DII net, ₹ crore"],
@@ -569,7 +589,9 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
              f'{e(ev.last) if ev else ""}</div>{evid}</div>')
     return [head_html, Cols(left, [right], (2, 1)),
             '<p class="dh-note">Foreign: confirmed FPI equity figures, exchange and primary market. Domestic institutions: '
-            'provisional daily figures from 6 Nov 2026, so the month is not complete.</p>' + END]
+            'trades on NSE to October 2026 (the total for banks, insurers, mutual funds, pension funds and other financial '
+            'institutions); from November all exchanges, provisional, once a month is collected from its first session; '
+            'a month in progress on NSE alone is banks, insurers and mutual funds to the latest day published.</p>' + END]
 
 
 def _first_year(f: di.Flows) -> str:
@@ -859,8 +881,11 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     frame = bi.read()
     closes = {k: bi.series(k, frame=frame) for k in bi.SERIES}
     market = closes[bi.TOTAL_MARKET]
-    # Index figures end on one session: the last both prices and indices have.
+    # Index figures end on one session: the last both prices and indices have. An index
+    # without a close for that session reads "—", never the session before (S148).
     idx_end = min(as_of, market.index[-1]) if len(market) else as_of
+    closes = {k: di.as_of(v, idx_end) for k, v in closes.items()}
+    market = closes[bi.TOTAL_MARKET]
     momentum = {k: closes[k] for k in MOMENTUM_NAMES}
     bm = di.book_month(ledger.get("months", {}), book_mtd, market, momentum, idx_end)
     inc = pd.Period(str(ledger.get("inception", "2026-01")), freq="M").to_timestamp() - pd.Timedelta(days=1)
@@ -915,7 +940,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     nsdl = _read_csv(FILES["nsdl"])
     flows = di.flows_summary(nsdl)
     ev = di.flow_evidence(nsdl, spreads, bench) if flows is not None else None
-    dii = di.dii_window(_read_csv(FILES["nse_flows"]))
+    dii = _dii_now(_read_csv(FILES["nse_dii"], dtype={"period": str}))
     tests = _load_tests()
     signals = _signals(spreads, n500, idx_end, flows, nifty500_breadth(adj_close, as_of), tests)
     average = tests.get("average")
@@ -948,7 +973,17 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     # peak on 19 Nov when the book was −3.1%.
     series = book_series(book, record, ledger, rank_df, adj_close, benchmark_close, MODEL_BOOK_CAPITAL)
     eq = series.equity if series is not None else None
-    risk = br.book_risk(book.set_index("Symbol")["Weight %"], adj_close, n500, eq, volume, MODEL_BOOK_CAPITAL)
+    # Exit time on the book's value today, as the Actions basket (it used the ₹1 crore start).
+    # Today's weights, Portfolio's Weight column, so "the book by size" is the same "now" as Portfolio and Actions (S154).
+    w_now = (series.table.set_index("Symbol")["Weight %"] if series is not None and "Weight %" in series.table
+             else book.set_index("Symbol")["Weight %"])
+    risk = br.book_risk(w_now, adj_close, n500, eq, volume,
+                        float(series.value) if series is not None else MODEL_BOOK_CAPITAL)
+    # Volatility and beta as Portfolio shows them: the book's daily series against Nifty Total Market,
+    # the same function (S154; the card showed 16.7% and 0.77 from today's weights against the Nifty 500
+    # while Portfolio showed 22.7% and 1.0 under the same label, found 21 Nov 2026).
+    from src.engine import portfolio_report as pr
+    record_risk = (pr.risk(eq, market) or [None])[0] if eq is not None else None
     book_sizes = _book_sizes(risk)
 
     # 6, 7. industries
@@ -964,7 +999,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     # v8 chart inputs (S151)
     prev = _last_month(ledger, market, momentum, idx_end)
     lead_bars = _lead_bars(spreads, lead)
-    fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_flows"]))
+    fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_dii"], dtype={"period": str}))
     compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
     breadth = _breadth_spec(n500, hist.get("above_200"), idx_end)
 
@@ -978,7 +1013,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_size(sizes, book_sizes, by_size, typical)
     parts += section_strong_weak(weights, sectors, hist["rrg_paths"], hist["rrg_now"])
     parts += section_leadership(hist["rrg_now"], hist["rrg_paths"], held)
-    parts += section_glance(_glance(closes, idx_end, hist, risk, n500), breadth)
+    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk), breadth)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
     parts.append(f'<p class="dh-foot">Data to {idx_end:%-d %b %Y}.</p>')
     emit(parts)
@@ -1011,19 +1046,69 @@ def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
         vals.append(round(float(lead[-1][1]), 2))
     if len(vals) < 6:
         return None
+    allv = (pd.to_numeric(spreads["top"], errors="coerce") - pd.to_numeric(spreads["nifty500"], errors="coerce")).dropna()
+    q1, q3 = float(allv.quantile(0.25)), float(allv.quantile(0.75))
+    # The middle half of every month since the history starts: the usual range (tipsheet benchmark, 21 Nov 2026).
+    band = [q1, q3, ""]
+    band_note = f"shaded: the usual range since {str(spreads['month'].iloc[0])[:4]}, {sg(q1)} to {sg(q3)} pts (the middle half of all months)"
     return {"values": vals, "labels": [f"{m:%b} ’{m:%y}" for m in months], "full": [f"{m:%b %Y}" for m in months],
-            "unit": "pts against the market", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": ", so far", "xn": 6, "height": 200}
+            "unit": "pts against the market", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": ", so far", "xn": 6, "height": 200,
+            "band": band, "band_note": band_note}
 
 
 def _dii_months(nse: pd.DataFrame | None) -> dict:
-    """{month: (net ₹ crore, first day, last day)} for domestic institutions in NSE's provisional
-    daily file (data/fii_dii_flows.csv). NSE keeps no history, so the months start on 6 Nov 2026."""
-    if nse is None or nse.empty or "category" not in nse:
+    """{month: (net ₹ crore, first day, last day, sessions, selling sessions, whole)} for domestic institutions'
+    trades on NSE (data/nse_dii.csv, scripts/collect_nse_dii.py; S153, 21 Nov 2026). A finished month is NSE's
+    total for domestic institutions; the month in progress is banks, insurers and mutual funds, the categories
+    the daily figures list, to the latest day published (whole=False)."""
+    if nse is None or nse.empty or "kind" not in nse:
         return {}
-    x = nse[nse["category"].astype(str).str.upper() == "DII"].copy()
-    x["date"] = pd.to_datetime(x["date"])
-    x["net"] = pd.to_numeric(x["net"], errors="coerce")
-    return {p: (float(g["net"].sum()), g["date"].min(), g["date"].max()) for p, g in x.groupby(x["date"].dt.to_period("M"))}
+    nse = nse.assign(period=nse["period"].astype(str), net=pd.to_numeric(nse["net"], errors="coerce"))
+    out: dict = {}
+    for _, r in nse[nse["kind"] == "month"].iterrows():
+        p = pd.Period(r["period"], "M")
+        out[p] = (float(r["net"]), p.start_time, p.end_time, None, None, True)
+    days = nse[nse["kind"] == "day"].assign(date=lambda d: pd.to_datetime(d["period"]))
+    for p, g in days.groupby(days["date"].dt.to_period("M")):
+        if p in out:
+            continue
+        out[p] = (float(g["net"].sum()), g["date"].min(), g["date"].max(), len(g), int((g["net"] < 0).sum()), False)
+    # All exchanges (NSE's provisional report, collected each evening since 6 Nov 2026) for a month it covers from
+    # its first session: BSE and MSEI are about a tenth of the market and not in NSE's own files (S153, 21 Nov 2026).
+    allx = _all_exchange_months()
+    for p, v in allx.items():
+        out[p] = v
+    return out
+
+
+def _all_exchange_months() -> dict:
+    """{month: (net, first, last, sessions, selling sessions, whole)} from data/fii_dii_flows.csv, for months whose
+    first session is in the file and with no session missing up to the last one collected."""
+    from src.loaders.nse_calendar import published_holidays
+    f = _read_csv(FILES["nse_flows"])
+    if f is None or f.empty or "category" not in f:
+        return {}
+    x = f[f["category"].astype(str).str.upper() == "DII"].assign(date=lambda d: pd.to_datetime(d["date"]),
+                                                                  net=lambda d: pd.to_numeric(d["net"], errors="coerce"))
+    cal = pd.offsets.CustomBusinessDay(holidays=published_holidays())
+    out = {}
+    for p, g in x.groupby(x["date"].dt.to_period("M")):
+        want = pd.date_range(p.start_time, g["date"].max(), freq=cal)
+        if len(want) and set(want) <= set(g["date"]):
+            whole = g["date"].max() >= pd.date_range(p.start_time, p.end_time, freq=cal)[-1]
+            out[p] = (float(g["net"].sum()), g["date"].min(), g["date"].max(), len(g), int((g["net"] < 0).sum()), bool(whole))
+            out[p] = out[p] + ("all exchanges",)
+    return out
+
+
+def _dii_now(nse: pd.DataFrame | None):
+    """The tile: (from, to, net, sessions, selling sessions) for the month in progress, or None."""
+    months = _dii_months(nse)
+    live = [(p, v) for p, v in months.items() if not v[5]]
+    if not live:
+        return None
+    p, v = max(live)
+    return v[1], v[2], v[0], v[3], v[4], (v[6] if len(v) > 6 else "on NSE")
 
 
 def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = None) -> dict | None:
@@ -1032,17 +1117,26 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
     if nsdl is None or flows is None or "equity_net" not in nsdl:
         return None
     s = pd.Series(pd.to_numeric(nsdl["equity_net"], errors="coerce").values, index=pd.to_datetime(nsdl["date"])).dropna()
-    mo = s.groupby(s.index.to_period("M")).sum().iloc[-12:]
+    allm = s.groupby(s.index.to_period("M")).sum()
+    done = allm.iloc[:-1]                       # finished months only: the month so far would pull the range
+    q1, q3 = float(done.quantile(0.25)), float(done.quantile(0.75))
+    mo = allm.iloc[-12:]
     out = {"values": [round(float(v)) for v in mo.values], "labels": [f"{p:%b}" for p in mo.index],
            "full": [f"{p:%b %Y}" for p in mo.index], "unit": "foreign", "money": True, "axisDiv": 1000,
            "valueLabels": True, "xn": 12, "height": 240, "lastNote": f", to {flows.as_of:%-d %b}",
            "above": "a heavy-buying month", "between": "net buying, below the heavy line", "belowZero": "net selling"}
     if ev is not None:
         out["levels"] = [round(float(ev.threshold))]
+    out["band"] = [round(q1), round(q3), ""]
+    out["band_note"] = (f"shaded: foreign investors' usual range since {done.index[0]:%Y}, {sg(q1 / 1000, 0)} to {sg(q3 / 1000, 0)} thousand crore "
+                        "(the middle half of all months)")
     dii = _dii_months(nse)
     if dii:
         out["also"] = [None if p not in dii else
-                       [f"domestic, {dii[p][1]:%-d}–{dii[p][2]:%-d %b}", round(dii[p][0])] for p in mo.index]
+                       [("domestic" + (", all exchanges" if len(dii[p]) > 6 else "") if dii[p][5]
+                         else f"domestic, {dii[p][1]:%-d}–{dii[p][2]:%-d %b}"
+                         + (", all exchanges" if len(dii[p]) > 6 else " (banks, insurers, MFs)")),
+                        round(dii[p][0])] for p in mo.index]
     return out
 
 
@@ -1227,7 +1321,7 @@ def _book_sizes(risk) -> dict[str, float]:
     return m
 
 
-def _glance(closes, as_of, hist, risk, n500) -> list:
+def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:
     def day(key):
         s = closes[key].dropna()
         s = s[s.index <= as_of]
@@ -1239,10 +1333,10 @@ def _glance(closes, as_of, hist, risk, n500) -> list:
     t50, t200 = di.trail_of(a50, as_of), di.trail_of(a200, as_of)
     rows_b = [("Above their 200D EMA", f"{t200[2]:.0f}% ({t200[1]:.0f}% a month ago)", ""),
               ("Above their 50D EMA", f"{t50[2]:.0f}% ({t50[1]:.0f}% a month ago)", "")]
-    beta, vol, ivol = risk.beta, risk.vol, risk.bench_vol
-    rows_r = [(f"Beta, {risk.sessions} sessions", f"{beta:.2f}" if beta is not None else "—", ""),
-              ("Volatility, a year", (f"{vol * 100:.1f}% vs {ivol * 100:.1f}%" if vol and ivol else "—"),
-               "dh-watch" if vol and ivol and vol > ivol else "")]
+    rr = record_risk
+    rows_r = [(f"Beta, {rr.label[0].lower()}{rr.label[1:]}" if rr else "Beta", f"{rr.beta:.1f}" if rr else "—", ""),
+              ("Volatility, a year", f"{rr.vol:.1f}% vs {rr.market_vol:.1f}%" if rr else "—",
+               "dh-watch" if rr and rr.vol > rr.market_vol else "")]
     if risk.exit_days is not None and len(risk.exit_days):
         rows_r.append((f"Slowest exit, {risk.exit_days.index[0]}", f"{float(risk.exit_days.iloc[0]):.2f} days",
                        "dh-up" if float(risk.exit_days.iloc[0]) < 1 else "dh-watch"))
@@ -1269,8 +1363,10 @@ HOME_CSS = """
 .dh .dh-h1{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-44)!important;line-height:1.08!important;letter-spacing:-.5px!important;max-width:940px}
 .dh .dh-h2{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important;line-height:1.15!important;letter-spacing:0!important;max-width:960px}
 .dh .dh-h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;font-weight:700!important}
-.dh-lede{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:940px}
-.dh-note{margin:0;font-size:var(--fs-12);color:var(--c-muted)}
+.dh-lede{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:80ch}
+.dh-note{margin:0;font-size:var(--fs-13);color:var(--c-muted);max-width:80ch}
+.dh-band-note{margin-bottom:10px}
+@media (min-width:901px){.dh-note.dh-note-long{max-width:none;columns:2 380px;column-gap:40px}}
 .dh-foot{margin:24px 0 0;font-size:var(--fs-12);color:var(--c-muted)}
 .dh-sub{display:block;font-size:var(--fs-12);color:var(--c-muted);font-weight:400}
 .dh-mono{font-family:var(--font-mono)}
@@ -1280,7 +1376,7 @@ HOME_CSS = """
 .dh-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-kpi{background:var(--c-white);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
 .dh-k-l{font-size:var(--fs-12);color:var(--c-muted)}
-.dh-k-v{font-size:var(--fs-24);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.dh-k-v{font-family:var(--font-serif)!important;font-size:var(--fs-30);font-weight:400;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.15}
 .dh-k-s{font-size:var(--fs-12);font-weight:600}
 .dh-k-sub{font-size:var(--fs-12);color:var(--c-muted)}
 .dh-fig{margin:0;display:flex;flex-direction:column;gap:6px}
@@ -1309,12 +1405,12 @@ HOME_CSS = """
 .dh-link{font-size:var(--fs-13);font-weight:600;color:var(--c-ink);min-height:44px;display:flex;align-items:center}
 .dh-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-tile{background:var(--c-white);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
-.dh-big{font-family:var(--font-mono);font-size:var(--fs-30);font-weight:600;line-height:1.1}
+.dh-big{font-family:var(--font-serif);font-size:var(--fs-30);font-weight:400;line-height:1.1;font-variant-numeric:tabular-nums}
 .dh-dbar{height:6px;background:var(--c-fill_soft);display:grid;grid-template-columns:1fr 1fr}
 .dh-dbar span{display:flex}.dh-dbar span:first-child{justify-content:flex-end}.dh-dbar span:last-child{border-left:1px solid var(--c-ink)}
 .dh-dbar i{display:block;height:6px}
 .dh-scroll{overflow-x:auto}
-@media (max-width:640px){.dh-kpis{grid-template-columns:1fr 1fr}.dh-kpis>:last-child:nth-child(odd){grid-column:1/-1}}
+@media (max-width:640px){.dh-k-v,.dh-big{font-size:var(--fs-24);white-space:nowrap}.dh-kpis{grid-template-columns:1fr 1fr}.dh-kpis>:last-child:nth-child(odd){grid-column:1/-1}}
 .dh-tab{width:100%;min-width:900px;border-collapse:collapse;font-size:var(--fs-13)}
 .dh-tab th,.dh-tab td{text-align:left;padding:9px 12px 9px 0;border-bottom:1px solid var(--c-rule_soft);vertical-align:top}
 .dh-tab thead th{font-size:var(--fs-12);color:var(--c-muted);font-weight:500;border-bottom:1px solid var(--c-ink)}
@@ -1334,7 +1430,9 @@ HOME_CSS = """
 .dh-how summary::-webkit-details-marker{display:none}
 .dh-how summary::before{content:"+";font-family:var(--font-mono);color:var(--c-muted);width:12px}
 .dh-how details[open] summary::before{content:"−"}
-.dh-how-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 24px;color:var(--c-text_2)}
+.dh-how-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 24px;color:var(--c-text_2);max-width:1000px}
+/* What it is and how to read it: in plain sight on a wide screen, folded on a phone (tipsheet benchmark, 21 Nov 2026). */
+.dh-how-wide{display:none}@media (min-width:901px){.dh-how-wide{display:grid;flex-basis:100%;margin-bottom:4px}.dh-how-narrow{display:none}}
 .dh-how-b p{margin:0}.dh-how-b b{display:block;color:var(--c-ink)}
 .dh-how-t{max-height:280px;overflow:auto;border:1px solid var(--c-rule_soft);border-radius:var(--r-sm)}
 .dh-how-t .dh-tab td:not(:first-child),.dh-how-t .dh-tab th:not(:first-child){text-align:right;font-family:var(--font-mono)}
