@@ -45,7 +45,7 @@ Order: current book → industry & size → returns → equity, drawdown & risk 
 | 29 | Returns by period: today to since start, FY included; annualised once past a year | Owner 20 Nov ("next year how are we going to show that data?") | Returns | By period + FY 2026-27 |
 | 30 | The book against size-matched indices, not only the market | Review 20 Nov (90% small and micro) | Returns | size split + Microcap 250 |
 | 31 | Calendar returns: one row group per year, months, quarters, CY and FY (April to March) | Live page; owner 20 Nov | Calendar returns | Calendar years + Financial years + Jan–Mar + FY 2026-27 |
-| 32 | Risk: volatility, beta and tracking error, marked as an early reading | Review 20 Nov | Equity & drawdown | Volatility + Tracking error + 219 sessions |
+| 32 | Risk: volatility, beta and tracking error, marked as an early reading | Review 20 Nov | Equity & drawdown | Volatility + Tracking error + Since 1 Jan 2026, + also the last 12 months and each year|>Window< |
 | 33 | Trades filtered (all, winners, losers, open) with export | Live page | Trades | Trade history + Winners + Losers + Open + Export CSV |
 | 34 | Rebalance lines filtered (buy, sell, hold) | Live page | Rebalances | Buy + Sell + Hold |
 | 35 | Systems compared over the same window, not month columns (owner, 20 Nov: "difficult for past months when next year data will be there") | Owner 20 Nov | Three systems | Since 1 Oct, all three |
