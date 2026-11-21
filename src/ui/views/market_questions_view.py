@@ -1,9 +1,9 @@
-"""The Dashboard's three market questions, drawn (engine: src/engine/market_questions.py).
+"""The market questions, drawn for the pages that own them (engine: src/engine/market_questions.py).
 
-Each question is one column: the question, the answer in a word or two, one
-sentence, a five-band scale with today, a month ago and a year ago marked, the
-measures that vote (now and a year ago, with the vote in words and the cut-off
-on hover), what changed, and a link to the page that owns the detail.
+The Market page's breadth and trend sections (`render_breadth_questions`) and the
+Sectors page's leaders section (`render_leaders_section`): each answer, a five-band
+scale with today, a month ago and a year ago marked, the measures that vote, and
+what changed.
 """
 from __future__ import annotations
 
@@ -15,8 +15,6 @@ import streamlit as st
 from src.engine import market_questions as mq
 from src.engine.pipeline import price_fingerprint
 from src.ui import formats as _fmt
-from src.ui import page_kit as kit
-from src.ui.system_param import page_href
 
 _VOTE_WORD = {
     "breadth": {mq.UP: "Broad", mq.MID: "Between", mq.DOWN: "Narrow"},
@@ -24,13 +22,6 @@ _VOTE_WORD = {
 }
 
 _CSS = """<style>
-.mq-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 32px;margin:4px 0 18px;
-  border-top:1px solid var(--c-ink)}
-.mq{padding:14px 0 0;min-width:0}
-.mq h2{font-size:15px!important;font-weight:600!important;color:var(--c-ink)!important;margin:0 0 6px!important;padding:0!important;letter-spacing:0!important}
-.mq-v{font-size:24px;font-weight:600;line-height:1.15;color:var(--c-ink);margin:0 0 6px}
-.mq-v.up{color:var(--c-up)}.mq-v.down{color:var(--c-down)}
-.mq-s{font-size:14px;line-height:1.5;color:var(--c-text_2);margin:0 0 12px}
 .mq-scale{position:relative;margin:4px 0 4px;height:22px}
 .mq-scale .bar{position:absolute;left:0;right:0;top:9px;height:4px;background:linear-gradient(90deg,var(--c-down) 0,var(--c-rule) 35%,var(--c-rule) 65%,var(--c-up) 100%);opacity:.55}
 .mq-scale i{position:absolute;top:4px;width:14px;height:14px;margin-left:-7px;border-radius:50%;box-sizing:border-box}
@@ -40,17 +31,6 @@ _CSS = """<style>
 .mq-ends{display:flex;justify-content:space-between;font-size:12px;color:var(--c-muted);margin-bottom:6px}
 .mq-key{font-size:12px;color:var(--c-muted);margin:0 0 10px}
 .mq-key b{font-weight:600;color:var(--c-ink)}
-.mq table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
-.mq th{font-size:12px;font-weight:500;color:var(--c-muted);text-align:right;padding:4px 0 4px 8px;border-bottom:1px solid var(--c-rule_strong)}
-.mq th:first-child{text-align:left;padding-left:0}
-.mq td{padding:6px 0 6px 8px;border-bottom:1px solid var(--c-rule);text-align:right;vertical-align:top;color:var(--c-ink)}
-.mq td:first-child{text-align:left;padding-left:0;color:var(--c-text_2)}
-.mq td.up{color:var(--c-up);font-weight:600}.mq td.down{color:var(--c-down);font-weight:600}.mq td.mid{color:var(--c-muted)}
-.mq-ch{font-size:13px;line-height:1.5;color:var(--c-text_2);margin:10px 0 4px}
-.mq-more{font-size:13px;color:var(--c-ink)!important;text-decoration:underline;text-decoration-color:var(--c-rule_strong);text-underline-offset:3px}
-.mq-note{font-size:12px;color:var(--c-muted);margin:0 0 6px}
-.mq-grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}
-@media (max-width:1100px){.mq-grid,.mq-grid.four{grid-template-columns:1fr;gap:0}.mq{padding-bottom:12px}}
 </style>"""
 
 
@@ -80,104 +60,8 @@ def _tone(a: mq.Answer) -> str:
     return "up" if a.score >= 0.25 else "down" if a.score <= -0.25 else ""
 
 
-def _changed(a: mq.Answer) -> str:
-    def word(s):
-        return mq.word_for(s, a.words) if s is not None else "not known"
-    return (f"A month ago: {word(a.score_month_ago).lower()}. "
-            f"A year ago: {word(a.score_year_ago).lower()}.")
-
-
 # Anchors for the Dashboard's "On this page" line (owner, 8 Nov 2026: the
 # Breadth page's section links, on the Dashboard too).
-DASH_ANCHORS = {"breadth": "d-breadth", "trend": "d-trend", "lead": "d-lead", "change": "d-change"}
-
-
-def _sector_pts(v: float) -> str:
-    """A fraction as signed points, "+8.7" / "−4.1" (the sector tables)."""
-    return f"{v * 100:+.1f}".replace("-", "−")
-
-
-def sectors_lead_html(res) -> str:
-    """"Which sectors lead?" from NSE's sector indices (TODO S109)."""
-    from src.engine import sector_indices as si
-
-    verdict, sentence = si.leaders_sentence(res)
-    lc, sc = f"{si.LONG}M vs 500", f"{si.SHORT}M vs 500"
-    rows = "".join(
-        f'<tr><td>{html.escape(name)}</td>'
-        f'<td class="{"up" if r[lc] > 0 else "down"}">{_sector_pts(r[lc])}</td>'
-        f'<td class="{"up" if r[sc] > 0 else "down"}">{_sector_pts(r[sc])}</td></tr>'
-        for name, r in res.table.iterrows())
-    return (
-        f'<section class="mq" aria-label="Which sectors lead?"><h2 id="{DASH_ANCHORS["lead"]}">Which sectors lead?</h2>'
-        f'<p class="mq-v">{html.escape(verdict)}</p><p class="mq-s">{html.escape(sentence)}</p>'
-        '<table><thead><tr><th scope="col">NSE sector index</th>'
-        f'<th scope="col">{si.LONG}M vs Nifty 500</th><th scope="col">{si.SHORT}M</th></tr></thead>'
-        f'<tbody>{rows}</tbody></table>'
-        f'<p class="mq-ch">Points: the index\'s return less the Nifty 500\'s, {res.starts[si.LONG]:%-d %b} and '
-        f'{res.starts[si.SHORT]:%-d %b} to {res.end:%-d %b %Y}, price only. NSE\'s sector indices, from '
-        'Screener\'s index charts.</p></section>')
-
-
-def sectors_changing_html(res) -> str:
-    """"Is leadership changing?": the last month against the last three (TODO S109)."""
-    from src.engine import sector_indices as si
-
-    verdict, sentence = si.changing_sentence(res)
-    g = res.table["group"]
-    rows = "".join(
-        f'<tr><td>{grp.capitalize()}</td><td style="text-align:left">{len(names)} · '
-        f'{html.escape(", ".join(names) or "None")}</td></tr>'
-        for grp in si.GROUPS for names in [list(g[g == grp].index)])
-    return (
-        f'<section class="mq" aria-label="Is leadership changing?"><h2 id="{DASH_ANCHORS["change"]}">'
-        'Is leadership changing?</h2>'
-        f'<p class="mq-v">{html.escape(verdict)}</p><p class="mq-s">{html.escape(sentence)}</p>'
-        f'<table><thead><tr><th scope="col">Against the Nifty 500</th><th scope="col" style="text-align:left">'
-        f'{si.LONG}M and {si.SHORT}M</th></tr></thead><tbody>{rows}</tbody></table>'
-        f'<p class="mq-ch">Gaining: behind over {si.LONG} months, ahead over the last month; fading: the reverse.</p>'
-        f'<a class="mq-more" href="{html.escape(page_href("sectors"))}" target="_self">Sectors →</a></section>')
-
-
-def _answer_html(a: mq.Answer, kind: str, href: str, link: str) -> str:
-    words = _VOTE_WORD[kind]
-    rows = "".join(
-        f'<tr><td title="{html.escape(m.rule)}">{html.escape(m.name)}{" (primary)" if m.primary else ""}</td>'
-        f'<td>{_num(m.now, m.unit)}</td><td>{_num(m.year_ago, m.unit)}</td>'
-        f'<td class="{m.vote}">{words[m.vote]}</td></tr>'
-        for m in a.measures)
-    return (
-        f'<section class="mq" aria-label="{html.escape(a.question)}">'
-        f'<h2 id="{DASH_ANCHORS.get(kind, kind)}">{html.escape(a.question)}</h2>'
-        f'<p class="mq-v {_tone(a)}">{html.escape(a.verdict)}</p>'
-        f'<p class="mq-s">{html.escape(a.sentence)}</p>{_scale(a)}'
-        '<table><thead><tr><th scope="col">Measure</th><th scope="col">Now</th>'
-        f'<th scope="col">A year ago</th><th scope="col">Vote</th></tr></thead><tbody>{rows}</tbody></table>'
-        f'<p class="mq-ch">{html.escape(_changed(a))}</p>'
-        f'<a class="mq-more" href="{html.escape(href)}" target="_self">{html.escape(link)} →</a></section>')
-
-
-def _leaders_html(ld: mq.Leaders, href: str) -> str:
-    sec = ld.sectors
-    both = sec[sec["group"] == "ahead on both"]["Industry"].head(3).tolist()
-    best = max((x for x in ld.size if x[1] is not None), key=lambda x: x[1], default=None)
-    verdict = "; ".join([x for x in [best[0] if best else "", ", ".join(both)] if x]) or "No clear leader"
-    groups = []
-    for g in ("ahead on both", "gaining", "fading", "behind on both"):
-        names = sec[sec["group"] == g]["Industry"].tolist()
-        shown = (", ".join(names[:3]) + (f" and {len(names) - 3} more" if len(names) > 3 else "")) if names else "None"
-        groups.append(f'<tr><td>{g.capitalize()}</td><td style="text-align:left">'
-                      f'{len(names)} · {html.escape(shown)}</td></tr>')
-    return (
-        f'<section class="mq" aria-label="What is leading?"><h2 id="{DASH_ANCHORS["lead"]}">What is leading?</h2>'
-        f'<p class="mq-v">{html.escape(verdict)}</p><p class="mq-s">{html.escape(ld.sentence)}</p>'
-        # The size indices' figures are the Size leadership block's, below.
-        + ('<table><thead><tr><th scope="col">Industries against all ranked stocks</th>'
-           f'<th scope="col" style="text-align:left">6M and 1M</th></tr></thead><tbody>{"".join(groups)}</tbody></table>')
-        + f'<p class="mq-ch">Industries are NSE\'s, at least five stocks each; points are the industry\'s return less all ranked stocks\', each equal-weighted.</p>'
-        f'<a class="mq-more" href="{html.escape(href)}" target="_self">Sectors →</a></section>')
-
-
 def _t(v: float | None) -> str:
     return "" if v is None else ("up" if v > 0 else "down" if v < 0 else "")
 
@@ -230,50 +114,6 @@ def size_closes(levels: pd.DataFrame | None = None, ok: bool = True) -> dict[str
         if len(s):
             out[name] = s
     return out
-
-
-def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
-                            size: dict[str, pd.Series], sectors=None) -> list[tuple[str, str]]:
-    """The Dashboard's answers. Returns (anchor, question) for each one drawn,
-    for the page's "On this page" line.
-
-    With NSE's sector indices (`sectors`, a sector_indices.SectorRotation),
-    "Which sectors lead?" and "Is leadership changing?" replace the industry
-    groups' "What is leading?" (owner, 8 Nov 2026, TODO S109); without them,
-    the industries' answer stays."""
-    if prices is None or prices.empty or bench is None or bench.dropna().empty:
-        return []
-    syms = [s for s in rank_df["Symbol"] if s in prices.columns]
-    px = prices[syms]
-    # One session for every index (S148): a size index without the Nifty 500's last close reads "—".
-    from src.engine import dashboard_insights as di
-    size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
-    size = {k: v for k, v in size.items() if len(v)}
-    industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
-    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
-    breadth, trend, leaders = _answers(key, px, industry, bench.dropna(), size)
-    cols, drawn = [], []
-    if breadth is not None:
-        cols.append(_answer_html(breadth, "breadth", page_href("market"), "Market breadth"))
-        drawn.append((DASH_ANCHORS["breadth"], breadth.question))
-    if trend is not None:
-        cols.append(_answer_html(trend, "trend", page_href("market"), "Market breadth"))
-        drawn.append((DASH_ANCHORS["trend"], trend.question))
-    if sectors is not None:
-        cols.append(sectors_lead_html(sectors))
-        drawn.append((DASH_ANCHORS["lead"], "Which sectors lead?"))
-        cols.append(sectors_changing_html(sectors))
-        drawn.append((DASH_ANCHORS["change"], "Is leadership changing?"))
-    elif leaders is not None:
-        cols.append(_leaders_html(leaders, page_href("sectors")))
-        drawn.append((DASH_ANCHORS["lead"], "What is leading?"))
-    if not cols:
-        return []
-    grid = "mq-grid four" if len(cols) == 4 else "mq-grid"
-    st.html(_CSS + f'<div class="{grid}">{"".join(cols)}</div>'
-            '<p class="mq-note">Today counts the stocks ranked today; earlier readings count Nifty Total Market\'s '
-            'members on each date, leavers included. Each vote\'s cut-off shows on hover.</p>')
-    return drawn
 
 
 # ── Full question sections, for the pages that own the detail ───────────────
@@ -476,14 +316,6 @@ def _chart_series(_key: str, _prices: pd.DataFrame, _bench: pd.Series):
     last = nnh.index[-1].normalize()
     weekly.index = weekly.index.where(weekly.index <= last, last)
     return share200, weekly, nnh
-
-
-def _pts(s: pd.Series, since: pd.Timestamp | None = None) -> list[tuple[str, float]]:
-    from src.ui import lw_chart as lw
-    s = s.dropna()
-    if since is not None:
-        s = s.loc[since:]
-    return lw.series_points(s.index, s.values)
 
 
 def _moved(v: float) -> str:
@@ -919,48 +751,3 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
 
 # ── The market strip: each index's day, its last three months, its month ────
 
-def _spark(s: pd.Series, w: int = 120, h: int = 28) -> str:
-    """The index's last three months (63 sessions): kit.spark_img, shared with
-    the headline figures on other pages (S99)."""
-    return kit.spark_img(s, w, h, last=63)
-
-
-def market_strip_html(series: dict[str, pd.Series]) -> str:
-    """Nifty 500 and the size indices: the latest day's move, a three-month
-    line, the move over a calendar month. From NSE's index closes."""
-    cells = []
-    for name, s in series.items():
-        s = s.dropna().sort_index()
-        if len(s) < 25:
-            continue
-        # The day's move needs the last two closes to be neighbouring sessions:
-        # the nightly index file was weekly before d5fdc55, and a week's move
-        # must not be shown as a day's. Four calendar days covers a weekend
-        # and a holiday.
-        if (s.index[-1] - s.index[-2]).days > 4:
-            continue
-        day = (float(s.iloc[-1]) / float(s.iloc[-2]) - 1) * 100
-        m0 = mq._on_or_before(s.index, s.index[-1] - pd.DateOffset(months=1))
-        month = None if m0 is None else (float(s.iloc[-1]) / float(s.loc[m0]) - 1) * 100
-        cells.append(
-            f'<div class="ix"><span class="ix-n">{html.escape(name)}</span>'
-            # One decimal, as every other percentage on the site (design audit,
-            # 8 Nov 2026): this tile read "+1.00%" above "1M +5.6%".
-            f'<span class="ix-v {_t(round(day, 1))}">{_fmt.signed(day)}%</span>{_spark(s)}'
-            f'<span class="ix-s">1M {_num(month, "pts").replace("pts", "")}%</span>'
-            f'<span class="sr">{html.escape(name)}: {_fmt.signed(day)}% on the day, '
-            f'{_num(month, "pts")}% over a month.</span></div>')
-    if not cells:
-        return ""
-    when = max(s.dropna().index[-1] for s in series.values() if len(s.dropna()))
-    return ("<style>.ixs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));"
-            "border-top:1px solid var(--c-rule);border-bottom:1px solid var(--c-rule);margin:6px 0 4px}"
-            ".ix{display:flex;flex-direction:column;gap:2px;padding:10px 14px 10px 0;border-right:1px solid var(--c-rule)}"
-            ".ix:last-child{border-right:0}.ix-n{font-size:13px;color:var(--c-muted)}"
-            ".ix-v{font-family:var(--font-serif,serif);font-size:28px;line-height:1.1;color:var(--c-ink)}"
-            ".ix-v.up{color:var(--c-up)}.ix-v.down{color:var(--c-down)}.ix-s{font-size:12px;color:var(--c-muted)}"
-            ".ix .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}"
-            ".ixs-note{font-size:12px;color:var(--c-muted);margin:0 0 14px}</style>"
-            f'<div class="ixs" role="group" aria-label="The indices today">{"".join(cells)}</div>'
-            f'<p class="ixs-note">NSE index closes to {when:%-d %b %Y}; the lines are the last three months, '
-            'price only.</p>')

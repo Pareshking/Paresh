@@ -9,7 +9,7 @@ it went on the Dashboard, as S91 required.
 The book never shorts, so the Dashboard now leads with what a long-only momentum book
 earns: hold the top 100 of the ranking (one fifth of the Nifty 500), equal weight, for the
 next month, and compare its 12-month return with the Nifty 500's
-(`momentum_health.long_only`). It is split into **momentum** (top 100 less the
+(`momentum_health.long_only`; **removed 21 Nov 2026** with the old Dashboard that drew it, TODO S177; the v8 Dashboard of 20 Nov shows the top 100's lead but not this split). It is split into **momentum** (top 100 less the
 equal-weighted average member, the `ew` column) and **breadth** (the average member less
 the index; it carries the small-stock effect, since the index is cap-weighted).
 The top fifth is also shown split in two: the top 50 and ranks 51-100 (owner, 8 Nov
