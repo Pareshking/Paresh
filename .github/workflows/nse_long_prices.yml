@@ -19,7 +19,19 @@ name: NSE long price file (backtests from 2010)
 # the job fails when a finding is worse than its known baseline
 # (scripts/audit_limits.py, LONG_LIMITS); the file is published and the audit
 # uploaded all the same, and scheduled_failure_alert.yml opens an issue.
+#
+# Every night as well (owner, 21 Nov 2026: "breadth daily"): after the nightly
+# daily sync, a build from the packs adds the new session (~2.5 min) and
+# rebuilds data/breadth_history.csv and data/signal_tests.json from it, which
+# read this file (scripts/build_breadth_history.py). Before this, breadth moved
+# only on Saturdays and could end up to a week behind.
 on:
+  # After the daily sync's night run (the one chained after the Screener sync,
+  # as r2_market_cap_history.yml does): NSE's session is on R2 by then and the
+  # membership record it reads is updated.
+  workflow_run:
+    workflows: ["Daily NSE Momentum Data Sync"]
+    types: [completed]
   schedule:
     # Saturdays 03:30 UTC (09:00 IST): the week's sessions are on R2 (nse_collect, every 4 h).
     - cron: '30 3 * * 6'
@@ -41,6 +53,10 @@ concurrency:
 
 jobs:
   build:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'workflow_run')
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -153,6 +169,33 @@ jobs:
               --release-tag data-latest \
               --skip-if-published
           done
+      # Breadth reads this file (R2 first, through src/loaders/nse_long.py), so it is
+      # rebuilt straight after the publish, before the audits: an audit finding
+      # fails the job but never holds back a published file, nor what is built on it.
+      - name: Breadth on the members of each date, and the signal tests (S150)
+        id: breadth
+        continue-on-error: true
+        run: python scripts/build_breadth_history.py
+      - name: Commit breadth
+        if: steps.breadth.outcome == 'success'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/breadth_history.csv data/signal_tests.json
+          if git diff --staged --quiet; then
+            echo "Breadth unchanged."
+            exit 0
+          fi
+          git commit -m "chore(data): breadth from the long NSE file [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "Pushed."; exit 0; fi
+            echo "Push failed (attempt $i); rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; exit 1; }
+            sleep $((i * 5))
+          done
+          echo "::error::Could not push breadth after 5 attempts."
+          exit 1
       # The audits (docs/PRICE_PIPELINE.md, "Audit"): the new file against every
       # reference on the release, against Screener point by point, and NSE's raw
       # rows' own arithmetic, dividends, ISINs and calendar. They run here, after

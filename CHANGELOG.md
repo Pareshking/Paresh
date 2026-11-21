@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-21 — Breadth every night
+
+- The Market page's breadth readings (share above the 200D and 50D EMA, net new highs, share beating the index) now move every night, the night of the session. Until now they were rebuilt from a price file refreshed only on Saturdays, so on a weekday they could end up to a week behind (on 21 Nov they ended on 16 Nov).
+- The 2010+ backtest's price file is extended every night too, with the same checks as before.
+
 ## 2026-11-21 — Desktop: every page in the top bar
 
 - On a screen 1024 px or wider the top bar links all eleven pages, and the menu button (☰) is no longer shown there. Phones and tablets keep ☰ as the only navigation.

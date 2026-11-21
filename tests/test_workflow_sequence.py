@@ -29,7 +29,18 @@ CHAINS = {
     "r2_observed_trading_sessions.yml": "Screener daily price sync (overnight)",
     "r2_market_cap_history.yml": "Daily NSE Momentum Data Sync",        # data/nse_market_caps.csv
     "r2-historical-evidence-bootstrap.yml": "Daily NSE Momentum Data Sync",
+    "nse_long_prices.yml": "Daily NSE Momentum Data Sync",              # tonight's session, then breadth
 }
+
+
+def test_breadth_is_built_once_after_the_long_file_it_reads():
+    """Owner, 21 Nov 2026: breadth daily. One writer, after the nightly long-file build."""
+    long_steps = [s.get("run", "") for s in _load("nse_long_prices.yml")["jobs"]["build"]["steps"]]
+    builds = [i for i, r in enumerate(long_steps) if "build_nse_long_prices.py" in r]
+    breadth = [i for i, r in enumerate(long_steps) if "build_breadth_history.py" in r]
+    assert builds and breadth and builds[0] < breadth[0]
+    daily = (WORKFLOWS / "daily_sync.yml").read_text(encoding="utf-8")
+    assert "python scripts/build_breadth_history.py" not in daily
 
 
 @pytest.mark.parametrize("consumer,upstream", sorted(CHAINS.items()))

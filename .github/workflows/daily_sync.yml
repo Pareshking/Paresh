@@ -430,15 +430,8 @@ jobs:
           PYTHONPATH: .
         run: python scripts/collect_nse_total_market.py || echo "::warning::Nifty Total Market was NOT updated -- the committed file is used."
 
-      - name: Breadth on the members of each date, and the signal tests (S150)
-        env:
-          PYTHONPATH: .
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-        run: python scripts/build_breadth_history.py || echo "::warning::Breadth history was NOT rebuilt -- the committed file is used."
+      # Breadth (S150) is rebuilt by nse_long_prices.yml, chained after this job: it
+      # reads the long NSE file, which that job extends with tonight's session first.
 
       # A name that leaves the index between the monthly Track Record runs is a
       # former member the record needs priced, or listed as unpriceable, before
