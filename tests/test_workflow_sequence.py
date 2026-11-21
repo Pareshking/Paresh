@@ -29,7 +29,18 @@ CHAINS = {
     "r2_observed_trading_sessions.yml": "Screener daily price sync (overnight)",
     "r2_market_cap_history.yml": "Daily NSE Momentum Data Sync",        # data/nse_market_caps.csv
     "r2-historical-evidence-bootstrap.yml": "Daily NSE Momentum Data Sync",
+    "nse_long_prices.yml": "Daily NSE Momentum Data Sync",              # tonight's session, then breadth
 }
+
+
+def test_breadth_is_built_once_after_the_long_file_it_reads():
+    """Owner, 21 Nov 2026: breadth daily. One writer, after the nightly long-file build."""
+    long_steps = [s.get("run", "") for s in _load("nse_long_prices.yml")["jobs"]["build"]["steps"]]
+    builds = [i for i, r in enumerate(long_steps) if "build_nse_long_prices.py" in r]
+    breadth = [i for i, r in enumerate(long_steps) if "build_breadth_history.py" in r]
+    assert builds and breadth and builds[0] < breadth[0]
+    daily = (WORKFLOWS / "daily_sync.yml").read_text(encoding="utf-8")
+    assert "python scripts/build_breadth_history.py" not in daily
 
 
 @pytest.mark.parametrize("consumer,upstream", sorted(CHAINS.items()))
@@ -100,3 +111,15 @@ def test_the_evidence_bootstrap_passes_the_skip_on_every_publish():
     assert len(runs) == 7
     for run in runs:
         assert run.count("scripts/r2_publish.py") == run.count("--skip-if-published")
+
+
+def test_the_nightly_long_build_is_the_cheap_one():
+    """Owner, 21 Nov 2026: nightly builds skip the pack upload, the reference audits and the artifact."""
+    doc = _load("nse_long_prices.yml")
+    job = doc["jobs"]["build"]
+    assert "workflow_run" in job["env"]["NIGHTLY"]
+    steps = {s.get("name") or s.get("uses"): s for s in job["steps"]}
+    for name in ("Audit the new file", "Audit limits", "actions/upload-artifact@v7"):
+        assert "env.NIGHTLY != 'yes'" in str(steps[name].get("if", "")), name
+    publish = steps["Publish to the data-latest release"]["run"]
+    assert 'if [ "$NIGHTLY" != "yes" ]' in publish and "nse_raw_pack.parquet" in publish

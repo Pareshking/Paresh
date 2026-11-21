@@ -218,7 +218,9 @@ def test_the_long_file_audit_limits_fail_the_job_after_publish_and_before_the_up
     assert publish < audit_i < limits < upload
     assert "audit_limits.py long" in steps[limits]["run"]
     assert "continue-on-error" not in steps[limits]
-    assert steps[upload]["if"] == "always()"
+    # Uploaded even when the limits fail; skipped only on the nightly build, which
+    # runs no audit (owner, 21 Nov 2026: the nightly build is the cheap one).
+    assert steps[upload]["if"] == "always() && env.NIGHTLY != 'yes'"
 
 
 def test_the_history_audit_fails_on_limits_but_still_writes_its_summary_and_artifact():
