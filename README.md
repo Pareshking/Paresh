@@ -244,7 +244,7 @@ Tabs, in the order the app renders them:
 4. **RRG**: Relative Rotation Graph analysis.
 5. **Portfolio**: Canonical Track Record model book with capital sizing, current marks, holdings P&L, account equity/performance history and rebalance activity. It does not run an independent stock-selection engine.
 6. **Watchlist**: Custom portfolio tracking against quantitative rankings.
-7. **Market Breadth**: Moving-average breadth and high/low statistics.
+7. **Market** (`/market`): are most stocks taking part, and is the market in an uptrend; moving-average breadth and high/low statistics.
 8. **Backtest**: Walk-forward backtesting over the last six completed months, rank at T close and execution at T+1, plus the current book and this month's changes. The entire tab runs as an independent Streamlit fragment — its controls rerun only the backtest, not the screener or any other tab.
 9. **Track Record**: The frozen monthly record against Nifty 500 — see below.
 10. **Configuration**: Index constituents, factor weights, risk parameters and cache diagnostics. Organised as a Windows 11-style left-nav with four sections: *Data & Sync*, *Momentum Signal*, *Portfolio Risk*, and *Data Health*. Each section is rendered on demand; only the active section appears on screen.

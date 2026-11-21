@@ -59,8 +59,8 @@ def test_callout_escapes_its_text():
 # key -> (view file, default). Each must be a segmented_control with
 # required=True, an explicit default and an `or` fallback on the read.
 MIGRATED = {
-    "br_lb_days": "breadth_view.py",
-    "hl_win_sel": "breadth_view.py",
+    "br_lb_days": "market_view.py",
+    "hl_win_sel": "market_view.py",
     "qual_top_n": "qualified_view.py",
     "sector_rank_by": "sector_view.py",
     "cfg_system_radio": "config_view.py",

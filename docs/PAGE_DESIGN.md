@@ -233,7 +233,7 @@ every page.
 |---|---|---|
 | Portfolio | **Built 20 Nov** (mock-up v3): one daily series with the Dashboard and Actions; drawdown terms defined; rank trail shared | Holdings first, ₹100 chart with both drawdowns, calendar by year, hidden trade history |
 | Actions | Rank trails as on the Dashboard; buys and sells match the plan | Holdings table with rank trail, turnover |
-| Breadth | Point-in-time history done (S150); charts restyled | Two-pane crosshair chart, line bars by size |
+| Market (Breadth until 21 Nov) | Point-in-time history done (S150); charts restyled | Two-pane crosshair chart, line bars by size |
 | Sectors / RRG | Equal-weight construction shared (S147) | RRG scatter with held industries; strong/weak table |
 | Backtest / Track record | Nifty 500 for 2010+; frozen months as recorded, Total Market beside | ₹100 chart, monthly bars, tested claims only |
 | Stock page | Prices against a second source | Crosshair readout, rank trail |

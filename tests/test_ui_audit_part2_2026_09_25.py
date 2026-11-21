@@ -5,7 +5,7 @@ import pandas as pd
 
 from src.engine.momentum import CARRIED_MARK
 from src.ui import components, screener_table
-from src.ui.views import breadth_view, stock_view
+from src.ui.views import market_view, stock_view
 
 
 def _capture(monkeypatch, module):
@@ -84,8 +84,8 @@ def test_gap_count_sees_a_gap_that_also_carries_the_mark():
 def test_breadth_by_index_matches_exact_tags():
     df = pd.DataFrame({"Symbol": ["A", "B", "C", "D"],
                        "Indices": ["N50", "NN50", "MID150", "SMALL250,MICRO250"]})
-    assert breadth_view.index_members(df, "NIFTY 50") == ["A"]
-    assert breadth_view.index_members(df, "NIFTY NEXT 50") == ["B"]
-    assert breadth_view.index_members(df, "NIFTY MIDCAP 150") == ["C"]
-    assert breadth_view.index_members(df, "NIFTY MICROCAP 250") == ["D"]
+    assert market_view.index_members(df, "NIFTY 50") == ["A"]
+    assert market_view.index_members(df, "NIFTY NEXT 50") == ["B"]
+    assert market_view.index_members(df, "NIFTY MIDCAP 150") == ["C"]
+    assert market_view.index_members(df, "NIFTY MICROCAP 250") == ["D"]
 
