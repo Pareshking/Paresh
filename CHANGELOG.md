@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-21 — Dashboard: what the Indices page adds
+
+- §3 (Momentum): a note from the site's own record on how far this ranking's top 100 sits below its best against the Nifty 500, its deepest fall since 2010 and the one before with how long it took to recover. A description, not a forecast. The caption now reads "This ranking’s top 100 against the Nifty 500", so it is not confused with NSE's Nifty200 Momentum 30 on Indices.
+- At a glance, "Valuation and styles": each style names its index (e.g. Nifty500 Value 50), and the card reads on the Dashboard's session, not the Indices file's latest day.
+- Size: Large is the Nifty 100 everywhere, as on Indices; its momentum index, Nifty200 Momentum 30, is read against the Nifty 200 it picks from, and the row says so.
+- Market Questions: the last mention of the removed RRG is gone from the "What is leading?" note.
+
 ## 2026-11-21 — Indices page
 
 - New page **Indices** (menu: Market), built from the mock-up approved 21 Nov 2026 on NSE's own daily index files:

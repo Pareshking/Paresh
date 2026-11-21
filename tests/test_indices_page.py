@@ -139,4 +139,5 @@ def test_the_dashboard_card_reads_the_same_figures(real):
     v = ip.valuation(real, ("nifty_500",))[0]
     assert rows[0][1].startswith(f"{round(v.pct_now)}")
     best = max((s for s in ip.styles(real) if s.lead_now is not None), key=lambda s: s.lead_now)
-    assert best.style.lower() in rows[1][0]
+    assert best.style.lower() in rows[1][0] and best.name.replace("NIFTY", "Nifty") in rows[1][0]
+    assert real.until(pd.Timestamp("2026-10-20")).as_of <= pd.Timestamp("2026-10-20")

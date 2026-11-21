@@ -54,6 +54,11 @@ class Frames:
     def as_of(self) -> pd.Timestamp:
         return pd.Timestamp(self.close.index[-1])
 
+    def until(self, day: pd.Timestamp) -> "Frames":
+        """The same frames cut at `day`, so a figure reads on another page's session."""
+        cut = lambda x: x[x.index <= pd.Timestamp(day)]  # noqa: E731
+        return Frames(cut(self.close), cut(self.pe), cut(self.pb), cut(self.dy), self.names, self.groups)
+
 
 def frames(store: pd.DataFrame, groups: pd.DataFrame | None = None) -> Frames:
     def wide(col):

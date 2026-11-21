@@ -365,11 +365,14 @@ def dii_window(nse: pd.DataFrame | None) -> tuple[pd.Timestamp, pd.Timestamp, fl
 
 # ── 5. Size, and momentum within each size ──────────────────────────────────
 
+# (size, its size index, its momentum index, the index that momentum index picks from).
+# Large is the Nifty 100, SEBI's top 100 and the Indices page's large caps (owner, 21 Nov 2026);
+# its momentum index, Nifty200 Momentum 30, is read against the Nifty 200 it picks from.
 SIZES = (
-    ("Large", "nifty200", "nifty200_mom30"),
-    ("Mid", "midcap150", "midcap150_mom50"),
-    ("Small", "smallcap250", "smallcap250_mq100"),
-    ("Micro", "microcap250", None),
+    ("Large", "nifty100", "nifty200_mom30", "nifty200"),
+    ("Mid", "midcap150", "midcap150_mom50", "midcap150"),
+    ("Small", "smallcap250", "smallcap250_mq100", "smallcap250"),
+    ("Micro", "microcap250", None, "microcap250"),
 )
 WINDOWS = (1, 3, 6)
 
@@ -378,14 +381,15 @@ def size_table(closes: dict[str, pd.Series], market: pd.Series, as_of: pd.Timest
                ) -> list[tuple[str, list[float | None], list[float | None]]]:
     """(size, [size less market, 1M 3M 6M], [momentum less its size index])."""
     out = []
-    for size, parent, mom in SIZES:
+    for size, parent, mom, mom_parent in SIZES:
         vs, prem = [], []
         for m in WINDOWS:
             start = as_of - pd.DateOffset(months=m)
             p, mk = window_return(closes.get(parent), start, as_of), window_return(market, start, as_of)
             vs.append(None if p is None or mk is None else p - mk)
             q = window_return(closes.get(mom), start, as_of) if mom else None
-            prem.append(None if q is None or p is None else q - p)
+            mp = window_return(closes.get(mom_parent), start, as_of)
+            prem.append(None if q is None or mp is None else q - mp)
         out.append((size, vs, prem))
     return out
 
@@ -543,3 +547,54 @@ def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None,
             row[-1] = None if q is None or pd.isna(q) else int(q)
         ranks[sym] = row
     return dates, ranks
+
+
+@dataclass
+class LagEpisode:
+    peak: pd.Timestamp          # month-end of the relative line's best before the fall
+    low: pd.Timestamp           # month-end of the fall's deepest point
+    depth: float                # % below the peak at the low
+    recovered: pd.Timestamp | None
+    months_to_recover: int | None
+
+
+@dataclass
+class MomentumLag:
+    """How far this ranking's top 100 sits below its best against the Nifty 500, and its past
+    falls (owner, 21 Nov 2026: what the Dashboard takes from the Indices page). Descriptive: no
+    forecast; a recovery time rests on as many episodes as are listed."""
+    now: float                  # % below the best so far, at the last completed month
+    best: pd.Timestamp          # month-end of that best
+    as_of: pd.Timestamp
+    episodes: list[LagEpisode]  # deepest first
+
+
+def momentum_lag(spreads: pd.DataFrame, min_depth: float = 10.0) -> MomentumLag | None:
+    """The relative line top 100 / Nifty 500 from momentum_health.csv's monthly returns, and
+    every fall from a peak deeper than `min_depth` %, with the month it got back."""
+    from src.engine import metrics
+    d = spreads.dropna(subset=["top", "nifty500"]).sort_values("month")
+    if len(d) < 13:
+        return None
+    when = pd.to_datetime(d["month"]) + pd.offsets.MonthEnd(0)
+    rel = pd.Series(((1 + d["top"].to_numpy() / 100).cumprod() / (1 + d["nifty500"].to_numpy() / 100).cumprod()),
+                    index=pd.DatetimeIndex(when))
+    dd = metrics.drawdown(rel) * 100
+    eps, i, n = [], 0, len(rel)
+    while i < n:
+        if dd.iloc[i] < 0:
+            j = i
+            while j < n and dd.iloc[j] < 0:
+                j += 1
+            seg = dd.iloc[i:j]
+            if -seg.min() >= min_depth:
+                peak = rel.index[i - 1] if i > 0 else rel.index[0]
+                low = seg.idxmin()
+                rec = rel.index[j] if j < n else None
+                months = None if rec is None else (rec.year - peak.year) * 12 + rec.month - peak.month
+                eps.append(LagEpisode(peak, low, float(seg.min()), rec, months))
+            i = j
+        else:
+            i += 1
+    best = rel[: rel.index[-1]].idxmax()
+    return MomentumLag(float(dd.iloc[-1]), pd.Timestamp(best), rel.index[-1], sorted(eps, key=lambda e: e.depth))
