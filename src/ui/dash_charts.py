@@ -25,7 +25,7 @@ import streamlit as st
 
 from src.ui.tokens import FONTS, resolve
 
-KINDS = ("month", "bars", "shared", "segbar", "rrg", "breadth", "growth", "holdings", "history")
+KINDS = ("month", "bars", "shared", "segbar", "rrg", "breadth", "growth", "holdings", "history", "lines")
 # The kit's address carries its content hash, so a deploy is never drawn by a cached older kit.
 _KIT = Path(__file__).resolve().parents[2] / "static" / "dash_charts.js"
 KIT_SRC = "app/static/dash_charts.js?v=" + hashlib.sha256(_KIT.read_bytes()).hexdigest()[:12]
@@ -50,6 +50,7 @@ font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-s
 .ro b{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}.ro span{color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;max-width:100%;gap:4px;background:var(--fill);border-radius:8px;padding:3px}
 .chip{font:600 12px 'IBM Plex Sans',system-ui,sans-serif;color:var(--muted);background:none;border:0;border-radius:6px;padding:6px 10px;min-height:32px;cursor:pointer}
+.chips:empty{display:none}
 .chip[aria-pressed="true"]{background:var(--bg);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .chip:focus-visible,.chart:focus-visible,.trow:focus-visible,.shrow:focus-visible,.segbar i:focus-visible{outline:2px solid var(--up);outline-offset:2px}
 .chart{position:relative;touch-action:pan-y;-webkit-user-select:none;user-select:none}
@@ -156,6 +157,8 @@ BODY = {
                '<div class="ph"><b>Below the peak</b><span><i style="color:var(--down)"></i>book below peak <b data-v="dd"></b></span>'
                '<span><i class="dash" style="color:var(--muted)"></i>market below peak <b data-v="ddm"></b></span></div>'
                '<div class="chart" data-pane="bottom" role="img" aria-label="The book\'s and the market\'s fall from their peaks"></div>'),
+    "lines": ('<div class="cap"><span class="ph" aria-live="polite"></span><span class="chips" role="group" aria-label="Period"></span></div>'
+              '<div class="chart" tabindex="0" role="img" aria-label="{label}"></div>'),
     "holdings": '<div class="hold" role="region" aria-label="{label}" tabindex="0"></div>',
     "history": ('<div class="cap"><span class="chips views" role="group" aria-label="View"></span>'
                 '<span class="chips filters" role="group" aria-label="Show"></span></div>'

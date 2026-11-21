@@ -13,7 +13,6 @@ import pandas as pd
 import streamlit as st
 
 from src.engine import market_questions as mq
-from src.engine import size_leadership as sl
 from src.engine.pipeline import price_fingerprint
 from src.ui import formats as _fmt
 from src.ui import page_kit as kit
@@ -194,18 +193,43 @@ def _answers(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.
              _size: dict[str, pd.Series]):
     from src.engine import pit_breadth
     past = pit_breadth.load("total_market")
-    breadth = mq.breadth_answer(_prices, _bench, past)
+    # "Ahead of the market" against Nifty Total Market, daily from NSE (owner, 21 Nov 2026), the market every page
+    # compares against; the Nifty 500 where Total Market is not there (its one-year readings start Nov 2022).
+    tm = total_market()
+    breadth = (mq.breadth_answer(_prices, tm, past, market="Nifty Total Market") if len(tm)
+               else mq.breadth_answer(_prices, _bench, past))
     share = pit_breadth.splice(mq._share_above_ema(_prices, 200), past, "above_200")
     trend = mq.trend_answer(_bench, _size, share)
     leaders = mq.leaders_answer(_prices, _industry, _bench, _size)
     return breadth, trend, leaders
 
 
-def size_closes(levels: pd.DataFrame | None, ok: bool) -> dict[str, pd.Series]:
-    if levels is None or not ok:
-        return {}
-    cl = sl.closes(levels)
-    return {name: cl[key] for key, name in sl.INDICES if key in cl.columns}
+def total_market() -> pd.Series:
+    """Nifty Total Market's daily close: NSE's archive (data/nse_total_market.csv, from its first session) joined
+    with data/benchmark_indices.csv for the latest sessions."""
+    from pathlib import Path
+    from src.loaders import benchmark_indices as bi
+    f = Path(__file__).resolve().parents[3] / "data" / "nse_total_market.csv"
+    nse = pd.Series(dtype=float)
+    if f.exists():
+        t = pd.read_csv(f, parse_dates=["date"])
+        nse = pd.Series(pd.to_numeric(t["close"], errors="coerce").values, index=t["date"]).dropna()
+    ours = bi.series(bi.TOTAL_MARKET).dropna()
+    return pd.concat([nse, ours[ours.index > (nse.index.max() if len(nse) else pd.Timestamp(0))]]).sort_index()
+
+
+def size_closes(levels: pd.DataFrame | None = None, ok: bool = True) -> dict[str, pd.Series]:
+    """The size indices from data/benchmark_indices.csv, the file the Dashboard reads (S154; the R2 index file this
+    read before was not reachable everywhere, and the Breadth page then showed only the Nifty 500, found 21 Nov 2026)."""
+    from src.loaders import benchmark_indices as bi
+    frame = bi.read()
+    names = {"nifty50": "Nifty 50", "midcap150": "Midcap 150", "smallcap250": "Smallcap 250", "microcap250": "Microcap 250"}
+    out = {}
+    for key, name in names.items():
+        s = bi.series(key, frame=frame).dropna()
+        if len(s):
+            out[name] = s
+    return out
 
 
 def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
@@ -221,6 +245,10 @@ def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: 
         return []
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
+    # One session for every index (S148): a size index without the Nifty 500's last close reads "—".
+    from src.engine import dashboard_insights as di
+    size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
+    size = {k: v for k, v in size.items() if len(v)}
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
     key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
     breadth, trend, leaders = _answers(key, px, industry, bench.dropna(), size)
@@ -466,9 +494,20 @@ def _chart_head(title: str, note: str) -> None:
             f'<p class="qp-note" style="margin:0 0 4px">{html.escape(note)}</p></div>')
 
 
+def _dates(idx) -> list[str]:
+    return [f"{d:%Y-%m-%d}" for d in pd.DatetimeIndex(idx)]
+
+
+def _vals(s: pd.Series, nd: int = 2) -> list:
+    return [None if pd.isna(v) else round(float(v), nd) for v in s.to_numpy()]
+
+
 def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
                     nnh: pd.Series | None = None) -> None:
-    from src.ui import lw_chart as lw
+    """The index above the share above the 200D EMA (the Dashboard's chart, one spec), and net new highs
+    week by week with its usual range: the site's chart kit (Breadth, 21 Nov 2026)."""
+    from src.ui import dash_charts as dc
+    from src.ui.views.dashboard_home_view import _breadth_spec
     if share200.empty:
         return
     end = share200.index[-1]
@@ -476,7 +515,7 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
     y0 = mq._on_or_before(bench.dropna().index, end - pd.DateOffset(years=1))
     b1 = mq._on_or_before(bench.dropna().index, end)
     s0 = mq._on_or_before(share200.index, end - pd.DateOffset(years=1))
-    left, right = st.columns(2, gap="large")
+    left, right = st.columns(2, gap="medium")
     with left:
         if y0 is not None and b1 is not None and s0 is not None:
             ret = (float(bench.loc[b1]) / float(bench.loc[y0]) - 1) * 100
@@ -484,21 +523,14 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
                         f"200D EMA went from {share200.loc[s0]:.0f}% to {share200.iloc[-1]:.0f}%",
                         "The index above, the share of the ranked stocks above their own 200D EMA below, "
                         "on one time axis. When the index rises while the lower line falls, fewer stocks "
-                        "are carrying it. Three years; NSE closes.")
-        lw.render([
-            {"height": 170, "series": [{"name": "Nifty 500", "type": "line", "color": lw.INK, "fmt": "num",
-                                        "data": _pts(bench, since)}]},
-            {"height": 130, "series": [{"name": "Above 200D EMA", "type": "line", "color": "var(--c-up)",
-                                        "fmt": "share", "range": [0, 100], "data": _pts(share200, since)}],
-             "levels": [{"value": 60, "color": lw.GREEN, "title": "60%"},
-                        {"value": 40, "color": lw.RED, "title": "40%"}]},
-        ], key="q_breadth_index")
+                        "are carrying it. Members of each date, leavers included.")
+        spec = _breadth_spec(bench.dropna(), share200, end)
+        if spec:
+            dc.render("breadth", spec, label="The Nifty 500 and the share of stocks above their 200D EMA",
+                      note="Tap or drag for a date")
     with right:
         if not weekly.empty:
-            w = weekly.loc[since:]
-            # The same daily reading and the same year-ago session as the table
-            # above (audit, 8 Nov 2026: the weekly bar a Friday earlier said +10.3
-            # where the table said +7.3).
+            w = weekly.loc[since:].dropna()
             daily = nnh if nnh is not None and len(nnh) else weekly
             a = mq._on_or_before(daily.index, end - pd.DateOffset(years=1))
             _chart_head(f"Net new 52W highs this week: {_fmt.signed(daily.iloc[-1], 1)}% of stocks"
@@ -506,14 +538,18 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
                         "Each week, the stocks that made a new 52-week high in the last five sessions less "
                         "those that made a new low, each counted once, as a share of the stocks that could "
                         "make one. Above zero, more stocks are making highs.")
-            lw.render([{"height": 300, "series": [{
-                "name": "Net new highs", "type": "histogram", "fmt": "share1",
-                "colors": ["var(--c-up)" if v >= 0 else "var(--c-down)" for v in w.values],
-                "data": _pts(w)}]}], key="q_breadth_nnh")
+            allw = weekly.dropna()
+            q1, q3 = float(allw.quantile(0.25)), float(allw.quantile(0.75))
+            dc.render("bars", {"values": _vals(w, 1), "labels": [f"{d:%b ’%y}" for d in w.index],
+                               "full": [f"week to {d:%-d %b %Y}" for d in w.index], "unit": "% of stocks, net new highs",
+                               "dp": 1, "xn": 6, "height": 260, "band": [q1, q3, ""]},
+                      label="Net new 52-week highs each week")
+            st.html(f'<p class="qp-note">Shaded: the usual range since {allw.index[0]:%b %Y}, '
+                    f'{_fmt.signed(q1, 1)} to {_fmt.signed(q3, 1)} (the middle half of all weeks).</p>')
 
 
 def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
-    from src.ui import lw_chart as lw
+    from src.ui import dash_charts as dc
     b = bench.dropna()
     m = bucket_by_last_session(b, "M")
     # Completed months only, as the rule and the heading read them: the month
@@ -523,17 +559,18 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
     avg = m.rolling(10).mean()
     since = b.index[-1] - pd.DateOffset(years=3)
     gap = mq.ten_month_gap(b, b.index[-1])
-    left, right = st.columns(2, gap="large")
+    left, right = st.columns(2, gap="medium")
     with left:
         if gap is not None:
             _chart_head(f"The Nifty 500's last month-end close is {abs(gap):.1f}% "
                         f"{'above' if gap >= 0 else 'below'} its 10-month average",
                         "Month-end closes against the average of the last ten. Above the average the "
-                        "10-month rule reads up. Three years; NSE closes, price only.")
-        lw.render([{"height": 300, "series": [
-            {"name": "Nifty 500, month end", "type": "line", "color": lw.INK, "fmt": "num", "data": _pts(m, since)},
-            {"name": "10-month average", "type": "line", "color": lw.GREY, "fmt": "num", "data": _pts(avg, since)},
-        ]}], key="q_trend_10m")
+                        "10-month rule reads up. Three years; price only.")
+        mm, aa = m.loc[since:], avg.loc[since:]
+        dc.render("lines", {"dates": _dates(mm.index), "yfmt": "num", "series": [
+            {"name": "Nifty 500, month end", "values": _vals(mm, 1), "color": "ink"},
+            {"name": "10-month average", "values": _vals(aa.reindex(mm.index), 1), "color": "muted", "dash": True}]},
+            label="The Nifty 500's month-end closes and its 10-month average")
     with right:
         rel = {}
         for name, s in size.items():
@@ -550,19 +587,27 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
             best, worst = max(last, key=last.get), min(last, key=last.get)
             _chart_head(f"Over the year, {best} did best against the Nifty 500 ({_fmt.signed(last[best], 1)} pts) and "
                         f"{worst} worst ({_fmt.signed(last[worst], 1)} pts)",
-                        "Each size index divided by the Nifty 500, set to 100 a year ago; above 100 it has "
-                        "done better. NSE index closes, price only.")
-            colours = [lw.INK, "var(--c-up)", "var(--c-caution)", "var(--c-teal)", "var(--c-violet)"]
-            lw.render([{"height": 300, "levels": [{"value": 100, "color": lw.GREY, "title": "100"}],
-                        "series": [{"name": k, "type": "line", "color": colours[i % len(colours)], "fmt": "num",
-                                    "data": _pts(v)} for i, (k, v) in enumerate(rel.items())]}],
-                      key="q_trend_size")
+                        "Each size index divided by the Nifty 500, set to 100 a year ago (the dashed line); above 100 it has "
+                        "done better. Price only.")
+            idx = sorted(set().union(*[set(v.dropna().index) for v in rel.values()]))
+            colours = ["ink", "up", "caution", "teal", "violet"]
+            dc.render("lines", {"dates": _dates(idx), "yfmt": "num",
+                                "levels": [{"v": 100, "label": "", "color": "muted"}],
+                                "series": [{"name": k, "values": _vals(v.reindex(idx).ffill(), 2), "color": colours[i % 5]}
+                                           for i, (k, v) in enumerate(rel.items())]},
+                      label="Each size index against the Nifty 500 over the year")
 
 
 _CHART_CSS = """<style>
 .qp-ch-h{font-family:var(--font-serif,serif)!important;font-weight:500!important;font-size:19px!important;
   line-height:1.3!important;color:var(--c-ink)!important;margin:6px 0 4px!important;padding:0!important;max-width:30em}
 .qp-behind{font-family:var(--font-serif,serif);font-weight:400;font-size:26px;color:var(--c-ink);margin:8px 0 0}
+.qp-kick{margin:6px 0 0;font-size:var(--fs-12);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--c-muted)}
+.qp-title{margin:4px 0 6px!important;padding:0!important;font-family:var(--font-serif,serif)!important;font-weight:400!important;
+  font-size:var(--fs-44)!important;line-height:1.1!important;max-width:36ch;color:var(--c-ink)}
+.qp-sub{margin:0 0 6px;font-size:var(--fs-17);color:var(--c-text_2);max-width:80ch}
+.qp-scroll td:first-child,.qp-scroll th:first-child{white-space:nowrap}
+@media (max-width:640px){.qp-title{font-size:var(--fs-30)!important}}
 </style>"""
 
 
@@ -574,10 +619,22 @@ def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench:
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
+    # One session for every index (S148): a size index without the Nifty 500's last close reads "—".
+    from src.engine import dashboard_insights as di
+    size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
+    size = {k: v for k, v in size.items() if len(v)}
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
     key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
     breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size)
-    st.html(_CSS + _PAGE_CSS + _CHART_CSS + '<nav class="qp-nav" aria-label="On this page">'
+    # The title answers both questions; the page's name is the kicker (PAGE_DESIGN 2a, 21 Nov 2026).
+    title = ("Market breadth" if breadth is None or trend is None else
+             f"{breadth.verdict} participation; {trend.verdict[0].lower() + trend.verdict[1:]}.")
+    st.html(_CSS + _PAGE_CSS + _CHART_CSS +
+            '<div class="qp-head"><p class="qp-kick">Breadth</p>'
+            f'<h1 class="qp-title">{html.escape(title)}</h1>'
+            '<p class="qp-sub">Two questions, answered from the ranked stocks and NSE’s index closes: are most stocks '
+            'taking part, and is the market in an uptrend. Then today’s charts.</p></div>'
+            '<nav class="qp-nav" aria-label="On this page">'
             '<a href="#q-breadth">Are most stocks taking part?</a>'
             '<a href="#q-trend">Is the market in an uptrend?</a><a href="#q-charts">Today\'s charts</a></nav>')
     if breadth is not None:
@@ -810,6 +867,10 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
+    # One session for every index (S148): a size index without the Nifty 500's last close reads "—".
+    from src.engine import dashboard_insights as di
+    size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
+    size = {k: v for k, v in size.items() if len(v)}
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
     key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp(), "full"])
     leaders, months = _leaders_full(key, px, industry, bench.dropna(), size)

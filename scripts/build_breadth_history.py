@@ -66,13 +66,17 @@ def main() -> int:
     full = json.loads((ROOT / "data" / "membership_history.json").read_text())
     bench = pd.read_csv(ROOT / "data" / "benchmarks.csv", parse_dates=["date"]).set_index("date")["nifty500"]
     bench = pd.to_numeric(bench, errors="coerce").dropna()
+    # The 750's "ahead of the market" readings against Nifty Total Market (owner, 21 Nov 2026); they start a year
+    # after its first session (Nov 2022). The Nifty 500 universe keeps the Nifty 500 (the signal tests, from 2010).
+    from src.ui.views.market_questions_view import total_market
+    benches = {"total_market": total_market(), "nifty500": bench}
     parts = {}
     for name, key in UNIVERSES.items():
         h = index_history(key, full)
         if not h:
             print(f"::warning::No membership timeline for {key}")
             continue
-        r = readings(close, h, bench)
+        r = readings(close, h, benches[name] if len(benches[name]) else bench)
         parts[name] = r
         print(f"{name}: {len(r)} sessions, {r.index[0]:%d %b %Y} to {r.index[-1]:%d %b %Y}")
     if not parts:

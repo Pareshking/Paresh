@@ -13,13 +13,11 @@ from src.engine.breadth import (
 )
 from src.core.config import SHORT_FORMS
 from src.engine.pipeline import price_fingerprint
-from src.ui import lw_chart as lw
 from src.ui import page_kit as kit
 from src.ui.page_kit import _series_of
-from src.ui.components import gap_count, render_data_quality_footer
+from src.ui.components import gap_count
 from src.ui.theme import render_saas_table
-from src.engine import size_leadership as sl
-from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
+from src.loaders.index_levels import nse_benchmarks
 from src.ui.views.market_questions_view import render_breadth_questions, size_closes
 
 
@@ -34,35 +32,36 @@ def index_members(rank_df: pd.DataFrame, index_name: str) -> list[str]:
     return rank_df.loc[tags.map(lambda ts: tag in ts), "Symbol"].tolist()
 
 
-def _participation_chart(pct: pd.DataFrame, ma_type: str) -> None:
-    """Share of stocks above each average, over time, with the 40% and 60% lines.
-    Hover for the date and every average's value."""
-    palette = [lw.INDIGO, lw.GREY, lw.INK, lw.AMBER, lw.GREEN]
-    names = {c: str(c).replace("D", "-day ") + ma_type for c in pct.columns}
+def _participation_chart(pct: pd.DataFrame, ma_type: str, pit: dict[str, pd.Series] | None = None) -> None:
+    """Share of stocks above each average, over time, with the 40% and 60% lines (the site's chart kit).
+    The 50D and 200D EMA lines count the members of each date, leavers included (point-in-time history),
+    when that history covers the window; the other averages count today's ranked stocks, said in the label."""
+    from src.ui import dash_charts as dc
     order = sorted(pct.columns, key=lambda c: int(str(c).rstrip("D")))
-    series = [
-        {"name": names[c], "type": "line", "color": palette[i % len(palette)], "fmt": "share",
-         "range": [0, 100], "data": lw.series_points(pct.index, pct[c])}
-        for i, c in enumerate(order)
-    ]
-    lw.render([{"height": 300, "top": 0.04, "series": series, "levels": [
-        {"value": 60, "color": lw.GREEN, "title": "60%"},
-        {"value": 40, "color": lw.RED, "title": "40%"}]}], key="br_part_chart")
+    colours = ["up", "ink", "caution", "teal", "violet"]
+    series = []
+    for i, c in enumerate(order):
+        s, who = pct[c], "today’s stocks"
+        if pit and ma_type == "EMA" and c in pit and pit[c].reindex(pct.index).notna().all():
+            s, who = pit[c].reindex(pct.index), "members of each date"
+        series.append({"name": f"{str(c).replace('D', '-day')} {ma_type}, {who}",
+                       "values": [None if pd.isna(v) else round(float(v), 1) for v in s.to_numpy()], "color": colours[i % 5]})
+    dc.render("lines", {"dates": [f"{d:%Y-%m-%d}" for d in pct.index], "yfmt": "pct", "range": [0, 100],
+                        "levels": [{"v": 60, "label": "60% broad", "color": "up"}, {"v": 40, "label": "40% narrow", "color": "down"}],
+                        "series": series}, label="Share of stocks above each average")
 
 
 def _highs_lows_chart(hl_df: pd.DataFrame, is_pct: bool) -> None:
-    """New highs up in green, new lows down in red, one bar pair per session.
-    Hover for the date and both counts."""
+    """New highs up, new lows down from zero, one bar per session (the site's chart kit)."""
+    from src.ui import dash_charts as dc
     h_col, l_col = ("% New Highs", "% New Lows") if is_pct else ("New Highs", "New Lows")
-    fmt = "share1" if is_pct else "int"
-    highs = pd.to_numeric(hl_df[h_col], errors="coerce")
-    lows = -pd.to_numeric(hl_df[l_col], errors="coerce")
-    lw.render([{"height": 280, "series": [
-        {"name": "New highs", "type": "histogram", "color": lw.GREEN, "fmt": fmt,
-         "data": lw.series_points(hl_df.index, highs)},
-        {"name": "New lows", "type": "histogram", "color": lw.RED, "fmt": fmt, "abs": True,
-         "data": lw.series_points(hl_df.index, lows)},
-    ]}], key="br_hl_chart")
+    highs = pd.to_numeric(hl_df[h_col], errors="coerce").fillna(0)
+    lows = pd.to_numeric(hl_df[l_col], errors="coerce").fillna(0)
+    dc.render("bars", {"values": [round(float(v), 1) for v in highs], "labels": [f"{d:%-d %b}" for d in hl_df.index],
+                       "full": [f"{d:%-d %b %Y}" for d in hl_df.index], "unit": "new highs" + (" (% of stocks)" if is_pct else ""),
+                       "dp": 1 if is_pct else 0, "xn": 6, "height": 260, "color2": "--down",
+                       "also": [["new lows" + (" (% of stocks)" if is_pct else ""), -round(float(v), 1)] for v in lows]},
+              label="New highs against new lows each session")
 
 
 def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
@@ -72,16 +71,12 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     model): are most stocks taking part, and is the market in an uptrend; each
     with its verdict, evidence, what changed and what would change it. Then
     today's charts and the stocks making new highs and lows."""
-    kit.page_head("Market breadth",
-                  "Two questions, answered from the ranked stocks and NSE's index closes; then today's charts.")
-    levels, bench = fetch_index_levels(), nse_benchmarks()
-    size_ok = False
-    if levels is not None and bench is not None and "nifty50" in bench:
-        size_ok, _ = sl.cross_check(levels, bench["nifty50"])
+    # The title answers both questions (render_breadth_questions); index closes from the Dashboard's file (S154).
+    bench = nse_benchmarks()
     nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
                 else _series_of(bench, "nifty500"))
     render_breadth_questions(rank_df, history_prices if history_prices is not None else adj_close,
-                             nifty500, size_closes(levels, size_ok))
+                             nifty500, size_closes())
 
     with st.container(key="br_chart_head", horizontal=True, vertical_alignment="center", gap="small"):
         st.html('<h2 id="q-charts" class="br-charts-h">Today\'s charts</h2>', width="stretch")
@@ -125,7 +120,15 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 # Percentage series only; the companion count columns are
                 # metadata for the readings, not lines on the chart.
                 _pct_cols = [c for c in breadth_df.columns if not c.endswith(OBSERVED_SUFFIX)]
-                _participation_chart(breadth_df[_pct_cols], ma_type)
+                from src.engine import pit_breadth
+                past = pit_breadth.load("total_market")
+                pit = {}
+                if past is not None:
+                    for c, col in (("50D", "above_50"), ("200D", "above_200")):
+                        if col in past:
+                            if c in breadth_df:          # history to its last date, today's count after it
+                                pit[c] = pit_breadth.splice(breadth_df[c], past, col)
+                _participation_chart(breadth_df[_pct_cols], ma_type, pit)
         else:
             rows = []
             for idx_name in ("NIFTY 50", "NIFTY NEXT 50", "NIFTY MIDCAP 150",
@@ -175,8 +178,7 @@ def render_breadth_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                     disp = hl_events_df[hl_events_df["Event"].str.contains("low", case=False)]
                 render_saas_table(disp, max_height=420)
 
-    render_data_quality_footer(
-        total_stocks=len(rank_df),
-        gap_count=gap_count(rank_df),
-        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
-    )
+    # Data date and counts, no sources (owner, 20-21 Nov 2026).
+    short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
+    st.html(f'<p class="qp-note" style="margin-top:18px">Data to {adj_close.index[-1]:%-d %b %Y}. {len(rank_df)} stocks ranked; '
+            f'{gap_count(rank_df)} with a price gap, {short_n} with a short history.</p>')
