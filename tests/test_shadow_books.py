@@ -146,3 +146,39 @@ def test_a_book_with_no_frozen_month_adds_no_row():
     live_like = {"750": {"months": {"2026-11": {"strategy": 0.01}}}}
     table = comparison_frame(live_like, {}, None, {"high90": {"months": {}}, "breadth_long": None})
     assert not ({SHADOWS["high90"].name, SHADOWS["breadth_long"].name} & set(table["SYSTEM"]))
+
+
+# ── Skip 5 (owner, 20 Nov 2026: "Record skip 5 as a shadow book"; TODO S160) ──
+
+def test_skip5_changes_only_the_score_date_and_starts_with_the_december_book():
+    from src.engine.track_record import run_backtest_kwargs
+
+    book = SHADOWS["skip5"]
+    live = TRACK_RECORD_CONFIG
+    assert {k: v for k, v in book.config.items() if live.get(k, object()) != v} == {"score_skip": 5}
+    assert book.breadth_rule is None
+    assert book.inception == pd.Period("2026-12", freq="M")
+    assert book.ledger_path.name == "track_record_shadow_skip5.json"
+    # The engine receives it; the live record runs with 0, and its configuration
+    # (hence every frozen month's fingerprint) does not carry the key at all.
+    assert run_backtest_kwargs(book.config)["score_skip"] == 5
+    assert run_backtest_kwargs(live)["score_skip"] == 0
+    assert "score_skip" not in live
+    for other in ("recommendation", "high90", "breadth_long"):
+        assert "score_skip" not in SHADOWS[other].config
+
+
+def test_the_updater_picks_skip5():
+    system, ledger, start, cfg = _updater().record_setup(SYSTEM_750, shadow="skip5")
+    assert (Path(ledger), start, cfg) == (SHADOWS["skip5"].ledger_path, pd.Period("2026-12", freq="M"),
+                                          SHADOWS["skip5"].config)
+
+
+def test_the_monthly_job_freezes_skip5_after_the_other_shadows():
+    wf = yaml.safe_load((ROOT / ".github/workflows/monthly_track_record.yml").read_text(encoding="utf-8"))
+    steps = next(iter(wf["jobs"].values()))["steps"]
+    names = [s.get("name", "") for s in steps]
+    i = names.index("Freeze the skip-5 shadow record")
+    assert names.index("Freeze the near-high and breadth shadow records") < i < names.index("Commit the ledger")
+    run = steps[i]["run"]
+    assert "--shadow skip5" in run and "|| echo" in run

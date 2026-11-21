@@ -1026,6 +1026,7 @@ def run_backtest(
     hold_cap_from: str | None = None,
     buy_size: float | None = None,
     weight_reset_months: tuple[int, ...] | None = None,
+    score_skip: int = 0,
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -1051,6 +1052,10 @@ def run_backtest(
     fixed amount for the year, paid from cash; when cash is short the buys share
     it equally (fewer shares); cash left over stays cash; kept names are never
     sold to fund a buy and still trim above ``hold_cap``. See `_fixed_buys`.
+    ``score_skip``: research only (owner, 20 Nov 2026, TODO S160): the
+    composite score is read ``score_skip`` sessions before the signal date
+    (all five windows end there), while the trend and 52-week-high gates, the
+    index membership and the fill stay on the signal date. 0 is the live system.
     ``weight_reset_months``: research only (owner, 8 Nov 2026), with
     ``buy_size``: at a signal in one of these months (3 = end of March,
     (3, 9) = March and September) every holding goes back to its target
@@ -1058,6 +1063,9 @@ def run_backtest(
     between resets the ``buy_size`` rule applies. None keeps the yearly
     31 March base of ``buy_size`` alone.
     """
+    if int(score_skip) != score_skip or score_skip < 0:
+        raise ValueError(f"score_skip must be a whole number of sessions >= 0, not {score_skip!r}")
+    score_skip = int(score_skip)
     if score_method not in ("sharpe", "return"):
         raise ValueError(f"score_method must be 'sharpe' or 'return', not {score_method!r}")
     if ath_pct is not None and not (0.0 < float(ath_pct) <= 1.0):
@@ -1308,7 +1316,7 @@ def run_backtest(
         # backtesting a ranking the screener never shows answers a question
         # nobody asked, and each branch was its own untested scoring path.
         composite_score = _signal_scores(
-            prices, log_ret, start_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
+            prices, log_ret, max(start_idx - score_skip, 0), WINDOWS, norm_w if norm_w else [0.2] * 5,
             anchor=prices_anchor, metric=score_method, members=idx_mask,
             on=dates[start_idx], members_from=members_only_scoring_from,
         )
@@ -1744,7 +1752,7 @@ def run_backtest(
             p_valid &= p_liq
 
         p_score = _signal_scores(
-            prices, log_ret, rebal_idx, WINDOWS, norm_w if norm_w else [0.2] * 5,
+            prices, log_ret, max(rebal_idx - score_skip, 0), WINDOWS, norm_w if norm_w else [0.2] * 5,
             anchor=prices_anchor, metric=score_method, members=p_idx_mask,
             on=prices.index[rebal_idx], members_from=members_only_scoring_from,
         )

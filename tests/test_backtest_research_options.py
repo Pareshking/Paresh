@@ -216,3 +216,39 @@ def test_rebalance_rule_defaults_to_the_live_rule():
         "weight_reset_months": tuple(TRACK_RECORD_CONFIG["weight_reset_months"])}
     assert rebalance_rule_kwargs("monthly") == {}
     assert "**rebalance_rule_kwargs(rule)" in src
+
+
+# ── score_skip (owner, 20 Nov 2026; TODO S160) ──────────────────────────────
+
+def test_score_skip_zero_is_the_live_system():
+    base = _bt()
+    explicit = _bt(score_skip=0)
+    pd.testing.assert_series_equal(base["equity_curve"], explicit["equity_curve"])
+    pd.testing.assert_frame_equal(base["tradebook"], explicit["tradebook"])
+
+
+def test_score_skip_reaches_the_simulation():
+    assert not _bt(score_skip=5)["equity_curve"].equals(_bt()["equity_curve"])
+
+
+@pytest.mark.parametrize("bad", [-1, 2.5])
+def test_score_skip_must_be_a_whole_number_of_sessions(bad):
+    with pytest.raises(ValueError):
+        _bt(score_skip=bad)
+
+
+def test_score_skip_moves_only_the_score_not_the_gates(monkeypatch):
+    """The composite is read `score_skip` sessions earlier; the signal (gates,
+    membership, fill) stays on the rebalance session."""
+    import src.engine.backtester as bt
+
+    seen = []
+    orig = bt._signal_scores
+
+    def spy(prices, log_ret, idx, *a, on, **k):
+        seen.append((idx, prices.index.get_loc(pd.Timestamp(on))))
+        return orig(prices, log_ret, idx, *a, on=on, **k)
+
+    monkeypatch.setattr(bt, "_signal_scores", spy)
+    _bt(score_skip=5)
+    assert seen and all(sig - idx == 5 for idx, sig in seen)

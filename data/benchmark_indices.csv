@@ -391,6 +391,7 @@ date,index,close,source
 2026-11-17,microcap250,25411.30,screener_daily
 2026-11-18,microcap250,25158.10,screener_daily
 2026-11-19,microcap250,25285.30,screener_daily
+2026-11-20,microcap250,25065.35,screener_daily
 2024-10-04,midcap150,21710.60,screener_weekly
 2024-10-11,midcap150,21979.15,screener_weekly
 2024-10-18,midcap150,21755.65,screener_weekly
@@ -716,6 +717,7 @@ date,index,close,source
 2026-11-17,midcap150,22648.70,screener_daily
 2026-11-18,midcap150,22389.90,screener_daily
 2026-11-19,midcap150,22613.85,screener_daily
+2026-11-20,midcap150,22750.80,screener_daily
 2024-10-04,midcap150_mom50,65591.85,screener_weekly
 2024-10-11,midcap150_mom50,66861.35,screener_weekly
 2024-10-18,midcap150_mom50,66258.30,screener_weekly
@@ -1041,6 +1043,7 @@ date,index,close,source
 2026-11-17,midcap150_mom50,63250.25,screener_daily
 2026-11-18,midcap150_mom50,62445.95,screener_daily
 2026-11-19,midcap150_mom50,62801.10,screener_daily
+2026-11-20,midcap150_mom50,62837.50,screener_daily
 2021-12-03,nifty200,9155.60,screener_weekly
 2021-12-10,nifty200,9332.45,screener_weekly
 2021-12-17,nifty200,9030.35,screener_weekly
@@ -1514,6 +1517,7 @@ date,index,close,source
 2026-11-17,nifty200,14403.95,screener_daily
 2026-11-18,nifty200,14282.35,screener_daily
 2026-11-19,nifty200,14452.65,screener_daily
+2026-11-20,nifty200,14587.75,screener_daily
 2021-12-03,nifty200_mom30,20478.25,screener_weekly
 2021-12-10,nifty200_mom30,21120.15,screener_weekly
 2021-12-17,nifty200_mom30,20393.40,screener_weekly
@@ -1987,6 +1991,7 @@ date,index,close,source
 2026-11-17,nifty200_mom30,30308.80,screener_daily
 2026-11-18,nifty200_mom30,29789.80,screener_daily
 2026-11-19,nifty200_mom30,30108.20,screener_daily
+2026-11-20,nifty200_mom30,30006.40,screener_daily
 2021-12-03,nifty50,17196.70,screener_weekly
 2021-12-10,nifty50,17511.30,screener_weekly
 2021-12-17,nifty50,16985.20,screener_weekly
@@ -2460,6 +2465,7 @@ date,index,close,source
 2026-11-17,nifty50,25387.40,screener_daily
 2026-11-18,nifty50,25227.95,screener_daily
 2026-11-19,nifty50,25514.30,screener_daily
+2026-11-20,nifty50,25800.60,screener_daily
 2024-11-14,nifty500_mom50,56235.50,screener_weekly
 2024-11-22,nifty500_mom50,56909.20,screener_weekly
 2024-11-29,nifty500_mom50,59207.35,screener_weekly
@@ -2779,6 +2785,7 @@ date,index,close,source
 2026-11-17,nifty500_mom50,54135.70,screener_daily
 2026-11-18,nifty500_mom50,53536.60,screener_daily
 2026-11-19,nifty500_mom50,54028.20,screener_daily
+2026-11-20,nifty500_mom50,53843.75,screener_daily
 2023-06-23,nifty_total_market,8942.10,screener_weekly
 2023-06-30,nifty_total_market,9174.80,screener_weekly
 2023-07-07,nifty_total_market,9254.20,screener_weekly
@@ -3171,6 +3178,7 @@ date,index,close,source
 2026-11-17,nifty_total_market,13435.35,screener_daily
 2026-11-18,nifty_total_market,13326.05,screener_daily
 2026-11-19,nifty_total_market,13473.20,screener_daily
+2026-11-20,nifty_total_market,13572.35,screener_daily
 2024-10-04,smallcap250,18021.65,screener_weekly
 2024-10-11,smallcap250,18213.00,screener_weekly
 2024-10-18,smallcap250,18236.80,screener_weekly
@@ -3496,6 +3504,7 @@ date,index,close,source
 2026-11-17,smallcap250,17754.85,screener_daily
 2026-11-18,smallcap250,17667.50,screener_daily
 2026-11-19,smallcap250,17802.90,screener_daily
+2026-11-20,smallcap250,17785.50,screener_daily
 2024-11-14,smallcap250_mq100,47711.20,screener_weekly
 2024-11-22,smallcap250_mq100,48246.15,screener_weekly
 2024-11-29,smallcap250_mq100,50933.60,screener_weekly
@@ -3815,6 +3824,7 @@ date,index,close,source
 2026-11-17,smallcap250_mq100,48239.15,screener_daily
 2026-11-18,smallcap250_mq100,47925.80,screener_daily
 2026-11-19,smallcap250_mq100,48147.60,screener_daily
+2026-11-20,smallcap250_mq100,48108.70,screener_daily
 2026-04-21,total_market_mq50,43346.40,screener_daily
 2026-04-22,total_market_mq50,43259.05,screener_daily
 2026-04-23,total_market_mq50,43029.05,screener_daily
@@ -3962,3 +3972,4 @@ date,index,close,source
 2026-11-17,total_market_mq50,43370.25,screener_daily
 2026-11-18,total_market_mq50,42792.30,screener_daily
 2026-11-19,total_market_mq50,43385.95,screener_daily
+2026-11-20,total_market_mq50,43119.15,screener_daily
