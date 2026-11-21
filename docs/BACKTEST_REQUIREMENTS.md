@@ -1,7 +1,28 @@
-# Backtest requirements: proposed, not approved
+# Backtest requirements
 
-**Status: proposed, not approved (21 Nov 2026).** Nothing here is built. The owner
-approves the list, the decisions and the mock-up first (PAGE_DESIGN section 1).
+**Status: approved and built, 21 Nov 2026.** The owner approved mock-up v1 and decided items
+A-G as recommended (section "Owner's decisions" below). Built on the branch of S174: 32 of 32
+rows and the section order met on the running app (`check_dashboard_requirements.mjs`), layout
+audit clean at 412, 1024 and 1400 px with the expanders open; the page joins CI's step.
+
+**Built, what differs from the mock-up and why:**
+- The page's own industry map (today's list, then TradingView, then
+  `data/reference/historical_industries.csv`, each leaver its own group) is the one the page always
+  used; the mock-up's figures used the record's map, which leaves leavers in a shared "Other" the
+  cap squeezes. On the page's map the default run makes **18.75%** a year (mock-up 18.56%), ₹100
+  became ₹1,801 (₹1,751), the lead is 8.7 pts (8.5). The weekly reference
+  (`scripts/build_backtest_reference.py`) uses the same map (`backtest_page.industry_map`), so
+  "As tested" in section 4 is the page's own run.
+- After tax on the long file of 16 Nov: the rule 15.23% a year, the Nifty 500 9.35% (mock-up, 7 Nov
+  file and record map: 15.14%); tax costs the lead 2.8 pts (2.7). Replay before tax 18.75%, equal to
+  the backtest's (gap 0.00 pts).
+- The month in progress is a sentence under the year table (to the long file's last session), not a
+  partial row.
+- The lead column of the year rows is in pts without the unit in each cell ("Lead, pts"), so it fits
+  at 412 px.
+- Section 6 adds the profit factor weighted by each trade's size ("Gains over losses", audit A8).
+- The rebalance log keeps Portfolio's words Buy / Sell / Hold (one word across pages); the engine's
+  reasons read "Rank 12, new" and "Rank 31, kept".
 
 Started 21 Nov 2026 for S174 (the next page makeovers), from:
 - the page as it stands (`src/ui/views/backtest_view.py`, `src/engine/backtester.py`);

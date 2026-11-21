@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-21 — Backtest made over (S174)
+
+- One page of research runs on NSE's long price file, built from mock-up v1 and the owner's seven decisions of 21 Nov 2026 (`docs/BACKTEST_REQUIREMENTS.md`). The "Live system" tab is gone: Portfolio owns the record.
+- The page opens on the record's rules on the Nifty 500 as it stood, Jan 2010 to the last completed month, the six-monthly reset applied throughout, and answers in six sections: the lead a year (₹100 on a log scale with how far below its peak), falls from a peak with dates, year by year (Total Market beside it from 2022, a universe's own NSE index "for this universe"), what the result depends on (costs, the rule, tax, and against Nifty200 Momentum 30 and Total Market), a checklist of what is checked and what is not, and every trade.
+- **"A year" is compounded over calendar time in the engine** (was 252 sessions a year; NSE averaged about 248). Figures that moved, all on the Backtest page (no other page reads `run_backtest`'s yearly figures): the default run's "a year" 19.07% → 18.75%, the Nifty 500's 10.22% → 10.06%, before costs 20.68% → 20.34%; a run under a year still shows no yearly figure. Calmar is no longer shown.
+- The lead over the Nifty 500 is in points a year (was "Ahead of the index +1,250 pts", a difference of two 16-year totals). Names on the page follow one glossary: This rule, A year compounded, Lead over the Nifty 500, Largest fall from a peak, Below its peak now, Days below its peak.
+- Price returns on both sides, with the dividend gap stated (the Nifty 500 yields 1.25% a year on average since 2012 against about 0.5% for the book).
+- The cost, rule and tax tests of the default run are re-run every Sunday by a new job (`backtest_reference.yml`, `data/backtest_reference.json`): 30 bps 18.75%, 60 bps 17.19%, 100 bps 15.13%, monthly reset 19.07%; after tax, sold at the end, 15.23% against the Nifty 500's 9.35%.
+- Removed: the in-sample "Recommendation: 30 holdings…" caption (the shadow book is named instead), the cash note that blamed the caps (April 2020 found only 10 qualifying stocks; now said as that), the Screener's data-quality footer, the fill-to-fill "Rebalance periods" table and the view switch that hid the trades. The Guide no longer quotes backtest figures; it points to the page.
+
 ## 2026-11-21 — Sectors, made over: NSE's sector indices beside each sector
 
 Built from mock-up v2, which the owner approved ("Sector and Backtest approved"). The 21 rows are in `docs/SECTORS_REQUIREMENTS.md`.

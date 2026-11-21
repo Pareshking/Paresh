@@ -191,9 +191,10 @@ def test_one_word_for_one_thing_across_pages():
     # columns as on Portfolio; "Nifty 500", not "NIFTY 500", on the page.
     views = ROOT / "src/ui/views"
     backtest = (views / "backtest_view.py").read_text(encoding="utf-8")
-    assert 'kit.Reading("Max drawdown"' in backtest and '"Worst fall"' not in backtest
-    assert 'kit.Reading("Ahead of the index"' in backtest
-    assert '["All", "Buy", "Sell", "Hold"]' in backtest and '"🟢 BOUGHT", "🔴 SOLD"' not in backtest
+    # Backtest, 21 Nov 2026 (S173): Portfolio's drawdown term and "lead over", in pts.
+    assert '"Largest fall from a peak"' in backtest and '"Worst fall"' not in backtest
+    assert '"Lead over the Nifty 500"' in backtest and "Ahead of the index" not in backtest
+    assert '"🟢 BOUGHT", "🔴 SOLD"' not in backtest
     assert "Portfolio risk" not in backtest and "Filter " not in backtest
     theme = THEME.read_text(encoding="utf-8")
     # The words are the owner's (12 Oct); the emoji went with audit F46 (7 Nov).
@@ -210,9 +211,10 @@ def test_one_word_for_one_thing_across_pages():
 def test_backtest_alpha_is_in_points_like_track_record():
     # Owner, 12 Oct 2026: the Backtest headline alpha reads as Track Record's
     # does; 8 Nov 2026 (S97 d): both in points.
+    # 21 Nov 2026: a lead is a difference of two yearly figures, in points a year.
     source = (ROOT / "src/ui/views/backtest_view.py").read_text(encoding="utf-8")
-    assert "_fmt.pts(stats['alpha'])" in source
-    assert "_fmt.pct(stats['alpha'])" not in source
+    assert '("Lead over the Nifty 500", _pts(sm.lead)' in source
+    assert "stats['alpha']" not in source
 
 
 def test_production_qa_does_not_wait_for_the_removed_live_month_note():
