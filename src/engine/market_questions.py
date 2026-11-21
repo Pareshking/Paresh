@@ -305,6 +305,49 @@ def ten_month_gap(close: pd.Series, when: pd.Timestamp | None) -> float | None:
     return (float(month_ends.iloc[-1]) / avg - 1) * 100
 
 
+def ten_month_today(close: pd.Series, when: pd.Timestamp | None) -> float | None:
+    """The 10-month rule read on a monthly chart: the close on `when` against the
+    average of the last ten monthly closes, the month in progress counted at
+    `when`'s close. On a month's last session it equals `ten_month_gap`.
+
+    Staleness audit, 21 Nov 2026: `ten_month_gap` alone made Breadth's trend
+    verdict read October's close for most of November (on 20 Nov the Nifty 500
+    read 3.1% below its average at the 30 Oct close and 6% above it on the
+    day). A verdict about today reads today; the month-end reading is shown
+    beside it, named as such."""
+    if when is None:
+        return None
+    s = close.dropna().loc[:when]
+    if s.empty:
+        return None
+    monthly = s.groupby(s.index.to_period("M")).last()
+    if len(monthly) < 10:
+        return None
+    avg = float(monthly.iloc[-10:].mean())
+    return (float(s.iloc[-1]) / avg - 1) * 100
+
+
+def last_month_end(close: pd.Series, when: pd.Timestamp | None) -> pd.Timestamp | None:
+    """The session `ten_month_gap` reads on `when`: the last completed month's close."""
+    if when is None:
+        return None
+    s = close.dropna().loc[:when]
+    if s.empty:
+        return None
+    ends = s.groupby(s.index.to_period("M")).apply(lambda x: x.index[-1])
+    if ends.index[-1] == pd.Timestamp(when).to_period("M") and s.index[-1] < (
+            pd.Timestamp(when).to_period("M").to_timestamp(how="end").normalize()):
+        ends = ends.iloc[:-1]
+    return None if ends.empty else pd.Timestamp(ends.iloc[-1])
+
+
+def _ten_month_rule_text(close: pd.Series, when) -> str:
+    me, at = ten_month_gap(close, when), last_month_end(close, when)
+    num = None if me is None else f"{me:+.1f}".replace("-", "−")
+    tail = "" if num is None or at is None else f"; at the {at:%-d %b} month-end {num}"
+    return "today's close against the last ten monthly closes; above is up, below is down" + tail
+
+
 def ema_gap(close: pd.Series, when: pd.Timestamp | None, span: int = 200) -> float | None:
     if when is None:
         return None
@@ -351,8 +394,8 @@ def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
     d = anchor_dates(b.index)
     keys = list(d)
     ms = [
-        _measure("Nifty 500 against its 10-month average", "pts", [ten_month_gap(b, d[k]) for k in keys],
-                 0.0001, -0.0001, "above is up, below is down", primary=True, history=_ten_month_series(b)),
+        _measure("Nifty 500 against its 10-month average", "pts", [ten_month_today(b, d[k]) for k in keys],
+                 0.0001, -0.0001, _ten_month_rule_text(b, d["now"]), primary=True, history=_ten_month_series(b)),
         _measure("Nifty 500 against its 200D EMA", "pts", [ema_gap(b, d[k]) for k in keys],
                  0.0001, -0.0001, "above is up, below is down", primary=True, history=_ema_gap_series(b)),
         _measure("Nifty 500 from its 52W high", "pts", [from_high(b, d[k]) for k in keys],
@@ -363,8 +406,8 @@ def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
         if len(s) < 200:
             continue
         ms.append(_measure(f"{name} against its 10-month average", "pts",
-                           [ten_month_gap(s, d[k]) for k in keys], 0.0001, -0.0001,
-                           "above is up, below is down", history=_ten_month_series(s)))
+                           [ten_month_today(s, d[k]) for k in keys], 0.0001, -0.0001,
+                           _ten_month_rule_text(s, d["now"]), history=_ten_month_series(s)))
     if share_above_200 is not None and not share_above_200.dropna().empty:
         s = share_above_200.dropna()
         ms.append(_measure("Stocks above their 200D EMA", "pct",

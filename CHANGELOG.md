@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-21 — Verdicts read today, not the last month-end
+
+- **Breadth: "Is the market in an uptrend?" read October's close for most of November.** Four of its eight measures (the Nifty 500 and each size index against its 10-month average) read the 30 Oct month-end. On 20 Nov the page said "No clear trend, 3 up, 4 down" while every index stood above its 10-month average. They now read today's close against the last ten monthly closes, this month at today's close, as a monthly chart draws it; each row also names the month-end reading. On 20 Nov: "Strong uptrend, 7 of 8 up, 0 down"; the Nifty 500 is 6.1% above its average today, 3.1% below at the 30 Oct close.
+- The chart under "Behind the answer" now ends on today's close, and its heading gives both readings. The By size table reads the same rule.
+- **Dashboard:** "Nifty 500 vs its 10-month average" and "Stocks that qualify" showed 30 Oct under a column headed "Now". "Now" is today (+6.1%; 44% qualify, by the monthly job's own rule), and each row names the month-end reading its test used. Both sentences now say "on today's readings 5 point to a stronger month and 0 to a weaker one; at the last month-end, which the tests read, 3 and 2".
+- Found by a strict audit of every figure on every page against the data date (`docs/STALENESS_AUDIT_2026-11-21.md`); the rest of its list is in TODO S164.
+
 ## 2026-11-21 — Screener in the new design; one date for "a month ago"
 
 - The title answers the first question ("49 of the top 50 can be bought; 23 of the 50 are new this month."), with Screener as the kicker, as on Dashboard, Portfolio, Actions, Breadth and Sectors.

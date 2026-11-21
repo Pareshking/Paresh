@@ -418,7 +418,7 @@ def size_trend_html(bench: pd.Series, size: dict[str, pd.Series]) -> str:
         if len(s) < 60:
             continue
         cells = []
-        for f in (mq.ten_month_gap, mq.ema_gap, mq.from_high):
+        for f in (mq.ten_month_today, mq.ema_gap, mq.from_high):
             for k in ("month_ago", "now"):
                 v = f(s, d[k])
                 r = None if v is None else round(v, 1)   # tone what is shown: "0.0" is neither
@@ -434,8 +434,9 @@ def size_trend_html(bench: pd.Series, size: dict[str, pd.Series]) -> str:
             '<tr><th scope="col">A month ago</th><th scope="col">Now</th><th scope="col">A month ago</th>'
             '<th scope="col">Now</th><th scope="col">A month ago</th><th scope="col">Now</th></tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table>'
-            '<p class="qp-note">The 10-month rule reads completed months: the last month-end close against '
-            'the average of the last ten. Points are per cent.</p>')
+            '<p class="qp-note">The 10-month columns read the close on each day against the average of the last '
+            'ten monthly closes, the month in progress counted at that close, as a monthly chart draws it; at a '
+            'month-end it is the classic month-end reading. Points are per cent.</p>')
 
 
 def bucket_by_last_session(s: pd.Series, freq: str) -> pd.Series:
@@ -551,26 +552,29 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
 def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
     from src.ui import dash_charts as dc
     b = bench.dropna()
+    # Every month dated by its last session; the month in progress is today's
+    # close, so the chart ends on the page's session (staleness audit, 21 Nov
+    # 2026: it ended on 30 Oct while the page read 20 Nov).
     m = bucket_by_last_session(b, "M")
-    # Completed months only, as the rule and the heading read them: the month
-    # in progress drew as a "30 Nov" close.
-    if b.index[-1] < b.index[-1].to_period("M").to_timestamp(how="end").normalize():
-        m = m.iloc[:-1]
     avg = m.rolling(10).mean()
     since = b.index[-1] - pd.DateOffset(years=3)
-    gap = mq.ten_month_gap(b, b.index[-1])
+    today = mq.ten_month_today(b, b.index[-1])
+    me, me_at = mq.ten_month_gap(b, b.index[-1]), mq.last_month_end(b, b.index[-1])
     left, right = st.columns(2, gap="medium")
     with left:
-        if gap is not None:
-            _chart_head(f"The Nifty 500's last month-end close is {abs(gap):.1f}% "
-                        f"{'above' if gap >= 0 else 'below'} its 10-month average",
-                        "Month-end closes against the average of the last ten. Above the average the "
-                        "10-month rule reads up. Three years; price only.")
+        if today is not None:
+            side = lambda v: f"{abs(v):.1f}% {'above' if v >= 0 else 'below'}"  # noqa: E731
+            month_end = ("" if me is None or me_at is None or me_at == b.index[-1] else
+                         f"; at the {me_at:%-d %b} month-end it was {side(me)}")
+            _chart_head(f"The Nifty 500 is {side(today)} its 10-month average on {b.index[-1]:%-d %b}{month_end}",
+                        "Monthly closes against the average of the last ten, this month at today's close. Above "
+                        "the average the 10-month rule reads up; the classic rule reads only month-ends. Three years; "
+                        "price only.")
         mm, aa = m.loc[since:], avg.loc[since:]
         dc.render("lines", {"dates": _dates(mm.index), "yfmt": "num", "series": [
-            {"name": "Nifty 500, month end", "values": _vals(mm, 1), "color": "ink"},
+            {"name": "Nifty 500, monthly close (this month: today)", "values": _vals(mm, 1), "color": "ink"},
             {"name": "10-month average", "values": _vals(aa.reindex(mm.index), 1), "color": "muted", "dash": True}]},
-            label="The Nifty 500's month-end closes and its 10-month average")
+            label="The Nifty 500's monthly closes and its 10-month average")
     with right:
         rel = {}
         for name, s in size.items():

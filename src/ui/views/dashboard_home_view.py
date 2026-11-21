@@ -433,6 +433,22 @@ def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check
             '</div></div></div>' + END)]
 
 
+def _month_end_count(passed: list[dict], average) -> str:
+    """", at the last month-end, which the tests read, 3 and 2": said only when
+    the month-end readings give a different count from today's (staleness
+    audit, 21 Nov 2026)."""
+    if average is None or not passed:
+        return ""
+    now = sum(x["like"] >= average for x in passed if x["like"] is not None)
+    me = [x.get("like_me") for x in passed]
+    if any(v is None for v in me):
+        return ""
+    good = sum(v >= average for v in me)
+    if good == now:
+        return ""
+    return f"; at the last month-end, which the tests read, {good} and {len(me) - good}"
+
+
 def _trail_cell(vals: list[float | None], fmt) -> list[str]:
     """Three cells: 3 months ago, 1 month ago, now."""
     return ["—" if v is None else fmt(v) for v in vals]
@@ -451,8 +467,9 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
                  f'<span class="dh-muted">{len(tested) - len(passed)} {"is" if len(tested) - len(passed) == 1 else "are"} not confirmed</span>'
                  + (', one of them a reading the page used to count for momentum. ' if any(
                      x["key"] == "participation_jump" and x["test"] and not x["test"]["passed"] for x in signals) else '. ')
-                 + f'Today <span class="dh-up">{better} point{"s" if better != 1 else ""} to a stronger month</span>, '
-                 f'<span class="dh-down">{len(passed) - better} to a weaker one</span>.')
+                 + f'On today\'s readings <span class="dh-up">{better} point{"s" if better == 1 else ""} to a stronger month</span>, '
+                 f'<span class="dh-down">{len(passed) - better} to a weaker one</span>'
+                 + _month_end_count([x for x in passed if x["like"] is not None], average) + '.')
     tiles = []
     for when, v, note in lead:
         pos = 0 if v is None or v <= 0 else min(v / 13 * 100, 100)
@@ -938,7 +955,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     ev = di.flow_evidence(nsdl, spreads, bench) if flows is not None else None
     dii = _dii_now(_read_csv(FILES["nse_dii"], dtype={"period": str}))
     tests = _load_tests()
-    signals = _signals(spreads, n500, idx_end, flows, nifty500_breadth(adj_close, as_of), tests)
+    signals = _signals(spreads, n500, idx_end, flows, nifty500_breadth(adj_close, as_of), tests,
+                       qualify_now=_qualify_today(adj_close, idx_end))
     average = tests.get("average")
 
     # 4. flows against the 750's market value
@@ -1175,11 +1193,12 @@ def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, 
         good = [x for x in passed if x["like"] >= average]
         fpi = any(x["key"] == "fpi" for x in good)
         n = len(passed)
-        bits.append(f'Of the {n} signal{"s" if n != 1 else ""} that pass our own test, '
-                    f'<span class="dh-up">{len(good)} point{"s" if len(good) != 1 else ""} to a stronger month for momentum</span>'
+        bits.append(f'Of the {n} signal{"s" if n != 1 else ""} that pass our own test, on today\'s readings '
+                    f'<span class="dh-up">{len(good)} point{"s" if len(good) == 1 else ""} to a stronger month for momentum</span>'
                     + ((", record foreign buying among them," if flows is not None and flows.month_rank == 1
                         else ", foreign buying among them,") if fpi else "")
-                    + f' and <span class="dh-down">{n - len(good)} to a weaker one</span>.')
+                    + f' and <span class="dh-down">{n - len(good)} to a weaker one</span>'
+                    + _month_end_count(passed, average) + '.')
     b1 = typical["beat_share"][0] if typical else None
     if b1 is not None and b1 < 40:
         bits.append(f'<span class="dh-watch">The rally is narrow: only {b1:.0f}% of the 750 beat the market this month.</span>')
@@ -1222,21 +1241,57 @@ def _since_month_end(series: pd.Series, as_of: pd.Timestamp) -> float | None:
     return None if s.empty or prior.empty else float(s.iloc[-1] - prior.iloc[-1])
 
 
-def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth: dict, tests: dict) -> list[dict]:
-    """One row per signal: today's reading, its state, and its test (data/signal_tests.json)."""
+@st.cache_data(show_spinner=False, ttl=3600)
+def _qualify_cached(key: str, _prices: pd.DataFrame, dates: tuple) -> dict:
+    from src.engine import index_universe as iu
+    from src.engine.momentum_health import qualified_on
+    membership = iu.index_history("nifty_500")
+    if not membership:
+        return {}
+    cols = sorted(iu.ever_members(membership) & set(_prices.columns))
+    return qualified_on(_prices[cols].astype("float64"), [pd.Timestamp(d) for d in dates], membership)
+
+
+def _qualify_today(adj_close: pd.DataFrame | None, as_of: pd.Timestamp) -> dict:
+    """{session: share of the Nifty 500 passing the filters} on the rank trail's
+    dates, by the monthly job's rule (`momentum_health.qualified_on`), so the
+    row's "Now" is today and not the last month-end (staleness audit, 21 Nov 2026)."""
+    if adj_close is None or adj_close.empty:
+        return {}
+    try:
+        from src.engine.pipeline import price_fingerprint
+        px = adj_close.loc[:as_of]
+        dates = tuple(str(di.on_or_before(px.index, d).date()) for d in di.trail_dates(px.index[-1]).values()
+                      if di.on_or_before(px.index, d) is not None)
+        return _qualify_cached(f"{price_fingerprint(px)}_{dates}", px, dates)
+    except Exception:  # noqa: BLE001 -- the row falls back to month-ends, said on the page
+        return {}
+
+
+def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth: dict, tests: dict,
+             qualify_now: dict | None = None) -> list[dict]:
+    """One row per signal: today's reading, its state, and its test (data/signal_tests.json).
+
+    Two signals are tested on month-end readings (the 10-month average, the share
+    that qualifies). Their row shows today's reading under "Now", and keeps the
+    month-end reading, which the test used, in `me_on` and the row's note; the
+    sentences count both (staleness audit, 21 Nov 2026)."""
     from src.engine import market_questions as mq
     t = tests.get("tests", {})
     pct = lambda v: "—" if v is None else f"{v:.0f}%"  # noqa: E731
     gap = lambda v: sg(v, unit="%")  # noqa: E731
     out = []
 
-    def row(key, name, sub, cells, on, flip, hist=""):
+    def row(key, name, sub, cells, on, flip, hist="", me_on="same"):
         test = t.get(key)
-        like = None
+        like = like_me = None
         if test and test["passed"] and on is not None:
             like = test["on"] if on else test["off"]
+        me = on if me_on == "same" else me_on
+        if test and test["passed"] and me is not None:
+            like_me = test["on"] if me else test["off"]
         out.append({"key": key, "name": name, "sub": sub, "cells": cells, "on": on, "test": test,
-                    "like": like, "flip": flip, "hist": hist})
+                    "like": like, "like_me": like_me, "flip": flip, "hist": hist})
 
     def where(series, value, unit="days"):
         """Where today's reading sits in its own history (v6, restored 20 Nov)."""
@@ -1262,11 +1317,14 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
             "Settled for the month" if on else (f"₹{cut / 1000:,.0f} thousand crore in a month" if cut else ""),
             f"Highest 20-session total since {flows.since:%Y}" if flows.last20_is_record else "")
     if len(n500):
-        tr = [mq.ten_month_gap(n500, d) for d in di.trail_dates(as_of).values()]
+        tr = [mq.ten_month_today(n500, d) for d in di.trail_dates(as_of).values()]
         on = tr[2] is not None and tr[2] > 0
-        row("trend_slow", "Nifty 500 vs its 10-month average", "Month-ends · above: on", [gap(v) for v in tr],
+        me, me_at = mq.ten_month_gap(n500, as_of), mq.last_month_end(n500, as_of)
+        me_txt = "" if me is None or me_at is None else f" · the test reads month-ends: {me_at:%-d %b} {gap(me)}"
+        row("trend_slow", "Nifty 500 vs its 10-month average", "Today's close against ten monthly closes · above: on"
+            + me_txt, [gap(v) for v in tr],
             None if tr[2] is None else on, "A month-end below the average" if on else "A month-end above the average",
-            where(mq._ten_month_series(n500), tr[2], "month-ends"))
+            where(mq._ten_month_series(n500), tr[2], "month-ends"), me_on=None if me is None else me > 0)
     if spreads is not None and "qualified" in spreads:
         q = pd.Series(pd.to_numeric(spreads["qualified"], errors="coerce").values * 100,
                       index=pd.to_datetime(spreads["date"])).dropna()
@@ -1276,13 +1334,20 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         except (OSError, ValueError, KeyError, TypeError):
             pass
         q = q.sort_index()
-        tr = di.month_end_trail(q, as_of)
+        me_tr = di.month_end_trail(q, as_of)
         cut = float(q.quantile(0.25))
+        me_on = None if me_tr[2] is None else me_tr[2] <= cut
+        live = [v * 100 for _, v in sorted((qualify_now or {}).items())]
+        tr = live if len(live) == 3 else me_tr
+        me_at = q.index[q.index <= as_of][-1] if len(q.index[q.index <= as_of]) else None
+        note = ("" if me_at is None or me_tr[2] is None else
+                f" · the test reads month-ends: {me_at:%-d %b} {me_tr[2]:.0f}%")
         on = tr[2] is not None and tr[2] <= cut
-        row("qualify", "Stocks that qualify", f"Nifty 500 above 50D EMA, near the high · {cut:.0f}% or fewer: on",
+        row("qualify", "Stocks that qualify", f"Nifty 500 above 50D EMA, near the high · {cut:.0f}% or fewer: on"
+            + (note if len(live) == 3 else " · month-ends"),
             [pct(v) for v in tr], None if tr[2] is None else on,
             f"Above {cut:.0f}% at the next month-end" if on else f"{cut:.0f}% or fewer at a month-end",
-            where(q, tr[2], "month-ends"))
+            where(q, tr[2], "month-ends"), me_on=me_on)
     a200, a50 = n500_breadth.get("above_200"), n500_breadth.get("above_50")
     if a200 is not None and len(a200.dropna()):
         tr = di.trail_of(a200, as_of)
