@@ -279,7 +279,7 @@ Quoted from niftyindices index-concept pages on 21 Nov 2026:
 
    It also prints, without refusing, the Screener/ETF comparison already in `benchmark_indices.etf_check`.
 5. **How pages read it.**
-   - A loader `src/loaders/nse_indices.py`, modelled on `index_levels.fetch_index_levels`: `R2DatasetReader.resolve_current("indices/nse_close_all")`, `st.cache_data(ttl=3600)`, an env-var local file for development, and None plus a stated reason on failure.
+   - A loader `src/loaders/nse_indices.py`, modelled on `index_levels.fetch_index_levels` (deleted 21 Nov 2026, S179; in git history at ca3ccf3): `R2DatasetReader.resolve_current("indices/nse_close_all")`, `st.cache_data(ttl=3600)`, an env-var local file for development, and None plus a stated reason on failure.
    - The Indices page reads closes, P/E, P/B and yield from it.
    - Strategy series start at `launch_date` from the catalogue unless the user asks for back-fill, which is shaded.
    - P/E charts draw the 2021 basis line.

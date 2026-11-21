@@ -1,14 +1,11 @@
-"""NSE index levels (Nifty 50, Next 50, Midcap 150, Smallcap 250, Microcap 250)
-from the R2 dataset the nightly `r2_nse_index_prices` job publishes.
+"""NSE's own daily Nifty 500 and Nifty 50 closes (data/benchmarks.csv).
 
-Read through the dataset's current pointer, like the price store. Returns None
-when R2 is not configured or the read fails: the dashboard then leaves the
-size table out and says so, rather than showing figures it could not load.
+The R2 index-level reader (`fetch_index_levels`, dataset indices/prices/research)
+was read only by the old Dashboard and went with it on 21 Nov 2026; the size
+indices now come from data/benchmark_indices.csv (src/loaders/benchmark_indices.py).
 """
 from __future__ import annotations
 
-import os
-import time
 from pathlib import Path
 
 import pandas as pd
@@ -16,39 +13,7 @@ import streamlit as st
 
 from src.core.logger import logger
 
-DATASET = "indices/prices/research"
 BENCHMARKS_FILE = Path(__file__).resolve().parents[2] / "data" / "benchmarks.csv"
-
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_index_levels() -> pd.DataFrame | None:
-    # Local development without R2 credentials: point INDEX_LEVELS_FILE at a
-    # copy of the published parquet. Never set on the deployed app.
-    local = os.getenv("INDEX_LEVELS_FILE", "").strip()
-    if local:
-        try:
-            return pd.read_parquet(local)
-        except Exception as exc:
-            logger.warning("INDEX_LEVELS_FILE unreadable: %s", type(exc).__name__)
-            return None
-    started = time.perf_counter()
-    try:
-        from src.storage.r2 import R2Archive, R2Config
-        from src.storage.reader import R2DatasetReader
-
-        reader = R2DatasetReader(R2Archive(R2Config.from_env()))
-        frame = reader.read_parquet(reader.resolve_current(DATASET))
-    except Exception as exc:  # not configured here, or the read failed
-        # The elapsed time is in the line because the cost of this failure was
-        # read off the GAP between log lines and attributed to R2 (TODO S115,
-        # candidate b). It is not the gap: measure it here or not at all.
-        logger.warning("Index levels unavailable from R2 (%s): %s after %.0f ms",
-                       DATASET, type(exc).__name__,
-                       (time.perf_counter() - started) * 1000)
-        return None
-    if frame is None or frame.empty or not {"date", "index", "close"} <= set(frame.columns):
-        return None
-    return frame
 
 
 @st.cache_data(ttl=3600, show_spinner=False)

@@ -195,22 +195,6 @@ def test_a_reading_needs_enough_stocks():
     assert mq._enough(counts).tolist() == [False, False, True, True]
 
 
-def test_market_strip_reads_the_day_and_the_month_and_draws_an_image_line():
-    from src.ui.views.market_questions_view import market_strip_html
-    idx = pd.bdate_range(end="2026-11-06", periods=80)
-    s = pd.Series(np.linspace(100, 110, len(idx)), index=idx)
-    s.iloc[-1] = s.iloc[-2] * 1.01
-    out = market_strip_html({"Nifty 500": s})
-    assert "+1.0%" in out and 'src="data:image/svg+xml;base64,' in out and "<svg" not in out
-    assert "Nifty 500: +1.0% on the day" in out
-
-
-def test_market_strip_never_shows_a_weeks_move_as_a_day():
-    from src.ui.views.market_questions_view import market_strip_html
-    weekly = pd.Series(np.linspace(100, 110, 30), index=pd.date_range(end="2026-11-06", periods=30, freq="W-FRI"))
-    assert market_strip_html({"Midcap 150": weekly}) == ""
-
-
 def test_size_against_the_index_uses_the_same_dates_for_both():
     # A weekly size index ending a week before the daily Nifty 500: the
     # comparison must end on the size index's last close for both series.

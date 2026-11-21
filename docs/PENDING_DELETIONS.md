@@ -26,9 +26,9 @@ Rotation Graph") and the comment on `BENCHMARK_SYMBOL_N50` in `src/core/config.p
 
 Not RRG, but next to it: the R2 dataset `indices/prices/research` and its job
 `r2_nse_index_prices.yml` (NSE sector and size indices, in practice Screener's
-charts) have no page reader: the one function that reads them,
-`src/loaders/index_levels.fetch_index_levels`, is called only by
-`dashboard_view.render_dashboard_view`, which `app.py` no longer calls, and
+charts) have no reader: the one function that read them,
+`src/loaders/index_levels.fetch_index_levels`, was deleted with the old Dashboard
+in #601 (S179), and
 `scripts/r2_inventory.py` still requires the dataset fresh. Retiring the job is
 TODO S168 (c). Its stored revisions sit under `indices/`, which
 `scripts/r2_retention.py` protects, so removing them would be an owner decision

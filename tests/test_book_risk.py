@@ -51,18 +51,6 @@ def test_size_tiers_come_from_nses_lists(tmp_path):
     assert br.tier_of(["AAA", "BBB", "ZZZ"], tmp_path) == {"AAA": "Nifty 100", "BBB": "Smallcap 250", "ZZZ": "Outside"}
 
 
-def test_the_card_renders():
-    from src.ui.views import dashboard_view as dv
-
-    px, bench = _prices()
-    res = br.book_risk(pd.Series({"AAA": 50, "BBB": 50}), px, bench,
-                       volume=pd.DataFrame(1000.0, index=px.index, columns=["AAA", "BBB"]))
-    out = dv.book_risk_html(res, pd.Timestamp("2026-10-30"))
-    assert "beta" in out and "Volatility" in out and "Slowest exit" in out and "Weight outside these indices" in out
-    # Rows as the market questions' tables: label left, figure right, on hairlines.
-    assert '<table class="db-fig">' in out and "<dl" not in out
-
-
 def test_the_index_drawdown_covers_the_records_dates_only():
     px, bench = _prices()
     eq = pd.Series([100.0, 101.0, 102.0], index=bench.index[:3])
