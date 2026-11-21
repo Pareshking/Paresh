@@ -39,7 +39,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Authenticated (gh), so it keeps working if the repository goes private.
-          for f in screener_prices.parquet rankings.parquet rankings_nano.parquet rankings_combined.parquet; do
+          for f in screener_prices.parquet rankings.parquet rankings_nano.parquet rankings_combined.parquet rankings_1000.parquet; do
             gh release download data-latest --repo "$GITHUB_REPOSITORY" --clobber --pattern "$f" --output "$f" || echo "::warning::could not fetch $f"
           done
       - name: Compare

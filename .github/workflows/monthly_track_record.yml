@@ -109,9 +109,11 @@ jobs:
       # 2026-09-27), each on its own point-in-time membership, priced from
       # Screener's store like the 750 (no Yahoo since 2026-10-02). A failure
       # here never stops the 750's freeze above from being committed.
-      - name: Freeze Nano Cap and Combined
+      # Nifty 1000 from November 2026 (S175); update_track_record refuses its
+      # freeze while any member lacks a close on the signal date.
+      - name: Freeze Nano Cap, Combined and Nifty 1000
         run: |
-          for SYSTEM in nano combined; do
+          for SYSTEM in nano combined 1000; do
             python scripts/update_track_record.py --system "$SYSTEM" \
               || echo "::warning::$SYSTEM record freeze failed; the 750's record is unaffected."
           done

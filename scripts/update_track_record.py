@@ -53,7 +53,7 @@ from src.engine.track_record import (  # noqa: E402
 )
 from src.engine import systems  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
-from src.engine.extra_universe import SYSTEM_750, SYSTEM_NANO, SYSTEMS  # noqa: E402
+from src.engine.extra_universe import SYSTEM_750, SYSTEM_1000, SYSTEM_NANO, SYSTEMS  # noqa: E402
 from src.engine.membership import describe  # noqa: E402
 from src.loaders import former_members, nse_prices  # noqa: E402
 from src.loaders import extra_universe_loader as xl  # noqa: E402
@@ -75,6 +75,32 @@ def record_setup(system: str, shadow: bool = False,
         return system, ledger or str(book.ledger_path), book.inception, dict(book.config)
     return (system, ledger or str(systems.ledger_path(system)), systems.inception(system),
             dict(TRACK_RECORD_CONFIG))
+
+
+def unpriced_members(adj_close: pd.DataFrame, membership, start: pd.Period,
+                     months: int) -> dict[str, list[str]]:
+    """{signal session: members with no close that session} for each month to freeze.
+
+    A month's book is formed at the last session before it; a member with no
+    close there would be silently left out of the ranking it is scored on.
+    """
+    from src.engine.membership import members_on
+    if membership is None or adj_close is None or adj_close.empty:
+        return {}
+    idx = pd.DatetimeIndex(adj_close.index)
+    out: dict[str, list[str]] = {}
+    for k in range(months):
+        month = start + k
+        before = idx[idx < month.start_time]
+        if not len(before):
+            continue
+        day = before[-1]
+        members = members_on(membership, day, canonical=True) or set()
+        row = adj_close.loc[day]
+        missing = sorted(s for s in members if s not in row.index or pd.isna(row[s]))
+        if missing:
+            out[f"{day:%Y-%m-%d}"] = missing
+    return out
 
 
 def _shadow_key(shadow) -> str:
@@ -185,12 +211,14 @@ def main() -> int:
         core = idx_info["Symbol"].unique().tolist() if not idx_info.empty else []
     extra: list[str] = []
     if system != SYSTEM_750:
-        extra = [s for s in xl.members()["Symbol"] if s not in set(core)]
+        listed = xl.nifty_1000_members() if system == SYSTEM_1000 else xl.members()
+        extra = [s for s in listed["Symbol"] if s not in set(core)]
     symbols = core + extra
     if not symbols:
         print("✗ universe is empty; refusing to write a record from no data")
         return 1
-    print(f"  {len(symbols)} symbols ({len(core)} in the 750, {len(extra)} Nano Cap)")
+    print(f"  {len(symbols)} symbols ({len(core)} in the 750, {len(extra)} "
+          f"{'NIFTY NANOCAP 250' if system == SYSTEM_1000 else '₹2,000 Cr list'})")
 
     # Screener's store holds both the 750 and the Nano Cap list; it is the
     # frame's base, and basis_frame below lays NSE under it (owner, 2026-10-02:
@@ -279,6 +307,18 @@ def main() -> int:
     print(f"→ former members priced: {adj_close.shape[1] - n_before} added to the "
           f"{n_before}-stock frame; unpriceable: "
           f"{', '.join(unpriceable) or 'none'}")
+
+    # The Nifty 1000's ~250 extra members are still being priced (S175): a month is
+    # frozen only when every member of its signal close has a close that day, so a
+    # book is never formed from the part of the index we happen to hold.
+    if system == SYSTEM_1000:
+        gaps = unpriced_members(adj_close, membership, start, months)
+        if gaps:
+            for day, names in gaps.items():
+                print(f"✗ {day}: {len(names)} Nifty 1000 member(s) without a close: "
+                      f"{', '.join(names[:20])}{' …' if len(names) > 20 else ''}")
+            print("✗ refusing to freeze the Nifty 1000 until every member is priced")
+            return 1
 
     # Per month: a forward-dated rule (members_only_scoring_from) is part of
     # the fingerprint only of the months it governs (track_record.config_for_month).

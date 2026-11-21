@@ -80,6 +80,7 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
     assert set(plans) == {"prices/screener", "prices/ss", "bse/daily", "market_caps/nse_history",
                           "prices/nse_long_close", "prices/nse_long_value", "prices/nse_long_report",
                           "snapshots/rankings", "snapshots/rankings_nano", "snapshots/rankings_combined",
+                          "snapshots/rankings_1000",
                           "snapshots/application", "prices/yahoo/bootstrap",
                           "prices/yahoo", "prices/yahoo/raw", "app/prices_snapshot",
                           "app/prices_extra"}

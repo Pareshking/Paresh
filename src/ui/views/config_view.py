@@ -28,9 +28,9 @@ from src.core.config import (
 )
 from src.engine.corporate_actions import load_events
 from src.engine.extra_universe import (
-    SYSTEM_750, SYSTEM_COMBINED, SYSTEM_NAMES, SYSTEM_NANO, SYSTEMS,
+    NANOCAP_250_NAME, SYSTEM_750, SYSTEM_1000, SYSTEM_COMBINED, SYSTEM_NAMES, SYSTEM_NANO, SYSTEMS,
 )
-from src.loaders.extra_universe_loader import membership_summary
+from src.loaders.extra_universe_loader import NIFTY_1000_PATH, membership_summary
 from src.loaders.indices_loader import get_sync_metadata, sync_official_nse_indices
 from src.ui.components import age_phrase, data_freshness, gap_count, render_data_quality_footer
 from src.ui.widget_state import forget, remember, resolve
@@ -168,13 +168,18 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         )
 
     # Owner, 2026-09-27: three systems in one app; every page follows this.
+    # Owner, 21 Nov 2026 (S175): four. Nifty 1000 is offered once its list is on disk.
     nano = membership_summary()
-    options = list(SYSTEMS) if nano else [SYSTEM_750]
+    n1000 = os.path.exists(NIFTY_1000_PATH)
+    options = [s for s in SYSTEMS if s == SYSTEM_750
+               or (s == SYSTEM_1000 and n1000) or (s in (SYSTEM_NANO, SYSTEM_COMBINED) and nano)]
     count = f"{nano.get('count', '?')} stocks · " if nano else ""
     captions = {
         SYSTEM_750: "Default · record since Jan 2026",
-        SYSTEM_NANO: f"₹2,000 Cr+ outside the 750 · {count}record from Oct 2026",
-        SYSTEM_COMBINED: "Both, ranked together · record from Oct 2026",
+        SYSTEM_1000: (f"NSE's Nifty 1000: the 750 plus {NANOCAP_250_NAME} (our name for NSE's other "
+                      "250; not an index NSE publishes) · record from Nov 2026, November reconstructed"),
+        SYSTEM_NANO: f"₹2,000 Cr or more outside the 750 · {count}record from Oct 2026",
+        SYSTEM_COMBINED: "The 750 and > ₹2,000 Cr, ranked together · record from Oct 2026",
     }
     current = system_param.current()
     chosen = st.segmented_control(
@@ -183,10 +188,10 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
         required=True,
         format_func=SYSTEM_NAMES.get,
         key="cfg_system_radio",
-        help="Every page follows this choice. Nano Cap is every stock of ₹2,000 Cr "
-             "or more outside the 750, fixed at each month-end"
-             + (f" (list of {nano.get('as_of')})" if nano else "")
-             + ", ranked among themselves; Combined ranks both as one list.",
+        help="Every page follows this choice. Nifty 1000 is NSE's index, the 750 and 250 more. "
+             "> ₹2,000 Cr is every stock of ₹2,000 Cr or more outside the 750, fixed at each "
+             "month-end" + (f" (list of {nano.get('as_of')})" if nano else "")
+             + ", ranked among themselves; Combined ranks the 750 and > ₹2,000 Cr as one list.",
     ) or (current if current in options else options[0])
     st.caption(captions[chosen])
     if chosen != current:

@@ -32,6 +32,7 @@ LIST_PATH = ROOT / "data" / "indices" / "ind_nanocap_list.csv"
 HISTORY_PATH = ROOT / "data" / "nanocap_membership.json"
 TOTAL_MARKET = ROOT / "data" / "indices" / "ind_niftytotalmarket_list.csv"
 TV_FILE = ROOT / "data" / "nse_tv_classification.csv"
+EQUITY_LIST = ROOT / "data" / "reference" / "nse" / "equity_l.csv"   # scripts/sync_nse_reference.py
 
 
 def _total_market() -> set[str]:
@@ -77,6 +78,8 @@ def main(argv: list[str] | None = None) -> int:
     reader = R2DatasetReader(archive)
     caps = reader.read_parquet(reader.resolve_current(dataset, as_of=day.isoformat()))
     listed = xu.members(caps, _total_market(), _classification())
+    listed = xu.with_isins(listed, pd.read_csv(EQUITY_LIST) if EQUITY_LIST.exists() else None)
+    print(f"NANOCAP ISINs from NSE's equity list: {int((listed['ISIN Code'] != '').sum())} of {len(listed)}")
     if listed.empty:
         print(f"::error::NANOCAP the market caps for {day} gave an empty list; keeping the old one")
         return 1
