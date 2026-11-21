@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-21 — Menu: seven pages in the top bar, no sections
+
+- The top bar on a desktop now links Dashboard, Actions, Screener, Portfolio, Market, Indices and Sectors (it had the first four).
+- "Market Breadth" is called **Market** in the menu; the page and its address (`/breadth`) are unchanged.
+- The menu (☰) is one list in that order, then Watchlist, Backtest, Configuration and Guide, without the "My book", "Market" and "Method" headings. On a phone it is still the only navigation.
+
 ## 2026-11-21 — Dashboard: what the Indices page adds
 
 - §3 (Momentum): a note from the site's own record on how far this ranking's top 100 sits below its best against the Nifty 500, its deepest fall since 2010 and the one before with how long it took to recover. A description, not a forecast. The caption now reads "This ranking’s top 100 against the Nifty 500", so it is not confused with NSE's Nifty200 Momentum 30 on Indices.

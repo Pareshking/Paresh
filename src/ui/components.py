@@ -314,12 +314,12 @@ def _status_pill_html() -> str:
             f'<span><span class="hdr-pill-lead">{html.escape(lead)}</span>{html.escape(tail)}</span></span>')
 
 
-_MENU_GROUPS = (
-    ("My book", ("Dashboard", "Portfolio", "Actions", "Watchlist")),
-    ("Market", ("Screener", "Sectors", "Market Breadth", "Indices")),
-    ("Method", ("Backtest", "Configuration", "Guide")),
-)
-_QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio")
+# One flat list, no group headings (owner, 21 Nov 2026: "do we need such sections in
+# the menu? remove them"). The menu lists every page in this order; the top bar
+# shows the first seven on a desktop.
+_MENU_ORDER = ("Dashboard", "Actions", "Screener", "Portfolio", "Market", "Indices", "Sectors",
+               "Watchlist", "Backtest", "Configuration", "Guide")
+_QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio", "Market", "Indices", "Sectors")
 
 
 # The header says what it measures (owner, 8 Nov 2026): "Nifty 500 2.9% above its
@@ -403,8 +403,8 @@ def render_header_kpi_bar(
         else:
             st.html('<span class="hdr-title">Paresh Patel</span>', width="content")
         if nav_pages:
-            # Owner, 7 Nov 2026 (audit decision 6): on a desktop the four pages
-            # read most often sit beside the menu; the menu keeps all eleven.
+            # On a desktop the pages read most often sit beside the menu (owner, 7 Nov
+            # 2026, four; 21 Nov, seven with Market, Indices, Sectors); the menu keeps all.
             # CSS hides this row below 1024 px, where the menu alone shows.
             with st.container(key="app_quicklinks", horizontal=True,
                               vertical_alignment="center", gap=None, width="content"):
@@ -430,23 +430,16 @@ def render_header_kpi_bar(
                     width=320,
                     key=f"app_nav_menu_{_page_slug}",
                 ):
-                    # Regrouped by what the reader is doing (owner, 7 Nov, audit
-                    # decision): their book, the market, and how it works. Pages
-                    # are picked by title, so a reordered page list cannot
-                    # move a page into the wrong group.
+                    # Pages are picked by title, so a reordered page list cannot
+                    # reorder the menu.
                     _by_title = {getattr(x, "title", ""): x for x in nav_pages}
                     _placed = set()
-                    for _group, _titles in _MENU_GROUPS:
-                        _pages = [_by_title[t] for t in _titles if t in _by_title]
-                        if not _pages:
-                            continue
-                        st.markdown(f"**{_group}**")
-                        for _p in _pages:
-                            _placed.add(id(_p))
-                            _state = "navon" if _p is active_page else "navoff"
-                            with st.container(key=f"{_state}_{_group.lower().replace(' ', '_')}_{getattr(_p, 'url_path', '') or 'home'}",
-                                              width="stretch"):
-                                st.page_link(_p)
+                    for _p in (_by_title[t] for t in _MENU_ORDER if t in _by_title):
+                        _placed.add(id(_p))
+                        _state = "navon" if _p is active_page else "navoff"
+                        with st.container(key=f"{_state}_menu_{getattr(_p, 'url_path', '') or 'home'}",
+                                          width="stretch"):
+                            st.page_link(_p)
                     _rest = [x for x in nav_pages if id(x) not in _placed]
                     for _p in _rest:  # a page added later still shows
                         _state = "navon" if _p is active_page else "navoff"
