@@ -1402,7 +1402,7 @@ def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:
         rows_r.append(("Below its peak", sg(risk.drawdown * 100, unit="%"), ""))
     return [
         (f"Indices, {as_of:%-d %b}", (page_href("indices"), "Indices"), [(n, sg(v, unit="%"), tone(v)) for n, v in idx]),
-        ("Breadth, ranked stocks", (page_href("breadth"), "Breadth"), rows_b),
+        ("Breadth, ranked stocks", (page_href("breadth"), "Market"), rows_b),
         ("The book’s risk", (page_href("portfolio"), "Portfolio"), rows_r),
     ]
 

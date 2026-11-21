@@ -4,6 +4,7 @@
 
 - The top bar on a desktop now links Dashboard, Actions, Screener, Portfolio, Market, Indices and Sectors (it had the first four).
 - "Market Breadth" is called **Market** in the menu; the page and its address (`/breadth`) are unchanged.
+- The page's own label above its title now reads "Market" (it read "Breadth"), and the Dashboard's link to it under "Breadth, ranked stocks" is named "Market".
 - The menu (☰) is one list in that order, then Watchlist, Backtest, Configuration and Guide, without the "My book", "Market" and "Method" headings. On a phone it is still the only navigation.
 
 ## 2026-11-21 — Charts no longer jump on hover
