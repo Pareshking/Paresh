@@ -129,3 +129,17 @@ def test_the_record_answers_from_the_close_that_signals_november_and_not_earlier
     assert members_on(h, "2026-10-30") == {"A", "X"}
     assert members_on(h, "2026-10-29") is None
     assert iu.first_month(h) == pd.Period("2026-11", "M")
+
+
+def test_the_screener_sync_collects_nifty1000_members_outside_the_750(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("sync_screener", ROOT / "scripts" / "sync_screener.py")
+    sync = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sync)
+    nano, n1000 = tmp_path / "nano.csv", tmp_path / "n1000.csv"
+    nano.write_text("Symbol\nNANO1\nBOTH\n")
+    n1000.write_text("Symbol\nAAA\nBOTH\nSMALL1\n")
+    monkeypatch.setattr(sync, "EXTRA_LIST", str(nano))
+    monkeypatch.setattr(sync, "RECORDED_LIST", str(n1000))
+    assert sync.extra_symbols(["AAA"]) == ["BOTH", "NANO1", "SMALL1"]
+    monkeypatch.setattr(sync, "RECORDED_LIST", str(tmp_path / "missing.csv"))
+    assert sync.extra_symbols(["AAA"]) == ["BOTH", "NANO1"]       # before the first sync writes the list
