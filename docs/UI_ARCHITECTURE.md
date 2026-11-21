@@ -359,7 +359,7 @@ survey as written on 10 Nov, with the corrections marked.
 | 1 | `table_html` / `render_screener_table` | `src/ui/screener_table.py` (641 lines) | `st.iframe`, through `tokens.resolve()` | The Screener grid, and the stock page's peers |
 | 2 | `render_saas_table` | `src/ui/theme.py` (from line 2160) | **`st.iframe`, through `tokens.resolve()`** (the 10 Nov survey said `st.html`, on the page — wrong; it has always ended `st.iframe(resolve(...))`, and it returns `None`, not markup) | Backtest (monthly, closed trades, tradebook), Breadth, Portfolio (holdings, trades, rebalances), Track Record (2), Configuration (3) |
 | 3 | `_render_yearly_summary`, `_render_calendar_returns` | `src/ui/components.py` (lines 132-282) | `st.html`, on the page | The calendar returns and yearly summary, on Portfolio and Track Record |
-| 4 | Hand-built `<table>` blocks | `src/ui/views/dashboard_view.py` (`db-size`; `db-fig` **now through `theme.figure_table_html`**), `src/ui/views/dashboard_panels.py` (same), `src/ui/views/market_questions_view.py` (plain `<table>`, `qp-heat`, and one `rowspan="2"` grouped header at line 394) | a string a card embeds, drawn with the page | The Dashboard's panels, Sectors and Breadth's question cards |
+| 4 | Hand-built `<table>` blocks | ~~`src/ui/views/dashboard_view.py`, `src/ui/views/dashboard_panels.py`~~ (deleted 21 Nov 2026 with `theme.figure_table_html`, TODO S179: nothing live called them), `src/ui/views/market_questions_view.py` (plain `<table>`, `qp-heat`, and one `rowspan="2"` grouped header at line 394) | a string a card embeds, drawn with the page | The Dashboard's panels, Sectors and Breadth's question cards |
 
 (`render_master_screener_table`, named in older notes and in
 `tests/test_table_html_escaping.py`'s docstring, no longer exists: it is
@@ -436,6 +436,10 @@ The order after that, easiest to hardest:
    for a card to embed. The two format strings in `dashboard_view.book_risk_html`
    and `dashboard_panels.long_only_html` are gone; the output is byte-for-byte
    what shipped, pinned by `tests/test_figure_tables_shared.py`.
+
+   **21 Nov 2026**: both callers were in the old Dashboard, unreachable since 20 Nov,
+   so `figure_table_html` and its test were deleted with it (TODO S179). The design
+   notes below stand for whoever builds the next fragment renderer.
 
    They were **not** routed through `render_saas_table` itself, and this is
    where the 10 Nov plan was wrong about what that would cost. `render_saas_table`
