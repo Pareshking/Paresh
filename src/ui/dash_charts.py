@@ -25,7 +25,8 @@ import streamlit as st
 
 from src.ui.tokens import FONTS, resolve
 
-KINDS = ("month", "bars", "shared", "segbar", "breadth", "growth", "holdings", "history", "lines", "trows", "rel")
+KINDS = ("month", "bars", "shared", "segbar", "breadth", "growth", "holdings", "history", "lines", "trows", "rel",
+         "pairs", "lmap", "stable")
 # The kit's address carries its content hash, so a deploy is never drawn by a cached older kit.
 _KIT = Path(__file__).resolve().parents[2] / "static" / "dash_charts.js"
 KIT_SRC = "app/static/dash_charts.js?v=" + hashlib.sha256(_KIT.read_bytes()).hexdigest()[:12]
@@ -83,6 +84,12 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .tr-head{font-size:12px;color:var(--muted);padding:0 8px 4px;margin:0 -8px;border-bottom:1px solid var(--ink)}.tr-head .num{font-family:inherit}
 .trrow{padding:9px 8px 13px;margin:0 -8px;border-radius:6px;border-bottom:1px solid var(--rule-soft)}.trrow:hover,.trrow.on{background:var(--fill)}
 .trrow .num.b{font-weight:600}
+.trgrp{padding:10px 8px 6px;margin:0 -8px;font-size:12.5px;color:var(--text2);background:var(--fill);border-bottom:1px solid var(--rule-soft)}.trgrp span{color:var(--muted);font-weight:400}.trrow.ref{border-bottom:1.5px solid var(--rule)}
+.pick{font:13px 'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:6px 8px;min-height:32px}
+.mcap,.mex p{margin:0;font-size:13.5px;color:var(--muted);max-width:80ch}.mex{display:grid;gap:8px}.mex b{color:var(--text2)}.mex .mh{color:var(--ink);font-weight:600}
+@media (min-width:900px){.mex{grid-template-columns:1fr 1fr;column-gap:32px}.mex .mh{grid-column:1/-1}}
+details summary{cursor:pointer;font-size:13px;color:var(--text2)}.ptab,.mtab{max-height:340px;overflow:auto;margin-top:6px}
+.stab{overflow-x:auto}.ht.st{min-width:0;width:auto}.ht.st th,.ht.st td{padding:7px 12px 7px 0}.ht.st td.bar{text-align:right}.ht.st .bw{display:flex;align-items:center;justify-content:flex-end;gap:10px}.ht.st .bw .num{min-width:40px}.ht.st .tt{--pitch:6.8px;height:20px}.ht.st tr.ref th,.ht.st tr.ref td{border-bottom:1.5px solid var(--rule)}.ht.st thead th{white-space:normal;max-width:84px}.ht.st thead th:first-child{max-width:none}
 .key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}.key span{display:flex;align-items:center;gap:6px}
 .key .k-now{width:2px;height:14px;background:var(--ink)}.key .k-ago{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:6px solid var(--muted)}
 .key .k-line{width:0;height:14px;border-left:1px dashed var(--muted)}
@@ -122,6 +129,7 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 
 /* The readout is one line where it fits: the date, then the values (owner, 20 Nov: the numbers took half the chart). */
 @media (max-width:600px){
+.ht.st .tt{--pitch:3.4px}
 .tt{--pitch:min(8px, calc((100vw - 24px) / var(--n)))}
 .trow{grid-template-columns:minmax(0,1fr) 64px}.trow .tt{grid-column:1/-1;grid-row:2;height:22px}
 .seg-axis{grid-template-columns:minmax(0,1fr)}.seg-axis>span{display:none}.seg-axis div{width:calc(var(--n) * min(8px, calc((100vw - 24px) / var(--n))))}
@@ -174,6 +182,15 @@ BODY = {
                 '<div class="chart" tabindex="0" role="img" aria-label="Holdings bought at each rebalance"></div></div>'
                 '<div class="hbody" role="region" aria-label="{label}" tabindex="0"></div>'
                 '<p class="hnote">{note}</p>'),
+    "pairs": ('<div class="cap"><span class="chips" role="group" aria-label="Sector"></span></div>'
+              '<div class="ph" aria-live="polite"></div><div class="chart" tabindex="0" role="img" aria-label="{label}"></div>'
+              '<details><summary>{table}</summary><div class="ptab"></div></details>'),
+    "lmap": ('<div class="cap"><span class="chips ema" role="group" aria-label="EMA"></span>'
+             '<span class="chips per" role="group" aria-label="Period"></span>'
+             '<select class="pick" aria-label="{pick}"></select></div>'
+             '<div class="readout" aria-live="polite"></div><div class="chart" tabindex="0" role="img" aria-label="{label}"></div>'
+             '<p class="mcap"></p><div class="mex"></div><details><summary>{table}</summary><div class="mtab"></div></details>'),
+    "stable": '<div class="stab" role="region" aria-label="{label}" tabindex="0"></div><div class="key">{note}</div>',
 }
 
 

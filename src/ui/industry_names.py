@@ -20,6 +20,7 @@ INDUSTRY_SHORT: dict[str, str] = {
     "Oil Gas & Consumable Fuels": "Oil & Gas",
     "Information Technology": "IT",
     "Telecommunication": "Telecom",
+    "Construction Materials": "Constr. Materials",
 }
 
 

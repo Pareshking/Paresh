@@ -6,10 +6,10 @@ learned on the four redesigned pages (`docs/PAGE_DESIGN.md` §2a, `docs/FIGURE_I
 
     node scripts/check_dashboard_requirements.mjs <url> docs/SECTORS_REQUIREMENTS.md
 
-**Status, 21 Nov 2026:** rows 1-18 are approved and built (the live page; CI reads them). The makeover at the
-end of this file, **"Makeover proposal (v1)"**, is **proposed, not approved**: its rows are numbered M1-M19 so the
-check does not read them (P1-P3 below are the owner's 21 Nov rows they rewrite), and it has a "Proposed order"
-line, not an `Order:` line, until the owner approves.
+**Status, 21 Nov 2026:** the makeover is **approved** (owner: "Sector and Backtest approved", mock-up v2) and
+**built**. The rows the check reads are "The approved rows" in the makeover section below (1-21, with the `Order:`
+line). The rows of the page before the makeover are kept for the record as "was 1"-"was 18", which the check does not
+read; "The live rows, one by one" says what became of each.
 
 ## What a reader comes with
 
@@ -19,33 +19,33 @@ line, not an `Order:` line, until the owner approves.
 4. Which stocks in an industry lead it, and how do they rank?
 5. Where does breadth sit by industry (the leadership map)?
 
-## From the live page (21 Nov 2026)
+## The page before the makeover (21 Nov 2026; replaced, see "The live rows, one by one")
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 1 | "What is leading?": the answer, one sentence, what would change it | Owner 7 Nov (CHANGELOG "Sectors answers") | Top | What is leading? + What would change the answer |
-| 2 | By size: each NSE size index against the market, 6 months and 1 month, and all ranked stocks equal-weighted | Owner 7 Nov; S147 | Top | Nifty 50 + Midcap 150 + Smallcap 250 + Microcap 250 + equal weight |
-| 3 | Industries in four groups: ahead on both, gaining, fading, behind on both, each with 6M · 1M | Owner 7 Nov | Groups | Ahead on both + Gaining + Fading + Behind on both |
-| 4 | Every industry as a bar for six months with a ring for the last month | Owner 7 Nov | Bars | Rings: the last month |
-| 5 | Month by month: each industry against the market for 12 completed months and the month so far, its run and 12-month total, with a worked example | Owner 7 Nov | Months | Run + 12 months + For example |
-| 6 | Industry leaderboard, sortable (3M median, 6M median, share passing, top-50 count), with leaders | Live page | Leaderboard | Industry leaderboard |
-| 7 | Stocks in an industry: the industry's stocks in the Screener's table | Live page | Stocks | Stocks in an industry |
-| 8 | Sector leadership map: one month's return against the share above an EMA (20/50/100/200), a month ago to now, 1M or 3M | Live page | Map | Sector leadership map |
-| 9 | Industry or sector grouping switch (NSE industry) | Live page | Top | NSE industry |
-| 10 | RRG and Sectors agree on each industry's standing: one construction for an industry and its benchmark; 100 is the benchmark | S147, owner 19-20 Nov | Whole page | Sectors |
+| was 1 | "What is leading?": the answer, one sentence, what would change it | Owner 7 Nov (CHANGELOG "Sectors answers") | Top | What is leading? + What would change the answer |
+| was 2 | By size: each NSE size index against the market, 6 months and 1 month, and all ranked stocks equal-weighted | Owner 7 Nov; S147 | Top | Nifty 50 + Midcap 150 + Smallcap 250 + Microcap 250 + equal weight |
+| was 3 | Industries in four groups: ahead on both, gaining, fading, behind on both, each with 6M · 1M | Owner 7 Nov | Groups | Ahead on both + Gaining + Fading + Behind on both |
+| was 4 | Every industry as a bar for six months with a ring for the last month | Owner 7 Nov | Bars | Rings: the last month |
+| was 5 | Month by month: each industry against the market for 12 completed months and the month so far, its run and 12-month total, with a worked example | Owner 7 Nov | Months | Run + 12 months + For example |
+| was 6 | Industry leaderboard, sortable (3M median, 6M median, share passing, top-50 count), with leaders | Live page | Leaderboard | Industry leaderboard |
+| was 7 | Stocks in an industry: the industry's stocks in the Screener's table | Live page | Stocks | Stocks in an industry |
+| was 8 | Sector leadership map: one month's return against the share above an EMA (20/50/100/200), a month ago to now, 1M or 3M | Live page | Map | Sector leadership map |
+| was 9 | Industry or sector grouping switch (NSE industry) | Live page | Top | NSE industry |
+| was 10 | RRG and Sectors agree on each industry's standing: one construction for an industry and its benchmark; 100 is the benchmark | S147, owner 19-20 Nov | Whole page | Sectors |
 
-## Rules learned on the four pages (21 Nov 2026)
+## Rules learned on the four pages (21 Nov 2026; carried into the approved rows)
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 11 | The title answers the first question; the page's name is the kicker | PAGE_DESIGN §2a | Top | Sectors |
-| 12 | One source per figure: index closes from `data/benchmark_indices.csv` (and NSE's Total Market file), cut at one session | S154, S148 | By size | Microcap 250 |
-| 13 | One benchmark per comparison, named the same in caption, axis and note (the map said "all ranked stocks" in its caption and "Nifty 500" on its axis, found 21 Nov) | S154 | Map, By size | Sectors |
-| 14 | One count of industries everywhere (the page said 20 in the header, 19 in the answer and "at least five stocks" in the note, found 21 Nov) | S154 | Whole page | Sectors |
-| 15 | The qualified rank in "Stocks in an industry" is the one on Actions and Portfolio (it read "—" for every stock, found and fixed 21 Nov) | S154 | Stocks | Qualified # |
-| 16 | Charts from the site's kit where they are charts; serif headings, notes 13.5 px, long notes in two columns, "What it is" open on a wide screen | PAGE_DESIGN §2a | Whole page | Sectors |
-| 17 | Data date only, no sources named; data-quality counts kept | Owner 20-21 Nov | Footer | Data to |
-| 18 | Layout audit clean at 412 and 1400 px | Owner 20 Nov | Whole page | Sectors |
+| was 11 | The title answers the first question; the page's name is the kicker | PAGE_DESIGN §2a | Top | Sectors |
+| was 12 | One source per figure: index closes from `data/benchmark_indices.csv` (and NSE's Total Market file), cut at one session | S154, S148 | By size | Microcap 250 |
+| was 13 | One benchmark per comparison, named the same in caption, axis and note (the map said "all ranked stocks" in its caption and "Nifty 500" on its axis, found 21 Nov) | S154 | Map, By size | Sectors |
+| was 14 | One count of industries everywhere (the page said 20 in the header, 19 in the answer and "at least five stocks" in the note, found 21 Nov) | S154 | Whole page | Sectors |
+| was 15 | The qualified rank in "Stocks in an industry" is the one on Actions and Portfolio (it read "—" for every stock, found and fixed 21 Nov) | S154 | Stocks | Qualified # |
+| was 16 | Charts from the site's kit where they are charts; serif headings, notes 13.5 px, long notes in two columns, "What it is" open on a wide screen | PAGE_DESIGN §2a | Whole page | Sectors |
+| was 17 | Data date only, no sources named; data-quality counts kept | Owner 20-21 Nov | Footer | Data to |
+| was 18 | Layout audit clean at 412 and 1400 px | Owner 20 Nov | Whole page | Sectors |
 
 ## Decided (owner, 21 Nov 2026: "go as recommended")
 
@@ -86,7 +86,7 @@ Numbered P1-P3 until built, so the requirements check does not read them yet; ea
 
 ---
 
-# Makeover proposal (v1), 21 Nov 2026: proposed, not approved
+# The makeover, 21 Nov 2026: proposed (v1), decided item by item, approved (v2) and built
 
 Mock-up: `docs/mockups/sectors_v2.html` (v2, with the owner's 13 decisions; v1 `docs/mockups/sectors_v1.html` was the proposal) (desktop and phone, light and dark; real figures, closes of 20 Nov 2026).
 Figures: `scripts/sectors_mockup_figures.py`, run on the ranking table and the Screener price store (the release
@@ -136,33 +136,37 @@ Which sizes lead is the Dashboard's question ("Size, and where momentum works");
   where the Dashboard and Indices mean the Nifty 100 by "Large"); the leaderboard's 3M and 6M medians are a third
   reading of returns beside the equal-weighted ones.
 
-## Proposed rows (M-numbers until built, then numbered and read by the check)
+## The approved rows (built 21 Nov 2026; the check reads them)
+
+Numbered from the proposal's M1-M21 (row n was Mn). Rows 3 and 21 show nothing a reader can find on the default page:
+3 is data, checked by `tests/test_sectors_page.py`; 21 appears only with a TradingView grouping chosen and is checked by
+`tests/test_sectors_grouping_switch.py`. Their marker, "Grouping", is the control that leads to them.
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| M1 | Kicker "Sectors"; the title names the sectors ahead of the 750 on both six months and one month and the two furthest behind, with the gap in pts; the lede counts the sectors ahead on both and gives the month's Nifty Total Market and 750 returns | PAGE_DESIGN §2a; live row 11 | Top | Sectors + lead the 750 |
-| M2 | **Broad or narrow.** For each of the 18 sectors with a headline index (the map, MQ4 yes), the 750's stocks equal-weighted against that index over 3M, the gap as a line bar (0.5 pt a line, ±12), the 1M gap beside. First row: the 750 against Nifty Total Market, whose 3M gap is a dashed line on every bar. The note says the two differ in stocks and in weights | P2, revised | Section 2 | Broad or narrow + Gap, 3M + The 750 vs Total Market |
-| M3 | The map, approved, committed as `data/reference/nse_sector_index_map.csv` with a reason per row; a test fails if a "Sector" index sits under no sector or under two. `nse_index_groups.csv` moves Nifty Consumer Services and Nifty Commercial & Transport Services from Theme to Sector (owner, MQ4), so they leave Indices | P3 | Data | — |
-| M4 | **NSE's sector indices.** Every index in the "Sector" group (37 on 20 Nov, with the two moved by MQ4), grouped under its sector in the order of section 1; the first line of each group is the sector's ranked stocks, equal-weighted; the headline index next, marked "for the sector". Columns 1M, 3M, 6M, 9M, 1Y, From 52W high, P/E (the Indices page's columns). An index younger than a year comes last in its group with "since" and its launch in the 1Y column. A sector with no index says so. On a phone names drop "Nifty" and stay on one line, pinned, while the numbers scroll | P1, with Indices' windows | Section 3 | NSE’s sector indices + for the sector + since 15 Jun 2026 |
-| M5 | One-year chart for the chosen sector (chips): the 750's stocks equal-weighted (ink, with area) and the headline index (blue), both 100 a year ago or at the index's launch; crosshair, readout above the chart with both values and the gap, arrow keys, latest at rest; "Show the table" gives month-ends | PAGE_DESIGN §4.1 | Section 2 | One year, each line 100 + Show the table |
-| M6 | **Which sectors lead.** One table: groups as heading rows (Ahead on both, Gaining, Fading, Behind on both, each with its count and meaning); the six-month lead over the 750 read 3M ago, 1M ago and now, now as a line bar (1 pt a line, ±20) with a triangle a month ago; the 1M lead beside. First row: the 750 against Nifty Total Market. On a phone the past readings and the 1M lead sit under the bar | Live rows 3 and 4, merged; PAGE_DESIGN §2 (3M ago, 1M ago, now), §3 (group rows) | Section 1 | Ahead on both + Gaining + Fading + Behind on both + Six-month lead |
-| M7 | What would change the answer: the three nearest to moving ahead over six months and the three nearest to falling behind, in pts | Live row 1 | Section 1 | What would change the answer |
-| M8 | A worked example of one lead with its own numbers, and "Describing is not forecasting" | Live page (worked examples); PAGE_DESIGN §2 | Section 1 | For example, Healthcare + Describing is not forecasting |
-| M9 | Month by month as live row 5: 12 completed months and the month so far, Run, the 12 months summed, a worked example; sign colour only, no shades | Live row 5; Indices row 11 (no heat colours) | Section 4 | Month by month + 12 months, summed + so far |
-| M10 | **Inside each sector**, below the leadership map (owner, item 10). The share above the 200D EMA 3M ago, 1M ago and now (2% a line, dashed 40% and 60%, triangle a month ago), then Above 50D EMA, Near 52W high, Pass both filters, In top 50, Typical stock 3M (the median), Leaders; first row all 750; sortable by any column | Live rows 6 and 8, merged | Section 5 | Inside each sector + Above 200D EMA + Typical stock, 3M + Pass both filters |
-| M11 | Stocks in a sector: a picker and the Screener's table, with the qualified rank shown on Actions and Portfolio | Live rows 7 and 15 | Section 6 | Stocks in a sector + Qualified rank |
-| M12 | No size-index rows; the 750 against Nifty Total Market stays as the first row of sections 1 and 2; a link to the Dashboard's "Size, and where momentum works" | Decision C; changes live row 2 | Section 1 | The 750 vs Total Market + Size, and where momentum works |
-| M13 | One word for NSE's 22 groups: "sector" in every heading, label, control, note and chart on the page; the one note that explains NSE's "Industry" column and the grouping control's "TradingView industry" are the only places the other word appears | Decision B; S173 | Whole page | Which sectors lead |
-| M14 | One market: "the 750" is the ranked stocks equal-weighted, "Nifty Total Market" the cap-weighted index; never "the index", "all ranked stocks" or "the market" for the 750 | S165, S173; changes live row 13 | Whole page | Nifty Total Market |
-| M15 | One count: the 19 sectors with five or more ranked stocks in every section; the note names those left out (Utilities, 4; Diversified and Forest Materials, 1 each) | S154; changes live row 14 (the leaderboard showed 20) | Whole page | 19 have five or more ranked stocks |
-| M16 | One source and one session: stock figures from the ranking table and the price store (R2); every index figure, Nifty Total Market included, from the app's copy of NSE's daily index files; all cut at the ranking table's session | S148, S154, decision I; changes live row 12 | Whole page | Data to |
-| M17 | Units: pts for a lead or a gap (a difference of two returns), % for a return or a share; each line bar states its step; minus is U+2212 | S173; PAGE_DESIGN §8 | Whole page | 0.5 pt a line + 2% a line |
-| M18 | **The grouping switch at the top**, NSE sector by default with the full page; TradingView sector and TradingView industry as the other choices. With a TradingView grouping every section built from the ranked stocks regroups (which lead, the leadership map, month by month, inside each sector, stocks in a sector); "The 750 vs Total Market" stays; the broad-or-narrow section, the NSE index table and any index column hide, with one line in their place (M21). No section ignores the switch | Owner 21 Nov, item 12 (kept); live row 9 | Top | Grouping + NSE sector + TradingView sector |
-| M19 | Data date and counts at the foot; layout audit clean at 412 and 1400 px; the page stays in CI's requirements and layout step | Live rows 16-18 | Foot | Data to + stocks ranked |
-| M20 | **Sector leadership map**, kept: across, the sector's 1M lead over the 750 in pts (section 1's 1M lead, the same number); up, the share of its stocks above the EMA; a hollow dot a month ago, a filled dot today, a line between; leader blue, laggard rust, the rest grey; EMA (20, 50, 100, 200 days, 200 by default) and period (1M, 3M, 1M by default) as switches; a sector picker; values under the pointer with the readout above, arrow keys, the leader at rest; on a phone only the leader, laggard and picked sector are labelled, the rest named on tap; the caption counts where breadth fell and names sectors ahead on narrow breadth; the worked example ("How to read it") with the decided names ("sector", "the 750", leads in pts, not %); "Show the table"; five or more stocks per sector, so it counts the same 19 | Owner 21 Nov, item 10 (kept); live row 8 | Section 5 | Sector leadership map + 200D EMA + Heavy lifting |
-| M21 | With a TradingView grouping chosen, the page says once, where the NSE index sections were: "NSE's indices match NSE's sectors; switch to NSE sectors to see them." A test renders the page under each grouping and fails if a section built from ranked stocks keeps NSE's sectors, or if an NSE index figure shows (`tests/test_sectors_grouping_switch.py`, written in the build) | Owner 21 Nov, item 12 | Broad or narrow, NSE's sector indices | — |
+| 1 | Kicker "Sectors"; the title names the sectors ahead of the 750 on both six months and one month and the two furthest behind, with the gap in pts; the lede counts the sectors ahead on both and gives the month's Nifty Total Market and 750 returns | PAGE_DESIGN §2a; live row 11 | Top | Sectors + lead the 750 |
+| 2 | **Broad or narrow.** For each of the 18 sectors with a headline index (the map, MQ4 yes), the 750's stocks equal-weighted against that index over 3M, the gap as a line bar (0.5 pt a line, ±12), the 1M gap beside. First row: the 750 against Nifty Total Market, whose 3M gap is a dashed line on every bar. The note says the two differ in stocks and in weights | P2, revised | Section 2 | Broad or narrow + Gap 3M, pts + The 750 vs Total Market |
+| 3 | The map, approved, committed as `data/reference/nse_sector_index_map.csv` with a reason per row; a test fails if a "Sector" index sits under no sector or under two. `nse_index_groups.csv` moves Nifty Consumer Services and Nifty Commercial & Transport Services from Theme to Sector (owner, MQ4), so they leave Indices | P3 | Data | Grouping |
+| 4 | **NSE's sector indices.** Every index in the "Sector" group (37 on 20 Nov, with the two moved by MQ4), grouped under its sector in the order of section 1; the first line of each group is the sector's ranked stocks, equal-weighted; the headline index next, marked "for the sector". Columns 1M, 3M, 6M, 9M, 1Y, From 52W high, P/E (the Indices page's columns). An index younger than a year comes last in its group with "since" and its launch in the 1Y column. A sector with no index says so. On a phone names drop "Nifty" and stay on one line, pinned, while the numbers scroll | P1, with Indices' windows | Section 3 | NSE’s sector indices + for the sector + since 15 Jun 2026 |
+| 5 | One-year chart for the chosen sector (chips): the 750's stocks equal-weighted (ink, with area) and the headline index (blue), both 100 a year ago or at the index's launch; crosshair, readout above the chart with both values and the gap, arrow keys, latest at rest; "Show the table" gives month-ends | PAGE_DESIGN §4.1 | Section 2 | One year, each line 100 + Show the table |
+| 6 | **Which sectors lead.** One table: groups as heading rows (Ahead on both, Gaining, Fading, Behind on both, each with its count and meaning); the six-month lead over the 750 read 3M ago, 1M ago and now, now as a line bar (1 pt a line, ±20) with a triangle a month ago; the 1M lead beside. First row: the 750 against Nifty Total Market. On a phone the past readings and the 1M lead sit under the bar | Live rows 3 and 4, merged; PAGE_DESIGN §2 (3M ago, 1M ago, now), §3 (group rows) | Section 1 | Ahead on both + Gaining + Fading + Behind on both + Six-month lead |
+| 7 | What would change the answer: the three nearest to moving ahead over six months and the three nearest to falling behind, in pts | Live row 1 | Section 1 | What would change the answer |
+| 8 | A worked example of one lead with its own numbers, and "Describing is not forecasting" | Live page (worked examples); PAGE_DESIGN §2 | Section 1 | For example, Healthcare + Describing is not forecasting |
+| 9 | Month by month as live row 5: 12 completed months and the month so far, Run, the 12 months summed, a worked example; sign colour only, no shades | Live row 5; Indices row 11 (no heat colours) | Section 4 | Month by month + 12 months, summed + so far |
+| 10 | **Inside each sector**, below the leadership map (owner, item 10). The share above the 200D EMA 3M ago, 1M ago and now (2% a line, dashed 40% and 60%, triangle a month ago), then Above 50D EMA, Near 52W high, Pass both filters, In top 50, Typical stock 3M (the median), Leaders; first row all 750; sortable by any column | Live rows 6 and 8, merged | Section 5 | Inside each sector + Above 200D EMA + Typical stock, 3M + Pass both filters |
+| 11 | Stocks in a sector: a picker and the Screener's table, with the qualified rank shown on Actions and Portfolio | Live rows 7 and 15 | Section 6 | Stocks in a sector + Qualified rank |
+| 12 | No size-index rows; the 750 against Nifty Total Market stays as the first row of sections 1 and 2; a link to the Dashboard's "Size, and where momentum works" | Decision C; changes live row 2 | Section 1 | The 750 vs Total Market + Size, and where momentum works |
+| 13 | One word for NSE's 22 groups: "sector" in every heading, label, control, note and chart on the page; the one note that explains NSE's "Industry" column and the grouping control's "TradingView industry" are the only places the other word appears | Decision B; S173 | Whole page | Which sectors lead |
+| 14 | One market: "the 750" is the ranked stocks equal-weighted, "Nifty Total Market" the cap-weighted index; never "the index", "all ranked stocks" or "the market" for the 750 | S165, S173; changes live row 13 | Whole page | Nifty Total Market |
+| 15 | One count: the 19 sectors with five or more ranked stocks in every section; the note names those left out (Utilities, 4; Diversified and Forest Materials, 1 each) | S154; changes live row 14 (the leaderboard showed 20) | Whole page | 19 have five or more ranked stocks |
+| 16 | One source and one session: stock figures from the ranking table and the price store (R2); every index figure, Nifty Total Market included, from the app's copy of NSE's daily index files; all cut at the ranking table's session | S148, S154, decision I; changes live row 12 | Whole page | Data to |
+| 17 | Units: pts for a lead or a gap (a difference of two returns), % for a return or a share; each line bar states its step; minus is U+2212 | S173; PAGE_DESIGN §8 | Whole page | 0.5 pt a line + 2% a line |
+| 18 | **The grouping switch at the top**, NSE sector by default with the full page; TradingView sector and TradingView industry as the other choices. With a TradingView grouping every section built from the ranked stocks regroups (which lead, the leadership map, month by month, inside each sector, stocks in a sector); "The 750 vs Total Market" stays; the broad-or-narrow section, the NSE index table and any index column hide, with one line in their place (M21). No section ignores the switch | Owner 21 Nov, item 12 (kept); live row 9 | Top | Grouping + NSE sector + TradingView sector |
+| 19 | Data date and counts at the foot; layout audit clean at 412 and 1400 px; the page stays in CI's requirements and layout step | Live rows 16-18 | Foot | Data to + stocks ranked |
+| 20 | **Sector leadership map**, kept: across, the sector's 1M lead over the 750 in pts (section 1's 1M lead, the same number); up, the share of its stocks above the EMA; a hollow dot a month ago, a filled dot today, a line between; leader blue, laggard rust, the rest grey; EMA (20, 50, 100, 200 days, 200 by default) and period (1M, 3M, 1M by default) as switches; a sector picker; values under the pointer with the readout above, arrow keys, the leader at rest; on a phone only the leader, laggard and picked sector are labelled, the rest named on tap; the caption counts where breadth fell and names sectors ahead on narrow breadth; the worked example ("How to read it") with the decided names ("sector", "the 750", leads in pts, not %); "Show the table"; five or more stocks per sector, so it counts the same 19 | Owner 21 Nov, item 10 (kept); live row 8 | Section 5 | Sector leadership map + 200D EMA + Heavy lifting |
+| 21 | With a TradingView grouping chosen, the page says once, where the NSE index sections were: "NSE's indices match NSE's sectors; switch to NSE sectors to see them." A test renders the page under each grouping and fails if a section built from ranked stocks keeps NSE's sectors, or if an NSE index figure shows (`tests/test_sectors_grouping_switch.py`, written in the build) | Owner 21 Nov, item 12 | Broad or narrow, NSE's sector indices | Grouping |
 
-Proposed order: Sectors → Which sectors lead → Broad or narrow → NSE’s sector indices → Month by month → Sector leadership map → Inside each sector → Stocks in a sector → Data to
+Order: Sectors → Which sectors lead → Broad or narrow → NSE’s sector indices → Month by month → Sector leadership map → Inside each sector → Stocks in a sector → Data to
 
 ## The live rows, one by one (nothing dropped without a decision)
 

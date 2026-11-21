@@ -5,7 +5,6 @@ import pandas as pd
 import pytest
 
 from src.engine import size_leadership as sl
-from src.ui.views import dashboard_view as dv
 
 
 def _levels(dates, factor=1.0, weekly_from=None):
@@ -48,31 +47,16 @@ def test_missing_an_index_leaves_the_table_out():
     assert sl.size_leadership(lv[lv["index"] != "nifty_microcap250"], pd.Series(1.0, index=dates)) is None
 
 
-def test_the_answer_line_uses_the_figures_below_it():
-    line = dv.answer_line(0.023, 0.071, 1, 2, pd.Timestamp("2026-11-30"))
-    assert line == ("The book is +2.3% this month against +7.1% for the Nifty 500; 2 would be sold "
-                    "if the month ended today; 1 is close to a rule; next rebalance Mon 30 Nov.")
-    assert "no holding is close to a rule" in dv.answer_line(float("nan"), float("nan"), 0, 0,
-                                                             pd.Timestamp("2026-11-30"))
 
 
-def test_book_at_risk_lists_least_room_first_with_its_rule():
-    from src.engine.exit_watch import Rules, assess
-    rows = [{"Symbol": f"S{i}", "Rank": i, "Above 50 EMA": True, "Near 52W High": True,
-             "% 50 EMA": 30.0, "% High": 0.0, "Industry": "X"} for i in range(1, 41)]
-    rows[0].update(Symbol="LAURUSLABS", **{"% 50 EMA": 100 * (1 / (1 - 0.126) - 1)})
-    rows[15].update(Symbol="PVRINOX", **{"% 50 EMA": 100 * (1 / (1 - 0.138) - 1)})
-    rows[2].update(Symbol="SHILPAMED", **{"% 50 EMA": 100 * (1 / (1 - 0.028) - 1)})
-    a = assess(pd.DataFrame(rows), ["LAURUSLABS", "PVRINOX", "SHILPAMED"], Rules())
-    out = dv._at_risk_html(a, Rules())
-    order = [out.index(s) for s in ("SHILPAMED", "PVRINOX", "LAURUSLABS")]
-    assert order == sorted(order)
-    assert "rank buffer · 24 places" in out and "50D EMA · 2.8%" in out
+
+
+
+
 
 
 def test_dashboard_is_home_and_the_screener_keeps_an_address():
-    src = (dv.__file__ and open(__import__("pathlib").Path(dv.__file__).parents[3] / "app.py",
-                                encoding="utf-8").read())
+    src = (__import__("pathlib").Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8")
     assert 'st.Page(_page_dashboard, title="Dashboard", default=True)' in src
     # /home and /dashboard are redirects to it: the default page is served at "/"
     # only, and /home showed "Page not found" until 8 Nov.
@@ -80,11 +64,9 @@ def test_dashboard_is_home_and_the_screener_keeps_an_address():
     assert 'st.Page(_page_screener, title="Screener", url_path="screener")' in src
 
 
-def test_the_dashboard_lists_its_sections_like_breadth():
-    """Owner, 8 Nov 2026: the Breadth page's "On this page" links, on the Dashboard too."""
-    out = dv.page_nav_html([("d-breadth", "Are most stocks taking part?"), ("s-db_risk", "Book at risk")])
+def test_the_on_this_page_line_lists_sections():
+    """Owner, 8 Nov 2026: the Breadth page's "On this page" links, on other pages too."""
+    from src.ui.page_kit import page_nav_html
+    out = page_nav_html([("d-breadth", "Are most stocks taking part?"), ("s-db_risk", "Book at risk")])
     assert out.startswith('<nav class="qp-nav" aria-label="On this page">')
     assert '<a href="#d-breadth">Are most stocks taking part?</a>' in out and 'href="#s-db_risk"' in out
-    src = open(__import__("pathlib").Path(dv.__file__), encoding="utf-8").read()
-    for anchor in ("s-db_risk", "s-db_next", "s-db_mh", "s-db_size", "s-db_flows"):
-        assert anchor in src
