@@ -68,7 +68,7 @@ function probe() {
 const b = await chromium.launch(); let bad = 0;
 for (const w of widths) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });
-  await p.goto(url); await p.waitForSelector('.dh', { timeout: 240000 }); await p.waitForTimeout(8000);
+  await p.goto(url); await p.waitForSelector('.dh, .qp-head', { timeout: 240000 }); await p.waitForTimeout(8000);
   if (process.argv.includes('--open')) for (const s of await p.locator('[data-testid="stExpander"] summary').all()) { await s.click(); await p.waitForTimeout(2500); }
   const H = await p.evaluate(() => (document.querySelector('[data-testid="stMain"]') || document.scrollingElement).scrollHeight);
   await p.setViewportSize({ width: w, height: Math.min(H + 50, 16000) }); await p.waitForTimeout(4000);
@@ -89,7 +89,7 @@ for (const w of widths) {
   }
   const gaps = await p.evaluate(() => {
     const main = document.querySelector('[data-testid="stMainBlockContainer"]') || document.querySelector('[data-testid="stMain"]');
-    const els = [...main.querySelectorAll('.dh *, iframe, [data-testid="stExpander"], [data-testid="stButtonGroup"], [data-testid="stDownloadButton"]')]
+    const els = [...main.querySelectorAll('.dh *, iframe, [data-testid="stExpander"], [data-testid="stButtonGroup"], [data-testid="stDownloadButton"], [data-testid="stHtml"] > * > *, [data-testid="stElementContainer"], [data-testid="stPopover"]')]
       .filter(e => !e.checkVisibility || e.checkVisibility())   // a closed expander's contents are measured but not seen
       .map(e => e.getBoundingClientRect()).filter(r => r.height > 0 && r.width > 0).map(r => [r.top + scrollY, r.bottom + scrollY]);
     const top = Math.min(...els.map(e => e[0])), bot = Math.max(...els.map(e => e[1]));

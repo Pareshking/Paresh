@@ -95,8 +95,8 @@ function barPane(el,o){
               :`M${x},${y0}V${y1-rr}Q${x},${y1} ${x+rr},${y1}H${x+w-rr}Q${x+w},${y1} ${x+w},${y1-rr}V${y0}Z`;
     const last=i===n-1 && o.markLast;
     bars.push(mk('path',{d,fill:up?css('--up'):css('--down'),opacity:last||!o.markLast?1:.72},svg));
-    const u=o.values2&&o.values2[i]; if(u!=null){ const same=(u>=0)===(v>=0), base=same?v:0, end=base+u; bar(x,w,u,css('--teal'),base);
-      if(o.valueLabels){ const t=mk('text',{x:x+w/2,y:end>=0?Y(end)-5:Y(end)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css('--teal')}`); } } });
+    const u=o.values2&&o.values2[i]; if(u!=null){ const same=(u>=0)===(v>=0), base=same?v:0, end=base+u; bar(x,w,u,css(o.color2||'--teal'),base);
+      if(o.valueLabels){ const t=mk('text',{x:x+w/2,y:end>=0?Y(end)-5:Y(end)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css(o.color2||'--teal')}`); } } });
   const step=Math.max(1,Math.ceil(n/Math.min(o.xn||6,Math.max(2,Math.floor((W-padL-padR)/78)))));
   for(let i=0;i<n;i+=step){ const first=i===0&&bw<40; const t=mk('text',{x:first?padL:padL+i*bw+bw/2,y:H-6,'text-anchor':first?'start':'middle'},svg); t.textContent=o.xlab(i); }
   if(o.valueLabels){ o.values.forEach((v,i)=>{ const u=o.values2?o.values2[i]:null, inside=u!=null&&(u>=0)===(v>=0);
@@ -198,14 +198,14 @@ R.month = (card, s) => {
 /* Monthly bars from a zero line: momentum's lead, foreign flows. */
 R.bars = (card, s) => {
   const el = $('.chart', card); let pane;
-  const draw = () => { pane = barPane(el, {values: s.values, values2: s.also ? s.also.map(a => a && a[1]) : null, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
+  const draw = () => { pane = barPane(el, {values: s.values, values2: s.also ? s.also.map(a => a && a[1]) : null, color2: s.color2, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
     markLast: !!s.lastLabel, lastLabel: s.lastLabel, padR: 38, valueLabels: s.valueLabels ? v => sg(v / (s.axisDiv || 1), s.vdp ?? 0) : null,
     levels: (s.levels || []).map(l => ({v: l, color: css('--up')})), band: s.band}); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   interact(card, () => [pane], $('.readout', card), k => { const v = s.values[k], c = v >= 0 ? css('--up') : css('--down');
     const lvl = s.levels && s.levels.length ? ' · ' + (v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between) : '';
     const items = [{name: s.unit + lvl, color: c, v: s.money ? inr(v) : sg(v, s.dp ?? 1), vcolor: c}];
-    const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css('--teal'), v: inr(a[1]), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
+    const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css(s.color2 || '--teal'), v: s.money ? inr(a[1]) : sg(a[1], s.dp ?? 1), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
     return {date: s.full[k] + (k === s.values.length - 1 && s.lastNote ? s.lastNote : ''), items}; }, () => s.values.length - 1);
 };
 
@@ -377,6 +377,28 @@ R.history = (card, s) => {
   vsw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; vsw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); view = b.dataset.v; filt = 'all'; chipsFor(); draw(); });
   fsw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; fsw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); filt = b.dataset.f; draw(); });
   chipsFor(); draw();
+};
+
+/* Lines on one axis, values in the heading over the pane (Breadth, 21 Nov 2026). spec: dates, series[{name, values,
+   color: token name, dash}], yfmt "num" | "pct" | "pts", levels [{v, label, color}], range [lo, hi], height, chips [[label, sessions]]. */
+R.lines = (card, s) => {
+  const el = $('.chart', card), head = $('.ph', card);
+  const fmt = {num: v => v.toLocaleString('en-IN', {maximumFractionDigits: 0}), pct: v => v.toFixed(0) + '%', pts: v => sg(v, 1)}[s.yfmt || 'num'];
+  const show = {num: v => v.toLocaleString('en-IN', {minimumFractionDigits: 1, maximumFractionDigits: 1}), pct: v => v.toFixed(0) + '%', pts: v => sg(v, 1)}[s.yfmt || 'num'];
+  head.innerHTML = '<span class="d"></span>' + s.series.map((x, i) => `<span><i class="${x.dash ? 'dash' : ''}" style="color:${css('--' + x.color)}"></i>${esc(x.name)} <b data-v="${i}"></b></span>`).join('');
+  let from = 0, pane;
+  const draw = () => { const W = el.clientWidth, h = s.height || Math.round(Math.max(200, Math.min(320, W * 0.3)));
+    pane = linePane(el, {dates: s.dates.slice(from), series: s.series.map(x => ({name: x.name, color: css('--' + x.color), values: x.values.slice(from), dash: x.dash ? '5 4' : '', width: x.width || 2})),
+      height: h, padL: 44, padR: 8, yfmt: fmt, range: s.range, ticks: 4,
+      levels: (s.levels || []).map(l => ({v: l.v, label: l.label, color: css('--' + (l.color || 'muted'))}))}); };
+  REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
+  if (s.chips) { const sw = $('.chips', card);
+    sw.innerHTML = s.chips.map(([t, n], i) => `<button class="chip" type="button" data-range="${n}" aria-pressed="${i === s.chips.length - 1}">${esc(t)}</button>`).join('');
+    chips(card, r => { from = r ? Math.max(0, s.dates.length - r) : 0; draw(); }); }
+  interact(card, () => [pane], (r, i) => { const k = from + (i ?? (s.dates.length - 1 - from));
+    $('.d', head).textContent = (i == null ? 'Latest · ' : '') + dlong(s.dates[k]);
+    s.series.forEach((x, j) => { const v = x.values[k]; $(`[data-v="${j}"]`, head).textContent = v == null ? '—' : show(v); }); },
+    k => ({date: dlong(s.dates[from + k]), items: []}), () => s.dates.length - 1 - from);
 };
 
 window.DashCharts = {render(kind, spec) { R[kind](document.getElementById('c'), spec); }};

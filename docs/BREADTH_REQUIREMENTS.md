@@ -46,28 +46,22 @@ the owner approves the section order.
 | 17 | Data date only, no sources named on the page; the data-quality counts kept | Owner 20, 21 Nov | Footer | Data to |
 | 18 | Layout audit clean at 412 and 1400 px; numbers right-aligned under right-aligned headings | Owner 20 Nov | Whole page | Breadth |
 
-## For the owner to decide (not requirements until agreed)
+## Decided (owner, 21 Nov 2026: "go as recommended")
 
-- **Benchmark.** "Stocks ahead of the Nifty 500 over a year", "median stock less the Nifty
-  500" and the uptrend measures read the Nifty 500. The live record moved to Nifty Total
-  Market (S149); breadth's history (point-in-time, from Oct 2021) could do the same.
-  Recommendation: Nifty Total Market for the "ahead of the market" measures, so the page
-  and the Dashboard use one market; keep the Nifty 500 for the trend rules, whose history
-  runs from 2000.
-- **Overlap with the Dashboard.** The Dashboard's "At a glance" draws the same index-and-
-  200D-share chart, and its section 5 shows breadth by size. Recommendation: the Dashboard
-  keeps its short versions and links here; this page is the full reading. No figure is
-  dropped from either.
-- **Today's charts.** They count today's ranked stocks back in time (survivorship), unlike
-  the point-in-time answers above them. Recommendation: label them so, or move the
-  participation chart onto the point-in-time series (200D and 50D only; the other averages
-  stay today's-members, labelled).
+- **Overlap with the Dashboard:** the Dashboard keeps its short versions; this page is the full reading.
+- **Today's charts:** the 50D and 200D EMA participation lines count the members of each date (history to its
+  last date, today's count after it); the other averages count today's ranked stocks, said in each line's name.
+- **Benchmark:** recommended Nifty Total Market for "ahead of the market over a year" and "median stock less the
+  market". Not done, and reported to the owner: NSE's Total Market starts in Oct/Nov 2021, so a one-year reading on
+  it can only start in Nov 2022, a year shorter than the Nifty 500's members-of-the-day history (Oct 2021); over the
+  last eight month-ends the two read within 1.6 points (share) and 1.0 (median). Kept on the Nifty 500, labelled,
+  until the owner says otherwise.
 
 ## Figures that also appear on another page
 
 | Figure | Also on | Made by | Same function? |
 |---|---|---|---|
-| Share above the 200D EMA (now, a month ago) | Dashboard (At a glance, section 5) | `pit_breadth.splice(mq._share_above_ema)` | To check: Dashboard 47% (38% a month ago), Breadth 47% (vote table); the month-ago reading is shown only on the Dashboard |
-| Share above the 50D EMA | Header strip, Dashboard | header: `Above 50D EMA 366 (49%)`; Breadth 49% | To check: same count? |
+| Share above the 200D EMA (now, a month ago) | Dashboard (At a glance, section 5) | `pit_breadth.splice(mq._share_above_ema)`; the chart is the Dashboard's `_breadth_spec` | Yes: 47% on both, 21 Nov |
+| Share above the 50D EMA | Header strip, Dashboard | header 366 of 750 = 49%; Breadth 49% (21% a month ago), Dashboard 49% (21% a month ago) | Yes, 21 Nov |
 | Near 52W high | Header strip | header count | Not on the page body |
-| Size indices against their 200D EMA / 52W high | Dashboard section 5 (size against the market) | Breadth: R2 levels; Dashboard: benchmark_indices | **No** (row 12) |
+| Size indices against their 200D EMA / 52W high | Dashboard section 5 (size against the market) | `data/benchmark_indices.csv` on both, cut at one session (`dashboard_insights.as_of`) | Yes, since 21 Nov |

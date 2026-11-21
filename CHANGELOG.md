@@ -2,6 +2,14 @@
 
 
 
+
+## 2026-11-21 — Breadth in the new design
+
+- The title answers both questions ("Narrow participation; no clear trend."), with the page's name above it.
+- "By size" now shows the Nifty 50, Midcap 150, Smallcap 250 and Microcap 250 beside the Nifty 500 again, from the same index file as the Dashboard; where the old source was not reachable it showed the Nifty 500 alone, and the uptrend answer counted 4 measures instead of 8.
+- Every chart is drawn the site's way: values in the heading follow your finger, the usual range of net new highs is shaded, axis figures without decimals, new lows as bars down from zero.
+- The participation chart's 50D and 200D lines count the stocks in the index on each date, as the answers above it do; other averages count today's stocks and say so.
+- Paired charts stack closer on a phone; the footer gives the data date and counts, no sources.
 ## 2026-11-21 — Actions rebuilt; one design across Dashboard, Portfolio and Actions; DII history
 
 - Actions opens with the answer ("5 sells and 5 buys on Mon 30 Nov: ₹34.0 lakh out, ₹34.1 lakh in"), then what could still change before the close (holds near a line, next in line, results and ex-dates before the fill), sells with shares and amounts, buys with weight, amount and shares and why a buy is under 5%, what the record's swaps have added so far, the book's industry and size after the trades, and holds with the rank trail.
