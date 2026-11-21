@@ -416,7 +416,8 @@ def _rel(close: pd.Series, bench: pd.Series, when: pd.Timestamp, months: int) ->
 
 
 def leaders_answer(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
-                   size_closes: dict[str, pd.Series] | None, min_stocks: int = 5) -> Leaders | None:
+                   size_closes: dict[str, pd.Series] | None, min_stocks: int = 5,
+                   market_name: str = "the Nifty 500") -> Leaders | None:
     """Industries by their equal-weighted return less the equal-weighted
     market's (every ranked stock) over six months and one month: ahead on
     both, gaining (ahead over the month only), fading (ahead over six months
@@ -451,7 +452,7 @@ def leaders_answer(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
     bits = []
     if best_size is not None:
         bits.append(f"{best_size[0]} lead{'s' if not best_size[0].endswith('s') else ''} the sizes over six months "
-                    f"({best_size[1]:+.1f} pts against the Nifty 500)".replace("-", "−"))
+                    f"({best_size[1]:+.1f} pts against {market_name})".replace("-", "−"))
     if len(sectors):
         bits.append(f"{len(both)} of {len(sectors)} industries are ahead over both six months and one month"
                     + (f", led by {', '.join(lead_names)}" if lead_names else ""))

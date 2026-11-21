@@ -26,7 +26,7 @@ async function read(p) {
   let t = '';
   for (const f of p.frames()) {
     // Collapsed sections count: what a reader can open is on the page.
-    try { t += await f.evaluate(() => { document.querySelectorAll('details').forEach(d => { d.open = true; }); return ''; }) + await f.evaluate(() => document.body.innerText + '\n' + [...document.querySelectorAll('summary,button,[aria-label]')].map(e => e.textContent + ' ' + (e.getAttribute('aria-label') || '')).join('\n')) + '\n'; } catch { /* a frame still loading */ }
+    try { t += await f.evaluate(() => { document.querySelectorAll('details').forEach(d => { d.open = true; }); return ''; }) + await f.evaluate(() => document.body.innerText + '\n' + [...document.querySelectorAll('summary,button,[aria-label]')].map(e => e.textContent + ' ' + (e.getAttribute('aria-label') || '')).join('\n') + '\n' + [...document.querySelectorAll('input')].map(e => e.value || '').join('\n')) + '\n'; } catch { /* a frame still loading */ }
   }
   return t;
 }

@@ -481,7 +481,7 @@ const xmin=Math.min(-1,Math.floor(Math.min.apply(null,xs)-0.5)), xmax=Math.max(1
 const xspan=xmax-xmin, xtick=xspan>40?10:xspan>20?5:xspan>8?2:1;
 const series=rows.map(r=>({name:r.name,id:r.name,color:col(r),row:r,
   data:[{x:r.x0,y:r.y0,marker:{fillColor:'var(--c-white)',lineColor:col(r),lineWidth:1.5,radius:3.5,symbol:'circle'},dataLabels:{enabled:false}},
-        {x:r.x1,y:r.y1,marker:{fillColor:col(r),lineColor:'var(--c-white)',lineWidth:1,radius:4.5,symbol:'circle'}}]}));
+        {x:r.x1,y:r.y1,dataLabels:(r.x1-xmin)/xspan>0.62?{align:'right',x:-6}:{},marker:{fillColor:col(r),lineColor:'var(--c-white)',lineWidth:1,radius:4.5,symbol:'circle'}}]}));
 function paint(chart){
   chart.series.forEach(s=>{const on=!focus||s.name===focus,me=focus&&s.name===focus;
     const c=me?'var(--c-ink)':col(s.options.row);
@@ -495,7 +495,7 @@ const chart=Highcharts.chart('c',{chart:{type:'scatter',backgroundColor:'transpa
   style:{fontFamily:'IBM Plex Sans,system-ui,sans-serif'},zooming:{type:'xy'}},
   credits:{enabled:false},accessibility:{enabled:false},title:{text:null},legend:{enabled:false},exporting:{enabled:false},
   xAxis:{min:xmin,max:xmax,tickInterval:xtick,gridLineWidth:0,lineWidth:0,tickLength:0,
-    title:{text:months+'-month return vs Nifty 500 →',style:{color:'var(--c-muted_2)',fontSize:'11px'}},
+    title:{text:months+'-month return vs all ranked stocks (equal weight) →',style:{color:'var(--c-muted_2)',fontSize:'11px'}},
     labels:{format:'{value}%',style:{color:'var(--c-muted_2)',fontSize:'11px'}},plotLines:[{value:0,color:'var(--c-rule_strong)',width:1,zIndex:2}]},
   yAxis:{min:0,max:100,tickInterval:20,endOnTick:false,gridLineColor:'var(--c-grid)',
     title:{text:'↑ Stocks above their '+span+'-day EMA',style:{color:'var(--c-muted_2)',fontSize:'11px'}},
@@ -503,14 +503,16 @@ const chart=Highcharts.chart('c',{chart:{type:'scatter',backgroundColor:'transpa
   tooltip:{useHTML:true,backgroundColor:'var(--c-white)',borderColor:'var(--c-rule)',borderWidth:1,borderRadius:3,shadow:false,padding:8,style:{color:'var(--c-ink)',fontSize:'12px',lineHeight:'17px'},
     formatter:function(){const r=this.series.options.row;
       return '<b>'+e(r.full)+'</b> · '+r.stocks+' stocks<br>'+
-      '<span style="opacity:.7">'+e(then)+'</span> '+pct(r.x0)+' vs Nifty 500 · '+r.a0+' of '+r.o0+' above<br>'+
-      '<span style="opacity:.7">'+e(now)+'</span> <b>'+pct(r.x1)+'</b> vs Nifty 500 · <b>'+r.a1+' of '+r.o1+'</b> above<br>'+
-      '<span style="opacity:.7">Sector '+pct(r.ret)+', Nifty 500 '+pct(r.bench)+(months===1?' this month':' in '+months+' months')+'</span>'+
+      '<span style="opacity:.7">'+e(then)+'</span> '+pct(r.x0)+' vs all ranked stocks · '+r.a0+' of '+r.o0+' above<br>'+
+      '<span style="opacity:.7">'+e(now)+'</span> <b>'+pct(r.x1)+'</b> vs all ranked stocks · <b>'+r.a1+' of '+r.o1+'</b> above<br>'+
+      '<span style="opacity:.7">Sector '+pct(r.ret)+', all ranked stocks '+pct(r.bench)+(months===1?' this month':' in '+months+' months')+'</span>'+
       (r.lead?'<br>Led by <b>'+e(r.lead)+'</b>':'');}},
   plotOptions:{series:{animation:false,dashStyle:'ShortDash',lineWidth:1.2,marker:{enabled:true},stickyTracking:false,findNearestPointBy:'xy',
     states:{hover:{lineWidthPlus:1.5},inactive:{opacity:0.18}},cursor:'pointer',
     dataLabels:{enabled:true,allowOverlap:false,crop:false,overflow:'allow',x:6,align:'left',verticalAlign:'middle',
       style:{fontSize:'11px',fontWeight:'500',color:'var(--c-text_2)',textOutline:'2px var(--c-white)'},formatter:function(){return e(this.series.name);}},
+    // A name near the right edge reads leftward, so a phone does not cut it off (21 Nov 2026).
+
     point:{events:{click:function(){focus=focus===this.series.name?null:this.series.name;paint(this.series.chart);}}}}},
   series:series});
 paint(chart);

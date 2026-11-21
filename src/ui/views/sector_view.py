@@ -19,8 +19,7 @@ from src.ui.page_kit import _series_of
 from src.engine.pipeline import price_fingerprint
 from src.engine.sector_breadth import EMA_SPANS, sector_leadership
 from src.loaders import benchmark_store
-from src.engine import size_leadership as sl
-from src.loaders.index_levels import fetch_index_levels, nse_benchmarks
+from src.loaders.index_levels import nse_benchmarks
 from src.ui.views.market_questions_view import render_leaders_section, size_closes
 from src.ui.charts import render_leadership_map
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
@@ -104,7 +103,7 @@ def render_leadership_section(rank_df: pd.DataFrame, adj_close: pd.DataFrame, co
         ahead_narrow = board[(board["x_now"] > 0) & (board["y_now"] < 0.5)]
         kit.caption(
             f"{then:%-d %b} to {now:%-d %b}: breadth fell in {fell} of {len(board)} sectors."
-            + (f" Ahead of the Nifty 500 with under half above the {span}-day EMA: "
+            + (f" Ahead of all ranked stocks with under half above the {span}-day EMA: "
                f"{', '.join(SHORT_NAMES.get(n, n) for n in ahead_narrow['Sector'])}."
                if len(ahead_narrow) else "")
         )
@@ -229,8 +228,8 @@ def industry_board(rank_df: pd.DataFrame, col: str = "Industry") -> tuple[pd.Dat
 # (owner, 13 Nov 2026): ranked by 6M with only the 3M figure showing, the
 # order looked wrong. Label, and whether it is a signed return with a bar.
 HEADLINE = {
-    "3M median": ("3M (median)", True),
-    "6M median": ("6M (median)", True),
+    "3M median": ("3M, typical stock", True),
+    "6M median": ("6M, typical stock", True),
     "Share passing": ("Pass both", False),
     "Top-50 count": ("Top 50", False),
 }
@@ -311,12 +310,22 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         board = board.sort_values([RANK_BY[by], "3M Return"], ascending=False,
                                   na_position="last").reset_index(drop=True)
 
+    # The title answers "What is leading?" (PAGE_DESIGN 2a); the same cached answer the section below draws.
+    from src.ui.views.market_questions_view import leaders_for, leaders_title, total_market
+    tm = total_market()
+    nbench = nse_benchmarks()
+    market = tm if len(tm) else (benchmark_close if benchmark_close is not None and len(benchmark_close)
+                                 else _series_of(nbench, "nifty500"))
+    market_name = "Nifty Total Market" if len(tm) else "the Nifty 500"
+    prices_q = history_prices if history_prices is not None else adj_close
+    leaders, _ = leaders_for(rank_df, prices_q, market, size_closes(), market_name) if col == "Industry" else (None, None)
     actions = kit.page_head(
-        "Sectors",
+        leaders_title(leaders) if leaders is not None else "Sectors",
         # The board keeps any group of two or more stocks; "What is leading?" needs
         # five (audit, 8 Nov 2026: "20 industries" here, "0 of 19" there).
-        f"{len(board)} {'industries' if col == 'Industry' else 'groups'} of two or more stocks",
-        actions=True,
+        f"{len(board)} {'industries' if col == 'Industry' else 'groups'} with two or more ranked stocks; "
+        "“What is leading?” reads those with five or more",
+        actions=True, kicker="Sectors" if leaders is not None else "",
     )
     with actions:
         if len(tax) > 1:
@@ -329,18 +338,13 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     # What is leading, in full; the four tiles that sat here repeated the
     # leaderboard below and this section.
-    levels, nbench = fetch_index_levels(), nse_benchmarks()
-    size_ok = False
-    if levels is not None and nbench is not None and "nifty50" in nbench:
-        size_ok, _ = sl.cross_check(levels, nbench["nifty50"])
-    nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
-                else _series_of(nbench, "nifty500"))
-    render_leaders_section(rank_df, history_prices if history_prices is not None else adj_close,
-                           nifty500, size_closes(levels, size_ok))
+    # Size indices from the Dashboard's file, against Nifty Total Market (owner, 21 Nov 2026: "go as recommended";
+    # S149, S154). The Nifty 500 only where Total Market is not there.
+    render_leaders_section(rank_df, prices_q, market, size_closes(), market_name=market_name)
 
     # One ranking and one map on this page (owner's decision 5, 7 Nov): the
     # industry bubble map repeated the board below it and is gone.
-    with kit.card("Industry leaderboard", "sec_board", f"ranked by {by}"):
+    with kit.card("Industry leaderboard", "sec_board", f"ranked by {by.replace('median', 'typical (median) stock')}"):
         # Rank by sits on the board it sorts. In the page head it changed only
         # this board, screens below, so on a phone a tap looked dead (owner,
         # 13 Nov 2026: "clicks not working"; S16 again after the tiles and the
@@ -355,9 +359,17 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         pick = st.selectbox("Industry", board["Industry"].tolist(), key="sector_pick",
                             label_visibility="collapsed")
         members = rank_df[rank_df[col] == pick].sort_values("Rank")
+        # The place among the qualified, as the Screener and Actions show it (it read "—" for every stock, 21 Nov 2026).
+        from src.engine.exit_watch import qualified_ranks
+        members = members.assign(**{"Qualified Rank": members["Symbol"].map(qualified_ranks(rank_df))})
         render_screener_table(members, adj_close, "Core")
 
     render_leadership_section(rank_df, adj_close, col)
+
+    # Data date and counts, no sources, as on Breadth and Actions (owner, 20-21 Nov 2026).
+    short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
+    st.html(f'<p class="qp-note" style="margin-top:18px">Data to {prices_q.index[-1]:%-d %b %Y}. {len(rank_df)} stocks ranked; '
+            f'{gap_count(rank_df)} with a price gap, {short_n} with a short history.</p>')
 
     render_data_quality_footer(
         total_stocks=len(rank_df),

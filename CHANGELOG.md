@@ -3,6 +3,15 @@
 
 
 
+## 2026-11-21 — Sectors in the new design
+
+- The title answers the question ("Media, Textiles and Services lead; Nifty 50 leads the sizes."), with the page's name above it.
+- "By size" reads the size indices against Nifty Total Market, named in the heading (it read the Nifty 500 without saying so); Nifty 50 +2.2 pts over six months (+2.4 against the Nifty 500).
+- "Stocks in an industry" shows each stock's Qualified # (its place among the stocks that pass both filters), as Screener and Actions do; it read "—" for every stock.
+- One market named one way: the leadership map's caption, axis and tooltip say "all ranked stocks, equal weight", the market they were already computed against (the tooltip said Nifty 500). The leaderboard's median is labelled "typical stock".
+- One count of industries in the subtitle: 20 with two or more ranked stocks; "What is leading?" reads those with five or more.
+- On a phone, names at the right of the leadership map are no longer cut off; the footer gives the data date and counts.
+
 ## 2026-11-21 — Breadth in the new design
 
 - The title answers both questions ("Narrow participation; no clear trend."), with the page's name above it.

@@ -68,7 +68,7 @@ function probe() {
 const b = await chromium.launch(); let bad = 0;
 for (const w of widths) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });
-  await p.goto(url); await p.waitForSelector('.dh, .qp-head', { timeout: 240000 }); await p.waitForTimeout(8000);
+  await p.goto(url); await p.waitForSelector('.dh, .qp-head, .scr-head', { timeout: 240000 }); await p.waitForTimeout(8000);
   if (process.argv.includes('--open')) for (const s of await p.locator('[data-testid="stExpander"] summary').all()) { await s.click(); await p.waitForTimeout(2500); }
   const H = await p.evaluate(() => (document.querySelector('[data-testid="stMain"]') || document.scrollingElement).scrollHeight);
   await p.setViewportSize({ width: w, height: Math.min(H + 50, 16000) }); await p.waitForTimeout(4000);
