@@ -51,6 +51,7 @@ the owner's word, and note it in the Source column.
 | 33 | Where the book is strong and weak, as cards with each industry's six-month and one-month figures | Owner liked (#1), 20 Nov; the RRG rotation line and quadrant badge removed, owner 21 Nov | §6 | Ahead of the market over six months and one month |
 | 37 | At a glance: index moves (one date), breadth, the book's risk | v6 | Glance | The book’s risk |
 | 38 | Breadth history on each date's members | Owner 20 Nov | Glance, §3 | leavers included |
+| 39 | At a glance: "Valuation and styles", three lines from the Indices page (the Nifty 500's P/E percentile now, 1M and 3M; the styles leading and trailing their parents over 12 months) and a link; the index moves link to Indices, not Breadth | Owner 21 Nov (S170, INDICES_REQUIREMENTS row 17) | Glance | Valuation and styles |
 | 39 | Every chart gives values on touch and pointer | Owner 20 Nov | Charts (`static/dash_charts.js`) | Latest|DashCharts.render( |
 | 40 | Every chart: what it is, how to read it, its table | v7 (tipsheet), agreed | Charts | Show the table |
 | 41 | Data date in the footer; sources not shown (owner, 20 Nov) | v6; owner 20 Nov | Foot | Data to 19 Nov 2026|Data to |
@@ -67,6 +68,6 @@ the owner's word, and note it in the Source column.
 
 - 34 · RRG quadrants, 100 = the benchmark, EW construction shared with Sectors (§7).
 - 35 · Leadership lists with RS ratio · momentum and the path under each name (§7).
-- 36 · The book's holdings marked in leadership (§7). The space is kept for the Indices page (S170).
+- 36 · The book's holdings marked in leadership (§7). The space is kept for the Indices page (S170). Used 21 Nov: row 39.
 
 Order: 1 · The book this month → 2 · What happens on → 3 · Is momentum still working? → 4 · Money flows → 5 · Size, and where momentum works → 6 · Where the book is strong and weak → At a glance

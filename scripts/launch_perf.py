@@ -22,7 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGES = ["", "portfolio", "actions", "watchlist", "screener", "sectors",
-         "breadth", "backtest", "configuration", "guide"]
+         "breadth", "indices", "backtest", "configuration", "guide"]
 
 
 def _kb(n: float) -> str:

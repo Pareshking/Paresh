@@ -71,8 +71,10 @@ one place. Themes, strategy and broad indices stay on Indices; Breadth, Sectors 
 already the page that summarises; a "Market" heading grouping the three in the menu is the alternative if the
 menu feels long).
 
+Numbered P1-P3 until built, so the requirements check does not read them yet; each gets a number and its marker when the redesign builds it.
+
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 19 | NSE's sector indices (35 on 20 Nov, `data/reference/nse_index_groups.csv` group "Sector") with 1M, 3M, 1Y price return, distance from the 1-year high and P/E; those younger than a year last, with their launch date | Owner 21 Nov | Section | NSE's sector indices |
-| 20 | Each industry's equal-weighted figure from the 750 beside NSE's cap-weighted index for the same industry, each labelled for what it measures: agreeing means a broad move, an index well ahead of the median means a few large companies carry it | My recommendation, owner 21 Nov | Section | cap-weighted + equal-weighted |
-| 21 | One mapping table, industry ↔ NSE sector index, committed with its reasons (NSE's sectors are finer in places: Capital Markets, Hospitals, NBFC; some industries have none), shown to the owner before it is used | Same | Data | — |
+| P1 | NSE's sector indices (35 on 20 Nov, `data/reference/nse_index_groups.csv` group "Sector") with 1M, 3M, 1Y price return, distance from the 1-year high and P/E; those younger than a year last, with their launch date | Owner 21 Nov | Section | NSE's sector indices |
+| P2 | Each industry's equal-weighted figure from the 750 beside NSE's cap-weighted index for the same industry, each labelled for what it measures: agreeing means a broad move, an index well ahead of the median means a few large companies carry it | My recommendation, owner 21 Nov | Section | cap-weighted + equal-weighted |
+| P3 | One mapping table, industry ↔ NSE sector index, committed with its reasons (NSE's sectors are finer in places: Capital Markets, Hospitals, NBFC; some industries have none), shown to the owner before it is used | Same | Data | — |

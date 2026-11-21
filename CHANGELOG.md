@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-11-21 — Indices page
+
+- New page **Indices** (menu: Market), built from the mock-up approved 21 Nov 2026 on NSE's own daily index files:
+  - **Valuation:** P/E of the Nifty 50, Nifty 500, Total Market, Midcap 150, Smallcap 250 and Microcap 250, 3 months ago, a month ago and now, with its percentile since 31 Mar 2021 (the day NSE changed the earnings basis), and the Nifty 500's weekly P/E since 2012 with the old basis drawn apart.
+  - **Styles:** momentum, quality, value, low volatility, alpha and equal weight, each against the index it picks from, as a 12-month lead read on three dates, with the dividend-yield gap.
+  - **How long a style can lag:** each style's line against its parent and its fall from its best, with the worst fall and its recovery.
+  - **Calendar years:** each style's lead by year, and how many years it led.
+  - **Size, year by year:** each year's return and the worst fall within it for large, mid, small and micro caps.
+  - **Every index:** NSE's 112 broad, theme and strategy indices at 1M, 3M, 6M, 9M and 1Y. NSE's sector indices will appear on Sectors.
+- Price returns throughout: NSE's total-return series cannot be reached from here, so each style shows its dividend-yield gap instead.
+- Dashboard, At a glance: a "Valuation and styles" card with three lines from the page, and the index moves now link to Indices instead of Breadth.
+- The page reads a copy of the index store kept in the repository: a frozen history file plus a small file of later sessions that the nightly `nse_indices` job rewrites.
+- Building the full history found more faults in NSE's archive, each now handled by a rule (`docs/DATA_CORRECTNESS.md` section 5):
+  - dates printed three ways: 59 files had been dropped silently, and three were month-first;
+  - 18 weekend sessions;
+  - 12 trading days with no file: 11 are filled from the next day's points change and marked as derived, and one stays a gap;
+  - two regenerated files list indices before their launch;
+  - the P/E and P/B basis changes.
+
 ## 2026-11-21 — Every NSE index, daily, from 2012 (collector; first run after merge)
 
 - New nightly job `nse_indices` keeps every index NSE publishes in its daily all-indices file (169 on 20 Nov 2026: broad, size, sector, thematic and strategy indices such as momentum, quality, value and low volatility), with open, high, low, close, volume, turnover, P/E, P/B and dividend yield, from the archive's first file (21 Feb 2012). One request a night adds the new session; the first, full build is run once by hand.

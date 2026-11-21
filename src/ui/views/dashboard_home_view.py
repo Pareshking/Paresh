@@ -955,7 +955,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare)
     parts += section_size(sizes, book_sizes, by_size, typical)
     parts += section_strong_weak(weights, sectors)
-    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk), breadth)
+    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(), breadth)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
     parts.append(f'<p class="dh-foot">Data to {idx_end:%-d %b %Y}.</p>')
     emit(parts)
@@ -1310,6 +1310,37 @@ def _book_sizes(risk) -> dict[str, float]:
     return m
 
 
+def _ordinal(v: float) -> str:
+    n = int(round(v))
+    return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
+def indices_glance_rows(f) -> list[tuple[str, str, str]]:
+    """The Indices page in three lines (S170, requirement 17): the Nifty 500's P/E percentile now with 1M and 3M,
+    and the styles leading and trailing their parents over 12 months."""
+    from src.engine import indices_page as ip
+    rows = []
+    v = next((x for x in ip.valuation(f, ("nifty_500",))), None)
+    if v is not None:
+        rows.append(("Nifty 500 P/E, percentile since 2021",
+                     f"{_ordinal(v.pct_now)} · 1M {_ordinal(v.pct_1m)} · 3M {_ordinal(v.pct_3m)}", ""))
+    st_ = sorted((s for s in ip.styles(f) if s.lead_now is not None), key=lambda s: -s.lead_now)
+    if st_:
+        rows.append((f"Leading style, {st_[0].style.lower()}", f"{sg(st_[0].lead_now)} pts in 12M", tone(st_[0].lead_now)))
+        rows.append((f"Trailing style, {st_[-1].style.lower()}", f"{sg(st_[-1].lead_now)} pts in 12M", tone(st_[-1].lead_now)))
+    return rows
+
+
+def _indices_glance() -> list:
+    try:
+        from src.ui import indices_data
+        f = indices_data.frames()
+        rows = [] if f is None else indices_glance_rows(f)
+    except Exception:  # noqa: BLE001 -- the Dashboard draws without this card rather than fail
+        rows = []
+    return [("Valuation and styles", (page_href("indices"), "Indices"), rows)] if rows else []
+
+
 def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:
     def day(key):
         s = closes[key].dropna()
@@ -1332,7 +1363,7 @@ def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:
     if risk.drawdown is not None:
         rows_r.append(("Below its peak", sg(risk.drawdown * 100, unit="%"), ""))
     return [
-        (f"Indices, {as_of:%-d %b}", (page_href("breadth"), "Breadth"), [(n, sg(v, unit="%"), tone(v)) for n, v in idx]),
+        (f"Indices, {as_of:%-d %b}", (page_href("indices"), "Indices"), [(n, sg(v, unit="%"), tone(v)) for n, v in idx]),
         ("Breadth, ranked stocks", (page_href("breadth"), "Breadth"), rows_b),
         ("The book’s risk", (page_href("portfolio"), "Portfolio"), rows_r),
     ]

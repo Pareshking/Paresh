@@ -38,6 +38,13 @@ ALIASES = Path(__file__).resolve().parents[2] / "data" / "reference" / "nse_inde
 CORRECTIONS = Path(__file__).resolve().parents[2] / "data" / "reference" / "nse_index_corrections.csv"
 # Trading days NSE's archive has no file for, with their evidence.
 MISSING = Path(__file__).resolve().parents[2] / "data" / "reference" / "nse_index_missing_sessions.csv"
+GROUPS = Path(__file__).resolve().parents[2] / "data" / "reference" / "nse_index_groups.csv"
+# The app's copy (the store is in R2): stock indices only, the columns pages read.
+# History is frozen in one parquet; the nightly job appends later sessions to a
+# small CSV, so the repository grows by a few KB a night, not megabytes.
+COMPACT_HISTORY = Path(__file__).resolve().parents[2] / "data" / "nse_indices_history.parquet"
+COMPACT_RECENT = Path(__file__).resolve().parents[2] / "data" / "nse_indices_recent.csv"
+COMPACT_COLUMNS = ["date", "key", "close", "pe", "pb", "div_yield", "derived"]
 # A derived close more than this far from the session before is refused.
 DERIVED_MAX_MOVE = 0.20
 
@@ -298,3 +305,58 @@ def series(store: pd.DataFrame, key: str, field: str = "close", *, live_only: bo
     if live_only and len(s):
         s = s[s.index >= live_from(store, [key])[key]]
     return s
+
+
+def groups(path: Path | None = None) -> pd.DataFrame:
+    """key, group (Broad market, Sector, Theme, Strategy, not a stock index), name."""
+    return pd.read_csv(GROUPS if path is None else path, dtype=str)
+
+
+def stock_index_keys(path: Path | None = None) -> set[str]:
+    g = groups(path)
+    return set(g.loc[g["group"] != "not a stock index", "key"])
+
+
+def compact(store: pd.DataFrame, keys: set[str] | None = None) -> pd.DataFrame:
+    """The columns pages read, for stock indices only, live rows only."""
+    keys = stock_index_keys() if keys is None else keys
+    s = store[store["key"].isin(keys)]
+    if "derived" not in s.columns:
+        s = s.assign(derived=False)
+    lf = live_from(s)
+    s = s[s["date"] >= s["key"].map(lf)]
+    return s[COMPACT_COLUMNS].sort_values(["date", "key"]).reset_index(drop=True)
+
+
+def write_compact(store: pd.DataFrame, *, freeze: bool = False, history: Path | None = None,
+                  recent: Path | None = None) -> tuple[int, int]:
+    """Write the app's copy. With `freeze`, everything goes into the history file
+    and the recent file is emptied; otherwise the recent file holds every row after
+    the history file's last session. Returns (history rows, recent rows)."""
+    h_path, r_path = history or COMPACT_HISTORY, recent or COMPACT_RECENT
+    c = compact(store)
+    if freeze or not h_path.exists():
+        c.to_parquet(h_path, index=False, compression="zstd")
+        c.iloc[0:0].to_csv(r_path, index=False)
+        return len(c), 0
+    last = pd.read_parquet(h_path, columns=["date"])["date"].max()
+    r = c[c["date"] > last]
+    r.to_csv(r_path, index=False, date_format="%Y-%m-%d", float_format="%.4f")
+    return len(pd.read_parquet(h_path, columns=["date"])), len(r)
+
+
+def read_compact(history: Path | None = None, recent: Path | None = None) -> pd.DataFrame:
+    """The app's copy, history and recent sessions together; empty if absent."""
+    h_path, r_path = history or COMPACT_HISTORY, recent or COMPACT_RECENT
+    parts = []
+    if h_path.exists():
+        parts.append(pd.read_parquet(h_path))
+    if r_path.exists() and r_path.stat().st_size > 0:
+        r = pd.read_csv(r_path, parse_dates=["date"])
+        if len(r):
+            r["derived"] = r["derived"].astype(str).str.lower().eq("true")
+            parts.append(r)
+    if not parts:
+        return pd.DataFrame(columns=COMPACT_COLUMNS)
+    out = pd.concat(parts, ignore_index=True).drop_duplicates(["date", "key"], keep="last")
+    return out.sort_values(["date", "key"]).reset_index(drop=True)

@@ -4,6 +4,8 @@ name: NSE indices (every index, daily)
 # 21 Feb 2012, kept in R2 (S168; owner, 21 Nov 2026: "Download full history once
 # for all and let daily run update daily data quickly"). One request a night adds
 # the new session; the first run is dispatched by hand with backfill: true.
+# The app reads a copy in the repository (S170): data/nse_indices_history.parquet,
+# frozen, and data/nse_indices_recent.csv, the sessions after it, rewritten here.
 
 on:
   workflow_dispatch:
@@ -18,7 +20,8 @@ on:
     - cron: "10 14 * * *"
 
 permissions:
-  contents: read
+  # Writes the app's copy (data/nse_indices_recent.csv) back to main.
+  contents: write
 
 concurrency:
   group: r2-publish-nse-indices
@@ -61,3 +64,23 @@ jobs:
         run: |
           python scripts/r2_audit.py --dataset indices/nse_close_all --as-of \
             "$(python -c 'import pandas as pd; print(pd.read_parquet("nse_indices.parquet")["date"].max().date())')"
+      - name: Write the app's copy (sessions after the frozen history file)
+        run: python scripts/export_nse_indices_compact.py --store nse_indices.parquet
+      - name: Commit the app's copy
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/nse_indices_recent.csv
+          if git diff --staged --quiet; then
+            echo "Unchanged."
+            exit 0
+          fi
+          git commit -m "chore(data): NSE indices, latest sessions [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "Pushed."; exit 0; fi
+            echo "Push failed (attempt $i); rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; exit 1; }
+            sleep $((i * 5))
+          done
+          exit 1

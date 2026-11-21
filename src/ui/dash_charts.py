@@ -25,7 +25,7 @@ import streamlit as st
 
 from src.ui.tokens import FONTS, resolve
 
-KINDS = ("month", "bars", "shared", "segbar", "breadth", "growth", "holdings", "history", "lines")
+KINDS = ("month", "bars", "shared", "segbar", "breadth", "growth", "holdings", "history", "lines", "trows", "rel")
 # The kit's address carries its content hash, so a deploy is never drawn by a cached older kit.
 _KIT = Path(__file__).resolve().parents[2] / "static" / "dash_charts.js"
 KIT_SRC = "app/static/dash_charts.js?v=" + hashlib.sha256(_KIT.read_bytes()).hexdigest()[:12]
@@ -79,6 +79,10 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .sh-head{font-size:12px;color:var(--muted);padding:0 8px 4px;margin:0 -8px;border-bottom:1px solid var(--ink)}
 .num{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}.sh-head .num{font-family:inherit}
 .shrow{padding:9px 8px 14px;margin:0 -8px;border-radius:6px;border-bottom:1px solid var(--rule-soft)}.shrow:hover,.shrow.on{background:var(--fill)}
+.tr-head,.trrow{display:grid;grid-template-columns:minmax(0,240px) calc(var(--tn,50) * var(--pitch,8px)) repeat(var(--nv,3),60px);justify-content:start;gap:6px 12px;align-items:center}
+.tr-head{font-size:12px;color:var(--muted);padding:0 8px 4px;margin:0 -8px;border-bottom:1px solid var(--ink)}.tr-head .num{font-family:inherit}
+.trrow{padding:9px 8px 13px;margin:0 -8px;border-radius:6px;border-bottom:1px solid var(--rule-soft)}.trrow:hover,.trrow.on{background:var(--fill)}
+.trrow .num.b{font-weight:600}
 .key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}.key span{display:flex;align-items:center;gap:6px}
 .key .k-now{width:2px;height:14px;background:var(--ink)}.key .k-ago{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:6px solid var(--muted)}
 .key .k-line{width:0;height:14px;border-left:1px dashed var(--muted)}
@@ -126,6 +130,7 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 @media (max-width:760px){
 .tt{--pitch:min(8px, calc((100vw - 24px) / var(--n)))}
 .sh-head,.shrow{grid-template-columns:minmax(0,1fr) 44px 44px 48px}.shrow .tt{grid-column:1/-1;grid-row:2}.sh-head span:nth-child(2){display:none}
+.tr-head,.trrow{grid-template-columns:minmax(0,1fr) repeat(var(--nv,3),52px)}.trrow .tt{grid-column:1/-1;grid-row:2}.tr-head span:nth-child(2){display:none}
 }
 """
 
@@ -157,6 +162,12 @@ BODY = {
     "lines": ('<div class="cap"><span class="ph" aria-live="polite"></span><span class="chips" role="group" aria-label="Period"></span></div>'
               '<div class="chart" tabindex="0" role="img" aria-label="{label}"></div>'),
     "holdings": '<div class="hold" role="region" aria-label="{label}" tabindex="0"></div>',
+    "trows": ('<div class="readout" aria-live="polite"></div><div class="tr-head" aria-hidden="true"></div>'
+              '<div id="rows" role="list" aria-label="{label}"></div><div class="key">{note}</div>'),
+    "rel": ('<div class="cap"><span class="chips" role="group" aria-label="Style"></span></div>'
+            '<div class="readout" aria-live="polite"></div>'
+            '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div>'
+            '<div class="chart" data-pane="bottom" role="img" aria-label="How far the line sits below its best"></div>'),
     "history": ('<div class="cap"><span class="chips views" role="group" aria-label="View"></span>'
                 '<span class="chips filters" role="group" aria-label="Show"></span></div>'
                 '<div class="hbars" hidden><div class="readout" aria-live="polite"></div>'

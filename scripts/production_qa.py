@@ -144,7 +144,7 @@ METRICS_WAIT_S = int(os.getenv("UMIYA_METRICS_WAIT_S", "180"))
 
 TABS = [
     "Dashboard", "Portfolio", "Actions", "Watchlist", "Screener", "Sectors",
-    "Market Breadth", "Backtest", "Configuration",
+    "Market Breadth", "Indices", "Backtest", "Configuration",
     "Guide",
 ]
 VIEWPORTS = {

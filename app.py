@@ -162,6 +162,7 @@ with app_import_guard():
     from src.ui.views.breadth_view import render_breadth_view
     from src.ui.views.config_view import render_config_view
     from src.ui.views.guide_view import render_guide_view
+    from src.ui.views.indices_view import render_indices_view
     from src.ui.views.portfolio_view import render_portfolio_view
     from src.ui.views.actions_view import render_actions_view
     from src.ui.views.dashboard_home_view import render_home_view
@@ -1191,6 +1192,10 @@ def _page_watchlist() -> None:
     render_watchlist_view(rank_df, adj_close)
 
 
+def _page_indices() -> None:
+    render_indices_view()
+
+
 def _page_breadth() -> None:
     render_breadth_view(rank_df, adj_close, history_prices=deep_adj_close,
                         benchmark_close=fetch_benchmark_history(period="5y"))
@@ -1268,6 +1273,7 @@ _PAGES = [
     st.Page(_page_screener, title="Screener", url_path="screener"),
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
     st.Page(_page_breadth, title="Market Breadth", url_path="breadth"),
+    st.Page(_page_indices, title="Indices", url_path="indices"),
     st.Page(_page_backtest, title="Backtest", url_path="backtest"),
     st.Page(_page_configuration, title="Configuration", url_path="configuration"),
     st.Page(_page_guide, title="Guide", url_path="guide"),

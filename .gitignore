@@ -7,6 +7,7 @@ data_cache/
 !data/nse_prices/*.parquet
 !data/reference/weekly_fill_extra.parquet
 !data/reference/weekly_fill_nano.parquet
+!data/nse_indices_history.parquet
 user_watchlist.json
 
 # Streamlit secrets and config (never commit secrets)
