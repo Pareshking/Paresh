@@ -25,6 +25,13 @@ name: NSE long price file (backtests from 2010)
 # rebuilds data/breadth_history.csv and data/signal_tests.json from it, which
 # read this file (scripts/build_breadth_history.py). Before this, breadth moved
 # only on Saturdays and could end up to a week behind.
+# A nightly build is the cheap one (owner, 21 Nov 2026: "find better and faster
+# solutions"): it publishes the three files breadth and the backtest read, but
+# not the two packs (~175 MB; the next build reads the few sessions the
+# Saturday pack lacks from R2 instead), and leaves the reference audits and the
+# artifact to Saturday, which re-reads and audits everything. Between
+# Saturdays the guards that still run are the build's own checks and
+# check_long_publish.py (never a smaller file or pack).
 on:
   # After the daily sync's night run (the one chained after the Screener sync,
   # as r2_market_cap_history.yml does): NSE's session is on R2 by then and the
@@ -67,6 +74,7 @@ jobs:
       R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
       FULL: ${{ inputs.full == 'yes' && 'yes' || 'no' }}
+      NIGHTLY: ${{ github.event_name == 'workflow_run' && 'yes' || 'no' }}
     steps:
       - name: Full re-read on every scheduled (Saturday) build
         if: github.event_name == 'schedule'
@@ -141,13 +149,14 @@ jobs:
               --title "Latest data snapshots" \
               --notes "Rolling history published by the sync jobs." \
               --latest=false
-          gh release upload data-latest \
-            data_cache/nse_long/nse_long_close.parquet \
-            data_cache/nse_long/nse_long_value.parquet \
-            data_cache/nse_long/nse_long_report.json \
-            data_cache/nse_long/nse_raw_pack.parquet \
-            data_cache/nse_long/nse_actions_pack.parquet \
-            --repo "$GITHUB_REPOSITORY" --clobber
+          FILES="data_cache/nse_long/nse_long_close.parquet data_cache/nse_long/nse_long_value.parquet data_cache/nse_long/nse_long_report.json"
+          # The packs only on Saturday or by hand: a nightly build adds a session or
+          # two, which the next build reads from R2 again for a handful of requests.
+          if [ "$NIGHTLY" != "yes" ]; then
+            FILES="$FILES data_cache/nse_long/nse_raw_pack.parquet data_cache/nse_long/nse_actions_pack.parquet"
+          fi
+          # shellcheck disable=SC2086
+          gh release upload data-latest $FILES --repo "$GITHUB_REPOSITORY" --clobber
       # The same three files to R2 (S142, owner 17 Nov 2026: "Yes weekly"), which
       # src/loaders/nse_long.py reads first. Value and report go first and the
       # closes last: the app resolves the closes' current build and takes the
@@ -202,6 +211,7 @@ jobs:
       # each build, so no laptop has to be on; a failure never blocks the publish.
       - name: Audit the new file
         id: audit
+        if: env.NIGHTLY != 'yes'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -228,9 +238,10 @@ jobs:
       # when a finding is worse than its baseline or an audit wrote no summary.
       # The file is already published and the artifact below uploads regardless.
       - name: Audit limits
+        if: env.NIGHTLY != 'yes'
         run: python scripts/audit_limits.py long --audit audit --report data_cache/nse_long/nse_long_report.json
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && env.NIGHTLY != 'yes'
         with:
           name: nse-long-prices
           path: |

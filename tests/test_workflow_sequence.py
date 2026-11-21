@@ -111,3 +111,15 @@ def test_the_evidence_bootstrap_passes_the_skip_on_every_publish():
     assert len(runs) == 7
     for run in runs:
         assert run.count("scripts/r2_publish.py") == run.count("--skip-if-published")
+
+
+def test_the_nightly_long_build_is_the_cheap_one():
+    """Owner, 21 Nov 2026: nightly builds skip the pack upload, the reference audits and the artifact."""
+    doc = _load("nse_long_prices.yml")
+    job = doc["jobs"]["build"]
+    assert "workflow_run" in job["env"]["NIGHTLY"]
+    steps = {s.get("name") or s.get("uses"): s for s in job["steps"]}
+    for name in ("Audit the new file", "Audit limits", "actions/upload-artifact@v7"):
+        assert "env.NIGHTLY != 'yes'" in str(steps[name].get("if", "")), name
+    publish = steps["Publish to the data-latest release"]["run"]
+    assert 'if [ "$NIGHTLY" != "yes" ]' in publish and "nse_raw_pack.parquet" in publish
