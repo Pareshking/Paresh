@@ -53,3 +53,4 @@ An element is every figure, chart series, table column and number in a label or 
 - [ ] **First runs of the jobs added on 21 Nov:** the NSE DII step in `fii_dii.yml` and the Total Market collector, checked on GitHub.
 - [ ] **Data dictionary:** each file's columns, units, start date and writer, kept beside `docs/DATA_CATALOGUE.md`.
 - [ ] **One benchmark (S165)** and **industry practice (S166)** run beside this audit; their own rows in `docs/TODO.md`.
+- [ ] **RRG (S167):** its Nifty 500 / Nifty 50 series come from Yahoo, not `benchmark_indices.csv`; its quadrant words contradict Sectors for 10 of 20 industries (20 Nov).
