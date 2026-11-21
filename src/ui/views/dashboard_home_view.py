@@ -1085,7 +1085,7 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
     if ev is not None:
         out["levels"] = [round(float(ev.threshold))]
     out["band"] = [round(q1), round(q3), ""]
-    out["band_note"] = (f"shaded: the usual range since {done.index[0]:%Y}, {sg(q1 / 1000, 0)} to {sg(q3 / 1000, 0)} thousand crore "
+    out["band_note"] = (f"shaded: foreign investors' usual range since {done.index[0]:%Y}, {sg(q1 / 1000, 0)} to {sg(q3 / 1000, 0)} thousand crore "
                         "(the middle half of all months)")
     dii = _dii_months(nse)
     if dii:
