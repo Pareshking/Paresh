@@ -178,7 +178,32 @@ Proposed order: Sectors → Which sectors lead → Broad or narrow → NSE’s s
 | 10 One construction; 100 is the benchmark | Kept: every sector figure is the equal-weighted index of S147 |
 | 11-18 | Kept as M1, M16, M14, M15, M11, the site's type and chart rules, M19 |
 
-## Decisions for the owner
+## Owner's decisions (21 Nov 2026, one item at a time)
+
+Each item was put to the owner with a recommendation, an example and the counter-argument; the answers:
+
+| # | Item | Decision |
+|---|---|---|
+| 1 | Pair each sector with an NSE index (A) | **Yes**, young indices included, "—" with the launch date where a window is longer than their life (MQ1) |
+| 2 | Financial Services' headline (MQ2) | **Nifty Financial Services** |
+| 3 | Healthcare's headline (MQ3) | **Nifty Healthcare Index** |
+| 4 | Nifty Consumer Services, Nifty Commercial & Transport Services (MQ4) | **Moved to Sector** in `nse_index_groups.csv` and made the headline for Consumer Services and Services: 18 sectors with an index |
+| 5 | Nifty Sugar & Ethanol (MQ5) | **Under FMCG** |
+| 6 | Nifty Energy (MQ6) | **Under Oil & Gas** |
+| 7 | "Sector" or "industry" (B) | **"Sector"**, on this page now, on the rest through S173 |
+| 8 | Size rows (C) | **Dropped**, with a link to the Dashboard's size section; "The 750 vs Total Market" kept as the yardstick |
+| 9 | The sector table (D) | **One grouped table**, Indices' windows 1M, 3M, 6M, 9M, 1Y, broad-or-narrow gap on 1M and 3M |
+| 10 | Leadership map (E) | **Kept** (owner: "keep it"), with its worked example and the decided names ("sector", "the 750"). The leaderboard still merges into "Inside each sector" (M10), below the map |
+| 11 | The four lists and the bars (F) | **Headings in the sector table**; the bar chart goes |
+| 12 | TradingView switch (G) | **Kept** (owner: "keep it"). NSE sectors by default with the full page; with a TradingView grouping every section built from the ranked stocks regroups, and the NSE index columns and the gap hide with one line saying why. No section silently ignores the switch |
+| 13 | Month table colours (H) | **Sign colour only** |
+
+Not put to a vote: MQ7 (NSE's finer indices against the 750's own banks, NBFCs and so on) waits for each stock's basic
+industry, a TODO; I (Total Market from NSE's daily files, and the collector's date fix) is a data repair, S175.
+
+Next: mock-up v2 with items 10 and 12, shown to the owner before the build.
+
+## Decisions for the owner (as proposed)
 
 - **A. The sector ↔ index map.** Recommended: approve `SECTORS_INDEX_MAP_PROPOSAL.md` with its questions MQ1-MQ7 as
   recommended there (16 headline indices; 18 if MQ4 is yes). Against: wait for NSE's methodology documents, which
