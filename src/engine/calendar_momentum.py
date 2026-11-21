@@ -49,6 +49,30 @@ def calendar_start_positions(
     return np.searchsorted(idx.values, targets.values, side="left")
 
 
+def rank_history_position(
+    index: pd.DatetimeIndex,
+    months: int,
+    *,
+    latest_as_of: pd.Timestamp | None = None,
+) -> int:
+    """Where a rank "N months ago" is read: the last session on or before the
+    same date N months back; -1 when the index does not reach back that far.
+
+    One date for every page (S154, owner 21 Nov 2026, Screener decision A): the
+    Dashboard, Portfolio and Actions rank trails read the session on or before
+    (`dashboard_insights.on_or_before`); the ranking's own past ranks read the
+    first session on or after, so the Screener said "a month ago" was 21 Oct
+    while the Dashboard said 19 Oct. Returns windows keep
+    `calendar_start_positions`: a window opens on its first session.
+    """
+    idx = pd.DatetimeIndex(index)
+    if idx.empty:
+        return -1
+    as_of = pd.Timestamp(latest_as_of).normalize() if latest_as_of is not None else latest_as_of_date(idx)
+    target = as_of - pd.DateOffset(months=months)
+    return int(np.searchsorted(idx.values, np.datetime64(target), side="right")) - 1
+
+
 # How stale a window's opening price may be. Five sessions is one trading
 # week: long enough to bridge the holes Yahoo leaves, short enough that a
 # genuinely suspended stock still scores NaN instead of a stale number.

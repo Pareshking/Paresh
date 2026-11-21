@@ -17,7 +17,9 @@ def _rows():
 
 def test_full_quant_shows_qualified_place_and_score():
     keys = [c[0] for c in st_.columns_for("Full Quant (35)")]
-    assert keys[:5] == ["rank", "stock", "price", "qrank", "score"]
+    # Rank 3M and 1M ago, then the qualified place on the same dates and now
+    # (Screener decision A, 21 Nov 2026), then the score.
+    assert keys[:9] == ["rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "score"]
     assert "qrank" in [c[0] for c in st_.columns_for("Core (17)")]
 
 

@@ -16,14 +16,16 @@ from src.core.config import SHORT_FORMS
 from src.core.market_time import ist_now
 from src.ui.components import (
     compute_signals,
+    data_freshness,
     gap_count,
-    render_data_quality_footer,
     signal_chips_html,
     to_bool_mask,
 )
+from src.ui import page_kit as kit
+from src.ui.industry_names import short_industry
 from src.ui.views.stock_view import render_stock_view
 from src.engine.breadth import new_extreme_counts
-from src.engine.calendar_momentum import calendar_start_positions
+from src.engine.calendar_momentum import rank_history_position
 from src.ui.screener_table import INDEX_NAMES, column_count, render_screener_table
 
 # Stored in session state by `rank_density_mode`, so these strings are an
@@ -227,6 +229,7 @@ def render_ranking_view(
     regime=None,
     footnote=None,
     book_symbols=None,
+    history_prices: pd.DataFrame | None = None,
 ) -> None:
     """The Screener: market strip, search and presets, the ranking table, and
     this month's top-50 moves. ?stock=SYMBOL opens that stock's page instead.
@@ -363,15 +366,13 @@ def render_ranking_view(
     # ── Page header ──────────────────────────────────────────────────────────
 
     n_total = len(rank_df)
-    # One row: the title, today's signal chips, Export CSV. The count is the
-    # top bar's Universe and the date its Prices pill, so no subtitle; the
-    # chips sit here rather than on a row of their own (owner, 2026-09-27:
-    # no repeats, and no space left where text was taken out).
-    head = st.container(key="scr_head", horizontal=True, vertical_alignment="center",
-                        gap="medium", wrap=True)
-    head.html('<div class="scr-head"><h1>Screener</h1></div>', width="content")
-    head.html(signal_chips_html(compute_signals(rank_df)) or "<span></span>", width="stretch")
-    c_export = head.container(width="content")
+    # The title answers the reader's first question (which lead, and can the
+    # book buy them?); "Screener" is the kicker (PAGE_DESIGN §2a, 21 Nov 2026).
+    c_export = kit.page_head(screener_title(rank_df), screener_lede(rank_df, adj_close),
+                             actions=True, kicker="Screener")
+    chips = signal_chips_html(compute_signals(rank_df))
+    if chips:
+        st.html(chips)
 
     # No tile strip: regime and breadth are the market line's, the pass count
     # is the "Pass both filters" button's, the top-50 moves the closing
@@ -426,7 +427,7 @@ def render_ranking_view(
             label_visibility="collapsed",
             width="content",
         )
-        with st.popover("Filters & sort", icon=":material/tune:", width="content"), \
+        with st.popover("Filters & columns", icon=":material/tune:", width="content"), \
                 st.container(key="scr_filters"):
             # On a phone theme.py pins this panel to the bottom of the screen
             # as a sheet; on a desktop it is an ordinary dropdown.
@@ -479,17 +480,22 @@ def render_ranking_view(
     _sync_url(_filters)
     if not density_mode:
         density_mode = _DEFAULT_DENSITY
-    # One line for the chips and marks (S87 item 9).
-    st.caption("Qualified: above the 50D EMA and within 20% of the 52W high. The book buys the "
-               "top 20 qualified and keeps a holding while it is in the top 40; lines mark those "
-               "places in rank order. Big movers: rank moved 150+ places in a month. Volume spike: "
-               "today's volume 1.5x or more its 20-day average. Held: in the model book.")
+    # The key to the marks (S87 item 9), in short lines, two columns on a wide
+    # screen (PAGE_DESIGN §2a: it was one 1,240 px line).
+    st.html(_KEY_HTML.format(when=_trail_words(adj_close)))
 
     view = rank_df.copy()
     # S87 (owner, 7 Nov): place among the qualified (the list the book buys
     # from, as on Actions) and the model book's holdings, marked "Held".
     from src.engine.exit_watch import qualified_ranks
     view["Qualified Rank"] = view["Symbol"].map(qualified_ranks(rank_df))
+    # The qualified place 3 months and a month ago: the Dashboard's rank trail,
+    # from its own function and price frame, so one stock reads the same on
+    # both pages (S154; Screener decision A, 21 Nov 2026).
+    trail = qualified_trail(history_prices if history_prices is not None else adj_close, rank_df)
+    if trail is not None:
+        view["Qualified (-3M)"] = view["Symbol"].map(trail["3m"])
+        view["Qualified (-1M)"] = view["Symbol"].map(trail["1m"])
     view["Held"] = view["Symbol"].isin(set(book_symbols or ()))
     # Sessions at a new 52-week high in the last month and three: a stock that
     # keeps making them is strong.
@@ -598,16 +604,10 @@ def render_ranking_view(
         width="stretch",
     )
 
-    render_top50_changes(rank_df, adj_close)
+    render_top50_changes(rank_df, adj_close, held=set(book_symbols or ()))
     if footnote is not None:
         footnote()
-
-    render_data_quality_footer(
-        total_stocks=len(rank_df),
-        gap_count=gap_count(rank_df),
-        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
-        details=True,
-    )
+    st.html(data_line(rank_df, adj_close))
 
 
 def _reset_screener_filters() -> None:
@@ -631,8 +631,8 @@ def _new_high_counts(_key: str, _prices: pd.DataFrame) -> pd.DataFrame:
 def top50_changes(rank_df: pd.DataFrame):
     """Stocks that entered and left the top 50 in the last calendar month, by rank.
 
-    "Rank (-1M)" is the rank on the first session on or after the same date a
-    month back (`calendar_start_positions`), not the last month-end.
+    "Rank (-1M)" is the rank on the last session on or before the same date a
+    month back (`rank_history_position`), the date every page's rank trail uses.
     """
     if "Rank (-1M)" not in rank_df.columns:
         return None, None
@@ -654,103 +654,230 @@ def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     return out.sort_values("Places_gained", ascending=False).head(n)
 
 
-def _movers_heading(adj_close: pd.DataFrame | None) -> str:
-    """ "Since 6 Oct (one month)": the session the 1M rank change counts from."""
+def system_note(system_name: str, ranked, members, *, nano: bool) -> tuple[str, str]:
+    """The Screener's footnote for Nano Cap and Combined: what is ranked, and the
+    stocks too new to rank (owner, 27 Sep 2026)."""
+    ranked_set = {str(x) for x in ranked}
+    members = {str(x) for x in members}
+    unranked = sorted(members - ranked_set)
+    head = (f"{system_name} · {len(ranked_set)} of {len(members)} stocks ranked"
+            + (" among themselves." if nano else " as one list."))
+    body = (f"{len(unranked)} too new to rank (under three months of prices): "
+            + ", ".join(unranked[:12]) + (" and more." if len(unranked) > 12 else ".")) if unranked else ""
+    return head, body
+
+
+def _month_ago(adj_close: pd.DataFrame | None, months: int = 1) -> pd.Timestamp | None:
+    """The session a rank N months ago is read on (the engine's own rule)."""
     if adj_close is None or len(adj_close.index) == 0:
-        return "In the last month"
+        return None
     idx = pd.DatetimeIndex(adj_close.index)
-    pos = int(calendar_start_positions(idx, 1)[-1])
-    start = idx[min(pos, len(idx) - 1)]
-    return f"Since {start.day} {start:%b} (one month)"
+    pos = rank_history_position(idx, months)
+    return idx[pos] if pos >= 0 else None
 
 
-def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None = None) -> None:
-    """Render the approved full-width ranking movement cards."""
+def _day(ts: pd.Timestamp | None) -> str:
+    return "" if ts is None else f"{ts.day} {ts:%b}"
+
+
+def _trail_words(adj_close: pd.DataFrame | None) -> str:
+    d3, d1 = _month_ago(adj_close, 3), _month_ago(adj_close, 1)
+    return f"on {_day(d3)} and {_day(d1)}" if d3 is not None and d1 is not None else "3 months and a month ago"
+
+
+def _movers_heading(adj_close: pd.DataFrame | None) -> str:
+    """ "What moved since 19 Oct": the session the 1M rank change counts from."""
+    d = _month_ago(adj_close, 1)
+    return "What moved in the last month" if d is None else f"What moved since {_day(d)}"
+
+
+def _passes(df: pd.DataFrame) -> pd.Series:
+    return to_bool_mask(df.get("Above 50 EMA")) & to_bool_mask(df.get("Near 52W High"))
+
+
+def screener_title(rank_df: pd.DataFrame) -> str:
+    """The answer to "which stocks lead, and can the book buy them?"."""
+    if rank_df is None or rank_df.empty or "Rank" not in rank_df.columns:
+        return "Screener"
+    now = pd.to_numeric(rank_df["Rank"], errors="coerce")
+    top = rank_df[now <= 50]
+    n_top = len(top)
+    if not n_top:
+        return "Screener"
+    n_q = int(_passes(top).sum())
+    head = f"{n_q} of the top {n_top} can be bought"
+    prev = pd.to_numeric(top.get("Rank (-1M)"), errors="coerce") if "Rank (-1M)" in top.columns else None
+    if prev is None or prev.isna().all():
+        return head + "."
+    new = int((prev > 50).sum())
+    return f"{head}; {new} of the {n_top} are new this month."
+
+
+def screener_lede(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
+    when = "" if adj_close is None or not len(adj_close.index) else f" at the {pd.Timestamp(adj_close.index[-1]):%-d %b} close"
+    return (f"The {len(rank_df)} ranked stocks, by momentum{when}. The book buys the top 20 qualified "
+            "and keeps a holding while it is in the top 40.")
+
+
+# Two columns of short lines on a wide screen, one on a phone. No tag-shaped
+# text in the CSS (PAGE_DESIGN §6: a comment holding one drops the block).
+_KEY_HTML = (
+    "<style>.scr-key{{columns:2;column-gap:40px;font-size:var(--fs-13);color:var(--c-text_2);margin:4px 0 0}}"
+    ".scr-key p{{margin:0 0 6px;break-inside:avoid;max-width:80ch;line-height:1.5}}"
+    ".scr-key b{{color:var(--c-ink);font-weight:600}}"
+    "@media (max-width:900px){{.scr-key{{columns:1}}}}</style>"
+    '<div class="scr-key">'
+    "<p><b>Qualified:</b> above the 50D EMA and within 20% of the 52W high. The qualified place is the "
+    "stock's place among them, the number Actions and the Dashboard use; “Out” means it fails a filter, "
+    "and the filter columns show ✗ and by how much.</p>"
+    "<p><b>Rank before:</b> the rank among the ranked stocks {when}, the dates the Dashboard's rank trail "
+    "uses. Past figures are grey; a click on a column heading sorts every stock.</p>"
+    "<p><b>Held:</b> in the model book. The book buys the top 20 qualified and keeps a holding while it is in "
+    "the top 40; in rank order the two rows where those places fall are named.</p>"
+    "<p><b>Big movers:</b> rank moved 150 places or more in a month. <b>Volume spike:</b> today's volume "
+    "1.5 times its 20-day average or more.</p></div>"
+)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _qualified_trail(key: str, _prices: pd.DataFrame, symbols: tuple) -> dict:
+    from src.engine import dashboard_insights as di
+    _, trails = di.rank_trails(_prices, [s for s in symbols if s in _prices.columns])
+    return {"3m": {s: r[0] for s, r in trails.items() if r[0] is not None},
+            "1m": {s: r[1] for s, r in trails.items() if r[1] is not None}}
+
+
+def qualified_trail(prices: pd.DataFrame | None, rank_df: pd.DataFrame) -> dict | None:
+    """{"3m": {symbol: place}, "1m": {...}}: the Dashboard's rank trail for every
+    ranked stock (`dashboard_insights.rank_trails`, S154). None when it cannot
+    be worked out; the table then leaves the two columns out."""
+    if prices is None or prices.empty or rank_df is None or rank_df.empty:
+        return None
+    try:
+        from src.engine.pipeline import price_fingerprint
+        syms = tuple(str(x) for x in rank_df["Symbol"])
+        return _qualified_trail(f"{price_fingerprint(prices)}_{hash(syms)}", prices, syms)
+    except Exception:  # noqa: BLE001 -- a failure costs the two columns, never the Screener
+        return None
+
+
+def data_line(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
+    """The data date and the counts; no source named (owner, 20 Nov 2026). A
+    dataset that is behind is said, in the caution colour, by what it is."""
+    when = "" if adj_close is None or not len(adj_close.index) else f"Data to {pd.Timestamp(adj_close.index[-1]):%-d %b %Y}. "
+    short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
+    line = (f"{when}{len(rank_df)} stocks ranked; {gap_count(rank_df)} with a price gap, "
+            f"{short_n} with a short history.")
+    behind = []
+    try:
+        for item in data_freshness() or []:
+            label = str(item.get("label") or "")
+            if item.get("stale") and "ranked from" not in label.lower():
+                behind.append(f"{html.escape(label)} are to {html.escape(str(item.get('as_of') or ''))}")
+    except Exception:  # noqa: BLE001
+        behind = []
+    extra = (' <span style="color:var(--c-caution)">' + "; ".join(behind) + ".</span>") if behind else ""
+    return f'<p class="qp-note" style="margin-top:28px">{html.escape(line)}{extra}</p>'
+
+
+_MOVERS_CSS = (
+    "<style>.mv-sec{border-top:1px solid var(--c-rule_strong);margin-top:40px;padding-top:22px}"
+    ".mv-kick{margin:0 0 6px;font-size:var(--fs-12);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--c-muted)}"
+    ".mv-sec h2.mv-h{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important;"
+    "line-height:1.2!important;margin:0 0 6px!important;max-width:36ch;letter-spacing:-0.3px!important}"
+    ".mv-h .up{color:var(--c-up)}.mv-h .down{color:var(--c-down)}"
+    ".mv-note{font-size:var(--fs-13);color:var(--c-muted);margin:0;max-width:80ch}"
+    ".mv-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px;margin-top:22px;align-items:start}"
+    ".mv-card h3{font-size:var(--fs-15)!important;font-weight:600!important;margin:0!important;font-family:var(--font-ui)!important}"
+    ".mv-card h3 span{font-family:var(--font-mono);font-weight:500;color:var(--c-muted);margin-left:4px}"
+    ".mv-card p{font-size:var(--fs-12);color:var(--c-muted);margin:2px 0 8px}"
+    ".mv-wrap{overflow-x:auto}"
+    "table.mv-t{border-collapse:collapse;width:100%;font-size:var(--fs-13);border-top:1.5px solid var(--c-ink)}"
+    ".mv-t th{font-size:var(--fs-12);font-weight:600;color:var(--c-muted);padding:8px;border-bottom:1px solid var(--c-rule_strong);"
+    "text-align:right;white-space:nowrap}"
+    ".mv-t th.l,.mv-t td.l{text-align:left}"
+    ".mv-t td{padding:6px 8px;border-bottom:1px solid var(--c-rule);text-align:right;white-space:nowrap;"
+    "font-family:var(--font-mono);font-variant-numeric:tabular-nums}"
+    ".mv-t td.l{font-family:var(--font-ui)}"
+    ".mv-t td.l a{font-family:var(--font-mono);font-weight:600;color:var(--c-ink);text-decoration:none}"
+    ".mv-t td.l a:hover{text-decoration:underline}"
+    ".mv-t td.l small{display:block;font-size:var(--fs-12);color:var(--c-muted)}"
+    ".mv-t .past{color:var(--c-faint)}.mv-t .now{font-weight:600}"
+    ".mv-t .pos{color:var(--c-up)}.mv-t .neg{color:var(--c-down)}"
+    ".mv-held{font-size:var(--fs-12);font-family:var(--font-ui);font-weight:600;border:1px solid var(--c-ink);"
+    "padding:0 4px;margin-left:6px;border-radius:4px}"
+    "@media (max-width:900px){.mv-grid{grid-template-columns:1fr;gap:28px}.mv-sec h2.mv-h{font-size:var(--fs-24)!important}}</style>"
+)
+
+
+def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None = None,
+                         held: set | None = None) -> None:
+    """What moved in the month: the biggest climbs, the stocks that entered the
+    top 50 and those that left it, every row shown (PAGE_DESIGN §2: no "View
+    all"), headed by the finding (Screener redesign, 21 Nov 2026)."""
     entered, left = top50_changes(rank_df)
     if entered is None:
         return
     jumps = biggest_jumps(rank_df)
+    held = held or set()
+    d1 = _month_ago(adj_close, 1)
+    was_head = f"Rank {_day(d1)}" if d1 is not None else "Rank 1M ago"
 
     def esc(value) -> str:
         return html.escape(str(value))
 
-    def stock_link(sym) -> str:
-        return f'<a class="t50-stock" href="{stock_href(sym)}" target="_self">{esc(sym)}</a>'
+    def ret(row) -> tuple[str, str]:
+        v = pd.to_numeric(pd.Series([row.get("1M Return")]), errors="coerce").iloc[0]
+        if pd.isna(v):
+            return "—", ""
+        v = round(float(v) * 100, 1)
+        return f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v):.1f}%", ("pos" if v > 0 else "neg" if v < 0 else "")
 
-    def fmt_return(row) -> str:
-        # Ranking returns are stored as decimal fractions (e.g. 0.284 = 28.4%),
-        # matching the screener table's canonical percentage formatter.
-        val = pd.to_numeric(pd.Series([row.get("1M Return")]), errors="coerce").iloc[0]
-        if pd.isna(val):
-            return "—"
-        v = round(float(val) * 100, 1)
-        return f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v):.1f}%"
+    def table(title: str, note: str, rows, count: int | None = None) -> str:
+        body = []
+        for row in rows:
+            now = int(row["Rank"])
+            prev = pd.to_numeric(pd.Series([row.get("Rank (-1M)")]), errors="coerce").iloc[0]
+            was = "—" if pd.isna(prev) else str(int(prev))
+            moved = None if pd.isna(prev) else int(prev) - now
+            mv = "—" if moved is None else (f"+{moved}" if moved > 0 else f"−{abs(moved)}" if moved < 0 else "0")
+            mcls = "" if not moved else ("pos" if moved > 0 else "neg")
+            r_txt, r_cls = ret(row)
+            sym = str(row["Symbol"])
+            tag = '<span class="mv-held">Held</span>' if sym in held else ""
+            body.append(
+                f'<tr><td class="l"><a href="{stock_href(sym)}" target="_self">{esc(sym)}</a>{tag}'
+                f'<small>{esc(short_industry(row.get("Industry")))}</small></td>'
+                f'<td class="past">{was}</td><td class="now">{now}</td>'
+                f'<td class="{mcls}">{mv}</td><td class="{r_cls}">{esc(r_txt)}</td></tr>')
+        n = len(body) if count is None else count
+        cnt = f"<span>{n}</span>" if n >= 0 else ""
+        return (f'<div class="mv-card"><h3>{esc(title)}{cnt}</h3><p>{esc(note)}</p>'
+                '<div class="mv-wrap"><table class="mv-t"><thead><tr><th class="l">Stock</th>'
+                f'<th>{esc(was_head)}</th><th>Now</th><th>Places</th><th>1M return</th></tr></thead>'
+                f'<tbody>{"".join(body)}</tbody></table></div></div>')
 
-    def rank_change(row) -> int | None:
-        prev = pd.to_numeric(pd.Series([row.get("Rank (-1M)")]), errors="coerce").iloc[0]
-        now = pd.to_numeric(pd.Series([row.get("Rank")]), errors="coerce").iloc[0]
-        return None if pd.isna(prev) or pd.isna(now) else int(prev - now)
-
-    def row_html(i: int, row, extra: bool = False) -> str:
-        delta = rank_change(row)
-        delta_html = "—" if delta is None else (
-            f'<span class="t50-delta {"positive" if delta > 0 else ("negative" if delta < 0 else "flat")}">'
-            f'{"+" if delta > 0 else "−" if delta < 0 else ""}{abs(delta)}</span>'
-        )
-        ret = fmt_return(row)
-        ret_tone = ("negative" if ret.startswith("−") else "positive" if ret.startswith("+")
-                    else "flat")
-        return (
-            f'<div class="t50-row{" t50-extra" if extra else ""}" role="row">'
-            f'<span class="t50-num" role="cell">{i}</span>'
-            f'<span class="t50-stock-cell" role="rowheader">{stock_link(row["Symbol"])}</span>'
-            f'<span class="t50-cell t50-change" role="cell">{delta_html}</span>'
-            f'<span class="t50-cell t50-rank" role="cell">{int(row["Rank"])}</span>'
-            f'<span class="t50-cell t50-return {ret_tone}" role="cell">{esc(ret)}</span>'
-            '</div>'
-        )
-
-    def card(title: str, icon: str, tone: str, rows) -> str:
-        # A hidden checkbox holds the open/closed state; the "View all" button
-        # under the rows is its label, so it works without JS.
-        rows = list(rows)
-        toggle_id = f"t50-more-{tone}"
-        more = len(rows) > 5
-        toggle_label = (
-            '<span class="t50-when-closed">View all <span>→</span></span>'
-            '<span class="t50-when-open">Show less <span>↑</span></span>'
-        )
-        head = (
-            '<div class="t50-col-head" role="row"><span role="columnheader">#</span>'
-            '<span role="columnheader">Stock</span><span role="columnheader">Rank change</span>'
-            '<span role="columnheader">New rank</span><span role="columnheader">1M %</span></div>'
-        )
-        body = f'<div class="t50-table-wrap"><div class="t50-table" role="table" aria-label="{esc(title)}">' + head
-        body += "".join(row_html(i, row) for i, row in enumerate(rows[:5], 1))
-        body += "".join(row_html(i, row, extra=True) for i, row in enumerate(rows[5:], 6))
-        body += '</div></div>'
-        if more:
-            body += f'<label class="t50-more" for="{toggle_id}">{toggle_label}</label>'
-        return (
-            f'<section class="t50-card t50-{tone}">'
-            + (f'<input type="checkbox" class="t50-toggle" id="{toggle_id}">' if more else '')
-            + '<div class="t50-card-head"><div class="t50-card-heading">'
-            f'<div class="t50-icon" aria-hidden="true">{icon}</div>'
-            f'<div><h2>{esc(title)}</h2></div></div>'
-            '</div>' + body + '</section>'
-        )
-
-    # One heading says when the three cards count from, so no card repeats it.
-    # The ranks are compared with a calendar month back (6 Nov against the
-    # first session on or after 6 Oct), not with the last month-end, so the
-    # heading names that date (owner, 7 Nov).
-    html_out = (
-        f'<div class="pg-card-h"><h2>{esc(_movers_heading(adj_close))}</h2></div>'
-        '<div id="t50-movement" class="t50-grid">'
-        + card("Biggest jumps", "↑", "jump", jumps.to_dict("records"))
-        + card("Entered top 50", "★", "entered", entered.to_dict("records"))
-        + card("Left top 50", "↓", "left", left.to_dict("records"))
-        + '</div>'
+    jr = jumps.to_dict("records")
+    n_in, n_out = len(entered), len(left)
+    finding = (f'<span class="up">{n_in} stock{"s" if n_in != 1 else ""} entered the top 50</span> and '
+               f'<span class="down">{n_out} left</span>')
+    if jr:
+        j = jr[0]
+        finding += (f"; {esc(j['Symbol'])} climbed {int(j['Places_gained'])} places, "
+                    f"from #{int(j['Rank_last_month'])} to #{int(j['Rank'])}")
+    when = (f"Ranks among the ranked stocks on {_day(d1)}, the last session on or before the same date a month "
+            "back, against today. Every row shown.") if d1 is not None else "Every row shown."
+    jumps_html = (table("Biggest jumps", "The ten that climbed most places, 1 to 5.", jr[:5], len(jr))
+                  + (table("Biggest jumps, 6 to 10", "\u00a0", jr[5:], -1) if len(jr) > 5 else ""))
+    st.html(
+        _MOVERS_CSS
+        + f'<div class="mv-sec" id="t50-movement"><p class="mv-kick">{esc(_movers_heading(adj_close))}</p>'
+        f'<h2 class="mv-h">{finding}.</h2><p class="mv-note">{esc(when)}</p>'
+        f'<div class="mv-grid">{jumps_html}</div>'
+        '<div class="mv-grid">'
+        + table("Entered the top 50", f"In the top 50 now, not on {_day(d1) or 'the date a month back'}.",
+                entered.to_dict("records"))
+        + table("Left the top 50", f"In the top 50 on {_day(d1) or 'the date a month back'}, not now.",
+                left.to_dict("records"))
+        + "</div></div>"
     )
-    st.html(html_out)
-

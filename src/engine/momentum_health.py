@@ -126,6 +126,26 @@ def latest_qualified(prices: pd.DataFrame, membership=None, *,
             "n": int(len(members))}
 
 
+def qualified_on(prices: pd.DataFrame, dates, membership=None, *, config_weights=None) -> dict:
+    """{session: the share of that day's index members passing the strategy's
+    filters}, the reading `latest_qualified` takes at a month-end, on any
+    session. The Dashboard's "Stocks that qualify" shows today's share beside
+    the month-end one (staleness audit, 21 Nov 2026: the row read 30 Oct's 17%
+    under a column headed "Now")."""
+    kw = {} if config_weights is None else {"config_weights": config_weights}
+    out = {}
+    days = [pd.Timestamp(d) for d in dates if d is not None]
+    if not days or prices is None or prices.empty:
+        return out
+    snap = snapshots(prices, days, membership=membership, **kw)
+    for day, part in snap.groupby("date"):
+        px = prices.loc[day].reindex(part["symbol"].to_numpy()).notna().to_numpy()
+        members = part[part["in_index"].to_numpy() & px]
+        if len(members) >= MIN_STOCKS:
+            out[pd.Timestamp(day)] = float(members["qualifies"].mean())
+    return out
+
+
 def health(spreads: pd.DataFrame) -> dict | None:
     """Today's reading from the monthly spreads, or None with under two years."""
     if spreads is None or len(spreads) < 24:

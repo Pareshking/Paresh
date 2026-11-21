@@ -89,4 +89,4 @@ def test_a_signal_that_did_not_pass_is_shown_but_not_used():
     html = v.html_of(v.section_momentum([("12 months", 12.2, "")], 0, signals, 0.8))
     assert "1 pass" in html and "1 is not confirmed" in html
     assert "Not confirmed" in html and "Not used" in html and "the halves disagree" in html
-    assert "1 point to a stronger month" in html and "0 to a weaker one" in html
+    assert "1 points to a stronger month" in html  # 1 (signal) points; 5 point and "0 to a weaker one" in html

@@ -519,8 +519,12 @@ class MomentumEngine:
         if n_rows > 0 and self.momentum_scores is not None:
             score_idx = pd.DatetimeIndex(self.momentum_scores.index)
             as_of = latest_as_of_date(score_idx)
-            hist_starts = {
-                m: calendar_start_positions(score_idx, m, latest_as_of=as_of)
+            # The session a past rank is read on: the last on or before the same
+            # date N months back, the date every page's rank trail uses (S154).
+            from src.engine.calendar_momentum import rank_history_position
+
+            hist_pos = {
+                m: rank_history_position(score_idx, m, latest_as_of=as_of)
                 for m in (1, 2, 3, 6)
             }
             # A rank delta is only meaningful between two ranks over the SAME
@@ -574,10 +578,10 @@ class MomentumEngine:
             from src.engine import pipeline
 
             for months in pipeline.RANK_HISTORY_MONTHS:
-                idx_hist = int(hist_starts[months][-1])
+                idx_hist = int(hist_pos[months])
                 rank_col = f"Rank (-{months}M)"
                 delta_col = f"Rank Δ {months}M"
-                if idx_hist < n_rows:
+                if 0 <= idx_hist < n_rows:
                     r_hist, d_hist = _paired_rank_delta(idx_hist)
                     rank_df[rank_col] = rank_df["Symbol"].map(r_hist)
                     rank_df[delta_col] = rank_df["Symbol"].map(d_hist)

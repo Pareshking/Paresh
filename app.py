@@ -165,7 +165,7 @@ with app_import_guard():
     from src.ui.views.portfolio_view import render_portfolio_view
     from src.ui.views.actions_view import render_actions_view
     from src.ui.views.dashboard_home_view import render_home_view
-    from src.ui.views.ranking_view import render_ranking_view
+    from src.ui.views.ranking_view import render_ranking_view, system_note
     from src.ui.views.rrg_view import render_rrg_view
     from src.ui.views.sector_view import render_sector_view
     from src.ui.views.watchlist_view import render_watchlist_view
@@ -1117,14 +1117,7 @@ def _system_line() -> None:
     if system == SYSTEM_750:
         return
     members = set(data["idx_info"]["Symbol"]) if data.get("idx_info") is not None else set()
-    unranked = sorted(members - set(rank_df["Symbol"]))
-    kit.note(
-        f"{system_name} · {len(rank_df)} of {len(members)} stocks ranked"
-        + (" among themselves." if system == SYSTEM_NANO else " as one list."),
-        (f"{len(unranked)} too new to rank (under three months of prices): "
-         + ", ".join(unranked[:12]) + (" and more." if len(unranked) > 12 else "."))
-        if unranked else "",
-    )
+    kit.note(*system_note(system_name, rank_df["Symbol"], members, nano=system == SYSTEM_NANO))
 
 
 def _before_inception() -> bool:
@@ -1180,6 +1173,7 @@ def _page_screener() -> None:
         regime=regime_data,
         footnote=_system_line,
         book_symbols=_screener_book(),
+        history_prices=deep_adj_close,
     )
 
 
