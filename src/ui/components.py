@@ -114,11 +114,15 @@ def _status_pill_html() -> str:
 
 
 # One flat list, no group headings (owner, 21 Nov 2026: "do we need such sections in
-# the menu? remove them"). The menu lists every page in this order; the top bar
-# shows the first seven on a desktop.
+# the menu? remove them"). The menu lists every page in this order.
 _MENU_ORDER = ("Dashboard", "Actions", "Screener", "Portfolio", "Market", "Indices", "Sectors",
                "Watchlist", "Backtest", "Configuration", "Guide")
-_QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio", "Market", "Indices", "Sectors")
+# On a desktop the top bar links every page and the menu button is hidden; the
+# prices date moves from the bar to the end of the market line to make room
+# (owner, 21 Nov 2026: "entire menu will be there on desktop site, mobile site
+# will continue to serve hamburger menu"). Below 1024 px the menu is the only
+# navigation and the date stays in the bar, as before.
+_QUICK_PAGES = _MENU_ORDER
 
 
 # The header says what it measures (owner, 8 Nov 2026): "Nifty 500 2.9% above its
@@ -162,6 +166,7 @@ def render_header_kpi_bar(
     else:
         dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
         level_text = f"{regime.current_price:,.0f}"
+    pill = _status_pill_html()
     market_html = f"""
     <div role="status" aria-label="Market status dashboard" class="mkt-snapshot">
         <div class="mkt-item mkt-regime-item">
@@ -180,8 +185,12 @@ def render_header_kpi_bar(
             <strong>{above_ema} <em>({pct_above_ema:.0f}%)</em></strong>
         </div>
         {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label" title="Within 20% of the 52-week high">Near 52W high</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
+        {f'<div class="mkt-item mkt-status">{pill}</div>' if pill else ""}
     </div>
     """
+    # The Dashboard has no market line, but its date must still show on a
+    # desktop, where the bar no longer carries it.
+    status_row = f'<div class="mkt-status-row">{pill}</div>' if pill else ""
 
     # One menu key per page. Streamlit keeps a keyed popover open across the
     # rerun its own contents trigger, and choosing a page IS such a rerun: on
@@ -214,9 +223,9 @@ def render_header_kpi_bar(
                     _state = "navon" if _p is active_page else "navoff"
                     with st.container(key=f"{_state}_quick_{_title.lower()}", width="content"):
                         st.page_link(_p)
-        pill = _status_pill_html()
         if pill:
-            st.html(pill, width="content")
+            # Below 1024 px only; on a desktop the date is in the market line.
+            st.html(pill.replace('class="hdr-pill', 'class="hdr-pill-head hdr-pill', 1), width="content")
         if nav_pages:
             # The only navigation, on every screen (owner, 7 Nov: "a hamburger
             # menu only", the menu's old style). The desktop link row is gone.
@@ -253,7 +262,7 @@ def render_header_kpi_bar(
     if pending:
         st.html(f'<div class="stale-notice stale-notice-info" role="status">{html.escape(pending)}</div>')
     # The skip link's target sits in the same element, so it adds no block.
-    st.html((market_html if show_market else "") + '<span id="content" class="skip-target" tabindex="-1"></span>')
+    st.html((market_html if show_market else status_row) + '<span id="content" class="skip-target" tabindex="-1"></span>')
 
 
 def signal_chips_html(signals: list[SignalAlert]) -> str:

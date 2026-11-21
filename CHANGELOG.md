@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-21 — Desktop: every page in the top bar
+
+- On a screen 1024 px or wider the top bar links all eleven pages, and the menu button (☰) is no longer shown there. Phones and tablets keep ☰ as the only navigation.
+- To make room, the prices date ("Prices · closes of 20 Nov", amber when a source is stale) moves from the top bar to the right-hand end of the market line on desktop. The Dashboard, which has no market line, shows it in a row of its own under the bar. On a phone it stays in the bar.
+- The Market page's label above its title now reads "Market" (it read "Breadth"), and the Dashboard's link to it under "Breadth, ranked stocks" is named "Market".
+
 ## 2026-11-21 — Backtest made over (S174)
 
 - One page of research runs on NSE's long price file, built from mock-up v1 and the owner's seven decisions of 21 Nov 2026 (`docs/BACKTEST_REQUIREMENTS.md`). The "Live system" tab is gone: Portfolio owns the record.

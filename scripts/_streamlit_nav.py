@@ -130,7 +130,9 @@ def _open_custom_popover(frame) -> bool:
                 # Since 7 Nov 2026 the button is the Material "menu" icon,
                 # announced as "menu" (pre-launch audit F23).
                 candidate = frame.get_by_role("button", name="menu").first
-            if candidate.count():
+            # Visible only: on a desktop the button is hidden (every page is in
+            # the bar since 21 Nov 2026), and clicking a hidden one waits 8 s twice.
+            if candidate.count() and candidate.is_visible():
                 button = candidate
         except Exception:
             pass

@@ -550,7 +550,7 @@ def render_breadth_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench:
     title = ("Market breadth" if breadth is None or trend is None else
              f"{breadth.verdict} participation; {trend.verdict[0].lower() + trend.verdict[1:]}.")
     st.html(_CSS + _PAGE_CSS + _CHART_CSS +
-            '<div class="qp-head"><p class="qp-kick">Breadth</p>'
+            '<div class="qp-head"><p class="qp-kick">Market</p>'
             f'<h1 class="qp-title">{html.escape(title)}</h1>'
             '<p class="qp-sub">Two questions, answered from the ranked stocks and NSE’s index closes: are most stocks '
             'taking part, and is the market in an uptrend. Then today’s charts.</p></div>'
