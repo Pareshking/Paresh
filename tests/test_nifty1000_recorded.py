@@ -4,6 +4,8 @@ import importlib.util
 import json
 import pathlib
 
+import pandas as pd
+
 from src.core import config
 from src.engine import index_universe as iu
 from src.loaders import indices_loader as il
@@ -64,3 +66,66 @@ def test_recorded_only_lists_do_not_widen_the_long_price_file():
                         "nifty_1000": {"baseline": {"date": "2026-11-21", "symbols": ["A", "NEWCO"]}, "changes": []}}}
     assert "NEWCO" not in iu.all_ever_members(full)
     assert "nifty_1000" in iu.RECORDED_ONLY
+
+
+# ── from 1 Nov 2026 (owner, 21 Nov: "start date is 01-Nov for us") ──────────
+
+from src.engine import nifty1000_backfill as nb  # noqa: E402
+
+
+def _tm(baseline, changes):
+    return {"baseline": {"date": "2021-10-29", "symbols": baseline}, "changes": changes}
+
+
+def test_reconstruction_is_the_750_of_each_day_plus_the_published_extra():
+    tm = _tm(["A", "B", "C"], [{"date": "2026-10-13", "added": ["D"], "removed": ["C"]},
+                               {"date": "2026-11-04", "added": ["E"], "removed": []},
+                               {"date": "2026-11-17", "added": [], "removed": ["E"]}])
+    e = nb.reconstruct(tm, ["A", "B", "D", "X", "Y"], "2026-11-21")
+    assert e["baseline"] == {"date": "2026-10-30", "symbols": ["A", "B", "D", "X", "Y"]}
+    assert e["changes"] == [{"date": "2026-11-04", "added": ["E"], "removed": []},
+                            {"date": "2026-11-17", "added": [], "removed": ["E"]}]
+    assert "reconstructed" in e["note"].lower()
+
+
+def test_a_list_that_differs_from_the_reconstruction_is_recorded_on_its_own_day():
+    tm = _tm(["A", "B"], [])
+    e = nb.reconstruct(tm, ["A", "B", "X"], "2026-11-21")
+    assert nb.members_at(e, "2026-11-21") == {"A", "B", "X"}
+    assert e["changes"] == []
+    # a 750 member missing from the published 1000 leaves on the day it was seen
+    e = nb.reconstruct(_tm(["A", "B", "Z"], []), ["A", "B", "X"], "2026-11-21")
+    assert e["changes"] == [{"date": "2026-11-21", "added": [], "removed": ["Z"]}]
+
+
+def test_the_nightly_step_backfills_once_and_then_appends(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("umh", ROOT / "scripts" / "update_membership_history.py")
+    umh = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(umh)
+    from src.core import membership_history as mh
+    hist = tmp_path / "membership_history.json"
+    hist.write_text(json.dumps({"schema_version": 2, "indices": {
+        "nifty_total_market": {"baseline": {"date": "2021-10-29", "symbols": ["AAA", "BBB"]}, "changes": []}}}))
+    monkeypatch.setattr(mh, "HISTORY_FILE", str(hist))
+    tm, n1000 = tmp_path / "tm.csv", tmp_path / "n1000.csv"
+    tm.write_text("Symbol\nAAA\nBBB\n")
+    n1000.write_text("Symbol\nAAA\nBBB\nCCC\n")
+    monkeypatch.setattr(umh, "RECORDED", {"NIFTY TOTAL MARKET": str(tm), "NIFTY 1000": str(n1000)})
+    umh.main()
+    e = json.loads(hist.read_text())["indices"]["nifty_1000"]
+    assert e["baseline"] == {"date": "2026-10-30", "symbols": ["AAA", "BBB", "CCC"]} and e["changes"] == []
+    n1000.write_text("Symbol\nAAA\nBBB\nDDD\n")          # a later night: an ordinary change, no rebuild
+    umh.main()
+    e = json.loads(hist.read_text())["indices"]["nifty_1000"]
+    assert e["baseline"]["date"] == "2026-10-30"
+    assert [(c["added"], c["removed"]) for c in e["changes"]] == [(["DDD"], ["CCC"])]
+
+
+def test_the_record_answers_from_the_close_that_signals_november_and_not_earlier():
+    # 1 Nov 2026 is a Sunday: the November book is signalled at Friday 30 Oct's close.
+    full = {"indices": {"nifty_1000": nb.reconstruct(_tm(["A"], []), ["A", "X"], "2026-11-21")}}
+    h = iu.index_history("nifty_1000", full)
+    from src.engine.membership import members_on
+    assert members_on(h, "2026-10-30") == {"A", "X"}
+    assert members_on(h, "2026-10-29") is None
+    assert iu.first_month(h) == pd.Period("2026-11", "M")
