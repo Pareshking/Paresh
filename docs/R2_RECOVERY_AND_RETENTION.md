@@ -61,7 +61,8 @@ _Current list (17 Nov 2026, `scripts/r2_retention.py`):_
   two. (The 2026-09-18 revision was kept for the R2 acceptance until 17 Nov,
   when that check moved to the newest revision.)
 - Protected, every date kept (`PROTECTED_SUPERSEDED_ONLY`): `snapshots/rankings`,
-  `_nano` and `_combined` drop only superseded revisions within a date.
+  `_nano`, `_combined` and, since 21 Nov 2026, `_1000` (the Nifty 1000 system,
+  S175) drop only superseded revisions within a date.
 - After a deletion the recovery audit re-reads every one of these
   (`deleted_from()`), not only `RETAINED_DATASETS` as before 17 Nov.
 `prices/yahoo*`, `app/prices_*` and `snapshots/application` are retired and

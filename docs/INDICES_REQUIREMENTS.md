@@ -18,7 +18,7 @@ dropped only with the owner's word. The `Order:` line is added when the owner ap
 the section order.
 
 Scope: a new page at `/indices`. Index data only. Industries stay on Sectors, trend and
-participation on Breadth, and the book's own momentum on the Dashboard.
+participation on Market (called Breadth until 21 Nov), and the book's own momentum on the Dashboard.
 
 ## What a reader comes with
 
@@ -54,7 +54,7 @@ participation on Breadth, and the book's own momentum on the Dashboard.
 ## Not on this page, and why
 
 - **Day changes, an 8-window return table, heat carpets.** The first are on the Dashboard's glance. The other two carry too many figures, with meaning in colour alone (Design §2.7).
-- **Trend status of each index.** Breadth answers it, and a second framing of the same index's trend would compete.
+- **Trend status of each index.** Market (then Breadth) answers it, and a second framing of the same index's trend would compete.
 - **The momentum-crash flag** (Daniel & Moskowitz). It is a TEST item with about one bear state since 2012, so it waits for a test.
 - **P/E bands with buy or sell levels, RSI/MACD, seasonality, flows as a predictor, the market-cap-to-GDP ratio.** Literature §5.
 - **A size × style matrix.** NSE has no mid or small value or growth indices with history.

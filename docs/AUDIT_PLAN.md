@@ -26,13 +26,13 @@ resource-hungry, planned in blocks.
 | # | Block | Scope | What to look for |
 |---|---|---|---|
 | 0 | Baseline and safety net | TODO items that fell due; measurement only | Actions minutes per workflow (30 days); test runtime; app cold start; per-page time and memory; repo size. Frozen outputs: the 750 ranking, the three track records, one fixed backtest |
-| 1 | Data collection | `nse_collect` (4-hourly), NSE and BSE bhavcopy, `screener_sync`/`backfill`, `ss_sync`, `nse_reference_sync`, index and classification sync | Re-downloading unchanged files, overlapping schedules, serial HTTP, retry storms, the same day fetched by two jobs |
+| 1 | Data collection | `nse_collect` (4-hourly), NSE and BSE bhavcopy, `screener_sync`/`backfill`, `ss_sync`, `nse_reference_sync`, index and classification sync; since 21 Nov `nse_indices` (every NSE index, one file a night) | Re-downloading unchanged files, overlapping schedules, serial HTTP, retry storms, the same day fetched by two jobs |
 | 2 | Price pipeline and corporate actions | `nse_long`, `nse_adjusted`, `corporate_actions`, `notes.json`, `build_nse_long_prices`, `closes.parquet` | Full rebuilds where incremental would do; parquet read/write cost; S81/S82 |
 | 3 | R2 and storage | about 20 `r2_*` workflows, 9 scheduled | One-off bootstrap and acceptance jobs still on a schedule; audit frequency against need; storage and egress |
-| 4 | Membership and universes | `membership_history`, notices, three systems, `nse_index_rebuild/` (1,314 files, 15 MB in git) | What belongs in git; what the daily sync recomputes |
+| 4 | Membership and universes | `membership_history`, notices, three systems (four since 21 Nov 2026: Nifty 1000 added, `indices.nifty_1000`), `nse_index_rebuild/` (1,314 files, 15 MB in git) | What belongs in git; what the daily sync recomputes |
 | 5 | Engine | `momentum`, `calendar_momentum`, `pipeline`, `backtester`, `track_record`, `ranking_store`, `compute_gate` | Repeated rolling-window work, Python loops, precompute rejections (S85) |
 | 6 | App shell and caching | `app.py`, `st.cache_*`, imports, S61-S69 | Cold start, cache keys (code audit W3), memory ratchet, S67 telemetry |
-| 7 | Website: menu and pages | 10 pages, redirects, stock page; `theme.py` | Per-page time and memory, duplicated rendering, phone width (S83, S84), unused controls |
+| 7 | Website: menu and pages | 10 pages, redirects, stock page; `theme.py` (11 pages since 21 Nov 2026: Dashboard added, Indices added, RRG removed, Breadth renamed Market at `/market`) | Per-page time and memory, duplicated rendering, phone width (S83, S84), unused controls |
 | 8 | QA and CI | 218 test files, `production_qa` every 6 h, `v1-*` and `stage4b` jobs | Test runtime, live-data tests, QA frequency |
 | 9 | Hygiene and dependencies | `agent/`, `research/`, docs, branches, open Dependabot PRs (pandas, numpy, pyarrow, streamlit) | Dead code; dependency bumps go through the Block 0 frozen-output check |
 
@@ -124,14 +124,17 @@ server memory sampled every 100 ms.
 | **Portfolio** | **17.7** | **8.2** | 676 / 686 |
 | Actions | 3.0 | 3.1 | 676 / 706 |
 | Sectors | 1.6 | 1.4 | 577 / 636 |
-| RRG | 1.4 | 1.5 | 622 / 655 |
+| RRG (removed 21 Nov 2026) | 1.4 | 1.5 | 622 / 655 |
 | Watchlist | 1.2 | 1.2 | 603 / 677 |
-| Breadth | 2.3 | 2.3 | 681 / 717 |
+| Breadth (now Market, `/market`) | 2.3 | 2.3 | 681 / 717 |
 | **Backtest** | **6.0** | **4.6** | 644 / 745 |
 | Configuration | 1.3 | 1.2 | 581 / 682 |
 | Guide | 1.3 | 1.2 | 598 / 682 |
 | Stock page (RELIANCE) | 1.2 | 1.2 | 615 / 695 |
 
+- Pages since this run (22 Nov 2026): the home page is the Dashboard (Screener at `/screener`), Indices is new,
+  RRG is gone and Breadth is Market at `/market`. `scripts/audit_page_bench.py` now opens `/` (Dashboard),
+  `/market` and `/indices`, but not `/screener`, so a rerun has no Screener row unless it is added.
 - Cold Screener: the precomputed ranking was accepted ("engine skipped").
 - **Portfolio is the slow page, and stays slow when warm** (8 s): something
   on it is recomputed on every visit.

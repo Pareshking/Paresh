@@ -1,4 +1,4 @@
-"""data/nse_total_market.csv and its collector (S180, 21 Nov 2026): NSE printed the files for 6, 10 and 11 Apr 2023
+"""data/nse_total_market.csv and its collector (S181, 21 Nov 2026): NSE printed the files for 6, 10 and 11 Apr 2023
 month-first, and reading them day-first filed three closes under 4 Jun, 4 Oct and 4 Nov 2023."""
 from __future__ import annotations
 

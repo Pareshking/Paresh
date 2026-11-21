@@ -34,6 +34,9 @@ read; "The live rows, one by one" says what became of each.
 | was 9 | Industry or sector grouping switch (NSE industry) | Live page | Top | NSE industry |
 | was 10 | RRG and Sectors agree on each industry's standing: one construction for an industry and its benchmark; 100 is the benchmark | S147, owner 19-20 Nov | Whole page | Sectors |
 
+Row 10's RRG half is moot since 21 Nov 2026: the RRG page was removed (S169, #587). The construction it pinned stays:
+Sectors' answer and its leadership map build each industry the same way (`tests/test_industry_pages_agree.py`).
+
 ## Rules learned on the four pages (21 Nov 2026; carried into the approved rows)
 
 | # | Requirement | Source | Where | Marker |
@@ -74,7 +77,8 @@ NSE's sector indices move here from the Indices page (S170), so a reader asking 
 one place. Themes, strategy and broad indices stay on Indices; Breadth, Sectors and Indices stay separate pages
 (not merged: about 15 sections on one page, three questions on different time scales, and the Dashboard is
 already the page that summarises; a "Market" heading grouping the three in the menu is the alternative if the
-menu feels long).
+menu feels long). Later the same day the menu lost its headings (#590), every page went into the desktop top bar (#592),
+and Breadth became the Market page at `/market` (#590, #592, #596).
 
 Numbered P1-P3 until built, so the requirements check does not read them yet; each gets a number and its marker when the redesign builds it.
 
@@ -205,7 +209,7 @@ Each item was put to the owner with a recommendation, an example and the counter
 | Item 13 | Month table colours (H) | **Sign colour only** |
 
 Not put to a vote: MQ7 (NSE's finer indices against the 750's own banks, NBFCs and so on) waits for each stock's basic
-industry, a TODO; I (Total Market from NSE's daily files, and the collector's date fix) is a data repair, S180.
+industry, a TODO; I (Total Market from NSE's daily files, and the collector's date fix) is a data repair, S181.
 
 Next: mock-up v2 with items 10 and 12, shown to the owner before the build. **Done:** `docs/mockups/sectors_v2.html` (rows M1-M21 above updated to match; M13 now excepts the grouping control's TradingView labels).
 
@@ -244,7 +248,7 @@ Next: mock-up v2 with items 10 and 12, shown to the owner before the build. **Do
   8,237.65 as 4 Oct 2023, replacing that day's real 9,608.10, so the series shows a false 15% one-day fall and
   rebound; and 11 Apr's 8,280.95 as 4 Nov 2023, a Saturday. NSE's daily index files in the S168 copy have all of
   them right; the two sources agree on the other 1,253 shared sessions. Recommended: read Total Market from the S168
-  copy on this page, and fix `scripts/collect_nse_total_market.py` with the S168 date rule (TODO S180). No figure on
+  copy on this page, and fix `scripts/collect_nse_total_market.py` with the S168 date rule (TODO S181). No figure on
   the 20 Nov page is affected (its windows start in Nov 2025); readings over 2023 on other pages are. Against: none
   for this page.
 
