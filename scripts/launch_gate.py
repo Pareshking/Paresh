@@ -63,9 +63,11 @@ def check_data_freshness(report: list[dict]) -> None:
     from src.core.market_time import ist_today, trading_days_behind
     import pandas as pd
 
-    closes = ROOT / "data" / "nse_prices" / "closes.parquet"
-    if not closes.exists():
-        _gate(report, "prices on disk", False, "data/nse_prices/closes.parquet is missing")
+    from src.loaders.nse_prices import closes_path
+
+    closes = closes_path()                  # the local file, else the published copy
+    if closes is None:
+        _gate(report, "prices on disk", False, "the NSE closes are neither on disk nor reachable")
         return
     frame = pd.read_parquet(closes)
     idx = pd.DatetimeIndex(frame.index if frame.index.name else frame.index)

@@ -19,18 +19,27 @@ at a past signal date depends only on ratios within the trailing window, so a
 series that is correct up to that date gives the same ranking then and now, and
 it gives it from facts that were published that day.
 
-Committed in data/nse_prices/:
+In data/nse_prices/:
     closes.parquet   raw closes as NSE filed them (sessions x symbols, EQ before BE)
     actions.parquet  its split/bonus/consolidation/demerger/rights rows, one per action
     notes.json       ticker renames and one-off corrections, each with its evidence
 scripts/sync_nse_prices.py builds and extends them.
+
+The closes are also published, monthly, to R2 (CLOSES_DATASET) and the
+data-latest release (CLOSES_ASSET), and leave git once that copy exists
+(owner, 21 Nov 2026: each monthly rewrite added ~1.3 MB to the repository's
+history). closes_path() reads the local file when there is one, else R2, else
+the release, cached for a day.
 """
 from __future__ import annotations
 
 import copy
 import hashlib
 import json
+import os
+import tempfile
 import threading
+import time
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Iterable
@@ -41,6 +50,14 @@ import pandas as pd
 from src.loaders import nse_adjusted as na
 
 DIR = Path(__file__).resolve().parents[2] / "data" / "nse_prices"
+CLOSES_FILE = "closes.parquet"
+# Where the monthly job publishes the closes (monthly_track_record.yml). Under
+# nse/, so r2_retention.py protects every copy (PROTECTED_DATASETS).
+CLOSES_DATASET = "nse/closes_2y"
+CLOSES_ASSET = "nse_closes.parquet"
+CLOSES_CACHE_NAME = "nse_prices_closes.parquet"
+CLOSES_CACHE_TTL_S = 24 * 3600
+_CLOSES_LOCK = threading.Lock()
 BASIS = "nse_as_published"
 BASIS_SCREENER = "screener_primary"
 # face_value prices a rights issue (nse_adjusted._rights: issue price = face value
@@ -50,11 +67,70 @@ ACTION_COLS = ["symbol", "series", "kind", "ex_date", "purpose", "price_factor",
 
 # ── reading what is committed ────────────────────────────────────────────────
 
+def _readable(path: Path) -> bool:
+    try:
+        frame = pd.read_parquet(path)
+    except Exception:  # noqa: BLE001
+        return False
+    return not frame.empty
+
+
+def _published_closes(cache_dir: Path | str | None = None) -> Path | None:
+    """The published closes on disk: a copy under a day old, else R2, else the
+    release; a stale copy when both fail; None when there is none. Never raises."""
+    from src.core.config import DATA_DIR, NSE_LONG_BASE_URL
+    from src.loaders import app_source
+
+    cache = Path(cache_dir or DATA_DIR) / CLOSES_CACHE_NAME
+    with _CLOSES_LOCK:
+        if cache.exists() and time.time() - cache.stat().st_mtime < CLOSES_CACHE_TTL_S:
+            return cache
+        body, source = app_source.fetch_latest(CLOSES_DATASET, "nse_closes"), "r2"
+        if body is None:
+            source = "release"
+            try:
+                import requests
+
+                resp = requests.get(f"{NSE_LONG_BASE_URL}/{CLOSES_ASSET}", timeout=60)
+                body = resp.content if resp.status_code == 200 else None
+            except Exception:  # noqa: BLE001  a stale copy beats none
+                body = None
+        if body:
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=cache.parent, suffix=".part")
+            with os.fdopen(fd, "wb") as fh:
+                fh.write(body)
+            if _readable(Path(tmp)):
+                os.replace(tmp, cache)
+                app_source.record("nse_closes", source)
+                return cache
+            os.unlink(tmp)
+        return cache if cache.exists() else None
+
+
+def closes_path(directory: Path | str = DIR) -> Path | None:
+    """The two-year NSE closes on disk, or None.
+
+    The file in `directory` when there is one (a test's folder, or a job that has
+    just written it); otherwise, for the repository's own folder only, the
+    published copy (_published_closes). Another folder never fetches.
+    """
+    local = Path(directory) / CLOSES_FILE
+    if local.exists():
+        return local
+    if Path(directory).resolve() != DIR.resolve():
+        return None
+    return _published_closes()
+
+
 def load(directory: Path = DIR) -> dict[str, Any] | None:
     """{"closes", "actions", "notes"} or None when nothing is committed."""
     directory = Path(directory)
+    path = closes_path(directory)
+    if path is None:
+        return None
     try:
-        closes = pd.read_parquet(directory / "closes.parquet")
+        closes = pd.read_parquet(path)
         actions = pd.read_parquet(directory / "actions.parquet")
         notes = json.loads((directory / "notes.json").read_text())
     except (OSError, ValueError):
@@ -444,9 +520,12 @@ _BASIS_LOCK = threading.Lock()
 
 def _file_stamp(directory: Path) -> tuple:
     stamp = []
-    for name in ("closes.parquet", "actions.parquet", "notes.json"):
+    for name in (CLOSES_FILE, "actions.parquet", "notes.json"):
         try:
-            st = (Path(directory) / name).stat()
+            path = closes_path(directory) if name == CLOSES_FILE else Path(directory) / name
+            if path is None:
+                raise OSError(name)
+            st = path.stat()
             stamp.append((name, st.st_mtime_ns, st.st_size))
         except OSError:
             stamp.append((name, None, None))

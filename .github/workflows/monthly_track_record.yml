@@ -97,6 +97,21 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: python scripts/check_ranking_frames.py --published
 
+      # The closes to R2 and the release, where src/loaders/nse_prices.closes_path()
+      # reads them when the repository holds no copy (owner, 21 Nov 2026: out of git,
+      # into R2). After the ranking check above, so only a file the app can rank with
+      # is published. Every copy is kept (nse/ is protected in r2_retention.py).
+      - name: Publish the NSE closes to R2 and the release
+        env:
+          PYTHONPATH: .
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: bash scripts/publish_nse_closes.sh
+
       # Refuses (exit 1, the drifting months named) while its replay disagrees
       # with a frozen month the owner has not accepted (S92, owner 7 Nov 2026:
       # October 2026 was struck on 3 Nov with parity red, on a store carrying

@@ -68,8 +68,9 @@ def universe() -> list[str]:
         names |= _symbols_in(history)
     except Exception as exc:  # noqa: BLE001
         print(f"  universe: membership history unavailable ({type(exc).__name__})")
-    for path in (ROOT / "data" / "nse_prices" / "closes.parquet",
-                 ROOT / "data" / "former_member_prices.parquet"):
+    from src.loaders.nse_prices import closes_path
+
+    for path in (closes_path(), ROOT / "data" / "former_member_prices.parquet"):
         try:
             names |= set(pd.read_parquet(path).columns)
         except Exception:  # noqa: BLE001
