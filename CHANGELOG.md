@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-21 — The Market page's address is /market
+
+- The Market page is at **/market**. The old address, /breadth, still works: it opens /market, keeping any `?system=` in the link, so bookmarks hold.
+- Every other old address (/qualified, /exit-watch, /track-record, /dashboard, /home) now keeps its `?system=` the same way when it redirects.
+
 ## 2026-11-21 — Desktop: every page in the top bar
 
 - On a screen 1024 px or wider the top bar links all eleven pages, and the menu button (☰) is no longer shown there. Phones and tablets keep ☰ as the only navigation.

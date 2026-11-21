@@ -310,7 +310,7 @@ def open_page(frame, name: str, page=None) -> str:
             "Sectors": "sectors",
             "Portfolio": "portfolio",
             "Watchlist": "watchlist",
-            "Market": "breadth",
+            "Market": "market",
             "Indices": "indices",
             "Backtest": "backtest",
             "Configuration": "configuration",

@@ -1236,7 +1236,7 @@ _PAGES = [
     st.Page(_page_actions, title="Actions", url_path="actions"),
     st.Page(_page_screener, title="Screener", url_path="screener"),
     st.Page(_page_portfolio, title="Portfolio", url_path="portfolio"),
-    st.Page(_page_breadth, title="Market", url_path="breadth"),
+    st.Page(_page_breadth, title="Market", url_path="market"),
     st.Page(_page_indices, title="Indices", url_path="indices"),
     st.Page(_page_sectors, title="Sectors", url_path="sectors"),
     st.Page(_page_watchlist, title="Watchlist", url_path="watchlist"),
@@ -1249,19 +1249,23 @@ _PAGES = [
 # either still lands there. These are redirects, not pages -- they are left out
 # of _PAGES, so no menu shows them, and their titles are not the app's tabs.
 _MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch", "track-record": "Track Record",
-          "dashboard": "Dashboard link", "home": "Home link"}
+          "dashboard": "Dashboard link", "home": "Home link", "breadth": "Breadth link"}
 # Where a moved address now lands (Actions unless listed): the record is part of Portfolio.
 # The Dashboard is the default page, which Streamlit serves at "/" only, so a
 # typed /dashboard is a redirect to it (as /screener was until 7 Nov). /home was
 # the Dashboard's declared url_path, which Streamlit ignores for the default
 # page, so /home showed "Page not found" (found 8 Nov on the live site): it is a
 # redirect now too.
-_MOVED_TO = {"track-record": "Portfolio", "dashboard": "Dashboard", "home": "Dashboard"}
+# The Market page was served at /breadth until 21 Nov 2026 (owner: "change the
+# address from /breadth to /market with a redirect"); old links land on it.
+_MOVED_TO = {"track-record": "Portfolio", "dashboard": "Dashboard", "home": "Dashboard", "breadth": "Market"}
 
 
 def _moved_page(path: str):
     def _go() -> None:
-        st.switch_page(next(p for p in _PAGES if p.title == _MOVED_TO.get(path, "Actions")))
+        # The query string goes along, so a bookmark's ?system= still applies.
+        st.switch_page(next(p for p in _PAGES if p.title == _MOVED_TO.get(path, "Actions")),
+                       query_params=st.query_params.to_dict())
     _go.__name__ = f"_moved_{path.replace('-', '_')}"
     return st.Page(_go, title=_MOVED[path], url_path=path)
 
