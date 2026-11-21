@@ -37,7 +37,7 @@ the owner approves the section order.
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 11 | The title answers the first question; the page's name is the kicker | PAGE_DESIGN §2a | Top | Market |
+| 11 | The title answers the first question; the page's name is the kicker | PAGE_DESIGN §2a | Top | [css .qp-kick] Market |
 | 12 | One source per figure: index closes from `data/benchmark_indices.csv`, the file the Dashboard reads (the live page reads R2 for "By size" and showed only the Nifty 500 row where R2 was not reachable, found 21 Nov) | S154, S148 | By size | Microcap 250 |
 | 13 | Every figure ends on the page's session or reads "—"; a series a session behind says so | S148 | Whole page | Data to |
 | 14 | A figure the Dashboard also shows (share above the 200D EMA, breadth by size) has the same value on both pages, from one function | S154 | Whole page | 200D EMA |

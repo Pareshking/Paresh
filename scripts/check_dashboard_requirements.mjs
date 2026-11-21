@@ -7,6 +7,8 @@
 // A marker may name what must be done first, read after the page's own text:
 //   [click Kite basket] Download basket CSV   -- tap the button or tab with that text, then read
 //   [phone] On a wider screen                  -- read the page at 412 px wide
+//   [css .qp-kick] Market                      -- read only the elements that selector matches
+//     (a word the menu also shows, like a page's name, proves nothing read from the whole page)
 // A row whose condition the page cannot show today (e.g. an unranked holding) names the test that covers it.
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -49,6 +51,12 @@ for (const label of Object.keys(extra)) {
     await btn.first().waitFor({ timeout: 90000 }); await btn.first().click({ timeout: 8000 }); await p.waitForTimeout(5000); extra[label] = await read(p); }
   catch (err) { console.error("could not tap", label, String(err).slice(0, 200)); extra[label] = ""; }
 }
+// Each [css SELECTOR] marker reads only what that selector matches, in every frame.
+const css = {};
+for (const r of rows) for (const m of r.marker.matchAll(/\[css ([^\]]+)\]/g)) css[m[1]] = '';
+for (const sel of Object.keys(css)) for (const f of p.frames()) {
+  try { css[sel] += await f.evaluate(q => [...document.querySelectorAll(q)].map(e => e.textContent).join('\n'), sel) + '\n'; } catch { /* a frame still loading */ }
+}
 let phone = '';
 if (rows.some(r => r.marker.includes('[phone]'))) { const q = await open(412); phone = await read(q); }
 await b.close();
@@ -58,6 +66,8 @@ const low = text.toLowerCase();
 const seen = (m, where) => where.toLowerCase().includes(m.trim().toLowerCase());
 const has = part => {
   const c = part.match(/^\s*\[click ([^\]]+)\]\s*(.*)$/), ph = part.match(/^\s*\[phone\]\s*(.*)$/);
+  const k = part.match(/^\s*\[css ([^\]]+)\]\s*(.*)$/);
+  if (k) return k[2].split('|').some(m => seen(m, css[k[1]] || ''));
   if (c) return c[2].split('|').some(m => seen(m, extra[c[1]] || ''));
   if (ph) return ph[1].split('|').some(m => seen(m, phone));
   return part.split('|').some(m => low.includes(m.trim().toLowerCase()));
