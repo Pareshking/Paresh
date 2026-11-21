@@ -282,13 +282,14 @@ Manual:
 python scripts/update_track_record.py --dry-run   # report, write nothing
 python scripts/update_track_record.py             # freeze closed months
 python scripts/update_track_record.py --force     # rewrite history (destroys the guarantee)
+python scripts/update_track_record.py --system 1000   # another system: 750 (default), 1000, nano, combined
 ```
 
-**Note on running locally:** the script needs ~750 symbols of price history from
-Yahoo. Rate-limited environments fail every request while appearing to make
-progress (yfinance reports network failures as `possibly delisted`). If a local
-run shows a high failure rate, use the workflow instead — trigger it manually
-from the Actions tab.
+**Note on running locally:** the script reads Screener's store, with NSE's closes
+(`data/nse_prices`) under it for what Screener lacks (`--prices screener`, the
+default for every system; no Yahoo since 2 Oct 2026). Without the store it
+refuses to freeze ("Screener's store is unavailable"); use the workflow instead,
+triggered by hand from the Actions tab.
 
 ---
 
@@ -323,16 +324,24 @@ survivorship work.
 
 ---
 
-## 8. Three systems
+## 8. Four systems
 
-Since 2026-09-27 the app runs three systems on the same pinned configuration
-(`docs/THREE_SYSTEMS.md`). Each has its own ledger and inception:
+Since 2026-09-27 the app runs three systems on the same pinned configuration,
+and since 2026-11-21 four: the Nifty 1000 was added and Nano Cap is shown as
+"> ₹2,000 Cr", same key `nano` (S175, #594; `docs/THREE_SYSTEMS.md`). Each has
+its own ledger and inception:
 
 | System | Ledger | First month |
 |---|---|---|
 | Nifty 750 | `data/track_record.json` | Jan 2026 (unchanged) |
-| Nano Cap | `data/track_record_nano.json` | Oct 2026 |
+| Nifty 1000 | `data/track_record_1000.json` | Nov 2026, **reconstructed**: its 30 Oct book uses a membership list NSE did not publish until 16 Nov (`src/engine/nifty1000_backfill.py`) |
+| > ₹2,000 Cr (formerly Nano Cap) | `data/track_record_nano.json` | Oct 2026 |
 | Combined | `data/track_record_combined.json` | Oct 2026 |
+
+The Nifty 1000's freeze (`update_track_record.py --system 1000`) refuses a month
+while any member of its signal close has no close that day, so a book is never
+formed from the part of the index we hold prices for (58 members on 30 Oct, #594).
+Its ledger file does not exist until a freeze passes.
 
 `src/engine/systems.py` names the ledger, the inception and the point-in-time
 membership for each; `load_ledger(path, inception)` and `finalize_months` start
@@ -358,7 +367,8 @@ This distinction is deliberate: "not started yet" and "missing after start"
 are different operational states.
 
 Nano Cap and Combined have no backfilled months at all: their first book is
-signalled at the 30 Sep 2026 close.
+signalled at the 30 Sep 2026 close. The Nifty 1000 has none either; its first
+book is signalled at the 30 Oct 2026 close.
 
 ### Parity gate
 
@@ -386,7 +396,7 @@ never traded, so that it is judged on months nobody could tune it on.
 | Ledger | `data/track_record_shadow.json`, its own fingerprint |
 | First month | November 2026: the book signalled at the 30 Oct close, filled 2 Nov. Like Nano Cap's first month it starts at the fill, so 2 Nov itself is in no month |
 | Frozen by | `monthly_track_record.yml`, "Freeze the shadow record" (`update_track_record.py --shadow`), after the live records; a failure only warns |
-| Shown | a row in "Three systems, side by side", frozen months only: no month to date, so the page runs no extra backtest |
+| Shown | named, with its first month, in the note under Portfolio's "Three systems, side by side" (`portfolio_page.section_systems`; the table's rows are the live systems). Frozen months only: no month to date, so the page runs no extra backtest |
 
 The live records, Actions and Portfolio are untouched by it. Review after 12
 months (Nov 2027): turnover about half the live record's, max drawdown no worse,
@@ -416,7 +426,7 @@ untouched.
 | Ledger | `data/track_record_shadow_high90.json` | `data/track_record_shadow_breadth_long.json`; each month holds the engine's month (`strategy`, so ledger parity is the engine's) and `overlay` (breadth, exposure, the overlay's return) |
 | First month | December 2026: the book signalled at the 30 Nov close | the same |
 | Frozen by | `monthly_track_record.yml`, "Freeze the near-high and breadth shadow records" (`update_track_record.py --shadow high90` / `breadth_long`); a failure only warns | |
-| Shown | rows in "Three systems, side by side"; the breadth book's row is the overlay's return | |
+| Shown | named in the note under Portfolio's "Three systems, side by side" (section 9); the breadth book's figure is the overlay's return | |
 
 Review after 12 months (Dec 2027), with the same caution as section 9: a year cannot
 separate them from the live record; the review asks whether each behaves live as it
@@ -440,7 +450,7 @@ the live records and the other shadows untouched.
 | Ledger | `data/track_record_shadow_skip5.json` |
 | First month | December 2026: the book signalled at the 30 Nov close |
 | Frozen by | `monthly_track_record.yml`, "Freeze the skip-5 shadow record" (`update_track_record.py --shadow skip5`); a failure only warns |
-| Shown | a row in "Three systems, side by side" from its first frozen month |
+| Shown | named in the note under Portfolio's "Three systems, side by side" (section 9) |
 
 Why forward: from 2010 in the engine it earned 23.3% a year against 19.3% (Sharpe 0.79
 vs 0.65, max drawdown -32.1% vs -35.4%), passing the study's bar by a hair (+0.103

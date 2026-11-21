@@ -61,7 +61,7 @@ the owner's word, and note it in the Source column.
 
 - Valuation by size and the normal fall within a year by size: on Indices (21 Nov). Index P/E is not the P/E of the book's stocks, and the book's own volatility (about 31.5% a year against the market's 19.6%) makes an index yardstick misleading.
 - Per-month portfolio returns and the ₹100 line: on Portfolio (owner, 19 Nov).
-- Long tables of all industries or all breadth measures: on Sectors and Breadth (20 Nov).
+- Long tables of all industries or all breadth measures: on Sectors and Market (20 Nov; Market was called Breadth until 21 Nov).
 - One-day index moves as tiles: only in At a glance (v5).
 - Theme amber change: proposed 20 Nov, waiting for the owner.
 
@@ -69,6 +69,6 @@ the owner's word, and note it in the Source column.
 
 - 34 · RRG quadrants, 100 = the benchmark, EW construction shared with Sectors (§7).
 - 35 · Leadership lists with RS ratio · momentum and the path under each name (§7).
-- 36 · The book's holdings marked in leadership (§7). The space is kept for the Indices page (S170). Used 21 Nov: row 39.
+- 36 · The book's holdings marked in leadership (§7). The space is kept for the Indices page (S170). Used 21 Nov: row 42 (the "Valuation and styles" card in At a glance).
 
 Order: 1 · The book this month → 2 · What happens on → 3 · Is momentum still working? → 4 · Money flows → 5 · Size, and where momentum works → 6 · Where the book is strong and weak → At a glance

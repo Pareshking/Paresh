@@ -3,6 +3,37 @@
 Owner, 11 Nov 2026: *"Record items which required delete as I am on mobile and
 can't do it, whatever possible please delete it."*
 
+## RRG (removed 21 Nov 2026, S169): nothing waits on the owner
+
+The page and its code were deleted in the repository by #587 (`ab5adc7`), which
+needed no owner step: `src/ui/views/rrg_view.py` (with `compute_rrg_data` and
+`render_rrg_view`), `render_rrg_chart`, `_build_rrg_html` and `rrg_summary` in
+`src/ui/charts.py`, the RRG rules in `src/ui/theme.py`, `_page_rrg` in `app.py`,
+and `tests/test_rrg_centre_is_the_benchmark.py` and
+`tests/test_rrg_missing_data_integrity.py`. It had **no data of its own**: it read
+the ranking's prices and `fetch_benchmark_history`, so there is no R2 prefix,
+release asset or `data/` file to remove for it.
+
+Kept on purpose, as the evidence for the removal: `docs/RRG_ANALYSIS_2026-11-21.md`,
+`docs/RRG_REQUIREMENTS.md` (marked superseded), `scripts/research/rrg_vs_stockcharts.py`
+and `scripts/research/fetch_sector_index_closes.py`.
+
+Left in the code (a tidy-up, not a deletion for the owner; checked 22 Nov): the
+`QUADRANT` column badges in `src/ui/theme.py`'s table renderer, which no table
+now has; the docstring of `src/ui/charts.py` ("Stock chart and the Relative
+Rotation Graph") and the comment on `BENCHMARK_SYMBOL_N50` in `src/core/config.py`
+("offered beside it on the RRG").
+
+Not RRG, but next to it: the R2 dataset `indices/prices/research` and its job
+`r2_nse_index_prices.yml` (NSE sector and size indices, in practice Screener's
+charts) have no reader: the one function that read them,
+`src/loaders/index_levels.fetch_index_levels`, was deleted with the old Dashboard
+in #601 (S179), and
+`scripts/r2_inventory.py` still requires the dataset fresh. Retiring the job is
+TODO S168 (c). Its stored revisions sit under `indices/`, which
+`scripts/r2_retention.py` protects, so removing them would be an owner decision
+and a change to that list, not a clean-up run.
+
 ## Done, 15 Nov 2026
 
 Run 43674615797 (`owner_cleanup.yml`, mode delete, on `fc976c8`) ended
