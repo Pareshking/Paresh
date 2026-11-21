@@ -149,8 +149,8 @@ jobs:
           node scripts/layout_audit.mjs http://localhost:8501/portfolio 412,1400 --open
           node scripts/layout_audit.mjs http://localhost:8501/actions 412,1400
           node scripts/check_dashboard_requirements.mjs http://localhost:8501/actions docs/ACTIONS_REQUIREMENTS.md
-          node scripts/layout_audit.mjs http://localhost:8501/breadth 412,1400
-          node scripts/check_dashboard_requirements.mjs http://localhost:8501/breadth docs/BREADTH_REQUIREMENTS.md
+          node scripts/layout_audit.mjs http://localhost:8501/market 412,1400
+          node scripts/check_dashboard_requirements.mjs http://localhost:8501/market docs/BREADTH_REQUIREMENTS.md
           node scripts/layout_audit.mjs http://localhost:8501/sectors 412,1400
           node scripts/check_dashboard_requirements.mjs http://localhost:8501/sectors docs/SECTORS_REQUIREMENTS.md
           node scripts/layout_audit.mjs http://localhost:8501/screener 412,1400
