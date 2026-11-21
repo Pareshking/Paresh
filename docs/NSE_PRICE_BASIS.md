@@ -68,3 +68,8 @@ date. The Track Record page's **Ranks by month** view shows, for each month Jan 
 each name's rank and gates (above the 50-day EMA, within 20% of its 52-week high, in the index) at the
 month's start and end, and what the next rebalance did with it and why. The month in progress ends at the
 latest session. The R2 read path is covered by a fake-reader test; it has not been run against live R2.
+
+**Not on any page since 21 Nov 2026.** The Track Record became part of Portfolio (`/track-record` redirects there),
+and the Portfolio rebuild (#574) stopped calling `track_record_view.render_record_sections`, the only caller of
+`_render_rank_months`: the owner agreed on 21 Nov to drop the table, its ranks now being the rank trail in Portfolio's
+Current book (`docs/PORTFOLIO_REQUIREMENTS.md`). The view's code is still in `src/ui/views/track_record_view.py`.
