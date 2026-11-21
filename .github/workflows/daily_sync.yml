@@ -422,6 +422,14 @@ jobs:
       # backtest's long NSE file; then each Dashboard signal's test against
       # momentum's next-month lead (S150). Unchanged output on most nights:
       # the long file is rebuilt weekly.
+      # Nifty Total Market's daily close from NSE's archive, the market Breadth's "ahead of the market"
+      # measures read (owner, 21 Nov 2026). Adds new sessions only; refuses when it disagrees with
+      # benchmark_indices.csv by more than 0.05%.
+      - name: Nifty Total Market daily from NSE
+        env:
+          PYTHONPATH: .
+        run: python scripts/collect_nse_total_market.py || echo "::warning::Nifty Total Market was NOT updated -- the committed file is used."
+
       - name: Breadth on the members of each date, and the signal tests (S150)
         env:
           PYTHONPATH: .
