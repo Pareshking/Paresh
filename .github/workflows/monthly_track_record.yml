@@ -132,6 +132,13 @@ jobs:
               || echo "::warning::Shadow record $BOOK freeze failed; the live records are unaffected."
           done
 
+      # Skip 5 (owner, 20 Nov 2026, TODO S160): the composite read 5 sessions
+      # before the signal, from the December 2026 book, never traded.
+      - name: Freeze the skip-5 shadow record
+        run: |
+          python scripts/update_track_record.py --shadow skip5 \
+            || echo "::warning::Shadow record skip5 freeze failed; the live records are unaffected."
+
       - name: Commit the ledger
         run: |
           git config --global user.name 'github-actions[bot]'

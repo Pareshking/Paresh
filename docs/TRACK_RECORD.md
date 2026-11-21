@@ -426,3 +426,33 @@ the breadth book is at 50% in weak breadth and keeps most of the return otherwis
 Rehearsed on 19 Nov 2026 as a dry run with the start moved to October 2026 (nothing
 written): Near-high 90% October -5.35% (benchmark +0.17%); Breadth + long lookback
 engine -2.69%, breadth 43.1% on 30 Sep so 50% invested, overlay -1.20%.
+
+## 11. Shadow record: Skip 5 days
+
+Owner, 20 Nov 2026 ("Record skip 5 as a shadow book"; TODO S160;
+`docs/MOMENTUM_ABC_2026-11-20.md`). Same machinery as sections 9 and 10, never traded,
+the live records and the other shadows untouched.
+
+| | Skip 5 days |
+|---|---|
+| Configuration | `TRACK_RECORD_CONFIG` with `score_skip` 5: the composite is read 5 sessions before the signal close; the 50-day EMA and 52-week-high gates, the index membership and the next-session fill stay on the signal date (`run_backtest`'s `score_skip`, passed by `run_backtest_kwargs`) |
+| Overlay | none |
+| Ledger | `data/track_record_shadow_skip5.json` |
+| First month | December 2026: the book signalled at the 30 Nov close |
+| Frozen by | `monthly_track_record.yml`, "Freeze the skip-5 shadow record" (`update_track_record.py --shadow skip5`); a failure only warns |
+| Shown | a row in "Three systems, side by side" from its first frozen month |
+
+Why forward: from 2010 in the engine it earned 23.3% a year against 19.3% (Sharpe 0.79
+vs 0.65, max drawdown -32.1% vs -35.4%), passing the study's bar by a hair (+0.103
+Sharpe in 2018-26 against +0.10), but skip 5 was picked on that same history, skips 3
+and 7 did not clear the bar, and 2025-26 showed no gain. Review after 12 months (Dec
+2027): a year cannot prove it; the review asks whether it keeps up with the live record
+and trails it in no more than about half the months.
+
+`score_skip` is not a key of `TRACK_RECORD_CONFIG`, so no live month's configuration
+fingerprint changes.
+
+Rehearsed on 20 Nov 2026 as a dry run with the start moved to October 2026 (nothing
+written; the NSE file brought to 20 Nov with `sync_nse_prices.py --update --source nse`
+and restored afterwards): Skip 5 days October -3.52% (benchmark +0.17%); Near-high 90%
+re-run as a control gave -5.35%, the same as its 19 Nov rehearsal.
