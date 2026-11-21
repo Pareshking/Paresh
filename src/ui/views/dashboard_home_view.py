@@ -578,7 +578,8 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                 f'stacked on the same bar (a sale runs down from zero)</span></div>',
                 Chart("bars", bars, {"label": "Foreign portfolio investors’ net equity flows by month"}),
                 f'<p class="dh-note dh-band-note">{e(bars["band_note"])}</p>' if bars.get("band_note") else "",
-                how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market.",
+                how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market; in teal, "
+                    "domestic institutions’ net purchases on NSE (banks, insurers, mutual funds, pension funds).",
                     "Above the line is net buying. The dashed line starts the top quarter of months since 2016; after such months "
                     "momentum has led the market by more the next month than after the rest.",
                     ["Month", "FPI net, ₹ crore", "DII net, ₹ crore"],
@@ -1331,6 +1332,7 @@ HOME_CSS = """
 .dh .dh-h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;font-weight:700!important}
 .dh-lede{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:80ch}
 .dh-note{margin:0;font-size:var(--fs-13);color:var(--c-muted);max-width:80ch}
+.dh-band-note{margin-bottom:10px}
 @media (min-width:901px){.dh-note.dh-note-long{max-width:none;columns:2 380px;column-gap:40px}}
 .dh-foot{margin:24px 0 0;font-size:var(--fs-12);color:var(--c-muted)}
 .dh-sub{display:block;font-size:var(--fs-12);color:var(--c-muted);font-weight:400}
