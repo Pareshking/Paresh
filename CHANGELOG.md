@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-21 — Desktop: every page in the top bar
+
+- On a screen 1024 px or wider the top bar links all eleven pages, and the menu button (☰) is no longer shown there. Phones and tablets keep ☰ as the only navigation.
+- To make room, the prices date ("Prices · closes of 20 Nov", amber when a source is stale) moves from the top bar to the right-hand end of the market line on desktop. The Dashboard, which has no market line, shows it in a row of its own under the bar. On a phone it stays in the bar.
+- The Market page's label above its title now reads "Market" (it read "Breadth"), and the Dashboard's link to it under "Breadth, ranked stocks" is named "Market".
+
 ## 2026-11-21 — Four systems: Nifty 1000 added, Nano Cap renamed "> ₹2,000 Cr"
 
 - Configuration → System offers **Nifty 750, Nifty 1000, > ₹2,000 Cr and Combined**. Nifty 1000 is NSE's index: the 750 plus NIFTY NANOCAP 250, our name for NSE's other 250 (not an index NSE publishes). Its record starts with November 2026; November is reconstructed, because NSE first published the index on 16 Nov.

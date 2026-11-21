@@ -31,20 +31,20 @@ the owner approves the section order.
 | 7 | By size: Nifty 500, Nifty 50, Midcap 150, Smallcap 250, Microcap 250 against their 10-month average, 200D EMA and 52W high, a month ago and now | Owner 7 Nov | Uptrend | Nifty 50 + Midcap 150 + Smallcap 250 + Microcap 250 |
 | 8 | Today's charts: participation above each average (3M, 6M, 1Y; EMA or SMA; 10D to 200D), by index, new highs against new lows | Live page | Charts | Participation + New highs against new lows |
 | 9 | The stocks making new highs and lows in the last 20 sessions, filterable | Live page | End | Stocks making new highs and lows + Highs + Lows |
-| 10 | No forward returns or outcome claims unless tested (the S150 rule) | Owner 7 Nov; S150 | Whole page | Breadth |
+| 10 | No forward returns or outcome claims unless tested (the S150 rule) | Owner 7 Nov; S150 | Whole page | Two questions, answered from the ranked stocks |
 
 ## Rules learned on the three pages (21 Nov 2026), that Breadth must honour
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 11 | The title answers the first question; the page's name is the kicker | PAGE_DESIGN §2a | Top | Breadth |
+| 11 | The title answers the first question; the page's name is the kicker | PAGE_DESIGN §2a | Top | Market |
 | 12 | One source per figure: index closes from `data/benchmark_indices.csv`, the file the Dashboard reads (the live page reads R2 for "By size" and showed only the Nifty 500 row where R2 was not reachable, found 21 Nov) | S154, S148 | By size | Microcap 250 |
 | 13 | Every figure ends on the page's session or reads "—"; a series a session behind says so | S148 | Whole page | Data to |
 | 14 | A figure the Dashboard also shows (share above the 200D EMA, breadth by size) has the same value on both pages, from one function | S154 | Whole page | 200D EMA |
-| 15 | Charts from the site's chart kit: values in the pane headings, readable on a phone, usual range shaded where the history is long; axis figures without needless decimals ("24000.00") | PAGE_DESIGN §4, §2a | Charts | Breadth |
-| 16 | Serif headings and tile figures, notes 13.5 px, long notes in two columns on a wide screen, "What it is" open on a wide screen | PAGE_DESIGN §2a | Whole page | Breadth |
+| 15 | Charts from the site's chart kit: values in the pane headings, readable on a phone, usual range shaded where the history is long; axis figures without needless decimals ("24000.00") | PAGE_DESIGN §4, §2a | Charts | Two questions, answered from the ranked stocks |
+| 16 | Serif headings and tile figures, notes 13.5 px, long notes in two columns on a wide screen, "What it is" open on a wide screen | PAGE_DESIGN §2a | Whole page | Two questions, answered from the ranked stocks |
 | 17 | Data date only, no sources named on the page; the data-quality counts kept | Owner 20, 21 Nov | Footer | Data to |
-| 18 | Layout audit clean at 412 and 1400 px; numbers right-aligned under right-aligned headings | Owner 20 Nov | Whole page | Breadth |
+| 18 | Layout audit clean at 412 and 1400 px; numbers right-aligned under right-aligned headings | Owner 20 Nov | Whole page | Two questions, answered from the ranked stocks |
 | 19 | "Ahead of the market" over a year and the median stock against it read Nifty Total Market, named on the page | Owner 21 Nov ("Yes") | Breadth question | ahead of Nifty Total Market |
 
 ## Decided (owner, 21 Nov 2026: "go as recommended")
