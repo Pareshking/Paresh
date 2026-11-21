@@ -1928,6 +1928,20 @@ _PAGE_CSS = ("""
         .st-key-app_quicklinks [class*="st-key-navon_"] [data-testid="stPageLink"] a p { color: var(--c-ink) !important; font-weight: 600 !important; }
         .st-key-app_quicklinks [data-testid="stPageLink"] a:hover p { color: var(--c-ink) !important; }
         @media (max-width: 1023px) { .st-key-app_quicklinks { display: none !important; } }
+        /* Desktop: every page is in the bar (owner, 21 Nov 2026), so the menu
+           button and the bar's date go; the date sits at the end of the market
+           line instead (or in its own row on the Dashboard, which has none). */
+        @media (min-width: 1024px) {
+            .st-key-app_header_shell [class*="st-key-app_nav_menu_"] { display: none !important; }
+            .st-key-app_header_shell { padding-right: 0 !important; }
+            .st-key-app_header_shell [data-testid="stElementContainer"]:has(.hdr-pill-head) { display: none !important; }
+        }
+        @media (min-width: 1024px) and (max-width: 1279px) {
+            .st-key-app_quicklinks [data-testid="stPageLink"] a { padding: 6px 6px !important; }
+        }
+        @media (max-width: 1023px) { .mkt-status, .mkt-status-row { display: none !important; } }
+        .mkt-status { margin-left: auto; padding: 4px 0 4px 12px; border-right: 0; }
+        .mkt-status-row { display: flex; justify-content: flex-end; margin: 6px 0 4px; }
 
         /* ── Dashboard (src/ui/views/dashboard_view.py) ──────────────
            Two columns on a desktop, one on a phone; tight vertical rhythm

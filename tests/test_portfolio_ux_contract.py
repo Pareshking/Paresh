@@ -156,17 +156,21 @@ def test_record_caption_and_correlation_card_wording():
     assert '"How they move together, 90 sessions"' in source
 
 
-def test_the_menu_button_is_the_only_navigation_on_every_screen():
+def test_desktop_bar_links_every_page_and_the_menu_serves_smaller_screens():
     # Owner, 7 Nov 2026: "a hamburger menu only", in the menu's old style.
+    # Owner, 21 Nov 2026: every page in the bar on a desktop, the menu on a phone.
     components = (ROOT / "src/ui/components.py").read_text(encoding="utf-8")
     theme = THEME.read_text(encoding="utf-8")
     assert "app_toplinks" not in components and "app_toplinks" not in theme
     # Owner, 7 Nov 2026 (audit decision 6): quick links beside the menu on a
     # desktop, hidden below 1024 px; the menu still lists every page. 21 Nov: seven.
-    assert '_QUICK_PAGES = ("Dashboard", "Actions", "Screener", "Portfolio", "Market", "Indices", "Sectors")' in components
+    assert "_QUICK_PAGES = _MENU_ORDER" in components
     assert "@media (max-width: 1023px) { .st-key-app_quicklinks { display: none !important; } }" in theme
     assert 'key=f"app_nav_menu_{_page_slug}"' in components
-    assert '[class*="st-key-app_nav_menu_"] { display: none !important; }' not in theme
+    # The menu button is hidden only from 1024 px up, where the bar has every page.
+    desktop = theme.split("@media (min-width: 1024px) {", 1)[1].split("\n        }", 1)[0]
+    assert '[class*="st-key-app_nav_menu_"] { display: none !important; }' in desktop
+    assert theme.count('[class*="st-key-app_nav_menu_"] { display: none !important; }') == 1
     # No group headings in the menu (owner, 21 Nov 2026).
     assert "_MENU_GROUPS" not in components and 'st.markdown(f"**{_group}**")' not in components
 

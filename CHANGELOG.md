@@ -1,10 +1,15 @@
 # Changelog
 
+## 2026-11-21 — Desktop: every page in the top bar
+
+- On a screen 1024 px or wider the top bar links all eleven pages, and the menu button (☰) is no longer shown there. Phones and tablets keep ☰ as the only navigation.
+- To make room, the prices date ("Prices · closes of 20 Nov", amber when a source is stale) moves from the top bar to the right-hand end of the market line on desktop. The Dashboard, which has no market line, shows it in a row of its own under the bar. On a phone it stays in the bar.
+- The Market page's label above its title now reads "Market" (it read "Breadth"), and the Dashboard's link to it under "Breadth, ranked stocks" is named "Market".
+
 ## 2026-11-21 — Menu: seven pages in the top bar, no sections
 
 - The top bar on a desktop now links Dashboard, Actions, Screener, Portfolio, Market, Indices and Sectors (it had the first four).
 - "Market Breadth" is called **Market** in the menu; the page and its address (`/breadth`) are unchanged.
-- The page's own label above its title now reads "Market" (it read "Breadth"), and the Dashboard's link to it under "Breadth, ranked stocks" is named "Market".
 - The menu (☰) is one list in that order, then Watchlist, Backtest, Configuration and Guide, without the "My book", "Market" and "Method" headings. On a phone it is still the only navigation.
 
 ## 2026-11-21 — Charts no longer jump on hover
