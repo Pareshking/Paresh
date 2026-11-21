@@ -1,45 +1,45 @@
 {
-  "last_synced": "21 Nov 2026, 00:04",
-  "timestamp": "2026-11-21T00:04:45.641858",
+  "last_synced": "21 Nov 2026, 09:01",
+  "timestamp": "2026-11-21T09:01:02.205602",
   "total_stocks": 752,
   "indices": {
     "NIFTY 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-11-21T00:04:43.740808"
+      "time": "2026-11-21T09:01:00.361481"
     },
     "NIFTY NEXT 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-11-21T00:04:44.235827"
+      "time": "2026-11-21T09:01:00.813582"
     },
     "NIFTY MIDCAP 150": {
       "count": 150,
       "status": "Updated",
-      "time": "2026-11-21T00:04:44.736294"
+      "time": "2026-11-21T09:01:01.247240"
     },
     "NIFTY SMALLCAP 250": {
       "count": 251,
       "status": "Updated",
-      "time": "2026-11-21T00:04:45.197093"
+      "time": "2026-11-21T09:01:01.749696"
     },
     "NIFTY MICROCAP 250": {
       "count": 251,
       "status": "Updated",
-      "time": "2026-11-21T00:04:45.640878"
+      "time": "2026-11-21T09:01:02.204966"
     }
   },
-  "last_attempt": "21 Nov 2026, 00:04",
-  "last_attempt_timestamp": "2026-11-21T00:04:45.641858",
+  "last_attempt": "21 Nov 2026, 09:01",
+  "last_attempt_timestamp": "2026-11-21T09:01:02.205602",
   "last_attempt_fetched": 5,
   "last_attempt_errors": {},
   "last_attempt_ok": true,
   "local_csv_fetched": {
-    "NIFTY 50": "2026-11-21T00:04:45.643062",
-    "NIFTY NEXT 50": "2026-11-21T00:04:45.648299",
-    "NIFTY MIDCAP 150": "2026-11-21T00:04:45.653280",
-    "NIFTY SMALLCAP 250": "2026-11-21T00:04:45.666208",
-    "NIFTY MICROCAP 250": "2026-11-21T00:04:45.686856",
-    "NIFTY TOTAL MARKET": "2026-11-21T00:04:46.163121"
+    "NIFTY 50": "2026-11-21T09:01:02.206781",
+    "NIFTY NEXT 50": "2026-11-21T09:01:02.210610",
+    "NIFTY MIDCAP 150": "2026-11-21T09:01:02.214332",
+    "NIFTY SMALLCAP 250": "2026-11-21T09:01:02.223141",
+    "NIFTY MICROCAP 250": "2026-11-21T09:01:02.236769",
+    "NIFTY TOTAL MARKET": "2026-11-21T09:01:02.737926"
   }
 }
