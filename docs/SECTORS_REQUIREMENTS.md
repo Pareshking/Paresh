@@ -62,3 +62,17 @@ learned on the four redesigned pages (`docs/PAGE_DESIGN.md` §2a, `docs/FIGURE_I
 - The month table's "Run" and "12 months" headings sat off their right-aligned numbers (layout audit).
 - No data date on the page (row 17): "Data to 20 Nov 2026. 750 stocks ranked; 0 with a price gap, 5 with a short
   history." added, as on Breadth and Actions.
+
+## Proposed for the next redesign (owner, 21 Nov 2026: "yes with your recommendation")
+
+NSE's sector indices move here from the Indices page (S170), so a reader asking "how is pharma doing?" finds
+one place. Themes, strategy and broad indices stay on Indices; Breadth, Sectors and Indices stay separate pages
+(not merged: about 15 sections on one page, three questions on different time scales, and the Dashboard is
+already the page that summarises; a "Market" heading grouping the three in the menu is the alternative if the
+menu feels long).
+
+| # | Requirement | Source | Where | Marker |
+|---|---|---|---|---|
+| 19 | NSE's sector indices (35 on 20 Nov, `data/reference/nse_index_groups.csv` group "Sector") with 1M, 3M, 1Y price return, distance from the 1-year high and P/E; those younger than a year last, with their launch date | Owner 21 Nov | Section | NSE's sector indices |
+| 20 | Each industry's equal-weighted figure from the 750 beside NSE's cap-weighted index for the same industry, each labelled for what it measures: agreeing means a broad move, an index well ahead of the median means a few large companies carry it | My recommendation, owner 21 Nov | Section | cap-weighted + equal-weighted |
+| 21 | One mapping table, industry ↔ NSE sector index, committed with its reasons (NSE's sectors are finer in places: Capital Markets, Hospitals, NBFC; some industries have none), shown to the owner before it is used | Same | Data | — |
