@@ -94,7 +94,7 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .rrg{aspect-ratio:1.45/1}
 .hold{overflow-x:auto}
 .ht{width:100%;min-width:1120px;border-collapse:collapse;font-size:13.5px}
-.ht th,.ht td{text-align:left;padding:7px 7px 7px 0;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
+.ht th,.ht td{text-align:left;padding:7px 5px 7px 0;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
 .ht thead th{font-size:12px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--ink);vertical-align:bottom;cursor:pointer;user-select:none;font-family:'IBM Plex Sans',system-ui,sans-serif}
 .ht thead th.num{max-width:64px;white-space:normal;text-align:right}
 .ht thead th:not(.num)[aria-sort="descending"]::after{content:" ↓"}.ht thead th:not(.num)[aria-sort="ascending"]::after{content:" ↑"}
@@ -103,7 +103,7 @@ box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap;opacity:0;transform:tra
 .ht tbody th,.ht tfoot th{font-weight:600;white-space:nowrap;position:sticky;left:0;background:var(--bg);z-index:1}
 .ht .num{width:1%;white-space:nowrap}.ht td.num{text-align:right}.ht .nw{white-space:nowrap}
 .ht .sym{font-family:'IBM Plex Mono',monospace;font-weight:600}.ht .ss{display:block;font-size:12px;color:var(--muted);font-weight:400;white-space:nowrap}
-.ht .co{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ht .co{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ht td.rk{white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}.ht .rk b{color:var(--ink)}.ht .rk b.down{color:var(--down)}
 .ht .rk{text-align:right!important}th.rk{position:relative}.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.rk3{display:inline-grid;grid-template-columns:repeat(3,5ch);gap:0 8px;text-align:right}.rk3 i{font-style:normal}th.rk .rk3{display:grid;margin-top:2px}
 .ht tr.tot th,.ht tr.tot td{border-top:1px solid var(--ink);font-weight:600}

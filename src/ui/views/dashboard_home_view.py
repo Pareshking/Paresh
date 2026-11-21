@@ -485,7 +485,8 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
              'over 12 months, the last 3 months and the last finished month; the month so far is NSE’s Nifty500 Momentum 50 '
              'against Nifty Total Market.</p>'
              + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top 100 less the Nifty 500, points</span></div>'
-                if lead_bars else '') + '</div>']
+                if lead_bars else '')
+             + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '') + '</div>']
     if lead_bars:
         parts += [Chart("bars", lead_bars, {"label": "Momentum’s lead over the Nifty 500 by month"}),
                   how("Each month, the return of the 100 best-ranked stocks less the Nifty 500’s, in points. The last bar is the "
@@ -561,9 +562,10 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
     left = []
     if bars:
         thr = f", dashed line: a heavy-buying month, ₹{ev.threshold:,.0f} Cr or more" if ev is not None else ""
-        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}; teal: domestic institutions, on the same bar '
-                f'beside foreign, from 6 Nov 2026 (NSE keeps no earlier daily figures)</span></div>',
+        left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand crore{e(thr)}; teal: domestic institutions, '
+                f'stacked on the same bar (a sale runs down from zero), from 6 Nov 2026 (NSE keeps no earlier daily figures)</span></div>',
                 Chart("bars", bars, {"label": "Foreign portfolio investors’ net equity flows by month"}),
+                f'<p class="dh-note dh-band-note">{e(bars["band_note"])}</p>' if bars.get("band_note") else "",
                 how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market.",
                     "Above the line is net buying. The dashed line starts the top quarter of months since 2016; after such months "
                     "momentum has led the market by more the next month than after the rest.",
@@ -1019,10 +1021,11 @@ def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
     allv = (pd.to_numeric(spreads["top"], errors="coerce") - pd.to_numeric(spreads["nifty500"], errors="coerce")).dropna()
     q1, q3 = float(allv.quantile(0.25)), float(allv.quantile(0.75))
     # The middle half of every month since the history starts: the usual range (tipsheet benchmark, 21 Nov 2026).
-    band = [q1, q3, f"usual range since {str(spreads['month'].iloc[0])[:4]}, {sg(q1)} to {sg(q3)} pts"]
+    band = [q1, q3, ""]
+    band_note = f"shaded: the usual range since {str(spreads['month'].iloc[0])[:4]}, {sg(q1)} to {sg(q3)} pts (the middle half of all months)"
     return {"values": vals, "labels": [f"{m:%b} ’{m:%y}" for m in months], "full": [f"{m:%b %Y}" for m in months],
             "unit": "pts against the market", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": ", so far", "xn": 6, "height": 200,
-            "band": band}
+            "band": band, "band_note": band_note}
 
 
 def _dii_months(nse: pd.DataFrame | None) -> dict:
@@ -1052,7 +1055,9 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
            "above": "a heavy-buying month", "between": "net buying, below the heavy line", "belowZero": "net selling"}
     if ev is not None:
         out["levels"] = [round(float(ev.threshold))]
-    out["band"] = [round(q1), round(q3), f"usual range since {done.index[0]:%Y}, {sg(q1 / 1000, 0)} to {sg(q3 / 1000, 0)} thousand cr"]
+    out["band"] = [round(q1), round(q3), ""]
+    out["band_note"] = (f"shaded: the usual range since {done.index[0]:%Y}, {sg(q1 / 1000, 0)} to {sg(q3 / 1000, 0)} thousand crore "
+                        "(the middle half of all months)")
     dii = _dii_months(nse)
     if dii:
         out["also"] = [None if p not in dii else
@@ -1323,12 +1328,12 @@ HOME_CSS = """
 .dh-link{font-size:var(--fs-13);font-weight:600;color:var(--c-ink);min-height:44px;display:flex;align-items:center}
 .dh-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-tile{background:var(--c-white);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
-.dh-big{font-family:var(--font-mono);font-size:var(--fs-30);font-weight:600;line-height:1.1}
+.dh-big{font-family:var(--font-serif);font-size:var(--fs-30);font-weight:400;line-height:1.1;font-variant-numeric:tabular-nums}
 .dh-dbar{height:6px;background:var(--c-fill_soft);display:grid;grid-template-columns:1fr 1fr}
 .dh-dbar span{display:flex}.dh-dbar span:first-child{justify-content:flex-end}.dh-dbar span:last-child{border-left:1px solid var(--c-ink)}
 .dh-dbar i{display:block;height:6px}
 .dh-scroll{overflow-x:auto}
-@media (max-width:640px){.dh-kpis{grid-template-columns:1fr 1fr}.dh-kpis>:last-child:nth-child(odd){grid-column:1/-1}}
+@media (max-width:640px){.dh-k-v,.dh-big{font-size:var(--fs-24);white-space:nowrap}.dh-kpis{grid-template-columns:1fr 1fr}.dh-kpis>:last-child:nth-child(odd){grid-column:1/-1}}
 .dh-tab{width:100%;min-width:900px;border-collapse:collapse;font-size:var(--fs-13)}
 .dh-tab th,.dh-tab td{text-align:left;padding:9px 12px 9px 0;border-bottom:1px solid var(--c-rule_soft);vertical-align:top}
 .dh-tab thead th{font-size:var(--fs-12);color:var(--c-muted);font-weight:500;border-bottom:1px solid var(--c-ink)}

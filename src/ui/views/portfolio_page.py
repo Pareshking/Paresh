@@ -364,8 +364,10 @@ def section_exposure(p: Page) -> list:
     ind = ex[ex["kind"] == "industry"].pivot_table(index="name", columns="date", values="weight").fillna(0) if len(ex) else pd.DataFrame()
     heat = ""
     if len(ind):
-        big = ind[(ind >= 15).any(axis=1)]
-        big = big.loc[big.max(axis=1).sort_values(ascending=False).index]
+        # Every industry the book has held, largest weight at any rebalance first
+        # (owner, 21 Nov 2026: "We might be missing other sectors despite we have space"; it listed only those ever at 15%).
+        held = ind[(ind > 0).any(axis=1)]          # every industry the book has held
+        big = held.loc[held.max(axis=1).sort_values(ascending=False).index]
         heat = ('<table class="dh-tab pf-heat"><thead><tr><th scope="col">Industry</th>'
                 + "".join(f'<th scope="col" class="dh-num">{MON[c.month - 1]}</th>' for c in big.columns) + "</tr></thead><tbody>"
                 + "".join(f'<tr><th scope="row">{e(short(n))}</th>' + "".join(
@@ -384,8 +386,9 @@ def section_exposure(p: Page) -> list:
                  '<div class="dh-cap"><b>Industry exposure now</b><span>bar: the book’s weight · mark: the industry’s weight in the 750 '
                  'by market value</span></div>', '<div class="pf-ilist">' + head + body + '</div>',
                  '<div class="dh-pair"><div><div class="dh-cap"><b>The book by size, each rebalance</b><span>large · mid · small · micro</span></div>'
-                 + srows + key + '</div><div><div class="dh-cap"><b>Largest industries, each rebalance</b><span>% of the book</span></div>'
-                 f'<div class="dh-scroll">{heat}</div></div></div>', f'<p class="dh-note">{e(note)}</p>'])
+                 + srows + key + f'<p class="dh-note pf-gap">{e(note)}</p></div><div><div class="dh-cap"><b>Industries, each rebalance</b>'
+                 '<span>% of the book, the largest at any rebalance first</span></div>'
+                 f'<div class="dh-scroll">{heat}</div></div></div>'])
 
 
 def section_returns(p: Page) -> list:
@@ -452,7 +455,8 @@ def section_equity(p: Page) -> list:
     mday = pr.daily_gaps(p.equity, p.market)
     mkt_on = float(mday["market"].get(f.worst_day_on, np.nan)) if f else np.nan
     falls = [("Below its peak today", pct(f.now), "dh-watch" if f.now < 0 else "", f"Peak {dshort(f.peak_now)}", "",
-              f"The market {pct(fm.now)}, below its {dshort(fm.peak_now)} peak" if fm else ""),
+              ("" if not fm else f"The market is at a new high ({dshort(fm.peak_now)})" if fm.now > -0.05
+               else f"The market {pct(fm.now)}, below its {dshort(fm.peak_now)} peak")),
              ("Largest fall from a peak", pct(f.worst), "dh-down",
               f"{dshort(f.peak)} → {dshort(f.low)}" + (f", recovered {dshort(f.recovered)}" if f.recovered is not None else ", not yet recovered"), "",
               (f"The market {pct(fm.worst)} ({dshort(fm.peak)} → {dshort(fm.low)})"
@@ -746,9 +750,10 @@ PF_CSS = """
 .pf-ibar b{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--c-caution)}
 .pf-srow{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;margin-bottom:5px;font-size:var(--fs-13)}
 .pf-thin{height:20px}.pf-thin i{font-size:11px;padding-left:5px}.dh-sz-large,.dh-sz-mid{color:var(--c-white)}
+.pf-gap{margin-top:14px}
 .pf-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:var(--fs-12);color:var(--c-muted);margin-top:6px}
 .pf-key span{display:flex;align-items:center;gap:6px}.pf-key i{width:12px;height:12px;border-radius:3px;display:inline-block}
-.dh-tab.pf-heat{min-width:560px}.pf-heat th,.pf-heat td{padding:5px 6px!important}.pf-heat thead th.dh-num{text-align:center!important}.pf-hc{text-align:center!important;font-size:var(--fs-12);border:1px solid var(--c-white)}
+.dh-tab.pf-heat{min-width:560px}.pf-heat th,.pf-heat td{padding:3px 6px!important;line-height:1.3}.pf-heat thead th.dh-num{text-align:center!important}.pf-hc{text-align:center!important;font-size:var(--fs-12);border:1px solid var(--c-white)}
 .pf-hl th,.pf-hl td{background:var(--c-fill_soft)}
 .dh-tab.pf-grid{min-width:1060px}.pf-grid th,.pf-grid td{padding:7px 10px 7px 0}.pf-q{border-left:1px solid var(--c-rule)}
 .pf-yr th{font-weight:700;padding-top:12px!important;border-bottom:1px solid var(--c-rule)!important}.pf-ghost th{font-weight:400}
