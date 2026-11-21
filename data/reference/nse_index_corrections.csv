@@ -1,0 +1,2 @@
+date,name_raw,close,name_correct,evidence
+2013-02-08,CNX Alpha Index,1572.9,CNX High Beta,"NSE's file prints CNX Alpha Index twice (4713.18 and 1572.90) and no CNX High Beta. 1572.90 is High Beta: 7 Feb High Beta 1594.85 + points change -21.94 = 1572.91; 11 Feb High Beta 1577.34 - points change 4.43 = 1572.91. Found 21 Nov 2026 (S168)."

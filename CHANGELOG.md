@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-21 — Every NSE index, daily, from 2012 (collector; first run after merge)
+
+- New nightly job `nse_indices` keeps every index NSE publishes in its daily all-indices file (169 on 20 Nov 2026: broad, size, sector, thematic and strategy indices such as momentum, quality, value and low volatility), with open, high, low, close, volume, turnover, P/E, P/B and dividend yield, from the archive's first file (21 Feb 2012). One request a night adds the new session; the first, full build is run once by hand.
+- It refuses to write when a new row would change a stored close or when NSE prints an index twice with different values. Two faults in NSE's own files were found building it: 15 Sep 2014 prints a government-bond index twice (identical, kept once), and 8 Feb 2013 labels the High Beta index as a second "CNX Alpha Index" (relabelled, with the evidence, in `data/reference/nse_index_corrections.csv`).
+- Renamed indices are joined under one name (the S&P names dropped on 8 Feb 2013, CNX to Nifty on 9 Nov 2015), each join checked: the first day's points change must equal the change in level.
+- Found while checking the old index job: `r2_nse_index_prices` has been on its fallback (niftyindices.com refuses GitHub's servers), so its "NSE index" rows were Screener's index charts, while the job reported success.
+
 ## 2026-11-21 — RRG removed
 
 - The RRG page is gone from the menu (owner, 21 Nov 2026). Its formula is not published, and the reconstruction placed NSE's sector indices in the same quadrant as StockCharts' official RRG on only 35% of index-weeks (25% by chance); it also disagreed with Sectors on 10 of 19 industries (`docs/RRG_ANALYSIS_2026-11-21.md`). Industry leadership stays on Sectors.
