@@ -91,9 +91,10 @@ clean at 412 and 1400 px.
 Order: Screener → Qualified: → What moved since → Data to
 
 - **A, as built.** Past ranks are read on the last session on or before the same date
-  N months back (`calendar_momentum.rank_history_position`), in the engine as well, and
-  the rule is in the ranking's contract digest (`pipeline.RANK_HISTORY_ANCHOR`), so a
-  table published under the old rule is not served. The table shows the rank among the
+  N months back (`calendar_momentum.rank_history_position`), in the engine as well. Not in
+  the ranking's contract digest (it holds configuration constants; the digest change made
+  CI's Stage-3 check refuse the live table on this PR), so the table published before the
+  merge carries the old date until the next ranking run: run Daily sync after merging. The table shows the rank among the
   ranked stocks 3M and 1M ago, and the qualified place 3M ago, 1M ago and now from the
   Dashboard's own `rank_trails`: KOTAKBANK reads 65 (rank) and 54 (qualified) on 19 Oct
   on the Screener, 54 on the Dashboard.

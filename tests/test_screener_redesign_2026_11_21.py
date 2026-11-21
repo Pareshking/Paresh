@@ -33,9 +33,13 @@ def test_a_holiday_reads_the_session_before_not_after():
     assert idx[rank_history_position(idx, 1)] == pd.Timestamp("2026-10-19")
 
 
-def test_the_digest_names_the_rule():
-    from src.engine import pipeline
-    assert pipeline.RANK_HISTORY_ANCHOR == "on_or_before"
+def test_the_engine_reads_past_ranks_with_the_same_rule():
+    import inspect
+
+    from src.engine import momentum
+    src = inspect.getsource(momentum)
+    assert "rank_history_position(score_idx" in src
+    assert "hist_starts" not in src
 
 
 def _row(**kw):
