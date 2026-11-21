@@ -1,7 +1,24 @@
 # Changelog
 
+## 2026-11-21 — Verdicts read today, not the last month-end
 
+- **Breadth: "Is the market in an uptrend?" read October's close for most of November.** Four of its eight measures (the Nifty 500 and each size index against its 10-month average) read the 30 Oct month-end. On 20 Nov the page said "No clear trend, 3 up, 4 down" while every index stood above its 10-month average. They now read today's close against the last ten monthly closes, this month at today's close, as a monthly chart draws it; each row also names the month-end reading. On 20 Nov: "Strong uptrend, 7 of 8 up, 0 down"; the Nifty 500 is 6.1% above its average today, 3.1% below at the 30 Oct close.
+- The chart under "Behind the answer" now ends on today's close, and its heading gives both readings. The By size table reads the same rule.
+- **Dashboard:** "Nifty 500 vs its 10-month average" and "Stocks that qualify" showed 30 Oct under a column headed "Now". "Now" is today (+6.1%; 44% qualify, by the monthly job's own rule), and each row names the month-end reading its test used. Both sentences now say "on today's readings 5 point to a stronger month and 0 to a weaker one; at the last month-end, which the tests read, 3 and 2".
+- Found by a strict audit of every figure on every page against the data date (`docs/STALENESS_AUDIT_2026-11-21.md`); the rest of its list is in TODO S164.
 
+## 2026-11-21 — Screener in the new design; one date for "a month ago"
+
+- The title answers the first question ("49 of the top 50 can be bought; 23 of the 50 are new this month."), with Screener as the kicker, as on Dashboard, Portfolio, Actions, Breadth and Sectors.
+- Rank 3 months and a month ago are numbers in their own columns, with the qualified place on the same dates and now beside them; the ▲/▼ change columns are gone (Big movers adds a "Places, 1M" column to sort on). "Out" means not among the qualified that day, the Dashboard's word.
+- **One date for "a month ago" on every page.** The ranking read past ranks on the first session on or after the same date a month back (21 Oct); the Dashboard, Portfolio and Actions on the last session on or before it (19 Oct). Both now read the session on or before. The ranking published before this ships still carries the old date until the next ranking run; running Daily sync by hand after the merge brings it in at once.
+- Index names instead of codes (Microcap 250, not MICRO250); industries in the short names every page uses (FMCG, Auto, Durables), from one map for the whole site; Sectors' "Cons. Durables" is now "Durables".
+- The book's two lines are named on their rows ("The book buys to here: the 20th qualified").
+- Column groups and headings in sentence case (Rank before, Qualified, Company, 1 month, Filters and highs).
+- The key under the filters is in short lines, two columns on a wide screen.
+- What moved: a headline that states the finding, every row shown (no "View all"), the rank on the date counted from against today, Held tags.
+- The foot gives the data date and counts only; "Ranked from: Personal" and "Data from: release files" are gone. A dataset that is behind is still named, in the caution colour.
+- The Screener joins the layout audit and requirements check in CI (`docs/SCREENER_REQUIREMENTS.md`).
 
 ## 2026-11-21 — Sectors in the new design
 

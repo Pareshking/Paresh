@@ -60,13 +60,14 @@ def test_core_groups_returns_and_risk_and_never_repeats_a_window():
     labels = [g for g, _, _ in st_.column_groups([c[0] for c in st_.columns_for("Core (17)")])]
     assert "Returns" in labels and "Risk" in labels
     assert not {"1M", "3M", "6M", "12M"} & set(labels)
-    assert len(labels) == len(set(labels))
+    named = [g for g in labels if g]
+    assert len(named) == len(set(named))
 
 
 def test_full_quant_keeps_its_window_groups():
     labels = [g for g, _, _ in st_.column_groups([c[0] for c in st_.columns_for("Full Quant (35)")])]
     for w in st_.PERIOD_WINDOWS:
-        assert f"{w}M factor momentum" in labels
+        assert f"{w} month{'s' if w > 1 else ''}" in labels
 
 
 @pytest.mark.parametrize("density", DENSITIES)
@@ -75,7 +76,9 @@ def test_the_group_row_spans_every_column_and_pins_rank_and_symbol(density):
     grp = re.search(r'<tr class="grp-row">(.*?)</tr>', html, re.S).group(1)
     spans = [int(n) for n in re.findall(r'colspan="(\d+)"', grp)]
     assert sum(spans) == len(st_.columns_for(density, pd.DataFrame([_row()]).columns))
-    assert re.match(r'<th colspan="2" class="grp pin">Identity</th>', grp)
+    # Rank and stock pinned under one unlabelled cell; labels are sentence case.
+    assert re.match(r'<th colspan="2" class="grp pin"></th>', grp)
+    assert not re.search(r'class="grp[^"]*">[A-Z]{2,}', grp)
 
 
 def test_sharpe_is_coloured_by_its_sign_and_drawdown_is_plain():
@@ -114,7 +117,7 @@ def test_the_header_arrow_names_the_sort_the_rows_arrive_in():
     html = _html("Core (17)", sort_key="d1m", sort_desc=True)
     head = re.search(r'<tr class="hdr">(.*?)</tr>', html, re.S).group(1)
     on = re.findall(r'<th class="[^"]*\bon\b[^"]*"[^>]*>(.*?)</th>', head)
-    assert len(on) == 1 and "1M Δ" in on[0] and "↓" in on[0]
+    assert len(on) == 1 and "Places, 1M" in on[0] and "↓" in on[0]
     assert 'data-dir="desc"' in head
 
 
@@ -127,10 +130,11 @@ def test_an_unknown_sort_key_falls_back_to_rank():
 def test_the_movers_heading_names_the_session_a_month_back():
     idx = pd.bdate_range("2026-09-01", "2026-11-06")
     px = pd.DataFrame({"A": range(len(idx))}, index=idx, dtype=float)
-    assert rv._movers_heading(px) == "Since 6 Oct (one month)"
-    # 6 Oct is a holiday in this calendar: the next session is named.
-    assert rv._movers_heading(px.drop(pd.Timestamp("2026-10-06"))) == "Since 7 Oct (one month)"
-    assert rv._movers_heading(None) == "In the last month"
+    assert rv._movers_heading(px) == "What moved since 6 Oct"
+    # 6 Oct is a holiday in this calendar: the session BEFORE is named, the
+    # date every page's rank trail uses (S154; Screener decision A, 21 Nov 2026).
+    assert rv._movers_heading(px.drop(pd.Timestamp("2026-10-06"))) == "What moved since 5 Oct"
+    assert rv._movers_heading(None) == "What moved in the last month"
 
 
 def test_headers_sort_from_the_keyboard_and_say_how_they_are_sorted():

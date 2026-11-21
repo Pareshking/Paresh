@@ -34,18 +34,7 @@ RANK_BY = {
 # A group of one is a stock, not an industry trend.
 MIN_STOCKS = 2
 # Labels on the leadership map; the tooltip keeps NSE's full name.
-SHORT_NAMES = {
-    "Automobile and Auto Components": "Auto",
-    "Fast Moving Consumer Goods": "FMCG",
-    "Information Technology": "IT",
-    "Media Entertainment & Publication": "Media",
-    "Oil Gas & Consumable Fuels": "Oil & Gas",
-    "Metals & Mining": "Metals",
-    "Consumer Durables": "Cons. Durables",
-    "Consumer Services": "Cons. Services",
-    "Financial Services": "Financials",
-    "Telecommunication": "Telecom",
-}
+from src.ui.industry_names import INDUSTRY_SHORT as SHORT_NAMES  # noqa: E402  one map for every page
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
