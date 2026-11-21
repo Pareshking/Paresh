@@ -678,6 +678,7 @@ _SECTOR_CSS = """<style>
 .qp-heat td.d1{background:var(--c-down_tint)}.qp-heat td.d2{background:var(--c-down_line_3);color:var(--c-ink)}
 .qp-heat td.mtd{border-left:1px dashed var(--c-rule_strong)}
 .qp-heat td.run,.qp-heat td.tot{text-align:right;font-weight:600}
+.qp-heat th:nth-last-child(-n+2){text-align:right}
 @media (max-width:900px){.qp-quad{grid-template-columns:1fr 1fr;gap:12px 16px}}
 </style>"""
 
@@ -766,11 +767,11 @@ def _rel_bars_html(sec: pd.DataFrame) -> str:
             '.rb-v{text-align:right;font-variant-numeric:tabular-nums;color:var(--c-ink)}'
             '.rb-v small{color:var(--c-muted);font-size:12px}'
             '@media (max-width:700px){.rb-row{grid-template-columns:110px minmax(0,1fr) 84px}}</style>'
-            f'<div role="img" aria-label="Industries by six months against all ranked stocks, with the last month">'
-            f'{"".join(rows)}</div>')
+            f'<div role="img" aria-label="Industries by six months against all ranked stocks, with the last month" '
+            f'style="margin-bottom:24px">{"".join(rows)}</div>')
 
 
-def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
+def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame, market_name: str = "the Nifty 500") -> str:
     sec = ld.sectors
     both = sec[sec["group"] == "ahead on both"]["Industry"].head(3).tolist()
     best = max((x for x in ld.size if x[1] is not None), key=lambda x: x[1], default=None)
@@ -785,7 +786,7 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
     size_rows += "".join(
         f'<tr><td>{html.escape(n)}</td><td class="{_t(r6)}">{_num(r6, "pts")}</td>'
         f'<td class="{_t(r1)}">{_num(r1, "pts")}</td></tr>' for n, r6, r1 in ld.size)
-    size_html = ('<h3>By size, against the Nifty 500</h3><table><thead><tr><th scope="col">Index</th>'
+    size_html = (f'<h3>By size, against {html.escape(market_name)}</h3><table><thead><tr><th scope="col">Index</th>'
                  '<th scope="col">6 months</th><th scope="col">1 month</th></tr></thead>'
                  f'<tbody>{size_rows}</tbody></table>') if size_rows else ""
 
@@ -846,23 +847,55 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame) -> str:
             f'<div class="qp-top"><div><p class="qp-v">{html.escape(verdict)}</p>'
             f'<p class="qp-s">{html.escape(ld.sentence)}</p>{size_html}</div>'
             f'<div>{would}</div></div>{quad_html}{heat_html}'
-            '<p class="qp-note">Industries are NSE\'s, at least five stocks each, counted over the stocks '
+            '<p class="qp-note">Industries are NSE\'s, five or more ranked stocks each, counted over the stocks '
             'ranked today. Each industry is an equal-weighted index of its stocks and is compared with the '
             'same index of every ranked stock, so a rally led by large companies does not read as every '
-            'industry lagging; that gap is the first row of By size. The Dashboard\'s "Which sectors lead?" '
-            'reads NSE\'s sector indices against the Nifty 500, both weighted by company size, so the two '
-            'can name different leaders.</p></section>')
+            f'industry lagging; that gap is the first row of By size. The size indices are read against {html.escape(market_name)}, '
+            'company size against company size. The leaderboard below ranks by the typical (median) stock; '
+            'everything here uses the equal-weighted average, the RRG\'s construction.</p></section>')
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def _leaders_full(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.Series,
-                  _size: dict[str, pd.Series]):
-    return (mq.leaders_answer(_prices, _industry, _bench, _size),
+                  _size: dict[str, pd.Series], market_name: str = "the Nifty 500"):
+    return (mq.leaders_answer(_prices, _industry, _bench, _size, market_name=market_name),
             mq.industry_months(_prices, _industry, _bench))
 
 
+def leaders_for(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
+                size: dict[str, pd.Series], market_name: str = "the Nifty 500"):
+    """(Leaders, months) for the Sectors page, cached on the prices; None when it cannot be answered."""
+    if prices is None or prices.empty or bench is None or bench.dropna().empty:
+        return None, None
+    syms = [s for s in rank_df["Symbol"] if s in prices.columns]
+    px = prices[syms]
+    from src.engine import dashboard_insights as di
+    size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
+    size = {k: v for k, v in size.items() if len(v)}
+    industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
+    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp(), "full", market_name])
+    return _leaders_full(key, px, industry, bench.dropna(), size, market_name)
+
+
+def leaders_title(ld) -> str:
+    """The Sectors page's title: what leads, in one line."""
+    if ld is None or ld.sectors is None or ld.sectors.empty:
+        return "Sectors"
+    both = ld.sectors[ld.sectors["group"] == "ahead on both"]["Industry"].head(3).tolist()
+    best = max((x for x in ld.size if x[1] is not None), key=lambda x: x[1], default=None)
+    from src.ui.views.sector_view import SHORT_NAMES
+    names = [SHORT_NAMES.get(n, n) for n in both]
+    lead = (", ".join(names[:-1]) + " and " + names[-1]) if len(names) > 1 else (names[0] if names else "")
+    parts = []
+    if lead:
+        parts.append(f"{lead} lead{'s' if len(names) == 1 else ''}")
+    if best is not None:
+        parts.append(f"{best[0]} leads the sizes")
+    return ("; ".join(parts) + ".") if parts else "No industry leads on both six months and one month."
+
+
 def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
-                           size: dict[str, pd.Series]) -> bool:
+                           size: dict[str, pd.Series], market_name: str = "the Nifty 500") -> bool:
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
@@ -873,10 +906,10 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
     size = {k: v for k, v in size.items() if len(v)}
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
     key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp(), "full"])
-    leaders, months = _leaders_full(key, px, industry, bench.dropna(), size)
+    leaders, months = _leaders_full(key, px, industry, bench.dropna(), size, market_name)
     if leaders is None:
         return False
-    st.html(leaders_section_html(leaders, months))
+    st.html(leaders_section_html(leaders, months, market_name))
     return True
 
 
