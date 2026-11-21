@@ -28,6 +28,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.core import config
 from src.engine import index_universe as iu
 from src.engine.backtester import run_backtest
 from src.engine.metrics import drawdown, max_drawdown
@@ -146,7 +147,7 @@ def main() -> None:
     a = ap.parse_args()
     close = pd.read_parquet(a.long)
     close.index = pd.DatetimeIndex(close.index)
-    n500 = benchmark_store.history(period="max", symbol="^CRSLDX")
+    n500 = benchmark_store.history(period="max", symbol=config.BENCHMARK_SYMBOL)
     n500.index = pd.DatetimeIndex(n500.index)
     start = pd.Period("2010-01", "M")
     out: dict = {"long_last_session": str(close.index[-1].date()), "runs": {}}
