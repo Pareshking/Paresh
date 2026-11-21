@@ -248,7 +248,7 @@ Guide follow later.
 | Sectors | First pass 21 Nov (#583); owes P1-P3, NSE's sector indices (S170, S174) | `SECTORS_REQUIREMENTS.md` | Yes |
 | Screener | Done 21 Nov (#584) | `SCREENER_REQUIREMENTS.md` | Yes |
 | Indices | New page, done 21 Nov (#587) | `INDICES_REQUIREMENTS.md` | Yes |
-| RRG | Removed 21 Nov (#587, S169); `/rrg` opens Sectors | `RRG_REQUIREMENTS.md`, kept as history | — |
+| RRG | Removed 21 Nov (#587, S169); `/rrg` is not redirected (owner: "not required") | `RRG_REQUIREMENTS.md`, kept as history | — |
 | **Stock page** | **Next** (owner, 22 Nov: "Stock page and Watchlist first"). First data check: prices against a second source | to write | No |
 | **Watchlist** | **Next**, with the stock page | to write | No |
 | Backtest / Track record | Not started. Nifty 500 for 2010+; frozen months as recorded, Total Market beside; ₹100 chart, monthly bars, tested claims only | to write | No |

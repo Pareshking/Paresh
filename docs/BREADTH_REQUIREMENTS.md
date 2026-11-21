@@ -1,5 +1,11 @@
 # Breadth requirements: everything agreed, in one list
 
+> **The page is now called Market, at `/market` (21 Nov 2026).** The menu and the page's kicker
+> read "Market" (#590, #592); the address moved from `/breadth` to `/market`, and `/breadth`
+> redirects there keeping its `?system=` (#596, `app.py` `_MOVED_TO`, `tests/test_market_page_address.py`).
+> The file keeps its name; "Breadth" below means this page. CI checks this list on `/market`
+> (`.github/workflows/v1-full-validation.yml`).
+
 Started 21 Nov 2026, before any change, from the live page that day
 (`src/ui/views/breadth_view.py`, `market_questions_view.py`), the owner's decisions in
 `CHANGELOG.md` (dated below), and the rules learned on Dashboard, Portfolio and Actions

@@ -162,6 +162,37 @@ corporate-action feeds into `data/reference/nse/`, and `scripts/check_index_anch
 hosts with the history (`data/reference/nse/anchor_checks.jsonl`). Evidence, rules and the protocol are in
 `nse_index_rebuild/` (`PROTOCOL.md`, `OPEN_ITEMS.md`, `FEEDS.md`, `reference/blind_review/`).
 
+## Nifty 1000: recorded from 30 Oct 2026, reconstructed until NSE's first list (2026-11-21, S175)
+
+Not from notices. The daily sync downloads NSE's Nifty 1000 list
+(`data/indices/ind_nifty1000_list.csv`, `RECORDED_INDICES_URLS`) and
+`scripts/update_membership_history.py` folds it into `membership_history.json` as
+`indices.nifty_1000` (#591). Owner, 21 Nov 2026: "start date is 01-Nov for us".
+
+NSE first lists the index in its daily index archive on 16 Nov 2026 (absent from
+every file to 13 Nov), so no published list exists for 1 Nov. The first time the
+step meets the index it builds the entry from 30 Oct (the close that signals
+November) by the index's own construction (`src/engine/nifty1000_backfill.py`):
+
+```
+member on day d  =  Nifty Total Market on d (our recorded history)
+                    ∪  the 250 that NSE's first list we hold adds to the 750
+```
+
+That the 250 were the same on 30 Oct is an assumption no published list
+confirms; the entry's `note` says so and that November 2026 is reconstructed,
+not recorded. Later nights append changes as for the other indices.
+
+It is recorded but kept out of the readers that union every index: the 750's
+ranked universe, `all_ever_members` (so the long NSE price file does not take in
+the 250 before their prices are audited; `index_universe.RECORDED_ONLY`), and the
+freeze hash (an index first recorded after 2026-09-30 has no frozen past;
+`freeze_history.frozen_view`). The Nifty 1000 system reads it through
+`systems.membership_for("1000")`.
+
+Not on main yet at `ca3ccf3` (21 Nov 2026): `indices` holds the seven entries
+above; the first daily sync after #591 writes the eighth.
+
 ## Joining a bhavcopy to the history (`scripts/index_symbol_map.py`)
 
 `data/membership_history.json` files members under today's ticker; a bhavcopy carries the ticker of its day. The helper

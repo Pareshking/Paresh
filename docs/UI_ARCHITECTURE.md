@@ -1,7 +1,7 @@
 # UI architecture: the tab problem, and whether to rewrite
 
 **Date:** 2026-09-11
-**Status:** Stage 1 executed 2026-09-11 — see §6
+**Status:** Stage 1 executed 2026-09-11 — see §6. What ships today: §11 (21 Nov 2026)
 **Question put by the owner:** *"Shouldn't we re-write the complete code from
 blank? Current one doesn't even have real tabs, everything in one container is
 a bad thing."*
@@ -252,7 +252,7 @@ CI verification passed for both the full V1 validation and the focused R2 Stream
 **Important:** engine skipped means the runtime momentum/ranking calculation was intentionally bypassed because the already-published canonical ranking passed its contract checks. It does not mean ranking was skipped or that the application is operating without a ranking.
 
 
-## 8. Navigation today (2026-09-25)
+## 8. Navigation (2026-09-25; superseded, see §11)
 
 §6 describes `st.navigation(position="top")` and the `stTopNav*` DOM. That is
 no longer what ships. The app now uses:
@@ -273,6 +273,9 @@ prefix, `[class*="st-key-app_nav_menu_"]`.
 The QA probes still accept every navigation shape (`scripts/_streamlit_nav.py`).
 `missing_pages` now reports a page that is absent from an opened menu. It used
 to return nothing whenever the ☰ button existed.
+
+*21 Nov 2026:* the three groups and the "☰ on every screen" rule are gone; §11
+has the menu and top bar as they are now.
 
 
 
@@ -334,7 +337,7 @@ navigation contract changed.
 
 ---
 
-## 7. October 2026 overhaul: where things live now
+## 7. October 2026 overhaul: where things lived then (charts and pages superseded, see §11)
 
 - **Tables.** `src/ui/screener_table.py` draws every stock table in the Screener from one column registry; Full Quant is the master and Executive/Core are its columns hidden. `render_saas_table` (theme.py) is the generic table for everything else and shares its type scale.
 - **Charts.** Two libraries, each where it is best. Time series use TradingView Lightweight Charts (`src/ui/lw_chart.py`, vendored under `src/ui/vendor/`, no CDN): stacked synced panes, crosshair, legend with every value, candlesticks and volume; Breadth, Portfolio, Backtest and the stock page (`src/ui/stock_chart.py`) all use it. Everything that is not a time series uses Highcharts (`src/ui/highcharts_lib.py`, vendored, Highsoft EULA, non-commercial personal use, see `HIGHCHARTS_LICENSE.txt`): the Relative Rotation Graph in `src/ui/charts.py` and the holdings correlation heatmap on Portfolio.
@@ -547,3 +550,83 @@ the comment and docstring that record this section's findings at the code.
 What it removes is the second implementation — a `<table class="db-fig">`
 format string can no longer be written in a view without
 `tests/test_figure_tables_shared.py` failing.
+
+---
+
+## 11. Where things stand (21 Nov 2026)
+
+Read from `app.py`, `src/ui/components.py`, `src/ui/theme.py` and the CI workflow
+on 21 Nov 2026, after the redesign of every main page (S151, #572 to #596).
+
+### Pages and addresses
+
+Eleven pages, in `app.py` `_PAGES`, in this order: Dashboard (`/`), Actions,
+Screener, Portfolio, Market (`/market`), Indices, Sectors, Watchlist, Backtest,
+Configuration, Guide. `tests/test_qa_tab_list_matches_the_app.py` pins the titles.
+
+- **Market** is the old Breadth page. Its menu name and kicker read "Market"
+  (#590, #592); its address moved from `/breadth` to `/market` (#596). The view
+  is still `src/ui/views/breadth_view.py` with `market_questions_view.py`.
+- **Indices** is new (#587): `src/ui/views/indices_view.py` on
+  `src/engine/indices_page.py`, reading `data/nse_indices_history.parquet` and
+  `data/nse_indices_recent.csv` through `src/ui/indices_data.py`.
+- **RRG is removed** (S169, #587): `rrg_view.py` and `compute_rrg_data` are gone.
+  `/rrg` is not redirected (owner: "not required").
+- **Moved addresses** are redirect pages left out of `_PAGES` (`_MOVED`,
+  `_MOVED_TO`): `/qualified` and `/exit-watch` to Actions, `/track-record` to
+  Portfolio, `/dashboard` and `/home` to the Dashboard, `/breadth` to Market.
+  Each passes its query string on, so `?system=` survives
+  (`tests/test_market_page_address.py`).
+
+### Menu and top bar
+
+Still `st.navigation(..., position="hidden")`, drawn by
+`components.render_header_kpi_bar`. What changed (#590, #592):
+
+- **One list, no headings.** `_MENU_ORDER` is the eleven pages in the order
+  above; the "My book", "Market" and "Method" groups are gone. A page added to
+  `_PAGES` but not to the list still shows, at the end.
+- **From 1024 px**, the top bar links all eleven pages (`app_quicklinks`, the
+  current page underlined) and the ☰ button is hidden. Below 1024 px the links
+  are hidden and ☰ is the only navigation. Both rules are in `theme.py`
+  (`@media (min-width: 1024px)` / `(max-width: 1023px)`); from 1024 to 1279 px
+  the links take less padding.
+- **The prices date** ("Prices · closes of 20 Nov", amber when a source is
+  stale) sits in the bar below 1024 px only. On a desktop it is at the right
+  end of the market line (`.mkt-status`), and on the Dashboard, which has no
+  market line (`show_market=False`), in a row of its own (`.mkt-status-row`).
+- The popover keeps its per-page key (`app_nav_menu_<url_path>`, §8). The QA
+  navigator clicks ☰ only when it is visible (`scripts/_streamlit_nav.py`).
+
+### Charts
+
+- **The site's chart kit**, `static/dash_charts.js` driven by
+  `src/ui/dash_charts.py`: each chart a small frame drawn from a JSON spec,
+  values under pointer, finger and arrow keys, colours through
+  `tokens.resolve`. Kinds: month, bars, shared, segbar, breadth, growth,
+  holdings, history, lines, trows, rel. Used by Dashboard, Portfolio, Market
+  and Indices. Rules: `docs/PAGE_DESIGN.md` §4.
+- The readout above a chart keeps the height of its tallest reading, so the
+  chart no longer moves as the pointer does (#589).
+- **Lightweight Charts** remain on the stock page (`stock_chart.py`) and
+  Backtest (`page_kit.growth_chart`). Portfolio and Market no longer use them.
+- **Highcharts** draws Sectors' leadership map (`charts.render_leadership_map`).
+  The RRG chart is gone; `charts.render_correlation_heatmap` is still in the
+  file but no page calls it (Portfolio shows the correlation as a figure).
+
+### Checks on the built pages, in CI
+
+`.github/workflows/v1-full-validation.yml` starts the app (reading R2, as the
+live site does) and runs, at 412 and 1400 px:
+
+- `scripts/layout_audit.mjs` on Dashboard, Portfolio, Actions, Market, Sectors,
+  Screener and Indices: headings off their columns, labels wrapping to three
+  lines, charts leaving width empty, readouts crowding a chart, bars too wide,
+  empty bands, sideways scroll.
+- `scripts/check_dashboard_requirements.mjs` with each page's
+  `docs/*_REQUIREMENTS.md` on Actions, Market (`BREADTH_REQUIREMENTS.md`),
+  Sectors, Screener and Indices. The Dashboard's and Portfolio's lists are
+  checked by `scripts/headless_smoke.py` instead.
+- A marker can now read one element: `[css SELECTOR] text` reads only what the
+  selector matches, so a word the menu also shows (a page's name) proves
+  nothing when read from the whole page (#595; Market's kicker row uses it).

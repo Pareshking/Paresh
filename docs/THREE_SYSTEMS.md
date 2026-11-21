@@ -2,7 +2,8 @@
 
 One app, four universes, one strategy. Owner decisions of 2026-09-27 (the first
 three; built in #240 and #242–#246) and 2026-11-21 (Nifty 1000, and Nano Cap
-shown as "> ₹2,000 Cr"; S175). The file keeps its name so links to it hold.
+shown as "> ₹2,000 Cr"; S175). This file covers all four systems; it keeps its
+name so links to it hold.
 Update this file with every PR that changes how a system is defined, ranked,
 booked or recorded.
 
@@ -20,6 +21,9 @@ _Last updated: 2026-11-21_
 | Track record | since Jan 2026, `data/track_record.json` | from Nov 2026, `data/track_record_1000.json`; **November is reconstructed** (its 30 Oct book uses a list not public until 16 Nov); a month is frozen only when every member has a close on its signal day | from Oct 2026, `data/track_record_nano.json` | from Oct 2026, `data/track_record_combined.json` |
 | Backtest | last 6 completed months | from Nov 2026, a month more each month-end | from Sep 2026, a month more each month-end | same as > ₹2,000 Cr |
 
+Sections below written before 21 Nov 2026 call > ₹2,000 Cr "Nano Cap"; it is
+the same system under the same key.
+
 The strategy is the same for all four (`TRACK_RECORD_CONFIG`). What differs is
 who may be held, since when, and where the frozen months are kept — all of it
 in `src/engine/systems.py` and nowhere else.
@@ -30,11 +34,20 @@ nightly Screener sync on the ₹2,000 Cr list's best-effort path (from 22 Nov
 they are listed as "not ranked yet" under the Screener and the monthly freeze
 refuses the Nifty 1000 (TODO S175).
 
+On main at `ca3ccf3` (21 Nov 2026, 19:52 UTC) neither
+`data/indices/ind_nifty1000_list.csv` nor `indices.nifty_1000` is on disk yet:
+the first daily sync after #591 downloads the list and builds the entry, and
+until then Configuration does not offer the Nifty 1000
+(`config_view`, `os.path.exists(NIFTY_1000_PATH)`).
+
 ## Choosing a system
 
-- Configuration → System (radio, short name + one-line caption). Every page
-  follows the choice: Screener, Actions, Sectors, RRG, Portfolio, Watchlist,
-  Breadth, Backtest, Track Record. Holdings and watchlist are shared.
+- Configuration → System (a segmented control of the short names; the chosen
+  system's one-line caption under it). Every page
+  follows the choice: Dashboard, Actions, Screener, Portfolio, Market, Sectors,
+  Watchlist, Backtest. Holdings and watchlist are shared. (RRG was removed on
+  21 Nov 2026, #587; Track Record is part of Portfolio and `/track-record`
+  redirects there; Breadth is the Market page, `/market`, #596.)
 - The choice lives in the session (`cfg_system`) **and** in the address as
   `?sys=1000` / `?sys=nano` / `?sys=combined` (nothing for the 750), because a stock link
   reloads the page and a reload is a new session (`src/ui/system_param.py`).
@@ -52,7 +65,15 @@ The 750 system's point-in-time membership is backed by the multi-index `data/mem
   a new month-end session is in R2. It reads NSE's market-cap file for that
   session: EQ/BE series, ≥ ₹2,000 Cr, not in the 750, not an ETF, category
   Listed. Writes `data/indices/ind_nanocap_list.csv` and appends the month to
-  `data/nanocap_membership.json`.
+  `data/nanocap_membership.json`. From the 30 Nov 2026 build the list carries
+  ISINs, taken by symbol from NSE's equity list
+  (`data/reference/nse/equity_l.csv`; 410 of 411 on 21 Nov, #594).
+- The Nifty 1000 is NSE's own list (`ind_nifty1000_list.csv`, from
+  niftyindices.com, `RECORDED_INDICES_URLS`). The daily sync folds it into
+  `membership_history.json` as `indices.nifty_1000`; a failed or short
+  download (under 950 rows) keeps the committed list and does not fail the
+  750's sync. It is kept out of the 750's ranked universe, the long NSE price
+  file (`all_ever_members`) and the membership freeze hash (#591).
 - A list is in force from the session it was built on — the close that
   signals the next month's book — until the next list.
 - The daily sync collects the last three NSE sessions itself before this step
@@ -61,18 +82,24 @@ The 750 system's point-in-time membership is backed by the multi-index `data/mem
 ## Prices
 
 - The ranking reads Screener first, NSE for gaps (`price_source.ranking_frames`);
-  the Screener store holds the 750 and Nano Cap alike. Yahoo is not a source
-  (owner, 2 Oct 2026); the Nano Cap Yahoo file (`prices_extra.parquet`) and the
-  code that downloaded it were removed on 13 Oct 2026 (TODO S10).
-- Market caps: the 750's cache; the Nano Cap list's own figures for the rest.
+  the Screener store holds the 750, the ₹2,000 Cr list and the Nifty 1000's
+  other 250 alike. The two extra lists are collected after the 750, best
+  effort, outside the 750's coverage gate (`sync_screener.extra_symbols`).
+  Yahoo is not a source (owner, 2 Oct 2026); the Nano Cap Yahoo file
+  (`prices_extra.parquet`) and the code that downloaded it were removed on
+  13 Oct 2026 (TODO S10).
+- Market caps: NSE's file for the 750 and the Nifty 1000 (the daily sync writes
+  all 1,000 into `nse_market_caps.csv`; the 750's own ranking still gets the
+  750's caps only); the ₹2,000 Cr list's own figures for the rest.
 
 ## Nightly precompute
 
-`scripts/precompute_systems.py` (daily sync, after the extra Yahoo download)
-ranks Nano Cap and Combined with the same function as the 750 and stamps each
+`scripts/precompute_systems.py` (daily sync) ranks > ₹2,000 Cr, Combined and
+(from #594) the Nifty 1000 with the same function as the 750 and stamps each
 table with the same contract. Published as `rankings_nano.parquet` /
-`rankings_combined.parquet` (release) and `snapshots/rankings_nano` /
-`snapshots/rankings_combined` (R2). The app uses a table only when every
+`rankings_combined.parquet` / `rankings_1000.parquet` (release) and
+`snapshots/rankings_nano` / `snapshots/rankings_combined` /
+`snapshots/rankings_1000` (R2, protected by `r2_retention.py`). The app uses a table only when every
 contract term matches; otherwise it ranks live, as before. First published
 2026-09-27 (daily sync run 36313661283: Nano Cap 396 rows, Combined 1,146,
 both release and R2, verified). Production's acceptance check, replayed from
@@ -88,33 +115,35 @@ accepted, no contract term differs.
   inception is intentional. The loader now treats that pre-inception state as
   informational rather than an operational warning. Once a system has reached
   its inception, a missing ledger is again a warning.
-- `monthly_track_record.yml` (1st–5th of each month) freezes all three; the
-  Nano Cap and Combined step warns rather than fails.
+- The Nifty 1000 starts with **November 2026**: the book signalled at the
+  30 Oct close (reconstructed membership, above). Its ledger,
+  `data/track_record_1000.json`, is written by the first freeze that passes;
+  `update_track_record.py --system 1000` refuses a month while any member has
+  no close on its signal day (58 on 30 Oct, #594).
+- `monthly_track_record.yml` (1st–5th of each month) freezes all four; the
+  step for the other three (`nano`, `combined`, `1000`) warns rather than fails.
 - Actions shows the selected system's model book; before October, Nano Cap and Combined show "My holdings" only, with a "No model book yet" note.
-- Track Record ends with **Three systems, side by side**: the last 12 frozen
-  months for each, and the Nifty 500.
-
-- Each system has its own append-only ledger. Nano Cap and Combined start
-  with **October 2026**: the first book is signalled at the **30 Sep 2026**
-  close and filled 1 Oct. The 750's record is untouched.
-- `monthly_track_record.yml` (1st–5th of each month) freezes all three; the
-  Nano Cap and Combined step warns rather than fails.
-- Actions shows the selected system's model book; before October, Nano Cap and
-  Combined show "My holdings" only, with a "No model book yet" note.
-- Track Record ends with **Three systems, side by side**: the last 12 frozen
-  months for each, and the Nifty 500.
+- Portfolio (which holds the track record; `/track-record` redirects there)
+  ends with **Three systems, side by side** (the heading in code): every
+  system in `SYSTEMS` with a frozen month or a month to date: this month, since the
+  window all have traded and since its own start, with Nifty Total Market
+  (`portfolio_page._systems`).
 
 ### Shadow record
 
-Beside the three, the Recommendation's shadow record (owner, 12 Oct 2026): the
+Beside the live systems, the Recommendation's shadow record (owner, 12 Oct 2026): the
 750 under `SHADOW_CONFIG` (30 holdings, keep in the top 90, 200D EMA) from
-November 2026, in `data/track_record_shadow.json`. Never traded; a row of frozen
-months in "Three systems, side by side". See `docs/TRACK_RECORD.md` §9.
+November 2026, in `data/track_record_shadow.json`. Three more from December
+2026: Near-high 90%, Breadth + long lookback (S144) and Skip 5 days (S160)
+(`SHADOWS` in `src/engine/track_record.py`). Never traded; Portfolio names them
+in the note under "Three systems, side by side", whose rows are the live
+systems only. See `docs/TRACK_RECORD.md` §9–11.
 
 ## Backtest
 
-`systems.backtest_months` counts completed months since September 2026 for
-Nano Cap and Combined: 0 until 30 Sep (the page shows "Building"), 1 from
+`systems.backtest_months` counts completed months since September 2026 for the
+₹2,000 Cr list and Combined, and since November 2026 for the Nifty 1000
+(`BACKTEST_START`): 0 until 30 Sep (the page shows "Building"), 1 from
 1 Oct, growing monthly. It runs on that system's point-in-time membership, so
 it is never judged against a list that did not exist yet.
 
