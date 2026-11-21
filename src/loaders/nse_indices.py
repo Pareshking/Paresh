@@ -211,10 +211,11 @@ def seams(store: pd.DataFrame) -> pd.DataFrame:
                                       "points_change", "continuous"])
 
 
-# An index is live from the first row that starts LIVE_RUN rows with no gap of more
-# than LIVE_GAP sessions. NSE regenerated two archive files (7 Jul 2016, 12 Apr 2023)
+# An index is live from the first row that the next session's file also lists and
+# that starts LIVE_RUN rows with no gap of more than LIVE_GAP sessions. NSE regenerated two archive files (7 Jul 2016, 12 Apr 2023)
 # with back-calculated values for indices launched years later (Nifty Total Market
-# in the 2016 file); those lone rows stay in the store, as NSE published them, and
+# in the 2016 file; Nifty100 Low Volatility 30 two sessions before its launch on
+# 11 Jul 2016); those rows stay in the store, as NSE published them, and
 # readers start each series at its launch.
 LIVE_RUN, LIVE_GAP = 20, 10
 
@@ -231,7 +232,8 @@ def live_from(store: pd.DataFrame, keys: list[str] | None = None) -> dict[str, p
         out[key] = pd.Timestamp(d[0])
         for i in range(n):
             j = min(i + LIVE_RUN, n)
-            if j - i >= min(LIVE_RUN, n) and (np.diff(si[i:j]) <= LIVE_GAP).all():
+            next_too = n == 1 or (i + 1 < n and si[i + 1] == si[i] + 1)
+            if next_too and j - i >= min(LIVE_RUN, n) and (np.diff(si[i:j]) <= LIVE_GAP).all():
                 out[key] = pd.Timestamp(d[i])
                 break
     return out

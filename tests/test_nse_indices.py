@@ -141,3 +141,12 @@ def test_a_back_calculated_row_years_before_launch_is_not_live_history():
     assert s.index[0] == days[40] and len(s) == 30
     assert ni.series(store, "nifty_total_market", live_only=False).index[0] == days[0]
     assert len(ni.series(store, "nifty_50")) == 70
+
+
+def test_a_back_calculated_row_two_sessions_before_launch_is_not_live():
+    # Nifty100 Low Volatility 30: in the regenerated 7 Jul 2016 file, absent on 8 Jul,
+    # live from 11 Jul.
+    days = pd.bdate_range("2016-07-07", periods=40)
+    store = ni.merge(_rows("Nifty100 Low Volatility 30", [days[0], *days[2:]], 6635.95),
+                     _rows("Nifty 50", days))
+    assert ni.series(store, "nifty100_low_volatility_30").index[0] == days[2]
