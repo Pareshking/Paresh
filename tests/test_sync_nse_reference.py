@@ -35,7 +35,7 @@ def test_corporate_action_window_and_shape():
         return json.dumps([{"symbol": "A"}]).encode()
 
     rows = s.fetch_corporate_actions(datetime(2026, 10, 2, tzinfo=timezone.utc), days=45, fetch=fetch)
-    assert rows == [{"symbol": "A"}] and seen["to_date"] == "02-10-2026" and seen["from_date"] == "18-08-2026"
+    assert rows == [{"symbol": "A"}] and seen["to_date"] == "23-10-2026" and seen["from_date"] == "18-08-2026"   # 21 days ahead (owner, 21 Nov 2026)
     with pytest.raises(s.SyncError):
         s.fetch_corporate_actions(datetime(2026, 10, 2, tzinfo=timezone.utc), fetch=lambda u, p: b'{"x": 1}')
 

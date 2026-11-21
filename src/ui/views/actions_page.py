@@ -18,7 +18,7 @@ import streamlit as st
 from src.engine.exit_watch import CLEAR, SELL, STATUS_LABEL, UNKNOWN, WATCH, Rules, assess, nearest_rule, qualified_ranks
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.ui.system_param import stock_href
-from src.ui.views.dashboard_home_view import HOME_CSS, emit, html_of
+from src.ui.views.dashboard_home_view import HOME_CSS, emit, html_of, sg
 from src.ui.views.portfolio_page import PF_CSS, _head, _kpis, _sec, dshort, inr, pct, short, tone
 
 e = html.escape
@@ -48,6 +48,12 @@ class Plan:
     held_since: dict = field(default_factory=dict)
     buy_limit: str = ""               # which of the record's two limits set a buy's size
     rules: Rules = field(default_factory=Rules)
+    now_weights: pd.Series = field(default_factory=lambda: pd.Series(dtype=float))   # the book as it stands
+    sizes: dict = field(default_factory=dict)        # symbol -> Large / Mid / Small / Micro / Other, NSE lists today
+    events: list = field(default_factory=list)       # (date, symbol, role, what) before the fill
+    events_note: str = ""                            # how far ahead each source reaches
+    swaps: object = None                             # engine.swap_evidence.SwapEvidence
+    uninvested: float | None = None                  # model book: rupees not invested today (Portfolio's figure)
 
 
 def _price(rank_df: pd.DataFrame) -> pd.Series:
@@ -90,6 +96,14 @@ def basket(p: Plan) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def sg_pts(v: float) -> str:
+    return "0.0" if abs(v) < 0.05 else sg(v)
+
+
+def _lakh(v: float) -> str:
+    return f"₹{v / 1e5:.1f} lakh" if v < 1e7 else f"₹{v / 1e7:.2f} crore"
+
+
 def _rk(v) -> str:
     return "Out" if v is None else f"#{v}"
 
@@ -124,7 +138,14 @@ def header(p: Plan) -> list:
               p.holiday_note)]
     who = ("The model book: what the record would trade at the next rebalance."
            if p.source == "Model book" else "Your holdings, under the same rules.")
-    return [f'<div class="pf-head"><h1 class="pf-title">Actions</h1><p class="pf-sub">If today\'s prices hold. {e(who)}</p>',
+    when = f"{p.check:%a} {dshort(p.check)}"
+    if p.sells or p.buys:
+        answer = (f"{len(p.sells)} sell{'s' if len(p.sells) != 1 else ''} and {len(p.buys)} buy{'s' if len(p.buys) != 1 else ''} "
+                  f"on {when}" + (f": {_lakh(sell_amt)} out, {_lakh(buy_amt)} in." if sell_amt or buy_amt else "."))
+    else:
+        answer = f"Nothing to trade on {when}: every holding is clear of the rules."
+    return [f'<div class="pf-head"><p class="pf-kick">Actions</p><h1 class="pf-title">{e(answer)}</h1>'
+            f'<p class="pf-sub">If today\'s prices hold. {e(who)}</p>',
             _kpis(cells, "pf-four"), "</div>"]
 
 
@@ -138,7 +159,50 @@ def section_change(p: Plan) -> list:
                  f'<div class="dh-pair"><div><div class="dh-cap"><b>Holds close to a line</b><span>could still change to a sale</span></div>'
                  f'<ul class="ac-list">{items}</ul></div>'
                  f'<div><div class="dh-cap"><b>Next in line</b><span>would come in if a buy drops out or another hold breaks</span></div>'
-                 f'<p class="ac-next">{nxt}</p></div></div>'])
+                 f'<p class="ac-next">{nxt}</p></div></div>',
+                 f'<div class="dh-cap"><b>Results and corporate actions before the fill</b><span>to {dshort(p.fill)}</span></div>',
+                 _events_html(p), f'<p class="dh-note">{e(p.events_note)}</p>'])
+
+
+def _events_html(p: Plan) -> str:
+    if p.events:
+        rows = "".join(f'<li><b>{e(sym)}</b> ({e(role)}) {e(what)}, {dshort(d)}</li>' for d, sym, role, what in p.events)
+        return f'<ul class="ac-list">{rows}</ul>'
+    return '<p class="ac-none">None announced for any holding, sell or buy.</p>'
+
+
+def section_after(p: Plan) -> list:
+    """Row 27: the book's industry and size after the trades, against now."""
+    if not len(p.weights):
+        return []
+    ind = lambda s: _ind(p, s) or "Other"   # noqa: E731
+    now = p.now_weights.groupby(p.now_weights.index.map(ind)).sum() * 100
+    aft = p.weights.groupby(p.weights.index.map(ind)).sum() * 100
+    names = sorted(set(now.index) | set(aft.index), key=lambda k: (-max(now.get(k, 0), aft.get(k, 0)), k))
+    rows = "".join(f'<tr><th scope="row">{e(k)}</th><td class="dh-num">{now.get(k, 0):.1f}%</td><td class="dh-num dh-b">{aft.get(k, 0):.1f}%</td>'
+                   f'<td class="dh-num {tone(aft.get(k, 0) - now.get(k, 0))}">{sg_pts(aft.get(k, 0) - now.get(k, 0))}</td></tr>' for k in names)
+    sz = lambda w: w.groupby(w.index.map(lambda s: p.sizes.get(s, "Other"))).sum() * 100   # noqa: E731
+    sn, sa = sz(p.now_weights), sz(p.weights)
+    srows = "".join(f'<tr><th scope="row">{k}</th><td class="dh-num">{sn.get(k, 0):.1f}%</td><td class="dh-num dh-b">{sa.get(k, 0):.1f}%</td>'
+                    f'<td class="dh-num {tone(sa.get(k, 0) - sn.get(k, 0))}">{sg_pts(sa.get(k, 0) - sn.get(k, 0))}</td></tr>'
+                    for k in ("Large", "Mid", "Small", "Micro", "Other") if sn.get(k, 0) or sa.get(k, 0))
+    # Cash in rupees, the figure Portfolio shows: uninvested now; after, plus the sells and less the buys (whole shares).
+    if p.value and p.uninvested is not None:
+        after_cash = p.uninvested + sum(r["amount"] or 0 for r in sell_rows(p)) - sum(
+            (r["qty"] or 0) * float(r["price"] or 0) for r in buy_rows(p))
+        cash_now, cash_after = p.uninvested / p.value * 100, max(0.0, after_cash) / p.value * 100
+    else:
+        cash_now, cash_after = max(0.0, 100 - float(p.now_weights.sum()) * 100), max(0.0, 100 - float(p.weights.sum()) * 100)
+    head = ('<thead><tr><th scope="col">{0}</th><th scope="col" class="dh-num">Now</th><th scope="col" class="dh-num">After</th>'
+            '<th scope="col" class="dh-num">Change, pts</th></tr></thead>')
+    return _sec([_head("ac-after", "The book after the trades", "industry and size, now and after the trades"),
+                 f'<div class="dh-pair"><div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab">{head.format("Industry")}<tbody>{rows}</tbody></table></div>'
+                 f'<div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab">{head.format("Size")}<tbody>{srows}'
+                 f'<tr><th scope="row">Cash</th><td class="dh-num">{cash_now:.1f}%</td><td class="dh-num dh-b">{cash_after:.1f}%</td>'
+                 f'<td class="dh-num">{sg_pts(cash_after - cash_now)}</td></tr></tbody></table></div></div>',
+                 '<p class="dh-note">Now: each stock at its weight today, after it has moved since the last fill. After: the weights the '
+                 'record strikes at the rebalance. Size by NSE’s index lists today: Large is the Nifty 100, Mid the Midcap 150, Small the '
+                 'Smallcap 250, Micro the Microcap 250.</p>'])
 
 
 def section_sell(p: Plan) -> list:
@@ -179,22 +243,31 @@ def section_buy(p: Plan) -> list:
                  f'<td class="dh-num ac-wide {tone(m3)}">{pct(None if pd.isna(m3) else m3)}</td>'
                  f'<td class="dh-num ac-wide {tone(m6)}">{pct(None if pd.isna(m6) else m6)}</td>'
                  f'<td class="dh-num ac-wide">{"—" if pd.isna(hi) else ("at the high" if hi > -0.05 else pct(hi))}</td>'
-                 f'<td class="dh-num">{b["w"] * 100:.2f}%</td>'
+                 f'<td class="dh-num ac-wide">{b["w"] * 100:.2f}%</td>'
                  f'<td class="dh-num dh-b">{"—" if b["amount"] is None else inr(b["amount"])}</td>'
                  f'<td class="dh-num">{"—" if b["qty"] is None else f"{b['qty']:,}"}</td></tr>')
     nxt = "".join(f'<a class="dh-pill" href="{stock_href(s)}" target="_self">#{int(p.qrank.get(s, 0))} {e(s)}</a>'
                   for s in p.next_in_line[:4])
     base = (f"Amounts are the record's target weight of the model book's value today, {inr(p.value)}."
             if p.source == "Model book" else f"Amounts are each buy's target weight of {inr(p.value)}, the capital in the Kite basket box.")
-    return _sec([_head("ac-buy", "Buy", "best qualified, not held"),
+    ev = p.swaps
+    evid = ("" if ev is None else
+            f'<div class="ac-ev"><b>What swaps have added so far.</b> In their first month the record’s {ev.buys} buys beat Nifty '
+            f'Total Market by {sg(ev.buy_1m)} points on average; the {ev.sold} stocks it sold, by {sg(ev.sold_1m)} in the month after the sale'
+            + ("" if ev.buy_3m is None or ev.sold_3m is None else
+               f'. Over three months: {sg(ev.buy_3m)} against {sg(ev.sold_3m)}')
+            + f'. {ev.rebought} of the {ev.sold} sold were bought back within two months. '
+            f'<span class="dh-muted">{ev.first:%b %Y} to {ev.last:%b %Y}: a short record, measured on the record itself, before costs, '
+            'with overlapping windows; evidence, not proof.</span></div>')
+    return _sec([_head("ac-buy", "Buy", "best qualified, not held"), evid,
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab"><thead><tr><th scope="col">Stock</th>'
                  '<th scope="col" class="dh-num">Qualified</th><th scope="col" class="dh-num">Price</th>'
                  '<th scope="col" class="dh-num ac-wide">3M</th><th scope="col" class="dh-num ac-wide">6M</th>'
-                 '<th scope="col" class="dh-num ac-wide">From 52W high</th><th scope="col" class="dh-num">Weight</th>'
+                 '<th scope="col" class="dh-num ac-wide">From 52W high</th><th scope="col" class="dh-num ac-wide">Weight</th>'
                  '<th scope="col" class="dh-num">Amount</th><th scope="col" class="dh-num">Shares</th>'
                  f'</tr></thead><tbody>{rows}</tbody></table></div>',
                  f'<p class="dh-note">{e(base)} {e(p.buy_limit)} '
-                 '<span class="ac-phone">On a wider screen each row also shows the 3- and 6-month returns and the distance from the 52-week high.</span></p>',
+                 '<span class="ac-phone">On a wider screen each row also shows the weight, the 3- and 6-month returns and the distance from the 52-week high.</span></p>',
                  f'<div class="ac-nextrow"><span class="dh-muted">Next in line</span>{nxt}</div>' if nxt else ""])
 
 
@@ -247,18 +320,20 @@ def footer(p: Plan) -> list:
 
 
 def page_parts(p: Plan) -> list:
-    return header(p) + section_change(p) + section_sell(p) + section_buy(p) + section_hold(p) + footer(p)
+    return header(p) + section_change(p) + section_sell(p) + section_buy(p) + section_after(p) + section_hold(p) + footer(p)
 
 
 AC_CSS = """
 .ac-sym{font-family:var(--font-mono);font-weight:600;color:var(--c-ink);text-decoration:none}
 .ac-ind{font-weight:400;color:var(--c-muted)}
-.ac-tab th[scope=row]{white-space:nowrap}
+.ac-tab th[scope=row]{white-space:nowrap}.ac-tab thead th{vertical-align:bottom}
 .ac-trail{color:var(--c-muted)}.ac-trail b{color:var(--c-ink)}
 .ac-list{margin:0;padding-left:18px;font-size:var(--fs-13)}.ac-list li{margin:2px 0}
 .ac-next{margin:0;font-family:var(--font-mono);font-size:var(--fs-13)}
 .ac-nextrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:var(--fs-13)}
 .ac-phone{display:none}
+.ac-ev{border-left:3px solid var(--c-up);padding:6px 0 6px 12px;font-size:var(--fs-13);max-width:80ch}
+.ac-none{margin:0;font-size:var(--fs-13);color:var(--c-text_2)}
 @media (max-width:640px){.ac-wide{display:none}.ac-phone{display:inline}}
 """
 
@@ -293,12 +368,26 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
         plan = model_plan(book, record, rank_df, adj_close, benchmark_close, system, check)
         ledger = load_ledger(ledger_path(system), inception(system))
         series = book_series(book, record, ledger, rank_df, adj_close, benchmark_close, MODEL_BOOK_CAPITAL)
+        uninv = None
         if series is not None:
             value = float(series.value)
+            uninv = float(series.uninvested)
             shares = dict(zip(series.table["Symbol"].astype(str), pd.to_numeric(series.table["Shares"], errors="coerce").astype(int)))
         since = dict(zip(book["Symbol"], pd.to_numeric(book["Return %"], errors="coerce")))
         held = {s: dshort(d) + f" ’{pd.Timestamp(d):%y}" for s, d in zip(book["Symbol"], pd.to_datetime(book["Entry Date"], errors="coerce"))
                 if pd.notna(d)}
+        from src.engine.actions import standing_weights
+        now_w = standing_weights(book, adj_close)
+        if now_w is None:
+            now_w = pd.to_numeric(book.set_index("Symbol")["Weight %"], errors="coerce").fillna(0) / 100
+        try:
+            from src.engine import swap_evidence as sw
+            from src.loaders import benchmark_indices as bi
+            from src.ui.views.portfolio_view import build_portfolio_history
+            hist = build_portfolio_history(record, MODEL_BOOK_CAPITAL, ledger, (record or {}).get("live_meta") or {})
+            swaps = sw.from_record(hist, adj_close, bi.series(bi.TOTAL_MARKET))
+        except (KeyError, ValueError, OSError):
+            swaps = None
         if plan.buys:
             w = float(plan.weights.get(plan.buys[0], 0.0))
             cash = w * len(plan.buys)
@@ -312,7 +401,12 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
         plan = plan_rebalance(rank_df, symbols, top_n=len(symbols), buffer_n=rules.buffer_n,
                               stock_cap=float(cfg["stock_cap"]), sector_cap=float(cfg["sector_cap"]))
         since = dict(my_since or {})
+        now_w = pd.Series(1.0 / len(symbols), index=symbols)     # your own weights are not known
+        uninv = None
+        swaps = None
     q = qualified_ranks(rank_df)
+    every = sorted(set(symbols) | set(plan.buys))
+    sizes, events, events_note = _sizes(every, as_of), *_events(every, set(plan.sells), set(plan.buys), as_of, fill)
     px = adj_close if adj_close is not None else pd.DataFrame()
     _, trails = di.rank_trails(px, [s for s in symbols if s in px.columns], now=q) if len(px) else ({}, {})
     caveat = " · NSE holidays not yet published" if holiday_caveat(check, fill) else ""
@@ -320,7 +414,45 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
                 holiday_note=caveat.strip(" ·"), sells=list(plan.sells), buys=list(plan.buys), holds=list(plan.holds),
                 next_in_line=list(plan.next_in_line), weights=plan.weights, assess=assess(rank_df, symbols, rules),
                 trails=trails, qrank=q, rank_df=rank_df, value=value, shares=shares, since=since, held_since=held,
-                buy_limit=limit, rules=rules)
+                buy_limit=limit, rules=rules, now_weights=now_w, sizes=sizes, events=events, events_note=events_note, swaps=swaps, uninvested=uninv)
+
+
+def _sizes(symbols: list, on: pd.Timestamp) -> dict:
+    import json
+    from pathlib import Path
+    from src.engine import book_exposure as bx
+    path = Path(__file__).resolve().parents[3] / "data" / "membership_history.json"
+    try:
+        return bx.size_of(symbols, on, json.loads(path.read_text()))
+    except (OSError, ValueError):
+        return {}
+
+
+def _events(symbols: list, sells: set, buys: set, as_of: pd.Timestamp, fill: pd.Timestamp) -> tuple[list, str]:
+    """Board meetings (NSE's calendar) and ex-dates (NSE's corporate actions) from tomorrow to the fill."""
+    import json
+    from pathlib import Path
+    from src.engine import results_calendar as rc
+    root = Path(__file__).resolve().parents[3]
+    role = lambda s: "to sell" if s in sells else "to buy" if s in buys else "held"   # noqa: E731
+    lo, hi = pd.Timestamp(as_of).normalize() + pd.Timedelta(days=1), pd.Timestamp(fill).normalize()
+    out, notes = [], []
+    cal = rc.load()
+    if cal is not None and len(cal):
+        hit = cal[cal["symbol"].isin(symbols) & (cal["date"] >= lo) & (cal["date"] <= hi)]
+        out += [(d, sym, role(sym), rc.short_purpose(str(pur))) for sym, d, pur in zip(hit["symbol"], hit["date"], hit["purpose"])]
+        notes.append(f"Board meetings: NSE's calendar, announced to {cal['date'].max():%-d %b}")
+    try:
+        ca = pd.DataFrame(json.loads((root / "data" / "reference" / "nse" / "corporate_actions_recent.json").read_text()))
+        ca["ex"] = pd.to_datetime(ca["exDate"], format="%d-%b-%Y", errors="coerce")
+        hit = ca[ca["symbol"].isin(symbols) & (ca["ex"] >= lo) & (ca["ex"] <= hi)]
+        out += [(d, sym, role(sym), str(sub)) for sym, d, sub in zip(hit["symbol"], hit["ex"], hit["subject"])]
+        last = ca["ex"].max()
+        notes.append(f"ex-dates: NSE's corporate actions, collected to {last:%-d %b}"
+                     + ("; dates after that are not yet in the file" if pd.notna(last) and last < hi else ""))
+    except (OSError, ValueError, KeyError):
+        notes.append("ex-dates: not available")
+    return sorted(out), "; ".join(notes) + ". Dates are as companies announced them and can move."
 
 
 def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, system: str = "750",
@@ -372,7 +504,7 @@ def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, syst
                            "text/csv", type="primary", key="dl_actions_basket", icon=":material/download:", disabled=orders.empty)
     with top:
         emit(header(p))
-    emit(section_change(p) + section_sell(p) + section_buy(p) + section_hold(p))
+    emit(section_change(p) + section_sell(p) + section_buy(p) + section_after(p) + section_hold(p))
     with st.expander("Buy candidates · the qualified list", expanded=False):
         render_qualified_view(rank_df, adj_close, embedded=True)
     emit(footer(p))

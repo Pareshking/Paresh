@@ -66,7 +66,7 @@ def dshort(t) -> str:
 
 def _kpis(cells, cls: str = "") -> str:
     """(label, value, value tone, status, status tone, sub)."""
-    out = "".join(f'<div class="dh-kpi"><span class="dh-k-l">{e(a)}</span><span class="dh-k-v dh-mono {vt}">{e(v)}</span>'
+    out = "".join(f'<div class="dh-kpi"><span class="dh-k-l">{e(a)}</span><span class="dh-k-v {vt}">{e(v)}</span>'
                   f'<span class="dh-k-s {stt}">{e(s)}</span><span class="dh-k-sub">{e(sub)}</span></div>'
                   for a, v, vt, s, stt, sub in cells)
     return f'<div class="dh-kpis pf-kpis {cls}">{out}</div>'
@@ -233,7 +233,11 @@ def header(p: Page) -> list:
     since = t.get("strategy_total_return")
     since = float(since) * 100 if since is not None and np.isfinite(since) else None
     mkt_since = pr.ret(p.market, p.equity.index[0], p.as_of)
-    day = pr.daily_gaps(p.equity, p.market).iloc[-1]
+    # The book's own latest day; the market's only when its index has that session (S148: one date for both).
+    eq = p.equity.dropna()
+    mk = p.market.dropna()
+    day = {"book": float(eq.iloc[-1] / eq.iloc[-2] - 1) * 100 if len(eq) > 1 else None,
+           "market": float(mk.iloc[-1] / mk.iloc[-2] - 1) * 100 if len(mk) > 1 and mk.index[-1] >= eq.index[-1] else None}
     tab = p.table
     dayr = float(pd.to_numeric(tab["Day P&L (₹)"], errors="coerce").sum())
     m = months_of(p)
@@ -246,7 +250,8 @@ def header(p: Page) -> list:
              ("Since inception, after costs", pct(since), tone(since), inr(p.value - p.capital, plus=True), tone(since),
               f"Nifty Total Market {pct(mkt_since)}"),
              ("Day P&L", pct(day["book"]), tone(day["book"]), inr(dayr, plus=True), tone(dayr),
-              f"Nifty Total Market {pct(day['market'])}"),
+              f"Nifty Total Market {pct(day['market'])}" if day["market"] is not None
+              else f"Nifty Total Market for {dshort(eq.index[-1])} not in yet"),
              (f"Month so far · {this:%b}", pct(mtd), tone(mtd),
               "" if gap is None else f"{abs(gap):.1f} pts {'ahead of' if gap >= 0 else 'behind'} the market", tone(gap),
               f"Nifty Total Market {pct(mmtd)}"),
@@ -255,7 +260,12 @@ def header(p: Page) -> list:
     nav = "".join(f'<a class="dh-pill" href="#{a}">{e(t)}</a>' for a, t in NAV)
     sub = ("The model book: ₹1 crore put in on 1 January 2026, run by the Nifty 750 rules, "
            f"{len(tab)} stocks. Returns are after costs.")
-    return [f'<div class="pf-head"><h1 class="pf-title">Portfolio</h1><p class="pf-sub">{e(sub)}</p>',
+    lead = None if since is None or mkt_since is None else since - mkt_since
+    answer = ("The model book" if since is None else
+              f"The book is up {since:.1f}% since 1 January" + ("" if lead is None else
+              f", {abs(lead):.1f} points {'ahead of' if lead >= 0 else 'behind'} the market") + ".")
+    # The title answers the reader's first question; the page's name is the kicker (tipsheet benchmark, 21 Nov 2026).
+    return [f'<div class="pf-head"><p class="pf-kick">Portfolio</p><h1 class="pf-title">{e(answer)}</h1><p class="pf-sub">{e(sub)}</p>',
             _kpis(cells, "pf-five"), f'<div class="dh-pills pf-nav" role="navigation" aria-label="On this page">{nav}</div></div>']
 
 
@@ -397,6 +407,10 @@ def section_returns(p: Page) -> list:
     grows = ("From the record’s second year the table adds 1 year, 3 years, 5 years and a yearly rate since start by itself; "
              "nothing is annualised before then." if not any(r[0] == "1 year" for r in rows) else
              "A yearly rate since start compounds the whole record to one year’s return.")
+    mlast = p.market.dropna().index.max() if len(p.market.dropna()) else None
+    if mlast is not None and mlast < p.as_of:
+        grows = (f"Nifty Total Market and Momentum 50 to {dshort(mlast)}: NSE’s closes for {dshort(p.as_of)} are not in yet, "
+                 "so Today shows no market figure and the longer windows end a session early on the index side. " + grows)
     return _sec([_head("pf-ret", "Returns", "the book after costs · indices are price returns"),
                  '<div class="dh-pair"><div><div class="dh-cap"><b>By period</b><span>to ' + f"{p.as_of:%-d %b}" + '</span></div>'
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Period</th><th scope="col" class="dh-num">The book</th>'
@@ -712,12 +726,13 @@ def section_systems(p: Page) -> list:
 
 PF_CSS = """
 .pf-head{padding:18px 0 14px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--c-rule)}
-.dh .pf-title{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-36)!important;line-height:1.1!important}
-.pf-sub{margin:0;font-size:var(--fs-15);color:var(--c-text_2)}
+.dh .pf-title{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-44)!important;line-height:1.1!important;max-width:30ch}
+.pf-kick{margin:0;font-size:var(--fs-12);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--c-muted)}
+.pf-sub{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:62ch}
 .pf-nav{border-top:1px solid var(--c-rule_soft);padding-top:10px}
 .pf-sec{padding-top:26px;gap:16px}
 .pf-shead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;scroll-margin-top:64px}
-.dh .pf-h2{margin:0!important;padding:0!important;font-family:var(--font-ui)!important;font-size:var(--fs-24)!important;font-weight:700!important;letter-spacing:0!important}
+.dh .pf-h2{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-size:var(--fs-30)!important;font-weight:400!important;letter-spacing:0!important;line-height:1.15!important}
 .pf-sc{font-size:var(--fs-13);color:var(--c-muted)}
 .pf-five{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
 .pf-four{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
@@ -743,7 +758,7 @@ PF_CSS = """
 .pf-log thead th{position:sticky;top:0;background:var(--c-white);z-index:1}
 .dh-tab.pf-sys{width:auto}.pf-sys th,.pf-sys td{padding-right:24px}
 .pf-sec .dh-tab tbody th,.pf-nw tbody th{white-space:nowrap}.pf-sec .dh-tab thead th.dh-num{white-space:normal;vertical-align:bottom}
-@media (max-width:640px){.pf-four{grid-template-columns:1fr 1fr}.pf-head .pf-five .dh-kpi:last-child{grid-column:auto}.pf-head .pf-five .dh-kpi:first-child{grid-column:1/-1}.pf-sec .pf-five .dh-kpi:last-child:nth-child(odd){grid-column:1/-1}.dh .pf-h2{font-size:var(--fs-17)!important}
+@media (max-width:640px){.pf-four{grid-template-columns:1fr 1fr}.pf-head .pf-five .dh-kpi:last-child{grid-column:auto}.pf-head .pf-five .dh-kpi:first-child{grid-column:1/-1}.pf-sec .pf-five .dh-kpi:last-child:nth-child(odd){grid-column:1/-1}.dh .pf-h2{font-size:var(--fs-24)!important}.dh .pf-title{font-size:var(--fs-36)!important}
 .pf-ihead,.pf-irow{grid-template-columns:minmax(0,1fr) 84px 48px 50px;gap:4px 10px}.pf-nm small{display:block;margin:0}
 .pf-ihead>span:nth-child(4),.pf-ihead>span:nth-child(6),.pf-irow>span:nth-child(4),.pf-irow>span:nth-child(6){display:none}}
 """

@@ -130,8 +130,9 @@ def how(what: str, read: str, head: list[str], rows: list[list[str]]) -> str:
     table = ('<table class="dh-tab dh-tab-s"><thead><tr>' + "".join(f'<th scope="col">{e(h)}</th>' for h in head)
              + "</tr></thead><tbody>" + "".join("<tr>" + "".join(f"<td>{e(cell(c))}</td>" for c in r) + "</tr>" for r in rows)
              + "</tbody></table>")
-    return (f'<div class="dh-how"><details><summary>What it is · how to read it</summary><div class="dh-how-b">'
-            f'<p><b>What it is</b>{e(what)}</p><p><b>How to read it</b>{e(read)}</p></div></details>'
+    body = f'<p><b>What it is</b>{e(what)}</p><p><b>How to read it</b>{e(read)}</p>'
+    return (f'<div class="dh-how"><div class="dh-how-b dh-how-wide">{body}</div>'
+            f'<details class="dh-how-narrow"><summary>What it is · how to read it</summary><div class="dh-how-b">{body}</div></details>'
             f'<details><summary>Show the table</summary><div class="dh-scroll dh-how-t">{table}</div></details></div>')
 
 
@@ -1015,8 +1016,13 @@ def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
         vals.append(round(float(lead[-1][1]), 2))
     if len(vals) < 6:
         return None
+    allv = (pd.to_numeric(spreads["top"], errors="coerce") - pd.to_numeric(spreads["nifty500"], errors="coerce")).dropna()
+    q1, q3 = float(allv.quantile(0.25)), float(allv.quantile(0.75))
+    # The middle half of every month since the history starts: the usual range (tipsheet benchmark, 21 Nov 2026).
+    band = [q1, q3, f"usual range since {str(spreads['month'].iloc[0])[:4]}, {sg(q1)} to {sg(q3)} pts"]
     return {"values": vals, "labels": [f"{m:%b} ’{m:%y}" for m in months], "full": [f"{m:%b %Y}" for m in months],
-            "unit": "pts against the market", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": ", so far", "xn": 6, "height": 200}
+            "unit": "pts against the market", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": ", so far", "xn": 6, "height": 200,
+            "band": band}
 
 
 def _dii_months(nse: pd.DataFrame | None) -> dict:
@@ -1036,13 +1042,17 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
     if nsdl is None or flows is None or "equity_net" not in nsdl:
         return None
     s = pd.Series(pd.to_numeric(nsdl["equity_net"], errors="coerce").values, index=pd.to_datetime(nsdl["date"])).dropna()
-    mo = s.groupby(s.index.to_period("M")).sum().iloc[-12:]
+    allm = s.groupby(s.index.to_period("M")).sum()
+    done = allm.iloc[:-1]                       # finished months only: the month so far would pull the range
+    q1, q3 = float(done.quantile(0.25)), float(done.quantile(0.75))
+    mo = allm.iloc[-12:]
     out = {"values": [round(float(v)) for v in mo.values], "labels": [f"{p:%b}" for p in mo.index],
            "full": [f"{p:%b %Y}" for p in mo.index], "unit": "foreign", "money": True, "axisDiv": 1000,
            "valueLabels": True, "xn": 12, "height": 240, "lastNote": f", to {flows.as_of:%-d %b}",
            "above": "a heavy-buying month", "between": "net buying, below the heavy line", "belowZero": "net selling"}
     if ev is not None:
         out["levels"] = [round(float(ev.threshold))]
+    out["band"] = [round(q1), round(q3), f"usual range since {done.index[0]:%Y}, {sg(q1 / 1000, 0)} to {sg(q3 / 1000, 0)} thousand cr"]
     dii = _dii_months(nse)
     if dii:
         out["also"] = [None if p not in dii else
@@ -1273,8 +1283,8 @@ HOME_CSS = """
 .dh .dh-h1{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-44)!important;line-height:1.08!important;letter-spacing:-.5px!important;max-width:940px}
 .dh .dh-h2{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important;line-height:1.15!important;letter-spacing:0!important;max-width:960px}
 .dh .dh-h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;font-weight:700!important}
-.dh-lede{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:940px}
-.dh-note{margin:0;font-size:var(--fs-12);color:var(--c-muted)}
+.dh-lede{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:62ch}
+.dh-note{margin:0;font-size:var(--fs-13);color:var(--c-muted);max-width:72ch}
 .dh-foot{margin:24px 0 0;font-size:var(--fs-12);color:var(--c-muted)}
 .dh-sub{display:block;font-size:var(--fs-12);color:var(--c-muted);font-weight:400}
 .dh-mono{font-family:var(--font-mono)}
@@ -1284,7 +1294,7 @@ HOME_CSS = """
 .dh-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-kpi{background:var(--c-white);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
 .dh-k-l{font-size:var(--fs-12);color:var(--c-muted)}
-.dh-k-v{font-size:var(--fs-24);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.dh-k-v{font-family:var(--font-serif)!important;font-size:var(--fs-30);font-weight:400;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.15}
 .dh-k-s{font-size:var(--fs-12);font-weight:600}
 .dh-k-sub{font-size:var(--fs-12);color:var(--c-muted)}
 .dh-fig{margin:0;display:flex;flex-direction:column;gap:6px}
@@ -1338,7 +1348,9 @@ HOME_CSS = """
 .dh-how summary::-webkit-details-marker{display:none}
 .dh-how summary::before{content:"+";font-family:var(--font-mono);color:var(--c-muted);width:12px}
 .dh-how details[open] summary::before{content:"−"}
-.dh-how-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 24px;color:var(--c-text_2)}
+.dh-how-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 24px;color:var(--c-text_2);max-width:1000px}
+/* What it is and how to read it: in plain sight on a wide screen, folded on a phone (tipsheet benchmark, 21 Nov 2026). */
+.dh-how-wide{display:none}@media (min-width:901px){.dh-how-wide{display:grid;flex-basis:100%;margin-bottom:4px}.dh-how-narrow{display:none}}
 .dh-how-b p{margin:0}.dh-how-b b{display:block;color:var(--c-ink)}
 .dh-how-t{max-height:280px;overflow:auto;border:1px solid var(--c-rule_soft);border-radius:var(--r-sm)}
 .dh-how-t .dh-tab td:not(:first-child),.dh-how-t .dh-tab th:not(:first-child){text-align:right;font-family:var(--font-mono)}

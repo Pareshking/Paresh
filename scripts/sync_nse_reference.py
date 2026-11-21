@@ -80,9 +80,14 @@ def guard(name: str, new_rows: int, old_rows: int | None) -> None:
         raise SyncError(f"{name}: {new_rows} rows against {old_rows} before; refusing to overwrite")
 
 
-def fetch_corporate_actions(today: datetime, days: int = CA_DAYS, fetch=_get) -> list[dict]:
+# Ex-dates announced ahead are read too, so Actions can say what falls before the next fill
+# (owner, 21 Nov 2026: "Results or corporate actions due before the fill").
+CA_DAYS_AHEAD = 21
+
+
+def fetch_corporate_actions(today: datetime, days: int = CA_DAYS, fetch=_get, ahead: int = CA_DAYS_AHEAD) -> list[dict]:
     params = {"index": "equities", "from_date": (today - timedelta(days=days)).strftime("%d-%m-%Y"),
-              "to_date": today.strftime("%d-%m-%Y")}
+              "to_date": (today + timedelta(days=ahead)).strftime("%d-%m-%Y")}
     raw, last = None, None
     for url in CA_URLS:
         try:
@@ -182,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
             changes["touching_members"]["corporate_actions"] = hits
         ca_bytes = (json.dumps(ca, indent=1, sort_keys=True) + "\n").encode()
         manifest["files"]["corporate_actions_recent.json"] = {
-            "url": CA_URL, "window_days": CA_DAYS, "rows": len(ca), "sha256": hashlib.sha256(ca_bytes).hexdigest()}
+            "url": CA_URL, "window_days": CA_DAYS, "days_ahead": CA_DAYS_AHEAD, "rows": len(ca), "sha256": hashlib.sha256(ca_bytes).hexdigest()}
         pending["corporate_actions_recent.json"] = ca_bytes
     except SyncError as exc:
         print(f"::error::NSE reference sync failed, nothing was written: {exc}")

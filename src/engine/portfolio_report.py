@@ -70,9 +70,14 @@ def periods(book: pd.Series, market: pd.Series, mom: pd.Series, as_of: pd.Timest
     if start < pd.Timestamp(year=end.year - 1, month=12, day=31):
         rows.append(("Since start", start))
     out = []
+    # An index not yet published for the book's latest session has no "today": None, not a 0.0% from a stale close.
+    m_today = _clean(market).index.max() >= end if len(_clean(market)) else False
+    o_today = _clean(mom).index.max() >= end if len(_clean(mom)) else False
     for label, t in rows:
         t = max(t, start)
-        out.append((label, ret(b, t, end), ret(market, t, end), ret(mom, t, end)))
+        today = label == "Today"
+        out.append((label, ret(b, t, end), None if today and not m_today else ret(market, t, end),
+                    None if today and not o_today else ret(mom, t, end)))
     yrs = (end - start).days / 365.25
     if yrs > 1:
         total = b.iloc[-1] / b.iloc[0]
