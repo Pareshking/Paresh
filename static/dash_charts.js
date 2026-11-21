@@ -179,6 +179,16 @@ function rowsInteract(card, sel, read){
     r.addEventListener('pointerenter', on); r.addEventListener('pointerdown', on); r.addEventListener('focus', on);
     r.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') { r.classList.remove('on'); read(null); } });
     r.addEventListener('blur', () => { r.classList.remove('on'); read(null); }); });
+  /* As in interact(): the readout holds its tallest reading, so moving down the rows never moves them
+     (412 px, 21 Nov: the book's month went from two lines to four). A period switch redraws and can only
+     raise the hold; a new width starts it again. */
+  const box = $('.readout', card);
+  if (box) { const fit = () => { const w = box.clientWidth; if (!w) return;
+      if (box._w !== w) { box._w = w; box._h = 0; box.style.minHeight = ''; }
+      let h = box._h; for (let j = 0; j < rows.length; j++) { read(j); h = Math.max(h, box.offsetHeight); }
+      read(null); box._h = h = Math.max(h, box.offsetHeight); box.style.minHeight = h + 'px'; };
+    fit(); if (window.ResizeObserver && !box._ro) { box._ro = new ResizeObserver(() => { if (box.clientWidth !== box._w) box._fit(); }); box._ro.observe(box); }
+    box._fit = fit; return; }
   read(null);
 }
 const ro = (card, date, items) => { $('.readout', card).innerHTML = `<span class="d">${date}</span>` + items.map(x =>

@@ -3,6 +3,7 @@
 ## 2026-11-21 — Charts no longer jump on hover
 
 - Every chart's readout above the drawing keeps the height of its longest reading, so moving across the bars no longer pushes the chart down and back up. The foreign-investors chart was the worst case: the month in progress names its dates ("domestic, 2–18 Nov (banks, insurers, MFs)") and wrapped to a second line that the other months did not need. The readout still sits on one line wherever every reading fits.
+- The same hold for charts read row by row (the book's month, breadth by size, Indices' rows): on a phone, "The book this month" went from two lines to four as the pointer moved down the rows.
 
 ## 2026-11-21 — Dashboard: what the Indices page adds
 
