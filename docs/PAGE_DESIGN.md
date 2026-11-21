@@ -234,6 +234,11 @@ Updated 22 Nov 2026 from `git log` and `docs/TODO.md` (S151, S174). A page is
 done when it is built from an approved mock-up, its requirements list passes and
 CI runs its layout audit (`v1-full-validation.yml`).
 
+**S151 counts the data-heavy pages only** (owner, 22 Nov 2026: "Only data-heavy
+pages count for S151"): the stock page, Watchlist and Backtest / Track record.
+When the last of them merges, the data audits S163-S166 start. Configuration and
+Guide follow later.
+
 | Page | State | Requirements list | In CI's layout audit |
 |---|---|---|---|
 | Dashboard | Done 20 Nov (v8, #572, #573) | `DASHBOARD_REQUIREMENTS.md` | Yes |
