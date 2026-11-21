@@ -39,6 +39,15 @@ class _Resp:
         self.content = body
 
 
+def _synthetic_list(n: int) -> bytes:
+    head = "Company Name,Industry,Symbol,Series,ISIN Code\n"
+    return (head + "".join(f"Co {i},X,SYM{i},EQ,INE{i:09d}\n" for i in range(n))).encode()
+
+
+# The lists the daily sync downloads but does not rank (Nifty 1000, S175): one request each.
+RECORDED = len(il.RECORDED_INDICES_URLS)
+
+
 @pytest.fixture
 def counted(tmp_path, monkeypatch):
     """Serve each constituent URL from the committed CSV; count the requests.
@@ -53,7 +62,10 @@ def counted(tmp_path, monkeypatch):
     def fake_request(self, method, url, *a, **kw):  # noqa: ANN001
         assert "niftyindices.com" in url, f"unexpected host: {url}"
         calls[url] = calls.get(url, 0) + 1
-        with open(os.path.join(REPO_INDICES, url.rsplit("/", 1)[-1]), "rb") as fh:
+        path = os.path.join(REPO_INDICES, url.rsplit("/", 1)[-1])
+        if not os.path.exists(path):   # a recorded list before the sync first commits it (Nifty 1000, S175)
+            return _Resp(_synthetic_list(1000))
+        with open(path, "rb") as fh:
             return _Resp(fh.read())
 
     monkeypatch.setattr(requests.sessions.Session, "request", fake_request)
@@ -64,6 +76,11 @@ def counted(tmp_path, monkeypatch):
         il,
         "INDICES_LOCAL",
         {name: str(idx_dir / os.path.basename(p)) for name, p in il.INDICES_LOCAL.items()},
+    )
+    monkeypatch.setattr(
+        il,
+        "RECORDED_INDICES_LOCAL",
+        {name: str(idx_dir / os.path.basename(p)) for name, p in il.RECORDED_INDICES_LOCAL.items()},
     )
     monkeypatch.setattr(il, "SYNC_META_FILE", str(tmp_path / "indices_sync_meta.json"))
     monkeypatch.setattr(il, "DATA_DIR", str(tmp_path))
@@ -103,13 +120,13 @@ def test_one_daily_sync_run_fetches_each_list_exactly_once(counted):
     il.reset_download_memo()
     step3 = _universe()
 
-    assert after_step1 == 5, "step 1 still downloads the five lists it maintains"
+    assert after_step1 == 5 + RECORDED, "step 1 downloads the five lists it maintains and each recorded list"
     assert after_step2 - after_step1 == 1, (
         "step 2 must download only NIFTY TOTAL MARKET, the one list step 1 "
         f"leaves alone; it made {after_step2 - after_step1} requests"
     )
-    assert sum(calls.values()) == len(il.INDICES_URLS) == 6
-    assert set(calls) == set(il.INDICES_URLS.values())
+    assert sum(calls.values()) == len(il.INDICES_URLS) + RECORDED == 6 + RECORDED
+    assert set(calls) == set(il.INDICES_URLS.values()) | set(il.RECORDED_INDICES_URLS.values())
     assert max(calls.values()) == 1, f"a URL was fetched twice: {calls}"
     # and the universe is the same one at every stage
     assert len(step2) > 700
@@ -187,7 +204,7 @@ def test_a_forced_sync_always_really_asks(counted):
 
     res = il.sync_official_nse_indices(force=True)
 
-    assert sum(calls.values()) == 5, (
+    assert sum(calls.values()) == 5 + RECORDED, (
         f"a forced sync reused downloaded bytes instead of asking: {calls}"
     )
     assert res["last_attempt_fetched"] == 5 and res["last_attempt_ok"]

@@ -4,11 +4,13 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import pandas as pd
-from src.core.config import INDICES_LOCAL
+from src.core.config import INDICES_LOCAL, RECORDED_INDICES_LOCAL
 from src.core.tickers import is_tradeable_symbol
 from src.core.membership_history import load_history, save_history
 
-INDEX_KEYS = {name: name.lower().replace(" ", "_") for name in INDICES_LOCAL}
+# The ranked lists and the recorded-only ones (Nifty 1000, S175): both are point in time from here.
+RECORDED = {**INDICES_LOCAL, **RECORDED_INDICES_LOCAL}
+INDEX_KEYS = {name: name.lower().replace(" ", "_") for name in RECORDED}
 INDIA = ZoneInfo("Asia/Kolkata")
 
 def clean(values):
@@ -18,7 +20,7 @@ def main():
     history = load_history()
     observed = datetime.now(INDIA).date().isoformat()
     changes = {}
-    for index_name, path in INDICES_LOCAL.items():
+    for index_name, path in RECORDED.items():
         if not os.path.exists(path):
             continue
         frame = pd.read_csv(path)

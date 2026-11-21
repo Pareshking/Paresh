@@ -6,12 +6,13 @@ The one list of what is still open. Tick an item when it is done and verified,
 with the date and the PR or run that proves it; move it to **Done** at the
 bottom. Add anything promised in a conversation here the same day.
 
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-21_
 
 ## Now
 
 | # | What | How we know it is done | Status |
 |---|---|---|---|
+| 175 | **Nifty 1000 as a fourth system** (owner, 21 Nov 2026). Systems become Nifty 750 · Nifty 1000 · "> ₹2,000 Cr" (today's Nano Cap, renamed on screen; key `nano` kept so its ledger and `?sys=nano` links still work) · Combined. The 250 the Nifty 1000 adds to the 750 are shown as **NIFTY NANOCAP 250** (owner's name; captioned as our own cut, not an NSE index). Measured 21 Nov on NSE's list of that day: all 750 are in it; of the extra 250, 192 are in our ₹2,000 Cr list and 58 are not (42 under ₹2,000 Cr: the 1000 ranks on six-month average cap and reaches ₹251 Cr); 219 of our 411 ₹2,000 Cr stocks are not in it (e.g. JPL, SBIFUNDS: too recently listed). ~30 of the 58 have no price history with us (27 in NSE's two-year file, 29 with a Screener id) | **PR 1:** the list downloads nightly into `data/indices/ind_nifty1000_list.csv` and `membership_history.json` gains `indices.nifty_1000`, without entering the ranked universe, the long price file or the freeze hash. **PR 2:** every Nifty 1000 member has audited prices (Screener + NSE, BSE where NSE has a gap), `RECORDED_ONLY` emptied so the long file takes them in, long-price audits green. **PR 3:** Configuration shows the four systems; Nifty 1000's live record starts with the first month-end list after PR 2 (no backtest before its membership history, which starts 21 Nov 2026); THREE_SYSTEMS.md updated. **Also:** ISINs on the ₹2,000 Cr list (NSE's market-cap file has none; needs its equity list) | [ ] 21 Nov: PR 1 opened. First nightly snapshot to confirm in the next `daily_sync` commit |
 | 9 | Shadow record of the Recommendation (item 6): live weights, 30 holdings, keep while in the top 90, 200D EMA, within 20% of the 52W high, on the Nifty 750, frozen monthly beside the live record; not traded, not on Actions | PR merged before the 30 Oct signal; `monthly_track_record.yml` freezes November 2026 into its ledger on 1-5 Dec; Track Record shows it beside the live record | [ ] 12 Oct: merged (#434); rehearsed as a dry run on Sep 2026 (30-stock book, +0.19% vs Nifty 500 -5.43%). Left: the first freeze, November, on 1-5 Dec |
 
 ## Quant method and evidence audit (11 Nov 2026)
