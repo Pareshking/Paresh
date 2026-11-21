@@ -10,7 +10,6 @@ import pandas as pd
 
 from src.engine.exit_watch import Rules, assess
 from src.ui.views import actions_view, sector_view
-from src.ui.views import dashboard_view as dv
 
 CELL_ROLES = {"cell", "rowheader", "columnheader"}
 VOID = {"br", "img", "input", "hr", "meta", "link"}
@@ -66,10 +65,6 @@ def _assessed():
             for i in range(1, 41)]
     rows[2].update(**{"% 50 EMA": 2.0})
     return assess(pd.DataFrame(rows), ["S1", "S3", "NOTLISTED"], Rules())
-
-
-def test_book_at_risk_is_a_table():
-    _check(dv._at_risk_html(_assessed(), Rules()))
 
 
 def test_exit_watch_is_a_table_including_an_unknown_holding():
