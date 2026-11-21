@@ -12,6 +12,8 @@ Membership is point in time for every system:
              the session it was built on -- the close that signals the next
              month's book -- until the next list
   Combined   the union of the two on every date both answer for
+  Nifty 1000 NSE's constituents, data/membership_history.json indices.nifty_1000,
+             reconstructed from 30 Oct 2026 until NSE's first list (S175)
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ import pandas as pd
 
 from src.engine.extra_universe import (
     SYSTEM_750,
+    SYSTEM_1000,
     SYSTEM_COMBINED,
     SYSTEM_INCEPTION,
     SYSTEM_NANO,
@@ -40,6 +43,7 @@ NANO_HISTORY_PATH = DATA / "nanocap_membership.json"
 
 LEDGERS = {
     SYSTEM_750: LEDGER_PATH,
+    SYSTEM_1000: DATA / "track_record_1000.json",
     SYSTEM_NANO: DATA / "track_record_nano.json",
     SYSTEM_COMBINED: DATA / "track_record_combined.json",
 }
@@ -96,6 +100,11 @@ def membership_for(system: str) -> dict[str, Any] | None:
     h750 = load_history_or_none()
     if system == SYSTEM_750:
         return h750
+    if system == SYSTEM_1000:
+        # NSE's Nifty 1000, recorded from 30 Oct 2026 (S175). Imported here:
+        # index_universe imports this module.
+        from src.engine.index_universe import index_history
+        return index_history("nifty_1000", h750)
     hnano = nano_history()
     if system == SYSTEM_NANO:
         return hnano
@@ -108,6 +117,7 @@ def membership_for(system: str) -> dict[str, Any] | None:
 # ownership or performance history.
 BACKTEST_START = {
     SYSTEM_750: str(INCEPTION),
+    SYSTEM_1000: "2026-11",
     SYSTEM_NANO: "2026-09",
     SYSTEM_COMBINED: "2026-09",
 }

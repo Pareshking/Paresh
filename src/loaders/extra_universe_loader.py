@@ -21,6 +21,8 @@ from src.core.tickers import is_tradeable_symbol
 from src.engine import extra_universe as xu
 
 LIST_PATH = os.path.join(REPO_DATA_DIR, "indices", "ind_nanocap_list.csv")
+# NSE's Nifty 1000 list, written by the daily sync (S175).
+NIFTY_1000_PATH = os.path.join(REPO_DATA_DIR, "indices", "ind_nifty1000_list.csv")
 
 
 def members(path: str = LIST_PATH) -> pd.DataFrame:
@@ -41,6 +43,46 @@ def members(path: str = LIST_PATH) -> pd.DataFrame:
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_members() -> pd.DataFrame:
     return members()
+
+
+def nifty_1000_members(path: str = NIFTY_1000_PATH) -> pd.DataFrame:
+    """NSE's Nifty 1000 list in the index loader's shape, NSE's own industry kept.
+
+    Indices is NANOCAP_250_SHORT for every row: system_universe() keeps the
+    750's own rows (and their tags) and uses this only for the other 250.
+    """
+    if not os.path.exists(path):
+        return pd.DataFrame(columns=["Symbol", "Company Name", "Industry", "Indices"])
+    frame = pd.read_csv(path)
+    frame.columns = [str(c).strip() for c in frame.columns]
+    frame["Symbol"] = frame["Symbol"].astype(str).str.strip().str.upper()
+    frame = frame[frame["Symbol"].map(is_tradeable_symbol)].drop_duplicates("Symbol")
+    return pd.DataFrame({
+        "Symbol": frame["Symbol"].values,
+        "Company Name": frame["Company Name"].fillna(frame["Symbol"]).values,
+        "Industry": frame["Industry"].fillna(xu.UNCLASSIFIED).values,
+        "Indices": xu.NANOCAP_250_SHORT,
+    }).reset_index(drop=True)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def fetch_nifty_1000_members() -> pd.DataFrame:
+    return nifty_1000_members()
+
+
+def extra_members(system: str) -> pd.DataFrame:
+    """The list a system adds to the 750: none, the ₹2,000 Cr list, or the Nifty 1000."""
+    if system == xu.SYSTEM_750:
+        return pd.DataFrame(columns=["Symbol"])
+    return fetch_nifty_1000_members() if system == xu.SYSTEM_1000 else fetch_members()
+
+
+def nanocap_250(base: pd.DataFrame, n1000: pd.DataFrame) -> pd.DataFrame:
+    """NIFTY NANOCAP 250: the Nifty 1000's members outside the current 750."""
+    base_symbols = set(base["Symbol"].astype(str).str.upper()) if not base.empty else set()
+    if n1000.empty:
+        return n1000
+    return n1000[~n1000["Symbol"].astype(str).str.upper().isin(base_symbols)].reset_index(drop=True)
 
 
 def effective_nano(base: pd.DataFrame, extra: pd.DataFrame) -> pd.DataFrame:
@@ -68,11 +110,16 @@ def assert_disjoint(base: pd.DataFrame, nano: pd.DataFrame) -> None:
 
 
 def system_universe(system: str, base: pd.DataFrame, extra: pd.DataFrame) -> pd.DataFrame:
-    """The stocks a system ranks: 750, effective Nano Cap, or their union.
+    """The stocks a system ranks: 750, effective Nano Cap, their union, or the Nifty 1000.
 
-    One definition for the app and the nightly precompute. The persisted Nano
+    `extra` is the list the system adds (extra_members): the ₹2,000 Cr list,
+    or for the Nifty 1000 NSE's list. One definition for the app and the
+    nightly precompute. The persisted Nano
     list is only a candidate list; the current 750 always has priority.
     """
+    if system == xu.SYSTEM_1000:
+        # The 750 with its own rows and tags, then NSE's other 250 (NIFTY NANOCAP 250).
+        return pd.concat([base, nanocap_250(base, extra)], ignore_index=True)
     nano = effective_nano(base, extra)
     if system == xu.SYSTEM_NANO:
         return nano

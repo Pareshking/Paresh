@@ -32,7 +32,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from scripts.sync_data import _precompute_rankings, record_precompute_failure  # noqa: E402
-from src.engine.extra_universe import SYSTEM_COMBINED, SYSTEM_NANO  # noqa: E402
+from src.engine.extra_universe import SYSTEM_1000, SYSTEM_COMBINED, SYSTEM_NANO  # noqa: E402
 from src.loaders import extra_universe_loader as xl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 from src.loaders.mcap_loader import fetch_market_caps  # noqa: E402
@@ -44,7 +44,8 @@ DEFAULT_INDICES = ["NIFTY TOTAL MARKET"]
 def run(system: str) -> None:
     # The 750 has priority even for Nano: effective_nano() removes current 750 members.
     base = fetch_indices_data(DEFAULT_INDICES)
-    idx_info = xl.system_universe(system, base, xl.members())
+    extra_list = xl.nifty_1000_members() if system == SYSTEM_1000 else xl.members()
+    idx_info = xl.system_universe(system, base, extra_list)
     if idx_info.empty:
         print(f"[{system}] no universe; skipping.")
         return
@@ -53,7 +54,7 @@ def run(system: str) -> None:
 
     caps = fetch_market_caps(core, force_refresh=False) if core else pd.Series(dtype=float)
     mcaps = pd.concat([caps, xl.list_market_caps(extra)]) if extra else caps
-    print(f"[{system}] {len(symbols)} symbols ({len(core)} of the 750, {len(extra)} Nano Cap)")
+    print(f"[{system}] {len(symbols)} symbols ({len(core)} by NSE's market caps, {len(extra)} from the ₹2,000 Cr list)")
     _precompute_rankings(symbols, idx_info, mcaps, out_name=asset_name(system))
 
 
@@ -61,9 +62,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--extra", default=None,
                     help="ignored; kept so older workflow calls still parse")
-    ap.add_argument("--system", action="append", choices=[SYSTEM_NANO, SYSTEM_COMBINED])
+    ap.add_argument("--system", action="append", choices=[SYSTEM_NANO, SYSTEM_COMBINED, SYSTEM_1000])
     args = ap.parse_args()
-    for system in args.system or [SYSTEM_NANO, SYSTEM_COMBINED]:
+    for system in args.system or [SYSTEM_NANO, SYSTEM_COMBINED, SYSTEM_1000]:
         try:
             run(system)
         except Exception as exc:
