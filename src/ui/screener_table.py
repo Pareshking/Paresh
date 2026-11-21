@@ -600,7 +600,12 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     head_cells = []
     if sort_key not in {c[0] for c in cols}:
         sort_key, sort_desc = "rank", False
+    keys_shown = {c[0] for c in cols}
     for k, label, t in cols:
+        if k == "qrank" and "q1" not in keys_shown:
+            # "Now" reads only beside the 3M and 1M places; alone (Core,
+            # Executive, Sectors' industry table) it is the qualified place.
+            label = "Qualified #"
         cls = ("t-left " if (k in ("rank", "stock") or t == "text") else "") + (
             "" if (k in phone_keep or wide) else "d-only")
         on = k == sort_key

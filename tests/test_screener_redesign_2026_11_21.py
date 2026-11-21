@@ -131,3 +131,10 @@ def test_no_capitals_in_group_labels():
     grp = re.search(r'<tr class="grp-row">(.*?)</tr>', html, re.S).group(1)
     assert "uppercase" not in html.split("thead tr.grp-row th{top:0")[1].split("}")[0]
     assert not re.search(r">[A-Z]{3,}[ <]", grp)
+
+
+def test_the_qualified_place_is_named_where_it_stands_alone():
+    head = lambda d: re.search(r'<tr class="hdr">(.*?)</tr>', st_.table_html(pd.DataFrame([_row()]), None, d), re.S).group(1)
+    assert "Qualified #" in head("Core (17)")
+    full = head("Full Quant (35)")
+    assert "Qualified #" not in full and ">Now<" in full
