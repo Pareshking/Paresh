@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -97,12 +98,22 @@ def html_of(parts) -> str:
     return "".join(out)
 
 
+_NOTE = re.compile(r'<p class="dh-note">(.*?)</p>', re.S)
+
+
+def _long_notes(html_text: str) -> str:
+    """A note long enough to run five lines or more flows in two columns on a wide screen: short lines, no empty
+    right half (owner, 21 Nov 2026: "Why paragraph and title are having blank space?")."""
+    return _NOTE.sub(lambda m: (f'<p class="dh-note dh-note-long">{m.group(1)}</p>'
+                                if len(re.sub(r"<[^>]+>", "", m.group(1))) > 380 else m.group(0)), html_text)
+
+
 def emit(parts) -> None:
     buf: list[str] = []
 
     def flush():
         if buf:
-            st.html(f'<div class="dh">{"".join(buf)}</div>')
+            st.html(f'<div class="dh">{_long_notes("".join(buf))}</div>')
             buf.clear()
     for p in parts:
         if isinstance(p, str):
@@ -1318,8 +1329,9 @@ HOME_CSS = """
 .dh .dh-h1{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-44)!important;line-height:1.08!important;letter-spacing:-.5px!important;max-width:940px}
 .dh .dh-h2{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important;line-height:1.15!important;letter-spacing:0!important;max-width:960px}
 .dh .dh-h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;font-weight:700!important}
-.dh-lede{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:62ch}
-.dh-note{margin:0;font-size:var(--fs-13);color:var(--c-muted);max-width:72ch}
+.dh-lede{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:80ch}
+.dh-note{margin:0;font-size:var(--fs-13);color:var(--c-muted);max-width:80ch}
+@media (min-width:901px){.dh-note.dh-note-long{max-width:none;columns:2 380px;column-gap:40px}}
 .dh-foot{margin:24px 0 0;font-size:var(--fs-12);color:var(--c-muted)}
 .dh-sub{display:block;font-size:var(--fs-12);color:var(--c-muted);font-weight:400}
 .dh-mono{font-family:var(--font-mono)}

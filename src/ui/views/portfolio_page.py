@@ -730,9 +730,9 @@ def section_systems(p: Page) -> list:
 
 PF_CSS = """
 .pf-head{padding:18px 0 14px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--c-rule)}
-.dh .pf-title{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-44)!important;line-height:1.1!important;max-width:30ch}
+.dh .pf-title{margin:0!important;padding:0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-44)!important;line-height:1.1!important;max-width:36ch}
 .pf-kick{margin:0;font-size:var(--fs-12);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--c-muted)}
-.pf-sub{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:62ch}
+.pf-sub{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:80ch}
 .pf-nav{border-top:1px solid var(--c-rule_soft);padding-top:10px}
 .pf-sec{padding-top:26px;gap:16px}
 .pf-shead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;scroll-margin-top:64px}
