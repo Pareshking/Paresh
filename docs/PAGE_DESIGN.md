@@ -249,8 +249,8 @@ Guide follow later.
 | Screener | Done 21 Nov (#584) | `SCREENER_REQUIREMENTS.md` | Yes |
 | Indices | New page, done 21 Nov (#587) | `INDICES_REQUIREMENTS.md` | Yes |
 | RRG | Removed 21 Nov (#587, S169); `/rrg` is not redirected (owner: "not required") | `RRG_REQUIREMENTS.md`, kept as history | — |
-| **Stock page** | **Next** (owner, 22 Nov: "Stock page and Watchlist first"). First data check: prices against a second source | to write | No |
-| **Watchlist** | **Next**, with the stock page | to write | No |
+| **Stock page** | **Mock-up v1 sent 22 Nov** for approval (artifact `KXDKW9mkJUVJWANSzAS3gH`, SANSERA); prices checked against NSE and BSE (S182) | `STOCK_REQUIREMENTS.md` | No |
+| **Watchlist** | **Mock-up v1 sent 22 Nov** for approval (artifact `3FST6Ls42b3u8kTHF8RbSt`) (S182) | `WATCHLIST_REQUIREMENTS.md` | No |
 | Backtest / Track record | Not started. Nifty 500 for 2010+; frozen months as recorded, Total Market beside; ₹100 chart, monthly bars, tested claims only | to write | No |
 | Configuration | Not started | to write | No |
 | Guide | Not started; must lose every mention of RRG and Breadth as a page name | to write | No |
