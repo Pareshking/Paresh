@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGES = ["", "screener", "portfolio", "actions", "sectors", "breadth", "backtest"]
+PAGES = ["", "screener", "portfolio", "actions", "sectors", "market", "backtest"]
 
 
 def _num(text: str, pattern: str) -> float | None:
@@ -48,7 +48,7 @@ RULES: list[tuple[str, float, dict[str, str]]] = [
         # month ago, then now), so the figure is the FOURTH field of the
         # Nifty 500 row. Reading the first number after the heading gave
         # the month-ago column and made this rule cry wolf.
-        "breadth": r"Nifty 500\t[^\t\n]+\t[^\t\n]+\t[^\t\n]+\t([+\u2212\d.,-]+)",
+        "market": r"Nifty 500\t[^\t\n]+\t[^\t\n]+\t[^\t\n]+\t([+\u2212\d.,-]+)",
     }),
     ("Nifty 500 index level", 1.0, {
         "dashboard": r"Nifty 500\s+([\d,]+)\s",
@@ -70,7 +70,7 @@ RULES: list[tuple[str, float, dict[str, str]]] = [
     }),
     ("stocks above their 200D EMA, %", 0.51, {
         "dashboard": r"([\d.]+)% of the ranked stocks are above their 200D EMA",
-        "breadth": r"Above 200D EMA([\d.]+)%",
+        "market": r"Above 200D EMA([\d.]+)%",
     }),
 ]
 

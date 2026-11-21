@@ -254,10 +254,10 @@ def render_market_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: 
     breadth, trend, leaders = _answers(key, px, industry, bench.dropna(), size)
     cols, drawn = [], []
     if breadth is not None:
-        cols.append(_answer_html(breadth, "breadth", page_href("breadth"), "Market breadth"))
+        cols.append(_answer_html(breadth, "breadth", page_href("market"), "Market breadth"))
         drawn.append((DASH_ANCHORS["breadth"], breadth.question))
     if trend is not None:
-        cols.append(_answer_html(trend, "trend", page_href("breadth"), "Market breadth"))
+        cols.append(_answer_html(trend, "trend", page_href("market"), "Market breadth"))
         drawn.append((DASH_ANCHORS["trend"], trend.question))
     if sectors is not None:
         cols.append(sectors_lead_html(sectors))
