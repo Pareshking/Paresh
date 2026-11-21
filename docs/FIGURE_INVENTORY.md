@@ -28,7 +28,7 @@ Rule (S148, S154 (c)): an index figure ends on the page's session or reads "—"
 ## Shared with Market, Sectors, Screener and Indices (added 21 Nov 2026)
 
 The four pages redesigned after S154 (a) share these figures with the three above or with each other.
-Read from the code on 21 Nov 2026. Market's own list of shared figures is in `docs/BREADTH_REQUIREMENTS.md`.
+Read from the code on 21 Nov 2026. Market's own list of shared figures is in `docs/MARKET_REQUIREMENTS.md`.
 
 | Label (as shown) | Pages | Made by | Reads | Test |
 |---|---|---|---|---|

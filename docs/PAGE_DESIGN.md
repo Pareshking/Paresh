@@ -244,7 +244,7 @@ Guide follow later.
 | Dashboard | Done 20 Nov (v8, #572, #573) | `DASHBOARD_REQUIREMENTS.md` | Yes |
 | Portfolio | Done 20-21 Nov (#574) | `PORTFOLIO_REQUIREMENTS.md` | Yes |
 | Actions | Done 21 Nov (#576, #580) | `ACTIONS_REQUIREMENTS.md` | Yes |
-| Market (was Breadth; /market, /breadth redirects) | Done 21 Nov (#582, renamed #590, #592, #596) | `BREADTH_REQUIREMENTS.md` | Yes |
+| Market (was Breadth; /market, /breadth redirects) | Done 21 Nov (#582, renamed #590, #592, #596) | `MARKET_REQUIREMENTS.md` | Yes |
 | Sectors | First pass 21 Nov (#583); owes P1-P3, NSE's sector indices (S170, S174) | `SECTORS_REQUIREMENTS.md` | Yes |
 | Screener | Done 21 Nov (#584) | `SCREENER_REQUIREMENTS.md` | Yes |
 | Indices | New page, done 21 Nov (#587) | `INDICES_REQUIREMENTS.md` | Yes |

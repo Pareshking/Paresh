@@ -566,7 +566,8 @@ Configuration, Guide. `tests/test_qa_tab_list_matches_the_app.py` pins the title
 
 - **Market** is the old Breadth page. Its menu name and kicker read "Market"
   (#590, #592); its address moved from `/breadth` to `/market` (#596). The view
-  is still `src/ui/views/breadth_view.py` with `market_questions_view.py`.
+  is `src/ui/views/market_view.py` (renamed from `breadth_view.py` in #599) with
+  `market_questions_view.py`.
 - **Indices** is new (#587): `src/ui/views/indices_view.py` on
   `src/engine/indices_page.py`, reading `data/nse_indices_history.parquet` and
   `data/nse_indices_recent.csv` through `src/ui/indices_data.py`.
@@ -624,7 +625,7 @@ live site does) and runs, at 412 and 1400 px:
   lines, charts leaving width empty, readouts crowding a chart, bars too wide,
   empty bands, sideways scroll.
 - `scripts/check_dashboard_requirements.mjs` with each page's
-  `docs/*_REQUIREMENTS.md` on Actions, Market (`BREADTH_REQUIREMENTS.md`),
+  `docs/*_REQUIREMENTS.md` on Actions, Market (`MARKET_REQUIREMENTS.md`),
   Sectors, Screener and Indices. The Dashboard's and Portfolio's lists are
   checked by `scripts/headless_smoke.py` instead.
 - A marker can now read one element: `[css SELECTOR] text` reads only what the
