@@ -100,6 +100,20 @@ def test_leaders_reads_the_industry_less_the_market_by_hand():
     assert out.loc["B", "rel_6m"] < 0 < out.loc["A", "rel_6m"]
 
 
+def test_the_size_sentence_names_the_market_not_its_series():
+    # 21 Nov 2026: a parameter named like the local equal-weighted series printed the whole series into
+    # the Sectors answer ("+2.2 pts against 2016-09-23 1.000000 ... dtype: float64").
+    idx = _days(200)
+    n = len(idx)
+    prices = pd.DataFrame({f"A{i}": np.linspace(100, 150, n) for i in range(5)}, index=idx)
+    industry = pd.Series({f"A{i}": "A" for i in range(5)})
+    size = {"Nifty 50": pd.Series(np.linspace(100, 140, n), index=idx)}
+    out = mq.leaders_answer(prices, industry, pd.Series(np.linspace(100, 110, n), index=idx), size,
+                            market_name="Nifty Total Market")
+    assert "pts against Nifty Total Market)" in out.sentence
+    assert "dtype" not in out.sentence and "Length" not in out.sentence
+
+
 def test_a_past_verdict_needs_most_of_the_weight():
     a = mq._measure("a", "pct", [70, 70, None], 60, 40, "", primary=True)
     b = mq._measure("b", "pct", [70, 70, None], 60, 40, "", primary=True)

@@ -40,10 +40,13 @@ def sentence(text: str) -> str:
     return text[:1].upper() + text[1:] if text[:1].isalpha() else text
 
 
-def page_head(title: str, sub: str, *, actions: bool = False):
+def page_head(title: str, sub: str, *, actions: bool = False, kicker: str = ""):
     """Title and one plain sentence. With actions=True, returns a container on
-    the right for the page's main buttons (a download, a picker)."""
-    head = (f'<div class="scr-head"><h1>{html.escape(title)}</h1>'
+    the right for the page's main buttons (a download, a picker). `kicker`: the page's
+    name above a title that answers its question (PAGE_DESIGN 2a, 21 Nov 2026)."""
+    kick = (f'<p style="margin:0 0 4px;font-size:var(--fs-12);font-weight:600;letter-spacing:.06em;'
+            f'text-transform:uppercase;color:var(--c-muted)">{html.escape(kicker)}</p>') if kicker else ""
+    head = (f'<div class="scr-head">{kick}<h1>{html.escape(title)}</h1>'
             f'<p>{html.escape(sentence(sub))}</p></div>')
     if not actions:
         st.html(head)
@@ -52,7 +55,7 @@ def page_head(title: str, sub: str, *, actions: bool = False):
     with left:
         st.html(head)
     return right.container(horizontal=True, horizontal_alignment="right",
-                           key=f"pg_actions_{_slug(title)}")
+                           key=f"pg_actions_{_slug(kicker or title)}")
 
 
 def page_nav(links, *, label: str = "On this page") -> None:
