@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-21 — Size and momentum indices from NSE's own daily closes
+
+- Nifty Total Market, Nifty 50, Nifty 200, Midcap 150, Smallcap 250, Microcap 250 and the five momentum indices now come from NSE's own daily closes, from each index's launch (Total Market daily from 14 Oct 2021; Nifty 50 and Nifty 200 from Feb 2012). Before, they were Screener's charts, which were weekly before Oct 2025. Screener now fills in only the newest sessions, until NSE's file for the day arrives.
+- Checked first: Screener's closes equalled NSE's on all 3,974 sessions both had, within 0.003%. Today's figures do not change.
+- Market page, "Is the market in an uptrend?": each size index's "percentile since …" now measures today against its full history, back to 2012 or 2017 instead of 2022 or 2025. The readings move (Smallcap 250: 65th → 51st percentile). Today's value and the up/down verdicts are unchanged; year-ago readings move by 0.3 pts or less.
+
 ## 2026-11-21 — Breadth every night
 
 - The Market page's breadth readings (share above the 200D and 50D EMA, net new highs, share beating the index) now move every night, the night of the session. Until now they were rebuilt from a price file refreshed only on Saturdays, so on a weekday they could end up to a week behind (on 21 Nov they ended on 16 Nov).
