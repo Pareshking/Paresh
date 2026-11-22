@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-22 — Watchlist: your stocks against the book's lines
+
+- The Watchlist is rebuilt from the mock-up the owner approved on 22 Nov. Its title answers the first question ("3 of your 10 stocks are in the book's top 20; 2 that it holds are sold on 30 Nov."), and the lede names the system ranked and the close it is ranked at.
+- Your stocks are grouped by the model book's lines: the top 20 qualified, 21st to 40th, qualified past the 40th, and fails a filter, each with a heading row and its count. A note under each name says how far it is from its line ("1 place short of the top 20"). A click on a column heading sorts every stock; sorting by Rank brings the groups back.
+- A new column, headed with the next rebalance's date ("30 Nov"), says what the model book does with each stock if today's prices hold: Buy, Sell, Hold or Next in line. It is the same plan Actions and the Dashboard show.
+- The qualified place 3 months and a month ago now sit beside the place now, as on the Screener.
+- "Not ranked" replaces the amber "not found" line. It says why each symbol is missing and where it is: renamed by NSE (TATAMOTORS is TMPV since 24 Oct 2025, with a button to replace it), ranked in another system (SPECTRUM ranks 1st in > ₹2,000 Cr, with a link), too new to rank, or not a symbol NSE lists.
+- "Before the fill" runs Actions' check for your stocks: board meetings and ex-dates announced up to the fill day.
+- The foot gives the data date and your list's own data health. An index tag of the other systems reads "> ₹2,000 Cr" or "Nifty 1000", never "NANO".
+- On a phone the list keeps the stock, its price, the qualified place and the plan, and says what a wider screen adds.
+
 ## 2026-11-22 — Watchlist and stock page: the qualified place and "Held" as on the Screener
 
 - The Watchlist's "Qualified #" column read "Out" for every stock, and no stock was marked "Held", although the Screener showed the same stocks in place (live site, 22 Nov: CUPID 4th and Held on the Screener, "Out" on the Watchlist; KOTAKBANK 10th against "Out"). The stock page's table of the industry's best-ranked stocks had the same fault. Both now read the place among all the qualified and the model book's holdings from the same function as the Screener, and the Watchlist's export carries both columns.

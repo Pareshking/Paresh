@@ -1181,10 +1181,39 @@ def _page_portfolio() -> None:
     render_portfolio_view(prices=get_ranked_prices(), rank_df=rank_df)
 
 
+def _ranked_list() -> tuple[str | None, str]:
+    """The list actually ranked when it is not the chosen system's: the Nifty 1000
+    without NSE's list on disk ranks the 750 (THREE_SYSTEMS.md), and says so."""
+    if system == SYSTEM_1000 and extra_loader.extra_members(SYSTEM_1000).empty:
+        return SYSTEM_NAMES[SYSTEM_750], "The Nifty 1000's list is not available, so the Nifty 750 is ranked."
+    return None, ""
+
+
+def _other_rankings() -> dict:
+    """{system name: ranking} for the other systems, from the rankings their own
+    Screener serves, and only those of the same session as this one's prices."""
+    as_of = f"{pd.Timestamp(deep_adj_close.index[-1]):%Y-%m-%d}" if len(deep_adj_close.index) else ""
+    out = {}
+    for other in (SYSTEM_750, SYSTEM_NANO, SYSTEM_1000, SYSTEM_COMBINED):
+        if other == system:
+            continue
+        frame, published = _fetch_ranking_snapshot(other)
+        if frame is not None and str((published or {}).get("price_as_of") or "") == as_of:
+            out[SYSTEM_NAMES[other]] = frame
+    return out
+
+
 def _page_watchlist() -> None:
-    # The same Held marks and qualified trail as the Screener (S184).
+    # The same Held marks and qualified trail as the Screener (S184); the same plan
+    # as Actions and the Dashboard (model_plan on the deep closes, S154).
+    ranked_name, ranked_note = _ranked_list()
+    members = data["idx_info"]["Symbol"].astype(str).tolist() if data.get("idx_info") is not None else []
     render_watchlist_view(rank_df, adj_close, book_symbols=_screener_book(),
-                          history_prices=deep_adj_close)
+                          history_prices=deep_adj_close,
+                          benchmark_close=fetch_benchmark_history(period="5y"),
+                          system=system, system_name=system_name,
+                          ranked_name=ranked_name, ranked_note=ranked_note,
+                          members=members, other_rankings=_other_rankings)
 
 
 def _page_indices() -> None:
