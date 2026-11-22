@@ -66,6 +66,6 @@ def test_record_run_asks_for_one_month_in_a_systems_first_month(monkeypatch):
     monkeypatch.setattr(mr, "membership_for", lambda system: None)
     monkeypatch.setattr(mr, "load_events", lambda: [])
     monkeypatch.setattr(mr.former_members, "with_former_members", lambda p, m: p)
-    monkeypatch.setattr(mr, "record_sector_map", lambda cols: {c: "X" for c in cols})
+    monkeypatch.setattr(mr, "record_sector_map", lambda cols, system=None: {c: "X" for c in cols})
     mr.record_run(prices, bench, system="nano")
     assert seen["months"] == 1

@@ -616,6 +616,8 @@ def test_no_warning_during_a_systems_first_month_but_one_after(tmp_path, monkeyp
     monkeypatch.setattr(track_record, "_current_month", lambda: pd.Period("2026-12", freq="M"))
     track_record.load_ledger(tmp_path / "track_record_nano.json", pd.Period("2026-10", freq="M"))
     assert len(warnings) == 1          # by December it should exist
+    track_record.load_ledger(tmp_path / "track_record_nano.json", pd.Period("2026-10", freq="M"))
+    assert len(warnings) == 1          # and says so once per process, not on every rerun (S194 F6)
 
 
 def test_the_current_month_does_not_warn_about_the_timezone():

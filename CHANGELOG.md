@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-22 — Nifty 1000: fixes before its first monthly freeze
+
+- One sector, not two: NSE's Nifty 1000 list writes "Oil, Gas & Consumable Fuels" and "Media, Entertainment & Publication" with commas, the 750's files without. Each showed twice on Sectors and was capped twice. They are now read as one.
+- On the Nifty 1000 only, the 250 stocks it adds to the 750 are capped by NSE's industry, not TradingView's (the two differed for 86 of 250). The 750, "> ₹2,000 Cr" and Combined are unchanged.
+- Portfolio and Actions now say when the Nifty 1000's live book was formed without members we hold no close for, and name them.
+- Portfolio, "Systems, side by side": a system joins the comparison only once every month since its start is frozen. Until then it shows "joins once <month> is frozen".
+- The track record's side-by-side comparison now prices stocks that joined an index after its start. It was reading the wrong field names, so stocks like ENNATURE had no prices there.
+- The stock page and Screener show the names "Nifty Nanocap 250" and "> ₹2,000 Cr" for the two new index tags.
+
 ## 2026-11-22 — Watchlist and stock page: the qualified place and "Held" as on the Screener
 
 - The Watchlist's "Qualified #" column read "Out" for every stock, and no stock was marked "Held", although the Screener showed the same stocks in place (live site, 22 Nov: CUPID 4th and Held on the Screener, "Out" on the Watchlist; KOTAKBANK 10th against "Out"). The stock page's table of the industry's best-ranked stocks had the same fault. Both now read the place among all the qualified and the model book's holdings from the same function as the Screener, and the Watchlist's export carries both columns.
