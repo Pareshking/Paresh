@@ -16,6 +16,29 @@ INDIA = ZoneInfo("Asia/Kolkata")
 # Indices whose record starts before the first list we hold (owner, 21 Nov 2026: Nifty 1000 from 1 Nov).
 BACKFILL = {"nifty_1000": nifty1000_backfill.reconstruct}
 
+# Indices of a fixed size, checked every night (S196: the Nifty 1000's reconstruction held 1,002 names for ten days
+# and nothing said so). NSE can hold more for a few days in a demerger (a DUMMY placeholder, then the listed
+# company until it is excluded), so a different count is a warning naming the names, not a failure; the notices
+# check (scripts/nifty1000_notices.py) says whether an NSE notice names each one.
+SIZES = {"nifty_1000": 1000}
+
+
+def size_warning(key, entry, listed, observed):
+    """Print a warning when the recorded list (plus NSE's DUMMY rows, which the history never stores) is not the
+    index's size. Returns the message, or None."""
+    from src.engine.nifty1000_backfill import members_at
+    members = members_at(entry, observed)
+    dummies = sorted({str(v).strip().upper() for v in listed if not is_tradeable_symbol(v) and str(v).strip()})
+    n = len(members) + len(dummies)
+    if n == SIZES[key]:
+        return None
+    msg = (f"::warning::{key} holds {n} names on {observed} ({len(members)} listed"
+           f"{', ' + str(len(dummies)) + ' placeholder(s) ' + ', '.join(dummies) if dummies else ''}), not {SIZES[key]}. "
+           "Each extra or missing name needs an NSE notice that names this index (data/reference/nse/nifty1000_notices.json).")
+    print(msg)
+    return msg
+
+
 def clean(values):
     return sorted({str(v).strip().upper() for v in values if is_tradeable_symbol(v)})
 
@@ -58,10 +81,32 @@ def main():
             else:
                 events.append({"date": observed, "added": added, "removed": removed})
         changes[key] = {"added": added, "removed": removed}
+        if key in SIZES:
+            size_warning(key, history["indices"][key], frame[sym_col].tolist(), observed)
     save_history(history)
     for key, delta in changes.items():
         if delta["added"] or delta["removed"]:
             print("[MEMBERSHIP]", key, "+", len(delta["added"]), "-", len(delta["removed"]))
 
+def rebuild_nifty_1000() -> int:
+    """`--rebuild-nifty-1000`: rebuild the reconstructed stretch by the rule in nifty1000_backfill (S196)."""
+    history = load_history()
+    entry = history["indices"].get("nifty_1000")
+    if entry is None:
+        print("no nifty_1000 entry to rebuild")
+        return 1
+    new = nifty1000_backfill.rebuild(entry, history["indices"]["nifty_total_market"])
+    if new == entry:
+        print("nifty_1000 entry already follows the rule")
+        return 0
+    history["indices"]["nifty_1000"] = new
+    save_history(history)
+    print("[MEMBERSHIP] nifty_1000 rebuilt:", [(c["date"], c["added"], c["removed"]) for c in new["changes"]])
+    return 0
+
+
 if __name__ == "__main__":
+    import sys
+    if "--rebuild-nifty-1000" in sys.argv[1:]:
+        raise SystemExit(rebuild_nifty_1000())
     main()

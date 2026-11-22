@@ -34,7 +34,7 @@ def test_signal_trails_are_three_cells_not_one_string():
 
 
 def test_indian_money_formatting():
-    assert hv.cr(114959) == "+₹1,15,000 Cr"         # S173 rule 2: ₹ Cr whole, Indian grouping (was "1.15 lakh Cr")
+    assert hv.cr(114959) == "+₹1.15 lakh Cr"         # the lakh-crore form (owner, 22 Nov 2026)
     assert hv.cr(-37999.1) == "−₹38,000 Cr"
     assert hv.sg(-0.07, 2) == "−0.07" and hv.sg(0.0) == "0.0"
 

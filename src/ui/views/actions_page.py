@@ -103,8 +103,8 @@ def sg_pts(v: float) -> str:
 
 
 def _lakh(v: float) -> str:
-    # Whole rupees, Indian grouping: ₹34,05,000 (S173 rule 1; was "₹34.1 lakh"), rounded to the thousand.
-    return _fmt.inr(round(v / 1000) * 1000)
+    # In lakh and crore, as written before 22 Nov (owner, 22 Nov 2026: "₹34,05,000" was "completely opposite").
+    return f"₹{v / 1e5:.1f} lakh" if v < 1e7 else f"₹{v / 1e7:.2f} crore"
 
 
 def _rk(v) -> str:

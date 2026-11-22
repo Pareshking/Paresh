@@ -12687,31 +12687,12 @@
           "ZYDUSWELL"
         ]
       },
-      "changes": [
-        {
-          "date": "2026-11-04",
-          "added": [
-            "ENNATURE",
-            "IGLSPIRITS"
-          ],
-          "removed": []
-        },
-        {
-          "date": "2026-11-14",
-          "added": [],
-          "removed": [
-            "IGLSPIRITS"
-          ]
-        },
-        {
-          "date": "2026-11-17",
-          "added": [],
-          "removed": [
-            "ENNATURE"
-          ]
-        }
-      ],
-      "note": "Reconstructed from 2026-10-30 (the close that signals November) until the first list recorded here: NSE first published the Nifty 1000 on 2026-11-16 (daily index archive). Members on each earlier day are NSE's Nifty Total Market of that day plus the 250 NSE's first recorded list adds to it; that the 250 were the same then is an assumption no published list confirms. The Nov 2026 book, signalled at the 30 Oct close, uses a list not public until 16 Nov: label that month reconstructed, not recorded. Owner, 21 Nov 2026 (S175)."
+      "changes": [],
+      "note": "Reconstructed from 2026-10-30 (the close that signals November) until the first list recorded here (2026-11-22): NSE launched the Nifty 1000 on 2026-11-12 (ind_prs12112026.pdf; base date 24 Sep 2007, reviewed each March and September) and first lists it in the daily index archive on 2026-11-16. Members on each earlier day are NSE's Nifty Total Market of that day plus the 250 NSE's first recorded list adds to it; that the 250 were the same then is an assumption no published list confirms. The Nov 2026 book, signalled at the 30 Oct close, uses a list not public until 16 Nov: label that month reconstructed, not recorded. Names the Total Market took in meanwhile that NSE's own notices place outside the Nifty 1000 are not carried (not_carried, with the notice). Owner, 21 Nov 2026 (S175); S196.",
+      "not_carried": {
+        "ENNATURE": "ind_prs13112026.pdf (13 Nov 2026): excluded w.e.f. 17 Nov from Nifty Total Market, Microcap 250, Smallcap 500 and Sugar & Ethanol; the Nifty 1000 is not listed",
+        "IGLSPIRITS": "ind_prs12112026_1.pdf (12 Nov 2026): excluded w.e.f. 16 Nov from Nifty Total Market, Microcap 250, Smallcap 500 and Sugar & Ethanol; the Nifty 1000 is not listed"
+      }
     }
   },
   "index": "nifty_total_market",

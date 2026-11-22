@@ -135,7 +135,7 @@ two returns, "a year" for anything compounded to a year.
 | "🟢 BUY (Entry)", "🔴 SELL (Exit)", "⚪ HOLD (Retained)", "New Momentum Leader", "Buffer Zone Retention" (`backtester.py` trade records) | "Buy", "Sell", "Keep"; "Rank n, new", "Rank n, kept (within the top 40)" | No emoji or colour-only meaning; plain words |
 | "Live system" / "History from 2010" tabs (`:110-111`) | One page; the universe and months are settings | Decision B |
 | "Personal closes" (`:467`, `:475`) | Removed with the Live tab; "NSE's closes" | Internal name |
-| "52W high", "ATH", "50D EMA" in the Tested line (`:607-618`) | "52-week high", "all-time high", "50-day EMA" | Words, not codes, in sentences; codes stay in narrow table headers |
+| "52W high", "ATH", "50D EMA" in the Tested line (`:607-618`) | "52-week high", "all-time high", "50D EMA" | Words, not codes, in sentences; "50D EMA" is the one spelling on every page (PAGE_DESIGN §3a rule 6, owner 22 Nov 2026; the same average as "50-day EMA") |
 | "Zero Look-Ahead Execution", "Rank Persistence Buffer" (`:1012`, `:1019`) | "When it buys", "Kept while in the top 40" | Plain sentences, no title case, no LaTeX |
 | "Equal Weight", "Inverse Volatility" (`:295`) | "Equal weight", "Inverse volatility" | Sentence case |
 | "Sharpe … over 6.5%" sub-line | "Sharpe, over 6.5%" in the table, ± named "one standard error" | Moved to the table |

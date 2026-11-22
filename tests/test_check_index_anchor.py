@@ -41,3 +41,20 @@ def test_fetch_fails_loudly_on_empty_or_bad_response():
 def test_record_is_json_serialisable():
     rec = a.compare(H, "x", {"niftyindices": {"A", "C"}, "nsearchives": {"A", "C"}})
     assert json.loads(json.dumps(rec, sort_keys=True))["index"] == "x"
+
+
+def test_the_nifty_1000_is_anchored_on_the_host_that_publishes_it(monkeypatch, tmp_path, capsys):
+    # S196: tracked like the other indices; nsearchives does not publish it (404 on 22 Nov 2026).
+    import json
+
+    assert a.FILES["nifty_1000"] == "ind_nifty1000_list.csv" and a.NOT_ON["nifty_1000"] == ("nsearchives",)
+    hist = {"indices": {"nifty_1000": {"baseline": {"date": "2026-10-30", "symbols": ["A", "B"]}, "changes": []}}}
+    p = tmp_path / "h.json"
+    p.write_text(json.dumps(hist))
+    monkeypatch.setattr(a, "HISTORY", p)
+    monkeypatch.setattr(a, "FILES", {"nifty_1000": "ind_nifty1000_list.csv", "nifty_50": "x.csv"})
+    asked = []
+    monkeypatch.setattr(a, "fetch", lambda url: asked.append(url) or b"Symbol\nA\nB\n")
+    assert a.main(["--dry-run"]) == 0
+    assert asked == ["https://www.niftyindices.com/IndexConstituent/ind_nifty1000_list.csv"]   # nifty_50 not recorded: skipped
+    assert "not published on nsearchives" in capsys.readouterr().out

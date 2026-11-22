@@ -96,7 +96,7 @@ values like 11.1% not 11.11%"; the same day, whole rupees "including below ₹10
 | # | Rule | Example | Where it is made | Checked |
 |---|---|---|---|---|
 | 1 | Whole rupees for every price and moving average, at any level; returns to at most one decimal | ₹2,906 · ₹70 · +11.1% | `formats.price`, `pct`, `pts`; `pxf`/`sg` in `static/dash_charts.js`; `fmts.price` in `lw_chart.py` | audit: a ₹ figure with decimals, a % with two or more |
-| 2 | ₹ Cr with no decimals, Indian grouping | ₹1,22,000 Cr (not ₹1.22 lakh Cr) | `dashboard_home_view.cr` | audit, as rule 1 |
+| 2 | Large sums in crore as Indian readers say them: ₹38,000 Cr below a lakh crore, ₹1.22 lakh Cr above; an amount under a crore in lakh (₹34.1 lakh). Not raw rupees, not "₹1,22,000 Cr" (owner, 22 Nov 2026: those were "completely opposite to what I asked") | ₹1.22 lakh Cr · ₹34.1 lakh | `dashboard_home_view.cr`, `actions_page._lakh` | audit: a lakh or crore amount is a unit, not paise, so it is not flagged |
 | 3 | Dates as "20 Nov 2026", or "20 Nov" in a tight column where the year is plain | 20 Nov 2026 | `formats.date`; the chart tables (`how`) pass every cell through it and keep a date on one line | audit: ISO, slashes, "Nov 20, 2026" |
 | 4 | A true minus (U+2212) and an explicit + on changes | −4.2%, +13.9% | `formats.signed`; `fmts.num` on every chart axis | audit: a hyphen used as a minus (the + is not checkable from text) |
 | 5 | "–" (en dash) for missing data, with the reason in a footnote | – | `formats.DASH` and every table's empty cell | audit: "nan"/"None" as a value, "—" alone in a cell |
@@ -112,8 +112,9 @@ every calculation keep exact values (`tests/test_number_formats.py`). One conseq
 trade blotter's whole-rupee entry and exit no longer reproduce the return beside them (₹158 → ₹168 reads +6.3%; the
 trade made +6.8%, from ₹157.65 and ₹168.40).
 
-**Conflicts settled:** `BACKTEST_REQUIREMENTS.md` (21 Nov) asked for "50-day EMA" in sentences; rule 6 (22 Nov) is
-later and wins, so every page writes "50D EMA". `SCREENER_REQUIREMENTS.md` row 24 ("no source named") and rule 7
+**Wording only, not a conflict of values:** "50-day EMA" and "50D EMA" are the same average (the same 50 sessions,
+the same figure); `BACKTEST_REQUIREMENTS.md` (21 Nov) had asked for the long form in sentences, and rule 6 (22 Nov) asks
+for one spelling everywhere, so every page now writes "50D EMA" and that row is updated to say so. `SCREENER_REQUIREMENTS.md` row 24 ("no source named") and rule 7
 are both met by naming the exchange only.
 
 ## 4. Charts

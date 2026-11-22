@@ -1,4 +1,4 @@
-name: NSE closes backfill (Nifty 1000)
+name: NSE closes backfill and fill (Nifty 1000, short columns)
 
 # Run by hand only. Adds to the two-year NSE closes (data/nse_prices) every needed
 # stock the file lacks, over the file's whole span, read from R2: the Nifty 1000's
@@ -46,12 +46,31 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Fails (no `|| echo`) when R2 cannot be read in full: nothing below runs.
+      - name: Download the long file's raw pack (NSE's bhavcopy, every security, from 2010)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir packs --pattern nse_raw_pack.parquet --clobber
+
+      # Fails (no `|| echo`) when the source cannot be read: nothing below runs.
       - name: Add the stocks the file lacks, over its whole span
-        run: python scripts/sync_nse_prices.py --backfill
+        run: python scripts/sync_nse_prices.py --backfill --raw-pack packs/nse_raw_pack.parquet
+
+      # A column that starts after the file does (R2 holds most securities only from 5 Oct 2026) gets its earlier
+      # sessions from the long file's raw pack, NSE's bhavcopy for every security; the actions are then re-read
+      # from R2 over the whole span. Stored closes are never changed (owner, 22 Nov 2026: "fill the 237").
+      - name: Fill the sessions before each short column's first close
+        run: |
+          python scripts/sync_nse_prices.py --fill-short --raw-pack packs/nse_raw_pack.parquet
+          rm -rf packs
 
       - name: Check the app can rank with the new NSE closes
         run: python scripts/check_ranking_frames.py --published
+
+      # The 750's record is struck on this file: every frozen month must replay as recorded on the new closes
+      # before anything is published (it reads data/nse_prices/closes.parquet, the file just written). A drift
+      # stops the run here and nothing is published or committed.
+      - name: Parity check on the new closes (frozen months must not move)
+        run: python scripts/canonical_parity_check.py --report parity_report.json
 
       - name: Publish the NSE closes to R2 and the release
         env:
