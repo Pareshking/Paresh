@@ -43,7 +43,7 @@ from src.ui.industry_names import short_industry
 INDEX_NAMES = {
     "N50": "Nifty 50", "NN50": "Next 50", "MID150": "Midcap 150",
     "SMALL250": "Smallcap 250", "MICRO250": "Microcap 250",
-    "NANO250": "Nanocap 250", "NANO": "> ₹2,000 Cr",      # S175: the Nifty 1000's other 250; the ₹2,000 Cr list
+    "NANO250": "Nano Cap", "NANO": "> ₹2,000 Cr",      # S175: the Nifty 1000's other 250; the ₹2,000 Cr list
 }
 
 # (key, header, sort type). One registry; Executive, Core and Quant are column

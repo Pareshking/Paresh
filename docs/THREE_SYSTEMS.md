@@ -13,7 +13,7 @@ _Last updated: 2026-11-21_
 
 | | Nifty 750 (default) | Nifty 1000 | > ₹2,000 Cr (key `nano`) | Combined |
 |---|---|---|---|---|
-| Stocks | NSE's Nifty Total Market | NSE's Nifty 1000: the 750 plus **NIFTY NANOCAP 250** (our name for NSE's other 250; not an index NSE publishes; tag `NANO250`) | every main-board stock ≥ ₹2,000 Cr outside the 750 | the 750 and > ₹2,000 Cr, ranked as one list |
+| Stocks | NSE's Nifty Total Market | NSE's Nifty 1000: the 750 plus **Nano Cap** (owner, 23 Nov 2026; our name for NSE's other 250, formerly "NIFTY NANOCAP 250"; anything outside the 1000 is **Ultra Nano Cap**; not an index NSE publishes; tag `NANO250`) | every main-board stock ≥ ₹2,000 Cr outside the 750 | the 750 and > ₹2,000 Cr, ranked as one list |
 | Key | `750` | `1000` | `nano` (unchanged: ledger, nightly files, `?sys=nano`) | `combined` |
 | Membership | NSE constituents, `data/membership_history.json` | `membership_history.json` `indices.nifty_1000`, from 30 Oct 2026; **reconstructed** until NSE's first list we record (NSE first published the index on 16 Nov 2026), see the entry's `note` and `src/engine/nifty1000_backfill.py` | month-end list, `data/nanocap_membership.json` | union of the 750 and > ₹2,000 Cr on each date |
 | Industry | NSE industry | NSE industry (NSE's list names one for all 1,000) | TradingView sector (`scripts/classify_missing.py`) | TradingView sector |

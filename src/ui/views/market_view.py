@@ -23,6 +23,7 @@ from src.ui.page_kit import _series_of
 from src.ui.components import gap_count
 from src.ui.theme import render_saas_table
 from src.loaders.index_levels import nse_benchmarks
+from src.engine.extra_universe import NANOCAP_250_NAME, NANOCAP_250_SHORT
 from src.ui.views.market_questions_view import render_market_page_questions, size_closes
 
 
@@ -71,17 +72,23 @@ def _highs_lows_chart(hl_df: pd.DataFrame, is_pct: bool) -> None:
 
 def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                         history_prices: pd.DataFrame | None = None,
-                        benchmark_close: pd.Series | None = None) -> None:
+                        benchmark_close: pd.Series | None = None, system: str | None = None) -> None:
     """Two questions first (owner, 7 Nov: tipsheet's question pages as the
     model): are most stocks taking part, and is the market in an uptrend; each
     with its verdict, evidence, what changed and what would change it. Then
     today's charts and the stocks making new highs and lows."""
     # The title answers both questions (render_market_page_questions); index closes from the Dashboard's file (S154).
+    from src.engine.extra_universe import SYSTEM_750
+    if system is None:
+        from src.ui import system_param
+        system = system_param.current()
+    # The 750's members-of-the-day breadth history is joined only under the 750 (S194 L4, 23 Nov 2026).
+    pit_ok = system == SYSTEM_750
     bench = nse_benchmarks()
     nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
                 else _series_of(bench, "nifty500"))
     render_market_page_questions(rank_df, history_prices if history_prices is not None else adj_close,
-                             nifty500, size_closes())
+                             nifty500, size_closes(), pit_ok)
 
     with st.container(key="br_chart_head", horizontal=True, vertical_alignment="center", gap="small"):
         st.html('<h2 id="q-charts" class="br-charts-h">Today\'s charts</h2>', width="stretch")
@@ -126,7 +133,7 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 # metadata for the readings, not lines on the chart.
                 _pct_cols = [c for c in breadth_df.columns if not c.endswith(OBSERVED_SUFFIX)]
                 from src.engine import pit_breadth
-                past = pit_breadth.load("total_market")
+                past = pit_breadth.load("total_market") if pit_ok else None
                 pit = {}
                 if past is not None:
                     for c, col in (("50D", "above_50"), ("200D", "above_200")):
@@ -136,8 +143,9 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 _participation_chart(breadth_df[_pct_cols], ma_type, pit)
         else:
             rows = []
+            # The Nifty 1000's other 250 last (S194 L3): tagged NANO250, present only where the system ranks them.
             for idx_name in ("NIFTY 50", "NIFTY NEXT 50", "NIFTY MIDCAP 150",
-                             "NIFTY SMALLCAP 250", "NIFTY MICROCAP 250"):
+                             "NIFTY SMALLCAP 250", "NIFTY MICROCAP 250", NANOCAP_250_SHORT):
                 # Exact tags, as indices_loader writes them (config.SHORT_FORMS).
                 valid_syms = [s for s in index_members(rank_df, idx_name) if s in adj_close.columns]
                 if not valid_syms:
@@ -155,7 +163,7 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 if not _obs.any():
                     continue
                 pct = float((_last[_obs] > _ma[_obs]).sum() / _obs.sum() * 100)
-                rows.append((idx_name.title(), pct,
+                rows.append((NANOCAP_250_NAME if idx_name == NANOCAP_250_SHORT else idx_name.title(), pct,
                              f"{pct:.0f}% · {int(_obs.sum())}", pct <= 40))
             with kit.card("Participation by index", "br_idx", f"above 50D {ma_type}"):
                 if rows:

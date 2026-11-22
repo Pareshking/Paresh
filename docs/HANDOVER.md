@@ -39,8 +39,9 @@ _Last updated: 23 Nov 2026 (early, IST), coordinating session of 22-23 Nov._
 ## State at handover
 
 **23 Nov (this session):** #625 merged (fd6de89): S185 replay step (queue item 2), S199
-(Markdown-only PRs, owner's correction), S201 (this file). S200 (TODO trim) in its own
-Markdown-only PR. Next, one code PR: S194 L3/L4 (owner, 23 Nov: the Nifty 1000's other 250
+(Markdown-only PRs, owner's correction), S201 (this file). #626 merged (df3dbb5): S200,
+TODO.md 158 KB → 35 KB; its `validate` ran the Markdown tests only (34 s), so S199 is done.
+Then one code PR: S194 L3/L4 (owner, 23 Nov: the Nifty 1000's other 250
 are **Nano Cap**, outside the 1000 is **Ultra Nano Cap**, NSE indices keep their names; the
 750's breadth history only under the 750) and S202 (owner: "S202 ok": a keep-awake visit
 every 4 h, full Production QA on push and daily). Queue item 1 waits on the night's runs.

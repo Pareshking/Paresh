@@ -30,7 +30,7 @@ from src.engine import book_exposure as bx
 from src.engine import dashboard_insights as di
 from src.engine import portfolio_report as pr
 from src.loaders import benchmark_indices as bi
-from src.ui.views.dashboard_home_view import (END, HOME_CSS, SHORT, Chart, emit, how, html_of, sg)
+from src.ui.views.dashboard_home_view import (END, HOME_CSS, SHORT, Chart, emit, how, html_of, sg, size_class)
 
 e = html.escape
 ROOT = Path(__file__).resolve().parents[3]
@@ -143,7 +143,11 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     membership = json.loads((ROOT / "data" / "membership_history.json").read_text())
     sizes = bx.size_of(syms, as_of, membership)
     tb = record.get("tradebook")
-    exposure = bx.load()
+    # data/book_exposure.csv is the 750's record (scripts/update_track_record.py writes it);
+    # another system's history comes from its own tradebook, never merged under the 750's
+    # dates (S194 L3, 23 Nov 2026: Nano Cap, Combined and Nifty 1000 showed the 750's sizes).
+    from src.engine.extra_universe import SYSTEM_750
+    exposure = bx.load() if system == SYSTEM_750 else pd.DataFrame(columns=bx.FIELDS)
     if isinstance(tb, pd.DataFrame) and len(tb):
         live = bx.exposure(tb, record_sector_map(sorted(set(tb["Symbol"].astype(str))), system), membership)
         exposure = bx.merge(exposure, live)
@@ -398,7 +402,9 @@ def section_exposure(p: Page) -> list:
     rows = sorted(((n, float(now.get(n, 0.0)), float(p.market_weights.get(n, 0.0))) for n in names), key=lambda r: (-r[1], -r[2]))
     top = max([r[1] for r in rows] + [r[2] for r in rows] + [10.0]) * 1.05
     word = {"strong": ("Strong", "dh-up"), "turning": ("Turning", "dh-watch"), "weak": ("Weak", "dh-down")}
-    head = ('<div class="pf-ihead"><span>Industry</span><span></span><span class="dh-num">Book</span><span class="dh-num">The 750</span>'
+    from src.engine.extra_universe import UNIVERSE_SHORT
+    uni = e(UNIVERSE_SHORT.get(p.system, "750"))
+    head = (f'<div class="pf-ihead"><span>Industry</span><span></span><span class="dh-num">Book</span><span class="dh-num">The {uni}</span>'
             '<span class="dh-num">Over / under</span><span>Status</span></div>')
     body = ""
     for n, v, m in rows:
@@ -412,12 +418,14 @@ def section_exposure(p: Page) -> list:
     ex = p.exposure
     size = ex[ex["kind"] == "size"].pivot_table(index="date", columns="name", values="weight").sort_index() if len(ex) else pd.DataFrame()
     srows = ""
+    # Nano Cap (the Nifty 1000's other 250), Ultra Nano Cap (outside the 1000) and Other (outside the four
+    # lists before the 1000's history) are drawn only when a book held them.
+    drawn = [k for k in bx.SIZES if k in ("Large", "Mid", "Small", "Micro") or (k in size and size[k].fillna(0).gt(0).any())]
     for d, r in size.iterrows():
-        segs = "".join(f'<i class="dh-sz-{k.lower()}" style="width:{float(r.get(k, 0)):.1f}%" title="{k} {float(r.get(k, 0)):.0f}%">'
-                       f'{f"{float(r.get(k, 0)):.0f}" if float(r.get(k, 0)) >= 15 else ""}</i>' for k in ("Large", "Mid", "Small", "Micro"))
+        segs = "".join(f'<i class="{size_class(k)}" style="width:{float(r.get(k, 0)):.1f}%" title="{k} {float(r.get(k, 0)):.0f}%">'
+                       f'{f"{float(r.get(k, 0)):.0f}" if float(r.get(k, 0)) >= 15 else ""}</i>' for k in drawn)
         srows += f'<div class="pf-srow"><span class="dh-mono">{MON[d.month - 1]}</span><div class="dh-sizebar pf-thin">{segs}</div></div>'
-    key = ('<div class="pf-key"><span><i class="dh-sz-large"></i>Large</span><span><i class="dh-sz-mid"></i>Mid</span>'
-           '<span><i class="dh-sz-small"></i>Small</span><span><i class="dh-sz-micro"></i>Micro</span></div>')
+    key = '<div class="pf-key">' + "".join(f'<span><i class="{size_class(k)}"></i>{k}</span>' for k in drawn) + '</div>'
     ind = ex[ex["kind"] == "industry"].pivot_table(index="name", columns="date", values="weight").fillna(0) if len(ex) else pd.DataFrame()
     heat = ""
     if len(ind):
@@ -435,12 +443,19 @@ def section_exposure(p: Page) -> list:
     last = size.iloc[-1] if len(size) else None
     shift = ""
     if first is not None:
-        shift = (f"The book began the year {first.get('Large', 0) + first.get('Mid', 0):.0f}% in large and mid companies and is now "
-                 f"{last.get('Small', 0) + last.get('Micro', 0):.0f}% small and micro. ")
+        # A system whose record starts after January (Nano Cap, Combined, Nifty 1000) names its first rebalance;
+        # "small and micro" takes in Nano Cap and Ultra Nano Cap when the book holds them (S194 L3, 23 Nov 2026).
+        began = "began the year" if size.index[0].month == 1 else f"began {MON[size.index[0].month - 1]} {size.index[0].year}"
+        ours = [k for k in ("Nano Cap", "Ultra Nano Cap") if float(last.get(k, 0) or 0) > 0]
+        small = sum(float(last.get(k, 0) or 0) for k in ("Small", "Micro", *ours))
+        words = "small and micro" if not ours else ", ".join(["small", "micro"] + ours[:-1]) + f" and {ours[-1]}"
+        shift = (f"The book {began} {first.get('Large', 0) + first.get('Mid', 0):.0f}% in large and mid companies and is now "
+                 f"{small:.0f}% {words}. ")
     note = (shift + "Each rebalance’s industry and size weights are worked out from that month’s book and kept, so the history "
             "stays as it was when later lists change. Size is by NSE’s index lists on each date; industries are the record’s own.")
-    return _sec([_head("pf-exp", "Industry & size", "now, against the 750, and at every rebalance since January"),
-                 '<div class="dh-cap"><b>Industry exposure now</b><span>bar: the book’s weight · mark: the industry’s weight in the 750 '
+    since = "since January" if p.system == "750" else "since the record began"
+    return _sec([_head("pf-exp", "Industry & size", f"now, against the {uni}, and at every rebalance {since}"),
+                 f'<div class="dh-cap"><b>Industry exposure now</b><span>bar: the book’s weight · mark: the industry’s weight in the {uni} '
                  'by market value</span></div>', '<div class="pf-ilist">' + head + body + '</div>',
                  '<div class="dh-pair"><div><div class="dh-cap"><b>The book by size, each rebalance</b><span>large · mid · small · micro</span></div>'
                  + srows + key + f'<p class="dh-note pf-gap">{e(note)}</p></div><div><div class="dh-cap"><b>Industries, each rebalance</b>'

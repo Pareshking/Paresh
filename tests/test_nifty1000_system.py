@@ -175,7 +175,8 @@ def test_f7_the_new_tags_have_display_names():
     from src.ui.screener_table import INDEX_NAMES as table_names
     from src.ui.views.stock_view import INDEX_NAMES as stock_names
     for names in (table_names, stock_names):
-        assert names["NANO250"].endswith("anocap 250") and names["NANO"] == "> ₹2,000 Cr"
+        # Owner, 23 Nov 2026: the Nifty 1000's other 250 are "Nano Cap" (was "Nanocap 250").
+        assert names["NANO250"] == "Nano Cap" and names["NANO"] == "> ₹2,000 Cr"
 
 
 def test_l6_the_comparison_heading_counts_the_systems():

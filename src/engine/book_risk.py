@@ -42,7 +42,12 @@ INDEX_DIR = Path(__file__).resolve().parents[2] / "data" / "indices"
 TIERS = (("Nifty 100", ("ind_nifty50list.csv", "ind_niftynext50list.csv")),
          ("Midcap 150", ("ind_niftymidcap150list.csv",)),
          ("Smallcap 250", ("ind_niftysmallcap250list.csv",)),
-         ("Microcap 250", ("ind_niftymicrocap250_list.csv",)))
+         ("Microcap 250", ("ind_niftymicrocap250_list.csv",)),
+         # S194 L3 (owner, 23 Nov 2026): the Nifty 1000's other 250 are "Nano Cap", our own
+         # group (not an NSE index), last so a name in the four NSE lists keeps its NSE tier;
+         # a name outside the 1000 is "Ultra Nano Cap" (tier_of).
+         ("Nano Cap", ("ind_nifty1000_list.csv",)))
+NIFTY_1000_FILE = "ind_nifty1000_list.csv"
 
 
 @dataclass(frozen=True)
@@ -71,7 +76,10 @@ def tier_of(symbols, index_dir: Path = INDEX_DIR) -> dict[str, str]:
             frame.columns = [str(c).strip() for c in frame.columns]
             for s in frame.get("Symbol", pd.Series(dtype=str)).astype(str).str.strip():
                 out.setdefault(s, tier)
-    return {s: out.get(s, "Outside") for s in symbols}
+    # Outside the Nifty 1000 is Ultra Nano Cap (owner, 23 Nov 2026); "Outside" only when the
+    # Nifty 1000's list is not on disk, so the boundary is unknown.
+    rest = "Ultra Nano Cap" if (index_dir / NIFTY_1000_FILE).exists() else "Outside"
+    return {s: out.get(s, rest) for s in symbols}
 
 
 def _drawdown(curve: pd.Series) -> tuple[float, float]:

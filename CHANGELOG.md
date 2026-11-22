@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-23 — Nifty 1000 on every page: Nano Cap and Ultra Nano Cap as sizes, its own breadth
+
+- The 250 stocks the Nifty 1000 adds to the 750 are **Nano Cap**, and anything outside the Nifty 1000 is **Ultra Nano Cap** (the owner's names; our own groups, not NSE indices). NSE's indices keep their names. Both now appear wherever a book is split by size. Before, the Dashboard's book-by-size bar left these stocks out and fell short of 100%, Actions listed them as "Other", and Portfolio's size history did not draw them. Sizes recorded before the Nifty 1000's history begins (30 Oct 2026) keep "Other". The Nifty 750's pages are unchanged.
+- The Screener and the stock page tag the 250 "Nano Cap" (they read "Nanocap 250" and "Nifty Nanocap 250"), and Configuration describes the Nifty 1000 as the 750 plus Nano Cap.
+- On the Nifty 1000, the Dashboard's "Is the rally shared?" has a Nano Cap row, and Market's "Participation by index" lists Nano Cap after the Microcap 250. The Screener's index filter puts Nano Cap and > ₹2,000 Cr after the NSE lists.
+- Portfolio's industry and size history for Nano Cap, Combined and the Nifty 1000 now comes from that system's own record. Before, it showed the Nifty 750's history, and its rows won on any shared date.
+- Breadth: the Nifty 750's history counted over the members of each date is joined only to the Nifty 750's own line. Before, it was joined to the other systems' lines, so their history was the 750's. On the other systems, Market, Breadth and the Dashboard now count that system's ranked stocks back in time, and the page says so.
+- Pages that compare a group with "the 750" now name the system's universe ("the 1000", "the > ₹2,000 Cr list"): Sectors throughout, and the Dashboard's typical-stock table and breadth chart.
+
 ## 2026-11-22 — Watchlist: your stocks against the book's lines
 
 - The Watchlist is rebuilt from the mock-up the owner approved on 22 Nov. Its title answers the first question ("3 of your 10 stocks are in the book's top 20; 2 that it holds are sold on 30 Nov."), and the lede names the system ranked and the close it is ranked at.
