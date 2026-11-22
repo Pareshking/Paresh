@@ -45,6 +45,14 @@ jobs:
       - name: Check the history's current lists against NSE's published lists
         run: python scripts/check_index_anchor.py
 
+      # Every NSE Indices notice since the Nifty 1000's launch (12 Nov 2026), read for what it says about the
+      # Nifty 1000 and checked against its history (S196: tracked like the other indices). Ledger:
+      # data/reference/nse/nifty1000_notices.json, committed with the snapshot below.
+      - name: Read NSE's notices for the Nifty 1000
+        run: |
+          sudo apt-get install -y -qq poppler-utils >/dev/null
+          python scripts/nifty1000_notices.py
+
       - name: Commit and push the snapshot
         if: ${{ !cancelled() }}
         run: |

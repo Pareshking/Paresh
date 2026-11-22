@@ -169,8 +169,8 @@ Not from notices. The daily sync downloads NSE's Nifty 1000 list
 `scripts/update_membership_history.py` folds it into `membership_history.json` as
 `indices.nifty_1000` (#591). Owner, 21 Nov 2026: "start date is 01-Nov for us".
 
-NSE first lists the index in its daily index archive on 16 Nov 2026 (absent from
-every file to 13 Nov), so no published list exists for 1 Nov. The first time the
+NSE launched the index on 12 Nov 2026 (`ind_prs12112026.pdf`) and first lists it in its daily index archive on
+16 Nov 2026 (absent from every file to 13 Nov), so no published list exists for 1 Nov. The first time the
 step meets the index it builds the entry from 30 Oct (the close that signals
 November) by the index's own construction (`src/engine/nifty1000_backfill.py`):
 
@@ -190,8 +190,33 @@ freeze hash (an index first recorded after 2026-09-30 has no frozen past;
 `freeze_history.frozen_view`). The Nifty 1000 system reads it through
 `systems.membership_for("1000")`.
 
-Not on main yet at `ca3ccf3` (21 Nov 2026): `indices` holds the seven entries
-above; the first daily sync after #591 writes the eighth.
+### Tracked like the other indices (S196, 22 Nov 2026)
+
+Owner, 22 Nov 2026: "track historical indices constituent changes like we do for other existing indices for N1000".
+
+- **Launch notice.** `ind_prs12112026.pdf` (12 Nov 2026): NSE launched the Nifty 1000 and Nifty1000 Equal Weight,
+  base date 24 Sep 2007, reviewed each March and September, members chosen on full market capitalisation with
+  liquidity screens. NSE publishes no constituent list before the launch, so there is no earlier history to rebuild:
+  the record starts at the 30 Oct reconstruction above.
+- **Notices.** `scripts/nifty1000_notices.py` (daily, `nse_reference_sync.yml`) reads every NSE Indices notice issued
+  since the launch into `data/reference/nse/nifty1000_notices.json` with its SHA-256: a replacement notice's own
+  "Nifty 1000" table, or a single-company notice whose table of indices names the Nifty 1000, or "mentions": false.
+  It warns when the history records a change after the first list with no notice behind it, or when a due notice's
+  change is not in the history. On 22 Nov: 7 notices read, none names the index, the history agrees.
+- **Anchor.** `scripts/check_index_anchor.py` compares the history's current list with NSE's every day, as for the
+  seven indices; nsearchives does not publish the Nifty 1000 (404 under every name), so the record names
+  niftyindices only and says so. 22 Nov: 1000 = 1000, agrees.
+- **A correction from the notices.** The reconstruction carried every Total Market change into the Nifty 1000, so
+  ENNATURE and IGLSPIRITS (listed 4 Nov after India Glycols' demerger, in the Total Market until 16 and 17 Nov) made
+  it 1,002 names. NSE's exclusion notices for both, issued after the launch (`ind_prs12112026_1.pdf`,
+  `ind_prs13112026.pdf`), list every index each leaves, and the Nifty 1000 is not among them. The rule now leaves out
+  names NSE's notices place outside the index (`nifty1000_backfill.NOT_IN_1000`, stored in the entry as
+  `not_carried` with the notice), and the entry was rebuilt by
+  `scripts/update_membership_history.py --rebuild-nifty-1000`: 1,000 names on every date, no changes before the first
+  recorded list (22 Nov). `tests/test_nifty1000_recorded.py` holds the size on every recorded date.
+- **Not changed:** the Total Market's own record of IGLSPIRITS leaving on 14 Nov (a Saturday; NSE: w.e.f. 16 Nov) has
+  no session between the two dates, so no figure moves. The freeze hash (through 2026-09-30) does not cover the
+  Nifty 1000; the S185 freeze bundle stores the membership each month is struck on.
 
 ## Joining a bhavcopy to the history (`scripts/index_symbol_map.py`)
 

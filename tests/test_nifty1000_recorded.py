@@ -144,3 +144,38 @@ def test_the_screener_sync_collects_nifty1000_members_outside_the_750(tmp_path, 
     assert sync.extra_symbols(["AAA"]) == ["BOTH", "NANO1", "SMALL1"]
     monkeypatch.setattr(sync, "RECORDED_LIST", str(tmp_path / "missing.csv"))
     assert sync.extra_symbols(["AAA"]) == ["BOTH", "NANO1"]       # before the first sync writes the list
+
+
+# ── S196: tracked like the other indices ─────────────────────────────────────
+
+def test_the_committed_nifty_1000_holds_exactly_1000_on_every_recorded_date():
+    # The reconstruction held 1,002 from 4 Nov to 14 Nov 2026: ENNATURE and IGLSPIRITS, which NSE's own
+    # exclusion notices place outside the Nifty 1000, came in from the Total Market.
+    hist = json.loads((ROOT / "data" / "membership_history.json").read_text(encoding="utf-8"))
+    e = hist["indices"]["nifty_1000"]
+    for d in [e["baseline"]["date"]] + [c["date"] for c in e["changes"]]:
+        assert len(nb.members_at(e, d)) == 1000, d
+    assert set(e["not_carried"]) == {"ENNATURE", "IGLSPIRITS"}
+    assert all("Nifty 1000 is not listed" in v for v in e["not_carried"].values())
+
+
+def test_a_name_not_in_the_1000_is_never_carried_and_later_records_are_kept():
+    tm = _tm(["A", "B"], [{"date": "2026-11-04", "added": ["X"], "removed": []},
+                          {"date": "2026-11-17", "added": [], "removed": ["X"]}])
+    e = nb.reconstruct(tm, ["A", "B", "N"], "2026-11-22", not_in={"X": "notice"})
+    assert e["changes"] == [] and nb.members_at(e, "2026-11-05") == {"A", "B", "N"}
+    later = dict(e, changes=[{"date": "2026-12-01", "added": ["C"], "removed": ["N"]}])
+    again = nb.rebuild(later, tm, "2026-11-22", not_in={"X": "notice"})
+    assert again["changes"] == later["changes"] and again["not_carried"] == {"X": "notice"}
+
+
+def test_every_nifty_1000_industry_is_one_of_the_750s():
+    # Owner, 22 Nov 2026: "industry are same, N1000 file writes it differently". After the spelling fix (S194 F2)
+    # every label must be one the 750's file uses, or a new NSE spelling would make a second sector.
+    import pandas as pd
+
+    from src.loaders.extra_universe_loader import nifty_1000_members
+    from src.loaders.former_members import INDEX_FILE
+    idx = pd.read_csv(INDEX_FILE)
+    idx.columns = [str(c).strip() for c in idx.columns]
+    assert set(nifty_1000_members()["Industry"]) <= set(idx["Industry"])

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-22 — Nifty 1000: its member list checked against NSE's notices
+
+- The Nifty 1000's member list is now checked every day against NSE's published list and every NSE index notice since the index's launch on 12 Nov 2026, as the other indices are.
+- That check corrected the first weeks: ENNATURE and IGLSPIRITS, listed on 4 Nov after India Glycols' demerger, had been counted as members until 14 and 17 Nov, which made the index 1,002 stocks. NSE's own notices for both name every index they left, and the Nifty 1000 is not among them. The Nifty 1000 now holds exactly 1,000 stocks on every date. Neither stock was in a Nifty 1000 book.
+
 ## 2026-11-22 — One way to write numbers, dates and names on every page
 
 - Prices and moving averages are in whole rupees on every page, low-priced stocks included (₹2,906 and ₹70, not ₹2,905.90 or ₹70.05). Returns, weights and points carry one decimal (11.1%, not 11.11%). Large sums read in crore with Indian grouping (₹1,22,000 Cr, not ₹1.22 lakh Cr); amounts on Actions read in rupees (₹34,05,000, not ₹34.1 lakh).

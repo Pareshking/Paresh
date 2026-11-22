@@ -63,5 +63,25 @@ def main():
         if delta["added"] or delta["removed"]:
             print("[MEMBERSHIP]", key, "+", len(delta["added"]), "-", len(delta["removed"]))
 
+def rebuild_nifty_1000() -> int:
+    """`--rebuild-nifty-1000`: rebuild the reconstructed stretch by the rule in nifty1000_backfill (S196)."""
+    history = load_history()
+    entry = history["indices"].get("nifty_1000")
+    if entry is None:
+        print("no nifty_1000 entry to rebuild")
+        return 1
+    new = nifty1000_backfill.rebuild(entry, history["indices"]["nifty_total_market"])
+    if new == entry:
+        print("nifty_1000 entry already follows the rule")
+        return 0
+    history["indices"]["nifty_1000"] = new
+    save_history(history)
+    print("[MEMBERSHIP] nifty_1000 rebuilt:", [(c["date"], c["added"], c["removed"]) for c in new["changes"]])
+    return 0
+
+
 if __name__ == "__main__":
+    import sys
+    if "--rebuild-nifty-1000" in sys.argv[1:]:
+        raise SystemExit(rebuild_nifty_1000())
     main()

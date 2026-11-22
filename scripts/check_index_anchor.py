@@ -31,7 +31,10 @@ HOSTS = {"niftyindices": "https://www.niftyindices.com/IndexConstituent/",
 FILES = {"nifty_50": "ind_nifty50list.csv", "nifty_next_50": "ind_niftynext50list.csv",
          "nifty_midcap_150": "ind_niftymidcap150list.csv", "nifty_smallcap_250": "ind_niftysmallcap250list.csv",
          "nifty_microcap_250": "ind_niftymicrocap250_list.csv", "nifty_total_market": "ind_niftytotalmarket_list.csv",
-         "nifty_500": "ind_nifty500list.csv"}
+         "nifty_500": "ind_nifty500list.csv", "nifty_1000": "ind_nifty1000_list.csv"}
+# Indices one host does not publish (checked 22 Nov 2026: nsearchives answers 404 for the Nifty 1000 under every
+# name NSE uses). They are compared with the hosts that do, and the record says which host was missing (S196).
+NOT_ON = {"nifty_1000": ("nsearchives",)}
 UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36"}
 
 
@@ -87,15 +90,22 @@ def main(argv: list[str] | None = None) -> int:
     records = []
     try:
         for index, fname in FILES.items():
-            lists = {host: parse_symbols(fetch(base + fname)) for host, base in HOSTS.items()}
-            records.append({"date_utc": today, **compare(history, index, lists)})
+            if index not in history.get("indices", {}):
+                continue                              # not recorded yet: nothing to anchor
+            lists = {host: parse_symbols(fetch(base + fname)) for host, base in HOSTS.items()
+                     if host not in NOT_ON.get(index, ())}
+            rec = {"date_utc": today, **compare(history, index, lists)}
+            if NOT_ON.get(index):
+                rec["not_published_on"] = list(NOT_ON[index])
+            records.append(rec)
     except AnchorError as exc:
         print(f"::error::Anchor check could not fetch a list: {exc}")
         return 1
     for rec in records:
         flag = "agrees" if rec["agrees"] else "DIFFERS"
-        print(f"{rec['index']}: history {rec['history']}, niftyindices {rec['niftyindices']}, "
-              f"nsearchives {rec['nsearchives']} -> {flag}")
+        hosts = ", ".join(f"{h} {rec[h]}" for h in HOSTS if h in rec)
+        missing = f" (not published on {', '.join(rec['not_published_on'])})" if rec.get("not_published_on") else ""
+        print(f"{rec['index']}: history {rec['history']}, {hosts}{missing} -> {flag}")
         if not rec["agrees"]:
             print(f"::warning::{rec['index']} differs from NSE's published list on {today}: "
                   f"{json.dumps({k: v for k, v in rec.items() if k.startswith('only_')})[:300]}")

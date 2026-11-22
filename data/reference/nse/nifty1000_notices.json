@@ -1,0 +1,84 @@
+{
+  "index": "Nifty 1000",
+  "source": "https://www.niftyindices.com/press-release",
+  "since": "2026-11-12",
+  "notices": [
+    {
+      "issued": "2026-11-12",
+      "notice": "ind_prs12112026.pdf",
+      "title": "NSE Indices launches Nifty 1000 & Nifty1000 Equal Weight Index",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs12112026.pdf",
+      "sha256": "ca84ac3410440aa83ce419e678629a9e96e93cd994a9a358eb3036b126f6f6e8",
+      "effective": null,
+      "mentions": false,
+      "included": [],
+      "excluded": []
+    },
+    {
+      "issued": "2026-11-12",
+      "notice": "ind_prs12112026_1.pdf",
+      "title": "Exclusion of IGL Spirits Ltd. w.e.f. November 16, 2026",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs12112026_1.pdf",
+      "sha256": "001da35d9f3fe8d18bdefcbb040da65cc06e8e75ce24e48bc1df3aa14839f090",
+      "effective": "2026-09-02",
+      "mentions": false,
+      "included": [],
+      "excluded": []
+    },
+    {
+      "issued": "2026-11-13",
+      "notice": "ind_prs13112026.pdf",
+      "title": "Exclusion of Ennature Bio Pharma Ltd. w.e.f. November 17, 2026",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs13112026.pdf",
+      "sha256": "fbc852d27041b5fa7f84e309630ded92e3c134af893ad0db852ec3155e2ef835",
+      "effective": "2026-09-02",
+      "mentions": false,
+      "included": [],
+      "excluded": []
+    },
+    {
+      "issued": "2026-11-18",
+      "notice": "ind_prs18112026.pdf",
+      "title": "Exclusions from Nifty SME Emerge index w.e.f. November 26, 2026",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs18112026.pdf",
+      "sha256": "4d7525f1dfd083af88fdbef4c35b58852f157d92a421528e2d81682b33fba726",
+      "effective": "2026-11-26",
+      "mentions": false,
+      "included": [],
+      "excluded": []
+    },
+    {
+      "issued": "2026-11-18",
+      "notice": "ind_prs18112026_1.pdf",
+      "title": "Changes in Nifty Fixed Income indices",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs18112026_1.pdf",
+      "sha256": "90a0c5c189764995b1a78bc338a06a7ab0e798cfdb15c55ce4ca016a30a5ca27",
+      "effective": "2026-11-19",
+      "mentions": false,
+      "included": [],
+      "excluded": []
+    },
+    {
+      "issued": "2026-11-20",
+      "notice": "ind_prs20112026.pdf",
+      "title": "Replacement in indices w.e.f. November 30, 2026",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs20112026.pdf",
+      "sha256": "1bed624855deb826e6f096fa77f38a592dbcf2a3d4efa85a6655d528f21346b0",
+      "effective": "2026-11-30",
+      "mentions": false,
+      "included": [],
+      "excluded": []
+    },
+    {
+      "issued": "2026-11-20",
+      "notice": "ind_prs20112026_1.pdf",
+      "title": "Changes in Nifty Fixed Income indices w.e.f. November 30, 2026",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs20112026_1.pdf",
+      "sha256": "9ee626f87edede4255e4ae943da1abf81a33d9cffa97712c20c7ccc674147b72",
+      "effective": "2026-11-30",
+      "mentions": false,
+      "included": [],
+      "excluded": []
+    }
+  ]
+}
