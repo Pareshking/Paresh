@@ -23,6 +23,8 @@ if (!targets.length) { console.error('usage: glossary_audit.mjs [--report] URL .
 const ALLOW = [
   { re: /\bProcess Industries\b/g, where: null,
     why: "a TradingView sector's proper name, shown where NSE gives a stock no sector (the mix of taxonomies is an S193 item A/B question, not a wording one)" },
+  { re: /\b[A-Z][\w&.'-]* Industries\b/g, where: null,
+    why: "a company's name (Reliance Industries, Supreme Industries), not a word for a group of stocks" },
   { re: /[^.\n\t]*TradingView[^.\n\t]*/g, where: /sectors|guide/,
     why: "glossary 2: \"industry\" stays for TradingView's finer split on the Sectors page (and the Guide's note of it)" },
   { re: /\b20-day average\b/g, where: null,

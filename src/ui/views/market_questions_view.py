@@ -424,7 +424,7 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
             best, worst = max(last, key=last.get), min(last, key=last.get)
             _chart_head(f"Over 12 months, {best} did best against the Nifty 500 ({_fmt.signed(last[best], 1)} pts) and "
                         f"{worst} worst ({_fmt.signed(last[worst], 1)} pts)",
-                        "Each size index divided by the Nifty 500, set to 100 12 months ago (the dashed line); above 100 it has "
+                        "Each size index divided by the Nifty 500, set to 100 at the start 12 months ago (the dashed line); above 100 it has "
                         f"done better. Price only. {_fmt.PTS_NOTE}")
             idx = sorted(set().union(*[set(v.dropna().index) for v in rel.values()]))
             colours = ["ink", "up", "caution", "teal", "violet"]
