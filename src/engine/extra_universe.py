@@ -41,6 +41,9 @@ SYSTEM_NAMES = {SYSTEM_750: "Nifty 750", SYSTEM_1000: "Nifty 1000",
 # first book signalled after they were built, at the 30 Sep 2026 close; the
 # Nifty 1000 with November 2026 (owner, 21 Nov: "start date is 01-Nov"), whose
 # membership is reconstructed until NSE's first list (src/engine/nifty1000_backfill.py).
+# How a page names the system's ranked universe in a sentence ("the 750", "Equal-weighted 750").
+UNIVERSE_SHORT = {SYSTEM_750: "750", SYSTEM_1000: "1000",
+                  SYSTEM_NANO: "> ₹2,000 Cr list", SYSTEM_COMBINED: "combined universe"}
 SYSTEM_INCEPTION = {SYSTEM_1000: "2026-11", SYSTEM_NANO: "2026-10", SYSTEM_COMBINED: "2026-10"}
 # The 250 the Nifty 1000 adds to the 750, as one group beside NSE's size tiers
 # (owner's name). Our own cut, not an index NSE publishes.

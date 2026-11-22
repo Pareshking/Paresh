@@ -14,6 +14,7 @@ sections give way to one line.
 from __future__ import annotations
 
 import html
+import re
 
 import numpy as np
 import pandas as pd
@@ -27,7 +28,7 @@ from src.ui.components import gap_count, render_data_quality_footer, to_bool_mas
 from src.ui.industry_names import INDUSTRY_SHORT as SHORT_NAMES
 from src.ui.screener_table import render_screener_table
 from src.ui.system_param import page_href, stock_href
-from src.ui.views.dashboard_home_view import HOME_CSS, Chart, emit, how, sg
+from src.ui.views.dashboard_home_view import HOME_CSS, Chart, Cols, emit, how, sg
 
 e = html.escape
 KICK = '<p class="dh-kick">{}</p>'
@@ -571,9 +572,41 @@ def page_parts(model: dict, rank_df: pd.DataFrame, col: str) -> list:
     return parts
 
 
+_THE_750 = re.compile(r"\b([Tt]he) 750\b")
+
+
+def for_universe(parts, universe: str):
+    """The page's parts with "the 750" read as the system's universe ("the 1000"): every
+    sentence on this page compares a group with the system's own ranked stocks, which is
+    the 750 only on the Nifty 750 (S194, 23 Nov 2026). Unchanged for the 750."""
+    if universe == "750":
+        return parts
+
+    def walk(v):
+        if isinstance(v, str):
+            return _THE_750.sub(lambda m: f"{m.group(1)} {universe}", v)
+        if isinstance(v, list):
+            return [walk(x) for x in v]
+        if isinstance(v, tuple):
+            return tuple(walk(x) for x in v)
+        if isinstance(v, dict):
+            return {k: walk(x) for k, x in v.items()}
+        if isinstance(v, Chart):
+            return Chart(v.kind, walk(v.spec), walk(v.fill))
+        if isinstance(v, Cols):
+            return Cols(walk(v.left), walk(v.right), v.ratio)
+        return v
+    return walk(parts)
+
+
 def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                        history_prices: pd.DataFrame | None = None,
-                       benchmark_close: pd.Series | None = None) -> None:
+                       benchmark_close: pd.Series | None = None, system: str | None = None) -> None:
+    from src.engine.extra_universe import UNIVERSE_SHORT
+    if system is None:
+        from src.ui import system_param
+        system = system_param.current()
+    universe = UNIVERSE_SHORT.get(system, "750")
     st.html(f"<style>{HOME_CSS}{SX_CSS}</style>")
     choices = {k: v for k, v in GROUPINGS.items() if v == "Industry" or v in rank_df.columns}
     with st.container(horizontal=True, horizontal_alignment="right", key="sector_grouping_row"):
@@ -592,7 +625,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         st.html('<div class="dh"><div class="dh-sec"><p class="dh-kick">Sectors</p>'
                 f'<h1 class="dh-h1">No group has {sp.MIN_STOCKS} or more ranked stocks to compare.</h1></div></div>')
         return
-    emit(page_parts(model, rank_df, col))
+    emit(for_universe(page_parts(model, rank_df, col), universe))
 
     ld: sp.Leads = model["ld"]
     noun = "industry" if col == "TV_Industry" else "sector"

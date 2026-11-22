@@ -188,7 +188,7 @@ def section_after(p: Plan) -> list:
     sn, sa = sz(p.now_weights), sz(p.weights)
     srows = "".join(f'<tr><th scope="row">{k}</th><td class="dh-num">{sn.get(k, 0):.1f}%</td><td class="dh-num dh-b">{sa.get(k, 0):.1f}%</td>'
                     f'<td class="dh-num {tone(sa.get(k, 0) - sn.get(k, 0))}">{sg_pts(sa.get(k, 0) - sn.get(k, 0))}</td></tr>'
-                    for k in ("Large", "Mid", "Small", "Micro", "Other") if sn.get(k, 0) or sa.get(k, 0))
+                    for k in ("Large", "Mid", "Small", "Micro", "Nano", "Other") if sn.get(k, 0) or sa.get(k, 0))
     # Cash in rupees, the figure Portfolio shows: uninvested now; after, plus the sells and less the buys (whole shares).
     if p.value and p.uninvested is not None:
         after_cash = p.uninvested + sum(r["amount"] or 0 for r in sell_rows(p)) - sum(
@@ -205,7 +205,7 @@ def section_after(p: Plan) -> list:
                  f'<td class="dh-num">{sg_pts(cash_after - cash_now)}</td></tr></tbody></table></div></div>',
                  '<p class="dh-note">Now: each stock at its weight today, after it has moved since the last fill. After: the weights the '
                  'record strikes at the rebalance. Size by NSE’s index lists today: Large is the Nifty 100, Mid the Midcap 150, Small the '
-                 'Smallcap 250, Micro the Microcap 250.</p>'])
+                 'Smallcap 250, Micro the Microcap 250; Nano the Nifty 1000’s other 250 (our own group, not an NSE index).</p>'])
 
 
 def section_sell(p: Plan) -> list:

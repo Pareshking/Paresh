@@ -42,7 +42,11 @@ INDEX_DIR = Path(__file__).resolve().parents[2] / "data" / "indices"
 TIERS = (("Nifty 100", ("ind_nifty50list.csv", "ind_niftynext50list.csv")),
          ("Midcap 150", ("ind_niftymidcap150list.csv",)),
          ("Smallcap 250", ("ind_niftysmallcap250list.csv",)),
-         ("Microcap 250", ("ind_niftymicrocap250_list.csv",)))
+         ("Microcap 250", ("ind_niftymicrocap250_list.csv",)),
+         # S194 L3 (23 Nov 2026): the Nifty 1000's other 250, our own group (not an NSE
+         # index), last so a name in the four NSE lists keeps its NSE tier. A name in
+         # none of these (the > Rs 2,000 Cr list outside the 1000) stays "Outside".
+         ("Nanocap 250", ("ind_nifty1000_list.csv",)))
 
 
 @dataclass(frozen=True)

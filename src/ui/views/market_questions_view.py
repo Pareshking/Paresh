@@ -74,9 +74,10 @@ def _past_stamp() -> str:
 
 
 def _answers(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.Series,
-             _size: dict[str, pd.Series]):
+             _size: dict[str, pd.Series], pit: bool = True):
     from src.engine import pit_breadth
-    past = pit_breadth.load("total_market")
+    # The members-of-the-day history is the 750's: under another system's universe it is not joined (S194 L4).
+    past = pit_breadth.load("total_market") if pit else None
     # "Ahead of the market" against Nifty Total Market, daily from NSE (owner, 21 Nov 2026), the market every page
     # compares against; the Nifty 500 where Total Market is not there (its one-year readings start Nov 2022).
     tm = total_market()
@@ -299,10 +300,10 @@ def bucket_by_last_session(s: pd.Series, freq: str) -> pd.Series:
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _chart_series(_key: str, _prices: pd.DataFrame, _bench: pd.Series):
+def _chart_series(_key: str, _prices: pd.DataFrame, _bench: pd.Series, pit: bool = True):
     """The series behind the Breadth charts, computed once per price set."""
     from src.engine import pit_breadth
-    past = pit_breadth.load("total_market")
+    past = pit_breadth.load("total_market") if pit else None
     share200 = pit_breadth.splice(mq._share_above_ema(_prices, 200), past, "above_200").dropna()
     nnh = pit_breadth.splice(mq._net_new_highs(_prices), past, "net_new_highs").dropna()
     weekly = nnh.groupby(nnh.index.to_period("W-FRI")).last()
@@ -448,7 +449,7 @@ _CHART_CSS = """<style>
 
 
 def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
-                                  size: dict[str, pd.Series]) -> bool:
+                                  size: dict[str, pd.Series], pit: bool = True) -> bool:
     """The Market page's two questions, each followed by the charts behind
     its answer. Returns False when there is not enough data to answer them."""
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
@@ -461,7 +462,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     size = {k: v for k, v in size.items() if len(v)}
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
     key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
-    breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size)
+    breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size, pit)
     # The title answers both questions; the page's name is the kicker (PAGE_DESIGN 2a, 21 Nov 2026).
     title = ("Market breadth" if breadth is None or trend is None else
              f"{breadth.verdict} participation; {trend.verdict[0].lower() + trend.verdict[1:]}.")
@@ -476,7 +477,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     if breadth is not None:
         st.html(question_section_html(breadth, "breadth", "q-breadth")
                 + '<p class="qp-behind">Behind the answer</p>')
-        share200, weekly, nnh = _chart_series(key, px, bench.dropna())
+        share200, weekly, nnh = _chart_series(key, px, bench.dropna(), pit)
         _breadth_charts(bench.dropna(), share200, weekly, nnh)
     if trend is not None:
         sec = question_section_html(trend, "trend", "q-trend")
@@ -491,7 +492,10 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     st.html('<p class="qp-note" style="margin:10px 0 18px">Today counts the stocks ranked today. Every earlier '
             'reading counts the stocks in Nifty Total Market on that date, including those that have since left it, '
             'from NSE’s first recorded list (29 Oct 2021); counting today’s members back in time made the past look '
-            'about 5 points broader than it was.</p>')
+            'about 5 points broader than it was.</p>' if pit else
+            '<p class="qp-note" style="margin:10px 0 18px">Every reading counts the stocks this system ranks today, '
+            'back in time: a members-of-the-day history is kept for the Nifty 750 only, so the past may read a few '
+            'points broader than it was.</p>')
     return breadth is not None or trend is not None
 
 

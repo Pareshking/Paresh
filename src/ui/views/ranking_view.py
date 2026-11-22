@@ -436,7 +436,7 @@ def render_ranking_view(
             # On a phone theme.py pins this panel to the bottom of the screen
             # as a sheet; on a desktop it is an ordinary dropdown.
             # Largest companies first, in the names the table uses.
-            _order = ["N50", "NN50", "MID150", "SMALL250", "MICRO250"]
+            _order = ["N50", "NN50", "MID150", "SMALL250", "MICRO250", "NANO250", "NANO"]   # S194 L3: our two groups last
             index_names = {
                 tag: INDEX_NAMES.get(tag, tag_to_name.get(tag, tag))
                 for tag in sorted(present_tags, key=lambda t: (_order.index(t) if t in _order else 99, t))

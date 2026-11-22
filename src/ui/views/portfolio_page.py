@@ -143,7 +143,11 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     membership = json.loads((ROOT / "data" / "membership_history.json").read_text())
     sizes = bx.size_of(syms, as_of, membership)
     tb = record.get("tradebook")
-    exposure = bx.load()
+    # data/book_exposure.csv is the 750's record (scripts/update_track_record.py writes it);
+    # another system's history comes from its own tradebook, never merged under the 750's
+    # dates (S194 L3, 23 Nov 2026: Nano Cap, Combined and Nifty 1000 showed the 750's sizes).
+    from src.engine.extra_universe import SYSTEM_750
+    exposure = bx.load() if system == SYSTEM_750 else pd.DataFrame(columns=bx.FIELDS)
     if isinstance(tb, pd.DataFrame) and len(tb):
         live = bx.exposure(tb, record_sector_map(sorted(set(tb["Symbol"].astype(str))), system), membership)
         exposure = bx.merge(exposure, live)
@@ -412,12 +416,13 @@ def section_exposure(p: Page) -> list:
     ex = p.exposure
     size = ex[ex["kind"] == "size"].pivot_table(index="date", columns="name", values="weight").sort_index() if len(ex) else pd.DataFrame()
     srows = ""
+    # Nano (the Nifty 1000's other 250) and Other (outside every list) are drawn only when a book held them.
+    drawn = [k for k in bx.SIZES if k in ("Large", "Mid", "Small", "Micro") or (k in size and size[k].fillna(0).gt(0).any())]
     for d, r in size.iterrows():
         segs = "".join(f'<i class="dh-sz-{k.lower()}" style="width:{float(r.get(k, 0)):.1f}%" title="{k} {float(r.get(k, 0)):.0f}%">'
-                       f'{f"{float(r.get(k, 0)):.0f}" if float(r.get(k, 0)) >= 15 else ""}</i>' for k in ("Large", "Mid", "Small", "Micro"))
+                       f'{f"{float(r.get(k, 0)):.0f}" if float(r.get(k, 0)) >= 15 else ""}</i>' for k in drawn)
         srows += f'<div class="pf-srow"><span class="dh-mono">{MON[d.month - 1]}</span><div class="dh-sizebar pf-thin">{segs}</div></div>'
-    key = ('<div class="pf-key"><span><i class="dh-sz-large"></i>Large</span><span><i class="dh-sz-mid"></i>Mid</span>'
-           '<span><i class="dh-sz-small"></i>Small</span><span><i class="dh-sz-micro"></i>Micro</span></div>')
+    key = '<div class="pf-key">' + "".join(f'<span><i class="dh-sz-{k.lower()}"></i>{k}</span>' for k in drawn) + '</div>'
     ind = ex[ex["kind"] == "industry"].pivot_table(index="name", columns="date", values="weight").fillna(0) if len(ex) else pd.DataFrame()
     heat = ""
     if len(ind):

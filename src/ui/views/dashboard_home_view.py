@@ -26,6 +26,7 @@ from src.ui import formats as _fmt
 
 from src.core.market_time import ist_now
 from src.engine import dashboard_insights as di
+from src.engine.extra_universe import SYSTEM_750, UNIVERSE_SHORT
 from src.engine.exit_watch import SELL, UNKNOWN, WATCH, Rules, assess, least_room, nearest_rule
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.loaders import benchmark_indices as bi
@@ -191,7 +192,8 @@ def tone(v: float | None) -> str:
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, symbols: tuple) -> dict:
+def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, symbols: tuple,
+                    pit: bool = True) -> dict:
     """The costly reads: breadth series and rank snapshots."""
     from src.engine import market_questions as mq
     from src.engine.rank_history import snapshots
@@ -202,7 +204,9 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
     ranked = [s for s in _rank_df["Symbol"] if s in px.columns]
     out: dict = {"dates": dates}
     from src.engine import pit_breadth
-    past = pit_breadth.load("total_market")
+    # The members-of-the-day history is the 750's (data/breadth_history.csv): joined only under
+    # the 750's own live line, never under another system's universe (S194 L4, 23 Nov 2026).
+    past = pit_breadth.load("total_market") if pit else None
     for span in (50, 200):
         out[f"above_{span}"] = pit_breadth.splice(mq._share_above_ema(px[ranked], span), past, f"above_{span}")
     snap = snapshots(px, [d for d in dates.values() if d is not None])
@@ -635,7 +639,7 @@ def _first_year(f: di.Flows) -> str:
     return f"{f.since:%Y}"
 
 
-def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None) -> tuple[str, str]:
+def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None, universe: str = "750") -> tuple[str, str]:
     """(the two tables, a phrase for the heading). The Dashboard draws the left one as a chart (_shared_parts)."""
     phrase, left, right = "", "", ""
     if by_size:
@@ -658,7 +662,7 @@ def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None) -
     if typical:
         f1 = lambda v: "–" if v is None else sg(v)  # noqa: E731
         pc = lambda v: "–" if v is None else f"{v:.0f}%"  # noqa: E731
-        lines = [("Nifty Total Market", typical["market"], f1, None), ("Equal-weighted 750", typical["equal_weight"], f1, None),
+        lines = [("Nifty Total Market", typical["market"], f1, None), (f"Equal-weighted {universe}", typical["equal_weight"], f1, None),
                  ("Median stock", typical["median"], f1, None), ("Share beating the market", typical["beat_share"], pc, 50)]
         body = "".join(f'<tr><th scope="row">{e(n)}</th>' + "".join(
             f'<td class="dh-num{" dh-b dh-down" if cut is not None and v is not None and v < 30 else ""}">{e(fmt(v))}</td>' for v in vals)
@@ -666,11 +670,12 @@ def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None) -
         b1, ew12, mk12, med12 = (typical["beat_share"][0], typical["equal_weight"][-1], typical["market"][-1], typical["median"][-1])
         say = ""
         if b1 is not None:
-            say = f"Only {b1:.0f}% of the 750 beat the market this month." if b1 < 40 else f"{b1:.0f}% of the 750 beat the market this month."
+            say = (f"Only {b1:.0f}% of the {universe} beat the market this month." if b1 < 40
+                   else f"{b1:.0f}% of the {universe} beat the market this month.")
         if None not in (ew12, mk12, med12) and ew12 > mk12 and med12 < 0:
-            say += (f" Over a year the equal-weighted 750 beat it by {ew12 - mk12:.1f} points while <b>the median stock fell "
+            say += (f" Over a year the equal-weighted {universe} beat it by {ew12 - mk12:.1f} points while <b>the median stock fell "
                     f"{abs(med12):.1f}%</b>: a few big winners lift the average, the field a momentum book picks from.")
-        right = ('<div><div class="dh-cap"><b>The typical stock against the market</b><span>The 750, three ways · %</span></div>'
+        right = (f'<div><div class="dh-cap"><b>The typical stock against the market</b><span>The {e(universe)}, three ways · %</span></div>'
                  '<table class="dh-tab dh-tab-s"><thead><tr><th scope="col"></th>'
                  + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in (1, 3, 6, 12))
                  + f'</tr></thead><tbody>{body}</tbody></table><p class="dh-lede-s">{say}</p></div>')
@@ -679,10 +684,10 @@ def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None) -
     return f'<div class="dh-pair">{left}{right}</div>', phrase
 
 
-def _shared_parts(by_size, typical, book_sizes) -> list:
+def _shared_parts(by_size, typical, book_sizes, universe: str = "750") -> list:
     """Is the rally shared (a chart with its readings) beside the typical stock (a table)."""
-    _, phrase = _shared_html(by_size, typical, book_sizes)
-    right = _shared_html(None, typical, book_sizes)[0]
+    _, phrase = _shared_html(by_size, typical, book_sizes, universe)
+    right = _shared_html(None, typical, book_sizes, universe)[0]
     if not by_size:
         return [right] if right else []
     rows = [[n, None if v[0] is None else round(v[0]), None if v[1] is None else round(v[1]), round(v[2])]
@@ -706,8 +711,8 @@ def _shared_parts(by_size, typical, book_sizes) -> list:
     return [Cols(left, [right] + right_more, (1, 1))]
 
 
-def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None) -> list:
-    shared, phrase = _shared_html(by_size, typical, book_sizes)
+def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None, universe: str = "750") -> list:
+    shared, phrase = _shared_html(by_size, typical, book_sizes, universe)
     large = next((p for s, _, p in rows if s == "Large"), [None] * 3)
     midsmall = [x for s, _, p in rows if s in ("Mid", "Small") for x in p if x is not None]
     fail_large = all(x is not None and x <= -3 for x in large)
@@ -746,7 +751,7 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None)
             '<th scope="colgroup" colspan="3">Momentum against its size index</th></tr><tr>'
             + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in di.WINDOWS) + '<th></th>'
             + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in di.WINDOWS)
-            + f'</tr></thead><tbody>{body}</tbody></table></div></div>')] + _shared_parts(by_size, typical, book_sizes) + [
+            + f'</tr></thead><tbody>{body}</tbody></table></div></div>')] + _shared_parts(by_size, typical, book_sizes, universe) + [
             '<p class="dh-note">Size lists and members are NSE’s as of today, so older readings leave out stocks that have '
             'since left them. Points, price returns. Market: Nifty Total Market. Smallcap250 Momentum Quality 100 also screens '
             'for quality; NSE has no microcap momentum index.</p>' + END]
@@ -805,7 +810,8 @@ def _and(names: list[str]) -> str:
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
-def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], breadth: dict | None = None) -> list:
+def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], breadth: dict | None = None,
+                   universe: str = "750", pit: bool = True) -> list:
     cells = "".join(
         f'<div class="dh-gl"><div class="dh-gl-h"><b>{e(t)}</b><a href="{e(href)}" target="_self">{e(lbl)} →</a></div>'
         + "".join(f'<div class="dh-gl-r"><span>{e(k)}</span><span class="dh-mono {c}">{e(v)}</span></div>' for k, v, c in rows)
@@ -813,9 +819,11 @@ def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], br
     parts = ['<div class="dh-sec"><div class="dh-gl-top"><h2 id="s-glance" class="dh-h3">At a glance</h2>'
              '<span class="dh-sub">Reference figures; the full readings are a page away</span></div></div>']
     if breadth:
-        parts += [Chart("breadth", breadth, {"note": "The index and how many stocks carry it", "label": "Nifty 500 and the share of the 750 above their 200-day average"}),
-                  how("Top: the Nifty 500. Bottom: the share of the 750 above their own 200-day average, counted over the members "
-                      "of each date, leavers included.", "When the top line rises while the bottom one falls, fewer stocks are carrying the index.",
+        counted = ("counted over the members of each date, leavers included." if pit else
+                   "counted over today's members (no members-of-the-day history for this universe).")
+        parts += [Chart("breadth", breadth, {"note": "The index and how many stocks carry it",
+                                             "label": f"Nifty 500 and the share of the {universe} above their 200-day average"}),
+                  how(f"Top: the Nifty 500. Bottom: the share of the {universe} above their own 200-day average, {counted}", "When the top line rises while the bottom one falls, fewer stocks are carrying the index.",
                       ["Date", "Nifty 500", "Above 200D EMA"],
                       [[d, f"{n:,.1f}", "–" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]])]
     return parts + [f'<div class="dh-gls">{cells}</div>']
@@ -878,7 +886,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
     key = f"{price_fingerprint(adj_close)}"
     with st.spinner("Reading the trails…"):
-        hist = _history_inputs(key, adj_close, rank_df, tuple(symbols))
+        hist = _history_inputs(key, adj_close, rank_df, tuple(symbols), system == SYSTEM_750)
     bench = _read_csv(FILES["bench"], parse_dates=["date"])
     bench = bench.set_index("date").sort_index() if bench is not None else None
     n500 = (pd.to_numeric(bench["nifty500"], errors="coerce").dropna() if bench is not None
@@ -943,6 +951,14 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                 syms += f["Symbol"].astype(str).tolist()
         if syms:
             lists[name] = syms
+    # The Nifty 1000's other 250 (S194 L3): shown when the system prices nearly all of them
+    # (the Nifty 1000), not on a universe that holds a few (the 750 holds none).
+    f1000 = _read_csv(FILES["lists"] / "ind_nifty1000_list.csv")
+    if f1000 is not None and "Symbol" in f1000:
+        nse = {x for v in lists.values() for x in v}
+        extra = [x for x in f1000["Symbol"].astype(str) if x not in nse]
+        if extra and sum(x in adj_close.columns for x in extra) >= 0.9 * len(extra):
+            lists["Nanocap 250"] = extra
     by_size = di.size_breadth(adj_close, lists, as_of) if lists else None
     ranked_px = adj_close[[c for c in rank_df["Symbol"] if c in adj_close.columns]]
     typical = di.typical_stock(ranked_px, market, idx_end)
@@ -989,9 +1005,10 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_momentum(lead, streak, signals, average, lead_bars, di.momentum_lag(spreads) if spreads is not None else None)
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare)
-    parts += section_size(sizes, book_sizes, by_size, typical)
+    parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"))
     parts += section_strong_weak(weights, sectors)
-    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(idx_end), breadth)
+    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(idx_end), breadth,
+                            UNIVERSE_SHORT.get(system, "750"), system == SYSTEM_750)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
     parts.append(f'<p class="dh-foot">{_fmt.data_to(idx_end)}.</p>')
     emit(parts)
@@ -1333,16 +1350,21 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
     return out
 
 
-BREADTH_TIER = {"Nifty 100": "Large", "Midcap 150": "Mid", "Smallcap 250": "Small", "Microcap 250": "Micro"}
-TIER_SIZE = {"Nifty 100": "Large", "Midcap 150": "Mid", "Smallcap 250": "Small", "Microcap 250": "Micro"}
+BREADTH_TIER = {"Nifty 100": "Large", "Midcap 150": "Mid", "Smallcap 250": "Small", "Microcap 250": "Micro",
+                "Nanocap 250": "Nano"}
+TIER_SIZE = {"Nifty 100": "Large", "Midcap 150": "Mid", "Smallcap 250": "Small", "Microcap 250": "Micro",
+             "Nanocap 250": "Nano", "Outside": "Outside"}
 
 
 def _book_sizes(risk) -> dict[str, float]:
-    """The book's weight by NSE size list, percent (book_risk's tiers are shares)."""
+    """The book's weight by size list, percent (book_risk's tiers are shares). The four NSE
+    lists always; Nano (the Nifty 1000's other 250) and Outside (in no list: the > Rs 2,000 Cr
+    names outside the 1000) only when the book holds them, so the bar adds up to the invested
+    share (S194 L3, 23 Nov 2026: a Nifty 1000 book's 250 were dropped from the bar)."""
     m = {"Large": 0.0, "Mid": 0.0, "Small": 0.0, "Micro": 0.0}
     for tier, share in (getattr(risk, "tiers", None) or {}).items():
-        if tier in TIER_SIZE:
-            m[TIER_SIZE[tier]] += float(share) * 100
+        if tier in TIER_SIZE and float(share) > 0:
+            m[TIER_SIZE[tier]] = m.get(TIER_SIZE[tier], 0.0) + float(share) * 100
     return m
 
 
@@ -1540,7 +1562,7 @@ HOME_CSS = """
 .dh-mb-n{font-size:var(--fs-12);text-align:center;color:var(--c-muted)}
 .dh-sizebar{display:flex;height:26px;border-radius:3px;overflow:hidden;font-size:var(--fs-12);font-weight:600}
 .dh-sizebar i{display:flex;align-items:center;padding-left:8px;font-style:normal;white-space:nowrap;overflow:hidden}
-.dh-sz-large{background:var(--c-ink)}.dh-sz-mid{background:var(--c-muted)}.dh-sz-small{background:var(--c-caution);color:var(--c-white)}.dh-sz-micro{background:var(--c-caution_line)}
+.dh-sz-large{background:var(--c-ink)}.dh-sz-mid{background:var(--c-muted)}.dh-sz-small{background:var(--c-caution);color:var(--c-white)}.dh-sz-micro{background:var(--c-caution_line)}.dh-sz-nano{background:var(--c-caution_tint);color:var(--c-caution_ink)}.dh-sz-outside,.dh-sz-other{background:var(--c-rule_strong);color:var(--c-ink)}
 .dh-segbar{display:flex;height:40px;border-radius:4px;overflow:hidden;gap:2px}
 .dh-segbar i{display:flex;align-items:center;padding-left:6px;font-style:normal;font-size:var(--fs-12);font-weight:600;white-space:nowrap;overflow:hidden;color:var(--c-white)}
 .dh-seg-strong{background:var(--c-up)}.dh-seg-slow{background:var(--c-up_line);color:var(--c-ink)!important}.dh-seg-turning{background:var(--c-caution_line);color:var(--c-ink)!important}.dh-seg-weak{background:var(--c-down)}
