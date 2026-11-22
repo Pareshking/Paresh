@@ -485,3 +485,16 @@ def test_a_nifty_1000_member_joins_only_by_backfill_and_is_then_extended(monkeyp
     assert list(filled["NEW"]) == [4.0, 4.5] and list(filled["AAA"]) == [10.0, 10.5]   # stored closes untouched
     merged, _, n = mod.merge_sessions(filled, empty, later, pd.DataFrame(), {})
     assert n == 1 and list(merged["NEW"]) == [4.0, 4.5, 5.0]
+
+
+
+def test_a_short_column_gets_its_earlier_sessions_and_no_stored_close_moves():
+    # 22 Nov 2026: 237 columns started on 5 Oct (R2's daily dataset holds most securities only from then).
+    mod = _script()
+    closes = pd.DataFrame({"AAA": [10.0, 10.5, 11.0], "SHORT": [None, None, 7.0]},
+                          index=pd.DatetimeIndex(["2026-02-02", "2026-02-03", "2026-02-04"]))
+    raw = pd.concat([_session("2026-02-02", AAA=99.0, SHORT=6.0), _session("2026-02-03", AAA=99.0, SHORT=6.5),
+                     _session("2026-02-04", AAA=99.0, SHORT=99.0)])
+    out, filled = mod.fill_short_columns(closes, raw, ["SHORT", "NOWHERE"])
+    assert filled == {"SHORT": 2}
+    assert list(out["SHORT"]) == [6.0, 6.5, 7.0] and list(out["AAA"]) == [10.0, 10.5, 11.0]

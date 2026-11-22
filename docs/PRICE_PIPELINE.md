@@ -47,7 +47,9 @@ is NSE's exactly.
   (`sync_former_member_prices.nifty_1000_former`) and NSE's two-year closes (joined
   only by `sync_nse_prices.py --backfill`, run by hand from `nse_prices_backfill.yml`,
   over the file's whole span; the monthly append never starts a column of the
-  latest sessions). Until 22 Nov they were best-effort extras, and a member that left
+  latest sessions). R2's `nse/prices_daily` holds most securities only from 5 Oct 2026, so the backfill and
+  `--fill-short` read the release's raw pack (NSE's bhavcopy, every security, from 2010), and the workflow runs the
+  parity check on the new file before it publishes (owner, 22 Nov 2026). Until 22 Nov they were best-effort extras, and a member that left
   the ₹2,000 Cr list was not fetched at all: on 21 Nov 58 had no 30 Oct close.
 - **Beyond the Nifty 1000** (`sync_screener.extra_symbols`): the ₹2,000 Cr list
   (`ind_nanocap_list.csv`), fetched after the gated universe and best effort, so a

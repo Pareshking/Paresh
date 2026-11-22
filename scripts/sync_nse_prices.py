@@ -290,8 +290,9 @@ def backfill_columns(closes: pd.DataFrame, actions: pd.DataFrame, prices: pd.Dat
     return merged, acts, add, sorted(set(lacking) - set(add))
 
 
-def backfill() -> int:
-    """Add every needed stock the file lacks (the Nifty 1000's), over its whole span, from R2."""
+def backfill(raw_pack: Path | None = None) -> int:
+    """Add every needed stock the file lacks (the Nifty 1000's), over its whole span: from the raw pack when one is
+    given (NSE's bhavcopy for every security from 2010), else from R2 (which holds most only from 5 Oct 2026)."""
     data = npx.load()
     if data is None:
         print("nothing committed to extend; run --build first")
@@ -302,20 +303,82 @@ def backfill() -> int:
         print(f"every needed stock is on file ({closes.shape[1]})")
         return 0
     first, last = closes.index[0].date(), closes.index[-1].date()
-    print(f"{len(lacking)} needed stocks not on file; reading R2 {first} to {last}")
-    try:
-        prices, new_actions, bad = nh.read_r2(first, last)
-    except Exception as exc:  # noqa: BLE001  no credentials, no network: keep the file
-        print(f"R2 unreadable ({type(exc).__name__}: {exc}); committed file kept")
-        return 1
-    if bad:
-        print(f"unreadable days {bad}; committed file kept")   # a half-read span would be a silent gap
-        return 1
+    if raw_pack is not None:
+        print(f"{len(lacking)} needed stocks not on file; reading the raw pack {first} to {last}")
+        prices = pd.read_parquet(raw_pack)
+        d = pd.to_datetime(prices["date"]).dt.date
+        prices, new_actions = prices[(d >= first) & (d <= last)], pd.DataFrame()
+    else:
+        print(f"{len(lacking)} needed stocks not on file; reading R2 {first} to {last}")
+        try:
+            prices, new_actions, bad = nh.read_r2(first, last)
+        except Exception as exc:  # noqa: BLE001  no credentials, no network: keep the file
+            print(f"R2 unreadable ({type(exc).__name__}: {exc}); committed file kept")
+            return 1
+        if bad:
+            print(f"unreadable days {bad}; committed file kept")   # a half-read span would be a silent gap
+            return 1
     merged, acts, added, absent = backfill_columns(closes, actions, prices, new_actions, lacking)
     if added:
         write(merged, acts)
-    print(f"added {len(added)} stocks over {len(closes)} sessions; on no session in R2: {absent}")
-    return 0
+    print(f"added {len(added)} stocks over {len(closes)} sessions; on no session in the source: {absent}")
+    return refresh() if added and raw_pack is not None else 0
+
+
+def fill_short_columns(closes: pd.DataFrame, raw: pd.DataFrame, symbols: list[str]
+                       ) -> tuple[pd.DataFrame, dict[str, int]]:
+    """(closes, {symbol: sessions filled}): each of `symbols` given the sessions before its first stored close.
+
+    Only empty cells before a column's first close are filled; a stored close is never changed. `raw` is NSE's
+    bhavcopy rows (the long file's raw pack, the same rows R2's daily dataset holds), so the file stays raw closes
+    with the corporate actions applied on load, as for every other column.
+    """
+    wide = na.wide(raw)["close"]
+    wide.index = pd.DatetimeIndex(wide.index)
+    out, filled = closes.copy(), {}
+    for sym in symbols:
+        if sym not in wide.columns or sym not in out.columns:
+            continue
+        first = out[sym].first_valid_index()
+        if first is None:
+            continue
+        before = out.index < first
+        src = wide[sym].reindex(out.index)
+        add = before & out[sym].isna() & src.notna()
+        if add.any():
+            out.loc[add, sym] = src[add]
+            filled[sym] = int(add.sum())
+    return out, filled
+
+
+def fill_short(raw_pack: Path) -> int:
+    """`--fill-short`: give every needed column that starts after the file does its earlier sessions from the raw pack.
+
+    R2's daily dataset holds most securities only from 5 Oct 2026, so a stock the monthly append met only then got
+    a column of a few weeks (237 on 22 Nov 2026, all of them stocks the 750's record needs). The raw pack holds NSE's
+    bhavcopy for every security from 2010. Then the corporate actions are re-read over the whole span (refresh), as
+    the monthly update does. Owner, 22 Nov 2026: "fill the 237 with the parity check".
+    """
+    data = npx.load()
+    if data is None:
+        print("nothing committed to extend; run --build first")
+        return 1
+    closes, actions, notes = data["closes"], data["actions"], data["notes"]
+    start, last = closes.index[0], closes.index[-1]
+    wanted = set(needed(notes, nifty_1000=True))
+    short = sorted(s for s in closes.columns
+                   if s in wanted and (fv := closes[s].first_valid_index()) is not None and fv > start)
+    if not short:
+        print("no needed column starts after the file")
+        return 0
+    raw = pd.read_parquet(raw_pack)
+    raw = raw[(pd.to_datetime(raw["date"]) >= start) & (pd.to_datetime(raw["date"]) <= last)]
+    merged, filled = fill_short_columns(closes, raw, short)
+    write(merged, actions)
+    left = sorted(set(short) - set(filled))
+    print(f"{len(short)} needed columns started after {start:%Y-%m-%d}; filled {len(filled)} "
+          f"({sum(filled.values())} sessions); nothing earlier in the raw pack for {len(left)}: {left[:30]}")
+    return refresh()
 
 
 def rehearse_append(sessions: int = 5) -> int:
@@ -396,6 +459,9 @@ def main() -> int:
                       help="read the last sessions back from R2 and compare with the file")
     mode.add_argument("--rehearse-append", action="store_true",
                       help="cut the last committed sessions, re-append them from R2, compare; writes nothing")
+    mode.add_argument("--fill-short", action="store_true",
+                      help="fill the sessions before each needed column's first close from --raw-pack, then re-read actions")
+    ap.add_argument("--raw-pack", type=Path, help="--backfill / --fill-short: nse_raw_pack.parquet (release data-latest)")
     mode.add_argument("--backfill", action="store_true",
                       help="add the needed stocks the file lacks (the Nifty 1000's) over its whole span, from R2")
     mode.add_argument("--update", action="store_true",
@@ -414,7 +480,11 @@ def main() -> int:
     if args.rehearse_append:
         return rehearse_append()
     if args.backfill:
-        return backfill()
+        return backfill(args.raw_pack)
+    if args.fill_short:
+        if not args.raw_pack:
+            ap.error("--fill-short needs --raw-pack")
+        return fill_short(args.raw_pack)
     if args.refresh_actions:
         return refresh()
     if args.build:
