@@ -1182,7 +1182,9 @@ def _page_portfolio() -> None:
 
 
 def _page_watchlist() -> None:
-    render_watchlist_view(rank_df, adj_close)
+    # The same Held marks and qualified trail as the Screener (S184).
+    render_watchlist_view(rank_df, adj_close, book_symbols=_screener_book(),
+                          history_prices=deep_adj_close)
 
 
 def _page_indices() -> None:

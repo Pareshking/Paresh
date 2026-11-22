@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-22 — Watchlist and stock page: the qualified place and "Held" as on the Screener
+
+- The Watchlist's "Qualified #" column read "Out" for every stock, and no stock was marked "Held", although the Screener showed the same stocks in place (live site, 22 Nov: CUPID 4th and Held on the Screener, "Out" on the Watchlist; KOTAKBANK 10th against "Out"). The stock page's table of the industry's best-ranked stocks had the same fault. Both now read the place among all the qualified and the model book's holdings from the same function as the Screener, and the Watchlist's export carries both columns.
+- The stock page's "Corporate action in the price history" note listed every move ever logged for the stock, including ones its prices never had: MBAPL showed a +900.7% and a −90.0% day in Nov 2020 that NSE's own closes (₹70.00, ₹70.05, ₹70.05) do not show. It now lists only the events the ranking applies to the stock's prices. No price, rank or backtest figure changes: none of the 37 logged events is applied to today's prices.
+
 ## 2026-11-22 — Portfolio: a new system joins the comparison after its first full month
 
 - "Systems, side by side" compares the systems over the window they have all traded. The Nifty 1000, started in November, had only part of a month, and it was shrinking everyone's window from 1 October to 1 November. A system now joins the window after its first full month: until then it shows its own figures and "joins from" the next month. The heading counts the systems instead of saying "three".
