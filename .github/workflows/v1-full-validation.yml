@@ -78,6 +78,11 @@ jobs:
       # requirements.txt. Excluded here, a pandas or pyarrow bump ran them
       # nowhere. R2 Focused Validation still runs them for R2-only changes,
       # which this workflow's paths-ignore skips.
+      # data/nse_prices/closes.parquet is not in git (TODO S178); the suite is offline,
+      # so the tests that check the real closes read the published copy fetched here.
+      - name: Fetch the published NSE closes
+        run: python scripts/fetch_nse_closes.py
+
       - name: Full regression suite
         run: python -m pytest -q
 
