@@ -102,7 +102,7 @@ def _calendar_period_metrics(
     # holes sessions routinely -- a median of 33 symbols per session in the
     # published snapshot, and 135 on 2026-07-21. When the anchor lands on a
     # holed session the whole horizon goes NaN for those symbols even though
-    # they have a full price history, which is why the 1M column showed "—"
+    # they have a full price history, which is why the 1M column showed "–"
     # for 18% of the universe while 3M and 6M were complete: those two happen
     # to anchor on clean days.
     #

@@ -125,7 +125,7 @@ def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
         hi_cell = _bar(hi_c, bool(r["High ok"]), 0.20,
                        f"{hi_c * 100:.1f}% cushion" if r["High ok"] and pd.notna(hi_c) else "past the line")
         ret = since.get(sym)
-        ret_txt = "—" if ret is None or pd.isna(ret) else f"{'+' if ret >= 0 else '−'}{abs(ret) * 100:.1f}%"
+        ret_txt = "–" if ret is None or pd.isna(ret) else f"{'+' if ret >= 0 else '−'}{abs(ret) * 100:.1f}%"
         ret_cls = "" if ret is None or pd.isna(ret) else ("up" if ret >= 0 else "down")
         out.append(
             f'<div class="xw-row {status}" role="row"><span class="xw-s" role="rowheader">{link}'
@@ -224,7 +224,7 @@ def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
     for s in buys:
         r = by.loc[s]
         hi = pd.to_numeric(r.get("% High"), errors="coerce")
-        hi_txt = "—" if pd.isna(hi) else ("At high" if hi > -0.05 else _fmt.pct(hi, fraction=False))
+        hi_txt = "–" if pd.isna(hi) else ("At high" if hi > -0.05 else _fmt.pct(hi, fraction=False))
         rows.append(
             f'<div class="ac-row buy" role="row"><span class="xw-s" role="rowheader"><a href="{stock_href(s)}" target="_self">'
             f'{html.escape(s)}</a><small>{html.escape(str(r.get("Industry") or ""))}</small></span>'

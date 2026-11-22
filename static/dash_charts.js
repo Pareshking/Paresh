@@ -9,8 +9,8 @@ const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const dlong = s => { const [y,m,d] = s.split('-'); return `${+d} ${MON[+m-1]} ${y}`; };
 /* A price for display (S173, owner 22 Nov 2026): whole rupees, Indian grouping; below ₹100 two decimals. */
-const pxf = v => v==null ? '—' : Math.abs(v) < 100 ? v.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : Math.round(v).toLocaleString('en-IN');
-const sg = (v,dp=1) => v==null ? '—' : (v>0?'+':v<0?'−':'') + Math.abs(v).toFixed(dp);
+const pxf = v => v==null ? '–' : Math.round(v).toLocaleString('en-IN');  // whole rupees at any level (S173)
+const sg = (v,dp=1) => v==null ? '–' : (v>0?'+':v<0?'−':'') + Math.abs(v).toFixed(dp);
 const inr = v => (v<0?'−':'+') + '₹' + Math.abs(v).toLocaleString('en-IN');
 const NS = 'http://www.w3.org/2000/svg';
 const mk = (tag, attrs={}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
@@ -210,7 +210,7 @@ R.month = (card, s) => {
   const sw = $('.chips', card);
   sw.innerHTML = s.periods.map((p, i) => `<button class="chip" type="button" data-m="${p.key}" aria-pressed="${i === 0}">${esc(p.label)}</button>`).join('');
   const draw = () => { const v = s.values[m], label = s.periods.find(p => p.key === m).label;
-    $('.seg-rows', card).innerHTML = s.rows.map((r, j) => `<div class="trow" role="listitem"><div class="nm"${r.bold ? ' style="font-weight:700"' : ''}>${esc(r.name)}<small>${esc(r.sub)}</small></div>${track(v[j], o)}<div class="vl ${tone(v[j])}">${v[j] == null ? '—' : sg(v[j]) + '%'}</div></div>`).join('');
+    $('.seg-rows', card).innerHTML = s.rows.map((r, j) => `<div class="trow" role="listitem"><div class="nm"${r.bold ? ' style="font-weight:700"' : ''}>${esc(r.name)}<small>${esc(r.sub)}</small></div>${track(v[j], o)}<div class="vl ${tone(v[j])}">${v[j] == null ? '–' : sg(v[j]) + '%'}</div></div>`).join('');
     $('.seg-axis div', card).innerHTML = s.axis.map(t => `<span style="left:${(t - o.lo) / (o.hi - o.lo) * 100}%">${t > 0 ? '+' : t < 0 ? '−' : ''}${Math.abs(t)}%</span>`).join('');
     rowsInteract(card, '.trow', j => { const k = j ?? s.book, mk = v[s.market], bk = v[s.book];
       ro(card, (j == null ? 'Latest · ' : '') + label, [{v: sg(v[k]) + '%', cls: tone(v[k]), name: s.rows[k].name},
@@ -238,7 +238,7 @@ R.bars = (card, s) => {
 /* Breadth by size list: bars plus the three readings. */
 R.shared = (card, s) => {
   const nows = s.rows.map(r => r[3]), lo = Math.min(...nows), hi = Math.max(...nows);
-  $('#rows', card).innerHTML = s.rows.map(([n, a3, a1, now]) => `<div class="shrow" role="listitem"><div class="nm"><b>${esc(n)}</b></div>${track(now, {lo: 0, hi: 100, step: s.step, ago: a1, lines: [40, 60]})}<span class="num muted">${a3 == null ? '—' : a3 + '%'}</span><span class="num muted">${a1 == null ? '—' : a1 + '%'}</span><span class="num b ${now === hi ? 'up' : now === lo ? 'down' : ''}">${now}%</span></div>`).join('');
+  $('#rows', card).innerHTML = s.rows.map(([n, a3, a1, now]) => `<div class="shrow" role="listitem"><div class="nm"><b>${esc(n)}</b></div>${track(now, {lo: 0, hi: 100, step: s.step, ago: a1, lines: [40, 60]})}<span class="num muted">${a3 == null ? '–' : a3 + '%'}</span><span class="num muted">${a1 == null ? '–' : a1 + '%'}</span><span class="num b ${now === hi ? 'up' : now === lo ? 'down' : ''}">${now}%</span></div>`).join('');
   const best = nows.indexOf(hi);
   rowsInteract(card, '.shrow', j => { const [n, a3, a1, now] = s.rows[j ?? best];
     ro(card, j == null ? 'Latest · the broadest' : n, [{v: now + '%', name: 'now'}, {v: sg(now - a1, 0) + ' pts', cls: tone(now - a1), name: 'in a month'}, {v: sg(now - a3, 0) + ' pts', cls: tone(now - a3), name: 'in 3 months'}]); });
@@ -272,7 +272,7 @@ R.breadth = (card, s) => {
   chips(card, r => { from = r ? Math.max(0, s.dates.length - r) : 0; draw(); });
   interact(card, () => panes, $('.readout', card), k => { const i = from + k; return {date: dlong(s.dates[i]), items: [
     {name: 'Nifty 500', color: css('--ink'), v: s.n500[i].toLocaleString('en-IN', {minimumFractionDigits: 1, maximumFractionDigits: 1})},
-    {name: 'of the 750 above their 200D EMA', color: css('--up'), v: s.a200[i] == null ? '—' : s.a200[i].toFixed(0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
+    {name: 'of the 750 above their 200D EMA', color: css('--up'), v: s.a200[i] == null ? '–' : s.a200[i].toFixed(0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
 };
 
 /* ₹100 since the start and how far below its peak, the book and the market: two panes, one crosshair (Portfolio).
@@ -293,8 +293,8 @@ R.growth = (card, s) => {
   const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); b.textContent = v; b.className = c || ''; };
   interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
     $('.ph .d', card).textContent = (i == null ? 'Latest · ' : '') + r.date;
-    put('book', '₹' + pxf(s.book[k])); put('mom', s.mom[k] == null ? '—' : '₹' + pxf(s.mom[k])); put('market', s.market[k] == null ? '—' : '₹' + pxf(s.market[k]));
-    put('dd', sg(s.dd[k]) + '%', s.dd[k] < 0 ? 'down' : ''); put('ddm', s.ddm[k] == null ? '—' : sg(s.ddm[k]) + '%'); },
+    put('book', '₹' + pxf(s.book[k])); put('mom', s.mom[k] == null ? '–' : '₹' + pxf(s.mom[k])); put('market', s.market[k] == null ? '–' : '₹' + pxf(s.market[k]));
+    put('dd', sg(s.dd[k]) + '%', s.dd[k] < 0 ? 'down' : ''); put('ddm', s.ddm[k] == null ? '–' : sg(s.ddm[k]) + '%'); },
     k => ({date: dlong(s.dates[k]), items: []}), () => s.dates.length - 1);
 };
 
@@ -319,7 +319,7 @@ R.holdings = (card, s) => {
         + `<td class="num">${h.q.toLocaleString('en-IN')}</td><td class="num">${pxf(h.ep)}</td><td class="num">${pxf(h.px)}</td>`
         + `<td class="num">${inrf(h.val)}</td><td class="num">${h.w.toFixed(1)}%</td><td class="num ${tone(h.dayp)}">${sg(h.dayp)}%</td>`
         + `<td class="num ${tone(h.pnl)}">${h.pnl > 0 ? '+' : ''}${inrf(h.pnl)}</td><td class="num b ${tone(h.ret)}">${sg(h.ret)}%</td>`
-        + `<td class="num ${emaC}">${h.ema == null ? '—' : sg(h.ema) + '%'}</td><td class="num ${hiC}">${h.hi == null ? '—' : sg(h.hi) + '%'}</td>`
+        + `<td class="num ${emaC}">${h.ema == null ? '–' : sg(h.ema) + '%'}</td><td class="num ${hiC}">${h.hi == null ? '–' : sg(h.hi) + '%'}</td>`
         + `<td class="rk"><span class="rk3"><i>${rk(h.r3)}</i><i>${rk(h.r1)}</i><b class="${rC}">${rk(h.rn)}</b></span></td></tr>`; }).join('');
     const F = s.foot;
     const L = s.text;
@@ -337,7 +337,7 @@ R.holdings = (card, s) => {
 R.history = (card, s) => {
   const vsw = $('.views', card), fsw = $('.filters', card), body = $('.hbody', card), bars = $('.hbars', card);
   let view = 'trades', filt = 'all', pane = null;
-  const ds = v => v ? dlong(v) : '—';
+  const ds = v => v ? dlong(v) : '–';
   const sets = s.filters;
   vsw.innerHTML = s.views.map(([k, t, a], i) => `<button class="chip" type="button" data-v="${k}" aria-pressed="${i === 0}" aria-label="${esc(a)}">${esc(t)}</button>`).join('');
   const chipsFor = () => { fsw.innerHTML = sets[view].map(([k, t], i) => `<button class="chip" type="button" data-f="${k}" aria-pressed="${k === filt}">${t}</button>`).join(''); };
@@ -351,12 +351,12 @@ R.history = (card, s) => {
     if (view === 'trades') {
       const r = s.trades.filter(x => filt === 'all' || (filt === 'open' ? x[14] === 'Open' : x[14] !== 'Open' && (filt === 'win' ? x[11] > 0 : x[11] <= 0)));
       body.innerHTML = `<table class="lt"><thead><tr><th>Stock</th><th>Signal</th><th>Bought</th><th class="num">Price</th><th class="num">Rank</th><th>Signal</th><th>Sold</th><th class="num">Price</th><th class="num">Return</th><th class="num">Days</th><th>Why it closed</th></tr></thead><tbody>`
-        + r.map(x => `<tr><td><b>${esc(x[0])}</b></td><td>${ds(x[2])}</td><td>${ds(x[3])}</td><td class="num">${pxf(x[4])}</td><td class="num">${x[5] == null ? '—' : '#' + x[5]}</td><td>${x[14] === 'Open' ? '—' : ds(x[7])}</td><td>${x[14] === 'Open' ? 'Held' : ds(x[8])}</td><td class="num">${pxf(x[9])}</td><td class="num ${tone(x[11])}">${sg(x[11])}%</td><td class="num">${x[12]}</td><td>${esc(x[13])}</td></tr>`).join('') + '</tbody></table>';
+        + r.map(x => `<tr><td><b>${esc(x[0])}</b></td><td>${ds(x[2])}</td><td>${ds(x[3])}</td><td class="num">${pxf(x[4])}</td><td class="num">${x[5] == null ? '–' : '#' + x[5]}</td><td>${x[14] === 'Open' ? '–' : ds(x[7])}</td><td>${x[14] === 'Open' ? 'Held' : ds(x[8])}</td><td class="num">${pxf(x[9])}</td><td class="num ${tone(x[11])}">${sg(x[11])}%</td><td class="num">${x[12]}</td><td>${esc(x[13])}</td></tr>`).join('') + '</tbody></table>';
     } else {
       const r = s.lines.filter(x => filt === 'all' || x[1] === filt);
       const A = {BUY: ['Buy', 'up'], SELL: ['Sell', 'down'], HOLD: ['Hold', 'muted']};
       body.innerHTML = `<table class="lt"><thead><tr><th>Month</th><th>Action</th><th>Stock</th><th class="num">Price</th><th class="num">Weight</th><th>Why</th></tr></thead><tbody>`
-        + r.map(x => `<tr><td>${esc(x[0])}</td><td class="${A[x[1]][1]}">${A[x[1]][0]}</td><td><b>${esc(x[2])}</b></td><td class="num">${pxf(x[3])}</td><td class="num">${x[4] == null ? '—' : x[4].toFixed(1) + '%'}</td><td>${esc(x[5])}</td></tr>`).join('') + '</tbody></table>';
+        + r.map(x => `<tr><td>${esc(x[0])}</td><td class="${A[x[1]][1]}">${A[x[1]][0]}</td><td><b>${esc(x[2])}</b></td><td class="num">${pxf(x[3])}</td><td class="num">${x[4] == null ? '–' : x[4].toFixed(1) + '%'}</td><td>${esc(x[5])}</td></tr>`).join('') + '</tbody></table>';
     }
   };
   vsw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; vsw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); view = b.dataset.v; filt = 'all'; chipsFor(); draw(); });
@@ -383,7 +383,7 @@ R.lines = (card, s) => {
     chips(card, r => { from = r ? Math.max(0, s.dates.length - r) : 0; draw(); }); }
   interact(card, () => [pane], (r, i) => { const k = from + (i ?? (s.dates.length - 1 - from));
     $('.d', head).textContent = (i == null ? 'Latest · ' : '') + dlong(s.dates[k]);
-    s.series.forEach((x, j) => { const v = x.values[k]; $(`[data-v="${j}"]`, head).textContent = v == null ? '—' : show(v); }); },
+    s.series.forEach((x, j) => { const v = x.values[k]; $(`[data-v="${j}"]`, head).textContent = v == null ? '–' : show(v); }); },
     k => ({date: dlong(s.dates[from + k]), items: []}), () => s.dates.length - 1 - from);
 };
 
@@ -544,7 +544,7 @@ R.stable = (card, s) => {
       return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir; });
     const head = s.cols.map(c => `<th scope="col" data-k="${c.k}" tabindex="0" class="${c.num ? 'num' : ''}" aria-sort="${c.k === key ? (dir < 0 ? 'descending' : 'ascending') : 'none'}">${esc(c.label)}</th>`).join('');
     const cell = (r, c) => { if (c.k === 'name') return `<th scope="row">${esc(r.name)}${r.sub ? `<span class="ss">${esc(r.sub)}</span>` : ''}</th>`;
-      const t = (r.t || {})[c.k] ?? (r.v[c.k] == null ? '—' : String(r.v[c.k])), cls = (r.c || {})[c.k] || '';
+      const t = (r.t || {})[c.k] ?? (r.v[c.k] == null ? '–' : String(r.v[c.k])), cls = (r.c || {})[c.k] || '';
       if (c.bar) return `<td class="bar"><div class="bw">${track(r.v[c.k], {lo: B.lo, hi: B.hi, step: B.step, lines: B.lines || [], ago: r.v[B.ago]})}<span class="num ${cls}">${esc(t)}</span></div></td>`;
       return `<td class="${c.num ? 'num ' : ''}${cls}">${esc(t)}</td>`; };
     const row = r => `<tr${r.ref ? ' class="ref"' : ''}>${s.cols.map(c => cell(r, c)).join('')}</tr>`;
@@ -557,7 +557,7 @@ R.stable = (card, s) => {
 
 /* Backtest (S174): ₹100 on a log scale, the rule and the indices, and how far each sits below its own
    peak: two panes, one crosshair, the values in each pane's heading. spec: dates, series[{key, name, color
-   (token), values, dd, dash, width}], ticks [100, 200, 500 ...]. A series with no value yet reads "—". */
+   (token), values, dd, dash, width}], ticks [100, 200, 500 ...]. A series with no value yet reads "–". */
 R.btgrowth = (card, s) => {
   const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
   const h1 = $('.ph.p1', card), h2 = $('.ph.p2', card), L = v => v == null ? null : Math.log10(v);
@@ -580,8 +580,8 @@ R.btgrowth = (card, s) => {
   interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
     $('.ph.p1 .d', card).textContent = (i == null ? 'Latest · ' : '') + r.date;
     s.series.forEach((x, j) => { const v = x.values[k], d = x.dd[k];
-      put('g' + j, v == null ? '—' : '₹' + Math.round(v).toLocaleString('en-IN'));
-      put('d' + j, d == null ? '—' : sg(d) + '%', d != null && d < 0 && j === 0 ? 'down' : ''); }); },
+      put('g' + j, v == null ? '–' : '₹' + Math.round(v).toLocaleString('en-IN'));
+      put('d' + j, d == null ? '–' : sg(d) + '%', d != null && d < 0 && j === 0 ? 'down' : ''); }); },
     k => ({date: dlong(s.dates[k]), items: []}), () => s.dates.length - 1);
 };
 

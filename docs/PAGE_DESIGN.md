@@ -78,7 +78,7 @@ mock-up and approval is recorded in its row of section 7 and in TODO S151.
 |---|---|
 | One figure per cell; numbers right-aligned in IBM Plex Mono with tabular figures; headers right-aligned over numbers | Owner, 20 Nov: the size table is the model ("Clean tables like first image required everywhere") |
 | No sentence fragments inside number cells; a note under the name in small muted text instead | Owner rejected the v6 signals table |
-| Prices, moving averages, 52-week levels and any ₹ level in whole rupees with Indian grouping (₹2,906); below ₹100, two decimals (₹70.05). Returns, percentage changes and points to one decimal (11.1%, +0.4 pts). Display only: stored data, exports and orders keep exact values. One formatter: `formats.price`/`pct`/`pts` in Python, `pxf`/`sg` in `static/dash_charts.js`. Not covered: ratios (beta, P/B, P/E), correlations, ranks, counts, chart-scale notes and statutory rates (stamp duty 0.015%). Checked on every page by `scripts/number_format_audit.mjs` in CI | Owner, 22 Nov 2026: "price etc, Moving averages etc should be in round numbers, return only with Max one decimal values like 11.1% not 11.11%" (S173) |
+| Numbers and words follow the 8-rule sheet below ("Numbers and words, the 8 rules"): whole rupees for every price and moving average, returns to one decimal. Display only. Checked on every page at 412 and 1400 px by `scripts/number_format_audit.mjs` in CI | Owner, 22 Nov 2026 (S173) |
 | Sentence case for headers and labels; capitals only for the small kicker over a section | Owner, 20 Nov: "Fonts, typography, capital letter etc required" |
 | Group rows with a heading row (Strong · 69.8% · what it means), not with colour alone | v7 strong/weak table |
 | Colour only the cell that carries the meaning (now, the value that crossed a line); past columns muted | v7 |
@@ -87,6 +87,34 @@ mock-up and approval is recorded in its row of section 7 and in TODO S151.
 | Row labels do not wrap: the label column is `nowrap`, number headings may wrap instead | Owner, 20 Nov ("This year, since start" took four lines at 412 px) |
 | A bar track is at most about 340 px wide; on a phone the bar stays in the row, the column that the bar's mark already shows is hidden | Owner, 20 Nov ("Using full horizontal page is not a good idea") |
 | An odd last tile in a two-across grid on a phone takes the full row, so no empty grey cell | Owner, 20 Nov ("lots of unnecessary white space") |
+
+### 3a. Numbers and words, the 8 rules (owner-approved 22 Nov 2026, S173)
+
+Owner, 22 Nov 2026: "price etc, Moving averages etc should be in round numbers, return only with Max one decimal
+values like 11.1% not 11.11%"; the same day, whole rupees "including below ₹100", and the sheet below approved.
+
+| # | Rule | Example | Where it is made | Checked |
+|---|---|---|---|---|
+| 1 | Whole rupees for every price and moving average, at any level; returns to at most one decimal | ₹2,906 · ₹70 · +11.1% | `formats.price`, `pct`, `pts`; `pxf`/`sg` in `static/dash_charts.js`; `fmts.price` in `lw_chart.py` | audit: a ₹ figure with decimals, a % with two or more |
+| 2 | ₹ Cr with no decimals, Indian grouping | ₹1,22,000 Cr (not ₹1.22 lakh Cr) | `dashboard_home_view.cr` | audit, as rule 1 |
+| 3 | Dates as "20 Nov 2026", or "20 Nov" in a tight column where the year is plain | 20 Nov 2026 | `formats.date`; the chart tables (`how`) pass every cell through it and keep a date on one line | audit: ISO, slashes, "Nov 20, 2026" |
+| 4 | A true minus (U+2212) and an explicit + on changes | −4.2%, +13.9% | `formats.signed`; `fmts.num` on every chart axis | audit: a hyphen used as a minus (the + is not checkable from text) |
+| 5 | "–" (en dash) for missing data, with the reason in a footnote | – | `formats.DASH` and every table's empty cell | audit: "nan"/"None" as a value, "—" alone in a cell |
+| 6 | One word per thing: "sector", "pts", "50D/200D EMA", "Nifty Total Market" | above its 50D EMA | the glossary (S173 (a)) | audit: "DMA", "ppt", "percentage points", "50-day EMA", "Total Market" without "Nifty" |
+| 7 | Footer "Data to <date> · <source>"; the source is the exchange, NSE (owner, 22 Nov: "Ok for NSE"), never the vendor or an internal path (owner, 20-21 Nov: "Let's not show source") | Data to 20 Nov 2026 · NSE | `formats.data_to`; the Backtest names "NSE's long price file" | audit: no such line (the Guide shows no data and is exempt), or a vendor named |
+| 8 | Weights to one decimal; ranks and counts whole | 4.8% · #12 · 750 | `theme` weight formats | audit, as rule 1 (ranks and counts not checkable) |
+
+Not covered, by decision: ratios (beta 1.02, P/B 3.17, Sharpe −0.14), correlations, index levels (196.4), bps,
+chart-scale notes ("Each line is 0.25%") and statutory rates as the law writes them (stamp duty 0.015%).
+
+**Display only.** Stored data, the CSV exports, the Kite basket (market orders, quantities from exact prices) and
+every calculation keep exact values (`tests/test_number_formats.py`). One consequence, accepted with the rule: the
+trade blotter's whole-rupee entry and exit no longer reproduce the return beside them (₹158 → ₹168 reads +6.3%; the
+trade made +6.8%, from ₹157.65 and ₹168.40).
+
+**Conflicts settled:** `BACKTEST_REQUIREMENTS.md` (21 Nov) asked for "50-day EMA" in sentences; rule 6 (22 Nov) is
+later and wins, so every page writes "50D EMA". `SCREENER_REQUIREMENTS.md` row 24 ("no source named") and rule 7
+are both met by naming the exchange only.
 
 ## 4. Charts
 

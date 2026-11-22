@@ -302,7 +302,7 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
         # The argument is honoured rather than decorative: this read
         # BENCHMARK_SYMBOL internally, so asking for any other index
         # silently returned the Nifty 500 regime under that index's name.
-        # The whole series, not two years: a 200-day EMA over a 2-year window
+        # The whole series, not two years: a 200D EMA over a 2-year window
         # has not converged, so the header read 2.9% above where the market
         # questions card, which uses the full series, read +3.0 (audit, 8 Nov
         # 2026). Both now measure the same thing on the same history.
@@ -318,9 +318,9 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
 
         close_s = pd.to_numeric(close_s, errors="coerce").dropna()
         price = float(close_s.iloc[-1])
-        # The 200-day EMA, as Breadth and Sectors use (pre-launch audit F7): the
+        # The 200D EMA, as Breadth and Sectors use (pre-launch audit F7): the
         # header said "3.1% above 200D average" from a simple average (2.97% on
-        # the EMA) while Breadth counted stocks above their 200-day EMA.
+        # the EMA) while Breadth counted stocks above their 200D EMA.
         dma = float(close_s.ewm(span=200, min_periods=160).mean().iloc[-1])
         dist = ((price - dma) / dma * 100) if dma > 0 else 0.0
         status = MarketRegime.BULLISH if price >= dma else MarketRegime.BEARISH

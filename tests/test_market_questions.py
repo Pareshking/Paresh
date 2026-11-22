@@ -267,7 +267,7 @@ def test_an_unknown_regime_reads_as_unknown_not_as_zero():
     if html is None:          # rendered inside render_header_kpi_bar
         import inspect
         src = inspect.getsource(components)
-        assert '"— no reading"' in src and 'level_text = "—"' in src
+        assert '"— no reading"' in src and 'level_text = "–"' in src
     else:
         assert "no reading" in html and "0.0%" not in html
 

@@ -62,8 +62,8 @@ SX_CSS = """
 
 
 def _leader_link(sym: str) -> str:
-    if not sym or sym == "—":
-        return "—"
+    if not sym or sym == "–":
+        return "–"
     return (f'<a class="ib-lead" href="{stock_href(sym)}" target="_self">'
             f'{html.escape(sym)}</a>')
 
@@ -251,7 +251,7 @@ def section_lead(ld: sp.Leads, sh, noun: str) -> list:
     g = ld.gap
     rows = []
     if g.get("6") is not None:
-        rows.append({"name": "The 750 vs Total Market", "sub": "equal-weighted vs cap-weighted", "ref": True,
+        rows.append({"name": "The 750 vs Nifty Total Market", "sub": "equal-weighted vs cap-weighted", "ref": True,
                      "bar": _r(g["6"]), "ago": _r(g.get("6_1m")),
                      "vals": [sg(g.get("6_3m")), sg(g.get("6_1m")), sg(g["6"]), sg(g.get("1"))],
                      "cls": ["muted", "muted", _kt(g["6"]) + " b", _kt(g.get("1"))],
@@ -312,7 +312,7 @@ def section_broad(ld: sp.Leads, nse: dict, sh) -> list:
     rows = []
     if m3 is not None:
         o3, t3 = ld.market_ret.get(3), (ld.market_ret.get(3) or 0) - m3
-        rows.append({"name": "The 750 vs Total Market", "sub": "Nifty Total Market", "ref": True, "bar": _r(m3),
+        rows.append({"name": "The 750 vs Nifty Total Market", "sub": "Nifty Total Market", "ref": True, "bar": _r(m3),
                      "vals": [sg(o3, 1, "%"), sg(t3, 1, "%"), sg(m3), sg(ld.gap.get("1"))],
                      "cls": [_kt(o3), _kt(t3), _kt(m3) + " b", _kt(ld.gap.get("1"))],
                      "read": [[sg(m3) + " pts", "gap over 3M", _kt(m3)], [sg(ld.gap.get("1")) + " pts", "gap over 1M"]]})
@@ -353,8 +353,8 @@ def section_indices(ld: sp.Leads, nse: dict, sh) -> list:
     def cells(ret, hi, pe, young_since=None):
         out = "".join(_num(ret.get(m), "%") for m in (1, 3, 6, 9))
         out += (f'<td class="dh-num dh-muted">since {young_since}</td>' if young_since else _num(ret.get(12), "%"))
-        hi_t = "—" if hi is None else ("at high" if abs(hi) < 0.05 else sg(hi, 1, "%"))
-        return out + f'<td class="dh-num dh-muted">{e(hi_t)}</td><td class="dh-num dh-muted">{"—" if pe is None else f"{pe:.1f}"}</td>'
+        hi_t = "–" if hi is None else ("at high" if abs(hi) < 0.05 else sg(hi, 1, "%"))
+        return out + f'<td class="dh-num dh-muted">{e(hi_t)}</td><td class="dh-num dh-muted">{"–" if pe is None else f"{pe:.1f}"}</td>'
     body = ""
     for g in groups:
         body += (f'<tr class="sx-grp"><th scope="colgroup" colspan="8">{e(sh(g.sector))}<span>{g.stocks} ranked stocks'
@@ -411,9 +411,9 @@ def section_months(months: pd.DataFrame, sh, noun: str) -> list:
     body = ""
     for name, r in months.iterrows():
         cells = "".join(f'<td class="dh-num {_cls(r[c])}{" dh-muted" if c.endswith("MTD") and _cls(r[c]) == "" else ""}">'
-                        f'{"—" if not pd.notna(r[c]) else e(sg(r[c]))}</td>' for c in cols)
+                        f'{"–" if not pd.notna(r[c]) else e(sg(r[c]))}</td>' for c in cols)
         run = int(r["run"])
-        run_t = (f"{abs(run)} ahead" if run > 0 else f"{abs(run)} behind") if run else "—"
+        run_t = (f"{abs(run)} ahead" if run > 0 else f"{abs(run)} behind") if run else "–"
         body += (f'<tr><th scope="row">{e(sh(name))}</th>{cells}<td class="dh-num">{run_t}</td>'
                  f'<td class="dh-num {_cls(r["total"])}">{e(sg(r["total"]))}</td></tr>')
     return [f'<div class="dh-sec">{KICK.format("Month by month")}<h2 id="s-months" class="dh-h2">{h2}</h2>'
@@ -507,9 +507,9 @@ def section_inside(ld: sp.Leads, shares: list[sp.Share], board: pd.DataFrame, ra
             v, leaders = {"ema50": None, "near": None, "pass": None, "top50": None, "med3": None}, ""
         vals = {"b3": _r(s.b3, 0), "b1": _r(s.b1, 0), "now": _r(s.now, 0), "ema50": _r(v["ema50"], 0), "near": _r(v["near"], 0),
                 "pass": v["pass"], "top50": v["top50"], "med3": _r(v["med3"]), "leaders": leaders}
-        txt = {k: ("—" if vals[k] is None else f"{vals[k]:.0f}%") for k in ("b3", "b1", "now", "ema50", "near")}
+        txt = {k: ("–" if vals[k] is None else f"{vals[k]:.0f}%") for k in ("b3", "b1", "now", "ema50", "near")}
         txt["med3"] = sg(vals["med3"], 1, "%")
-        txt["leaders"] = leaders or "—"
+        txt["leaders"] = leaders or "–"
         return {"name": "All 750" if ref else sh(s.name), "sub": f"{s.stocks} stocks", "ref": ref, "v": vals, "t": txt,
                 "c": {"med3": _kt(vals["med3"]), "b3": "muted", "b1": "muted"}}
     cols = [{"k": "name", "label": noun.capitalize()},
@@ -610,7 +610,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     render_screener_table(members, adj_close, "Core")
 
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
-    st.html(f'<div class="dh"><p class="dh-foot">Data to {ld.when:%-d %b %Y}. {len(rank_df)} stocks ranked; '
+    st.html(f'<div class="dh"><p class="dh-foot">{_fmt.data_to(ld.when)}. {len(rank_df)} stocks ranked; '
             f'{gap_count(rank_df)} with a price gap, {short_n} with a short history.</p></div>')
     render_data_quality_footer(total_stocks=len(rank_df), gap_count=gap_count(rank_df), short_count=short_n)
 

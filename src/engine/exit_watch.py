@@ -6,7 +6,7 @@ The strategy sells a holding at a rebalance when any of three rules breaks
 1. it ranks past the buffer -- counted among the stocks that pass BOTH
    filters, the same `full_ranked` the backtest selects from, not the
    Screener's overall rank;
-2. it closes below its 50-day EMA;
+2. it closes below its 50D EMA;
 3. it closes more than 20% below its 52-week high.
 
 This module reads today's ranking table and says, for each holding, how much
@@ -22,7 +22,7 @@ import pandas as pd
 
 # A holding is flagged "watch" inside these margins.
 WATCH_RANK_PLACES = 9      # within 9 places of the buffer
-WATCH_EMA_CUSHION = 0.03   # price within 3% of its 50-day EMA
+WATCH_EMA_CUSHION = 0.03   # price within 3% of its 50D EMA
 WATCH_HIGH_CUSHION = 0.05  # price within 5% of the -20% line
 
 SELL, WATCH, CLEAR, UNKNOWN = "sell", "watch", "clear", "unknown"

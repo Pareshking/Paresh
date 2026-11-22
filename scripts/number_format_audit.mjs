@@ -1,45 +1,79 @@
-// Number format audit (S173; owner, 22 Nov 2026: "price etc, Moving averages etc should be in round numbers,
-// return only with Max one decimal values like 11.1% not 11.11%").
+// Page style audit: the 8-rule sheet in docs/PAGE_DESIGN.md "Numbers and words" (S173; owner, 22 Nov 2026).
 //
-//   node scripts/number_format_audit.mjs http://localhost:8501/ [more URLs]
+//   node scripts/number_format_audit.mjs [--report] http://localhost:8501/ [more URLs]
 //
-// Reads each page's text, chart frames included and collapsed sections opened, and fails on
-//  - a rupee figure of ₹100 or more with paise (whole rupees above ₹100; below, two decimals are the rule), and
-//  - a percentage with two or more decimals.
-// Allowed, with the reason: a chart's scale note ("Each line is 0.25%"), and statutory rates written as the law
-// writes them (stamp duty 0.015%). Ratios (beta 1.02, P/B 3.17), correlations, ranks and counts are not checked.
+// Reads each page's text at 412 and 1400 px, chart frames included and collapsed sections opened, and checks
+// what can be read off a page:
+//   1/2/8  a ₹ figure with decimals (prices and ₹ Cr are whole rupees), a % with two or more decimals
+//   3      a date written otherwise than "20 Nov 2026" / "20 Nov" (ISO, slashes, "Nov 20, 2026")
+//   4      a hyphen-minus used as a minus sign ("-3.2%" for "−3.2%")
+//   5      a missing value written "nan", "None", "NaN", or "—" alone in a table cell (the rule is "–")
+//   6      a second word for one thing (see SYNONYMS)
+//   7      no footer "Data to <date> · <source>"
+// Not checkable from the text and so not checked: the explicit + on a change (rule 4), that a missing value's
+// reason is in a footnote (rule 5), ranks and counts being whole (rule 8).
+// Allowed, with the reason: a chart's scale note ("Each line is 0.25%"), statutory rates as the law writes them
+// (stamp duty 0.015%). Ratios (beta 1.02, P/B 3.17), correlations and index levels (196.4) are not ₹ or %.
+// Exit 1 on any finding, unless --report.
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
 
-const urls = process.argv.slice(2);
-if (!urls.length) { console.error('usage: number_format_audit.mjs URL [URL ...]'); process.exit(2); }
-const ALLOWED = [/Each line is [\d.]+%/g, /stamp duty \(?[\d.]+%/gi, /stamp duty [\d.]+%/gi];
+const args = process.argv.slice(2);
+const report = args.includes('--report');
+const urls = args.filter(a => a !== '--report');
+if (!urls.length) { console.error('usage: number_format_audit.mjs [--report] URL [URL ...]'); process.exit(2); }
+
+const ALLOWED = [/Each line is [\d.]+%/g, /stamp duty \(?[\d.]+%/gi];
+const MON = '(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
+const RULES = {
+  '1 ₹ with decimals': t => t.match(/₹\s?[\d,]*\d\.\d+/g),
+  '1 % with 2+ decimals': t => t.match(/[+−-]?\d+\.\d{2,}\s?%/g),
+  '3 date format': t => t.match(new RegExp(`\\b20\\d\\d-\\d\\d-\\d\\d\\b|\\b\\d{1,2}/\\d{1,2}/20\\d\\d\\b|\\b${MON}[a-z]* \\d{1,2}, 20\\d\\d\\b`, 'g')),
+  '4 hyphen as minus': t => t.match(/(?<![\w\d.])-(?=₹?\d)[₹\d][\d,.]*\s?(?:%|pts)?/g),
+  '5 missing as nan/None': t => t.match(/(?:^|\t)(?:nan|NaN|None|null)(?=\t|$)|\bnan%/gm),   // a bare value, not the English word
+  '6 synonym': t => t.match(/\b\d+ ?DMA\b|\bDMA\b|\bppts?\b|\bpercentage points\b|(?<!Nifty )\bTotal Market\b|\b(?:50|200)[- ]day (?:EMA|moving average)\b/g),
+};
+const SIZES = [412, 1400];
+
 const b = await chromium.launch();
 let bad = 0;
 for (const url of urls) {
-  const p = await b.newPage({ viewport: { width: 1400, height: 900 } });
-  await p.goto(url);
-  await p.waitForSelector('.site, .dh, [data-testid="stMainBlockContainer"] h1', { timeout: 180000 }).catch(() => {});
-  // Until Streamlit finishes the run (Backtest draws its long calculation after the title).
-  for (let i = 0, quiet = 0; i < 240 && quiet < 3; i++) {
-    const busy = await p.evaluate(() => !!document.querySelector('[data-testid="stStatusWidget"]')).catch(() => false);
-    quiet = busy ? 0 : quiet + 1; await p.waitForTimeout(1000);
+  for (const width of SIZES) {
+    const p = await b.newPage({ viewport: { width, height: 900 } });
+    await p.goto(url);
+    await p.waitForSelector('.site, .dh, [data-testid="stMainBlockContainer"] h1', { timeout: 180000 }).catch(() => {});
+    for (let i = 0, quiet = 0; i < 240 && quiet < 3; i++) {       // until Streamlit finishes the run
+      const busy = await p.evaluate(() => !!document.querySelector('[data-testid="stStatusWidget"]')).catch(() => false);
+      quiet = busy ? 0 : quiet + 1; await p.waitForTimeout(1000);
+    }
+    await p.waitForTimeout(3000);
+    let t = '', emCells = 0;
+    for (const f of p.frames()) {
+      try {
+        const r = await f.evaluate(() => {
+          document.querySelectorAll('details').forEach(d => { d.open = true; });
+          const cells = [...document.querySelectorAll('td')].filter(td => td.innerText.trim() === '—').length;
+          return [document.body.innerText, cells];
+        });
+        t += r[0] + '\n'; emCells += r[1];
+      } catch { /* a frame still loading */ }
+    }
+    for (const re of ALLOWED) t = t.replace(re, '');
+    const found = {};
+    for (const [rule, fn] of Object.entries(RULES)) {
+      const m = [...new Set(fn(t) || [])];
+      if (m.length) found[rule] = m;
+    }
+    if (emCells) found['5 "—" in a table cell'] = [`${emCells} cell(s)`];
+    // The Guide holds no data, so it has no data date (rule 7 is for pages that show data).
+    if (!/\/guide\b/.test(url) && !new RegExp(`Data to \\d{1,2} ${MON} 20\\d\\d · \\S`).test(t)) found['7 footer'] = ['no "Data to <date> · <source>"'];
+    if (/Screener and NSE|Data from: |Ranked from: /.test(t)) found['7 source named'] = ['a vendor or internal source named (owner, 20-21 Nov: no source names)'];
+    const n = Object.values(found).reduce((a, m) => a + m.length, 0);
+    bad += n;
+    console.log(`${url} @${width}: ${n ? n + ' found' : 'clean'}`);
+    for (const [rule, m] of Object.entries(found)) console.log(`  rule ${rule}: ${m.slice(0, 10).join(' | ')}${m.length > 10 ? ` (+${m.length - 10})` : ''}`);
+    await p.close();
   }
-  await p.waitForTimeout(3000);
-  let t = '';
-  for (const f of p.frames()) {
-    try { t += await f.evaluate(() => { document.querySelectorAll('details').forEach(d => { d.open = true; }); return document.body.innerText; }) + '\n'; }
-    catch { /* a frame still loading */ }
-  }
-  for (const re of ALLOWED) t = t.replace(re, '');
-  const rupee = [...new Set((t.match(/₹\s?[\d,]+\.\d+/g) || []).filter(s => parseFloat(s.replace(/[₹,\s]/g, '')) >= 100))];
-  const pct = [...new Set(t.match(/[+−-]?\d+\.\d{2,}\s?%/g) || [])];
-  const n = rupee.length + pct.length;
-  bad += n;
-  console.log(`${url}: ${n ? n + ' found' : 'clean'}`);
-  if (rupee.length) console.log('  ₹100+ with paise: ' + rupee.slice(0, 12).join(' | '));
-  if (pct.length) console.log('  % with 2+ decimals: ' + pct.slice(0, 12).join(' | '));
-  await p.close();
 }
 await b.close();
-process.exit(bad ? 1 : 0);
+process.exit(bad && !report ? 1 : 0);

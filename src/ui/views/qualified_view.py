@@ -1,6 +1,6 @@
 """
 Qualified: the best-ranked stocks that pass both filters -- above their
-50-day EMA and within 20% of their 52-week high.
+50D EMA and within 20% of their 52-week high.
 """
 
 
@@ -94,7 +94,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
         )
     view = passing.head(top_n).copy()
     # Place among the qualified, as on the Screener (audit, 8 Nov 2026: this table
-    # showed "—" in Qualified # for every row).
+    # showed "–" in Qualified # for every row).
     from src.engine.exit_watch import qualified_ranks
     view["Qualified Rank"] = view["Symbol"].map(qualified_ranks(rank_df))
     with actions:
@@ -108,7 +108,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
 
     if view.empty:
         kit.empty("No stock passes both filters today:",
-                  "above its 50-day EMA and within 20% of its 52-week high.")
+                  "above its 50D EMA and within 20% of its 52-week high.")
         return
 
     if not embedded:
@@ -124,7 +124,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
             kit.Reading("Average 6M return", _pct(avg6),
                         f"Nifty 500 {_pct(bench[6])}" if 6 in bench else "calendar 6 months",
                         _tone(avg6)),
-            kit.Reading("Average correlation", "—" if corr_mean is None else f"{corr_mean:.2f}",
+            kit.Reading("Average correlation", "–" if corr_mean is None else f"{corr_mean:.2f}",
                         correlation_note(corr_mean)),
         ], "Qualified list today")
 

@@ -23,7 +23,7 @@ def test_pct_formats_fractions_and_dashes_non_finite():
     assert kit.pct(-0.0004) == "0.0%"  # rounded first: never "-0.0%"
     assert kit.pct(0.05, signed=False) == "5.0%"
     for bad in (None, float("nan"), float("inf"), "x"):
-        assert kit.pct(bad) == "—"
+        assert kit.pct(bad) == "–"
 
 
 def _kit_app():
@@ -39,7 +39,7 @@ def test_kit_helpers_render_without_error():
     at = AppTest.from_function(_kit_app).run()
     assert not at.exception, [e.value for e in at.exception]
     assert [m.label for m in at.metric] == ["Strategy", "Alpha"]
-    assert [m.value for m in at.metric] == ["+10.0%", "—"]
+    assert [m.value for m in at.metric] == ["+10.0%", "–"]
 
 
 def test_callout_escapes_its_text():

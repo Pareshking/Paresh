@@ -162,7 +162,7 @@ def render_header_kpi_bar(
     if unknown:
         regime_cls = "mkt-flat"
         dist_text = "— no reading"
-        level_text = "—"
+        level_text = "–"
     else:
         dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
         level_text = f"{regime.current_price:,.0f}"
@@ -590,7 +590,7 @@ def gap_count(rank_df: pd.DataFrame) -> int:
 
 
 def render_data_quality_footer(
-    total_stocks: int, gap_count: int, short_count: int, *, details: bool = False
+    total_stocks: int, gap_count: int, short_count: int, *, details: bool = False, as_of=None
 ) -> None:
     """Renders the data quality footer bar, including how old each source is.
 
@@ -621,8 +621,12 @@ def render_data_quality_footer(
     # Screener page, rest pages don't need it"). Every other page keeps the
     # copyright; the header's price chip still carries the closes' date.
     if not details:
+        # A page without its own foot line passes `as_of` for "Data to <date> · NSE" (S173 rule 7).
+        from src.ui import formats as _fmt
+        when = (f'<span style="color: var(--c-muted);">{html.escape(_fmt.data_to(as_of))}</span>'
+                if as_of is not None else "")
         st.html('<div style="display: flex; padding: 6px 0 24px; font-family: var(--font-ui); font-size: var(--fs-12);">'
-                '<span style="margin-left: auto; color: var(--c-text_2);">© Paresh Patel</span></div>')
+                f'{when}<span style="margin-left: auto; color: var(--c-text_2);">© Paresh Patel</span></div>')
         return
     render_freshness_ribbon()
 

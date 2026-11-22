@@ -8,6 +8,8 @@ their names (src/engine/breadth.py).
 import pandas as pd
 import streamlit as st
 
+from src.ui import formats as _fmt
+
 from src.engine.breadth import (
     OBSERVED_SUFFIX,
     compute_hl_timeseries,
@@ -47,7 +49,7 @@ def _participation_chart(pct: pd.DataFrame, ma_type: str, pit: dict[str, pd.Seri
         s, who = pct[c], "today’s stocks"
         if pit and ma_type == "EMA" and c in pit and pit[c].reindex(pct.index).notna().all():
             s, who = pit[c].reindex(pct.index), "members of each date"
-        series.append({"name": f"{str(c).replace('D', '-day')} {ma_type}, {who}",
+        series.append({"name": f"{c} {ma_type}, {who}",
                        "values": [None if pd.isna(v) else round(float(v), 1) for v in s.to_numpy()], "color": colours[i % 5]})
     dc.render("lines", {"dates": [f"{d:%Y-%m-%d}" for d in pct.index], "yfmt": "pct", "range": [0, 100],
                         "levels": [{"v": 60, "label": "60% broad", "color": "up"}, {"v": 40, "label": "40% narrow", "color": "down"}],
@@ -155,7 +157,7 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 pct = float((_last[_obs] > _ma[_obs]).sum() / _obs.sum() * 100)
                 rows.append((idx_name.title(), pct,
                              f"{pct:.0f}% · {int(_obs.sum())}", pct <= 40))
-            with kit.card("Participation by index", "br_idx", f"above 50-day {ma_type}"):
+            with kit.card("Participation by index", "br_idx", f"above 50D {ma_type}"):
                 if rows:
                     st.html(kit.bar_list(rows, scale=100))
                 else:
@@ -183,5 +185,5 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     # Data date and counts, no sources (owner, 20-21 Nov 2026).
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
-    st.html(f'<p class="qp-note" style="margin-top:18px">Data to {adj_close.index[-1]:%-d %b %Y}. {len(rank_df)} stocks ranked; '
+    st.html(f'<p class="qp-note" style="margin-top:18px">{_fmt.data_to(adj_close.index[-1])}. {len(rank_df)} stocks ranked; '
             f'{gap_count(rank_df)} with a price gap, {short_n} with a short history.</p>')

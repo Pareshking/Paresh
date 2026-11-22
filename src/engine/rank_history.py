@@ -2,7 +2,7 @@
 
 A Track Record month says what the book returned. This says why it held what it
 held: for every name in a month's book, its rank and its entry gates (above the
-50-day EMA, within 20% of its 52-week high, in the index) on the signal date that
+50D EMA, within 20% of its 52-week high, in the index) on the signal date that
 opened the month, and again on the date that closed it, with what the next
 rebalance then did with it. The scores are the backtester's own
 (`_composite_z_score`) read at the same dates from the same prices, so a rank here
@@ -143,7 +143,7 @@ def month_books(prices: pd.DataFrame, tradebook: pd.DataFrame, *, membership=Non
                 "% of 52W high end": b["pct_of_high"].get(sym, np.nan),
                 "In index end": bool(b["in_index"].get(sym, False)),
                 "Next rebalance": (("Held on" if "HOLD" in fate["Action"].iloc[0] else "Sold")
-                                   if len(fate) else ("Held to date" if i + 1 >= len(starts) else "—")),
+                                   if len(fate) else ("Held to date" if i + 1 >= len(starts) else "–")),
                 "Why": (fate["Reason / Signal"].iloc[0] if len(fate) else ""),
             })
         key = f"{pd.Timestamp(s):%Y-%m}"

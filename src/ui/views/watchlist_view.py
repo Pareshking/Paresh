@@ -101,4 +101,5 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
         total_stocks=len(rank_df),
         gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
+        as_of=adj_close.index[-1] if adj_close is not None and len(adj_close.index) else None,
     )

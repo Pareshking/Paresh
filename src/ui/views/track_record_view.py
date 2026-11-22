@@ -119,11 +119,11 @@ def _record_mtd(
 
 def _pct(v: float | int | None) -> str:
     if v is None or pd.isna(v):
-        return "—"
+        return "–"
     try:
         return f"{_fmt.pct(float(v) * 100, fraction=False)}"
     except (TypeError, ValueError):
-        return "—"
+        return "–"
 
 
 def grid_display(grid: pd.DataFrame) -> pd.DataFrame:
@@ -149,7 +149,7 @@ def _tone(v: float | None) -> str:
 def _day(v) -> str:
     """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
     try:
-        return f"{pd.Timestamp(v):%-d %b %Y}" if v else "—"
+        return f"{pd.Timestamp(v):%-d %b %Y}" if v else "–"
     except (TypeError, ValueError):
         return str(v)
 
@@ -204,7 +204,7 @@ def _render_rank_months(books: dict) -> None:
         show = df.copy()
         for col in ("Above 50D EMA start", "Above 50D EMA end", "In index end"):
             if col in show.columns:
-                show[col] = show[col].map({True: "Yes", False: "No"}).fillna("—")
+                show[col] = show[col].map({True: "Yes", False: "No"}).fillna("–")
 
         # Keep the useful ranking fields first; the shared SaaS renderer gives
         # this table the same visual language as Calendar returns and the rest
@@ -218,7 +218,7 @@ def _render_rank_months(books: dict) -> None:
         rest = [c for c in show.columns if c not in cols]
         show = show[cols + rest]
         # These are places among the qualified (both filters passed), as Actions
-        # quotes them; a stock that fails a filter has none and shows "—"
+        # quotes them; a stock that fails a filter has none and shows "–"
         # (audit, 8 Nov 2026: read as the overall rank beside Portfolio's).
         show = show.rename(columns={"Rank at start": "Qualified rank at start",
                                     "Rank at end": "Qualified rank at end"})

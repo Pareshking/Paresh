@@ -24,6 +24,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.ui import formats as _fmt
+
 from src.engine import book_exposure as bx
 from src.engine import dashboard_insights as di
 from src.engine import portfolio_report as pr
@@ -123,7 +125,7 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     frame = bi.read()
     idx = {k: bi.series(k, frame=frame).loc[:as_of] for k in bi.SERIES}
     # An index not yet published for the book's session: Nifty Total Market keeps its history (the note
-    # under Returns says it is a session behind); the comparison indices read "—" rather than a stale close (S148).
+    # under Returns says it is a session behind); the comparison indices read "–" rather than a stale close (S148).
     end = idx[bi.TOTAL_MARKET].dropna().index.max() if len(idx[bi.TOTAL_MARKET].dropna()) else as_of
     idx = {k: (v if k in (bi.TOTAL_MARKET, "nifty500_mom50") else di.as_of(v, end)) for k, v in idx.items()}
     market, mom = idx[bi.TOTAL_MARKET], idx["nifty500_mom50"]
@@ -308,7 +310,7 @@ def header(p: Page) -> list:
              (f"Month so far · {this:%b}", pct(mtd), tone(mtd),
               "" if gap is None else f"{abs(gap):.1f} pts {'ahead of' if gap >= 0 else 'behind'} the market", tone(gap),
               f"Nifty Total Market {pct(mmtd)}"),
-             ("Below its peak today", pct(f.now) if f else "—", "dh-watch" if f and f.now < 0 else "",
+             ("Below its peak today", pct(f.now) if f else "–", "dh-watch" if f and f.now < 0 else "",
               f"Peak {dshort(f.peak_now)}" if f else "", "", f"Largest fall from a peak {pct(f.worst)}" if f else "")]
     nav = "".join(f'<a class="dh-pill" href="#{a}">{e(t)}</a>' for a, t in NAV)
     # Each system's own start and rules: the 750 from 1 Jan 2026, the others from their
@@ -337,7 +339,7 @@ def holdings_spec(p: Page) -> dict:
     rows = []
     for _, h in t.iterrows():
         s = str(h["Symbol"])
-        ind = str(h.get("Sector / Industry") or "—")
+        ind = str(h.get("Sector / Industry") or "–")
         st_, tn = word.get(p.industry_state.get(ind, ""), ("", ""))
         tr = p.trails.get(s, [None, None, None])
         ema = pd.to_numeric(r["% 50 EMA"].get(s) if "% 50 EMA" in r else np.nan, errors="coerce")
@@ -405,7 +407,7 @@ def section_exposure(p: Page) -> list:
         d = v - m
         body += (f'<div class="pf-irow"><span class="pf-nm">{e(short(n))}<small>{f"{k} holding" + ("s" if k > 1 else "") if k else "none held"}</small></span>'
                  f'<span class="pf-ibar"><i style="width:{v / top * 100:.1f}%"></i><b style="left:{m / top * 100:.1f}%"></b></span>'
-                 f'<span class="dh-num dh-b">{f"{v:.1f}%" if v else "—"}</span><span class="dh-num dh-muted">{m:.1f}%</span>'
+                 f'<span class="dh-num dh-b">{f"{v:.1f}%" if v else "–"}</span><span class="dh-num dh-muted">{m:.1f}%</span>'
                  f'<span class="dh-num {tone(d)}">{sg(d)}</span><span class="{c}">{e(st_)}</span></div>')
     ex = p.exposure
     size = ex[ex["kind"] == "size"].pivot_table(index="date", columns="name", values="weight").sort_index() if len(ex) else pd.DataFrame()
@@ -523,7 +525,7 @@ def section_equity(p: Page) -> list:
               (f"The market {pct(fm.worst)} ({dshort(fm.peak)} → {dshort(fm.low)})"
                + ("" if fm.recovered is not None else ", not yet recovered")) if fm else ""),
              ("Worst day", pct(f.worst_day), "dh-down", dshort(f.worst_day_on), "", f"The market {pct(mkt_on)} that day"),
-             ("Worst month-end", pct(wme[0]) if wme else "—", "dh-down" if wme and wme[0] < 0 else "",
+             ("Worst month-end", pct(wme[0]) if wme else "–", "dh-down" if wme and wme[0] < 0 else "",
               f"{wme_m:%B}" if wme_m is not None else "", "", "Counting month-end values only")] if f else []
     risk_cells = []
     if rk:
@@ -533,10 +535,10 @@ def section_equity(p: Page) -> list:
                        f"On average, a 1% market day is a {rk.beta:.1f}% book day"),
                       ("Tracking error", f"{rk.tracking:.1f}%", "", "How far it strays from the market", "",
                        f"About {rk.tracking / np.sqrt(pr.YEAR):.1f} pt on a typical day"),
-                      ("Up / down capture, 60 sessions", f"{cap[0]:.0f}% / {cap[1]:.0f}%" if cap else "—", "",
+                      ("Up / down capture, 60 sessions", f"{cap[0]:.0f}% / {cap[1]:.0f}%" if cap else "–", "",
                        "Falls less on bad days" if cap and cap[1] < 100 else "Falls more on bad days", "dh-up" if cap and cap[1] < 100 else "dh-down",
                        "Rises less on good days" if cap and cap[0] < 100 else "Rises more on good days"),
-                      ("How they move together, 90 sessions", "—" if p.correlation is None else f"{p.correlation:.2f}", "",
+                      ("How they move together, 90 sessions", "–" if p.correlation is None else f"{p.correlation:.2f}", "",
                        "Average correlation of the holdings", "", "Low: the list is well spread" if p.correlation is not None and p.correlation < 0.3 else "")]
     windows = " · ".join(f"{r.label}, {r.sessions} sessions" for r in risks[:1])
     second = (p.equity.index[0] + pd.Timedelta(days=1) + pd.DateOffset(years=1))
@@ -556,13 +558,13 @@ def section_equity(p: Page) -> list:
                   if len(spec["dates"]) > 1 else   # a system's first days (Nifty 1000, Nov 2026): one point draws no line
                   f'<p class="dh-note">The growth chart starts once the book has two sessions; it has {len(spec["dates"])}.</p>'),
                  how("Top: what ₹100 put in at the start has grown to, the book after costs against NSE’s Nifty500 Momentum 50 and Nifty "
-                     "Total Market. Bottom: drawdown, how far each sat below its own highest close so far, every day.",
+                     "Nifty Total Market. Bottom: drawdown, how far each sat below its own highest close so far, every day.",
                      "A drawdown is today’s value against the highest value before it: (value ÷ peak) − 1. The largest fall from a peak "
                      "(maximum drawdown) is the deepest point; the worst day is a different measure, the largest fall from one close to the "
                      "next; the worst month-end counts month-end values only.",
                      ["Date", "The book", "Momentum 50", "Market", "Book below peak", "Market below peak"],
-                     [[d, f"{b:.1f}", "—" if mo is None else f"{mo:.1f}", "—" if mk is None else f"{mk:.1f}", f"{dd:.1f}%",
-                       "—" if dm is None else f"{dm:.1f}%"]
+                     [[d, f"{b:.1f}", "–" if mo is None else f"{mo:.1f}", "–" if mk is None else f"{mk:.1f}", f"{dd:.1f}%",
+                       "–" if dm is None else f"{dm:.1f}%"]
                       for d, b, mo, mk, dd, dm in list(zip(spec["dates"], spec["book"], spec["mom"], spec["market"], spec["dd"], spec["ddm"]))[::-5]]),
                  _kpis(falls, "pf-four"),
                  f'<div class="dh-cap"><b>Risk</b><span>{e(windows + more)}</span></div>', _kpis(risk_cells, "pf-five"), rtable,
@@ -570,13 +572,13 @@ def section_equity(p: Page) -> list:
                      "move in the market. Tracking error: how much the book’s return differs from the market’s, scaled to a year (the spread "
                      "of the daily gaps). Capture: on the market’s up days and down days, the book’s average move as a share of the market’s.",
                      f"Tracking error {te:.1f}% means: in a year the market makes +10%, a book like this one would usually end between about "
-                     f"{ex_lo:+.0f}% and {ex_hi:+.0f}% (10 ± {te:.1f}, two years in three), and outside that range one year in three. On a "
+                     f"{_fmt.signed(ex_lo, 0)}% and {_fmt.signed(ex_hi, 0)}% (10 ± {te:.1f}, two years in three), and outside that range one year in three. On a "
                      f"typical day the book and the market differ by about {te / np.sqrt(pr.YEAR):.1f} point (tracking error ÷ √250). An "
                      "index fund aims for well under 1%; a 20-stock small-company momentum book cannot be close to the market, and that "
                      "distance is where its lead comes from.",
                      ["Measure", "The book", "The market"],
                      [["Volatility, a year", f"{rk.vol:.1f}%", f"{rk.market_vol:.1f}%"], ["Beta", f"{rk.beta:.2f}", "1.00"],
-                      ["Tracking error", f"{rk.tracking:.1f}%", "—"], ["Sessions", str(rk.sessions), str(rk.sessions)]] if rk else [])])
+                      ["Tracking error", f"{rk.tracking:.1f}%", "–"], ["Sessions", str(rk.sessions), str(rk.sessions)]] if rk else [])])
 
 
 def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
@@ -587,7 +589,7 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
 
     def cell(v, b=False, q=False):
         cls = "dh-num" + (" pf-q" if q else "") + (f" dh-b {tone(v)}" if b else "")
-        return f'<td class="{cls}">{"—" if v is None else sg(v)}</td>'
+        return f'<td class="{cls}">{"–" if v is None else sg(v)}</td>'
     head = ('<thead><tr><th scope="col">%</th>' + "".join(f'<th scope="col" class="dh-num">{x}</th>' for x in MON)
             + "".join(f'<th scope="col" class="dh-num{" pf-q" if i == 0 else ""}">{q}</th>' for i, (q, _) in enumerate(pr.QUARTERS))
             + '<th scope="col" class="dh-num pf-q">Year</th></tr></thead>')
@@ -625,8 +627,8 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
         lead = None if bk["year"] is None or mk["year"] is None else bk["year"] - mk["year"]
         ys += (f'<tr><th scope="row">{y}{", so far" if y == this.year else ""}</th><td class="dh-num dh-b {tone(bk["year"])}">{pct(bk["year"])}</td>'
                f'<td class="dh-num">{pct(mk["year"])}</td><td class="dh-num dh-b {tone(lead)}">{sg(lead)}</td><td class="dh-num">{pct(row["mom"]["year"])}</td>'
-               f'<td class="dh-num">{ahead} of {nmon}</td><td class="dh-num dh-down">{pct(fy.worst) if fy else "—"}'
-               f'<span class="dh-sub">market {pct(fm.worst) if fm else "—"}</span></td></tr>')
+               f'<td class="dh-num">{ahead} of {nmon}</td><td class="dh-num dh-down">{pct(fy.worst) if fy else "–"}'
+               f'<span class="dh-sub">market {pct(fm.worst) if fm else "–"}</span></td></tr>')
     years = ('<div class="dh-scroll"><table class="dh-tab dh-tab-s pf-nw"><thead><tr><th scope="col">Year</th><th scope="col" class="dh-num">Book</th>'
              '<th scope="col" class="dh-num">Market</th><th scope="col" class="dh-num">Lead</th><th scope="col" class="dh-num">Momentum 50</th>'
              f'<th scope="col" class="dh-num">Months ahead</th><th scope="col" class="dh-num">Largest fall</th></tr></thead><tbody>{ys}</tbody></table></div>')
@@ -665,7 +667,7 @@ def day_section(p: Page) -> list:
     t = g.iloc[-1]
     beat20, beat = int((last["gap"] > 0).sum()), int((g["gap"] > 0).sum())
     cells = [("Today", sg(t["gap"], 1, " pts"), tone(t["gap"]), f"Book {pct(t['book'])}, market {pct(t['market'])}", "", ""),
-             ("Last 5 sessions", sg(five[0] - five[1], 1, " pts") if None not in five else "—", tone(None if None in five else five[0] - five[1]),
+             ("Last 5 sessions", sg(five[0] - five[1], 1, " pts") if None not in five else "–", tone(None if None in five else five[0] - five[1]),
               f"Book {pct(five[0])}, market {pct(five[1])}", "", ""),
              ("Last 20 sessions", f"{beat20} of {len(last)}", "dh-up" if beat20 > len(last) / 2 else "dh-watch", "Sessions the book beat the market", "", ""),
              (f"Since {dshort(p.equity.index[1])}", f"{beat} of {len(g)}", "dh-up" if beat > len(g) / 2 else "dh-watch",
@@ -715,7 +717,7 @@ def trade_stats(p: Page) -> dict:
 
 def _days(v) -> str:
     """A median holding period, or a dash when there is none to take."""
-    return "—" if v is None or pd.isna(v) else f"{v:.0f}"
+    return "–" if v is None or pd.isna(v) else f"{v:.0f}"
 
 
 def section_trades_top(p: Page, s: dict) -> list:
@@ -738,7 +740,7 @@ def section_trades_top(p: Page, s: dict) -> list:
              ("Average loss", pct(s["avg_loss"]), "dh-down", f"Median {pct(s['med_loss'])}", "", ""),
              # A side with no closed trade has no median (Combined, 21 Nov 2026: no closed loser yet).
              ("Held, median", _days(s["hold"]) + " days", "", f"Winners {_days(s['hold_win'])} · losers {_days(s['hold_loss'])}", "", ""),
-             ("Changed at a rebalance", f"{avg:.0f} of 20" if avg else "—", "", f"On average, from {reb[1][0]:%B}" if len(reb) > 1 else "", "",
+             ("Changed at a rebalance", f"{avg:.0f} of 20" if avg else "–", "", f"On average, from {reb[1][0]:%B}" if len(reb) > 1 else "", "",
               f"{reb[-1][0]:%B} {reb[-1][1]}, {lo[0]:%B} {lo[1]}" if lo else "")]
     ex = "".join(f'<tr><th scope="row">{e(n)}<span class="dh-sub">{e(sub)}</span></th><td class="dh-num">{k}</td>'
                  f'<td class="dh-num {tone(a)}">{pct(a)}</td><td class="dh-num {tone(md)}">{pct(md)}</td></tr>' for n, sub, k, a, md in s["exits"])
@@ -867,7 +869,7 @@ def page_parts(p: Page) -> list:
               'worked out beside them (the Nifty 500 row shows what each was frozen against). Momentum 50 is NSE’s Nifty500 Momentum 50, a '
               'momentum index to judge the strategy by.</p></section>', END]
     parts += day_section(p) + section_trades_top(p, s) + ["</section>"]
-    parts += section_systems(p) + [f'<p class="dh-foot">Data to {p.as_of:%-d %b %Y}.</p>']
+    parts += section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to(p.as_of)}.</p>']
     return parts
 
 
@@ -941,7 +943,7 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
         with b:
             st.download_button(f"Export CSV · {n_lines} lines", tb.to_csv(index=False).encode() if n_lines else b"",
                                f"model_book_rebalances_{p.as_of:%Y%m%d}.csv", "text/csv", key="pf_dl_lines")
-    emit([END] + section_systems(p) + [f'<p class="dh-foot">Data to {p.as_of:%-d %b %Y}.</p>'])
+    emit([END] + section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to(p.as_of)}.</p>'])
 
 
 __all__ = ["render", "gather", "page_parts", "html_of", "Page"]

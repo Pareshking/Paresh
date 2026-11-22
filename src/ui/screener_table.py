@@ -227,7 +227,7 @@ def _price_html(v: float | None) -> str:
     """The price with paise, and beside it the price rounded to the rupee for
     the phone's compact list (rounded, not cut: ₹2,373.50 reads ₹2,374)."""
     if v is None:
-        return "—"
+        return "–"
     return (f'<span class="px-d">{_fmt.price(v)}</span>'
             f'<span class="px-m">{_fmt.price(v)}</span>')
 
@@ -235,14 +235,14 @@ def _price_html(v: float | None) -> str:
 def _peak_cell(v: float | None, title: str = "") -> str:
     """% below a peak: plain, never coloured; "New high" at the peak itself."""
     if v is None:
-        return '<td class="n muted" data-v="">—</td>'
+        return '<td class="n muted" data-v="">–</td>'
     txt = "New high" if v >= 0 else f"{_signed(v, plus=False)}%"
     return f'<td class="n" data-v="{v}"{title}>{txt}</td>'
 
 
 def _pct_cell(v: float | None, cls_extra: str = "") -> tuple[str, str]:
     if v is None:
-        return f'<td class="n muted {cls_extra}" data-v="">—</td>', ""
+        return f'<td class="n muted {cls_extra}" data-v="">–</td>', ""
     cls = "pos" if v > 0 else "neg" if v < 0 else ""
     # Signed from the ROUNDED value, so −0.04% is "0.0%" and not "−0.0%".
     txt = _fmt.pct(v)
@@ -284,7 +284,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     cells: dict[str, str] = {}
 
     cells["rank"] = (f'<td class="c-rank" data-v="{rank if rank is not None else ""}">'
-                     f'{int(rank) if rank is not None else "—"}</td>')
+                     f'{int(rank) if rank is not None else "–"}</td>')
     qr = _num(row.get("Qualified Rank"))
     # "Out": not among the qualified that day, the word the Dashboard's rank
     # trail uses for the same thing (S154).
@@ -296,13 +296,13 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     for key, col in (("p3", "Rank (-3M)"), ("p1", "Rank (-1M)")):
         p_ = _num(row.get(col))
         cells[key] = (f'<td class="n past" data-v="{"" if p_ is None else p_}">'
-                      f'{"—" if p_ is None else int(p_)}</td>')
+                      f'{"–" if p_ is None else int(p_)}</td>')
     # The book's two lines, named on the row they fall under (rank order only).
     cut_txt = ("The book buys to here: the 20th qualified" if qr == BUY_CUT else
                "A holding is kept to here: the 40th qualified" if qr == KEEP_CUT else "")
     sc = _num(row.get("Score"))
     cells["score"] = (f'<td class="n" data-v="{"" if sc is None else sc}">'
-                      f'{"—" if sc is None else f"{sc:.2f}"}</td>')
+                      f'{"–" if sc is None else f"{sc:.2f}"}</td>')
     held = bool(row.get("Held"))
     cells["stock"] = (
         f'<td class="c-stock" data-v="{sym_s}"><a href="{stock_href(sym)}" '
@@ -312,7 +312,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
         f'<span class="sub">{_esc(sub)}</span>'
         f'{f"<span class=cutnote>{cut_txt}</span>" if cut_txt else ""}</a></td>'
     )
-    r3_txt = "—" if r3 is None else f"{'+' if r3 > 0 else '−' if r3 < 0 else ''}{abs(r3) * 100:.1f}%"
+    r3_txt = "–" if r3 is None else f"{'+' if r3 > 0 else '−' if r3 < 0 else ''}{abs(r3) * 100:.1f}%"
     r3_cls = "" if r3 is None else ("pos" if r3 > 0 else "neg" if r3 < 0 else "")
     cells["price"] = (
         f'<td class="n c-price" data-v="{cmp_v if cmp_v is not None else ""}">'
@@ -322,28 +322,28 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
         f'<span class="m-only {r3_cls}">{r3_txt} 3M</span></td>'
     )
     d = _num(row.get("Rank Δ 1M"))
-    cells["d1m"] = ('<td class="n" data-v="">—</td>' if d is None else
+    cells["d1m"] = ('<td class="n" data-v="">–</td>' if d is None else
                     f'<td class="n {"pos" if d > 0 else "neg" if d < 0 else ""}" data-v="{d}">'
                     f'{_signed(d, 0) if d else "0"}</td>')
     mc = _num(row.get("Market Cap (Cr)"))
     cells["mcap"] = (f'<td class="n" data-v="{"" if mc is None else mc}">'
-                     f'{"—" if mc is None else _fmt.inr(mc)}</td>')
+                     f'{"–" if mc is None else _fmt.inr(mc)}</td>')
     for w in PERIOD_WINDOWS:
         cells[f"r{w}"] = _pct_cell(_num(row.get(f"{w}M Return")))[0]
         sh = _num(row.get(f"{w}M Sharpe"))
         sh_cls = "" if sh is None else "pos" if sh > 0 else "neg" if sh < 0 else ""
         cells[f"sh{w}"] = (f'<td class="n {sh_cls}" data-v="{"" if sh is None else sh}">'
-                           f'{"—" if sh is None else _signed(sh, 2, plus=False)}</td>')
+                           f'{"–" if sh is None else _signed(sh, 2, plus=False)}</td>')
         dd = _num(row.get(f"Max DD {w}M"))
         cells[f"dd{w}"] = (f'<td class="n" data-v="{"" if dd is None else dd}">'
-                           f'{"—" if dd is None else _signed(-abs(dd), plus=False) + "%"}</td>')
+                           f'{"–" if dd is None else _signed(-abs(dd), plus=False) + "%"}</td>')
     ath_v = _num(row.get("% ATH"))
     peak = str(row.get("ATH Date") or "").strip()
     ath_title = f' title="Peak printed {_esc(peak)}"' if peak else ""
     cells["ath"] = _peak_cell(ath_v, ath_title)
     em = _num(row.get("% 50 EMA"))
     cells["ema"] = (f'<td class="n {"" if em is None else "pos" if em > 0 else "neg" if em < 0 else ""}" '
-                    f'data-v="{"" if em is None else em}">{"—" if em is None else _signed(em) + "%"}</td>')
+                    f'data-v="{"" if em is None else em}">{"–" if em is None else _signed(em) + "%"}</td>')
     vol = str(row.get("Volume") or "Normal")
     # "High" is one day's volume at 1.5x or more its 20-day average
     # (momentum.py): a spike, not a high-volume stock (S87 item 3).
@@ -353,7 +353,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
         v = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if v is None else v}">'
-                      f'{"—" if v is None else _fmt.price(v)}</td>')
+                      f'{"–" if v is None else _fmt.price(v)}</td>')
     from src.engine.momentum import CARRIED_MARK
 
     gap = str(row.get("Data Gap") or "🟢")
@@ -368,19 +368,19 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     hz = _num(row.get("Horizons Scored"))
     n_w = len(PERIOD_WINDOWS)
     cells["hz"] = (f'<td class="n{" muted" if hz is None else "" if hz >= n_w else " neg"}" '
-                   f'data-v="{"" if hz is None else hz}">{"—" if hz is None else f"{int(hz)}/{n_w}"}</td>')
+                   f'data-v="{"" if hz is None else hz}">{"–" if hz is None else f"{int(hz)}/{n_w}"}</td>')
     tag = str(row.get("Indices") or "").split(",")[0].strip()
     # The index's name, not the ranking's tag (MICRO250): no internal names
     # on the page (PAGE_DESIGN §2). Sorted by size, largest first.
     idx_name = INDEX_NAMES.get(tag, tag)
     idx_order = list(INDEX_NAMES).index(tag) if tag in INDEX_NAMES else 9
     idx_html = (f'<span class="tag">{_esc(idx_name)}</span>' if tag
-                else '<span class="muted">—</span>')
+                else '<span class="muted">–</span>')
     cells["idx"] = f'<td data-v="{idx_order}">{idx_html}</td>'
     ind_full = str(row.get("Industry") or "").strip()
     ind_short = short_industry(ind_full)
     ind_txt = ind_short if len(ind_short) <= 24 else ind_short[:23] + "…"
-    cells["ind"] = f'<td data-v="{_esc(ind_full)}" title="{_esc(ind_full)}">{_esc(ind_txt) or "—"}</td>'
+    cells["ind"] = f'<td data-v="{_esc(ind_full)}" title="{_esc(ind_full)}">{_esc(ind_txt) or "–"}</td>'
     # A failed filter says by how much (S87 item 6): the distance below the
     # 50D EMA, and below the 52W high against the within-20% rule.
     hi_v = _num(row.get("% High"))
@@ -403,11 +403,11 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     for key, col in (("nh1", "New Highs 1M"), ("nh3", "New Highs 3M")):
         n = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if n is None else n}">'
-                      f'{"—" if n is None else int(n)}</td>')
+                      f'{"–" if n is None else int(n)}</td>')
     cells["hi"] = _peak_cell(_num(row.get("% High")))
     poly, up = paths.get(sym, ("", True))
     cells["spark"] = (f'<td class="c-path{"" if up else " dn"}" data-p="{poly}"></td>'
-                      if poly else '<td class="c-path muted">—</td>')
+                      if poly else '<td class="c-path muted">–</td>')
     classes = " ".join(c for c in ("hl" if is_hl else "", "cut" if qr in (BUY_CUT, KEEP_CUT) else "") if c)
     hl = f' class="{classes}"' if classes else ""
     return _short_sort_keys(f'<tr data-stock="{sym_s}"{hl}>' + "".join(cells[c[0]] for c in cols) + "</tr>")

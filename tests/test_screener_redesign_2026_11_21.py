@@ -111,7 +111,8 @@ def test_the_data_line_names_no_source(monkeypatch):
     idx = pd.bdate_range("2026-11-02", "2026-11-20")
     df = pd.DataFrame({"Symbol": ["A"], "Short History": ["No"], "Data Gap": ["🟢"]})
     line = rv.data_line(df, pd.DataFrame({"A": 1.0}, index=idx))
-    assert line.count("Data to 20 Nov 2026.") == 1
+    # The source the prices come from, named once (S173 rule 7); never the internal path (21 Nov).
+    assert line.count("Data to 20 Nov 2026 · NSE.") == 1
     assert "Personal" not in line and "release files" not in line
     assert "Market caps are to 18 Nov" in line
 

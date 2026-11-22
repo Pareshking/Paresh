@@ -225,7 +225,7 @@ def pts(x: float | None) -> str:
     0.083 -> "+8.3 pts" (owner, 8 Nov 2026, S97 d). Formatting only."""
     v = _finite(x)
     if v is None:
-        return "\u2014"
+        return "\u2013"
     return f"{signed_number(100 * v)} pts"
 
 
@@ -234,7 +234,7 @@ def pct(x: float | None, signed: bool = True) -> str:
     finite number. Formatting only: no figure is computed here."""
     v = _finite(x)
     if v is None:
-        return "\u2014"
+        return "\u2013"
     return f"{signed_number(100 * v, plus=signed)}%"
 
 

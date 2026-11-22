@@ -952,9 +952,9 @@ def _calculate_backtest_metrics(
 # books by one name (31 Dec 2025, 31 Aug 2026).
 MEMBERS_ONLY_SCORING_FROM = "2026-11-30"
 
-# The screener has always required 30 prints before it will quote a 50-day EMA
+# The screener has always required 30 prints before it will quote a 50D EMA
 # (momentum.py: ewm(span=50, min_periods=30)); the backtester and rank_history
-# required none, so a name with 10 prints could pass "above its 50-day EMA"
+# required none, so a name with 10 prints could pass "above its 50D EMA"
 # here and fail the same gate on the Screener (duplicate audit, 10 Nov 2026:
 # BAGMANE, BIRET and ICICILIFE all did, on 5 Nov). Owner, 10 Nov 2026: 30
 # prints is right, forward-dated from the next signal so the record to date is
@@ -1437,11 +1437,11 @@ def run_backtest(
 
             closed_trades.append(
                 {
-                    "Month": f"{p_start_dt:%b %Y}" if p_start_dt else "—",
+                    "Month": f"{p_start_dt:%b %Y}" if p_start_dt else "–",
                     "Symbol": s,
-                    "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
+                    "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "–",
                     "Entry Price": p_entry,
-                    "Exit Date": f"{p_start_dt:%d %b %Y}" if p_start_dt else "—",
+                    "Exit Date": f"{p_start_dt:%d %b %Y}" if p_start_dt else "–",
                     "Exit Price": p_exit,
                     "Return %": ret_pct,
                     "Holding (Days)": h_days,
@@ -1503,7 +1503,7 @@ def run_backtest(
         # Record Holds
         for s in holds:
             p_curr = _fill_price(prices, s, fwd_start)
-            rk = full_ranked.index.get_loc(s) + 1 if s in full_ranked.index else "—"
+            rk = full_ranked.index.get_loc(s) + 1 if s in full_ranked.index else "–"
             w_val = float(wts.get(s, 0.0)) * 100
             pos = open_positions.get(s)
             p_entry = pos["entry_price"] if pos else p_curr
@@ -1661,7 +1661,7 @@ def run_backtest(
                     # today's. The live mark lives in `live_book`.
                     "Month": f"🟢 Open (as of {last_dt:%d %b %Y})",
                     "Symbol": s,
-                    "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "—",
+                    "Entry Date": f"{entry_dt:%d %b %Y}" if entry_dt else "–",
                     "Entry Price": p_entry,
                     "Exit Date": f"Not exited (mark {last_dt:%d %b %Y})",
                     "Exit Price": p_curr,
@@ -1809,8 +1809,8 @@ def run_backtest(
                     {
                         "Action": "🔴 SOLD",
                         "Symbol": s,
-                        "Industry": sec_map.get(s, "—"),
-                        "Rank at Signal": live_ranks.get(s, "—"),
+                        "Industry": sec_map.get(s, "–"),
+                        "Rank at Signal": live_ranks.get(s, "–"),
                         "Entry Date": pos.get("entry_date"),
                         "Entry Price": entry_price,
                         "Exit Price": exit_price,
@@ -1829,7 +1829,7 @@ def run_backtest(
 
             for s in bought:
                 fill_price = _fill_price(prices, s, fill_idx)
-                rk = live_ranks.get(s, "—")
+                rk = live_ranks.get(s, "–")
                 # A name bought at this fill is held FROM this fill: its entry
                 # date is the fill date, not whatever it was in a prior life.
                 positions[s] = {
@@ -1844,7 +1844,7 @@ def run_backtest(
                     {
                         "Action": "🟢 BOUGHT",
                         "Symbol": s,
-                        "Industry": sec_map.get(s, "—"),
+                        "Industry": sec_map.get(s, "–"),
                         "Rank at Signal": rk,
                         "Entry Date": rebal_fill_dt,
                         "Entry Price": fill_price,
@@ -1863,15 +1863,15 @@ def run_backtest(
                     {
                         "Action": "⚪ HELD",
                         "Symbol": s,
-                        "Industry": sec_map.get(s, "—"),
-                        "Rank at Signal": live_ranks.get(s, "—"),
+                        "Industry": sec_map.get(s, "–"),
+                        "Rank at Signal": live_ranks.get(s, "–"),
                         "Entry Date": pos.get("entry_date"),
                         "Entry Price": entry_price,
                         "Exit Price": mark,
                         "Return %": _round_trip_return(entry_price, mark),
                         "Weight %": float(new_wts.get(s, 0.0)) * 100,
                         "Reason": (
-                            f"Buffer Zone Retention (Rank #{live_ranks.get(s, '—')})"
+                            f"Buffer Zone Retention (Rank #{live_ranks.get(s, '–')})"
                         ),
                     }
                 )
@@ -1902,7 +1902,7 @@ def run_backtest(
         live_rows.append(
             {
                 "Symbol": s,
-                "Industry": sec_map.get(s, "—"),
+                "Industry": sec_map.get(s, "–"),
                 "Entry Date": entry_dt,
                 "Entry Price": entry_price,
                 # Preserve original fill weight separately from the latest target
@@ -1916,11 +1916,11 @@ def run_backtest(
                     (as_of_dt - entry_dt).days if entry_dt is not None else 0
                 ),
                 "Weight %": float(book_wts.get(s, 0.0)) * 100,
-                "Rank at Entry": pos.get("entry_rank", "—"),
+                "Rank at Entry": pos.get("entry_rank", "–"),
                 # Ranks come from the rebalance SIGNAL date, not from today.
                 # Calling this "Rank Now" invited reading a 31 Aug rank as a
                 # live one and acting on it.
-                "Rank at Rebalance": live_ranks.get(s, "—"),
+                "Rank at Rebalance": live_ranks.get(s, "–"),
             }
         )
 

@@ -9,6 +9,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.ui import formats as _fmt
+
 from src.engine import indices_page as ip
 from src.ui import indices_data
 from src.ui.views.dashboard_home_view import HOME_CSS, Chart, Cols, emit, how, html_of, sg, tone
@@ -241,7 +243,7 @@ def section_size(sizes: list[ip.SizeYears], as_of: pd.Timestamp) -> list:
                 "A tall bar with a deep dot is a year that rose in the end after a hard fall on the way: the fall is "
                 "what a holder sat through.",
                 ["Year"] + [z.size for z in sizes],
-                [[str(y)] + [("—" if y not in z.years else f"{sg(z.years[y][0], 1, '%')} · {sg(z.years[y][1], 1, '%')}")
+                [[str(y)] + [("–" if y not in z.years else f"{sg(z.years[y][0], 1, '%')} · {sg(z.years[y][1], 1, '%')}")
                              for z in sizes] for y in sorted({y for z in sizes for y in z.years}, reverse=True)])
     return ([f'<div class="dh-sec">{KICK.format("Size, year by year")}<h2 id="s-size" class="dh-h2">{e(h2)}</h2>'
              f'<p class="dh-note">The bar is the calendar year\'s return; the dot is the worst fall within it. '
@@ -281,13 +283,13 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
                 f"{_short(full[-1].name)} trails at {sg(full[-1].returns[12], 1, '%')}.") if full else g
         body = ""
         for x in xs:
-            hi = "—" if x.from_high is None else ("at high" if abs(x.from_high) < 0.05 else sg(x.from_high, 1, "%"))
+            hi = "–" if x.from_high is None else ("at high" if abs(x.from_high) < 0.05 else sg(x.from_high, 1, "%"))
             cells = "".join(_num(x.returns[m], 1, "%") for m in ip.WINDOWS[:-1])
             cells += (_num(x.returns[12], 1, "%") if x.returns[12] is not None
                       else f'<td class="dh-num dh-muted">since {x.live:%-d %b}</td>')
             body += (f'<tr><th scope="row">{e(_short(x.name))}</th>' + cells
                      + f'<td class="dh-num dh-muted ix-hide-s">{e(hi)}</td>'
-                     f'<td class="dh-num dh-muted ix-hide-s">{"—" if x.pe is None else f"{x.pe:.1f}"}</td></tr>')
+                     f'<td class="dh-num dh-muted ix-hide-s">{"–" if x.pe is None else f"{x.pe:.1f}"}</td></tr>')
         parts.append(f'<div class="dh-sec dh-sec-cont"><h3 class="ix-fam">{e(lead)}</h3><p class="dh-note">{e(GROUP_NOTE[g])}</p>'
                      '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
                      + "".join(f'<th scope="col" class="dh-num">{"1Y" if m == 12 else f"{m}M"}</th>' for m in ip.WINDOWS)
@@ -306,7 +308,7 @@ def page_parts(f: ip.Frames) -> list:
     n = sum(len(v) for v in every.values())
     return (head(vals, as_of) + section_valuation(f, vals, m1, m3) + section_styles(sts, m1, m3) + section_lag(sts)
             + section_years(sts, as_of) + section_size(ip.size_years(f), as_of) + section_every(f, every, as_of)
-            + [f'<p class="dh-foot">Data to {_dy(as_of)} · {n} broad, theme and strategy indices</p>'])
+            + [f'<p class="dh-foot">{_fmt.data_to(as_of, "NSE")} · {n} broad, theme and strategy indices</p>'])
 
 
 def render_indices_view() -> None:

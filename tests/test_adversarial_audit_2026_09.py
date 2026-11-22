@@ -638,7 +638,7 @@ def test_qualified_correlation_status_handles_zero_and_unknown():
 
     A perfectly uncorrelated book fell through to "High Correlation", and so did
     a single-name book where corr_val is None -- labelling an unknown as a bad
-    state beside a "—".
+    state beside a "–".
     """
     from src.ui.views.qualified_view import correlation_note
 
@@ -661,7 +661,7 @@ def test_qualified_average_return_colour_follows_its_sign():
 
     assert _tone(-0.154) == "down" and _pct(-0.154) == "−15.4%"
     assert _tone(0.42) == "up" and _pct(0.42) == "+42.0%"
-    assert _tone(0.0) == "" and _tone(float("nan")) == "" and _pct(None) == "—"
+    assert _tone(0.0) == "" and _tone(float("nan")) == "" and _pct(None) == "–"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

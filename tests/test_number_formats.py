@@ -15,9 +15,9 @@ def test_a_price_is_whole_rupees_with_indian_grouping():
     assert fmt.price(100) == "₹100"
 
 
-def test_a_price_below_a_hundred_keeps_two_decimals():
-    assert fmt.price(70.05) == "₹70.05"
-    assert fmt.price(99.994) == "₹99.99"
+def test_a_price_below_a_hundred_is_whole_rupees_too():
+    # Owner, 22 Nov 2026: whole rupees for every price and moving average, "including below ₹100".
+    assert fmt.price(70.05) == "₹70" and fmt.price(99.6) == "₹100" and fmt.price(7.4) == "₹7"
 
 
 def test_missing_and_negative_prices():
@@ -39,3 +39,21 @@ def test_the_order_basket_and_exports_never_use_a_display_formatter():
         assert not any(call in src for call in ("price(", "inr(", "pct(", "pts(", "signed(")), fn.__name__
     rows = actions_page.basket.__doc__
     assert rows and "Kite basket" in rows
+
+
+def test_the_rankings_export_keeps_exact_prices():
+    # Display only (owner, 22 Nov 2026): the page shows ₹70 and ₹1,235; the CSV keeps what the frame holds.
+    import pandas as pd
+
+    from src.ui.views import ranking_view
+
+    out = ranking_view._rankings_csv("t", pd.DataFrame({"Symbol": ["A", "B"], "CMP": [70.05, 1234.567]})).decode()
+    assert "70.05" in out and "1234.567" in out
+    assert fmt.price(70.05) == "₹70" and fmt.price(1234.567) == "₹1,235"
+
+
+def test_dates_read_day_month_year():
+    import pandas as pd
+
+    assert fmt.date("2026-11-13") == "13 Nov 2026" and fmt.date(pd.Timestamp("2026-11-20"), short=True) == "20 Nov"
+    assert fmt.date("Nifty 50") == "Nifty 50" and fmt.date("148.5") == "148.5"

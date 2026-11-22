@@ -89,8 +89,9 @@ def test_turnover_stays_a_percentage(monkeypatch):
     assert "45.0%" in html
 
 
-def test_entry_and_exit_prices_keep_their_paise(monkeypatch):
-    """The blotter's two prices must reproduce the return printed beside them."""
+def test_entry_and_exit_prices_are_whole_rupees(monkeypatch):
+    """Owner, 22 Nov 2026 (S173): whole rupees for every price. The return beside them is computed from the exact
+    prices, so it no longer reproduces from the two figures shown (₹158 → ₹168 reads +6.3%, the trade made +6.8%)."""
     html = _render(
         pd.DataFrame(
             {
@@ -102,8 +103,8 @@ def test_entry_and_exit_prices_keep_their_paise(monkeypatch):
         ),
         monkeypatch,
     )
-    assert "₹157.65" in html
-    assert "₹168.40" in html
+    assert "₹158" in html and "₹168" in html
+    assert "₹157.65" not in html and "₹168.40" not in html
     assert "+6.8%" in html
 
 
