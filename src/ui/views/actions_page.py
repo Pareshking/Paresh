@@ -489,6 +489,10 @@ def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, syst
         else:
             kit.empty("The model book is not available:", "the strategy needs about 18 months of price history to form one.")
         return
+    if source != "My holdings":
+        from src.ui.canonical_book import current_book, unpriced_note
+        if (note := unpriced_note(current_book(adj_close, benchmark_close, system)[1])) is not None:
+            kit.note(*note)
     with bar, st.popover("Kite basket", icon=":material/download:", type="primary"):
         if source == "My holdings":
             cap = float(st.number_input("Capital (₹)", min_value=av.KITE_MIN_CAPITAL, max_value=av.KITE_MAX_CAPITAL,

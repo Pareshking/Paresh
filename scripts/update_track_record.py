@@ -54,6 +54,7 @@ from src.engine.track_record import (  # noqa: E402
 from src.engine import systems  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_1000, SYSTEM_NANO, SYSTEMS  # noqa: E402
+from src.engine.systems import unpriced_members  # noqa: E402,F401  (also read as utr.unpriced_members)
 from src.engine.membership import describe  # noqa: E402
 from src.loaders import former_members, nse_prices  # noqa: E402
 from src.loaders import extra_universe_loader as xl  # noqa: E402
@@ -75,32 +76,6 @@ def record_setup(system: str, shadow: bool = False,
         return system, ledger or str(book.ledger_path), book.inception, dict(book.config)
     return (system, ledger or str(systems.ledger_path(system)), systems.inception(system),
             dict(TRACK_RECORD_CONFIG))
-
-
-def unpriced_members(adj_close: pd.DataFrame, membership, start: pd.Period,
-                     months: int) -> dict[str, list[str]]:
-    """{signal session: members with no close that session} for each month to freeze.
-
-    A month's book is formed at the last session before it; a member with no
-    close there would be silently left out of the ranking it is scored on.
-    """
-    from src.engine.membership import members_on
-    if membership is None or adj_close is None or adj_close.empty:
-        return {}
-    idx = pd.DatetimeIndex(adj_close.index)
-    out: dict[str, list[str]] = {}
-    for k in range(months):
-        month = start + k
-        before = idx[idx < month.start_time]
-        if not len(before):
-            continue
-        day = before[-1]
-        members = members_on(membership, day, canonical=True) or set()
-        row = adj_close.loc[day]
-        missing = sorted(s for s in members if s not in row.index or pd.isna(row[s]))
-        if missing:
-            out[f"{day:%Y-%m-%d}"] = missing
-    return out
 
 
 def _shadow_key(shadow) -> str:
@@ -312,7 +287,10 @@ def main() -> int:
     # frozen only when every member of its signal close has a close that day, so a
     # book is never formed from the part of the index we happen to hold.
     if system == SYSTEM_1000:
-        gaps = unpriced_members(adj_close, membership, start, months)
+        # Only the months this run will freeze: a past month already in the ledger is
+        # the record, and a close lost from it later must not block every new month.
+        frozen = set() if args.force else set(load_ledger(ledger_file, start).get("months") or {})
+        gaps = unpriced_members(adj_close, membership, start, months, skip=frozen)
         if gaps:
             for day, names in gaps.items():
                 print(f"✗ {day}: {len(names)} Nifty 1000 member(s) without a close: "
@@ -330,7 +308,7 @@ def main() -> int:
         f"trackrecord_{system}{f'_shadow_{book.key}' if book else ''}_{as_of:%Y%m%d}_{months}",
         adj_close,
         **run_backtest_kwargs(cfg),
-        sector_map=record_sector_map(adj_close.columns),
+        sector_map=record_sector_map(adj_close.columns, system),
         _benchmark_close=benchmark,
         backtest_months=months,
         _membership=membership,

@@ -109,3 +109,36 @@ def membership_for(system: str) -> dict[str, Any] | None:
     if system == SYSTEM_NANO:
         return hnano
     return combined_history(h750, hnano)
+
+
+def unpriced_members(adj_close: pd.DataFrame, membership: dict[str, Any] | None, start: pd.Period,
+                     months: int, skip=()) -> dict[str, list[str]]:
+    """{signal session: members with no close that session} for each month from `start`.
+
+    A month's book is formed at the last session before it; a member with no
+    close there would be silently left out of the ranking it is scored on
+    (S175). `skip` holds months ("YYYY-MM") not to check: those already frozen.
+    The monthly freeze refuses the Nifty 1000 on any gap; the live record names
+    them on the page.
+    """
+    if membership is None or adj_close is None or adj_close.empty:
+        return {}
+    idx = pd.DatetimeIndex(adj_close.index)
+    skip = {str(k) for k in skip}
+    out: dict[str, list[str]] = {}
+    for k in range(months):
+        month = start + k
+        if str(month) in skip:
+            continue
+        before = idx[idx < month.start_time]
+        if not len(before):
+            continue
+        day = before[-1]
+        members = members_on(membership, day, canonical=True) or set()
+        row = adj_close.loc[day]
+        if isinstance(row, pd.DataFrame):          # a duplicated session: its last row
+            row = row.iloc[-1]
+        missing = sorted(s for s in members if s not in row.index or pd.isna(row[s]))
+        if missing:
+            out[f"{day:%Y-%m-%d}"] = missing
+    return out

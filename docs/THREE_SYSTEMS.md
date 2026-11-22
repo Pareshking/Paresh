@@ -34,11 +34,9 @@ nightly Screener sync on the ₹2,000 Cr list's best-effort path (from 22 Nov
 they are listed as "not ranked yet" under the Screener and the monthly freeze
 refuses the Nifty 1000 (TODO S175).
 
-On main at `ca3ccf3` (21 Nov 2026, 19:52 UTC) neither
-`data/indices/ind_nifty1000_list.csv` nor `indices.nifty_1000` is on disk yet:
-the first daily sync after #591 downloads the list and builds the entry, and
-until then Configuration does not offer the Nifty 1000
-(`config_view`, `os.path.exists(NIFTY_1000_PATH)`).
+The daily sync of 21 Nov 2026 (22:52 UTC, `fb7eb1e`) wrote both: `data/indices/ind_nifty1000_list.csv` and `indices.nifty_1000` (baseline 30 Oct 2026, 1,000 members, changes on 4, 14 and 17 Nov), and `data/nse_market_caps.csv` with 1,000 rows. Configuration offers the Nifty 1000 from then on (`config_view`, `os.path.exists(NIFTY_1000_PATH)`).
+
+S194 (independent audit, 22 Nov 2026), fixed with tests: NSE's two comma spellings in the Nifty 1000 file are read in the 750's spelling (one sector, not two); the record caps the 250 by that NSE industry for the Nifty 1000 only (`record_sector_map(…, system)`); the live book names the members it was formed without (Portfolio and Actions); the Portfolio comparison admits a system only when its ledger holds every month from its start to last month; the freeze checks only the months it is freezing.
 
 ## Choosing a system
 

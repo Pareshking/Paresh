@@ -60,9 +60,19 @@ def nifty_1000_members(path: str = NIFTY_1000_PATH) -> pd.DataFrame:
     return pd.DataFrame({
         "Symbol": frame["Symbol"].values,
         "Company Name": frame["Company Name"].fillna(frame["Symbol"]).values,
-        "Industry": frame["Industry"].fillna(xu.UNCLASSIFIED).values,
+        "Industry": frame["Industry"].fillna(xu.UNCLASSIFIED).map(nse_industry).values,
         "Indices": xu.NANOCAP_250_SHORT,
     }).reset_index(drop=True)
+
+
+def nse_industry(label) -> str:
+    """NSE's industry in the spelling of the 750's files.
+
+    The Nifty 1000 file writes "Oil, Gas & Consumable Fuels" and "Media,
+    Entertainment & Publication" where the 750's write them without commas, so
+    one sector was two on Sectors and under the live sector cap (S194 F2).
+    """
+    return " ".join(str(label).replace(",", " ").split())
 
 
 @st.cache_data(show_spinner=False, ttl=3600)

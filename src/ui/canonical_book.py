@@ -68,3 +68,20 @@ def current_book(
     book.attrs["as_of"] = meta.get("as_of")
     book.attrs["fill_date"] = meta.get("fill_date")
     return book, result
+
+
+def unpriced_note(record: dict[str, Any] | None) -> tuple[str, str] | None:
+    """(head, body) naming the members a live book was formed without, or None (S175/S194 F4).
+
+    The Nifty 1000's live book is formed from the members we hold a close for at
+    each signal close; the monthly freeze refuses such a month, so the page says
+    which members are missing instead of presenting the book as the index's.
+    """
+    gaps = (record or {}).get("unpriced") or {}
+    if not gaps:
+        return None
+    day, names = sorted(gaps.items())[-1]
+    head = f"This book was formed without {len(names)} member{'s' if len(names) != 1 else ''} we hold no close for on {day}."
+    body = (", ".join(names[:12]) + (" and more" if len(names) > 12 else "")
+            + ". Their prices are being collected; the month is frozen only once every member has a close.")
+    return head, body

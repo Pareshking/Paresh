@@ -92,8 +92,10 @@ def _system_prices(system: str, store_revision: str, _store: pd.DataFrame) -> pd
     baseline = history.get("baseline") or {}
     symbols.update(str(s).upper() for s in (baseline.get("symbols") or []))
     for change in history.get("changes") or []:
-        symbols.update(str(s).upper() for s in (change.get("add") or []))
-        symbols.update(str(s).upper() for s in (change.get("remove") or []))
+        # The history writes "added"/"removed" (index_universe.ever_members); "add"/"remove"
+        # matched nothing, so later joiners (ENNATURE) had no prices here (S194 F1).
+        symbols.update(str(s).upper() for s in (change.get("added") or []))
+        symbols.update(str(s).upper() for s in (change.get("removed") or []))
     if not symbols:
         return pd.DataFrame()
 
