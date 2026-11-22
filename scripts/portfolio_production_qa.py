@@ -23,7 +23,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from production_qa import URL, EXPECTED_SHA, app_frame, read_revision, read_state  # noqa: E402
+from production_qa import URL, EXPECTED_SHA, app_frame, correspondence, read_revision, read_state  # noqa: E402
 from _streamlit_nav import _close_custom_popover, open_page  # noqa: E402
 
 OUT = Path(os.getenv("UMIYA_QA_OUT", "artifacts/production_qa"))
@@ -114,12 +114,19 @@ def main() -> int:
                 served, reason = read_revision(page, wait_s=30)
                 report["served_revision"] = (served or "unknown")[:7]
                 report["revision_reason"] = reason
-                if EXPECTED_SHA and served and not EXPECTED_SHA.startswith(
-                    served.lower()[:7]
-                ):
-                    report["failures"].append(
-                        f"Unexpected served revision {served[:7]} for {EXPECTED_SHA[:7]}"
-                    )
+                # The same rule as production_qa.py (S186): the trigger or a build
+                # that contains it matches; an older build fails unless only data/
+                # files lie between, which passes with a note.
+                if EXPECTED_SHA and served:
+                    label, failure, note = correspondence(served)
+                    report["deploy_correspondence"] = label
+                    if note:
+                        report["deploy_note"] = note
+                    if failure:
+                        report["failures"].append(
+                            f"Unexpected served revision {served[:7]} for {EXPECTED_SHA[:7]}: "
+                            f"{failure['detail']}"
+                        )
 
                 for name, (width, height) in VIEWPORTS.items():
                     page.set_viewport_size({"width": width, "height": height})
