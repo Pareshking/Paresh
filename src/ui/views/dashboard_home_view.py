@@ -741,7 +741,7 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None,
         f'{" against the " + e(SIZE_LABELS[mom_parents[s]]) if moms[s] and mom_parents[s] != parents[s] else ""}</span></th>'
         f'<td class="dh-num{" dh-b dh-watch" if book_sizes.get(s, 0) >= 20 else " dh-muted"}">{book_sizes.get(s, 0):.0f}%</td>'
         + "".join(cell(v) for v in vs) + '<td></td>' + "".join(cell(v) for v in prem) + "</tr>" for s, vs, prem in rows)
-    strip = "".join(f'<i class="dh-sz-{k.lower()}" style="width:{v:.0f}%">{e(k) + " " + f"{v:.0f}%" if v >= 20 else ""}</i>'
+    strip = "".join(f'<i class="{size_class(k)}" style="width:{v:.0f}%">{e(k) + " " + f"{v:.0f}%" if v >= 20 else ""}</i>'
                     for k, v in book_sizes.items())
     return [(f'<div class="dh-sec">{_kicker("5", "Size, and where momentum works")}'
             f'<h2 id="s-size" class="dh-h2">{head}</h2><div class="dh-sub">The book by size, NSE index lists</div>'
@@ -958,7 +958,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
         nse = {x for v in lists.values() for x in v}
         extra = [x for x in f1000["Symbol"].astype(str) if x not in nse]
         if extra and sum(x in adj_close.columns for x in extra) >= 0.9 * len(extra):
-            lists["Nanocap 250"] = extra
+            lists["Nano Cap"] = extra
     by_size = di.size_breadth(adj_close, lists, as_of) if lists else None
     ranked_px = adj_close[[c for c in rank_df["Symbol"] if c in adj_close.columns]]
     typical = di.typical_stock(ranked_px, market, idx_end)
@@ -1351,15 +1351,20 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
 
 
 BREADTH_TIER = {"Nifty 100": "Large", "Midcap 150": "Mid", "Smallcap 250": "Small", "Microcap 250": "Micro",
-                "Nanocap 250": "Nano"}
+                "Nano Cap": "Nano Cap"}
 TIER_SIZE = {"Nifty 100": "Large", "Midcap 150": "Mid", "Smallcap 250": "Small", "Microcap 250": "Micro",
-             "Nanocap 250": "Nano", "Outside": "Outside"}
+             "Nano Cap": "Nano Cap", "Ultra Nano Cap": "Ultra Nano Cap", "Outside": "Outside"}
+
+
+def size_class(k: str) -> str:
+    """The CSS class of a size segment: dh-sz-large ... dh-sz-ultra-nano-cap."""
+    return "dh-sz-" + k.lower().replace(" ", "-")
 
 
 def _book_sizes(risk) -> dict[str, float]:
     """The book's weight by size list, percent (book_risk's tiers are shares). The four NSE
-    lists always; Nano (the Nifty 1000's other 250) and Outside (in no list: the > Rs 2,000 Cr
-    names outside the 1000) only when the book holds them, so the bar adds up to the invested
+    lists always; Nano Cap (the Nifty 1000's other 250) and Ultra Nano Cap (outside the 1000)
+    only when the book holds them, so the bar adds up to the invested
     share (S194 L3, 23 Nov 2026: a Nifty 1000 book's 250 were dropped from the bar)."""
     m = {"Large": 0.0, "Mid": 0.0, "Small": 0.0, "Micro": 0.0}
     for tier, share in (getattr(risk, "tiers", None) or {}).items():
@@ -1562,7 +1567,7 @@ HOME_CSS = """
 .dh-mb-n{font-size:var(--fs-12);text-align:center;color:var(--c-muted)}
 .dh-sizebar{display:flex;height:26px;border-radius:3px;overflow:hidden;font-size:var(--fs-12);font-weight:600}
 .dh-sizebar i{display:flex;align-items:center;padding-left:8px;font-style:normal;white-space:nowrap;overflow:hidden}
-.dh-sz-large{background:var(--c-ink)}.dh-sz-mid{background:var(--c-muted)}.dh-sz-small{background:var(--c-caution);color:var(--c-white)}.dh-sz-micro{background:var(--c-caution_line)}.dh-sz-nano{background:var(--c-caution_tint);color:var(--c-caution_ink)}.dh-sz-outside,.dh-sz-other{background:var(--c-rule_strong);color:var(--c-ink)}
+.dh-sz-large{background:var(--c-ink)}.dh-sz-mid{background:var(--c-muted)}.dh-sz-small{background:var(--c-caution);color:var(--c-white)}.dh-sz-micro{background:var(--c-caution_line)}.dh-sz-nano-cap{background:var(--c-caution_tint);color:var(--c-caution_ink)}.dh-sz-ultra-nano-cap,.dh-sz-outside,.dh-sz-other{background:var(--c-rule_strong);color:var(--c-ink)}
 .dh-segbar{display:flex;height:40px;border-radius:4px;overflow:hidden;gap:2px}
 .dh-segbar i{display:flex;align-items:center;padding-left:6px;font-style:normal;font-size:var(--fs-12);font-weight:600;white-space:nowrap;overflow:hidden;color:var(--c-white)}
 .dh-seg-strong{background:var(--c-up)}.dh-seg-slow{background:var(--c-up_line);color:var(--c-ink)!important}.dh-seg-turning{background:var(--c-caution_line);color:var(--c-ink)!important}.dh-seg-weak{background:var(--c-down)}

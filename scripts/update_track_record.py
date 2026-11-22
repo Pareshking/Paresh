@@ -271,7 +271,7 @@ def main() -> int:
         print("✗ universe is empty; refusing to write a record from no data")
         return 1
     print(f"  {len(symbols)} symbols ({len(core)} in the 750, {len(extra)} "
-          f"{'NIFTY NANOCAP 250' if system == SYSTEM_1000 else '₹2,000 Cr list'})")
+          f"{'Nano Cap' if system == SYSTEM_1000 else '₹2,000 Cr list'})")
 
     # Screener's store holds both the 750 and the Nano Cap list; it is the
     # frame's base, and basis_frame below lays NSE under it (owner, 2026-10-02:

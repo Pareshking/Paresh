@@ -30,7 +30,7 @@ from src.engine import book_exposure as bx
 from src.engine import dashboard_insights as di
 from src.engine import portfolio_report as pr
 from src.loaders import benchmark_indices as bi
-from src.ui.views.dashboard_home_view import (END, HOME_CSS, SHORT, Chart, emit, how, html_of, sg)
+from src.ui.views.dashboard_home_view import (END, HOME_CSS, SHORT, Chart, emit, how, html_of, sg, size_class)
 
 e = html.escape
 ROOT = Path(__file__).resolve().parents[3]
@@ -416,13 +416,14 @@ def section_exposure(p: Page) -> list:
     ex = p.exposure
     size = ex[ex["kind"] == "size"].pivot_table(index="date", columns="name", values="weight").sort_index() if len(ex) else pd.DataFrame()
     srows = ""
-    # Nano (the Nifty 1000's other 250) and Other (outside every list) are drawn only when a book held them.
+    # Nano Cap (the Nifty 1000's other 250), Ultra Nano Cap (outside the 1000) and Other (outside the four
+    # lists before the 1000's history) are drawn only when a book held them.
     drawn = [k for k in bx.SIZES if k in ("Large", "Mid", "Small", "Micro") or (k in size and size[k].fillna(0).gt(0).any())]
     for d, r in size.iterrows():
-        segs = "".join(f'<i class="dh-sz-{k.lower()}" style="width:{float(r.get(k, 0)):.1f}%" title="{k} {float(r.get(k, 0)):.0f}%">'
+        segs = "".join(f'<i class="{size_class(k)}" style="width:{float(r.get(k, 0)):.1f}%" title="{k} {float(r.get(k, 0)):.0f}%">'
                        f'{f"{float(r.get(k, 0)):.0f}" if float(r.get(k, 0)) >= 15 else ""}</i>' for k in drawn)
         srows += f'<div class="pf-srow"><span class="dh-mono">{MON[d.month - 1]}</span><div class="dh-sizebar pf-thin">{segs}</div></div>'
-    key = '<div class="pf-key">' + "".join(f'<span><i class="dh-sz-{k.lower()}"></i>{k}</span>' for k in drawn) + '</div>'
+    key = '<div class="pf-key">' + "".join(f'<span><i class="{size_class(k)}"></i>{k}</span>' for k in drawn) + '</div>'
     ind = ex[ex["kind"] == "industry"].pivot_table(index="name", columns="date", values="weight").fillna(0) if len(ex) else pd.DataFrame()
     heat = ""
     if len(ind):

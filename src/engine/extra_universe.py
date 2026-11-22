@@ -47,7 +47,10 @@ UNIVERSE_SHORT = {SYSTEM_750: "750", SYSTEM_1000: "1000",
 SYSTEM_INCEPTION = {SYSTEM_1000: "2026-11", SYSTEM_NANO: "2026-10", SYSTEM_COMBINED: "2026-10"}
 # The 250 the Nifty 1000 adds to the 750, as one group beside NSE's size tiers
 # (owner's name). Our own cut, not an index NSE publishes.
-NANOCAP_250_NAME = "NIFTY NANOCAP 250"
+# Owner, 23 Nov 2026: "Added 250 after nifty 750 from N1000 are Nano Cap, after 1000,
+# everything is Ultra Nano Cap"; NSE's own indices keep their names.
+NANOCAP_250_NAME = "Nano Cap"
+ULTRA_NANO_NAME = "Ultra Nano Cap"
 NANOCAP_250_SHORT = "NANO250"
 SHORT_FORM = "NANO"
 FLOOR_RUPEES = 2_000 * 10_000_000        # ₹2,000 Cr

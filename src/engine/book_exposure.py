@@ -6,7 +6,8 @@ to understand how portfolio moved over the period."
 One row per (rebalance fill date, kind, name): kind "industry" (the record's
 own industry, `model_record.record_sector_map`) or "size" (Large, Mid, Small,
 Micro, by NSE's index lists ON THAT DATE from data/membership_history.json;
-Nano for the Nifty 1000's other 250 from 30 Oct 2026; "Other" for a name in none of them). Weight is the book's weight at the fill,
+Nano Cap for the Nifty 1000's other 250 and Ultra Nano Cap outside the 1000, from 30 Oct 2026;
+"Other" before then for a name in none of them). Weight is the book's weight at the fill,
 in percent.
 
 `data/book_exposure.csv` keeps every rebalance once written: `merge` adds the
@@ -23,12 +24,13 @@ import pandas as pd
 
 PATH = Path(__file__).resolve().parents[2] / "data" / "book_exposure.csv"
 FIELDS = ["date", "kind", "name", "weight"]
-SIZES = ("Large", "Mid", "Small", "Micro", "Nano", "Other")
-# Nifty 100 = Nifty 50 + Next 50 is "Large", as the Dashboard's size lists. "Nano" is the
-# Nifty 1000's other 250 (S194 L3, 23 Nov 2026; our own group, from the index's history,
-# which starts 30 Oct 2026): last, so a name in an NSE size list keeps that size.
+SIZES = ("Large", "Mid", "Small", "Micro", "Nano Cap", "Ultra Nano Cap", "Other")
+# Nifty 100 = Nifty 50 + Next 50 is "Large", as the Dashboard's size lists. "Nano Cap" is the
+# Nifty 1000's other 250 and "Ultra Nano Cap" everything outside the 1000 (owner, 23 Nov 2026),
+# from the index's history, which starts 30 Oct 2026: before it, outside the four lists is
+# "Other", as the kept rows say. Last, so a name in an NSE size list keeps that size.
 SIZE_INDICES = (("Large", "nifty_50"), ("Large", "nifty_next_50"), ("Mid", "nifty_midcap_150"),
-                ("Small", "nifty_smallcap_250"), ("Micro", "nifty_microcap_250"), ("Nano", "nifty_1000"))
+                ("Small", "nifty_smallcap_250"), ("Micro", "nifty_microcap_250"), ("Nano Cap", "nifty_1000"))
 
 
 def books(tradebook: pd.DataFrame) -> dict[pd.Timestamp, pd.Series]:
@@ -50,13 +52,16 @@ def books(tradebook: pd.DataFrame) -> dict[pd.Timestamp, pd.Series]:
 def size_of(symbols, on: pd.Timestamp, membership: dict) -> dict[str, str]:
     from src.engine.membership import members_on
     out: dict[str, str] = {}
+    known_1000 = False
     for label, key in SIZE_INDICES:
         hist = (membership.get("indices") or {}).get(key)
         mem = members_on(hist, on, canonical=True) if hist else None
+        known_1000 = known_1000 or (key == "nifty_1000" and bool(mem))
         for s in symbols:
             if s not in out and mem and s in mem:
                 out[s] = label
-    return {s: out.get(s, "Other") for s in symbols}
+    rest = "Ultra Nano Cap" if known_1000 else "Other"
+    return {s: out.get(s, rest) for s in symbols}
 
 
 def exposure(tradebook: pd.DataFrame, industry: dict[str, str], membership: dict) -> pd.DataFrame:

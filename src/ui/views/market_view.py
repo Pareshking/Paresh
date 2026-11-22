@@ -23,7 +23,7 @@ from src.ui.page_kit import _series_of
 from src.ui.components import gap_count
 from src.ui.theme import render_saas_table
 from src.loaders.index_levels import nse_benchmarks
-from src.engine.extra_universe import NANOCAP_250_SHORT
+from src.engine.extra_universe import NANOCAP_250_NAME, NANOCAP_250_SHORT
 from src.ui.views.market_questions_view import render_market_page_questions, size_closes
 
 
@@ -163,7 +163,7 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                 if not _obs.any():
                     continue
                 pct = float((_last[_obs] > _ma[_obs]).sum() / _obs.sum() * 100)
-                rows.append(("Nanocap 250" if idx_name == NANOCAP_250_SHORT else idx_name.title(), pct,
+                rows.append((NANOCAP_250_NAME if idx_name == NANOCAP_250_SHORT else idx_name.title(), pct,
                              f"{pct:.0f}% · {int(_obs.sum())}", pct <= 40))
             with kit.card("Participation by index", "br_idx", f"above 50D {ma_type}"):
                 if rows:
