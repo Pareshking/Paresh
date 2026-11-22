@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-22 — Every frozen month keeps the evidence it was struck on
+
+- From November 2026, each month the monthly freeze records is saved with everything that produced its number: the prices the backtest was given, the benchmark, the index membership, the settings, the code version, the month's holdings and the raw Screener price file exactly as downloaded. The copy goes to the R2 archive, is never deleted, and the record names it.
+- A frozen month can now be replayed from that copy alone, to the last digit (`scripts/replay_frozen_month.py`). A later change to the live prices can no longer make a past month unreproducible, as happened to October 2026 when Screener served BSE closes for a fortnight.
+- If the copy cannot be saved, the month is not frozen that day, so no month is ever recorded without its evidence.
+- The daily parity check also compares each frozen month's saved holdings with what today's replay would hold and names any difference.
+
 ## 2026-11-22 — Watchlist and stock page: the qualified place and "Held" as on the Screener
 
 - The Watchlist's "Qualified #" column read "Out" for every stock, and no stock was marked "Held", although the Screener showed the same stocks in place (live site, 22 Nov: CUPID 4th and Held on the Screener, "Out" on the Watchlist; KOTAKBANK 10th against "Out"). The stock page's table of the industry's best-ranked stocks had the same fault. Both now read the place among all the qualified and the model book's holdings from the same function as the Screener, and the Watchlist's export carries both columns.

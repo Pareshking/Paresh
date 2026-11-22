@@ -242,12 +242,23 @@ def publish(
     pipeline_version: str,
     release_tag: str,
     skip_if_published: bool = False,
-) -> None:
+    as_of: str | None = None,
+) -> str:
+    """Publish one immutable revision; returns its sha256.
+
+    `as_of` names the archive date explicitly instead of reading it from a
+    parquet's dates: a non-parquet artifact (the monthly freeze bundle, S185, a
+    zip filed under its month "YYYY-MM") needs it. Unset, behaviour is unchanged.
+    """
     if not path.is_file():
         raise FileNotFoundError(path)
 
-    description = describe_parquet(path)
-    as_of = description["as_of"]
+    if as_of is None:
+        description = describe_parquet(path)
+        as_of = description["as_of"]
+    else:
+        description = {"as_of": as_of, "row_count": None, "symbol_count": None,
+                       "min_date": None, "max_date": None, "ranking_contract": None}
     revision_sha256 = _sha256_file(path)
     object_key = (
         f"{key_root}/{as_of}/revisions/{revision_sha256}/{path.name}"
@@ -269,7 +280,7 @@ def publish(
             f"ALREADY PUBLISHED, NOTHING TO DO {dataset} as_of={as_of} "
             f"revision={revision_sha256}"
         )
-        return
+        return revision_sha256
 
     try:
         archive.put_file(
@@ -322,6 +333,7 @@ def publish(
         manifest_key=manifest_key,
         current_key=current_key,
     )
+    return revision_sha256
 
 
 def main() -> int:

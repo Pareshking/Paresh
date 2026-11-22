@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import sys
 from pathlib import Path
@@ -89,7 +90,10 @@ def _run_freeze(monkeypatch, tmp_path, jan_replay: float, accepted: dict, *extra
             "frame_last_session": str(days[-1].date()), "other_source_names": [],
             "other_source_history": []}
     monkeypatch.setattr(mod, "fetch_indices_data", lambda _i: pd.DataFrame({"Symbol": ["AAA"]}))
-    monkeypatch.setattr(mod.nse_prices, "screener_store", lambda: store)
+    # S185: the freeze reads the store's raw bytes once (and archives them).
+    buf = io.BytesIO()
+    store.to_parquet(buf)
+    monkeypatch.setattr(mod.price_source, "fetch_screener_store_bytes", lambda: (buf.getvalue(), "test"))
     monkeypatch.setattr(mod, "fetch_benchmark_history", lambda period: closes["AAA"])
     monkeypatch.setattr(mod.systems, "membership_for", lambda _s: None)
     monkeypatch.setattr(mod.nse_prices, "basis_frame", lambda frame, *a, **k: (frame, info))
@@ -102,7 +106,9 @@ def _run_freeze(monkeypatch, tmp_path, jan_replay: float, accepted: dict, *extra
     ledger = tmp_path / "track_record.json"
     ledger.write_text(json.dumps(LEDGER), encoding="utf-8")
     before = ledger.read_text(encoding="utf-8")
-    monkeypatch.setattr(sys, "argv", ["update_track_record.py", "--ledger", str(ledger), *extra])
+    # --no-archive: these tests are about the S92 guard, not R2 (tests/test_freeze_bundle.py).
+    monkeypatch.setattr(sys, "argv", ["update_track_record.py", "--ledger", str(ledger),
+                                      "--no-archive", *extra])
     code = mod.main()
     return code, before, json.loads(ledger.read_text(encoding="utf-8"))
 
