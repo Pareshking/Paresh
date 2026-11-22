@@ -181,6 +181,26 @@ EXTRA_LIST = os.path.join(os.path.dirname(__file__), "..", "data", "indices", "i
 RECORDED_LIST = os.path.join(os.path.dirname(__file__), "..", "data", "indices", "ind_nifty1000_list.csv")
 
 
+def gated_universe(core: list[str], path: str | None = None) -> list[str]:
+    """The 750, then the Nifty 1000's other members: the symbols the night is gated on.
+
+    The Nifty 1000 members outside the 750 are held to the 750's rules (owner,
+    22 Nov 2026: "check how nifty 750 works"): a newcomer gets its history
+    forced, one Screener cannot serve is recorded as pending and fails the run
+    (after everything else is published), and one that loses its history
+    blocks publication. Before, they were best-effort extras, and a member that
+    left the ₹2,000 Cr list stopped being fetched at all (13 of them had no
+    30 Oct close, S194). The 750 stay first, so a run the site stops partway
+    loses the 1000's extras before any of the 750. Without the list, the 750.
+    """
+    target = path or RECORDED_LIST
+    if not os.path.exists(target):
+        return list(core)
+    have = set(core)
+    listed = _tradable_universe_symbols(pd.read_csv(target)["Symbol"].dropna().tolist())
+    return list(core) + [s for s in listed if s not in have]
+
+
 def extra_symbols(core: list[str], path: str | None = None) -> list[str]:
     """The stocks of the extra lists not already in the 750 (empty without a list).
 
@@ -212,8 +232,10 @@ def run() -> int:
     if universe_df.empty or "Symbol" not in universe_df:
         print("[ERROR] Universe load returned empty; nothing to fetch.")
         return 1
-    symbols = _tradable_universe_symbols(universe_df["Symbol"].dropna().unique().tolist())
-    print(f"Universe: {len(symbols)} tradable symbols (DUMMY excluded)")
+    core = _tradable_universe_symbols(universe_df["Symbol"].dropna().unique().tolist())
+    symbols = gated_universe(core)
+    print(f"Universe: {len(symbols)} tradable symbols (DUMMY excluded): "
+          f"{len(core)} of the 750, {len(symbols) - len(core)} more of the Nifty 1000")
 
     stored = sl.load_store()
     stored_closes = sl.closes(stored)
