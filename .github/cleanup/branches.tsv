@@ -2,3 +2,5 @@
 # Both earlier 15 Nov batches are done (233 merged, run 43674615797; 69 unmerged, run 43677526783,
 # bundled first into the artifact unmerged-branches-bundle). Third batch (the branches of closed PRs #511 and #513) done 15 Nov, run 43708240986. Empty now.
 # scripts/owner_cleanup.py deletes a branch only if its tip is still this sha and no PR is open on it.
+claude/friendly-hawking-0fp25l	1ff94f81a8ddc28bfd9fd1ce63a8d4ac3ac1fdfa	Watchlist WIP, merged in #619 (owner, 22 Nov 2026: "delete both branches")
+claude/laughing-cray-ynqt45	c44e055d064fcccff4849eed908cdbc5e0df1bf4	S195 draft, merged via #620 (owner, 22 Nov 2026)

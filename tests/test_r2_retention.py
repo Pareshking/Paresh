@@ -82,6 +82,7 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
                           "snapshots/rankings", "snapshots/rankings_nano", "snapshots/rankings_combined",
                           "snapshots/rankings_1000",
                           "snapshots/application", "prices/yahoo/bootstrap",
+                          "calculations/rankings", "indices/prices/research",   # retired 22 Nov (S195)
                           "prices/yahoo", "prices/yahoo/raw", "app/prices_snapshot",
                           "app/prices_extra"}
     # market_caps/nse_history: the newest two (the 2026-09-18 pin went 17 Nov).
@@ -324,7 +325,8 @@ def test_the_nse_history_and_its_products_are_protected_too():
     from scripts import r2_retention as rr
 
     for ds in ("nse/prices_daily", "nse/corporate_actions_history", "indices/membership/nifty_500",
-               "calculations/rankings", "snapshots/rankings", "snapshots/rankings_nano",
+               "indices/constituents/nifty50", "indices/nse_close_all",
+               "snapshots/rankings", "snapshots/rankings_nano", "snapshots/rankings_1000",
                "market_caps/nse_history", "trading_sessions/confirmed"):
         with pytest.raises(ValueError, match="protected"):
             rr.check_protected({ds: f"archive/{ds}"}, {})
@@ -439,3 +441,19 @@ def test_the_long_nse_file_keeps_its_newest_two_builds_and_nothing_else_of_it():
         plan = plans[f"prices/nse_long_{kind}"]
         assert plan.keep == weeks[1:] and plan.drop == weeks[:1]
     assert set(rr.deleted_from()) >= {"prices/nse_long_close", "prices/nse_long_value", "prices/nse_long_report"}
+
+
+def test_the_two_datasets_the_owner_let_go_are_retired_and_nothing_else_lost_protection():
+    """S195 4.1 and 4.6 (owner, 22 Nov 2026): calculations/rankings and indices/prices/research are
+    retired; every other indices/ dataset on R2 stays protected, and the table passes the guard."""
+    from scripts import r2_retention as rr
+
+    assert rr.RETIRED_DATASETS["calculations/rankings"] == "archive/calculations/rankings"
+    assert rr.RETIRED_DATASETS["indices/prices/research"] == "archive/indices/prices/research"
+    assert not rr._protected("calculations/rankings") and not rr._protected("indices/prices/research")
+    for ds in ("indices/constituents/nifty_total_market", "indices/membership/nifty_total_market",
+               "indices/nse_close_all"):
+        assert rr._protected(ds), ds
+    rr.check_protected(rr.RETAINED_DATASETS, rr.RETIRED_DATASETS, rr.PROTECTED_KEEP_NEWEST)
+    for ds in rr.PROTECTED_SUPERSEDED_ONLY:      # make_plan's other guard: each must still be protected
+        assert rr._protected(ds), ds
