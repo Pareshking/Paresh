@@ -236,7 +236,8 @@ CI runs its layout audit (`v1-full-validation.yml`).
 
 **S151 counts the data-heavy pages only** (owner, 22 Nov 2026: "Only data-heavy
 pages count for S151"): the stock page, Watchlist and Backtest / Track record.
-When the last of them merges, the data audits S163-S166 start. Configuration and
+When the last of them merges, the data audits S163-S166 start. Backtest merged in
+#593 (22 Nov), so the stock page and Watchlist are what is left. Configuration and
 Guide follow later.
 
 | Page | State | Requirements list | In CI's layout audit |
@@ -245,13 +246,13 @@ Guide follow later.
 | Portfolio | Done 20-21 Nov (#574) | `PORTFOLIO_REQUIREMENTS.md` | Yes |
 | Actions | Done 21 Nov (#576, #580) | `ACTIONS_REQUIREMENTS.md` | Yes |
 | Market (was Breadth; /market, /breadth redirects) | Done 21 Nov (#582, renamed #590, #592, #596) | `MARKET_REQUIREMENTS.md` | Yes |
-| Sectors | First pass 21 Nov (#583); owes P1-P3, NSE's sector indices (S170, S174) | `SECTORS_REQUIREMENTS.md` | Yes |
+| Sectors | Made over 21-22 Nov (#593): 13 owner decisions, NSE's sector indices mapped (`SECTORS_INDEX_MAP_PROPOSAL.md`), leadership map kept; first pass #583 | `SECTORS_REQUIREMENTS.md` | Yes |
 | Screener | Done 21 Nov (#584) | `SCREENER_REQUIREMENTS.md` | Yes |
 | Indices | New page, done 21 Nov (#587) | `INDICES_REQUIREMENTS.md` | Yes |
 | RRG | Removed 21 Nov (#587, S169); `/rrg` is not redirected (owner: "not required") | `RRG_REQUIREMENTS.md`, kept as history | — |
-| **Stock page** | **Mock-up v1 sent 22 Nov** for approval (artifact `KXDKW9mkJUVJWANSzAS3gH`, SANSERA); prices checked against NSE and BSE (S182) | `STOCK_REQUIREMENTS.md` | No |
-| **Watchlist** | **Mock-up v1 sent 22 Nov** for approval (artifact `3FST6Ls42b3u8kTHF8RbSt`) (S182) | `WATCHLIST_REQUIREMENTS.md` | No |
-| Backtest / Track record | Not started. Nifty 500 for 2010+; frozen months as recorded, Total Market beside; ₹100 chart, monthly bars, tested claims only | to write | No |
+| **Stock page** | Mock-up v1 (artifact `KXDKW9mkJUVJWANSzAS3gH`) reviewed 22 Nov: keep today's price chart with its relative-strength pane, and its readout must not jump on hover; v2 to follow. Prices checked against NSE and BSE (S182) | `STOCK_REQUIREMENTS.md` | No |
+| **Watchlist** | **Mock-up v1 approved 22 Nov** (owner: "Watchlist approved"; artifact `3FST6Ls42b3u8kTHF8RbSt`); next to build (S182) | `WATCHLIST_REQUIREMENTS.md` | No |
+| Backtest | Made over 21-22 Nov (#593): 7 owner decisions, mock-up v1 approved; the track record is on Portfolio | `BACKTEST_REQUIREMENTS.md` | Yes |
 | Configuration | Not started | to write | No |
 | Guide | Not started; must lose every mention of RRG and Breadth as a page name | to write | No |
 | Every page's index strip | One source, one date (S148) | — | — |

@@ -88,6 +88,13 @@ data-heavy pages that S151 counts.
 | 45 | **Proposed.** Every figure ends on the page's session (price, ranking, index) | S148, PAGE_DESIGN §5.3 | Whole page | Data to |
 | 46 | **Proposed.** Layout audit clean at 412 and 1400 px; the page joins CI's step with this list | PAGE_DESIGN §7, §8 | Whole page | Rank of 750 |
 
+## The owner's review of mock-up v1 (22 Nov 2026, ~08:35 UTC, relayed by the coordinating session)
+
+| # | Requirement | Source | Where | Marker |
+|---|---|---|---|---|
+| 47 | Today's price chart stays, with its relative-strength pane against the market beneath. It may be restyled, not left out or replaced by the mock-up's own drawing; row 33 applies to it only as restyling | Owner 22 Nov 2026: "needs current chart where RS is also there, can be re-design but not left out" | Price | Price and relative strength |
+| 48 | The chart does not move on hover: the readout above it keeps one height and width at every date (one line at 412 px, tabular figures, the height of its longest reading), as #589 fixed on the live charts; a browser check fails if the chart's top moves between two hover positions, at 412 and 1400 px | Owner 22 Nov 2026: "Mock up chart is jumping so when you modify existing chart, ensure that mistake don't get repeated"; mock-up v1's readout wrapped to two lines on 28 Aug 2026 ("₹3,859.00" / "50D EMA ₹3,476.75") and not on 8 Jun 2026; #589 (CHANGELOG 21 Nov, "Charts no longer jump on hover") | Price | 50D EMA |
+
 ## Data checks run on 21 Nov 2026 (prices to Fri 20 Nov 2026)
 
 The app on this branch, opened with `?stock=` for each stock; the precomputed ranking was
@@ -190,7 +197,7 @@ closes before 30 Oct other than through the committed copy, except the BSE dates
 MBAPL's 2020 days; the Nano Cap and Combined systems; stocks outside these five beyond the
 close and the 252-session sweep.
 
-## Mock-up v1 (21 Nov 2026), not yet shown to the owner
+## Mock-up v1 (21 Nov 2026), reviewed by the owner 22 Nov 2026 (rows 47-48; v2 to follow)
 
 One responsive page with real data for SANSERA, light and dark, phone and desktop. The
 PAGE_DESIGN §8 audit (Playwright, 412 and 1400 px, both themes) and
@@ -208,6 +215,8 @@ order:
 8. Foot: data date
 
 ## Open questions for the owner
+
+Still open on 22 Nov 2026, after the owner's review of v1: A and G (to be put to the owner in a batch by the coordinating session); B-F not yet answered.
 
 - **A. Volume pane:** drop it, or keep it labelled "NSE and BSE"? The mock-up leaves it out.
 - **B. Tile figures:** PAGE_DESIGN §2a sets them in the serif, §8 lists tiles with figures in

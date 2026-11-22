@@ -73,6 +73,8 @@ pages' title and foot. Everything else in "Proposed" is the owner's call.
 
 ## Where the live page disagrees with the Screener (found 21 Nov 2026; fix whatever the design)
 
+Fixed 22 Nov 2026 in S184 (#606), before the redesign: `ranking_view.with_book_columns` gives the Watchlist the Screener's qualified place and Held marks, and `tests/test_qualified_place_same_everywhere.py` is the test A1 asks for. Seen live 22 Nov 07:23 UTC: CUPID 4th and Held, DIACABS 44th and Held, KOTAKBANK 10th.
+
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
 | 12 | A1. The qualified place is the Screener's (`exit_watch.qualified_ranks`). Today every row reads "Out": the view passes the raw ranking, which has no "Qualified Rank" column. The marker cannot catch this (the heading passes); the build adds a test that both pages give the same place | Data check below; PAGE_DESIGN §5.4 ("same number as the owning page") | Table | Qualified |
@@ -91,15 +93,15 @@ pages' title and foot. Everything else in "Proposed" is the owner's call.
 | 20 | The data date at the foot, no source named | Owner 20 Nov 2026 ("Let's not show source"); Screener row 24, Actions row 26 | Foot | Data to |
 | 21 | Layout audit clean at 412 and 1400 px, and the page joins CI's step | Owner 20 Nov 2026; PAGE_DESIGN §8 | Whole page | Watchlist |
 
-## Proposed (mock-up v1, 21 Nov 2026; waiting for the owner)
+## Approved with mock-up v1 (owner, 22 Nov 2026: "Watchlist approved")
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 22 | **Proposed.** Rows grouped by the book's lines, in rank order: top 20 qualified, 21st to 40th, qualified past the 40th, fails a filter; each group a heading row with its count and what it means; a note under each name says how far it is from its line, without repeating a figure from a column | Reader questions 1, 2; PAGE_DESIGN §3 (group rows with a heading row) | Table | Top 20 qualified + kept if held + Fails a filter |
-| 23 | **Proposed.** A "30 Nov" column: Buy, Sell, Hold or Next in line, from the plan Actions shows (`src/ui/model_plan.py`), not a second plan; the lede says "if today's prices hold" | Reader question 1; S154 (one plan) | Table | 30 Nov + prices hold |
-| 24 | **Proposed.** "Not ranked" says why and where for each symbol: renamed (NSE's `symbolchange.csv`, with the new symbol and a button to replace it), in another system (its rank there), too new to rank, or not a known symbol | Reader question 4; data check below (the live page tells a > ₹2,000 Cr reader that CUPID is "not found") | After the table | Not ranked + Replace with |
-| 25 | **Proposed.** "Before the fill": board meetings and ex-dates for the listed stocks up to the fill day, the check Actions row 28 runs for the book, with the same wording of its limits | Reader question 5; Actions row 28 | After Not ranked | Before the fill |
-| 26 | **Proposed.** The lede names the system and the session ("Ranked in the Nifty 750 at the 20 Nov close") | PAGE_DESIGN §5.3; data check below (Nifty 1000 falls back to the 750 without saying so) | Top | Ranked in the |
+| 22 | Rows grouped by the book's lines, in rank order: top 20 qualified, 21st to 40th, qualified past the 40th, fails a filter; each group a heading row with its count and what it means; a note under each name says how far it is from its line, without repeating a figure from a column | Reader questions 1, 2; PAGE_DESIGN §3 (group rows with a heading row) | Table | Top 20 qualified + kept if held + Fails a filter |
+| 23 | A "30 Nov" column: Buy, Sell, Hold or Next in line, from the plan Actions shows (`src/ui/model_plan.py`), not a second plan; the lede says "if today's prices hold" | Reader question 1; S154 (one plan) | Table | 30 Nov + prices hold |
+| 24 | "Not ranked" says why and where for each symbol: renamed (NSE's `symbolchange.csv`, with the new symbol and a button to replace it), in another system (its rank there), too new to rank, or not a known symbol | Reader question 4; data check below (the live page tells a > ₹2,000 Cr reader that CUPID is "not found") | After the table | Not ranked + Replace with |
+| 25 | "Before the fill": board meetings and ex-dates for the listed stocks up to the fill day, the check Actions row 28 runs for the book, with the same wording of its limits | Reader question 5; Actions row 28 | After Not ranked | Before the fill |
+| 26 | The lede names the system and the session ("Ranked in the Nifty 750 at the 20 Nov close") | PAGE_DESIGN §5.3; data check below (Nifty 1000 falls back to the 750 without saying so) | Top | Ranked in the |
 
 Not proposed, for the owner to decide (see "The honest question"): a date added per
 symbol and "since you added it"; a one-click "start from the model book" on the empty
@@ -165,8 +167,8 @@ same page. Each system through `?sys=`.
 
 ## The mock-up
 
-v1, 21 Nov 2026: `watchlist_mockup.html` (scratchpad of the session; to be shared as an
-artifact for the owner). Proposed order:
+v1, 21 Nov 2026: claude.ai artifact `3FST6Ls42b3u8kTHF8RbSt`, approved by the owner on
+22 Nov 2026 ("Watchlist approved"). Proposed order:
 
     Watchlist (title, lede, edit bar) → Against the book's lines → Not ranked → Before the fill → Data to
 

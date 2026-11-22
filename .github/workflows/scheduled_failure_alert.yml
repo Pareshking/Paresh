@@ -24,6 +24,7 @@ on:
       - FII and DII flows (daily)
       - NSDL FPI daily (official FII history)
       - Momentum health (monthly)
+      - Backtest reference (weekly)
       - Monthly Track Record Freeze
       - NSE daily bundle collection
       - NSE history audit
@@ -36,7 +37,6 @@ on:
       - R2 Final Acceptance
       - R2 dated market-cap publication
       - R2 observed trading-session publication
-      - R2 research index price history
       - NSE indices (every index, daily)
       - R2 retention
       - R2 recovery audit

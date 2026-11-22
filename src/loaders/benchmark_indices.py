@@ -7,22 +7,27 @@ One row per index per session. The series:
 - Nifty Total Market: NSE's index of the Nifty 500 and the Microcap 250, the
   same 750 stocks this site ranks; the live benchmark from Jan 2026 (owner,
   20 Nov 2026). The backtest and momentum health, which need history from
-  2010, stay on the Nifty 500 (data/benchmarks.csv): this index's history
-  reachable from here starts in mid-2023.
+  2010, stay on the Nifty 500 (data/benchmarks.csv): this index starts at
+  its launch, 14 Oct 2021.
 - NSE's momentum indices, one per size: Nifty200 Momentum 30, Nifty500
   Momentum 50, Nifty Midcap150 Momentum 50, Nifty Smallcap250 Momentum
   Quality 100 (also screens for quality), and Nifty Total Market Momentum
   Quality 50, which picks from the same 750 stocks.
 - Nifty 200, the size index the large-cap momentum index is drawn from.
 
-Source: Screener's index chart, daily for about the last 400 days and weekly
-before. NSE's daily bundle (Pd<ddmmyy>.csv), the record for the Nifty 500,
-does not carry these indices, and niftyindices.com refuses requests from the
-container and from the nightly job (5-7 and 20 Nov 2026). Each index has an
-ETF that tracks it; `etf_check` compares their returns so a broken series is
-caught by a second, independent price (`scripts/build_benchmark_indices.py`
-prints it every night). Checked 20 Nov 2026: Screener's Nifty 500 equals
-NSE's own close to the hundredth over November to date.
+Source: NSE's own daily all-indices file (S168's store, read through the app's
+copy `data/nse_indices_history.parquet` + `data/nse_indices_recent.csv`) for every
+session it holds, from each index's launch; Screener's index chart only for the
+sessions after the store's last one (NSE's file lands at night, the daily sync
+may run before it). Before 21 Nov 2026 this file was Screener alone, weekly
+before 16 Oct 2025 (S167 (b)). Checked 21 Nov 2026 on every shared row, all 11
+indices: Screener's weekly and daily closes equal NSE's (3,304 rows, largest
+gap 0.003%), so the switch changes no figure, only fills the weeks between.
+Nifty Total Market is daily from its launch, 14 Oct 2021; NSE's archive holds
+no back-calculated years for it (S165). Each index also has an ETF that tracks
+it; `etf_check` compares their returns so a broken series is caught by a
+second, independent price (`scripts/build_benchmark_indices.py` prints it
+every night, and any NSE/Screener close that differs).
 """
 
 from __future__ import annotations
@@ -84,9 +89,15 @@ def series(key: str, path: Path = FILE, frame: pd.DataFrame | None = None) -> pd
     return out[~out.index.duplicated(keep="last")]
 
 
-# Daily beats weekly for the same date; a newer fetch beats an older one of
-# the same kind (a late correction on Screener replaces the row).
-SOURCE_RANK = {"screener_daily": 0, "screener_weekly": 1}
+# NSE's own close beats everything; a close NSE published no file for, worked
+# out from the next session's close and points change (S168, owner decision B),
+# comes next; then Screener, daily beating weekly. Between rows of one source a
+# newer fetch beats an older one (a late correction replaces the row).
+NSE = "nse_close_all"
+NSE_DERIVED = "nse_close_all_derived"
+SOURCE_RANK = {NSE: 0, NSE_DERIVED: 1, "screener_daily": 2, "screener_weekly": 3}
+# A Screener close further than this from NSE's for the same session is reported.
+CROSS_CHECK_PCT = 0.05
 
 
 def merge(existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
@@ -102,6 +113,42 @@ def merge(existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
     both = both.sort_values(["_rank", "_order"], ascending=[True, False], kind="stable")
     both = both.drop_duplicates(["date", "index"], keep="first")
     return both.drop(columns=["_rank", "_order"]).sort_values(["index", "date"]).reset_index(drop=True)
+
+
+def nse_key(key: str) -> str:
+    """The key of one of SERIES in NSE's store: its NSE name as a slug."""
+    from src.loaders.nse_indices import slug
+    return slug(SERIES[key][0])
+
+
+def nse_rows(store: pd.DataFrame) -> pd.DataFrame:
+    """Rows for every index in SERIES from NSE's store (live rows only), in this
+    file's shape; a derived close keeps its own source label."""
+    from src.loaders.nse_indices import series
+    parts = []
+    derived = store.get("derived")
+    for key in SERIES:
+        close = series(store, nse_key(key))
+        if close.empty:
+            continue
+        flag = pd.Series(False, index=close.index)
+        if derived is not None:
+            g = store[store["key"] == nse_key(key)]
+            d = pd.Series(g["derived"].astype(bool).to_numpy(), index=pd.DatetimeIndex(g["date"]))
+            flag = d[~d.index.duplicated(keep="last")].reindex(close.index, fill_value=False)
+        parts.append(pd.DataFrame({"date": close.index, "index": key, "close": close.to_numpy(),
+                                   "source": [NSE_DERIVED if f else NSE for f in flag]}))
+    return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=FIELDS)
+
+
+def cross_check(nse: pd.DataFrame, other: pd.DataFrame, pct: float = CROSS_CHECK_PCT) -> pd.DataFrame:
+    """(date, index, nse, other, diff_pct) where both hold a close and they differ
+    by more than `pct` percent. Derived NSE closes are left out."""
+    a = nse[nse["source"] == NSE][["date", "index", "close"]].rename(columns={"close": "nse"})
+    b = other[["date", "index", "close"]].rename(columns={"close": "other"})
+    j = a.merge(b, on=["date", "index"])
+    j["diff_pct"] = (j["other"] / j["nse"] - 1).abs() * 100
+    return j[j["diff_pct"] > pct].reset_index(drop=True)
 
 
 def write(frame: pd.DataFrame, path: Path = FILE) -> None:

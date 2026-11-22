@@ -175,13 +175,18 @@ def _mb(n: int) -> str:
 # calculations/rankings is retired (S141, 16 Nov 2026): r2_ranking_archive.yml
 # republished the very release rankings.parquet daily_sync had just published as
 # snapshots/rankings, and nothing read the copy. Its stored dates stay on R2.
+# indices/prices/research is retired too (S168 (c), 22 Nov 2026): its job,
+# r2_nse_index_prices.yml, had been publishing Screener's charts under NSE's name
+# since niftyindices.com started refusing it, and nothing has read the dataset
+# since #601. NSE's own closes are indices/nse_close_all. Its revisions stay on R2.
 DAILY_DATASETS = (
     "prices/screener",
     "snapshots/rankings",
     "market_caps/nse_history",
-    "indices/prices/research",
     "indices/membership/nifty_total_market",
     "universes/point_in_time",
+    # Every NSE index, daily (S168): backfilled 21 Nov 2026, extended each evening by nse_indices.yml.
+    "indices/nse_close_all",
 )
 
 # Calendar days. A Friday session checked on the following Wednesday is five

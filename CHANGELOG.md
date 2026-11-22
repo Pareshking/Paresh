@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-11-22 — Watchlist and stock page: the qualified place and "Held" as on the Screener
+
+- The Watchlist's "Qualified #" column read "Out" for every stock, and no stock was marked "Held", although the Screener showed the same stocks in place (live site, 22 Nov: CUPID 4th and Held on the Screener, "Out" on the Watchlist; KOTAKBANK 10th against "Out"). The stock page's table of the industry's best-ranked stocks had the same fault. Both now read the place among all the qualified and the model book's holdings from the same function as the Screener, and the Watchlist's export carries both columns.
+- The stock page's "Corporate action in the price history" note listed every move ever logged for the stock, including ones its prices never had: MBAPL showed a +900.7% and a −90.0% day in Nov 2020 that NSE's own closes (₹70.00, ₹70.05, ₹70.05) do not show. It now lists only the events the ranking applies to the stock's prices. No price, rank or backtest figure changes: none of the 37 logged events is applied to today's prices.
+
+## 2026-11-22 — Portfolio: a new system joins the comparison after its first full month
+
+- "Systems, side by side" compares the systems over the window they have all traded. The Nifty 1000, started in November, had only part of a month, and it was shrinking everyone's window from 1 October to 1 November. A system now joins the window after its first full month: until then it shows its own figures and "joins from" the next month. The heading counts the systems instead of saying "three".
+
+## 2026-11-21 — Size and momentum indices from NSE's own daily closes
+
+- Nifty Total Market, Nifty 50, Nifty 200, Midcap 150, Smallcap 250, Microcap 250 and the five momentum indices now come from NSE's own daily closes, from each index's launch (Total Market daily from 14 Oct 2021; Nifty 50 and Nifty 200 from Feb 2012). Before, they were Screener's charts, which were weekly before Oct 2025. Screener now fills in only the newest sessions, until NSE's file for the day arrives.
+- Checked first: Screener's closes equalled NSE's on all 3,974 sessions both had, within 0.003%. Today's figures do not change.
+- Market page, "Is the market in an uptrend?": each size index's "percentile since …" now measures today against its full history, back to 2012 or 2017 instead of 2022 or 2025. The readings move (Smallcap 250: 65th → 51st percentile). Today's value and the up/down verdicts are unchanged; year-ago readings move by 0.3 pts or less.
+
 ## 2026-11-21 — Breadth every night
 
 - The Market page's breadth readings (share above the 200D and 50D EMA, net new highs, share beating the index) now move every night, the night of the session. Until now they were rebuilt from a price file refreshed only on Saturdays, so on a weekday they could end up to a week behind (on 21 Nov they ended on 16 Nov).
@@ -15,6 +30,38 @@
 - On a screen 1024 px or wider the top bar links all eleven pages, and the menu button (☰) is no longer shown there. Phones and tablets keep ☰ as the only navigation.
 - To make room, the prices date ("Prices · closes of 20 Nov", amber when a source is stale) moves from the top bar to the right-hand end of the market line on desktop. The Dashboard, which has no market line, shows it in a row of its own under the bar. On a phone it stays in the bar.
 - The Market page's label above its title now reads "Market" (it read "Breadth"), and the Dashboard's link to it under "Breadth, ranked stocks" is named "Market".
+
+## 2026-11-21 — Backtest made over (S174)
+
+- One page of research runs on NSE's long price file, built from mock-up v1 and the owner's seven decisions of 21 Nov 2026 (`docs/BACKTEST_REQUIREMENTS.md`). The "Live system" tab is gone: Portfolio owns the record.
+- The page opens on the record's rules on the Nifty 500 as it stood, Jan 2010 to the last completed month, the six-monthly reset applied throughout, and answers in six sections: the lead a year (₹100 on a log scale with how far below its peak), falls from a peak with dates, year by year (Total Market beside it from 2022, a universe's own NSE index "for this universe"), what the result depends on (costs, the rule, tax, and against Nifty200 Momentum 30 and Total Market), a checklist of what is checked and what is not, and every trade.
+- **"A year" is compounded over calendar time in the engine** (was 252 sessions a year; NSE averaged about 248). Figures that moved, all on the Backtest page (no other page reads `run_backtest`'s yearly figures): the default run's "a year" 19.07% → 18.75%, the Nifty 500's 10.22% → 10.06%, before costs 20.68% → 20.34%; a run under a year still shows no yearly figure. Calmar is no longer shown.
+- The lead over the Nifty 500 is in points a year (was "Ahead of the index +1,250 pts", a difference of two 16-year totals). Names on the page follow one glossary: This rule, A year compounded, Lead over the Nifty 500, Largest fall from a peak, Below its peak now, Days below its peak.
+- Price returns on both sides, with the dividend gap stated (the Nifty 500 yields 1.25% a year on average since 2012 against about 0.5% for the book).
+- The cost, rule and tax tests of the default run are re-run every Sunday by a new job (`backtest_reference.yml`, `data/backtest_reference.json`): 30 bps 18.75%, 60 bps 17.19%, 100 bps 15.13%, monthly reset 19.07%; after tax, sold at the end, 15.23% against the Nifty 500's 9.35%.
+- Removed: the in-sample "Recommendation: 30 holdings…" caption (the shadow book is named instead), the cash note that blamed the caps (April 2020 found only 10 qualifying stocks; now said as that), the Screener's data-quality footer, the fill-to-fill "Rebalance periods" table and the view switch that hid the trades. The Guide no longer quotes backtest figures; it points to the page.
+
+## 2026-11-21 — Sectors, made over: NSE's sector indices beside each sector
+
+Built from mock-up v2, which the owner approved ("Sector and Backtest approved"). The 21 rows are in `docs/SECTORS_REQUIREMENTS.md`.
+- The title says which sectors lead the 750 on both six months and one month, and which trail.
+- **Which sectors lead** is now one table. Groups (ahead on both, gaining, fading, behind on both) are heading rows. Each sector's six-month lead shows 3 months ago, a month ago and now, beside its one-month lead. The first row is the 750 against Nifty Total Market.
+  - This table replaces the four lists and the bar chart, so no figure appears twice.
+  - "What would change the answer" stays, now with a link to the Dashboard's size section. The size-index rows have gone; that section already has them.
+- **Broad or narrow** (new) sets each sector's ranked stocks against NSE's index for that sector over 3M and 1M, with a one-year chart for each sector.
+- **NSE's sector indices** (new): all 37, each under its sector. Each group has the sector's own equal-weighted line first, then the indices, with 1M, 3M, 6M, 9M, 1Y, distance from the 52W high and P/E.
+  - They moved here from Indices.
+  - Nifty Consumer Services and Nifty Commercial & Transport Services now count as sector indices. Indices lists 110 broad, theme and strategy indices instead of 112.
+- **Month by month** now shows only red or blue for each figure's sign; the heat shades are gone.
+- **The sector leadership map** is kept. Its EMA and period switches and its sector picker now work inside the chart, so the page no longer reloads. Its worked example says leads in pts and compares with "the 750".
+- **Inside each sector** takes over the leaderboard, as one sortable table. It shows the share of each sector's stocks above the 200D EMA (3 months ago, a month ago and now) beside the Screener's flags and the leaders.
+- **The grouping switch** (NSE sector, TradingView sector, TradingView industry) now regroups every section. With a TradingView grouping, the NSE index sections give way to one line: "NSE's indices match NSE's sectors; switch to NSE sectors to see them."
+- **Names:** NSE's 22 groups are called "sectors", the word NSE uses. The equal-weighted yardstick is "the 750". Leads are in pts. "Construction Materials" is shortened to "Constr. Materials" on every page.
+- **Removed:** the old Dashboard view (`dashboard_view.py`) and `sector_indices.py`. Nothing in the app reached them.
+
+## 2026-11-21 — Nifty Total Market: three April 2023 closes back on their days
+
+- Three Nifty Total Market closes from April 2023 sat under the wrong dates, which drew a false −14.9% day on 4 Oct 2023 in anything reading 2023 against the market. NSE printed those three days' files with the month first; the collector now checks every file's date against the day it asked for, and the three days were fetched again from NSE. Every session now matches NSE's daily index files.
 
 ## 2026-11-21 — Four systems: Nifty 1000 added, Nano Cap renamed "> ₹2,000 Cr"
 

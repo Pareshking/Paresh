@@ -1,0 +1,38 @@
+sector,index_key,role,reason
+Capital Goods,nifty_capital_goods,headline,"Same name, the only sector index for it; themes that overlap (India Manufacturing, India Defence) span several sectors. Live since 15 Jun 2026 (MQ1)"
+Financial Services,nifty_financial_services,headline,"Same name, the index readers know, live since 2012; led by HDFC Bank and ICICI Bank, so the gap to the sector's ranked stocks shows how far large banks carry it (MQ2)"
+Financial Services,nifty_bank,finer,Banks only
+Financial Services,nifty_private_bank,finer,Private banks only
+Financial Services,nifty_psu_bank,finer,Public-sector banks only
+Financial Services,nifty_financial_services_25_50,finer,Financial Services with weight caps of 25% and 50%
+Financial Services,nifty_financial_services_ex_bank,finer,Financial Services without banks
+Financial Services,nifty_midsmall_financial_services,finer,"Mid and small financial companies, closer to the 750's members (MQ2 alternative)"
+Financial Services,nifty_nbfc,finer,Non-bank lenders only
+Financial Services,nifty_housing_finance,finer,Housing finance only
+Financial Services,nifty_capital_markets,finer,"Exchanges, brokers, asset managers, depositories"
+Financial Services,nifty_insurance,finer,Insurers only
+Financial Services,nifty_small_finance_banks_microfinance_institutions,finer,Small finance banks and microfinance lenders
+Healthcare,nifty_healthcare_index,headline,"Pharma, hospitals and diagnostics, as NSE's Healthcare sector; live since Nov 2020 (MQ3)"
+Healthcare,nifty_pharma,finer,"Pharma only, the longest history"
+Healthcare,nifty500_healthcare,finer,"Closest to the 750 in membership, live only since Jul 2025 (MQ3 alternative)"
+Healthcare,nifty_midsmall_healthcare,finer,Mid and small healthcare companies
+Healthcare,nifty_hospitals,finer,Hospitals only
+Automobile and Auto Components,nifty_auto,headline,Same sector; holds component makers as well as vehicle makers
+Chemicals,nifty_chemicals,headline,"Same name, the only one"
+Fast Moving Consumer Goods,nifty_fmcg,headline,Same name
+Fast Moving Consumer Goods,nifty_sugar_ethanol,finer,Sugar sits in NSE's FMCG sector (MQ5)
+Consumer Services,nifty_consumer_services,headline,"Same name; moved from Theme to Sector by the owner, 21 Nov 2026 (MQ4). Live since 15 Jun 2026"
+Consumer Services,nifty_retail,finer,Retailers only
+Consumer Durables,nifty_consumer_durables,headline,Same name
+Information Technology,nifty_it,headline,Same sector; ten large IT services firms carry it
+Information Technology,nifty_midsmall_it_telecom,finer,"Mid and small IT and telecom companies; spans IT and Telecom, listed under IT, its larger part"
+Metals & Mining,nifty_metal,headline,Same sector
+Services,nifty_commercial_transport_services,headline,"Ports, airlines, airports, logistics, distribution; moved from Theme to Sector by the owner, 21 Nov 2026 (MQ4). Live since 15 Jun 2026"
+Construction,nifty_construction,headline,"Same name; Nifty Infrastructure (a theme) spans power, telecom, cement and ports. Live since 15 Jun 2026"
+Power,nifty_power,headline,"Same name; Nifty Energy mixes power with oil and gas and sits under Oil & Gas. Live since 15 Jun 2026"
+Realty,nifty_realty,headline,Same name
+Oil Gas & Consumable Fuels,nifty_oil_gas,headline,"Oil and gas producers, refiners and gas distributors"
+Oil Gas & Consumable Fuels,nifty_energy,finer,"Oil, gas and power; under Oil & Gas, its largest names (MQ6)"
+Telecommunication,nifty_telecommunications,headline,Same name. Live since 15 Jun 2026
+Construction Materials,nifty_cement,headline,All 12 ranked members on 20 Nov 2026 are cement makers. Live since 17 Feb 2026
+Media Entertainment & Publication,nifty_media,headline,Same sector

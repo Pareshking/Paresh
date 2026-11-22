@@ -304,22 +304,11 @@ PRICE_HEAL_DAYS: Final[int] = 90
 ATH_HISTORY_PERIOD: Final[str] = "20y"
 
 
-# ── Price history snapshot ───────────────────────────────────────────────────
-# Production runs on Streamlit Cloud, where DATA_DIR is /tmp and is wiped on
-# every container restart. So a cold start re-downloaded two years of OHLCV for
-# 750 symbols from Yahoo -- roughly 38 seconds, and the point at which Yahoo
-# rate-limited a ticker and took the screener down twice on 2026-08-18.
-#
-# The daily sync already fetches that history on GitHub Actions, where nobody
-# is waiting. It now publishes it as a RELEASE ASSET rather than committing it:
-# at float32/zstd the frame is ~10.5 MB, and committing that daily would add
-# ~2.5 GB a year to a repository against GitHub's ~1 GB soft limit. A release
-# asset is replaced in place and carries no history.
-#
-# Production seeds its empty cache from that asset in one HTTPS GET, and the
-# loader's existing incremental path then fetches only the sessions published
-# since. If the asset cannot be reached the loader behaves exactly as it did
-# before -- this is an accelerator, never a dependency.
+# ── Release snapshots ────────────────────────────────────────────────────────
+# The daily sync publishes snapshots (the precomputed rankings, among others) as
+# assets of this repository's `data-latest` release; src/loaders/ranking_store.py
+# reads them. The Yahoo-era price snapshot (prices.parquet, frozen 1 Oct 2026)
+# that this block once pointed at is retired (owner, 22 Nov 2026, C6).
 PRICE_SNAPSHOT_TAG: Final[str] = os.getenv("UMIYA_PRICE_SNAPSHOT_TAG", "data-latest")
 # The repository whose release carries the published snapshots. This defaults
 # to THIS repository, because this repository is the one whose daily sync
@@ -338,11 +327,6 @@ PRICE_SNAPSHOT_REPO: Final[str] = (
     os.getenv("PRICE_SNAPSHOT_REPO")
     or os.getenv("UMIYA_REPO")
     or "Pareshking/Paresh"
-)
-PRICE_SNAPSHOT_ASSET: Final[str] = "prices.parquet"
-PRICE_SNAPSHOT_URL: Final[str] = (
-    f"https://github.com/{PRICE_SNAPSHOT_REPO}/releases/download/"
-    f"{PRICE_SNAPSHOT_TAG}/{PRICE_SNAPSHOT_ASSET}"
 )
 
 # The ranking the nightly job computed from the very snapshot above, so a cold

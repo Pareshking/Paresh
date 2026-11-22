@@ -32,14 +32,9 @@ def test_industry_board_uses_medians_and_the_screeners_own_flags():
     assert singles == ["Solo"]
 
 
-def test_industry_board_escapes_names_and_links_leaders_in_place():
-    df = _ranked()
-    df.loc[df.Industry == "Metals", "Industry"] = "<b>Metals</b>"
-    df.loc[3, "Symbol"] = "J&K"
-    board, _ = sector_view.industry_board(df)
-    out = sector_view.board_html(board)
-    assert "<b>Metals</b>" not in out and "&lt;b&gt;Metals&lt;/b&gt;" in out
-    assert 'href="screener?stock=J%26K" target="_self"' in out
+def test_leader_links_escape_symbols_in_place():
+    """The leaderboard's HTML went with the Sectors build (21 Nov 2026); its leader links stay escaped."""
+    assert 'href="screener?stock=J%26K" target="_self"' in sector_view._leader_link("J&K")
 
 
 def test_month_cards_say_ahead_or_behind_and_mark_backfilled_months():
@@ -107,17 +102,3 @@ def test_a_small_trend_line_sits_beside_a_headline_figure():
     assert C.up in svg(up) and C.down in svg(down)
     assert kit.spark_img(range(100), last=63) == kit.spark_img(range(37, 100), last=None)
     assert kit.Reading("Since inception", "+41.4%", spark=up).spark == up
-
-
-def test_board_headline_figure_follows_rank_by():
-    """Ranked by 6M, a phone (which keeps one figure per row) shows the 6M
-    figure, not the 3M one (owner, 13 Nov 2026: the buttons looked dead)."""
-    board, _ = sector_view.industry_board(_ranked())
-    for by, label in sector_view.HEADLINE.items():
-        ranked = board.sort_values(sector_view.RANK_BY[by], ascending=False)
-        out = sector_view.board_html(ranked, by)
-        assert f'class="ib-3m">{label[0]}</span>' in out
-    first = board.sort_values("6M Return", ascending=False).iloc[0]
-    out = sector_view.board_html(board.sort_values("6M Return", ascending=False), "6M median")
-    head_cell = out.split('<span class="ib-3m" role="cell">')[1].split("</b>")[0]
-    assert sector_view._pct(first["6M Return"]) in head_cell

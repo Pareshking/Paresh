@@ -41,7 +41,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Authenticated (gh), so it keeps working if the repository goes private.
-          for f in prices_full.parquet screener_prices.parquet prices.parquet; do
+          # prices.parquet (the Yahoo-era snapshot of 1 Oct 2026) is no longer fetched: it is
+          # being deleted from the release (owner, 22 Nov 2026, C6); the Yahoo columns read as empty.
+          for f in prices_full.parquet screener_prices.parquet; do
             gh release download data-latest --repo "$GITHUB_REPOSITORY" --clobber --pattern "$f" --output "$f" || echo "::warning::could not fetch $f"
           done
       - name: Sample checks
@@ -55,8 +57,7 @@ jobs:
           SINCE: ${{ inputs.since || '2025-04-01' }}
         run: |
           python scripts/nse_sample_check.py --since "$SINCE" \
-            --calendar prices_full.parquet --screener screener_prices.parquet \
-            --yahoo prices.parquet
+            --calendar prices_full.parquet --screener screener_prices.parquet
       - uses: actions/upload-artifact@v7
         if: github.event_name != 'pull_request'
         with:

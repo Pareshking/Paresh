@@ -1,0 +1,60 @@
+name: Backtest reference (weekly)
+
+# S174 (owner, 21 Nov 2026, Backtest decision C). The Backtest page's default run,
+# re-run at 60 and 100 bps, with the monthly reset, on the Total Market universe,
+# and after tax (share-lot replay), written to data/backtest_reference.json with
+# the long file's last session. Sunday, after Saturday's NSE long price file build.
+# A failure keeps the committed file and lands on the scheduled-failure alert.
+on:
+  schedule:
+    - cron: '17 5 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backtest_reference
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Build and check
+        env:
+          PYTHONPATH: .
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: python scripts/build_backtest_reference.py
+      - name: Commit
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/backtest_reference.json
+          if git diff --staged --quiet; then
+            echo "Unchanged."
+            exit 0
+          fi
+          git commit -m "chore(data): backtest reference [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "Pushed."; exit 0; fi
+            echo "Push failed (attempt $i); rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; exit 1; }
+            sleep $((i * 5))
+          done
+          exit 1
