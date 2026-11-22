@@ -283,6 +283,20 @@ first Nifty 1000 freeze on 1-5 Dec (S175 / S194).
 
 ## 4. Clean-up candidates (d)
 
+**The owner's answers, 22 Nov 2026 ("go with your recommendations"):**
+
+| Item | Answer | Carried out by |
+|---|---|---|
+| 4.1 `calculations/rankings` | delete | `RETIRED_DATASETS` (protection removed for it); the retention workflow's dry run on merge, then a dispatch with its count |
+| 4.2 `prices/ss` | keep as is | decide with the SS-as-primary plan |
+| 4.3 `prices_full.parquet` | **keep** (changed after the answer, see 4.3) | nothing |
+| 4.4 `reconcile_*` on the release | stop and delete | `ss_sync.yml` no longer uploads them; `owner_cleanup.py` lists the six at their 22 Nov size and downloads |
+| 4.5 the evidence set | not yet | decide after the Dashboard data pass (S172 (b)) |
+| 4.6 `indices/prices/research` | delete | as 4.1; `indices/` protection narrowed to `constituents/`, `membership/` and `nse_close_all` |
+| 4.7 `ref_tijori_close_raw` download | stop | the Saturday audit downloads its seven files by name |
+| 4.8 three git records | keep | nothing |
+
+
 **Rules.**
 - Every candidate was checked by grepping `src`, `app.py`, `scripts`, `r2`,
   `agent` and `.github` at 8ee4b95 (excluding `__pycache__`). The greps are
@@ -335,6 +349,11 @@ first Nifty 1000 freeze on 1-5 Dec (S175 / S194).
   `scripts/nse_sample_check.py:24`, which use it as a trading-day calendar
   (`--calendar`, dispatch or a PR on its own files).
   `data/nse_trading_days.json` holds the same fact (CALL_AND_STORAGE_AUDIT, 10 Nov).
+- **Corrected 22 Nov evening, after the owner's yes: it does not.** `data/nse_trading_days.json` confirms only
+  48 sessions, from 11 Sep 2026; `nse_sample_check` checks from 1 Apr 2025. NSE's published holidays
+  (`data/reference/nse/holidays.csv`) cover 2026 only. No other independent calendar in the repository reaches
+  back to April 2025 (the NSE closes would check R2 against itself). So the asset stays and nothing changes;
+  it is free on the release. Revisit if the check's start moves past 1 Oct 2026, where `prices_full` ends.
 - **Order:** point `nse_sample_check` at `data/nse_trading_days.json` first (a
   small PR), then delete the asset.
 

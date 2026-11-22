@@ -33,6 +33,11 @@ lost to a clean-up. `PROTECTED_DATASETS` in `scripts/r2_retention.py` lists
 `make_plan` refuses a run whose retention or retirement table names one, or
 whose retired key root would hold one (`tests/test_r2_retention.py`).
 
+**22 Nov 2026 (owner, S195 4.1 and 4.6):** `calculations/` is no longer protected and `indices/` is narrowed
+to `indices/constituents/`, `indices/membership/` and `indices/nse_close_all`, so that `calculations/rankings`
+(a retired byte copy of `snapshots/rankings`) and `indices/prices/research` (retired, no reader) can be
+retired in `RETIRED_DATASETS`. No other dataset lost its protection.
+
 | Dataset | What it is | Published |
 |---|---|---|
 | `reference/yahoo_close` | Yahoo split-adjusted closes, 1,205 stocks, daily from 2007 | 3 Oct 2026 |

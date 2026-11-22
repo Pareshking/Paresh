@@ -164,11 +164,8 @@ jobs:
           python scripts/reconcile_report.py --ss data_cache/ss --screener screener_store.parquet \
             --start "$START" --out reports/reconcile
           cat reports/reconcile/report.md >> "$GITHUB_STEP_SUMMARY"
-          cd reports/reconcile
-          for f in report.md summary.json rights.csv votes.csv drifts.csv filled.csv; do
-            cp "$f" "reconcile_$f"
-          done
-          gh release upload data-latest reconcile_* --repo "$GITHUB_REPOSITORY" --clobber
+          # No longer copied to the release (owner, 22 Nov 2026, S195 4.4): nothing downloaded the six
+          # reconcile_* assets (0 downloads each); the report is kept as the artifact below (30 days).
 
       - uses: actions/upload-artifact@v7
         if: always()

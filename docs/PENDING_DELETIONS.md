@@ -3,6 +3,21 @@
 Owner, 11 Nov 2026: *"Record items which required delete as I am on mobile and
 can't do it, whatever possible please delete it."*
 
+## S195 clean-up (owner, 22 Nov 2026: "go with your recommendations")
+
+`docs/RESOURCES_2026-11-25.md` section 4 has the evidence for each.
+
+- **R2 `calculations/rankings`** (25 MiB, retired 16 Nov) and **`indices/prices/research`** (7 MiB, retired
+  22 Nov): in `RETIRED_DATASETS`, protection removed for them only. The retention workflow plans on merge (dry run);
+  the deletion is a dispatch of `r2_retention.yml` with `apply` and the dry run's `RETENTION_DELETE_COUNT`.
+- **Release `reconcile_*`** (six files, 0 downloads each): `ss_sync.yml` stops uploading them; listed in
+  `owner_cleanup.py` at their 22 Nov size and downloads. Deleted by an `owner_cleanup.yml` run (dry run first).
+- **Branches** `claude/friendly-hawking-0fp25l` (Watchlist WIP, merged in #619) and `claude/laughing-cray-ynqt45`
+  (S195 draft, merged via #620): owner, 22 Nov 2026, "delete both branches". In `.github/cleanup/branches.tsv`;
+  the same `owner_cleanup.yml` run bundles and deletes them.
+- Not deleted, by the same answers: `prices/ss` (4.2), `prices_full.parquet` (4.3, its premise was wrong),
+  the evidence set (4.5), the three git records (4.8).
+
 ## RRG (removed 21 Nov 2026, S169): nothing waits on the owner
 
 The page and its code were deleted in the repository by #587 (`ab5adc7`), which

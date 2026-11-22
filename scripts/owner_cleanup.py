@@ -67,6 +67,14 @@ ASSETS = (
     # The frozen Yahoo-era snapshot of 1 Oct 2026; its last reader went in #604 (C6,
     # owner 22 Nov: "delete both"). nse_sample_check run 44998959937 passed without it.
     {"name": "prices.parquet", "size": 10_876_794, "downloads": 932},             # deleted 22 Nov (run 45002747120)
+    # The three-source check's copies (owner, 22 Nov 2026, S195 4.4): ss_sync no longer uploads them,
+    # nothing downloads them (0 each, 22 Nov), and the report stays in the reconcile-report artifact.
+    {"name": "reconcile_drifts.csv", "size": 25, "downloads": 0},
+    {"name": "reconcile_filled.csv", "size": 38_436, "downloads": 0},
+    {"name": "reconcile_report.md", "size": 1_595, "downloads": 0},
+    {"name": "reconcile_rights.csv", "size": 447, "downloads": 0},
+    {"name": "reconcile_summary.json", "size": 443, "downloads": 0},
+    {"name": "reconcile_votes.csv", "size": 2_529, "downloads": 0},
 )
 
 

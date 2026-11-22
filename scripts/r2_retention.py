@@ -102,6 +102,12 @@ RETIRED_DATASETS: dict[str, str] = {
     "prices/yahoo/raw": "archive/prices/yahoo/raw",
     "app/prices_snapshot": "snapshots/app_prices",
     "app/prices_extra": "snapshots/app_prices_extra",
+    # Owner, 22 Nov 2026 (S195 4.1, 4.6: "go with your recommendations"). Nothing reads either:
+    # calculations/rankings was a byte copy of snapshots/rankings, its writer retired 16 Nov (S141);
+    # indices/prices/research lost its job and reader on 22 Nov (S168 (c)); indices/nse_close_all
+    # replaces it. Each was unprotected for this (PROTECTED_DATASETS below).
+    "calculations/rankings": "archive/calculations/rankings",
+    "indices/prices/research": "archive/indices/prices/research",
 }
 
 # Never pruned, never retired (owner, 2026-10-03: the reference histories the
@@ -117,13 +123,15 @@ PROTECTED_DATASETS: tuple[str, ...] = (
     "reference/",                       # Yahoo, eod2, Tijori, MarketLens, TejHQ, SS ...
     "prices/screener/max_history",      # Screener's full history, weekly before the latest year
     "nse/",                             # NSE's bhavcopy since 2008, corporate actions, closed days
-    "indices/",                         # constituents, membership, index prices
+    # Narrowed from "indices/" (owner, 22 Nov 2026, S195 4.6): indices/prices/research is retired.
+    "indices/constituents/",            # each index's constituent snapshots
+    "indices/membership/",              # point-in-time membership histories
+    "indices/nse_close_all",            # every NSE index from 2012 (S170)
     "universes/",                       # point-in-time universes
     "trading_sessions/",
     "corporate_actions/",
     "market_caps/",
     "classifications/",
-    "calculations/",                    # the ranking archive
     "snapshots/rankings*",              # rankings, rankings_nano, rankings_combined, rankings_1000
     "record/freezes/",                  # each frozen month's evidence bundle (S185): every revision kept
 )
