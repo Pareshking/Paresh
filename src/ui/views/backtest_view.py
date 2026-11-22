@@ -921,7 +921,7 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
         return
     res = _run(s, h, bench, stock_cap, sector_cap)
     if res is None:
-        st.warning("Not enough price history for this window: the rules need a 12-month lookback before the first "
+        st.warning("Not enough price history for this window: the rules need a 12M lookback before the first "
                    "month tested.")
         return
     eq = pd.Series(res.get("equity_curve")).dropna()

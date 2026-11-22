@@ -307,7 +307,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
         f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h1 id="s-month" class="dh-h1">{title}</h1>'
         f'<p class="dh-lede">{e(lede)}</p>{kp}<div class="dh-cap"><b>The month</b><span>to {as_of:%-d %b}, price return</span></div></div>',
         Chart("month", spec, {"note": "Each line is 0.25%; filled lines right of the dark zero line are a gain, left a fall.", "n": n}),
-        how("Each row is a return for the month: Nifty Total Market (about 750 stocks, close to the 750 this site ranks), the model book, "
+        how("Each row is a return for the month: Nifty Total Market (about 750 stocks), the model book, "
             "and NSE’s momentum indices. Switch to the last finished month to compare.",
             "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "
             "style lagged; against the Nifty Total Market row, how far momentum is behind.",
@@ -1158,7 +1158,7 @@ def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, 
     bits = []
     if bm.market_mtd is not None and bm.book_mtd is not None and bm.momentum_mtd:
         if bm.book_mtd < bm.market_mtd and bm.book_mtd >= max(bm.momentum_mtd.values()) - 0.05:
-            bits.append(f"The book is keeping pace with momentum in a month momentum is losing to Nifty Total Market ({month}).")
+            bits.append(f"So far in {month} the book is keeping pace with momentum, and momentum is losing to Nifty Total Market.")
         elif bm.book_mtd >= bm.market_mtd:
             bits.append(f"The book is ahead of Nifty Total Market so far in {month}.")
         else:

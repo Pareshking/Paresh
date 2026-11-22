@@ -103,8 +103,8 @@ sharpe_m     = return_m / volatility_m</pre>
 <p>For each window, across the stocks that day: values beyond three standard deviations are pulled in
 to that limit, the result is turned into a z-score, and the z-score is capped at ±3, in that order.</p>
 <pre>score = ({score}) / (sum of the weights of the windows the stock has)</pre>
-<p>A stock without, say, a 12-month history is scored on the windows it has, with their weights
-rescaled; it is not given an average 12-month value. These are the record's weights. The
+<p>A stock without, say, 12 months of history is scored on the windows it has, with their weights
+rescaled; it is not given an average value for the missing window. These are the record's weights. The
 Configuration page can change them for the Screener and the Backtest; the record and the model book
 on Portfolio and Actions keep these.</p>
 <p>From the {members_from} ranking the score is worked out over the index members of that day only, as the

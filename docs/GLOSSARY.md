@@ -2,7 +2,7 @@
 
 Decided by the owner one item at a time, 23 Nov 2026, from the live pages' own text (750, 1000, Nano).
 Every page follows this file; PAGE_DESIGN.md §3a rule 6 points here. The check that reads it is S193's
-last step for item D.
+last step for item D: `scripts/glossary_audit.mjs` (in CI), with `tests/test_rounding_parity.py` for entry 12.
 
 | # | Thing | Write | Not | Why |
 |---|---|---|---|---|

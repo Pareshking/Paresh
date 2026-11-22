@@ -15,7 +15,7 @@ owner's word. Rows 22-46 were proposed with the mock-ups and approved with mock-
 `/stock?stock=SANSERA`, with `scripts/layout_audit.mjs` at 412 and 1400 px and
 `scripts/chart_hover_audit.mjs` for row 48.
 
-Order: 1 · Rank → 2 · Filters and sell rules → 3 · Returns and falls → 4 · Price → 5 · Industry → 6 · Data → Data to
+Order: 1 · Rank → 2 · Filters and sell rules → 3 · Returns and falls → 4 · Price → 5 · Sector → 6 · Data → Data to
 
 Scope: `/?stock=SYMBOL`, a route of the Screener view (`ranking_view.py:272`), for every
 system (750, > ₹2,000 Cr, Combined). The Screener list itself is `SCREENER_REQUIREMENTS.md`.
@@ -74,9 +74,9 @@ data-heavy pages that S151 counts.
 | 28 | Approved 23 Nov 2026 (mock-up v2). Results or corporate actions announced before the next check, from the calendar Actions reads (`data/results_calendar.csv`) | ACTIONS_REQUIREMENTS row 28 (owner 21 Nov) | Filters | board meeting |
 | 29 | Approved 23 Nov 2026 (mock-up v2). The market is Nifty Total Market and is named; its return covers the same sessions as the stock's (first session on or after the date back) | S165 (owner 21 Nov: "Switch to Nifty total market indices everywhere"); data check below (the live 1M figure starts two sessions earlier than the stock's) | Returns, Price | Nifty Total Market |
 | 30 | Approved 23 Nov 2026 (mock-up v2). Returns as line bars on one scale (5% a line), the market as a small triangle; the stock, the market, the lead in pts, the typical stock, the largest fall, Sharpe and the rank by return as numbers; a phone drops the last four with a note saying which | PAGE_DESIGN §4.2, §3; ACTIONS_REQUIREMENTS row 14 | Returns | One line is 5% + Lead + [phone] On a wider screen |
-| 31 | Approved 23 Nov 2026 (mock-up v2). One name for the fall: "Largest fall", as the Screener's column ("3M largest fall") | S173; Screener table | Returns | Largest fall |
+| 31 | Approved 23 Nov 2026 (mock-up v2). One name for the fall: "Max drawdown", as the Screener's column ("3M max drawdown") (wording per docs/GLOSSARY.md, 23 Nov 2026) | S173; Screener table | Returns | Max drawdown |
 | 32 | Approved 23 Nov 2026 (mock-up v2). "Rank by return" as a place ("37th") instead of "Top 5%" | PAGE_DESIGN §3 (one figure per cell, numbers) | Returns | Rank by return |
-| 33 | Approved 23 Nov 2026 (mock-up v2). Chart: price and the 50D EMA the rule uses, the stock against Nifty Total Market beneath (100 at the start of the range); 6M · 1Y · 3Y; values under the pointer in each pane's heading, readout above on touch, arrow keys, latest values at rest; the 20 EMA, the 200 SMA and the 1M, 3M, All ranges go | PAGE_DESIGN §4.1, §4.3 | Price | 6M + 1Y + 3Y + Against Nifty Total Market |
+| 33 | Approved 23 Nov 2026 (mock-up v2). Chart: price and the 50D EMA the rule uses, the stock against Nifty Total Market beneath (100 at the start of the range); 6M · 12M · 3Y; values under the pointer in each pane's heading, readout above on touch, arrow keys, latest values at rest; the 20 EMA, the 200 SMA and the 1M, 3M, All ranges go | PAGE_DESIGN §4.1, §4.3 | Price | 6M + 12M + 3Y + Against Nifty Total Market |
 | 34 | Approved 23 Nov 2026 (mock-up v2). The chart's 50D EMA is the ranking's (30 prints before it exists, `EMA_MIN_PRINTS`), not `ewm(min_periods=10)` | DATA_CORRECTNESS §5 (owner 10 Nov: 30 prints) | Price | 50D EMA |
 | 35 | Approved 23 Nov 2026 (mock-up v2). Volume: either dropped or labelled "shares traded, NSE and BSE" (the figure adds both exchanges). Settled by row 49 (owner 22 Nov: kept, headed "Volume", no exchange named) | Data check below; PAGE_DESIGN §5.3 | Price | Price |
 | 36 | Approved 23 Nov 2026 (mock-up v2). Industry in the short names other pages use (Auto, FMCG), one classification; TradingView's sector beside NSE's industry goes | PAGE_DESIGN §8 ("one name, one thing"); SCREENER_REQUIREMENTS row 18 | Top, Industry | Auto\|FMCG\|Healthcare |

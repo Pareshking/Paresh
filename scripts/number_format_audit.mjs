@@ -23,7 +23,8 @@ const report = args.includes('--report');
 const urls = args.filter(a => a !== '--report');
 if (!urls.length) { console.error('usage: number_format_audit.mjs [--report] URL [URL ...]'); process.exit(2); }
 
-const ALLOWED = [/Each line is [\d.]+%/g, /stamp duty \(?[\d.]+%/gi];
+// "pts = percentage points: …" is the glossary's own explainer (glossary 4), the one place the long form is right.
+const ALLOWED = [/Each line is [\d.]+%/g, /stamp duty \(?[\d.]+%/gi, /pts = percentage points/g];
 const MON = '(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
 const RULES = {
   '1 ₹ with decimals': t => t.match(/₹\s?[\d,]*\d\.\d+(?!\d|\s?(?:lakh|crore))/g),   // ₹1.22 lakh Cr, ₹34.1 lakh are units, not paise

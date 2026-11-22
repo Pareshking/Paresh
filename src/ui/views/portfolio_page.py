@@ -467,7 +467,7 @@ def section_returns(p: Page) -> list:
     rows = pr.periods(p.equity, p.market, p.mom, p.as_of)
     begun = _start(p)
     label = {"1 year": "12 months", "Since start": _fmt.since(begun), "Month so far": f"Month so far · {p.as_of:%b}"}
-    shown = [(label.get(lab, lab.replace(", since start", f", {_fmt.since(begun).lower()}")), *v) for lab, *v in rows]
+    shown = [(label.get(lab, lab.replace(", since start", f", since {_fmt.date(begun)}")), *v) for lab, *v in rows]
     per = "".join(f'<tr{" class=pf-hl" if lab.startswith("This year") else ""}><th scope="row">{e(lab)}</th>'
                   f'<td class="dh-num dh-b {tone(b)}">{pct(b)}</td><td class="dh-num">{pct(m)}</td>'
                   f'<td class="dh-num {tone(None if b is None or m is None else b - m)}">{sg(None if b is None or m is None else b - m)}</td>'
@@ -484,7 +484,7 @@ def section_returns(p: Page) -> list:
                      f'{sg(None if vals.get(k) is None or book_ytd is None else book_ytd - vals[k])}</td></tr>' for k, n in YTD_ROWS))
     grows = (f"From the record’s second year the table adds 12 months, 3 years, 5 years and a yearly rate since {_fmt.date(begun)} "
              "by itself; nothing is annualised before then." if not any(r[0] == "1 year" for r in rows) else
-             f"A yearly rate since {_fmt.date(begun)} compounds the whole record to a 12-month return.")
+             f"A yearly rate since {_fmt.date(begun)} compounds the whole record to a return per 12 months.")
     mlast = p.market.dropna().index.max() if len(p.market.dropna()) else None
     if mlast is not None and mlast < p.as_of:
         grows = (f"Nifty Total Market and Momentum 50 to {dshort(mlast)}: NSE’s closes for {dshort(p.as_of)} are not in yet, "
@@ -590,7 +590,7 @@ def section_equity(p: Page) -> list:
                      "move in Nifty Total Market. Tracking error: how much the book’s return differs from Nifty Total Market’s, scaled to a year "
                      "(the spread of the daily gaps). Capture: on Nifty Total Market’s up days and down days, the book’s average move as a share "
                      "of the index’s.",
-                     f"Tracking error {te:.1f}% means: in a 12-month span in which Nifty Total Market makes +10%, a book like this one would usually end between about "
+                     f"Tracking error {te:.1f}% means: over 12 months in which Nifty Total Market makes +10%, a book like this one would usually end between about "
                      f"{_fmt.signed(ex_lo, 0)}% and {_fmt.signed(ex_hi, 0)}% (10 ± {te:.1f}, two years in three), and outside that range one year in three. On a "
                      f"typical day the book and Nifty Total Market differ by about {te / np.sqrt(pr.YEAR):.1f} point (tracking error ÷ √250). An "
                      "index fund aims for well under 1%; a 20-stock small-company momentum book cannot be close to Nifty Total Market, and that "
@@ -824,7 +824,7 @@ def section_systems(p: Page) -> list:
     shadows = ", ".join(f"{b.name.replace(' (shadow)', '')} (from {b.inception.strftime('%b %Y')})" for b in SHADOWS.values())
     return _sec([_head("pf-sys", f"{_NUMBER_WORDS.get(total, str(total)).capitalize()} systems, side by side",
                        "compared over the same window"),
-                 '<div class="dh-scroll"><table class="dh-tab dh-tab-s pf-sys"><thead><tr><th scope="col">System</th><th scope="col" class="dh-num">Month so far · {p.as_of:%b}</th>'
+                 f'<div class="dh-scroll"><table class="dh-tab dh-tab-s pf-sys"><thead><tr><th scope="col">System</th><th scope="col" class="dh-num">Month so far · {p.as_of:%b}</th>'
                  f'<th scope="col" class="dh-num">Since {e(common)}, all {word}</th><th scope="col" class="dh-num">Since it started</th><th scope="col">Started</th>'
                  f'</tr></thead><tbody>{rows}</tbody></table></div>',
                  f'<p class="dh-note">“Since {e(common)}” is the window all {word} have traded, so it is the fair comparison; it grows as the systems age. '

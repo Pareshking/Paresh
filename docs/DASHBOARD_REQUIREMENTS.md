@@ -16,7 +16,7 @@ the owner's word, and note it in the Source column.
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 1 | Everything visible; no "more questions" or clicks to reach content | Owner 19 Nov | Whole page | The book this month |
+| 1 | Everything visible; no "more questions" or clicks to reach content | Owner 19 Nov | Whole page | The book, month so far |
 | 2 | One-paragraph verdict first, with section links | Owner 19 Nov; tipsheet pattern | Top | Of the 5 signals that pass our own test |
 | 3 | Sections in the agreed order, numbered | Owner 20 Nov ("correct order"); §7 removed with RRG, owner 21 Nov | Page | 6 · Where the book is strong and weak |
 | 4 | Headline of each section states the finding, coloured by impact | Owner 19 Nov | Each section | November’s lag is |
@@ -25,7 +25,7 @@ the owner's word, and note it in the Source column.
 | 7 | NSE momentum indices against the book this month | Owner 20 Nov | §1 | Nifty500 Momentum 50 |
 | 8 | Month chart as straight-line bars, two colours, negatives leftward (October shown) | Owner 20 Nov | §1 | October |
 | 9 | No month-by-month portfolio returns (they are on Portfolio) | Owner 19 Nov | §1 note | month-by-month record is on Portfolio |
-| 10 | Since inception and months ahead, as figures | v6, kept | §1 tiles | Months ahead of the market |
+| 10 | The record since its first day ("Since 1 Jan 2026") and months ahead, as figures (wording per docs/GLOSSARY.md, 23 Nov 2026) | v6, kept | §1 tiles | Months ahead of Nifty Total Market |
 | 11 | Buy and sell design: holdings with Sell / Watch / Clear badges | Owner liked, 20 Nov (#2, #5) | §2 | Would be bought |
 | 12 | Rank 3M ago, 1M ago, now for each holding, with a trail | Owner 20 Nov | §2 | Rank trail |
 | 13 | Rank-trail caveat in plain words | Owner 20 Nov (option 1) | §2 note | how today’s rule ranks the stock on that day |
@@ -47,8 +47,8 @@ the owner's word, and note it in the Source column.
 | 29 | Size leadership against momentum indices, 1M 3M 6M. Large is the Nifty 100 (SEBI's top 100, as on Indices); its momentum index, Nifty200 Momentum 30, is read against the Nifty 200 it picks from, and the row says so (owner, 21 Nov 2026) | Owner 20, 21 Nov | §5 table | Momentum against its size index + Nifty 100 |
 | 30 | The book by size bar | Owner liked (#4), 20 Nov | §5 | The book by size |
 | 31 | Is the rally shared: breadth by size, with 3M ago and 1M ago | v7 (tipsheet) | §5 | Is the rally shared? |
-| 32 | The typical stock: equal-weight and median against the market | v7 (tipsheet) | §5 | The typical stock against the market |
-| 33 | Where the book is strong and weak, as cards with each industry's six-month and one-month figures | Owner liked (#1), 20 Nov; the RRG rotation line and quadrant badge removed, owner 21 Nov | §6 | Ahead of the market over six months and one month |
+| 32 | The typical stock: equal-weight and median against Nifty Total Market | v7 (tipsheet) | §5 | The typical stock against Nifty Total Market |
+| 33 | Where the book is strong and weak, as cards with each sector's six-month and one-month figures | Owner liked (#1), 20 Nov; the RRG rotation line and quadrant badge removed, owner 21 Nov | §6 | Ahead of all ranked stocks over six months and one month |
 | 37 | At a glance: index moves (one date), breadth, the book's risk | v6 | Glance | The book’s risk |
 | 38 | Breadth history on each date's members | Owner 20 Nov | Glance, §3 | leavers included |
 | 39 | Every chart gives values on touch and pointer | Owner 20 Nov | Charts (`static/dash_charts.js`) | Latest|DashCharts.render( |
@@ -71,4 +71,4 @@ the owner's word, and note it in the Source column.
 - 35 · Leadership lists with RS ratio · momentum and the path under each name (§7).
 - 36 · The book's holdings marked in leadership (§7). The space is kept for the Indices page (S170). Used 21 Nov: row 42 (the "Valuation and styles" card in At a glance).
 
-Order: 1 · The book this month → 2 · What happens on → 3 · Is momentum still working? → 4 · Money flows → 5 · Size, and where momentum works → 6 · Where the book is strong and weak → At a glance
+Order: 1 · The book, month so far → 2 · What happens on → 3 · Is momentum still working? → 4 · Money flows → 5 · Size, and where momentum works → 6 · Where the book is strong and weak → At a glance

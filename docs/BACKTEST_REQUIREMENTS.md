@@ -92,7 +92,7 @@ The owner runs a monthly momentum book. He opens this page to ask:
 | 11 | Why the Nifty 500 and not Nifty Total Market, in one sentence (Total Market starts 14 Oct 2021); Total Market beside it wherever its history allows (decision A) | S165, owner 21 Nov | §1 note | Why the Nifty 500 and not Nifty Total Market |
 | 12 | The lead in each half of the history, and the median month | PAGE_DESIGN §5.6 (both halves) | §1 note | The two halves |
 | 13 | "Show the table" under the chart: total return, a year, before costs, volatility, Sharpe with its ± (over the 6.5% risk-free rate, named), Sortino, turnover one way a month | Current tiles, moved | §1 | Show the table |
-| 14 | **Section 2.** Tiles: below its peak now (with the Nifty 500), largest fall from a peak, days below its peak, recovered or "not yet" with the rise needed | PAGE_DESIGN §6a terms; S173 | §2 | Below its peak now + Largest fall from a peak + Days below its peak |
+| 14 | **Section 2.** Tiles: below its peak now (with the Nifty 500), max drawdown, days below its peak, recovered or "not yet" with the rise needed | PAGE_DESIGN §6a terms; S173 | §2 | Below its peak now + Max drawdown + Days below its peak |
 | 15 | A table of the three largest falls of the rule and the two largest of the Nifty 500: fall, peak date, low date, back at the peak, days below. Every figure from `metrics.drawdown` on daily closes | `src/engine/metrics.py`; PAGE_DESIGN §6a | §2 | Back at the peak |
 | 16 | **Section 3.** One row per calendar year: the rule, the Nifty 500, Nifty Total Market (from 2022), and the lead over the Nifty 500 as a two-colour line bar (2.5 pts a line, dark zero line, negatives leftward) with the exact figure after it. A part year names its months | PAGE_DESIGN §4.2; S165 | §3 | Lead over the Nifty 500 + Total Market + Jan–Oct |
 | 17 | The line-bar key says its step | PAGE_DESIGN §4.2 | §3 | Each line is 2.5 pts |
@@ -108,11 +108,11 @@ The owner runs a monthly momentum book. He opens this page to ask:
 | 27 | No "Live system" tab: the live record is Portfolio's, linked (decision B) | Owner decision 5, 7 Nov; audit A12 | §6 / removed | Portfolio |
 | 28 | The month in progress, when shown, is dated to the long file's last session and kept out of every whole-month figure (S126 rule kept) | S126; PAGE_DESIGN §5.3 | §3, foot | prices to |
 | 29 | Footer: data to the last completed month, prices to the long file's last session, indices to their last session; no source named; the Screener's data-quality footer is not shown on this page | PAGE_DESIGN §2; audit A14 | Foot | Data to |
-| 30 | One name per idea on the whole page, as listed under "Naming"; a test fails on a banned synonym in `backtest_view.py` | S173 | Whole page | Largest fall from a peak |
-| 31 | Headings in the serif, each a sentence stating the finding; notes 13.5 px, about 80 characters a line; tables sentence case, Plex Mono right-aligned figures, row labels never wrap to three lines; minus is U+2212 | PAGE_DESIGN §2a, §3, §8 | Sections | Ahead of the market |
+| 30 | One name per idea on the whole page, as listed under "Naming"; a test fails on a banned synonym in `backtest_view.py` | S173 | Whole page | Max drawdown |
+| 31 | Headings in the serif, each a sentence stating the finding; notes 13.5 px, about 80 characters a line; tables sentence case, Plex Mono right-aligned figures, row labels never wrap to three lines; minus is U+2212 | PAGE_DESIGN §2a, §3, §8 | Sections | Ahead of the Nifty 500 |
 | 32 | Layout audit clean at 412 and 1400 px; the page joins CI's layout and requirements step | PAGE_DESIGN §8 | Whole page | Backtest |
 
-Order: Backtest → What was tested → 1 · Ahead of the market → 2 · Falls from a peak → 3 · Year by year → 4 · What the result depends on → 5 · Can it be trusted → 6 · Trades → Data to
+Order: Backtest → What was tested → 1 · Ahead of the Nifty 500 → 2 · Falls from a peak → 3 · Year by year → 4 · What the result depends on → 5 · Can it be trusted → 6 · Trades → Data to
 
 ## Naming (S173): every change on this page
 

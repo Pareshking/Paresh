@@ -29,7 +29,7 @@ the same view but is its own redesign (PAGE_DESIGN §7, "Stock page").
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
 | 1 | Every ranked stock in one table, rank order; the first 50 shown and a button for all; a header click sorts every row | Owner 7 Nov ("Screener paging") | Table | Show all 750 + Rank |
-| 2 | Search by stock (opens its page), industry, sector, sub-industry or index; options read "LAURUSLABS · Healthcare" | Owner 7 Nov; audit F36 | Toolbar | Search stock, industry or index |
+| 2 | Search by stock (opens its page), industry, sector, sub-industry or index; options read "LAURUSLABS · Healthcare" | Owner 7 Nov; audit F36 | Toolbar | Search stock, sector or index |
 | 3 | Presets with their counts: all, top 50 qualified, top 50 not qualified, pass both filters, big movers (150+ places in a month), volume spike (1.5x the 20-day average) | Owner 13 Oct, 7 Nov | Toolbar | Top 50 qualified + Top 50 not qualified + Pass both filters + Big movers + Volume spike |
 | 4 | Filters: index (several), only stocks that pass both filters, columns (Executive, Core, Full Quant; Full Quant first on desktop and phone), reset; all kept in the address, so Back from a stock returns to the same list | Owner 7 Nov; audit F35 | Toolbar | Filters |
 | 5 | Qualified # (place among the stocks passing both filters, the number Actions uses) and Score (the composite the rank sorts on) | Owner 7 Nov (S87) | Table | Qualified + Score |

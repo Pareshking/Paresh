@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-23 — One name and one unit per thing on every page (the glossary)
+
+- Every page now follows `docs/GLOSSARY.md`, the 12 names and units the owner chose on 23 Nov. Only the words changed: each figure is measured against the same index as before.
+- **Index:** every comparison names its index, "Nifty Total Market" or "the Nifty 500", where it said "the market". Market asks "Is the Nifty 500 in an uptrend?". NSE indices go by their full names ("Nifty Smallcap 250"). The short form stays only in the Screener's column, which is now headed "NSE index".
+- **Sector and size:** NSE's 22 groups are "sector" in every column, tile and sentence. "Industry" is left only for TradingView's grouping on Sectors and in the Screener search, which now reads "Search stock, sector or index". Sizes read Large Cap, Mid Cap, Small Cap and Micro Cap.
+- **Units:** "Cr" replaces "crore" ("₹1.22 lakh Cr", "₹ thousand Cr"). Gaps are "pts", and each page that shows pts explains it once: "pts = percentage points: 12% − 8% = 4 pts". The Guide explains pts, max drawdown and EMA. "12M" replaces "1Y": the Indices columns, "From 12M high", and the stock chart's range.
+- **Dates and measures:** the record's start is a date ("Since 1 Jan 2026" on the 750, each system's own date), never "since inception". The running month is named ("Month so far · Nov", "so far in November"). The worst fall from a peak is "Max drawdown" everywhere, the Screener's "3M max drawdown" column included. Portfolio's "Exit rule" is "Sell rule", and Actions says "holding", not "hold". The Dashboard's "200-day average" is the "200D EMA" it always was.
+- **Rounding:** every figure shown rounds half away from zero, in Python and in the charts alike. SONACOMS at ₹892.50 now reads ₹893 in tables as well as charts, and −2.45% reads −2.5%. Stored prices and every calculation are unchanged.
+- **Two fixes on Actions:** the Nifty 1000's note gives the date as "30 Oct 2026", not "2026-10-30". Where nothing is announced, it now says "No board meeting or ex-date is announced for any holding, sell or buy." The swaps line no longer says "Nifty Nifty Total Market".
+- A new check, `scripts/glossary_audit.mjs`, reads every page at 412 and 1400 px and fails on any form the glossary rules out. It runs in CI beside the number-format audit.
+
 ## 2026-11-23 — Stock page rebuilt from the approved mock-up
 
 - The stock page is rebuilt from mock-up v2, which the owner approved on 23 Nov. Its title answers the first question ("Sansera Engineering is 12th of 750, passes both filters and is in the model book."), with the close, the year against Nifty Total Market and four tiles: the close, the rank, the place among the qualified and, when the model book holds it, its return since the first buy.

@@ -50,7 +50,11 @@ const RULES = {
   '2 "Industry" as a column head': t => t.match(/(?:^|\t)Industr(?:y|ies)\b[^\t\n]{0,12}/gm),
   '2 "industry" for NSE\'s groups': t => t.match(/[^.\n\t]{0,40}\bindustr(?:y|ies)\b[^.\n\t]{0,30}/gi),
   '3 an NSE index without "Nifty" outside an "NSE index" column': t => t.match(/(?<!Nifty )\b(?:Smallcap|Midcap|Microcap|Largecap|LargeMidcap)\s?\d+\b/g),
-  '4 "bps" for anything but costs': t => (t.match(/[^.\n]{0,60}\bbps\b[^.\n]{0,20}/g) || []).filter(s => !/cost|brokerage|slippage|charge|impact|fee|spread|stamp|STT/i.test(s)),
+  '3 a stock\'s size without "Cap"': t => t.match(/(?:^|\t|· )(?:Large|Mid|Small|Micro)(?=\t|$| \d+%| ·)/gm),
+  // bps is for costs; a gap between returns is pts. A sentence with bps and a gap word, and no cost word, is a finding.
+  '4 "bps" for a gap between returns': t => t.split(/(?<=[.!?])\s+|\n/).filter(s => /\bbps\b/.test(s)
+    && /\b(?:lead|ahead|behind|gap|beat|lag|outperform|underperform)/i.test(s)
+    && !/cost|brokerage|slippage|charge|impact|fee|spread|stamp|STT|round trip|basis points/i.test(s)).map(s => s.slice(0, 90)),
   '5 "crore" spelled out, or a lakh crore in thousands': t => t.match(/\bcrores?\b|₹\s?\d{1,2},\d\d,\d{3}(?:,\d{3})* ?Cr\b/gi),
   '6 "1Y", "1-year", "12-month", "one year"': t => t.match(/(?<![\w.])1Y\b|\b1-year\b|\b12-month\b|\bone year\b/gi),
   '7 "since inception", "since start", "since the record began"': t => t.match(/\bsince (?:inception|start|the record began)\b/gi),
@@ -60,8 +64,9 @@ const RULES = {
   '11 "200-day average", "50-day", "moving average" as a label': t => t.match(/\b\d+-day (?:average|EMA|SMA|moving average)\b|\b(?:50|200)-day\b|\bmoving average\b/gi),
   'S173 "None" as wording': t => t.match(/\bNone (?:announced|found|due)\b/g),
 };
-// A page that shows "pts" says once what it means (glossary 4).
-const needsExplainer = t => /\bpts\b/.test(t) && !/pts = percentage points/.test(t);
+// A page that shows "pts" says once what it means (glossary 4): read on the text before ALLOW takes the explainer out.
+const EXPLAINER = /pts = percentage points: 12% − 8% = 4 pts/g;
+const needsExplainer = raw => /\bpts\b/.test(raw.replace(EXPLAINER, '')) && !raw.match(EXPLAINER);
 
 function audit(name, text) {
   let t = text;
@@ -71,7 +76,7 @@ function audit(name, text) {
     const m = [...new Set(fn(t) || [])];
     if (m.length) found[rule] = m;
   }
-  if (needsExplainer(t)) found['4 "pts" with no "pts = percentage points" on the page'] = ['no explainer'];
+  if (needsExplainer(text)) found['4 "pts" with no "pts = percentage points" on the page'] = ['no explainer'];
   const n = Object.values(found).reduce((a, m) => a + m.length, 0);
   console.log(`${name}: ${n ? n + ' found' : 'clean'}`);
   for (const [rule, m] of Object.entries(found)) console.log(`  ${rule}: ${m.slice(0, 8).join(' | ')}${m.length > 8 ? ` (+${m.length - 8})` : ''}`);
@@ -100,11 +105,18 @@ if (fromFiles) {
           t += await f.evaluate(() => {
             document.querySelectorAll('details').forEach(d => { d.open = true; });
             // Glossary 3: the short form of an NSE index is allowed in a column headed "NSE index".
+            // Columns are counted on the header's last row, colspans included (the Screener has a group row above it).
+            const at = (tr, col) => { let i = 0; for (const c of tr.children) { i += c.colSpan || 1; if (i > col) return c; } return null; };
             for (const table of document.querySelectorAll('table')) {
-              const heads = [...table.querySelectorAll('thead th, thead td')].map(h => h.innerText.replace(/[↕↑↓]/g, '').trim());
-              const col = heads.indexOf('NSE index');
+              const rows = table.querySelectorAll('thead tr');
+              if (!rows.length) continue;
+              let col = -1, i = 0;
+              for (const c of rows[rows.length - 1].children) {
+                if (c.innerText.replace(/[↕↑↓]/g, '').trim() === 'NSE index') { col = i; break; }
+                i += c.colSpan || 1;
+              }
               if (col < 0) continue;
-              for (const tr of table.querySelectorAll('tbody tr')) { const c = tr.children[col]; if (c) c.textContent = ''; }
+              for (const tr of table.querySelectorAll('tbody tr')) { const c = at(tr, col); if (c) c.textContent = ''; }
             }
             return document.body.innerText;
           }) + '\n';

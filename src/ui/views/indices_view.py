@@ -137,13 +137,13 @@ def section_styles(sts: list[ip.Style], m1: pd.Timestamp, m3: pd.Timestamp) -> l
              "bar": None if s.lead_now is None else round(s.lead_now, 2), "ago": None if s.lead_1m is None else round(s.lead_1m, 2),
              "vals": [sg(s.lead_3m), sg(s.lead_1m), sg(s.lead_now), sg(s.dy_gap)],
              "cls": [_kt(s.lead_3m), _kt(s.lead_1m), _kt(s.lead_now) + " b", "muted"],
-             "read": [[sg(s.lead_now) + " pts", "12-month lead now", _kt(s.lead_now)], [sg(s.lead_1m) + " pts", "a month ago"],
+             "read": [[sg(s.lead_now) + " pts", "12M lead now", _kt(s.lead_now)], [sg(s.lead_1m) + " pts", "a month ago"],
                       [sg(s.dy_gap) + " pts", "dividend-yield gap, 12M"]]}
             for s in sts]
     spec = {"label": "Style", "barHead": "Lead over parent, 12 months, pts", "head": [_d(m3), _d(m1), "Now", "Yield gap"],
             "rows": rows, "lo": -15, "hi": 15, "step": 0.5, "rest": "Latest · the first row"}
     return [f'<div class="dh-sec">{KICK.format("Styles")}<h2 id="s-styles" class="dh-h2">{h2}</h2>'
-            '<p class="dh-note">Each style index against the index it picks from: its 12-month price return minus the '
+            '<p class="dh-note">Each style index against the index it picks from: its price return over 12 months minus the '
             "parent's, read 3 months ago, a month ago and now. Only live history is used, from the day NSE first published "
             'the index. Each line is 0.5 points; a lead fills right of the dark zero line, a lag left. The yield gap is the '
             "style's dividend yield minus the parent's: a price lead understates a style by about that much every 12 months. "
@@ -270,7 +270,7 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
               f"{_short(themes[-1].name)} trails at {sg(themes[-1].returns[12], 1, '%')}.")
     parts = [f'<div class="dh-sec">{KICK.format("Every index")}<h2 id="s-every" class="dh-h2">{e(h2)}</h2>'
              f'<p class="dh-note">NSE\'s {n} broad, theme and strategy indices, in three families, each sorted by its '
-             f'12-month price return. Each window ends on {_dy(as_of)} and starts on the last session on or before the same '
+             f'price return over 12 months. Each window ends on {_dy(as_of)} and starts on the last session on or before the same '
              'date 1, 3, 6, 9 and 12 months back. Indices younger than 12 months are listed last, with their launch date in the 12M column. '
              "NSE's sector indices are on Sectors, beside the sectors they match. Bond, rate, leveraged and inverse "
              'indices, India VIX and the dollar Nifty are left out.</p></div>']
