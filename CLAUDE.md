@@ -58,7 +58,7 @@ all Actions minutes), and every session reads the docs above, so text and pushes
 - **Keep the docs lean.** A TODO row holds the requirement, how we know it is done, and a one- or
   two-line status with run IDs; the narrative goes in the PR or `docs/archive/`. Do not paste logs or
   long evidence into TODO rows.
-- **One living handover** (`docs/HANDOVER.md` once S201 is done): update its state section in place
+- **One living handover** (`docs/HANDOVER.md`, S201): update its state section in place
   instead of writing a new dated file.
 - **Do not wait by polling.** Use the PR's events; re-read CI only when an event says it finished.
 - **Before adding a job, a schedule, a dataset or an R2 copy,** name who reads it. Nothing is written

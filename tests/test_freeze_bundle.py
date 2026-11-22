@@ -216,6 +216,50 @@ def _archive(mod, frozen, ledger, *, publisher, books_path):
     )
 
 
+def test_the_monthly_workflow_replays_what_it_froze_after_the_commit():
+    yaml = pytest.importorskip("yaml")
+    wf = yaml.safe_load((ROOT / ".github" / "workflows" / "monthly_track_record.yml").read_text())
+    steps = wf["jobs"]["freeze"]["steps"]
+    names = [s.get("name", "") for s in steps]
+    replay = [i for i, s in enumerate(steps) if "replay_frozen_month.py" in str(s.get("run", ""))]
+    assert len(replay) == 1
+    step = steps[replay[0]]
+    assert "--frozen-since" in step["run"]
+    assert replay[0] > names.index("Commit the ledger")
+    assert "github.sha" in step["env"]["REPLAY_SINCE"]
+    assert {"R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ENDPOINT",
+            "R2_BUCKET"} <= set(step["env"])
+    replay_line = next(ln for ln in step["run"].splitlines() if "replay_frozen_month.py" in ln)
+    assert "||" not in replay_line  # a failed replay fails the job
+
+
+def test_frozen_since_names_only_months_given_a_bundle_after_the_ref(tmp_path):
+    import subprocess
+
+    mod = _load_script("replay_frozen_month")
+    (tmp_path / "data").mkdir()
+
+    def write(name, months):
+        (tmp_path / "data" / name).write_text(json.dumps({"months": months}))
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    write("track_record.json", {"2026-10": {"strategy": 0.01}})
+    write("track_record_nano.json", {"2026-10": {"strategy": 0.02}})
+    git("init", "-q")
+    git("add", ".")
+    git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base")
+    assert mod.frozen_since("HEAD", root=tmp_path) == []
+    write("track_record.json", {"2026-10": {"strategy": 0.01},
+                                "2026-11": {"strategy": 0.03, "freeze_revision": "a" * 64}})
+    write("track_record_1000.json", {"2026-11": {"strategy": 0.04, "freeze_revision": "b" * 64}})
+    write("track_record_nano.json", {"2026-10": {"strategy": 0.02}, "2026-11": {"strategy": 0.0}})
+    assert mod.frozen_since("HEAD", root=tmp_path) == [("750", "2026-11"), ("1000", "2026-11")]
+    with pytest.raises(SystemExit, match="Unknown commit"):
+        mod.frozen_since("0" * 40, root=tmp_path)
+
+
 def _load_script(name):
     spec = importlib.util.spec_from_file_location(f"s185_{name}", ROOT / "scripts" / f"{name}.py")
     mod = importlib.util.module_from_spec(spec)
