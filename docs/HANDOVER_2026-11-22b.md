@@ -51,7 +51,10 @@ No work is in progress in any session.
    S188 with its run ID):
    - `screener_sync` (~22:00 UTC 22 Nov): the 58 Nifty 1000 members without a
      30 Oct close are fetched; any left are named in
-     `data/screener_pending_history.json` and on the banner.
+     `data/screener_pending_history.json` and on the banner. Then re-count
+     30 Oct closes on the published store for the 31 names whose Screener
+     URLs the owner gave on 22 Nov, and tell the owner which (if any) are
+     still unserved.
    - `daily_sync`: the weekly fill with `--with-nifty-1000` adds its next batch.
    - former-member prices for ENNATURE and IGLSPIRITS.
    - `nse_reference_sync`: the first `nifty_1000` anchor check and the first
