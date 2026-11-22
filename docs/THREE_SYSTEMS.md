@@ -19,7 +19,7 @@ _Last updated: 2026-11-21_
 | Industry | NSE industry | NSE industry (NSE's list names one for all 1,000) | TradingView sector (`scripts/classify_missing.py`) | TradingView sector |
 | Market caps | NSE's file, `data/nse_market_caps.csv` | the same file, which the daily sync now writes for all 1,000 | the list's own month-end figures | both |
 | Track record | since Jan 2026, `data/track_record.json` | from Nov 2026, `data/track_record_1000.json`; **November is reconstructed** (its 30 Oct book uses a list not public until 16 Nov); a month is frozen only when every member has a close on its signal day | from Oct 2026, `data/track_record_nano.json` | from Oct 2026, `data/track_record_combined.json` |
-| Backtest | last 6 completed months | from Nov 2026, a month more each month-end | from Sep 2026, a month more each month-end | same as > ₹2,000 Cr |
+| Backtest | none per system: the Backtest page has no system picker (see Backtest below) | none | none | none |
 
 Sections below written before 21 Nov 2026 call > ₹2,000 Cr "Nano Cap"; it is
 the same system under the same key.
@@ -43,7 +43,7 @@ S194 (independent audit, 22 Nov 2026), fixed with tests: NSE's two comma spellin
 - Configuration → System (a segmented control of the short names; the chosen
   system's one-line caption under it). Every page
   follows the choice: Dashboard, Actions, Screener, Portfolio, Market, Sectors,
-  Watchlist, Backtest. Holdings and watchlist are shared. (RRG was removed on
+  Watchlist (not Backtest: see Backtest below). Holdings and watchlist are shared. (RRG was removed on
   21 Nov 2026, #587; Track Record is part of Portfolio and `/track-record`
   redirects there; Breadth is the Market page, `/market`, #596.)
 - The choice lives in the session (`cfg_system`) **and** in the address as
@@ -139,11 +139,14 @@ systems only. See `docs/TRACK_RECORD.md` §9–11.
 
 ## Backtest
 
-`systems.backtest_months` counts completed months since September 2026 for the
-₹2,000 Cr list and Combined, and since November 2026 for the Nifty 1000
-(`BACKTEST_START`): 0 until 30 Sep (the page shows "Building"), 1 from
-1 Oct, growing monthly. It runs on that system's point-in-time membership, so
-it is never judged against a list that did not exist yet.
+The Backtest page does not follow the system picker, for any of the four
+systems. Since #593 (S174, 21 Nov 2026) it is one page of research runs on
+NSE's long price file over the universes in `src/engine/index_universe.py`
+`INDICES` (Nifty 50, 100, 500 and so on); the Nifty 1000 is not one of them.
+The per-system backtest that counted months from September or November 2026
+(`systems.backtest_months`, `BACKTEST_START`) went with that change; an
+earlier version of this section still described it (corrected 22 Nov 2026,
+S194 L6). A system's own months are its track record on Portfolio.
 
 ## Liquidity floor
 

@@ -434,12 +434,20 @@ def comparison_frame(
     return pd.DataFrame(rows)[columns]
 
 
+_NUMBER_WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+
+
+def systems_heading(n: int) -> str:
+    """The comparison card's title, counting the systems (S194 L6: it said "Three" with four)."""
+    return f"{str(_NUMBER_WORDS.get(n, n)).capitalize()} systems, side by side"
+
+
 def render_comparison(
     adj_close: pd.DataFrame | None = None,
     benchmark_close: pd.Series | None = None,
     selected_system: str = SYSTEM_750,
 ) -> None:
-    """Three systems in the same calendar-return treatment as the Portfolio."""
+    """Every system in the same calendar-return treatment as the Portfolio."""
     ledgers = {}
     live_meta = {}
     for sys_id in SYSTEMS:
@@ -471,7 +479,7 @@ def render_comparison(
             extra_shadows[key] = None
     table = comparison_frame(ledgers, live_meta, shadow, extra_shadows)
     with kit.card(
-        "Three systems, side by side",
+        systems_heading(len(ledgers)),
         "tr_compare",
         "monthly returns · latest 12 months",
     ):
