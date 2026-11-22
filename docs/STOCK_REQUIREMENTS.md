@@ -94,6 +94,10 @@ data-heavy pages that S151 counts.
 |---|---|---|---|---|
 | 47 | Today's price chart stays, with its relative-strength pane against the market beneath. It may be restyled, not left out or replaced by the mock-up's own drawing; row 33 applies to it only as restyling | Owner 22 Nov 2026: "needs current chart where RS is also there, can be re-design but not left out" | Price | Price and relative strength |
 | 48 | The chart does not move on hover: the readout above it keeps one height and width at every date (one line at 412 px, tabular figures, the height of its longest reading), as #589 fixed on the live charts; a browser check fails if the chart's top moves between two hover positions, at 412 and 1400 px | Owner 22 Nov 2026: "Mock up chart is jumping so when you modify existing chart, ensure that mistake don't get repeated"; mock-up v1's readout wrapped to two lines on 28 Aug 2026 ("₹3,859.00" / "50D EMA ₹3,476.75") and not on 8 Jun 2026; #589 (CHANGELOG 21 Nov, "Charts no longer jump on hover") | Price | 50D EMA |
+| 49 | The volume pane stays, headed "Volume", no exchange named on the page | Owner 22 Nov 2026: "Don't show exchange but show volume" | Price | Volume |
+| 50 | No stop loss and no chandelier exit anywhere on the page; code that only they reach goes, and a test fails if either is shown | Owner 22 Nov 2026: "we don't have exit or SL so remove it" | Whole page | Rank of 750 |
+| 51 | Prices, moving averages and ₹ levels in whole rupees, below ₹100 too; returns to at most one decimal (11.1%, not 11.11%); display only, exports and calculations exact; the chart readout too | Owner 22 Nov 2026: "price etc, Moving averages etc should be in round numbers, return only with Max one decimal values like 11.1% not 11.11%"; then whole rupees for all prices, below ₹100 included | Whole page | Rank of 750 |
+| 52 | The owner's style sheet, through the one shared formatter (S173) and its page-scanning test: ₹ Cr without decimals; dates as "20 Nov 2026"; a true minus and an explicit + on changes; "–" for missing data with the reason in a footnote; one word per thing ("sector", "pts", "50D EMA", "Nifty Total Market"); the standard foot; weights to one decimal | Owner 22 Nov 2026, the 8-rule style sheet (relayed by the coordinating session) | Whole page | Data to |
 
 ## Data checks run on 21 Nov 2026 (prices to Fri 20 Nov 2026)
 
@@ -216,7 +220,15 @@ order:
 
 ## Open questions for the owner
 
-Still open on 22 Nov 2026, after the owner's review of v1: A and G (to be put to the owner in a batch by the coordinating session); B-F not yet answered.
+**Settled 22 Nov 2026** (owner's answers and rules relayed by the coordinating session; B-F decided by the existing rules, which the coordinating session said are not the owner's to answer):
+
+- **A. Volume pane:** kept, labelled "Volume", no exchange named on the page; the figure stays the total traded on NSE and BSE, recorded in `DATA_CATALOGUE.md` (owner: "Don't show exchange but show volume").
+- **B. Tile figures:** in the serif at 30 px, regular weight (PAGE_DESIGN §2a, "Tile figures in the serif at 30 px").
+- **C. Term:** "Largest fall from a peak", the word Backtest and Portfolio use (S173; BACKTEST_REQUIREMENTS row 30, PAGE_DESIGN §6a).
+- **D. Caution colour:** #9E6300, 4.96:1 on white and 4.62:1 on the subtle ground #F7F7F5, so it passes WCAG AA for normal text; #A86A00 was 4.44:1.
+- **E. Dark theme:** none in this build; THEME.md as it is (the live site is light only).
+- **F. Score:** kept under the rank trail, as the live page has it.
+- **G. Stop loss and chandelier exit:** removed from the page, with any code only they reach, and a test that the page no longer shows them (owner: "we don't have exit or SL so remove it").
 
 - **A. Volume pane:** drop it, or keep it labelled "NSE and BSE"? The mock-up leaves it out.
 - **B. Tile figures:** PAGE_DESIGN §2a sets them in the serif, §8 lists tiles with figures in

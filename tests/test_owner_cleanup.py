@@ -44,14 +44,14 @@ def test_r2_is_deleted_only_when_it_is_exactly_what_was_recorded():
 def test_an_asset_is_deleted_only_if_still_the_same_size_and_downloads():
     for want in oc.ASSETS:
         ok = {"name": want["name"], "size": want["size"], "download_count": want["downloads"]}
-        assert oc.plan_asset([ok, {"name": "prices.parquet", "size": 1, "download_count": 9}], want).action == "delete"
+        assert oc.plan_asset([ok, {"name": "prices_full.parquet", "size": 1, "download_count": 9}], want).action == "delete"
         assert oc.plan_asset([{**ok, "download_count": want["downloads"] + 1}], want).action == "skip"
         assert oc.plan_asset([{**ok, "size": 5}], want).action == "skip"
         assert oc.plan_asset([], want).action == "gone"
     names = {a["name"] for a in oc.ASSETS}
-    assert names == {"tmp_session_2026-10-03.zip", "history_backtests.zip", "prices_extra.parquet"}
+    assert names == {"tmp_session_2026-10-03.zip", "history_backtests.zip", "prices_extra.parquet", "prices.parquet"}
     # the reference set and every live asset stay (docs/PENDING_DELETIONS.md)
-    assert not {n for n in names if n.startswith("ref_") or n in {"prices.parquet", "prices_full.parquet"}}
+    assert not {n for n in names if n.startswith("ref_") or n == "prices_full.parquet"}
 
 
 def test_the_branch_list_holds_no_protected_or_open_pr_branch():

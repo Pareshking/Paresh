@@ -11,7 +11,7 @@ the repo copy the app reads at run time.
 
 | Dataset (R2 prefix) | What it is | Grain | History | Writer (workflow, UTC) | Readers | Retention |
 |---|---|---|---|---|---|---|
-| `prices/screener` | Screener.in adjusted daily closes, ~1,167 stocks | stock × day | 10 years (bootstrap) | `screener_sync` 17:07 UTC (22:37 IST) daily; `weekly_full_sync` Fri 18:30 | App price loader, backtests | Full history |
+| `prices/screener` | Screener.in adjusted daily closes, ~1,167 stocks; its volume is the total traded on NSE and BSE together (SANSERA, 20 Nov 2026: 208,200 = NSE 199,519 + BSE 8,681), which the stock page shows as "Volume" without naming the exchanges (owner, 22 Nov 2026) | stock × day | 10 years (bootstrap) | `screener_sync` 17:07 UTC (22:37 IST) daily; `weekly_full_sync` Fri 18:30 | App price loader, backtests | Full history |
 | `prices/yahoo` | **Retired 2026-10-02**: no longer published; Yahoo files live on the `data-latest` release only | — | — | — | — | Deleted whole by `r2_retention` |
 | `prices/yahoo/raw`, `prices/yahoo/bootstrap` | **Retired** (Yahoo data removed from R2) | — | — | — | — | Deleted whole |
 | `prices/screener/bootstrap` | Bootstrap load | file | as pulled | `screener_10y_bootstrap` | Rebuilds, audits | Never touched |

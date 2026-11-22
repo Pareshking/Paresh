@@ -95,6 +95,8 @@ Fixed 22 Nov 2026 in S184 (#606), before the redesign: `ranking_view.with_book_c
 
 ## Approved with mock-up v1 (owner, 22 Nov 2026: "Watchlist approved")
 
+The owner confirmed the whole mock-up the same day: "Full" (the grouped table, the "30 Nov" column and the "Not ranked" section, with "Before the fill"). The owner's number rules and style sheet also apply (rows 27-28).
+
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
 | 22 | Rows grouped by the book's lines, in rank order: top 20 qualified, 21st to 40th, qualified past the 40th, fails a filter; each group a heading row with its count and what it means; a note under each name says how far it is from its line, without repeating a figure from a column | Reader questions 1, 2; PAGE_DESIGN §3 (group rows with a heading row) | Table | Top 20 qualified + kept if held + Fails a filter |
@@ -102,6 +104,8 @@ Fixed 22 Nov 2026 in S184 (#606), before the redesign: `ranking_view.with_book_c
 | 24 | "Not ranked" says why and where for each symbol: renamed (NSE's `symbolchange.csv`, with the new symbol and a button to replace it), in another system (its rank there), too new to rank, or not a known symbol | Reader question 4; data check below (the live page tells a > ₹2,000 Cr reader that CUPID is "not found") | After the table | Not ranked + Replace with |
 | 25 | "Before the fill": board meetings and ex-dates for the listed stocks up to the fill day, the check Actions row 28 runs for the book, with the same wording of its limits | Reader question 5; Actions row 28 | After Not ranked | Before the fill |
 | 26 | The lede names the system and the session ("Ranked in the Nifty 750 at the 20 Nov close") | PAGE_DESIGN §5.3; data check below (Nifty 1000 falls back to the 750 without saying so) | Top | Ranked in the |
+| 27 | Prices and moving averages in whole rupees, below ₹100 too; returns to at most one decimal; display only, the CSV export and calculations exact | Owner 22 Nov 2026: "price etc, Moving averages etc should be in round numbers, return only with Max one decimal values like 11.1% not 11.11%"; then whole rupees for all prices | Table | Watchlist |
+| 28 | The owner's style sheet, through the one shared formatter (S173) and its page-scanning test: ₹ Cr without decimals; dates as "20 Nov 2026"; true minus and explicit +; "–" for missing with the reason in a footnote; one word per thing; the standard foot | Owner 22 Nov 2026, the 8-rule style sheet | Whole page | Data to |
 
 Not proposed, for the owner to decide (see "The honest question"): a date added per
 symbol and "since you added it"; a one-click "start from the model book" on the empty
