@@ -17,10 +17,12 @@ a yes/no line for the owner.
 ## Summary
 
 - **Memory is flat now.** One reader opened 22 pages and the server stayed at
-  431-437 MB. On 7 Nov it grew from 330 to 695 MB over the same 22 visits.
-  - Portfolio warm: 2.7 s, down from 8.2 s.
-  - The highest peak is the Backtest page's first, cold open: 765 MB.
+  487-491 MB (this machine; 517-524 MB at 8ee4b95 on the same machine). On 7 Nov it grew
+  from 330 to 695 MB over the same 22 visits.
+  - Portfolio warm: 2.4 s, down from 8.2 s on 7 Nov.
+  - The highest peak is the Backtest page's first, cold open: 838 MB.
   - Nothing comes near the ~2.7 GB container.
+  - The Nifty 1000 and the Watchlist build (#610-#619) changed neither.
 - **GitHub Actions** ran about 2,000 minutes in 38 hours (21-22 Nov), roughly
   8,760 a week. That is a floor, and 3.8 times the 10-16 Nov week.
   - 76% comes from pull requests and pushes, not from the data jobs.
@@ -41,7 +43,8 @@ a yes/no line for the owner.
 
 ## 1. Memory (a)
 
-`scripts/audit_page_bench.py --rounds 2` on 22 Nov:
+`scripts/audit_page_bench.py --rounds 2`, run again on 22 Nov evening at `main` e385c13 (after the Nifty 1000
+and the Watchlist build):
 - A local `streamlit run app.py`, with an empty cache for round 1.
 - Each page opened in headless Chromium.
 - The server's resident memory sampled every 100 ms.
@@ -51,37 +54,47 @@ a yes/no line for the owner.
 
 | Page | Cold s | Warm s | Peak MB cold / warm | Resident after, warm |
 |---|---|---|---|---|
-| Dashboard (`/`) | 9.4 | 1.8 | 455 / 489 | 434 |
-| Portfolio | 5.1 | **2.7** | 508 / 467 | 431 |
-| Actions | 1.9 | 1.7 | 447 / 473 | 432 |
-| Sectors | 3.0 | 1.1 | 432 / 446 | 433 |
-| Watchlist | 2.4 | 1.2 | 450 / 449 | 431 |
-| Market | 3.1 | 2.5 | 470 / 509 | 435 |
-| Indices | 1.4 | 1.5 | 421 / 456 | 436 |
-| Backtest | **25.3** | 4.9 | **765** / 543 | 437 |
-| Configuration | 1.1 | 1.3 | 453 / 439 | 436 |
-| Guide | 1.1 | 1.1 | 436 / 438 | 436 |
-| Stock page (RELIANCE) | 1.3 | 1.3 | 454 / 454 | 435 |
+| Dashboard (`/`) | 9.3 | 2.1 | 567 / 534 | 488 |
+| Portfolio | 5.0 | 2.4 | 608 / 522 | 488 |
+| Actions | 1.7 | 1.6 | 506 / 537 | 488 |
+| Sectors | 3.1 | 1.1 | 506 / 489 | 488 |
+| Watchlist (new page, empty list) | 2.3 | 1.2 | 495 / 498 | 487 |
+| Market | 3.0 | 2.2 | 512 / 543 | 488 |
+| Indices | 1.4 | 1.6 | 476 / 509 | 488 |
+| Backtest | **23.3** | 5.2 | **838** / 573 | 491 |
+| Configuration | 1.1 | 1.0 | 493 / 493 | 490 |
+| Guide | 1.1 | 1.1 | 493 / 506 | 489 |
+| Stock page (RELIANCE) | 1.5 | 1.5 | 502 / 504 | 487 |
+
+**The same bench at 8ee4b95 on the same machine and data** (where the draft was measured): resident 517-524 MB
+warm, Backtest 23.9 s cold / 4.6 s warm, peak 844 MB. So #610-#619 (the Nifty 1000, the formatter, the Watchlist)
+did not raise memory or slow a page; the absolute figures differ from the draft's 431-437 MB because the machine
+differs, which is why the comparison is made on one machine.
+
+**One run did not repeat.** The first run at e385c13 had Backtest warm at 22.0 s and resident memory falling by
+74 MB mid-run, as if the caches had been dropped. Not reproduced in a second full run or in five two-page runs
+(Backtest, then Guide, Watchlist or Configuration, then Backtest; at 8ee4b95, #614, #615, #616, #617 and e385c13,
+4.6-5.1 s each). Cause not found; a mid-run refresh of the release files is possible and was not checked.
 
 Against the 7 Nov run (`docs/AUDIT_PLAN.md` 0.5, same script, same kind of
 machine):
 
 - **A1's open item is answered.**
-  - Memory is flat across the second round: 431-437 MB, against "330 -> 695 MB,
+  - Memory is flat across the second round: 487-491 MB, against "330 -> 695 MB,
     never released" on 7 Nov.
-  - Portfolio warm is 2.7 s, against 8.2 s. S115 had already measured 991 ms on
+  - Portfolio warm is 2.4 s, against 8.2 s. S115 had already measured 991 ms on
     a second view.
-- **The Backtest cold open is slower than on 7 Nov (25.3 s against 6.0 s).**
+- **The Backtest cold open is slower than on 7 Nov (23.3 s against 6.0 s).**
   This run fetched the long price file over this container's proxy on first
   use, so the figure includes a download that a warm production process
-  doesn't repeat. The warm open is 4.9 s (4.6 s on 7 Nov). Treat 25 s as not
+  doesn't repeat. The warm open is 5.2 s (4.6 s on 7 Nov). Treat 23 s as not
   comparable until it is measured where the file is cached.
 - **S61's limits:**
   - The container is about 2.7 GB (Streamlit's documentation, as quoted in
     `docs/archive/MEMORY_AUDIT_2026-10-08.md`). `docs/AUDIT_PLAN.md` says
     "~1 GB container"; the two disagree, and neither was measured.
-  - Against either figure, one reader peaks at 765 MB and settles at about
-    437 MB.
+  - Against either figure, one reader peaks at 838 MB and settles at about
+    490 MB.
   - S68 (a separate app for Backtest) stays deferred. Its trigger, `Memory peak
     ... at page:backtest` lines near the limit in the production log, has not
     been reported.
