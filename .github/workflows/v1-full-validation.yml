@@ -61,6 +61,30 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
+        with:
+          # A PR's merge commit and its base: enough for the scope step below.
+          fetch-depth: 2
+      # S199 (owner, 22-23 Nov 2026): a PR that changes only Markdown runs the tests that
+      # read Markdown, not the ~14-min suite and app checks. Ruff runs in lint.yml for every
+      # PR. A page requirements doc (docs/*_REQUIREMENTS.md) is read row by row against the
+      # running app below, so a PR touching one keeps the full run. Push, schedule and
+      # dispatch always run everything. The job keeps its name either way, so a required
+      # `validate` check still reports.
+      - name: Scope (Markdown-only PR?)
+        id: scope
+        run: |
+          DOCS_ONLY=false
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED=$(git diff --name-only HEAD^1 HEAD)
+            echo "Changed files:"; echo "$CHANGED"
+            if [ -n "$CHANGED" ] \
+               && ! echo "$CHANGED" | grep -qv '\.md$' \
+               && ! echo "$CHANGED" | grep -q '_REQUIREMENTS\.md$'; then
+              DOCS_ONLY=true
+            fi
+          fi
+          echo "docs_only=$DOCS_ONLY" >> "$GITHUB_OUTPUT"
+          echo "DOCS_ONLY=$DOCS_ONLY"
       - uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
@@ -72,6 +96,10 @@ jobs:
       # 200 consecutive runs -- silently do not run in the only place that matters.
       - run: pip install -r requirements.txt pytest pyyaml
 
+      - name: Markdown-reading tests (Markdown-only PR)
+        if: ${{ steps.scope.outputs.docs_only == 'true' }}
+        run: python -m pytest -q tests/test_launch_slot_10_leftovers.py tests/test_ss_prices.py
+
       # Everything, R2 suites included. They are hermetic (fakes, no
       # credentials, ~2 s), and they also depend on code no R2 path filter
       # watches -- src/core/tickers.py, the membership builder, and above all
@@ -81,15 +109,19 @@ jobs:
       # data/nse_prices/closes.parquet is not in git (TODO S178); the suite is offline,
       # so the tests that check the real closes read the published copy fetched here.
       - name: Fetch the published NSE closes
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: python scripts/fetch_nse_closes.py
 
       - name: Full regression suite
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: python -m pytest -q
 
       - name: Compile application and source
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: python -m compileall -q app.py src scripts
 
       - name: Stage-2 canonical ranking artifact hand-off
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: |
           python - <<'PY'
           from agent.quant_hand_off import load_quant_snapshot
@@ -104,10 +136,11 @@ jobs:
           PY
 
       - name: Stage-3 live hierarchy output
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: python scripts/stage3_live_validation.py
 
       - name: Retain Stage-3 live hierarchy artifact
-        if: ${{ always() }}
+        if: ${{ always() && steps.scope.outputs.docs_only != 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: stage3-live-hierarchy
@@ -116,6 +149,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Enforce deprecated Streamlit HTML cleanup
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: |
           if git grep -n -E "components.v1|components.html|streamlit.components" -- app.py src; then
             echo "Deprecated Streamlit component HTML call remains in application source"
@@ -124,6 +158,7 @@ jobs:
           echo "DEPRECATED_STREAMLIT_HTML=NONE"
 
       - name: Headless Streamlit runtime smoke test
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: python scripts/headless_smoke.py
 
       # The smoke test reads text and cannot see layout. This drives the running app in
@@ -132,9 +167,11 @@ jobs:
       # what they draw and empty bands (owner, 20 Nov 2026: "Why doesn't your audit
       # capture such issues?").
       - uses: actions/setup-node@v5
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         with:
           node-version: 22
       - name: Layout audit (Dashboard, Portfolio, Actions, Breadth, Sectors, Screener, Indices, Backtest, Watchlist) and requirements
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         # The app here reads R2 as the live site does (S172, 21 Nov 2026): without the keys
         # it fell back to the release files and drew partial figures the live site did not.
         env:
@@ -175,6 +212,7 @@ jobs:
           node scripts/layout_audit.mjs http://localhost:8501/watchlist 412,1400
 
       - name: Upload V1 validation artifacts
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: v1-validation-artifacts
