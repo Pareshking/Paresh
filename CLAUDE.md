@@ -44,3 +44,24 @@ chart and data-check rules the Dashboard redesign settled, with their sources.
   nightly sync writes (`data/`) is not edited by hand.
 - Update `CHANGELOG.md` for a user-visible change and `docs/TODO.md` for the
   state of the work.
+
+## Saving resources (owner, 22 Nov 2026: batch and saving measures for all new changes)
+
+Every push to a pull request reruns the full validation (~14 min; `v1-full-validation` is about half of
+all Actions minutes), and every session reads the docs above, so text and pushes cost real resources.
+
+- **Batch.** Finish a change locally (code, tests, docs, TODO, CHANGELOG), run the checks, then push
+  once. Do not push small follow-ups one at a time; collect them and push together. Before pushing a
+  docs-only fix to an open PR, ask whether it can wait for the next push.
+- **One PR per piece of work**, not one per document. A TODO or handover update rides in the PR of
+  the work it describes, unless the work is already merged.
+- **Keep the docs lean.** A TODO row holds the requirement, how we know it is done, and a one- or
+  two-line status with run IDs; the narrative goes in the PR or `docs/archive/`. Do not paste logs or
+  long evidence into TODO rows.
+- **One living handover** (`docs/HANDOVER.md` once S201 is done): update its state section in place
+  instead of writing a new dated file.
+- **Do not wait by polling.** Use the PR's events; re-read CI only when an event says it finished.
+- **Before adding a job, a schedule, a dataset or an R2 copy,** name who reads it. Nothing is written
+  that nothing reads (S195 §4).
+- Open items: S199 (docs-only PRs skip the full validation), S200 (TODO trimmed), S201 (one living
+  handover), S202 (Production QA cadence).

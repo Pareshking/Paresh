@@ -15,6 +15,9 @@ can't do it, whatever possible please delete it."*
 - **Branches** `claude/friendly-hawking-0fp25l` (Watchlist WIP, merged in #619) and `claude/laughing-cray-ynqt45`
   (S195 draft, merged via #620): owner, 22 Nov 2026, "delete both branches". In `.github/cleanup/branches.tsv`;
   the same `owner_cleanup.yml` run bundles and deletes them.
+- **Done 22 Nov 2026:** R2 retention dispatch 45051716173 deleted 514 keys (446 for the two datasets, 68 routine
+  weekly pruning), recovery audit PASS; `owner_cleanup.yml` run 45051454256 deleted the six `reconcile_*` assets and
+  the two branches (8 deleted, 0 failed; branches bundled first).
 - Not deleted, by the same answers: `prices/ss` (4.2), `prices_full.parquet` (4.3, its premise was wrong),
   the evidence set (4.5), the three git records (4.8).
 
