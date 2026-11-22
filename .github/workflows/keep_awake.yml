@@ -1,0 +1,35 @@
+name: Keep the app awake
+
+# S202 (owner, 23 Nov 2026): Streamlit Community Cloud sleeps an app after 12 hours
+# without traffic. One page load every 4 hours keeps it awake even when GitHub starts a
+# scheduled run late or skips it (only 75 of ~120 six-hourly QA slots ran in the 30 days
+# to 22 Nov). The full Production QA runs on each push to main and once a day.
+on:
+  schedule:
+    - cron: "41 */4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-awake
+  cancel-in-progress: true
+
+jobs:
+  visit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            scripts/keep_awake.py
+            .python-version
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+      # The runner's Google Chrome is used (channel="chrome"); no browser download.
+      - run: pip install playwright==1.63.0
+      - run: python scripts/keep_awake.py
