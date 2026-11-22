@@ -11,6 +11,14 @@ before 2025.
 
 Writes data/nse_total_market.csv (date, close), adding only sessions it does not have. Refuses to write (exit 1)
 when a close disagrees with data/benchmark_indices.csv by more than 0.05% on a date both hold.
+
+Each file's date is checked against the session it was asked for, with the rule of src/loaders/nse_indices.py
+(S168): NSE printed the files for 6, 10 and 11 Apr 2023 month-first, and reading them day-first filed those closes
+under 4 Jun, 4 Oct and 4 Nov 2023 (S181, found 21 Nov 2026).
+
+    python scripts/collect_nse_total_market.py --refetch 2023-06-04 2023-10-04 2023-11-04
+
+drops the named dates and fetches every missing session again.
 """
 from __future__ import annotations
 
@@ -29,13 +37,20 @@ FIRST = date(2021, 10, 1)
 TOLERANCE = 0.0005
 
 
-def parse(raw: bytes) -> tuple[pd.Timestamp, float] | None:
+def parse(raw: bytes, session: pd.Timestamp) -> tuple[pd.Timestamp, float] | None:
+    """Nifty Total Market's close from one session's file; None when the file does not list it or is dated
+    another day (a stale file served under a new name)."""
+    sys.path.insert(0, str(ROOT))
+    from src.loaders import nse_indices as ni
     f = pd.read_csv(io.BytesIO(raw))
     f.columns = [c.strip() for c in f.columns]
     row = f[f["Index Name"].astype(str).str.strip().str.lower() == "nifty total market"]
     if row.empty:
         return None
-    d = pd.to_datetime(str(row["Index Date"].iloc[0]).strip(), format="%d-%m-%Y")
+    try:
+        d = ni._session_dates(row["Index Date"].astype(str), session).iloc[0]
+    except ni.NotAnIndexFile:
+        return None
     return d, float(row["Closing Index Value"].iloc[0])
 
 
@@ -50,9 +65,18 @@ def check(frame: pd.DataFrame) -> list[str]:
     return [f"{d:%d %b %Y}: ours {r.ours:,.2f}, NSE {r.nse:,.2f}" for d, r in bad.iterrows()]
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
     import requests
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--refetch", nargs="*", default=[], help="dates (YYYY-MM-DD) to drop and fetch again")
+    args = ap.parse_args(argv)
     kept = pd.read_csv(OUT, parse_dates=["date"]) if OUT.exists() else pd.DataFrame(columns=["date", "close"])
+    drop = set(pd.to_datetime(args.refetch))
+    if drop:
+        kept = kept[~pd.to_datetime(kept["date"]).isin(drop)]
+        print(f"Dropped {len(drop)} date(s) to fetch again: {', '.join(f'{d:%d %b %Y}' for d in sorted(drop))}")
     have = set(pd.to_datetime(kept["date"]).dt.date)
     rows = []
     for d in pd.bdate_range(FIRST, date.today()):
@@ -62,10 +86,10 @@ def main() -> int:
         time.sleep(0.3)
         if r.status_code != 200 or len(r.content) < 1000:
             continue                                   # a holiday or not yet published
-        got = parse(r.content)
+        got = parse(r.content, d)
         if got:
             rows.append({"date": got[0], "close": got[1]})
-    if not rows:
+    if not rows and not drop:
         print("No new session; nothing written.")
         return 0
     frame = (pd.concat([kept, pd.DataFrame(rows)]).assign(date=lambda f: pd.to_datetime(f["date"]))

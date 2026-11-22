@@ -44,13 +44,13 @@ nifty_capital_goods,Sector,Nifty Capital Goods
 nifty_capital_markets,Sector,Nifty Capital Markets
 nifty_cement,Sector,Nifty Cement
 nifty_chemicals,Sector,Nifty Chemicals
-nifty_commercial_transport_services,Theme,Nifty Commercial & Transport Services
+nifty_commercial_transport_services,Sector,Nifty Commercial & Transport Services
 nifty_commodities,Theme,Nifty Commodities
 nifty_composite_g_sec_index,not a stock index,Nifty Composite G-sec Index
 nifty_conglomerate_50,Theme,Nifty Conglomerate 50
 nifty_construction,Sector,Nifty Construction
 nifty_consumer_durables,Sector,Nifty Consumer Durables
-nifty_consumer_services,Theme,Nifty Consumer Services
+nifty_consumer_services,Sector,Nifty Consumer Services
 nifty_core_housing,Theme,Nifty Core Housing
 nifty_dividend_opportunities_50,Strategy,Nifty Dividend Opportunities 50
 nifty_ev_new_age_automotive,Theme,Nifty EV & New Age Automotive

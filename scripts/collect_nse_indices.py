@@ -30,6 +30,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pandas as pd
@@ -39,21 +40,28 @@ sys.path.insert(0, str(ROOT))
 
 from src.loaders import nse_indices as ni  # noqa: E402
 
-DELAY_S = 1.2
+# Measured 21 Nov 2026 from a cloud machine: 160 requests, four at a time, in 20 s
+# with no refusal (0.12 s a day); one at a time 0.52 s. The first backfill ran one
+# at a time with a 1.2 s pause and needed about three hours for 2012-2026.
+WORKERS = 4
+DELAY_S = 0.1
 
 
 def _fetch(day: pd.Timestamp) -> bytes | None:
     url = ni.URL.format(d=day)
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            return urllib.request.urlopen(req, timeout=30).read()
+            raw = urllib.request.urlopen(req, timeout=30).read()
+            time.sleep(DELAY_S)
+            return raw
         except urllib.error.HTTPError as exc:
             if exc.code == 404:
                 return None
-            time.sleep(5 * (attempt + 1))
+            # 403/429/5xx: NSE asking us to slow down, or a bad moment; back off.
+            time.sleep(5 * 2 ** attempt)
         except Exception:  # noqa: BLE001 -- a dropped connection: try again
-            time.sleep(5 * (attempt + 1))
+            time.sleep(5 * 2 ** attempt)
     raise RuntimeError(f"NSE did not answer for {day:%d %b %Y}")
 
 
@@ -67,14 +75,17 @@ def from_dir(directory: Path, aliases: dict) -> tuple[pd.DataFrame, list[str]]:
     return (pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=ni.STORE_COLUMNS)), skipped
 
 
-def fetch_since(last: pd.Timestamp | None, aliases: dict, until: pd.Timestamp) -> tuple[pd.DataFrame, list[str]]:
+def fetch_since(last: pd.Timestamp | None, aliases: dict, until: pd.Timestamp,
+                workers: int = WORKERS) -> tuple[pd.DataFrame, list[str]]:
     start = ni.FIRST_SESSION if last is None else last + pd.Timedelta(days=1)
     frames, skipped = [], []
-    for day in pd.date_range(start, until, freq="D"):
-        # Weekend sessions happen (Muhurat, budget days), so every day is asked;
-        # a day without a session is a 404 and costs one request.
-        raw = _fetch(day)
-        time.sleep(DELAY_S)
+    # Weekend sessions happen (Muhurat, budget days), so every day is asked;
+    # a day without a session is a 404 and costs one request. Fetched `workers` at
+    # a time; read in date order, so the result does not depend on who answered first.
+    days = list(pd.date_range(start, until, freq="D"))
+    with ThreadPoolExecutor(max(1, workers)) as pool:
+        answers = list(pool.map(_fetch, days))
+    for day, raw in zip(days, answers):
         if raw is None:
             continue
         try:
@@ -90,7 +101,9 @@ def main() -> int:
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--raw-dir", type=Path)
     src.add_argument("--fetch", action="store_true")
-    ap.add_argument("--until", default=None, help="last day to ask for (default: today)")
+    ap.add_argument("--until", default=None, help="last day to ask for (default: today); a backfill in batches "
+                    "passes a year end, publishes, and the next run continues from the published store")
+    ap.add_argument("--workers", type=int, default=WORKERS, help="requests at a time")
     ap.add_argument("--from-r2", action="store_true", help="read the published store from R2 first")
     ap.add_argument("--backfill", action="store_true", help="allow starting with no store (from 21 Feb 2012)")
     args = ap.parse_args()
@@ -117,7 +130,7 @@ def main() -> int:
     else:
         last = None if stored is None or stored.empty else pd.Timestamp(stored["date"].max())
         until = pd.Timestamp(args.until) if args.until else pd.Timestamp.now().normalize()
-        new, skipped = fetch_since(last, aliases, until)
+        new, skipped = fetch_since(last, aliases, until, args.workers)
     for line in skipped:
         print(f"::warning::not an index file, skipped: {line}")
     try:

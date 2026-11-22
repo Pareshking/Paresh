@@ -3,9 +3,13 @@
 Owner, 8 Nov 2026: a signal goes on the Dashboard only if it shows in the
 portfolio's own results, not only in the momentum factor's. This runs the
 record's configuration (track_record.TRACK_RECORD_CONFIG) on NSE's long
-adjusted closes over the Nifty 500 as it stood (index_universe), the same
-run as the Backtest page's "History from 2010", and returns each month's
-return beside the Nifty 500's.
+adjusted closes over the Nifty 500 as it stood (index_universe), and returns
+each month's return beside the Nifty 500's. It is NOT the Backtest page's
+default run: the record's config keeps the monthly reset until the 30 Nov 2026
+signal (and the record's industry map), while the Backtest applies the
+six-monthly reset from 2010 (owner, 21 Nov 2026, decision G), so the two read
+about 19.3% (data/momentum_health.csv, Feb 2010 to Oct 2026) and 18.8% a year. Moving these signal tests
+to the new rule was not part of that decision.
 
 Used by scripts/build_momentum_health.py (written into
 data/momentum_health.csv as `portfolio` and `nifty500`) and the research in
