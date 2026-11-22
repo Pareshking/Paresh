@@ -67,3 +67,54 @@ def test_src_changed_since_the_process_started_is_reported_stale(tmp_path, monke
     assert qa._stale_modules(ui_fix, ui_fix) == []
     # An old process without the telemetry field cannot be judged.
     assert qa._stale_modules(None, ui_fix) == []
+
+
+def test_an_older_build_behind_only_data_commits_passes_with_a_note(tmp_path, monkeypatch):
+    """Owner, 22 Nov 2026 (S186): Streamlit Cloud minutes behind a `chore(data)` push.
+
+    Before, this was an [INFRASTRUCTURE] failure (run 41900593875, 4 Nov) although
+    the code under test was the trigger's.
+    """
+    _git(tmp_path, "init", "-q")
+    served = _commit(tmp_path, "the build Streamlit serves", {"src/app.py": "code\n"})
+    _commit(tmp_path, "chore(data): nightly sync", {"data/breadth_history.csv": "a\n"})
+    trigger = _commit(tmp_path, "chore(data): results calendar", {"data/results_calendar.csv": "b\n"})
+    monkeypatch.chdir(tmp_path)
+    qa = _qa(monkeypatch, trigger)
+
+    assert qa._data_only_lag(served[:7]) == ["data/breadth_history.csv", "data/results_calendar.csv"]
+    label, failure, note = qa.correspondence(served[:7])
+    assert label == "data-only lag" and failure is None
+    assert served[:7] in note and trigger[:7] in note and "2 file(s)" in note
+    assert "data/breadth_history.csv" in note
+
+
+def test_an_older_build_behind_any_code_still_fails(tmp_path, monkeypatch):
+    """A real deploy gap -- code, app.py, config -- must still fail as INFRASTRUCTURE."""
+    _git(tmp_path, "init", "-q")
+    served = _commit(tmp_path, "served", {"src/app.py": "old\n"})
+    _commit(tmp_path, "data", {"data/x.csv": "1\n"})
+    for name in ("src/app.py", "app.py", "requirements.txt", ".streamlit/config.toml", "scripts/y.py"):
+        trigger = _commit(tmp_path, f"changes {name}", {name: f"new {name}\n"})
+        monkeypatch.chdir(tmp_path)
+        qa = _qa(monkeypatch, trigger)
+        assert qa._data_only_lag(served[:7]) == [], name
+        label, failure, note = qa.correspondence(served[:7])
+        assert label == "mismatch" and note is None, name
+        assert failure["kind"] == "INFRASTRUCTURE" and served[:7] in failure["detail"], name
+
+
+def test_an_unrelated_or_identical_build_is_not_a_data_only_lag(tmp_path, monkeypatch):
+    """Not an ancestor of the trigger (a newer build is a match, an unrelated one fails), or nothing between."""
+    _git(tmp_path, "init", "-q")
+    base = _commit(tmp_path, "base", {"src/app.py": "x\n"})
+    trigger = _commit(tmp_path, "data on main", {"data/x.csv": "1\n"})
+    _git(tmp_path, "checkout", "-q", "-b", "other", base)
+    unrelated = _commit(tmp_path, "data on another line", {"data/y.csv": "2\n"})
+    monkeypatch.chdir(tmp_path)
+    qa = _qa(monkeypatch, trigger)
+
+    assert qa._data_only_lag(unrelated[:7]) == []
+    assert qa.correspondence(unrelated[:7])[0] == "mismatch"
+    assert qa._data_only_lag(trigger[:7]) == []          # nothing between
+    assert qa.correspondence(trigger[:7]) == ("match", None, None)
