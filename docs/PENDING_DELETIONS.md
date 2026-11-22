@@ -30,7 +30,8 @@ charts) have no reader: the one function that read them,
 `src/loaders/index_levels.fetch_index_levels`, was deleted with the old Dashboard
 in #601 (S179), and
 `scripts/r2_inventory.py` still requires the dataset fresh. Retiring the job is
-TODO S168 (c). Its stored revisions sit under `indices/`, which
+TODO S168 (c), **done 22 Nov 2026** (job, script and test deleted; dataset out of
+`DAILY_DATASETS`). Its stored revisions sit under `indices/`, which
 `scripts/r2_retention.py` protects, so removing them would be an owner decision
 and a change to that list, not a clean-up run.
 

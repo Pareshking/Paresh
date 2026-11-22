@@ -22,7 +22,10 @@ Read only: writes nothing to R2.
 
     python scripts/nse_sample_check.py --since 2025-04-01 \\
         --calendar prices_full.parquet --screener screener_prices.parquet \\
-        --yahoo prices.parquet --out nse_sample_report.md --flags-csv flags.csv
+        --out nse_sample_report.md --flags-csv flags.csv
+
+--yahoo is optional: the Yahoo-era snapshot it read (release prices.parquet) is
+retired (owner, 22 Nov 2026, C6); without it the Yahoo columns are empty.
 """
 
 from __future__ import annotations
