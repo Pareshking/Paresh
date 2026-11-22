@@ -14,6 +14,11 @@ on:
     # An append-only ledger is what makes a retry schedule safe.
     - cron: '0 19 1-5 * *'
   workflow_dispatch:
+    inputs:
+      replay_since:
+        description: "Replay every month frozen since this commit (default: the commit this run checks out)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -232,3 +237,23 @@ jobs:
           done
           echo "::error::Could not push the track record after 5 attempts."
           exit 1
+
+      # S185: every month this run froze is replayed from the bundle it published
+      # (record/freezes/<system> on R2) and checked against its ledger row and
+      # stored book. After the commit, so a failed replay never loses a frozen
+      # month; it fails the job (and the alert fires) with the months named.
+      # Months already frozen before this run are not replayed again; dispatch
+      # with replay_since set to an earlier commit to re-check them.
+      - name: Replay the months frozen in this run from their bundles
+        env:
+          PYTHONPATH: .
+          REPLAY_SINCE: ${{ inputs.replay_since || github.sha }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          # The checkout is shallow; a dispatched earlier commit must be fetched first.
+          git cat-file -e "$REPLAY_SINCE^{commit}" 2>/dev/null || git fetch --quiet origin "$REPLAY_SINCE"
+          python scripts/replay_frozen_month.py --frozen-since "$REPLAY_SINCE"

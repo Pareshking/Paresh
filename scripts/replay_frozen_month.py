@@ -3,6 +3,11 @@
 
     python scripts/replay_frozen_month.py --system 750 --month 2026-11
     python scripts/replay_frozen_month.py --bundle freeze_750_2026-11.zip
+    python scripts/replay_frozen_month.py --frozen-since <git ref>
+
+`--frozen-since` replays every month that gained a `freeze_revision` in any
+data/track_record*.json since that commit (the monthly workflow passes the
+commit it checked out, so each run checks exactly the months it froze).
 
 Reads the month's bundle (R2's current revision of record/freezes/<system> for
 that month, or a local file), re-runs run_backtest on the bundle's own inputs and
@@ -22,6 +27,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -68,19 +74,29 @@ def check(data: bytes, *, ledger: dict | None, books: dict) -> list[str]:
     return failures
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--system", help="ledger key: 750, nano, combined, 1000, shadow_<book>")
-    ap.add_argument("--month", help="YYYY-MM")
-    ap.add_argument("--bundle", type=Path, help="a local bundle instead of R2's")
-    args = ap.parse_args()
-    if args.bundle:
-        data = args.bundle.read_bytes()
-    elif args.system and args.month:
-        data = freeze_bundle.fetch(args.system, args.month)
-    else:
-        ap.error("give --bundle, or --system and --month")
+def _frozen(ledger: dict | None) -> set[str]:
+    return {m for m, row in (ledger or {}).get("months", {}).items() if row.get("freeze_revision")}
+
+
+def frozen_since(ref: str, root: Path = ROOT) -> list[tuple[str, str]]:
+    """(system, month) for each month frozen with a bundle in the working ledgers but not at `ref`."""
+    known = subprocess.run(["git", "cat-file", "-e", f"{ref}^{{commit}}"], cwd=root,
+                           capture_output=True)
+    if known.returncode != 0:  # else every ledger would look new and every month replay
+        raise SystemExit(f"Unknown commit {ref!r}: fetch it first.")
+    out = []
+    for path in sorted((root / "data").glob("track_record*.json")):
+        now = json.loads(path.read_text(encoding="utf-8"))
+        rel = path.relative_to(root).as_posix()
+        shown = subprocess.run(["git", "show", f"{ref}:{rel}"], cwd=root,
+                               capture_output=True, text=True)
+        before = json.loads(shown.stdout) if shown.returncode == 0 else None
+        system = freeze_bundle.system_key(path)
+        out += [(system, m) for m in sorted(_frozen(now) - _frozen(before))]
+    return out
+
+
+def _report(data: bytes) -> int:
     system = freeze_bundle.read(data)["meta"]["system"]
     path = _ledger_path(system)
     ledger = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
@@ -95,6 +111,37 @@ def main() -> int:
           "replays exactly from its bundle")
     return 0
 
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--system", help="ledger key: 750, nano, combined, 1000, shadow_<book>")
+    ap.add_argument("--month", help="YYYY-MM")
+    ap.add_argument("--bundle", type=Path, help="a local bundle instead of R2's")
+    ap.add_argument("--frozen-since", metavar="REF",
+                    help="replay every month frozen since this git commit")
+    args = ap.parse_args()
+    if args.frozen_since:
+        months = frozen_since(args.frozen_since)
+        if not months:
+            print(f"No month frozen since {args.frozen_since}; nothing to replay.")
+            return 0
+        worst = 0
+        for system, month in months:
+            try:
+                worst = max(worst, _report(freeze_bundle.fetch(system, month)))
+            except Exception as exc:  # a missing or unreadable bundle is a failure, named
+                print(f"FAIL  {system} {month}: bundle not read from R2 ({exc})")
+                worst = 1
+        print(f"Replayed {len(months)} month(s): {'all pass' if worst == 0 else 'FAILURES above'}")
+        return worst
+    if args.bundle:
+        data = args.bundle.read_bytes()
+    elif args.system and args.month:
+        data = freeze_bundle.fetch(args.system, args.month)
+    else:
+        ap.error("give --bundle, --system and --month, or --frozen-since")
+    return _report(data)
 
 if __name__ == "__main__":
     raise SystemExit(main())
