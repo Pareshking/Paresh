@@ -172,9 +172,9 @@ same page. Each system through `?sys=`.
 ## The mock-up
 
 v1, 21 Nov 2026: claude.ai artifact `3FST6Ls42b3u8kTHF8RbSt`, approved by the owner on
-22 Nov 2026 ("Watchlist approved"). Proposed order:
+22 Nov 2026 ("Watchlist approved"), with this order (title, lede and edit bar under "Watchlist"):
 
-    Watchlist (title, lede, edit bar) → Against the book's lines → Not ranked → Before the fill → Data to
+Order: Watchlist → Against the book's lines → Not ranked → Before the fill → Data to
 
 Audited on 21 Nov 2026 in Chromium: `scripts/layout_audit.mjs` clean at 412 and 1400 px;
 the PAGE_DESIGN §8 checks (fonts by role, true minus signs, + on gains, % with no space,

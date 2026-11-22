@@ -134,7 +134,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: Layout audit (Dashboard, Portfolio, Actions, Breadth, Sectors, Screener, Indices) and requirements
+      - name: Layout audit (Dashboard, Portfolio, Actions, Breadth, Sectors, Screener, Indices, Backtest, Watchlist) and requirements
         # The app here reads R2 as the live site does (S172, 21 Nov 2026): without the keys
         # it fell back to the release files and drew partial figures the live site did not.
         env:
@@ -168,6 +168,11 @@ jobs:
           node scripts/number_format_audit.mjs http://localhost:8501/ http://localhost:8501/actions http://localhost:8501/screener \
             http://localhost:8501/portfolio http://localhost:8501/market http://localhost:8501/indices http://localhost:8501/sectors \
             http://localhost:8501/backtest http://localhost:8501/guide http://localhost:8501/watchlist "http://localhost:8501/stock?stock=RELIANCE"
+          # CI's browser has no saved list: the Watchlist reads the list its requirements were written on (S182).
+          WL="http://localhost:8501/watchlist?wl=CUPID,KOTAKBANK,GLAND,EMCURE,AUROPHARMA,DIACABS,SYRMA,TCS,SPECTRUM,TATAMOTORS"
+          node scripts/layout_audit.mjs "$WL" 412,1400
+          node scripts/check_dashboard_requirements.mjs "$WL" docs/WATCHLIST_REQUIREMENTS.md
+          node scripts/layout_audit.mjs http://localhost:8501/watchlist 412,1400
 
       - name: Upload V1 validation artifacts
         uses: actions/upload-artifact@v7
