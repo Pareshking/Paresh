@@ -5,7 +5,7 @@ adjustment automatic. Owner, 2026-10-02: "all the adjustment should be
 automatic and no manual work, we have 3 source and those can give hints to
 each other along with official read from NSE."
 
-_Last updated: 2026-10-10_
+_Last updated: 2026-11-21 (the Screener night's extra lists, S175)_
 
 ## The three sources and NSE's own record
 
@@ -34,6 +34,14 @@ on 187. Screener's volume is NSE + BSE (exact on 99.9% of 1,165 stocks); SS's
 is NSE's exactly.
 
 ## The Screener night (`screener_sync.yml`, 22:37 IST; 00:15 IST until 19 Nov 2026) and when it is late
+
+- **Beyond the 750** (`sync_screener.extra_symbols`): the ₹2,000 Cr list
+  (`ind_nanocap_list.csv`) and, from 21 Nov 2026 (#591, S175), the Nifty 1000's
+  members outside the 750 (`ind_nifty1000_list.csv`). They are fetched after the
+  750 and best effort: none is part of the coverage gate, so a stock Screener
+  cannot serve never fails the night. A new one starts with ten years weekly
+  plus the daily year. On 21 Nov, 58 of the Nifty 1000's other 250 had no price
+  history with us (`docs/THREE_SYSTEMS.md`).
 
 - **A new index member Screener has no history for** (TRIVENIPT, listed 9 Oct
   2026) is recorded in `data/screener_pending_history.json` with the day it was

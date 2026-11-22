@@ -88,22 +88,24 @@ def _view():
 
 def test_every_setting_sits_inside_the_apply_form():
     src = _view()
-    form = src[src.index("def _settings_form("):src.index("def _backtest_body(")]
+    form = src[src.index("def _settings_form("):src.index("def is_default(")]
     body = form[form.index('with st.form("bt_settings"'):form.index("st.form_submit_button(")]
     for key in ("bt_top_n", "bt_keep_rank", "bt_rebal_days", "bt_weight_scheme", "bt_cost",
                 "bt_ema_period", "bt_exit_ema", "bt_52w_off", "bt_exit_52w", "bt_ath_off",
                 "bt_exit_ath", "bt_score", "btw_", "bt_hist_index", "bt_hist_months", "bt_hist_floor"):
         assert key in body, key
-    tab = src[src.index("def _backtest_tab("):]
-    assert "st.popover(" not in tab[:tab.index("run_backtest(")], "a setting outside the form reruns on every change"
+    page = src[src.index("def render_backtest_view("):]
+    assert "st.popover(" not in page, "a setting outside the form reruns on every change"
 
 
 
-def test_the_recommended_settings_are_a_note_and_the_defaults_stay():
-    """Owner, 12 Oct 2026: name the research's recommended settings, change nothing."""
+def test_no_in_sample_recommendation_and_the_defaults_stay():
+    """Owner, 12 Oct 2026: the defaults stay the record's. Owner, 21 Nov 2026 (Backtest
+    decision F): the sweep's "Recommendation" caption is gone; the shadow book is named."""
     src = _view()
     form = src[src.index('with st.form("bt_settings"'):src.index("st.form_submit_button(")]
-    assert "Recommendation: 30 holdings · keep while in the top 90 · 200D EMA" in form
+    assert "Recommendation: 30 holdings" not in src
+    assert "shadow book" in form and "flatters the result" in form
     flat = " ".join(form.split())
     for default in ('value=20, step=1, key="bt_top_n"', 'value=40, step=1, key="bt_keep_rank"',
                     'value=50, step=1, key="bt_ema_period"',
@@ -113,9 +115,10 @@ def test_the_recommended_settings_are_a_note_and_the_defaults_stay():
 
 def test_the_options_reach_the_backtest():
     src = _view()
-    call = src[src.index("bt_res = run_backtest("):]
+    call = src[src.index("res = run_backtest("):]
     call = call[:call.index("queued.empty()")]
-    for arg in ("ema_period=ema_period", "high_pct=high_pct", "score_method=score_method", "ath_pct=ath_pct"):
+    for arg in ('ema_period=s["ema_period"]', 'high_pct=s["high_pct"]', 'score_method=s["score_method"]',
+                'ath_pct=s["ath_pct"]'):
         assert arg in call
 
 
@@ -156,8 +159,10 @@ def test_any_number_of_holdings_and_any_keep_rank():
 
 def test_the_page_passes_the_keep_rules_and_rank_to_the_backtest():
     src = _view()
-    call = src[src.index("bt_res = run_backtest("):src.index("queued.empty()")]
-    assert "**exit_rules," in call and "buffer_n=keep_rank" in call
+    call = src[src.index("res = run_backtest("):src.index("queued.empty()")]
+    for arg in ('exit_ema_period=s["exit_ema_period"]', 'exit_high_pct=s["exit_high_pct"]',
+                'exit_ath_pct=s["exit_ath_pct"]', 'buffer_n=s["buffer_n"]'):
+        assert arg in call, arg
 
 
 # ── The ATH rule waits for enough history on file (owner, 9 Oct 2026) ───────
@@ -196,8 +201,8 @@ def test_the_minimum_history_is_validated():
 
 def test_the_page_labels_the_ath_with_where_the_history_starts():
     src = _view()
-    assert "ATH since <b>{pd.Timestamp(adj_close.index[0]):%b %Y}</b>" in src
-    assert 'key="bt_ath_years"' in src and "ath_min_years=ath_min_years" in src
+    assert "The all-time high: the highest close since" in src
+    assert 'key="bt_ath_years"' in src and 'ath_min_years=s["ath_min_years"]' in src
 
 
 def test_rebalance_rule_defaults_to_the_live_rule():
@@ -215,7 +220,7 @@ def test_rebalance_rule_defaults_to_the_live_rule():
         "buy_size": TRACK_RECORD_CONFIG["buy_size"],
         "weight_reset_months": tuple(TRACK_RECORD_CONFIG["weight_reset_months"])}
     assert rebalance_rule_kwargs("monthly") == {}
-    assert "**rebalance_rule_kwargs(rule)" in src
+    assert '**rebalance_rule_kwargs(s["rule"])' in src
 
 
 # ── score_skip (owner, 20 Nov 2026; TODO S160) ──────────────────────────────

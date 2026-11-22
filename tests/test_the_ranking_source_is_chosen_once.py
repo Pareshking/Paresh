@@ -452,18 +452,13 @@ def test_the_app_keeps_a_deep_frame_separate_from_the_ranking_frame():
     )
 
 
-def test_the_backtest_and_track_record_read_the_deep_frame():
+def test_the_backtest_reads_no_ranking_frame():
+    """S174 (owner, 21 Nov 2026): the Backtest runs on NSE's long file only, from 2010, so
+    it cannot be starved by a ranking frame a year shorter than its study."""
     src = open("app.py", encoding="utf-8").read()
-    # Both read the deep frame of the chosen system (owner, 2026-09-27: every
-    # page follows the system).
-    for page, name in (("_page_backtest", "deep_adj_close"),):
-        # From the page function itself, not the import line that shares the name.
-        start = src.index(f"def {page}(")
-        window = src[start:start + 1500]
-        assert f"adj_close={name}" in window, (
-            f"{page} still receives the ranking frame, which may be a year "
-            "shorter than the study it is asked to run"
-        )
+    start = src.index("def _page_backtest(")
+    body = src[start:src.index("\ndef ", start + 10)]
+    assert "adj_close" not in body
 
 
 def test_the_deep_frame_falls_back_rather_than_vanishing():
@@ -482,16 +477,6 @@ def test_eighteen_months_is_what_the_backtest_actually_needs():
 
     assert DEFAULT_BACKTEST_MONTHS == 6
     assert 12 + DEFAULT_BACKTEST_MONTHS == 18
-
-
-def test_the_backtest_says_when_it_used_a_different_history():
-    """Two sources with different adjustment bases must not be conflated in
-    silence -- a demerged name sits at a different level in each."""
-    src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
-    assert "price_source" in src and "does not yet" in src and "reach far enough back" in src, (
-        "the backtest can run on a different price history than the screener "
-        "ranks on and says nothing about it"
-    )
 
 
 # ── Open must travel with close ──────────────────────────────────────────────

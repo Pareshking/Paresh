@@ -9,7 +9,7 @@ from html.parser import HTMLParser
 import pandas as pd
 
 from src.engine.exit_watch import Rules, assess
-from src.ui.views import actions_view, sector_view
+from src.ui.views import actions_view
 
 CELL_ROLES = {"cell", "rowheader", "columnheader"}
 VOID = {"br", "img", "input", "hr", "meta", "link"}
@@ -67,23 +67,16 @@ def _assessed():
     return assess(pd.DataFrame(rows), ["S1", "S3", "NOTLISTED"], Rules())
 
 
+
+
 def test_exit_watch_is_a_table_including_an_unknown_holding():
     a = _assessed()
     rows = _check(actions_view.rows_html(a, {"S1": 0.05}, Rules()))
     assert len(rows) == 1 + len(a)
 
 
-def test_industry_board_is_a_table():
-    board, _ = sector_view.industry_board(pd.DataFrame({
-        "Symbol": ["A", "B", "C", "D"],
-        "Industry": ["Health", "Health", "Metals", "Metals"],
-        "Rank": [1, 60, 3, 200],
-        "3M Return": [0.30, -0.10, 0.05, -0.20],
-        "6M Return": [0.50, 0.00, 0.10, -0.30],
-        "Above 50 EMA": [True, False, True, False],
-        "Near 52W High": [True, False, False, False],
-    }))
-    _check(sector_view.board_html(board))
+# The Sectors leaderboard (board_html) merged into "Inside each sector", a sortable <table> drawn by the chart
+# kit (owner, 21 Nov 2026, Sectors item 10: R.stable in static/dash_charts.js, a <table> with scope="col" headings).
 
 
 def test_a_watched_holding_reads_one_number_for_its_ema_room():

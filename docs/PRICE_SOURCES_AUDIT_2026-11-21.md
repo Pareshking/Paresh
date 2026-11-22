@@ -23,7 +23,9 @@ files was counted from their own `source` column. Tests and research scripts exc
   the header strip is 4,078 days from a **Kaggle** dataset (1999 to 7 Oct 2015) and
   2,511 days from **SS** (8 Oct 2015 to 18 Sep 2026). Only 243 days are NSE's own
   (25 Sep 2024 on), and 1 is Screener's. The size and momentum indices are Screener's
-  index charts, which are **weekly before 16 Oct 2025**.
+  index charts, which are **weekly before 16 Oct 2025**. *(Update, S167 (b), later on
+  21 Nov: `benchmark_indices.csv` now reads NSE's own daily closes from each index's
+  launch; Screener only after the store's last session. See the table below.)*
 
 ## Stock prices
 
@@ -41,7 +43,7 @@ files was counted from their own `source` column. Tests and research scripts exc
 | File | Indices | Sources, by row count and dates | Read by |
 |---|---|---|---|
 | `data/benchmarks.csv` | Nifty 500, Nifty 50 | **Kaggle** 4,078 (7 Jun 1999 to 7 Oct 2015); **SS** 2,511 (8 Oct 2015 to 18 Sep 2026); NSE 243 (25 Sep 2024 to 20 Nov 2026); Screener 1 (8 Nov 2026) | Breadth's trend rules (history from 2000), Dashboard signals and signal tests, Backtest benchmark, RRG's Nifty choices, header strip, Portfolio, Sectors, the stock page |
-| `data/benchmark_indices.csv` | Nifty 50, Nifty 200, Total Market, Midcap 150, Smallcap 250, Microcap 250, four momentum indices | Screener's index charts: **weekly** 1,106 rows (3 Dec 2021 to 10 Oct 2025), daily 2,868 (16 Oct 2025 to 20 Nov 2026) | Dashboard, Breadth "By size" and size charts, Sectors |
+| `data/benchmark_indices.csv` | Nifty 50, Nifty 200, Total Market, Midcap 150, Smallcap 250, Microcap 250, four momentum indices | Screener's index charts: **weekly** 1,106 rows (3 Dec 2021 to 10 Oct 2025), daily 2,868 (16 Oct 2025 to 20 Nov 2026). **Replaced later on 21 Nov (S167 (b))**: NSE's all-indices archive, 19,462 daily rows from each index's launch plus 24 derived; all 3,974 Screener rows equalled NSE's within 0.003% | Dashboard, Breadth "By size" and size charts, Sectors |
 | `data/nse_total_market.csv` | Nifty Total Market | NSE's archive, daily from 14 Oct 2021 | Breadth "ahead of the market", Sectors |
 
 The seams in `benchmarks.csv` are continuous: 7 to 8 Oct 2015 (Kaggle to SS, Nifty 500

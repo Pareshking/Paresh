@@ -49,11 +49,14 @@ reporting itself as MVO (audit F1). Delivery Accumulation was removed with them.
 re-import or a stray column reference cannot quietly resurrect a half-wired
 feature.
 
-### Three systems
+### Four systems
 
-Nifty 750 (default), Nano Cap (every stock ≥ ₹2,000 Cr outside the 750) and
-Combined, chosen in Configuration; every page follows. Definitions,
-membership, records and the month-end calendar: `docs/THREE_SYSTEMS.md`.
+Nifty 750 (default), Nifty 1000 (NSE's index: the 750 plus 250 more, from
+November 2026; added 21 Nov 2026, S175), > ₹2,000 Cr (every stock ≥ ₹2,000 Cr
+outside the 750; key `nano`, shown as Nano Cap until 21 Nov 2026) and Combined
+(the 750 and > ₹2,000 Cr as one list), chosen in Configuration; every page
+follows. Definitions, membership, records and the month-end calendar:
+`docs/THREE_SYSTEMS.md` (the file keeps its name; it covers all four).
 
 ## Canonical V1 conventions
 
@@ -236,18 +239,18 @@ See [`docs/archive/PARKED_IDEAS.md`](docs/archive/PARKED_IDEAS.md) for features 
 
 ## Core capabilities
 
-Tabs, in the order the app renders them:
+Pages, in the menu's order (`_PAGES` in `app.py`, 21 Nov 2026):
 
-1. **Screener**: Full-universe screening with multi-prefix search — `[INDEX]`, `[INDUSTRY]`, `[SECTOR]`, and `[TV_INDUSTRY]` prefixes narrow the view without typing ticker names. Ranking, rank movers, single-stock deep-dive (opens in a full-screen modal dialog), and CSV export.
-2. **Qualified**: High-conviction screening and concentration analysis.
-3. **Sectors**: Industry rankings.
-4. **RRG**: Relative Rotation Graph analysis.
-5. **Portfolio**: Canonical Track Record model book with capital sizing, current marks, holdings P&L, account equity/performance history and rebalance activity. It does not run an independent stock-selection engine.
-6. **Watchlist**: Custom portfolio tracking against quantitative rankings.
-7. **Market** (`/market`): are most stocks taking part, and is the market in an uptrend; moving-average breadth and high/low statistics.
-8. **Backtest**: Walk-forward backtesting over the last six completed months, rank at T close and execution at T+1, plus the current book and this month's changes. The entire tab runs as an independent Streamlit fragment — its controls rerun only the backtest, not the screener or any other tab.
-9. **Track Record**: The frozen monthly record against Nifty 500 — see below.
-10. **Configuration**: Index constituents, factor weights, risk parameters and cache diagnostics. Organised as a Windows 11-style left-nav with four sections: *Data & Sync*, *Momentum Signal*, *Portfolio Risk*, and *Data Health*. Each section is rendered on demand; only the active section appears on screen.
+1. **Dashboard** (`/`): the home page: the market against Nifty Total Market, momentum, breadth, flows, the book and what the next rebalance does.
+2. **Actions**: the month's sells and buys for the selected system's model book, with shares, amounts and a Kite basket. Replaces Qualified and Exit Watch, whose old addresses redirect here.
+3. **Screener**: Full-universe screening with multi-prefix search — `[INDEX]`, `[INDUSTRY]`, `[SECTOR]`, and `[TV_INDUSTRY]` prefixes narrow the view without typing ticker names. Ranking, rank movers, single-stock deep-dive (opens in a full-screen modal dialog), and CSV export.
+4. **Portfolio**: Canonical Track Record model book with capital sizing, current marks, holdings P&L, account equity/performance history, rebalance activity and the systems side by side. It does not run an independent stock-selection engine. The frozen monthly record is shown here; `/track-record` redirects to it.
+5. **Market** (`/market`; `/breadth` redirects): is the market in an uptrend, and how broad is participation.
+6. **Indices**: NSE's own index files from 2012: valuation, styles against their parents, size year by year, and every broad, theme and strategy index (21 Nov 2026, #587).
+7. **Sectors**: Industry rankings and leadership. (The RRG page was removed on 21 Nov 2026, #587; old `/rrg` links are not redirected.)
+8. **Watchlist**: Custom portfolio tracking against quantitative rankings.
+9. **Backtest**: Walk-forward backtesting over the last six completed months, rank at T close and execution at T+1, plus the current book and this month's changes. The entire tab runs as an independent Streamlit fragment — its controls rerun only the backtest, not the screener or any other tab.
+10. **Configuration**: The system, index constituents, factor weights, the Backtest's limits and data diagnostics, on one page in four sections: *Universe*, *Momentum score*, *Portfolio limits* and *Data health* (`config_view._SECTIONS`), with an index of links at the top.
 11. **Guide**: In-app methodology reference.
 
 ## UI patterns
@@ -335,7 +338,7 @@ The production application uses a strict separation between the canonical rankin
 
 - **Canonical V1 ranking source:** Screener data published to Cloudflare R2 at `prices/screener`. The ranking artifact is consumed through the canonical ranking-store contract; Yahoo downloads must not replace this path.
 - **Second source:** NSE's own daily closes (committed `data/nse_prices`, split/bonus/demerger adjusted) fill what Screener lacks. Order: Screener, then NSE (`src/loaders/price_source.ranking_frames`, the one function the app and the nightly precompute both call).
-- **SS and the three-source check (2026-10-02).** SS (daily OHLCV, 1,216 stocks) is collected each weeknight at 22:02 IST, gently, by `ss_sync.yml`, saved to the release and to R2 (`prices/ss`), then checked against Screener and NSE: rights factors from NSE's terms, a two-of-three vote on every day's move with NSE's own record as judge, renames from NSE's symbol-change list and ISINs. The report is the run's summary; no stored price is changed. SS is not yet the app's source. See `docs/PRICE_PIPELINE.md`.
+- **SS and the three-source check (2026-10-02).** SS (daily OHLCV, 1,216 stocks) is collected on Fridays at 22:02 IST (each weeknight until 17 Nov 2026), gently, by `ss_sync.yml`, saved to the release and to R2 (`prices/ss`), then checked against Screener and NSE: rights factors from NSE's terms, a two-of-three vote on every day's move with NSE's own record as judge, renames from NSE's symbol-change list and ISINs. The report is the run's summary; no stored price is changed. SS is not yet the app's source. See `docs/PRICE_PIPELINE.md`.
 - **NSE history from 2010** on R2 (`nse/prices_daily`, `nse/corporate_actions_history`) for long backtests: NSE's full bhavcopy imported from a public mirror checked equal to NSE's own file, corporate actions from NSE's yearly list.
 - **No Yahoo (owner, 2026-10-02).** Prices, deep history (Screener's ~10-year store), the track record, market caps (NSE, then the committed snapshot), all-time highs (Screener closes) and the Nifty 500 / Nifty 50 benchmark (`data/benchmarks.csv`, from NSE's daily bundle with Screener for older history) are all Yahoo-free. Existing Yahoo objects on R2 (`prices/yahoo*`, `app/prices_*`) are no longer published or read.
 - **Universe:** the current NIFTY TOTAL MARKET production universe is the reconciled set of **750 tradable symbols**. NSE `DUMMY*` placeholders are discarded; aliases must not be invented to repair missing symbols.

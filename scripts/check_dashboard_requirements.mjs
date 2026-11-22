@@ -36,7 +36,19 @@ async function open(width) {
   const p = await b.newPage({ viewport: { width, height: 900 } });
   await p.goto(target);
   await p.waitForSelector('.site, .dh, [data-testid="stMainBlockContainer"] h1', { timeout: 180000 }).catch(() => {}); await p.waitForTimeout(4000);
+  await settled(p);
   return p;
+}
+// Wait until Streamlit has finished the run: its status widget ("Running...") shows while a script runs, and a
+// page that draws its title first and a long calculation after (Backtest, 21 Nov 2026) read too early on a
+// slow CI machine. Two quiet reads a second apart, at most four minutes.
+async function settled(p) {
+  let quiet = 0;
+  for (let i = 0; i < 240 && quiet < 2; i++) {
+    const busy = await p.evaluate(() => !!document.querySelector('[data-testid="stStatusWidget"]')).catch(() => false);
+    quiet = busy ? 0 : quiet + 1;
+    await p.waitForTimeout(1000);
+  }
 }
 const p = await open(1280);
 // The page's text and every chart frame's (the Dashboard's charts are frames).
@@ -84,4 +96,11 @@ for (const o of order) { const i = low.indexOf(o, pos); if (i < 0) { inOrder = f
 if (!inOrder) fails.push({n: 'order', req: 'sections in the agreed order', marker: order.join(' → ')});
 console.log(`${rows.length + 1 - fails.length} of ${rows.length + 1} checks met (${rows.length} requirements and the section order)`);
 for (const f of fails) console.log(`FAIL ${f.n}: ${f.req}  (marker: ${f.marker})`);
+if (fails.length) {
+  // Say why, not only what: an error Streamlit drew, and the last words on the page.
+  let shown = '';
+  for (const f of p.frames()) { try { shown += await f.evaluate(() => [...document.querySelectorAll('[data-testid="stException"], [data-testid="stAlert"]')].map(e => e.innerText).join('\n')); } catch { /* a frame still loading */ } }
+  if (shown.trim()) console.log('Page shows:\n' + shown.trim().slice(0, 1500));
+  console.log('Page ends: ' + text.trim().slice(-300).replace(/\s+/g, ' '));
+}
 process.exit(fails.length ? 1 : 0);

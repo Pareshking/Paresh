@@ -420,7 +420,7 @@ This expansion completes the durable R2 inputs needed for future point-in-time b
 - [x] Market-cap history — `r2_market_cap_history.yml`, daily; `market_caps/nse_history` live through 2026-09-23.
 - [x] **Five-index PIT membership history** — NIFTY 50, NIFTY Next 50, NIFTY Midcap 150, NIFTY Smallcap 250, NIFTY Microcap 250. `indices/membership/*` live (historical evidence bootstrap).
 - [x] Combined point-in-time universe archive derived from those five histories — `universes/point_in_time` live.
-- [x] Official NSE OHLC history for those five indices — `r2_nse_index_prices.yml`, daily; `indices/prices/research` live through 2026-09-23.
+- [x] Official NSE OHLC history for those five indices — `r2_nse_index_prices.yml`, daily; `indices/prices/research` live through 2026-09-23. **No longer official NSE (found 21 Nov 2026, TODO S168):** niftyindices.com refuses GitHub's runners, so the job publishes Screener's index charts from its fallback while reporting success. NSE's own daily closes for every index, from 21 Feb 2012, are now `indices/nse_close_all` (`nse_indices.yml`); retiring this job is S168 (c).
 - [x] Historical sector/industry classification from dated repository evidence — `classifications/tv_history` live. The R2 copy is stamped 2026-08-15 by older code; the current builder stamps the latest evidence date and replaces it on the next bootstrap run.
 - [x] Observed and confirmed trading-session evidence.
 - [x] Corporate-action evidence archive.

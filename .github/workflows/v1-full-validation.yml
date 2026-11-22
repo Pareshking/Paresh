@@ -162,6 +162,8 @@ jobs:
           node scripts/check_dashboard_requirements.mjs http://localhost:8501/screener docs/SCREENER_REQUIREMENTS.md
           node scripts/layout_audit.mjs http://localhost:8501/indices 412,1400
           node scripts/check_dashboard_requirements.mjs http://localhost:8501/indices docs/INDICES_REQUIREMENTS.md
+          node scripts/layout_audit.mjs http://localhost:8501/backtest 412,1400 --open
+          node scripts/check_dashboard_requirements.mjs http://localhost:8501/backtest docs/BACKTEST_REQUIREMENTS.md
 
       - name: Upload V1 validation artifacts
         uses: actions/upload-artifact@v7

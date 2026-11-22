@@ -13,11 +13,11 @@ WordPress has, so one can do all the changes globally."
 | Group | Variable | Holds |
 |---|---|---|
 | `PALETTE` | `var(--c-<name>)` | every colour: ink, muted, rule, up, down, caution, the chart hues |
-| `TYPE` | `var(--fs-<step>)` | eight type sizes, each with one job |
+| `TYPE` | `var(--fs-<step>)` | nine type sizes, each with one job |
 | `SPACE` | `var(--sp-<step>)` | the spacing ladder: 4, 8, 12, 16, 24, 32, 56 |
 | `RADIUS` | `var(--r-sm)`, `var(--r-round)` | one corner, and the circle |
 | `SHADOW` | `var(--sh-1 / 2 / pop)` | only for something that floats above the page |
-| `FONTS` | `var(--font-ui / mono / serif)` | the three families |
+| `FONTS` | `var(--font-ui / mono / serif)` | the three families: IBM Plex Sans, IBM Plex Mono, Source Serif 4, self-hosted (`static/fonts.css`) |
 
 ## How it reaches the page
 
@@ -31,8 +31,11 @@ WordPress has, so one can do all the changes globally."
 
 ## The type scale
 
-Eight steps, because the stylesheet had grown 39 distinct sizes, four of them
-inside a 1.5px range doing the same work (design audit, 8 Nov 2026).
+Eight steps at first, because the stylesheet had grown 39 distinct sizes, four
+of them inside a 1.5px range doing the same work (design audit, 8 Nov 2026).
+There are nine now: `--fs-44` ("the page's single biggest figure: a price, a
+rank" in `src/ui/tokens.py`) is also the redesigned pages' title (checked 21
+Nov 2026).
 
 | Step | Size | Used for |
 |---|---|---|
@@ -42,25 +45,45 @@ inside a 1.5px range doing the same work (design audit, 8 Nov 2026).
 | `--fs-17` | 17px | a page's lede |
 | `--fs-24` | 24px | card title, section heading (serif) |
 | `--fs-30` | 30px | the one figure a card is about (serif) |
-| `--fs-36` | 36px | page headline on a phone (serif) |
-| `--fs-52` | 52px | page headline (serif) |
+| `--fs-36` | 36px | section heading; page headline on a phone (serif) |
+| `--fs-44` | 44px | page title on Dashboard, Portfolio, Actions, Market and Indices; the stock page's price and rank (serif) |
+| `--fs-52` | 52px | page title from `page_kit.page_head` (Screener, Sectors) and the stock page's name (serif) |
 
-Nothing goes below 12px, chart labels included: that is the floor the
-redesign promised and `tests/test_redesign_legibility.py` holds it.
+The scale's smallest step is 12px. The test is looser than that:
+`tests/test_redesign_legibility.py` fails on text under 11px, and only in the
+CSS it slices (the top bar, the Screener, the stock page, the Screener table).
+The chart kit (`src/ui/dash_charts.py`, drawn in its own frame) sets its axis
+labels, band labels and tooltip date at a literal 11px, outside the scale and
+outside that test (checked 21 Nov 2026).
+
+The serif has two stand-ins, the reader's own Noto Serif or Times resized to
+Source Serif 4's width (`tokens.serif_face_css`), so a headline does not
+re-wrap when the real face arrives (S145, #564).
 
 ## The rules that keep it the only source
 
 - `tests/test_theme_tokens.py` fails if a `var(--c-…)`, `--fs-…`, `--sp-…`,
   `--r-…` or `--sh-…` is used that the theme does not define.
 - The same file keeps a budget of literal `font-size: …px` left in the UI, and
-  the budget may fall but never rise. What remains is the display end, which is
-  judged one heading at a time; the dense end is already on the scale.
+  the budget may fall but never rise: 24 in `theme.py`, none in `page_kit.py`,
+  `components.py` and `screener_table.py`, 39 across `src/ui/views/`. The chart
+  kit's frame CSS in `dash_charts.py` is not in the budget. What remains is the
+  display end, which is judged one heading at a time; the dense end is already on the scale.
 - `.streamlit/config.toml` cannot read Python, so it repeats a few colours;
   a test fails if the two disagree.
+
+## What is not in it
+
+Breakpoints are not tokens. They are written in the stylesheets, the one that
+matters most in `src/ui/theme.py`: from 1024px the top bar links every page and
+the menu button is hidden; below it the menu (☰) is the only navigation (#592).
 
 ## Changing the look
 
 Edit `src/ui/tokens.py`, run `python -m pytest tests -q`, then look at the
 pages: `streamlit run app.py` and read the Dashboard, Screener, a stock page
-and Portfolio at 1400px and at 390px. A change to a colour or a type step
-moves every page at once, which is the point and also the risk.
+and Portfolio at 1400px and at 412px. `node scripts/layout_audit.mjs <url>
+412,1400` measures what the eye would miss (headings off their columns, labels
+wrapping, charts leaving width empty); CI runs it on the Dashboard, Portfolio,
+Actions, Market, Sectors, Screener and Indices. A change to a colour or a type
+step moves every page at once, which is the point and also the risk.

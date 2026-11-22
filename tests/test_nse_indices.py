@@ -173,3 +173,31 @@ def test_a_derived_close_that_jumps_is_refused():
 
 def test_the_missing_sessions_table_lists_eleven_derivable_days():
     assert len(ni.missing_sessions()) == 11
+
+
+def test_parallel_fetch_reads_days_in_date_order_whoever_answers_first(monkeypatch):
+    """Four requests at a time (21 Nov 2026): the store must not depend on which answer came back first."""
+    import importlib.util
+    import random
+    import time as _time
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "collect_nse_indices", Path(__file__).resolve().parents[1] / "scripts" / "collect_nse_indices.py")
+    c = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(c)
+    head = ("Index Name,Index Date,Open Index Value,High Index Value,Low Index Value,Closing Index Value,"
+            "Points Change,Change(%),Volume,Turnover (Rs. Cr.),P/E,P/B,Div Yield\n")
+
+    def fake(day):
+        _time.sleep(random.random() / 50)            # answers arrive out of order
+        if day.dayofweek >= 5:
+            return None
+        return (head + f"Nifty 50,{day:%d-%m-%Y},-,-,-,{1000 + day.day},1,1,1,1,21,3,1\n").encode()
+
+    monkeypatch.setattr(c, "_fetch", fake)
+    rows, skipped = c.fetch_since(pd.Timestamp("2026-10-31"), {"nifty_50": "nifty_50"},
+                                  pd.Timestamp("2026-11-20"), workers=4)
+    assert not skipped
+    assert list(rows["date"]) == sorted(rows["date"]) and len(rows) == 15
+    assert list(rows["close"]) == [1000.0 + d.day for d in rows["date"]]

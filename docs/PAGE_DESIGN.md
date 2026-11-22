@@ -10,7 +10,8 @@ where it came from, so a later change can tell a decision from a habit.
 
 Mock-ups the owner has seen: Dashboard v7 (approved 20 Nov, built in PR #570),
 v8 with interactive charts and line bars (claude.ai artifact
-`Mn1juwLgZq1RjyT83XWQep`, sent for approval 20 Nov).
+`Mn1juwLgZq1RjyT83XWQep`, approved and built in PR #572). Each later page's
+mock-up and approval is recorded in its row of section 7 and in TODO S151.
 
 ---
 
@@ -227,17 +228,33 @@ every page.
   fall from a peak (with peak, low and recovery dates), worst day, worst
   month-end. Never "worst fall, daily".
 
-## 7. Pages to do next, and what applies
+## 7. Pages: done, and still to do
 
-| Page | First data checks | Design carried over |
-|---|---|---|
-| Portfolio | **Built 20 Nov** (mock-up v3): one daily series with the Dashboard and Actions; drawdown terms defined; rank trail shared | Holdings first, ₹100 chart with both drawdowns, calendar by year, hidden trade history |
-| Actions | Rank trails as on the Dashboard; buys and sells match the plan | Holdings table with rank trail, turnover |
-| Market (Breadth until 21 Nov) | Point-in-time history done (S150); charts restyled | Two-pane crosshair chart, line bars by size |
-| Sectors / RRG | Equal-weight construction shared (S147) | RRG scatter with held industries; strong/weak table |
-| Backtest / Track record | Nifty 500 for 2010+; frozen months as recorded, Total Market beside | ₹100 chart, monthly bars, tested claims only |
-| Stock page | Prices against a second source | Crosshair readout, rank trail |
-| Every page's index strip | One source, one date (S148) | — |
+Updated 22 Nov 2026 from `git log` and `docs/TODO.md` (S151, S174). A page is
+done when it is built from an approved mock-up, its requirements list passes and
+CI runs its layout audit (`v1-full-validation.yml`).
+
+**S151 counts the data-heavy pages only** (owner, 22 Nov 2026: "Only data-heavy
+pages count for S151"): the stock page, Watchlist and Backtest / Track record.
+When the last of them merges, the data audits S163-S166 start. Configuration and
+Guide follow later.
+
+| Page | State | Requirements list | In CI's layout audit |
+|---|---|---|---|
+| Dashboard | Done 20 Nov (v8, #572, #573) | `DASHBOARD_REQUIREMENTS.md` | Yes |
+| Portfolio | Done 20-21 Nov (#574) | `PORTFOLIO_REQUIREMENTS.md` | Yes |
+| Actions | Done 21 Nov (#576, #580) | `ACTIONS_REQUIREMENTS.md` | Yes |
+| Market (was Breadth; /market, /breadth redirects) | Done 21 Nov (#582, renamed #590, #592, #596) | `MARKET_REQUIREMENTS.md` | Yes |
+| Sectors | First pass 21 Nov (#583); owes P1-P3, NSE's sector indices (S170, S174) | `SECTORS_REQUIREMENTS.md` | Yes |
+| Screener | Done 21 Nov (#584) | `SCREENER_REQUIREMENTS.md` | Yes |
+| Indices | New page, done 21 Nov (#587) | `INDICES_REQUIREMENTS.md` | Yes |
+| RRG | Removed 21 Nov (#587, S169); `/rrg` is not redirected (owner: "not required") | `RRG_REQUIREMENTS.md`, kept as history | — |
+| **Stock page** | **Next** (owner, 22 Nov: "Stock page and Watchlist first"). First data check: prices against a second source | to write | No |
+| **Watchlist** | **Next**, with the stock page | to write | No |
+| Backtest / Track record | Not started. Nifty 500 for 2010+; frozen months as recorded, Total Market beside; ₹100 chart, monthly bars, tested claims only | to write | No |
+| Configuration | Not started | to write | No |
+| Guide | Not started; must lose every mention of RRG and Breadth as a page name | to write | No |
+| Every page's index strip | One source, one date (S148) | — | — |
 
 ## 8. The audit before a mock-up or page is shared
 
@@ -281,4 +298,6 @@ audited first before you share it with me." Run it in a browser
   three lines; a chart whose marks use under 80% of its width, or whose readout
   takes over a quarter of the frame; a bar track wider than 520 px; a frame 24 px
   taller than its drawing; an empty band of 48 px; anything wider than the screen.
-  CI runs it on the Dashboard and Portfolio (`v1-full-validation.yml`).
+  CI runs it on every page marked "Yes" in section 7 (`v1-full-validation.yml`), and each
+  page's requirements list: Dashboard and Portfolio through `scripts/headless_smoke.py`,
+  the others through `scripts/check_dashboard_requirements.mjs`.

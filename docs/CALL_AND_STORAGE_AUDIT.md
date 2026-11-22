@@ -16,6 +16,16 @@ behaviour change; see `docs/TODO.md` C1, C3, C4 and S116 (d) for the measured
 effect and the tests. Items 2, 6 and 9 need the owner (an R2 delete, a release
 delete, a correctness decision) and are deliberately untouched.
 
+**Since then (to 22 Nov 2026):** items 5 and 7 were done on 11 Nov (C5: a
+`daily_sync` run makes one request per index list, not 17 for 6, and an app cold
+start none; C7: one `screener_prices.parquet` download per `screener_sync` run,
+and `nse_collect` reads it from the Actions cache; `docs/archive/TODO_DONE.md`).
+Item 2 was deleted by the owner's clean-up job on 15 Nov (C2), and
+`tmp_session_2026-10-03.zip` with it; `ref_long_price_audit_2026-10-03.zip` in
+item 9 is kept on purpose (`docs/PENDING_DELETIONS.md`). Jobs and lists added
+after the measurement are in the table below with "new"; their call counts are
+not measured.
+
 _Measured 10 Nov 2026. Fire counts from the Actions API over 27 Oct – 10 Nov
 (14 days). R2 inventory from the `r2_archive_inventory` run of 9 Nov
 (run 42598042128, job 129095408876) — this container has no R2 credentials, so
@@ -30,14 +40,14 @@ another workflow, so the cron alone is not the number.
 
 | Workflow | Cron (UTC) | Cron says /day | Measured runs/day | External resources it fetches |
 |---|---|---|---|---|
-| `daily_sync` | `30 17 * * 1-5`, `0 2 * * *`, + after `screener_sync` | 1.71 | **2.57** | niftyindices 6 constituent CSVs (**×17 requests**, below); NSE PR bundle (`--recent 3`) and again in `build_benchmarks --update`; screener.in (`classify_missing`); TradingView scanner; R2 (publish ×2, `nse_collect`); release `rankings*.parquet` upload; release packs **only** when a Nano Cap member is missing (exit 3) |
+| `daily_sync` | `30 17 * * 1-5`, `0 2 * * *`, + after `screener_sync` | 1.71 | **2.57** | niftyindices 6 constituent CSVs (**×17 requests**, below; one each since C5, 11 Nov), and since 21 Nov the Nifty 1000 list (recorded, not ranked; one request); NSE PR bundle (`--recent 3`) and again in `build_benchmarks --update`; screener.in (`classify_missing`); TradingView scanner; R2 (publish ×2, `nse_collect`); release `rankings*.parquet` upload; release packs **only** when a Nano Cap member is missing (exit 3) |
 | `r2-historical-evidence-bootstrap` | `15 20 * * *` + after `daily_sync` + push on `data/indices/**` | 1 | **3.50** | R2 only: **17 `r2_publish.py` invocations per run** |
 | `r2_ranking_archive` | `45 20 * * *` + after `daily_sync` + push | 1 | **3.79** | release `rankings.parquet`; R2 publish + audit |
 | `r2_market_cap_history` | `00 20 * * *` + after `daily_sync` | 1 | **3.50** | R2 only (publish ×2, audit) |
 | `nse_collect` | `41 12`, `41 14`, `11 16` (Mon–Fri), `41 3` daily | 2.14 | **3.57** (2.64 scheduled) | release `screener_prices.parquet` **every run**; NSE PR bundle per day R2 lacks; R2 (full pointer listing ×2–3, publish per table) |
 | `v1-production-qa` | `17 */6 * * *` + push | 4 | **4.71** | the live Streamlit site; R2 read path |
 | `v1-full-validation` | `23 23 * * *` + push + PR | 1 | **7.14** (0.21 scheduled) | the live site; R2 read path |
-| `screener_sync` | `45 18 * * *` | 1 | **0.93** | screener.in (~1,167 stocks); niftyindices ×6; release `screener_prices.parquet` **twice in one run**; release `ss_*`; R2 publish |
+| `screener_sync` | `45 18 * * *` | 1 | **0.93** | screener.in (~1,167 stocks; since 21 Nov also the Nifty 1000 members outside the 750, S175); niftyindices ×6; release `screener_prices.parquet` **twice in one run**; release `ss_*`; R2 publish |
 | `nse_reference_sync` | `45 2 * * *` | 1 | **0.93** | nseindia symbolchange / namechange / equity_l; `check_index_anchor`: 7 CSVs × 2 hosts (niftyindices, nsearchives) |
 | `r2_archive_inventory` | `31 2 * * *` | 1 | **0.93** | R2: full bucket listing |
 | `r2_session_continuity_audit` | `17 4 * * *` | 1 | **0.93** | release `screener_prices.parquet`; R2 |
@@ -46,7 +56,8 @@ another workflow, so the cron alone is not the number.
 | `fii_dii` | `47 14`, `47 17` (Mon–Fri) | 1.43 | new (2 runs) | nseindia FII/DII page, twice a day |
 | `nsdl_fpi` | `17 4 * * 1-6`, `17 13 * * 1-5` | 1.57 | new (2 runs) | fpi.nsdl.co.in, twice a day |
 | `monthly_track_record` | `0 19 1-5 * *` | 0.16 | **0.36** | niftyindices ×6 (`sync_former_member_prices`); NSE bundles (`sync_nse_prices`); release assets |
-| `r2_nse_index_prices` | `30 20 * * *` + push | 1 | **1.07** | niftyindices `Backpage.aspx` historical series; R2 publish + audit |
+| `r2_nse_index_prices` | `30 20 * * *` + push | 1 | **1.07** | niftyindices `Backpage.aspx` historical series; R2 publish + audit. **Found 21 Nov 2026 (S168):** niftyindices.com refuses GitHub's runners, so every index falls back to Screener's index chart (run 44851443712: `official=JSONDecodeError` for all 18) and the job still reports success; `nse_indices` replaces it, retirement is S168 (c) |
+| `nse_indices` | `10 14 * * *` + dispatch (`backfill`, once) | 1 | new (21 Nov 2026) | nsearchives `ind_close_all_DDMMYYYY.csv`, one per session after the R2 store's last date (a weekend or holiday is one 404); R2 `indices/nse_close_all` publish + audit; commits `data/nse_indices_recent.csv` only when it changed |
 | `nse_compare` | `40 6 * * 0` | 0.14 | **0.29** | release `screener_prices.parquet`, `rankings*.parquet`; R2 |
 | `nse_long_prices` | `30 3 * * 6` | 0.14 | **0.29** | release: `nse_raw_pack` 171.7 MB + `nse_actions_pack` 3.8 MB + `bse_daily` 350.7 MB + `nse_long_close` + `ref_*` ≈ 690 MB a run; R2 (sessions and action days the packs lack) |
 | `bse_daily` | `30 20 * * 5` | 0.14 | **0.14** | bseindia bhavcopy per new session; release `bse_daily.parquet`; R2 |
@@ -230,9 +241,9 @@ default); it is set in `bse_bhavcopy_r2` (14), `nse_long_prices` (14),
 | 2 | Delete `scratch/bse_bhavcopy_2026-10-03/` once NSE and BSE are aligned (S34) | one-off **1,221.8 MiB, 39% of the bucket** | by hand / `r2_retention` |
 | 3 | **Done, 10 Nov.** `retention-days: 14` on `v1-production-qa`'s evidence upload | holds ~1,062 MB → ~100 MB after it settles; no daily call change | `.github/workflows/v1-production-qa.yml` |
 | 4 | **Done, 10 Nov.** `_verify_publication` checks the manifest and pointer contract only; the payload's read-back is `put_file(verify=True)`'s, which runs *before* a manifest or pointer names the object. One publish: 9 calls → **7** (`PutObject x3 GetObject x3 HeadObject x1`), one whole-payload GET | **~162 R2 calls**, and a second full read-back of every payload (350.7 MB on the monthly BSE publish, 36.8 MB a night on SS) | `scripts/r2_publish.py`, `tests/test_r2_publish_call_budget.py` |
-| 5 | Read the index lists from the committed CSVs and fetch only when they are stale: `sync_data` step 2 can take step 1's bytes, and `precompute_systems` can read `data/indices/` | **~48 niftyindices requests** of the ~59.5; ~4 s off every app cold start | `scripts/sync_data.py`, `src/loaders/indices_loader.py` |
+| 5 | **Done, 11 Nov (C5).** Read the index lists from the committed CSVs and fetch only when they are stale: `sync_data` step 2 can take step 1's bytes, and `precompute_systems` can read `data/indices/` | **~48 niftyindices requests** of the ~59.5; ~4 s off every app cold start | `scripts/sync_data.py`, `src/loaders/indices_loader.py` |
 | 6 | **Report only, and not just waste** (10 Nov, TODO C6). The frozen frame no longer prices the replay — `record_run_uncached` substitutes `basis_frame`'s Screener-then-NSE blend, so the gate's book is struck on current prices (local run: book as_of 2026-11-05, green) — but it still fixes the **universe**: `prices.parquet` covers 749 of today's 752 names, and `_clean_price_df` intersects, so `ENNATURE`, `ICICILIFE` and `IGLSPIRITS` are dropped from the side `ledger_parity`, `hard_caps` and `actions_plan` are computed on. Removing the download needs a replacement second deep frame, which is a correctness decision, not a saving | **~77 MB and 7 downloads/day**, 17.9 MB of release storage, and one stale price frame out of the parity gate | `scripts/canonical_parity_check.py` |
-| 7 | Fetch `screener_prices.parquet` once per job: `screener_sync` downloads it twice in one run; `nse_collect` downloads it on all four daily fires for `--check` | **~5 downloads, 46 MB** | `.github/workflows/screener_sync.yml`, `nse_collect.yml` (**another agent's files**) |
+| 7 | **Done, 11 Nov (C7).** Fetch `screener_prices.parquet` once per job: `screener_sync` downloads it twice in one run; `nse_collect` downloads it on all four daily fires for `--check` | **~5 downloads, 46 MB** | `.github/workflows/screener_sync.yml`, `nse_collect.yml` (**another agent's files**) |
 | 8 | Have `build_benchmarks --update` read the session `nse_collect` just fetched (or run it from the same process) | **~2.6 NSE PR bundle downloads**, a few MB, and that much less asking of NSE | `scripts/build_benchmarks.py` / `daily_sync.yml` |
 | 9 | Delete `tmp_session_2026-10-03.zip` (10,851,823 B, **0 downloads**, 3 Oct) and `ref_long_price_audit_2026-10-03.zip` (330,498 B, **0 downloads**, superseded by `long_price_audit_latest.zip`) from the release. Confirmed from the API on 10 Nov; **not deleted — a release asset is outward-facing, so the owner deletes**: `gh release delete-asset data-latest <name> --repo Pareshking/Paresh` | one-off 11.18 MB | release |
 | 10 | Keep one ranking revision per date (or let the chained jobs publish once) | ~1 MB/day of R2, never pruned today | `r2_ranking_archive.yml`, `r2_retention.py` |
