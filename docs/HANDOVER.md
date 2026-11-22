@@ -38,6 +38,8 @@ _Last updated: 23 Nov 2026 (early, IST), coordinating session of 22-23 Nov._
 
 ## State at handover
 
+**23 Nov, stock page (S182 f):** built on local branch `stock-v2` from 81cb4b7 (owner: "Stock v2 approved"); not pushed yet. Checks run locally: requirements 53/53, layout and number audits clean, chart hover audit steady at 412/1400, full tests pass. Next: push, draft PR, CI on its head, then seen live.
+
 **23 Nov (this session):** #625 merged (fd6de89): S185 replay step (queue item 2), S199
 (Markdown-only PRs, owner's correction), S201 (this file). #626 merged (df3dbb5): S200,
 TODO.md 158 KB → 35 KB; its `validate` ran the Markdown tests only (34 s), so S199 is done.

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-11-23 — Stock page rebuilt from the approved mock-up
+
+- The stock page is rebuilt from mock-up v2, which the owner approved on 23 Nov. Its title answers the first question ("Sansera Engineering is 12th of 750, passes both filters and is in the model book."), with the close, the year against Nifty Total Market and four tiles: the close, the rank, the place among the qualified and, when the model book holds it, its return since the first buy.
+- **Rank:** the rank and the place among the qualified 3 months ago, a month ago and now, read on the same dates as the Dashboard and the Screener, with a small trail against the book's buy and keep lines. The 6M and 2M steps are gone.
+- **Filters and sell rules:** one section. The ladder from the 52-week low to the high, then each sell rule's line, the fall that would reach it and where the stock is today. If the model book holds the stock, its shares, weight, first buy and return since, from Portfolio's own table. Then the next month-end check, any board meeting or ex-date announced before it, and a link to Actions.
+- **Returns and falls** are measured against Nifty Total Market over the stock's own sessions. Before, the page used the Nifty 500, and its 1M window started on 19 Oct while the stock's started on 21 Oct (20 Oct was a holiday). Returns are drawn as line bars on one scale. Each window shows the lead in points, the typical stock, the largest fall, Sharpe (not annualised) and the rank by return as a place ("37th", not "Top 5%").
+- **Price:** today's chart stays, restyled. It has three panes: price with the 50D EMA the ranking uses (none before 30 sessions), Volume, and RS against Nifty Total Market, set to 100 at the start of the range. The ranges are 6M, 1Y and 3Y. The reading above each pane is one line at a fixed height, so the chart no longer moves under the pointer, and arrow keys step through the dates. The 20 EMA, the 200-day SMA, the Nifty 500 overlay and the 1M, 3M and All ranges are gone.
+- **Industry:** the eight best-ranked stocks of the industry, each with its place among the qualified, and a link that opens the Screener searched to the whole industry (`screener?ind=`). This replaces the "Show all" window.
+- **Data:** the checks are in plain sight. Corporate actions come from NSE's own list of splits, bonuses, rights issues and demergers, with their terms, ex-dates and factors.
+- The Factsheet window is gone, and with it the stop loss and the chandelier exit, which are not model rules (owner, 22 Nov). Prices are in whole rupees and returns carry one decimal. The page ends with "Data to <date> · NSE".
+- Works for each system ("Rank of 750", "Rank of 1000", "Rank in the > ₹2,000 Cr list"). A symbol that is not ranked says why, for example "NSE changed the symbol to TMPV", and links to the new symbol's page.
+
 ## 2026-11-23 — Nifty 1000 on every page: Nano Cap and Ultra Nano Cap as sizes, its own breadth
 
 - The 250 stocks the Nifty 1000 adds to the 750 are **Nano Cap**, and anything outside the Nifty 1000 is **Ultra Nano Cap** (the owner's names; our own groups, not NSE indices). NSE's indices keep their names. Both now appear wherever a book is split by size. Before, the Dashboard's book-by-size bar left these stocks out and fell short of 100%, Actions listed them as "Other", and Portfolio's size history did not draw them. Sizes recorded before the Nifty 1000's history begins (30 Oct 2026) keep "Other". The Nifty 750's pages are unchanged.
