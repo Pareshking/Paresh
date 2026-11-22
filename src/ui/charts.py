@@ -1,6 +1,6 @@
 """
 Interactive visualizations for NSE Momentum Dashboard.
-Stock chart and the Relative Rotation Graph, both Highcharts.
+The correlation heatmap and other Highcharts frames.
 """
 
 import json
@@ -19,101 +19,8 @@ def _titled(title: str) -> str:
 
 
 
-def compute_rs_series(stock: pd.Series, benchmark: pd.Series) -> pd.Series:
-    """Relative Strength of stock vs benchmark, indexed to 100 at the first common date.
-
-    Values > 100 mean the stock has outperformed the benchmark since the start
-    of the window; values < 100 mean underperformance.
-    """
-    aligned = pd.DataFrame({"s": stock, "b": benchmark}).dropna()
-    if aligned.empty or len(aligned) < 2:
-        return pd.Series(dtype=float)
-    ratio = aligned["s"] / aligned["b"]
-    return (ratio / ratio.iloc[0]) * 100
-
-
-TF_SESSIONS = {"1M": 22, "3M": 64, "6M": 126, "1Y": 252, "All": 5000}
-
-
-def render_stock_chart(
-    symbol: str,
-    rank_df: pd.DataFrame,
-    adj_close: pd.DataFrame,
-    high_prices: pd.DataFrame | None = None,
-    low_prices: pd.DataFrame | None = None,
-    volume_data: pd.DataFrame | None = None,
-    open_prices: pd.DataFrame | None = None,
-) -> None:
-    """Price with toggleable overlays, volume and a relative-strength pane (Highcharts Stock)."""
-    if symbol not in adj_close.columns:
-        st.warning(f"No price data available for {symbol}")
-        return
-
-    c_tf, c_ma = st.columns([1.5, 2], vertical_alignment="center")
-    tf = c_tf.segmented_control(
-        "Timeframe", list(TF_SESSIONS), default="6M",
-        key=f"lw_tf_{symbol}", label_visibility="collapsed",
-    ) or "6M"
-    overlays = c_ma.pills(
-        "Overlays", ["20 EMA", "50 EMA", "200 SMA", "Nifty 500"],
-        selection_mode="multi", default=["20 EMA", "50 EMA"],
-        key=f"lw_ma_{symbol}", label_visibility="collapsed",
-    ) or []
-
-    n = TF_SESSIONS.get(tf, 126)
-    close = adj_close[symbol].dropna().iloc[-n:]
-    if close.empty:
-        st.warning(f"No price data available for {symbol}")
-        return
-
-    def _col(df):
-        return df[symbol] if df is not None and symbol in df.columns else None
-
-    # Overlays are computed on the FULL history and then trimmed, so a 200-day
-    # average is a real 200-day average even when only 22 sessions are shown.
-    full_close = adj_close[symbol].dropna()
-    specs = {
-        "20 EMA": full_close.ewm(span=20, min_periods=5).mean(),
-        "50 EMA": full_close.ewm(span=50, min_periods=10).mean(),
-        "200 SMA": full_close.rolling(200, min_periods=30).mean(),
-    }
-    chosen = {k: v for k, v in specs.items() if k in overlays}
-
-    # Benchmark is always fetched — used both for the price overlay (if selected)
-    # and for the Relative Strength pane shown beneath the chart.
-    _bench_full: pd.Series | None = None
-    try:
-        from src.loaders.price_loader import fetch_benchmark_history
-        _bench_full = fetch_benchmark_history(period="5y")
-    except Exception:
-        pass
-
-    if "Nifty 500" in overlays and _bench_full is not None:
-        bench_window = _bench_full.reindex(close.index, method="ffill").dropna()
-        if len(bench_window) >= 2 and not close.empty:
-            chosen["Nifty 500"] = bench_window / bench_window.iloc[0] * close.iloc[0]
-
-    # Relative Strength vs Nifty 500 — computed over the full history so the
-    # ratio is stable regardless of the chosen display window.
-    rs_full: pd.Series | None = None
-    if _bench_full is not None and not full_close.empty:
-        rs_full = compute_rs_series(full_close, _bench_full)
-
-    from src.ui.stock_chart import ChartUnavailable, render_stock_panes
-
-    try:
-        render_stock_panes(
-            symbol,
-            close,
-            open_=_col(open_prices),
-            high=_col(high_prices),
-            low=_col(low_prices),
-            volume=_col(volume_data),
-            overlays=chosen,
-            rs=rs_full,
-        )
-    except ChartUnavailable as exc:
-        st.warning(f"No chart for {symbol}: {exc}")
+# The stock page's chart is src/ui/stock_chart.render_price_chart (S182): price and the ranking's
+# 50D EMA, Volume, RS against Nifty Total Market. The old Highcharts-era overlay picker is gone.
 
 
 def _script_json(obj) -> str:

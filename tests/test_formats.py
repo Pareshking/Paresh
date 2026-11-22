@@ -46,9 +46,12 @@ def test_no_view_prints_a_negative_zero_or_an_ascii_hyphen():
     assert sector_view._pct(tiny) == "0.0%"
     assert screener_table._signed(tiny * 100) == "0.0"
 
-    # The stock page takes percent units, not a fraction.
+    # The stock page takes percent units, not a fraction (its words: src/ui/stock_lines.py).
+    from src.ui import stock_lines
+    day = __import__("pandas").Timestamp("2026-11-20")
     for v in (-0.04, -12.4, 0.0):
-        out = stock_view._pct(v)
+        out = stock_lines.from_high({"% High": v}, day)
         assert "-" not in out, f"ASCII hyphen in {out!r}"
-    assert stock_view._pct(-0.04) == "0.0%"
-    assert stock_view._pct(-12.4) == "−12.4%"
+    assert stock_lines.from_high({"% High": -0.04}, day) == "0.0%"
+    assert stock_lines.from_high({"% High": -12.4}, day) == "−12.4%"
+    assert stock_view.formats is fmt

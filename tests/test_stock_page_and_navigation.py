@@ -31,21 +31,24 @@ def test_screener_renders_without_a_stock_param():
     assert not at.exception
 
 
+def _body(at) -> str:
+    """The page's own markup: the stock page draws through st.html (S182, mock-up v2)."""
+    return " ".join(h.proto.body for h in at.get("html")) + " ".join(m.value for m in at.markdown)
+
+
 def test_stock_param_opens_the_detail_page():
     at = _app(stock="S3")
     assert not at.exception
-    body = " ".join(m.value for m in at.markdown)
-    assert "S3" in body
+    assert "S3" in _body(at)
 
 
 @pytest.mark.parametrize("section", [
-    "Momentum rank", "Screener filters", "Price and relative strength",
-    "Where the price sits", "Returns and risk by window",
+    "1 · Rank", "2 · Filters and sell rules", "3 · Returns and falls", "4 · Price",
+    "Price and relative strength", "6 · Data",
 ])
 def test_every_section_of_the_page_renders(section):
     at = _app(stock="S3")
-    body = " ".join(m.value for m in at.markdown)
-    assert section in body
+    assert section in _body(at)
 
 
 def test_the_page_offers_a_way_back():
@@ -56,36 +59,38 @@ def test_the_page_offers_a_way_back():
 def test_symbol_lookup_is_case_insensitive():
     at = _app(stock="s3")
     assert not at.exception
-    assert "S3" in " ".join(m.value for m in at.markdown)
+    assert "S3" in _body(at)
 
 
-def test_an_unknown_symbol_warns_rather_than_crashing():
+def test_an_unknown_symbol_says_so_rather_than_crashing():
     at = _app(stock="NOSUCHTICKER")
     assert not at.exception
-    assert any("not in the current ranking" in w.value for w in at.warning)
+    assert "not in the current ranking" in _body(at)
+    assert any("Back to screener" in b.label for b in at.button)
 
 
-def test_the_ladder_shows_the_all_time_high():
+def test_the_ladder_shows_the_closing_highs():
     at = _app(stock="S3")
-    body = " ".join(m.value for m in at.markdown)
-    assert "All-time high" in body
-    assert "52W high" in body  # label style: owner, 12 Oct 2026
+    body = _body(at)
+    assert "52W high" in body and "52W low" in body  # label style: owner, 12 Oct 2026
+    assert "closing prices" in body
 
 
-def test_returns_and_risk_cover_every_window():
+def test_returns_and_falls_cover_every_window():
     at = _app(stock="S3")
-    body = " ".join(m.value for m in at.markdown)
+    body = _body(at)
     for months in (1, 3, 6, 9, 12):
-        assert f"<b>{months}M</b>" in body
-    for band in ("Return", "Sharpe", "Max drawdown"):
+        assert f'<th scope="row">{months}M' in body
+    for band in ("Stock", "Market", "Sharpe", "Largest fall", "Rank by return"):
         assert band in body
 
 
-def test_the_page_carries_its_data_checks():
+def test_the_data_checks_are_in_plain_sight():
+    """Row 39: no fold; the checks are a list on the page."""
     at = _app(stock="S3")
-    # An expander with an icon reaches AppTest as a status block.
-    labels = [str(getattr(e, "label", "")) for e in list(at.expander) + list(at.status)]
-    assert any(label.startswith("Data checks") for label in labels), labels
+    assert '<ul class="sp-checks">' in _body(at)
+    assert not any(str(getattr(e, "label", "")).startswith("Data checks")
+                   for e in list(at.expander) + list(at.status))
 
 
 # ── Navigation links ────────────────────────────────────────────────────────

@@ -395,20 +395,11 @@ body .qp td.big span.sub{font-family:var(--font-ui);font-size: var(--fs-12);colo
 body .mkt-strip.pg-strip .ms-v, body [class*="st-key-mrow_"] [data-testid="stMetricValue"]{
   font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important;letter-spacing:-0.3px!important}
 body .mkt-strip.pg-strip .ms-v.ms-name{font-size:var(--fs-24)!important}
-body h1.sp-name{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-52)!important;letter-spacing:-0.5px!important}
-body .sp-price{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-44)}
-body .sp-rank-big span{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-44)}
 body .gd h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;border-top-color:var(--c-ink)}
 body .cfg-intro h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important}
 body .cr-year-head h3{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-24)}
 body .gd p,body .gd li,body .gd dd{font-size: var(--fs-15)!important}
-/* The stock page's own headings, brought onto the site's scale (design
-   audit, 8 Nov 2026): they were the only sans-serif section headings in
-   the app, 17px beside a serif 24px heading on the same page. */
-body .sp-card h2, body .sp-sec h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;line-height:1.15!important}
-@media (max-width:900px){.scr-head h1{font-size:var(--fs-36)!important}.qp h2{font-size:var(--fs-30)!important}.rng{width:110px}
-  /* and the stock headline shrinks with every other page's */
-  body h1.sp-name{font-size:var(--fs-36)!important}body .sp-card h2,body .sp-sec h2{font-size:var(--fs-24)!important}}
+@media (max-width:900px){.scr-head h1{font-size:var(--fs-36)!important}.qp h2{font-size:var(--fs-30)!important}.rng{width:110px}}
 </style>"""
 
 

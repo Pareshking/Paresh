@@ -33,7 +33,8 @@ DOWN = C.down
 INK = C.ink
 GRID = C.grid
 MUTED = C.muted
-MA_COLOURS = {"20 EMA": C.teal, "50 EMA": C.muted_2, "200 SMA": C.caution, "Nifty 500": C.violet}
+MA_COLOURS = {"20 EMA": C.teal, "50 EMA": C.muted_2, "200 SMA": C.caution, "Nifty 500": C.violet,
+              "50D EMA": C.teal}
 # Volume is context, not a signal: pale tints of the up and down colours.
 VOL_UP, VOL_DOWN = C.up_line, C.down_line_2
 
@@ -145,8 +146,15 @@ def build_panes(
     overlays: dict[str, pd.Series] | None = None,
     rs: pd.Series | None = None,
     height: int = 420,
+    rs_name: str = "RS vs Nifty 500",
+    volume_pane: int | None = None,
+    rs_height: int = 120,
 ) -> tuple[list[dict], bool]:
     """The price pane (candles or a close line, overlays, volume) and an RS pane.
+
+    `volume_pane`, when given, draws volume in its own pane of that height,
+    headed "Volume", between price and RS (the stock page, STOCK_REQUIREMENTS
+    row 49) instead of in the price pane's bottom fifth.
 
     Returns (panes, has_volume). Raises ChartUnavailable when the data cannot
     make a chart.
@@ -191,27 +199,99 @@ def build_panes(
                            "width": 1.5, "fmt": "price", "data": data})
 
     vol_rows = _volume(idx, _align(volume).values, _rising(close, o).values)
+    vol_series = None
     if vol_rows:
-        series.append({"name": "Volume", "type": "histogram", "volume": True, "fmt": "int",
-                       "color": VOL_UP,
-                       "data": [(r["time"], r["value"]) for r in vol_rows],
-                       "colors": [r["color"] for r in vol_rows]})
+        vol_series = {"name": "Volume", "type": "histogram", "volume": volume_pane is None, "fmt": "int",
+                      "color": VOL_UP,
+                      "data": [(r["time"], r["value"]) for r in vol_rows],
+                      "colors": [r["color"] for r in vol_rows]}
+        if volume_pane is None:
+            series.append(vol_series)
 
     panes = [{"height": height, "series": series}]
+    if vol_series is not None and volume_pane is not None:
+        panes.append({"height": int(volume_pane), "series": [vol_series]})
     rs_rows = _tuples(idx, _align(rs).values) if rs is not None else []
     if rs_rows:
-        panes.append({"height": 120, "series": [
-            {"name": "RS vs Nifty 500", "type": "line", "color": C.up, "width": 1.5,
-             "fmt": "num", "data": rs_rows}]})
+        panes.append({"height": rs_height, "series": [
+            {"name": rs_name, "type": "line", "color": C.up, "width": 1.5,
+             "fmt": "lvl" if volume_pane is not None else "num", "data": rs_rows}]})
     return panes, bool(vol_rows)
 
 
-def render_stock_panes(symbol: str, close: pd.Series, **kw) -> None:
+def render_stock_panes(symbol: str, close: pd.Series, *, one_line: bool = False, label: str = "", **kw) -> None:
     """Draw the stock chart. Raises ChartUnavailable when the data cannot make one."""
     panes, has_volume = build_panes(close, **kw)
     try:
-        lw_chart.render(panes, key=f"lw_{symbol}")
+        lw_chart.render(panes, key=f"lw_{symbol}", one_line=one_line, label=label)
     except Exception as exc:
         raise ChartUnavailable(f"render failed: {exc}") from exc
+    if not has_volume:
+        st.caption("Volume unavailable for this symbol.")
+
+
+# ── The stock page's chart (S182, mock-up v2 approved 23 Nov 2026) ──────────────
+# Today's chart kept and restyled (STOCK_REQUIREMENTS rows 33, 47-49): price with
+# the 50D EMA the ranking uses, Volume in its own pane, and the stock against
+# Nifty Total Market beneath, set to 100 at the start of the range; 6M, 1Y, 3Y.
+
+RANGES = {"6M": 6, "1Y": 12, "3Y": 36}
+DEFAULT_RANGE = "1Y"
+RS_NAME = "RS against Nifty Total Market"
+
+
+def ranking_ema(close: pd.Series) -> pd.Series:
+    """The 50D EMA the ranking reads: none before 30 prints (`EMA_MIN_PRINTS`;
+    owner 10 Nov 2026, DATA_CORRECTNESS §5). The chart used `min_periods=10`."""
+    from src.engine.backtester import EMA_MIN_PRINTS
+    return close.dropna().ewm(span=50, min_periods=int(EMA_MIN_PRINTS)).mean()
+
+
+def window(close: pd.Series, months: int) -> pd.Series:
+    """The sessions from the first on or after the date `months` back to the last."""
+    c = close.dropna()
+    if c.empty:
+        return c
+    start = c.index[-1] - pd.DateOffset(months=months)
+    return c[c.index >= start]
+
+
+def relative_strength(close: pd.Series, market: pd.Series | None) -> pd.Series:
+    """The stock over the market, 100 at the first session of `close`; the market
+    is carried to the stock's sessions (a market close on each of them)."""
+    if market is None or close.empty:
+        return pd.Series(dtype=float)
+    m = pd.to_numeric(market, errors="coerce").dropna().sort_index()
+    m = m.reindex(m.index.union(close.index)).ffill().reindex(close.index)
+    both = pd.DataFrame({"s": close, "m": m}).dropna()
+    if len(both) < 2:
+        return pd.Series(dtype=float)
+    ratio = both["s"] / both["m"]
+    return ratio / ratio.iloc[0] * 100
+
+
+def price_chart_panes(close_full: pd.Series, volume: pd.Series | None, market: pd.Series | None,
+                      months: int) -> tuple[list[dict], bool]:
+    """The three panes for a range: price and 50D EMA, Volume, RS against the market."""
+    close = window(close_full, months)
+    ema = ranking_ema(close_full)
+    return build_panes(close, volume=volume, overlays={"50D EMA": ema},
+                       rs=relative_strength(close, market), rs_name=RS_NAME,
+                       height=320, volume_pane=90, rs_height=130)
+
+
+def render_price_chart(symbol: str, close_full: pd.Series, volume: pd.Series | None,
+                       market: pd.Series | None) -> None:
+    """The range control and the chart, one line of readout per pane."""
+    rng = st.segmented_control("Range", list(RANGES), default=DEFAULT_RANGE,
+                               key=f"sp_range_{symbol}", label_visibility="collapsed") or DEFAULT_RANGE
+    try:
+        panes, has_volume = price_chart_panes(close_full, volume, market, RANGES[rng])
+        lw_chart.render(panes, key=f"lw_{symbol}", one_line=True,
+                        label=f"{symbol}: price and 50D EMA, volume, and relative strength against "
+                              "Nifty Total Market. Arrow keys move the reading.")
+    except ChartUnavailable as exc:
+        st.warning(f"No chart for {symbol}: {exc}")
+        return
     if not has_volume:
         st.caption("Volume unavailable for this symbol.")

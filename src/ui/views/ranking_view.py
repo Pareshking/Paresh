@@ -409,6 +409,15 @@ def render_ranking_view(
             st.query_params["stock"] = val.replace("[STOCK] ", "").split(" — ")[0].strip()
             st.session_state["rank_search_predictive"] = None
 
+    # ?ind=<NSE industry> opens the Screener searched to that industry: the stock
+    # page's "All 49 Auto stocks on the Screener" link (S182, STOCK_REQUIREMENTS
+    # row 37). Once per value, so the reader can clear the search afterwards.
+    want_ind = str(st.query_params.get("ind") or "").strip()
+    if want_ind and st.session_state.get("_scr_ind_from_url") != want_ind:
+        st.session_state["_scr_ind_from_url"] = want_ind
+        if f"[INDUSTRY] {want_ind}" in search_options:
+            st.session_state["rank_search_predictive"] = f"[INDUSTRY] {want_ind}"
+
     with st.container(key="scr_toolbar", horizontal=True, vertical_alignment="center",
                       gap="small"):
         selected_search = st.selectbox(

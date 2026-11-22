@@ -87,38 +87,23 @@ def test_the_drop_is_keyed_to_the_canonical_column_names():
 
 # ── The single-stock page renders the same three values as tiles ─────────────
 
-def test_stock_page_drops_the_atr_tiles_when_there_is_no_atr(monkeypatch):
-    """Three tiles printing an em dash under a formula is not a key level."""
+def test_stock_page_shows_no_stop_levels_even_if_a_frame_carries_them():
+    """The app has no stops (owner, 2026-09-27, and again on 22 Nov 2026, STOCK_REQUIREMENTS row 50):
+    the levels section ignores Stop Loss, Chand Exit and ATR columns (tests/test_stock_page_v2.py
+    checks the whole page)."""
     import src.ui.views.stock_view as sv
+    from src.ui import stock_lines as sl
+    from src.ui import watchlist_lines as wl
 
-    captured: list[str] = []
-    monkeypatch.setattr(sv.st, "markdown", lambda html, **kw: captured.append(html))
-
-    sv._render_price_ladder(pd.Series({
-        "52W High": 272.0, "% High": -12.9, "ATH": 847.0, "% ATH": -72.0,
-        "ATH Date": "2018-10-16", "52W High Date": "2026-09-07", "% 50 EMA": -2.0,
-    }))
-    html = "".join(captured)
-    assert "52W high" in html, "the tiles that do not need ATR must survive"
-    for label in ("Stop Loss", "Chandelier Exit", "2×ATR"):
-        assert label not in html, f"'{label}' rendered with no ATR behind it"
-
-
-def test_stock_page_shows_no_stop_levels_even_if_a_frame_carries_them(monkeypatch):
-    """The app has no stops (owner, 2026-09-27): no Stop Loss, Chandelier or ATR tiles."""
-    import src.ui.views.stock_view as sv
-
-    captured: list[str] = []
-    monkeypatch.setattr(sv.st, "markdown", lambda html, **kw: captured.append(html))
-
-    sv._render_price_ladder(pd.Series({
-        "52W High": 272.0, "% High": -12.9, "ATH": 847.0, "% ATH": -72.0,
-        "% 50 EMA": -2.0, "Stop Loss": 210.0, "Chand Exit": 224.0,
-        "ATR": 13.5, "ATR %": 5.7,
-    }))
-    html = "".join(captured)
-    assert "Stop Loss" not in html and "Chandelier Exit" not in html and "ATR (14" not in html
-    assert "52" in html                                  # the rest of the ladder still renders
+    row = pd.Series({"Symbol": "X", "CMP": 240.0, "52W High": 272.0, "% High": -11.8, "ATH": 847.0,
+                     "ATH Date": "2018-10-16", "52W High Date": "2026-09-07", "% 50 EMA": -2.0,
+                     "Above 50 EMA": False, "Near 52W High": True,
+                     "Stop Loss": 210.0, "Chand Exit": 224.0, "ATR": 13.5, "ATR %": 5.7})
+    lad = sl.ladder(row, None, 0.8)
+    html = "".join(sv.rules_html(row, None, None, wl.Lines(20, 40, 20), 0.8, lad, False, None, None, [], None))
+    assert "52W high" in html                                  # the rest still renders
+    for label in ("Stop Loss", "Stop loss", "Chandelier", "Chand Exit", "ATR (14", "₹210", "₹224"):
+        assert label not in html, label
 
 
 # ── The density label must not become a second, drifting copy of the count ───
