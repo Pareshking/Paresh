@@ -90,6 +90,8 @@ mock-up and approval is recorded in its row of section 7 and in TODO S151.
 
 ### 3a. Numbers and words, the 8 rules (owner-approved 22 Nov 2026, S173)
 
+Names, units and rounding: `docs/GLOSSARY.md` (S193 item D, owner 23 Nov 2026) is the reference; where it is more specific than the rules below, it wins.
+
 Owner, 22 Nov 2026: "price etc, Moving averages etc should be in round numbers, return only with Max one decimal
 values like 11.1% not 11.11%"; the same day, whole rupees "including below ₹100", and the sheet below approved.
 
