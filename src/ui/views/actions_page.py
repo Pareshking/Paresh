@@ -18,6 +18,7 @@ import streamlit as st
 from src.engine.exit_watch import CLEAR, SELL, STATUS_LABEL, UNKNOWN, WATCH, Rules, assess, nearest_rule, qualified_ranks
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.ui.system_param import stock_href
+from src.ui.formats import price as _fmt_price
 from src.ui.views.dashboard_home_view import HOME_CSS, emit, html_of, sg
 from src.ui.views.portfolio_page import PF_CSS, _head, _kpis, _sec, dshort, inr, pct, short, tone
 
@@ -239,11 +240,11 @@ def section_buy(p: Plan) -> list:
         m3 = pd.to_numeric(r["3M Return"].get(s), errors="coerce") * 100 if "3M Return" in r else np.nan
         m6 = pd.to_numeric(r["6M Return"].get(s), errors="coerce") * 100 if "6M Return" in r else np.nan
         rows += (f'<tr>{_name(p, s)}<td class="dh-num">#{int(p.qrank.get(s, 0))}</td>'
-                 f'<td class="dh-num">{"—" if b["price"] is None or pd.isna(b["price"]) else f"{float(b['price']):,.2f}"}</td>'
+                 f'<td class="dh-num">{"—" if b["price"] is None or pd.isna(b["price"]) else _fmt_price(b['price'])}</td>'
                  f'<td class="dh-num ac-wide {tone(m3)}">{pct(None if pd.isna(m3) else m3)}</td>'
                  f'<td class="dh-num ac-wide {tone(m6)}">{pct(None if pd.isna(m6) else m6)}</td>'
                  f'<td class="dh-num ac-wide">{"—" if pd.isna(hi) else ("at the high" if hi > -0.05 else pct(hi))}</td>'
-                 f'<td class="dh-num ac-wide">{b["w"] * 100:.2f}%</td>'
+                 f'<td class="dh-num ac-wide">{b["w"] * 100:.1f}%</td>'
                  f'<td class="dh-num dh-b">{"—" if b["amount"] is None else inr(b["amount"])}</td>'
                  f'<td class="dh-num">{"—" if b["qty"] is None else f"{b['qty']:,}"}</td></tr>')
     nxt = "".join(f'<a class="dh-pill" href="{stock_href(s)}" target="_self">#{int(p.qrank.get(s, 0))} {e(s)}</a>'
@@ -393,8 +394,8 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
         if plan.buys:
             w = float(plan.weights.get(plan.buys[0], 0.0))
             cash = w * len(plan.buys)
-            limit = (f"Each buy gets {w * 100:.2f}%: the record never trims a kept stock to make room, so the buys share the "
-                     f"{cash * 100:.2f}% the sells free up, which is less than the {cfg.get('buy_size', 0.05) * 100:.0f}% buy size "
+            limit = (f"Each buy gets {w * 100:.1f}%: the record never trims a kept stock to make room, so the buys share the "
+                     f"{cash * 100:.1f}% the sells free up, which is less than the {cfg.get('buy_size', 0.05) * 100:.0f}% buy size "
                      "(the rule since 8 Nov)." if w < float(cfg.get("buy_size") or 0.05) - 1e-9 else "")
     else:
         symbols = list(my_symbols or [])

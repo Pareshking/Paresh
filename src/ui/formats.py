@@ -8,6 +8,11 @@ House style (pre-launch audit F5/F6, owner 7 Nov 2026):
   before the rupee symbol (−₹954, not ₹-954). Index levels are not rupees and
   keep NSE's own grouping.
 * Percentages carry one decimal and, where the sign is the point, a + or −.
+* Prices, moving averages and any ₹ level are whole rupees; below ₹100 they keep
+  two decimals so a low-priced stock's move still shows (owner, 22 Nov 2026:
+  "price etc, Moving averages etc should be in round numbers, return only with
+  Max one decimal values like 11.1% not 11.11%"; S173). Display only: stored
+  data, exports and order prices keep their exact values.
 
 No streamlit import, so the theme, the page kit and framed tables can all use it.
 """
@@ -59,6 +64,15 @@ def inr(x, decimals: int = 0, plus: bool = False) -> str:
     frac = f"{abs(r) - whole:.{decimals}f}"[1:] if decimals else ""
     sign = MINUS if r < 0 else ("+" if plus and r > 0 else "")
     return f"{sign}₹{indian_group(whole)}{frac}"
+
+
+def price(x, plus: bool = False) -> str:
+    """A price or price level for display: "₹2,906" (whole rupees, Indian grouping); below ₹100,
+    two decimals ("₹70.05"), where a whole rupee would hide a real move (S173, owner 22 Nov 2026)."""
+    v = _finite(x)
+    if v is None:
+        return DASH
+    return inr(v, 2 if abs(v) < 100 else 0, plus=plus)
 
 
 def pts(x, digits: int = 1, fraction: bool = True) -> str:

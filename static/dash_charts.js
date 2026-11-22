@@ -8,6 +8,8 @@ const REDRAW = [];
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const dlong = s => { const [y,m,d] = s.split('-'); return `${+d} ${MON[+m-1]} ${y}`; };
+/* A price for display (S173, owner 22 Nov 2026): whole rupees, Indian grouping; below ₹100 two decimals. */
+const pxf = v => v==null ? '—' : Math.abs(v) < 100 ? v.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : Math.round(v).toLocaleString('en-IN');
 const sg = (v,dp=1) => v==null ? '—' : (v>0?'+':v<0?'−':'') + Math.abs(v).toFixed(dp);
 const inr = v => (v<0?'−':'+') + '₹' + Math.abs(v).toLocaleString('en-IN');
 const NS = 'http://www.w3.org/2000/svg';
@@ -211,7 +213,7 @@ R.month = (card, s) => {
     $('.seg-rows', card).innerHTML = s.rows.map((r, j) => `<div class="trow" role="listitem"><div class="nm"${r.bold ? ' style="font-weight:700"' : ''}>${esc(r.name)}<small>${esc(r.sub)}</small></div>${track(v[j], o)}<div class="vl ${tone(v[j])}">${v[j] == null ? '—' : sg(v[j]) + '%'}</div></div>`).join('');
     $('.seg-axis div', card).innerHTML = s.axis.map(t => `<span style="left:${(t - o.lo) / (o.hi - o.lo) * 100}%">${t > 0 ? '+' : t < 0 ? '−' : ''}${Math.abs(t)}%</span>`).join('');
     rowsInteract(card, '.trow', j => { const k = j ?? s.book, mk = v[s.market], bk = v[s.book];
-      ro(card, (j == null ? 'Latest · ' : '') + label, [{v: sg(v[k], 2) + '%', cls: tone(v[k]), name: s.rows[k].name},
+      ro(card, (j == null ? 'Latest · ' : '') + label, [{v: sg(v[k]) + '%', cls: tone(v[k]), name: s.rows[k].name},
         {v: sg(v[k] - mk) + ' pts', cls: tone(v[k] - mk), name: 'against the market'},
         ...(k !== s.market && k !== s.book ? [{v: sg(bk - v[k]) + ' pts', cls: tone(bk - v[k]), name: 'the book against it'}] : [])]); }); };
   sw.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { sw.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); m = b.dataset.m; draw(); }));
@@ -291,7 +293,7 @@ R.growth = (card, s) => {
   const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); b.textContent = v; b.className = c || ''; };
   interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
     $('.ph .d', card).textContent = (i == null ? 'Latest · ' : '') + r.date;
-    put('book', '₹' + s.book[k].toFixed(1)); put('mom', s.mom[k] == null ? '—' : '₹' + s.mom[k].toFixed(1)); put('market', s.market[k] == null ? '—' : '₹' + s.market[k].toFixed(1));
+    put('book', '₹' + pxf(s.book[k])); put('mom', s.mom[k] == null ? '—' : '₹' + pxf(s.mom[k])); put('market', s.market[k] == null ? '—' : '₹' + pxf(s.market[k]));
     put('dd', sg(s.dd[k]) + '%', s.dd[k] < 0 ? 'down' : ''); put('ddm', s.ddm[k] == null ? '—' : sg(s.ddm[k]) + '%'); },
     k => ({date: dlong(s.dates[k]), items: []}), () => s.dates.length - 1);
 };
@@ -299,7 +301,6 @@ R.growth = (card, s) => {
 /* The holdings, sortable by any column (Portfolio). */
 R.holdings = (card, s) => {
   const el = $('.hold', card), inrf = v => (v < 0 ? '−' : '') + '₹' + Math.round(Math.abs(v)).toLocaleString('en-IN');
-  const f2 = v => v.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   const rk = r => r == null ? 'Out' : '#' + r;
   const MONS = MON;
   const ds = d => { const [y, m, dd] = d.split('-'); return `${+dd} ${MONS[+m - 1]} ’${y.slice(2)}`; };
@@ -315,7 +316,7 @@ R.holdings = (card, s) => {
       return `<tr><th scope="row" title="${esc(h.co)}"><span class="sym">${esc(h.s)}</span><span class="ss co">${esc(h.co_short)}</span></th>`
         + `<td>${esc(h.ind)}<span class="ss"><span class="${h.tone}">${esc(h.status)}</span>${h.size ? ' · ' + esc(h.size) : ''}</span></td>`
         + `<td class="nw">${ds(h.since)}<span class="ss">${h.days} days</span></td>`
-        + `<td class="num">${h.q.toLocaleString('en-IN')}</td><td class="num">${f2(h.ep)}</td><td class="num">${f2(h.px)}</td>`
+        + `<td class="num">${h.q.toLocaleString('en-IN')}</td><td class="num">${pxf(h.ep)}</td><td class="num">${pxf(h.px)}</td>`
         + `<td class="num">${inrf(h.val)}</td><td class="num">${h.w.toFixed(1)}%</td><td class="num ${tone(h.dayp)}">${sg(h.dayp)}%</td>`
         + `<td class="num ${tone(h.pnl)}">${h.pnl > 0 ? '+' : ''}${inrf(h.pnl)}</td><td class="num b ${tone(h.ret)}">${sg(h.ret)}%</td>`
         + `<td class="num ${emaC}">${h.ema == null ? '—' : sg(h.ema) + '%'}</td><td class="num ${hiC}">${h.hi == null ? '—' : sg(h.hi) + '%'}</td>`
@@ -350,12 +351,12 @@ R.history = (card, s) => {
     if (view === 'trades') {
       const r = s.trades.filter(x => filt === 'all' || (filt === 'open' ? x[14] === 'Open' : x[14] !== 'Open' && (filt === 'win' ? x[11] > 0 : x[11] <= 0)));
       body.innerHTML = `<table class="lt"><thead><tr><th>Stock</th><th>Signal</th><th>Bought</th><th class="num">Price</th><th class="num">Rank</th><th>Signal</th><th>Sold</th><th class="num">Price</th><th class="num">Return</th><th class="num">Days</th><th>Why it closed</th></tr></thead><tbody>`
-        + r.map(x => `<tr><td><b>${esc(x[0])}</b></td><td>${ds(x[2])}</td><td>${ds(x[3])}</td><td class="num">${x[4].toFixed(2)}</td><td class="num">${x[5] == null ? '—' : '#' + x[5]}</td><td>${x[14] === 'Open' ? '—' : ds(x[7])}</td><td>${x[14] === 'Open' ? 'Held' : ds(x[8])}</td><td class="num">${x[9] == null ? '—' : x[9].toFixed(2)}</td><td class="num ${tone(x[11])}">${sg(x[11])}%</td><td class="num">${x[12]}</td><td>${esc(x[13])}</td></tr>`).join('') + '</tbody></table>';
+        + r.map(x => `<tr><td><b>${esc(x[0])}</b></td><td>${ds(x[2])}</td><td>${ds(x[3])}</td><td class="num">${pxf(x[4])}</td><td class="num">${x[5] == null ? '—' : '#' + x[5]}</td><td>${x[14] === 'Open' ? '—' : ds(x[7])}</td><td>${x[14] === 'Open' ? 'Held' : ds(x[8])}</td><td class="num">${pxf(x[9])}</td><td class="num ${tone(x[11])}">${sg(x[11])}%</td><td class="num">${x[12]}</td><td>${esc(x[13])}</td></tr>`).join('') + '</tbody></table>';
     } else {
       const r = s.lines.filter(x => filt === 'all' || x[1] === filt);
       const A = {BUY: ['Buy', 'up'], SELL: ['Sell', 'down'], HOLD: ['Hold', 'muted']};
       body.innerHTML = `<table class="lt"><thead><tr><th>Month</th><th>Action</th><th>Stock</th><th class="num">Price</th><th class="num">Weight</th><th>Why</th></tr></thead><tbody>`
-        + r.map(x => `<tr><td>${esc(x[0])}</td><td class="${A[x[1]][1]}">${A[x[1]][0]}</td><td><b>${esc(x[2])}</b></td><td class="num">${x[3] == null ? '—' : x[3].toFixed(2)}</td><td class="num">${x[4] == null ? '—' : x[4].toFixed(1) + '%'}</td><td>${esc(x[5])}</td></tr>`).join('') + '</tbody></table>';
+        + r.map(x => `<tr><td>${esc(x[0])}</td><td class="${A[x[1]][1]}">${A[x[1]][0]}</td><td><b>${esc(x[2])}</b></td><td class="num">${pxf(x[3])}</td><td class="num">${x[4] == null ? '—' : x[4].toFixed(1) + '%'}</td><td>${esc(x[5])}</td></tr>`).join('') + '</tbody></table>';
     }
   };
   vsw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; vsw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); view = b.dataset.v; filt = 'all'; chipsFor(); draw(); });
@@ -476,7 +477,7 @@ R.lmap = (card, s) => {
     const reading = flat ? (dx >= 0 ? T.r_flat_up : T.r_flat_down) : dx >= 0 && dy >= 0 ? T.r_ru : dx >= 0 ? T.r_rd : dy >= 0 ? T.r_lu : T.r_ld;
     const lifts = ex.leaders.map(([sym, v]) => `${esc(sym)} ${sg(v)}%, ${T.adds} ${sg(v / n, 2)} ${T.pts}`).join('; ');
     $('.mex', card).innerHTML = `<p class="mh">${esc(T.how)}: ${esc(sh(ex.name))}</p>`
-      + `<p><b>${esc(T.q_across.replace('{p}', per1))}</b> ${esc(T.a_across.replace('{n}', n).replace('{name}', sh(ex.name)).replace('{then}', ex.then).replace('{now}', ex.now))} <b>${sg(ex.ret, 2)}%</b>. ${esc(T.a_market)} <b>${sg(ex.bench, 2)}%</b>. ${esc(T.a_diff)} <b>${pts1(ex.x1)}</b>, ${esc(side)}. ${esc(T.a_hollow)} ${pts1(ex.x0)}.</p>`
+      + `<p><b>${esc(T.q_across.replace('{p}', per1))}</b> ${esc(T.a_across.replace('{n}', n).replace('{name}', sh(ex.name)).replace('{then}', ex.then).replace('{now}', ex.now))} <b>${sg(ex.ret)}%</b>. ${esc(T.a_market)} <b>${sg(ex.bench)}%</b>. ${esc(T.a_diff)} <b>${pts1(ex.x1)}</b>, ${esc(side)}. ${esc(T.a_hollow)} ${pts1(ex.x0)}.</p>`
       + `<p><b>${esc(T.q_up)}</b> ${esc(T.a_up.replace('{span}', span))} ${ex.a1} / ${ex.o1} = <b>${Math.round(ex.y1)}%</b>; ${esc(T.ago_word)} ${ex.a0} / ${ex.o0} = ${Math.round(ex.y0)}%. ${esc(T.a_up2.replace('{need}', Math.round(span * 0.8)))}</p>`
       + `<p><b>${esc(T.q_lift)}</b> ${esc(T.a_lift.replace('{n}', n))} ${lifts}.</p>`
       + `<p><b>${esc(T.q_line)}</b> ${esc(T.a_line)} ${Math.abs(dx).toFixed(1)} ${T.pts} ${dx >= 0 ? T.right : T.left}, ${flat ? T.no_move : Math.abs(dy).toFixed(0) + ' ' + T.pts + ' ' + (dy >= 0 ? T.up : T.down)}: ${esc(reading)} ${esc(T.today.replace('{side}', side).replace('{half}', half))} ${esc(T.four)}</p>`;

@@ -85,7 +85,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
              "vals": [f"{v.pe_3m:.2f}", f"{v.pe_1m:.2f}", f"{v.pe_now:.2f}", f"{v.pct_now:.0f}"],
              "cls": ["muted", "muted", "b", ""],
              "read": [[f"{v.pe_now:.2f}", "P/E now"], [_ord(v.pct_now), "percentile"],
-                      [_ord(v.pct_1m), "a month ago"], [f"{v.pb_now:.2f}", "P/B"], [f"{v.dy_now:.2f}%", "dividend yield"]]}
+                      [_ord(v.pct_1m), "a month ago"], [f"{v.pb_now:.2f}", "P/B"], [f"{v.dy_now:.1f}%", "dividend yield"]]}
             for v in vals]
     spec = {"label": "Index", "barHead": "Percentile of P/E since 2021", "head": [_d(m3), _d(m1), "Now", "Pctile"],
             "rows": rows, "lo": 0, "hi": 100, "step": 2, "lines": [25, 75], "rest": "Latest · the first row"}
@@ -116,7 +116,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
                       "A line above the band is dearer than three days in four since 2021; below it, cheaper. The two "
                       "colours are two definitions: do not read the 2021 drop as a fall in price.",
                       ["Index", "P/E", "P/B", "Div yield", "Percentile now", "A month ago", "3 months ago"],
-                      [[v.name, f"{v.pe_now:.2f}", f"{v.pb_now:.2f}", f"{v.dy_now:.2f}%", f"{v.pct_now:.0f}",
+                      [[v.name, f"{v.pe_now:.2f}", f"{v.pb_now:.2f}", f"{v.dy_now:.1f}%", f"{v.pct_now:.0f}",
                         f"{v.pct_1m:.0f}", f"{v.pct_3m:.0f}"] for v in vals])]
     return parts
 
@@ -133,10 +133,10 @@ def section_styles(sts: list[ip.Style], m1: pd.Timestamp, m3: pd.Timestamp) -> l
               f'{" and ".join(s.style.lower() for s in behind)} <span class="dh-down">trail by {span} points</span>.')
     rows = [{"name": s.style, "sub": f"{s.name} against {s.parent_name} · live since {_dy(s.live)}",
              "bar": None if s.lead_now is None else round(s.lead_now, 2), "ago": None if s.lead_1m is None else round(s.lead_1m, 2),
-             "vals": [sg(s.lead_3m), sg(s.lead_1m), sg(s.lead_now), sg(s.dy_gap, 2)],
+             "vals": [sg(s.lead_3m), sg(s.lead_1m), sg(s.lead_now), sg(s.dy_gap)],
              "cls": [_kt(s.lead_3m), _kt(s.lead_1m), _kt(s.lead_now) + " b", "muted"],
              "read": [[sg(s.lead_now) + " pts", "12-month lead now", _kt(s.lead_now)], [sg(s.lead_1m) + " pts", "a month ago"],
-                      [sg(s.dy_gap, 2) + " pts", "dividend-yield gap a year"]]}
+                      [sg(s.dy_gap) + " pts", "dividend-yield gap a year"]]}
             for s in sts]
     spec = {"label": "Style", "barHead": "Lead over parent, 12 months, pts", "head": [_d(m3), _d(m1), "Now", "Yield gap"],
             "rows": rows, "lo": -15, "hi": 15, "step": 0.5, "rest": "Latest · the first row"}

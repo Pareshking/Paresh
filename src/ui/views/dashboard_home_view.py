@@ -288,7 +288,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
     axis = [t for t in range(int(np.ceil(lo_s)), int(np.floor(hi_s)) + 1) if t % 2 == 0]
     spec = {"periods": periods, "values": values, "rows": rows, "lo": float(lo_s), "hi": float(hi_s), "step": step,
             "axis": axis, "market": 0, "book": 1}
-    table_rows = [[r["name"]] + [("—" if values[p["key"]][i] is None else f'{sg(values[p["key"]][i], 2)}%') for p in periods]
+    table_rows = [[r["name"]] + [("—" if values[p["key"]][i] is None else f'{sg(values[p["key"]][i])}%') for p in periods]
                   for i, r in enumerate(rows)]
     return [
         f'<div class="dh-sec">{_kicker("1", "The book this month")}<h1 id="s-month" class="dh-h1">{title}</h1>'
@@ -500,16 +500,16 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
             badge, why = '<span class="dh-ev dh-ev-c">Not tested</span>', ""
         elif t["passed"]:
             badge = '<span class="dh-ev dh-ev-t">Pass</span>'
-            why = f'{sg(t["on"], 2)} on vs {sg(t["off"], 2)} off; both halves; on in {t["n_on"]} of {t["n"]} months'
+            why = f'{sg(t["on"])} on vs {sg(t["off"])} off; both halves; on in {t["n_on"]} of {t["n"]} months'
         else:
             badge = '<span class="dh-ev dh-ev-c">Not confirmed</span>'
-            why = f'{sg(t["on"], 2)} on vs {sg(t["off"], 2)} off, {t["n_on"]} of {t["n"]} months; ' + (
+            why = f'{sg(t["on"])} on vs {sg(t["off"])} off, {t["n_on"]} of {t["n"]} months; ' + (
                 "the halves disagree" if t["halves"][0] * t["halves"][1] < 0 else "under the 1-point bar")
         rows.append(
             f'<tr class="{"dh-faint" if d is None else ""}"><th scope="row">{e(x["name"])}<span class="dh-sub">{e(x["sub"])}</span></th>'
             + "".join(f'<td class="dh-num{" dh-muted" if k < 2 else " dh-b"}">{e(v)}</td>' for k, v in enumerate(x["cells"]))
             + f'<td class="dh-hist">{e(x.get("hist", ""))}</td>'
-            + f'<td class="dh-num dh-b {cls}">{"—" if like is None else e(sg(like, 2))}</td>'
+            + f'<td class="dh-num dh-b {cls}">{"—" if like is None else e(sg(like))}</td>'
             f'<td><span class="dh-dbar"><span><i class="dh-f-neg" style="width:{w if d is not None and d < 0 else 0:.0f}%"></i></span>'
             f'<span><i class="dh-f-pos" style="width:{w if d is not None and d >= 0 else 0:.0f}%"></i></span></span>'
             f'<span class="dh-sub dh-b {cls}">{reads}</span></td>'
@@ -531,7 +531,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
                       "month so far, from Nifty500 Momentum 50 against Nifty Total Market.",
                       "Bars above the line are months momentum led. A run below it is momentum out of favour; whether the "
                       "year-long lead holds matters more than one month.",
-                      ["Month", "Lead, pts"], [[m, sg(v, 2)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])])]
+                      ["Month", "Lead, pts"], [[m, sg(v)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])])]
     parts.append(
         f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>What today’s readings have meant for next month</b><span>Momentum’s next-month lead after '
         f'months like this, points · all months since 2010 average {e(avg)}</span></div>'
@@ -574,9 +574,9 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
            f"Net sellers in {f.before_selling_months} of 11 months", "dh-down" if f.before_selling_months > 5 else "dh-muted",
            f"This month has bought back {f.mtd / -f.before * 100:.0f}%" if f.before < 0 and f.mtd > 0 else "")]
     if share is not None:
-        kp.insert(1, ("Against the 750’s market value", sg(share[0], 2, "%"), tone(share[0]),
+        kp.insert(1, ("Against the 750’s market value", sg(share[0], 1, "%"), tone(share[0]),
                       "Bought this month" if share[0] > 0 else "Sold this month", tone(share[0]),
-                      f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {abs(share[1]):.2f}% of it"))
+                      f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {abs(share[1]):.1f}% of it"))
     if dii:
         kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}, {dii[5] if len(dii) > 5 else 'on NSE'}", cr(dii[2]), tone(dii[2]),
                    f"Net sellers on {dii[4]} of {dii[3]} sessions", "dh-down" if dii[4] * 2 > dii[3] else "dh-muted",
@@ -595,7 +595,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                 f'(correlation {sg(ev.corr_same, 2)}) and say nothing about the next ({sg(ev.corr_next, 2)}).</div>'
                 f'<div class="dh-ev-box"><b>{"Not a large-cap story" if ev.large_minus_broad <= 0 else "A large-cap tilt"}.</b> '
                 f'In those heavy-buying months the Nifty 50 {"trailed" if ev.large_minus_broad <= 0 else "beat"} the Nifty 500 '
-                f'by {abs(ev.large_minus_broad):.2f} points on average.</div>')
+                f'by {abs(ev.large_minus_broad):.1f} points on average.</div>')
     head_html = (f'<div class="dh-sec">{_kicker("4", "Money flows")}<h2 id="s-flow" class="dh-h2">{head}</h2>{_kpis(kp)}</div>')
     left = []
     if bars:

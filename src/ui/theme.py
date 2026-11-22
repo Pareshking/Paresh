@@ -89,12 +89,12 @@ FORMAT_MAP: dict[str, str] = {
     "Persistence": "{:.1f}%",
     "Max DD 3M": "{:.1f}%",
     "FFill %": "{:.1f}%",
-    "Weight %": "{:.2f}%",
+    "Weight %": "{:.1f}%",
     "Del %": "{:.1f}%",
     "Del% 20D Avg": "{:.1f}%",
     "Del% Prev20D": "{:.1f}%",
     "Turnover %": "{:.1f}%",
-    "Cost Drag %": "{:.2f}%",
+    "Cost Drag %": "{:.1f}%",
     "Day Chg %": "{:+.1f}%",
     "Price_Chg_%": "{:+.1f}%",
     # Ratios & Alpha Scores (2 decimal places)
@@ -2320,7 +2320,7 @@ def render_saas_table(
                 ):
                     if any(w in c_str for w in _PER_SHARE_PRICE_KEYS):
                         cells_html.append(
-                            f'<td class="td-right">{_fmt.inr(val, 2)}</td>'
+                            f'<td class="td-right">{_fmt.price(val)}</td>'
                         )
                     else:
                         cells_html.append(

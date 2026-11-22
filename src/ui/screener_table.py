@@ -227,8 +227,8 @@ def _price_html(v: float | None) -> str:
     the phone's compact list (rounded, not cut: ₹2,373.50 reads ₹2,374)."""
     if v is None:
         return "—"
-    return (f'<span class="px-d">{_fmt.inr(v, 2)}</span>'
-            f'<span class="px-m">{_fmt.inr(v)}</span>')
+    return (f'<span class="px-d">{_fmt.price(v)}</span>'
+            f'<span class="px-m">{_fmt.price(v)}</span>')
 
 
 def _peak_cell(v: float | None, title: str = "") -> str:
@@ -352,7 +352,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
         v = _num(row.get(col))
         cells[key] = (f'<td class="n" data-v="{"" if v is None else v}">'
-                      f'{"—" if v is None else _fmt.inr(v, 2)}</td>')
+                      f'{"—" if v is None else _fmt.price(v)}</td>')
     from src.engine.momentum import CARRIED_MARK
 
     gap = str(row.get("Data Gap") or "🟢")
