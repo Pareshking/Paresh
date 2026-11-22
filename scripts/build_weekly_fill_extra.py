@@ -270,13 +270,15 @@ def main(argv=None) -> int:
                     help="--nano: exit 0 when every Nano Cap stock is on file; else, with no packs "
                          "given, name the missing ones and exit 3")
     ap.add_argument("--with-nifty-1000", action="store_true",
-                    help="--nano: also the Nifty 1000's members outside the 750 (fill_symbols; the daily "
-                         "sync passes it from 22 Nov 2026, the default once the committed file holds them)")
+                    help="--nano: kept so older calls still work; the Nifty 1000's members outside the 750 "
+                         "are the default since 23 Nov 2026, when the committed file first held all 30")
+    ap.add_argument("--nano-only", action="store_true",
+                    help="--nano: only the Nano Cap list (nano_symbols), the set before 23 Nov 2026")
     ap.add_argument("--out", type=Path)
     args = ap.parse_args(argv)
     if args.nano:
         out = args.out or NANO_OUT
-        symbols = fill_symbols() if args.with_nifty_1000 else nano_symbols()
+        symbols = nano_symbols() if args.nano_only else fill_symbols()
         lacking = missing(out, symbols)
         if args.if_missing and not lacking:
             print(f"{out.name}: all {len(symbols)} Nano Cap stocks on file")

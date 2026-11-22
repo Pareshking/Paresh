@@ -61,7 +61,7 @@ Nifty 1000; tracked down to ₹500 Cr, prices from ₹800 Cr, a holding below �
 rebalance); **Combined retired**, its ledger read-only as frozen to Dec 2026. Read TODO S198 before any
 work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
-In progress: the stock page v2 build (queue item 2), in this session.
+In progress: S193 (queue item 2), in this session.
 
 ### What was done 22 Nov evening (where to read it)
 
@@ -80,23 +80,17 @@ In progress: the stock page v2 build (queue item 2), in this session.
    23:02, 23:31 UTC on recent nights; ~40 min a run). `daily_sync` 02:00 UTC,
    `r2_archive_inventory` 02:31, `nse_reference_sync` 02:45 (all usually hours
    late); `nse_long_prices` runs after `daily_sync` completes.
-   - `screener_sync`: log's extra universe about 469 (411 + 58); the 13 former
-     ₹2,000 Cr members refetched over 365 days and the 18 new ones fetched; the
-     "not served" list; `data/screener_pending_history.json` and the banner.
-     Then re-count 30 Oct closes on the published store for the 31 names in TODO
-     S194 and tell the owner which (if any) are still unserved.
-   - `daily_sync`: `weekly_fill_nano.parquet` gains the Nifty 1000's 30
-     (`--with-nifty-1000`); former-member prices for ENNATURE, IGLSPIRITS.
+   - Done 23 Nov night (TODO S194): `screener_sync` 45077658093 (31/31 have a 30 Oct close, 0 pending,
+     extra 219/219) and `daily_sync` 45081696293 (weekly fill holds the Nifty 1000's 30; now the default).
+     ENNATURE/IGLSPIRITS need no former-member price (no book held them; S196).
    - `nse_reference_sync`: first `nifty_1000` line in `anchor_checks.jsonl`, the
      notices ledger committed (S196).
    - `nse_long_prices`: green with the 104 new series.
    - `r2_archive_inventory`: lists `snapshots/rankings_1000`, `_nano`, `_combined`.
-   - When the weekly fill has held for a run, make `--with-nifty-1000` the
-     default in `scripts/build_weekly_fill_extra.py` and tighten its
-     committed-file test.
-2. **Stock page v2 (S182)**, owner approved 23 Nov ("Stock v2 approved", "merge when CI is green"):
-   built from mock-up v2 (artifact `EzvufnnvHLsuD9LbTwPi2s`); in progress 23 Nov night.
-3. **S193 (consistency audit)**, once the stock page is live: it reads every page, the stock page too.
+2. **S193, one item at a time with the owner** (examples, recommendation, opposite view). Stock page v2
+   live (#628). D (glossary, `docs/GLOSSARY.md`) and K's /stock redirect merged (#631). Next: prepare
+   A-C and E-L for the owner; do not apply without their decision. S203 templates: draft only.
+3. (merged into 2)
 4. **After the 1-5 Dec freeze: S197**, membership from NSE's daily CSVs for
    all seven indices (the Nifty 1000 joins `build_membership_history.py`; a
    missed day is reported, not bridged), and NSE's notices read on the **25th
