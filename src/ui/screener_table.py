@@ -78,6 +78,9 @@ _ALL = {
     "stop": ("Stop loss", "num"), "chand": ("Chandelier exit", "num"),
     "gap": ("Price gap", "text"), "ffill": ("Filled", "num"), "hz": ("Horizons", "num"),
     "spark": ("60D", None),
+    # The Watchlist's plan column: what the model book does with the stock at the
+    # next rebalance; its header is that day ("30 Nov"), passed in by the page.
+    "plan": ("Plan", "text"),
 }
 for _w in PERIOD_WINDOWS:
     _ALL[f"r{_w}"] = (f"{_w}M return", "num")
@@ -98,6 +101,12 @@ _QUANT_KEYS = (
 )
 _CORE_KEYS = ("rank", "stock", "price", "p3", "p1", "qrank", "idx", "ind", "mcap",
               "r1", "r3", "r6", "r12", "dd3", "hi", "ema", "vol", "above", "near", "spark")
+# The Watchlist (S182, mock-up approved 22 Nov 2026): Core with the qualified place
+# 3M and 1M ago beside "Now" and the plan's word after it. Its phone list keeps the
+# stock, the price, the qualified place and the plan (the page names what it drops).
+_WATCH_KEYS = ("rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "plan", "idx", "ind", "mcap",
+               "r1", "r3", "r6", "r12", "dd3", "hi", "ema", "vol", "above", "near", "spark")
+_WATCH_PHONE = {"stock", "price", "qrank", "plan"}
 _EXEC_KEYS = ("rank", "stock", "price", "p1", "qrank", "idx", "ind", "r3", "r12", "dd3",
               "hi", "ema", "above", "near", "spark")
 # Group labels over the columns, in order.
@@ -107,6 +116,7 @@ _QUANT_GROUPS = (
     ("", ("rank", "stock", "price")),
     ("Rank before", ("p3", "p1", "d1m")),
     ("Qualified", ("q3", "q1", "qrank")),
+    ("Plan", ("plan",)),
     ("Score", ("score",)),
     ("Company", ("idx", "ind", "mcap")),
     *((f"{w} month{'s' if w > 1 else ''}", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
@@ -124,6 +134,7 @@ _ATR_COLUMNS = ("ATR", "ATR %", "Stop Loss", "Chand Exit")
 ROW_PX = 36   # Ledger density (owner, 7 Nov); the phone list keeps 44 for touch
 PHONE_ROW_PX = 36   # Ledger density (owner, 7 Nov); the phone list keeps 44 for touch
 VISIBLE_ROWS = 25
+GROUP_ROW_PX = 40   # a heading row of the Watchlist's groups (14 + 20 + 6 px)
 
 
 def columns_for(density: str, available=None, movers: bool = False) -> list[tuple[str, str, str | None]]:
@@ -132,7 +143,8 @@ def columns_for(density: str, available=None, movers: bool = False) -> list[tupl
     places moved in a month after the past ranks (Big movers sorts on it)."""
     d = str(density)
     keys = _EXEC_KEYS if d.startswith("Executive") else (
-        _QUANT_KEYS if d.startswith(("Full", "Quant")) else _CORE_KEYS)
+        _QUANT_KEYS if d.startswith(("Full", "Quant")) else
+        _WATCH_KEYS if d.startswith("Watchlist") else _CORE_KEYS)
     if available is not None and not any(c in available for c in _ATR_COLUMNS):
         keys = tuple(k for k in keys if k not in _RISK_KEYS)
     if available is not None and "Qualified (-1M)" not in available:
@@ -298,8 +310,12 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
         cells[key] = (f'<td class="n past" data-v="{"" if p_ is None else p_}">'
                       f'{"–" if p_ is None else int(p_)}</td>')
     # The book's two lines, named on the row they fall under (rank order only).
-    cut_txt = ("The book buys to here: the 20th qualified" if qr == BUY_CUT else
-               "A holding is kept to here: the 40th qualified" if qr == KEEP_CUT else "")
+    # A page that writes its own note under each name (the Watchlist: how far the
+    # stock is from its line) names the lines there instead.
+    place_note = str(row.get("Place Note") or "").strip()
+    cut_txt = "" if place_note else (
+        "The book buys to here: the 20th qualified" if qr == BUY_CUT else
+        "A holding is kept to here: the 40th qualified" if qr == KEEP_CUT else "")
     sc = _num(row.get("Score"))
     cells["score"] = (f'<td class="n" data-v="{"" if sc is None else sc}">'
                       f'{"–" if sc is None else f"{sc:.2f}"}</td>')
@@ -309,9 +325,13 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
         f'data-stock="{sym_s}" title="Open {_esc(name) if name and name != "nan" else sym_s}"><span class="sym">{sym_s}'
         f'{"<em class=me>This stock</em>" if is_hl else ""}'
         f'{"<em class=held title=\'In the model book\'>Held</em>" if held else ""}</span>'
+        f'{f"<span class=pnote>{_esc(place_note)}</span>" if place_note else ""}'
         f'<span class="sub">{_esc(sub)}</span>'
         f'{f"<span class=cutnote>{cut_txt}</span>" if cut_txt else ""}</a></td>'
     )
+    word = str(row.get("Plan") or "").strip()
+    tone = {"Buy": " pos", "Sell": " neg"}.get(word, "")
+    cells["plan"] = f'<td class="c-plan{tone}" data-v="{_esc(word)}">{_esc(word) or "–"}</td>'
     r3_txt = "–" if r3 is None else f"{'+' if r3 > 0 else '−' if r3 < 0 else ''}{abs(r3) * 100:.1f}%"
     r3_cls = "" if r3 is None else ("pos" if r3 > 0 else "neg" if r3 < 0 else "")
     cells["price"] = (
@@ -372,7 +392,9 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     tag = str(row.get("Indices") or "").split(",")[0].strip()
     # The index's name, not the ranking's tag (MICRO250): no internal names
     # on the page (PAGE_DESIGN §2). Sorted by size, largest first.
-    idx_name = INDEX_NAMES.get(tag, tag)
+    # A page may name the index itself ("Index Name": the Watchlist names the systems'
+    # own tags, NANO and NANO250, which this map does not know).
+    idx_name = str(row.get("Index Name") or "").strip() or INDEX_NAMES.get(tag, tag)
     idx_order = list(INDEX_NAMES).index(tag) if tag in INDEX_NAMES else 9
     idx_html = (f'<span class="tag">{_esc(idx_name)}</span>' if tag
                 else '<span class="muted">–</span>')
@@ -408,7 +430,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     poly, up = paths.get(sym, ("", True))
     cells["spark"] = (f'<td class="c-path{"" if up else " dn"}" data-p="{poly}"></td>'
                       if poly else '<td class="c-path muted">–</td>')
-    classes = " ".join(c for c in ("hl" if is_hl else "", "cut" if qr in (BUY_CUT, KEEP_CUT) else "") if c)
+    classes = " ".join(c for c in ("hl" if is_hl else "", "cut" if cut_txt else "") if c)
     hl = f' class="{classes}"' if classes else ""
     return _short_sort_keys(f'<tr data-stock="{sym_s}"{hl}>' + "".join(cells[c[0]] for c in cols) + "</tr>")
 
@@ -451,6 +473,16 @@ td.n.past{color:var(--c-faint)}
 /* The book's lines are named on their row, in rank order only (Screener redesign, 21 Nov 2026). */
 .cutnote{display:none;font-size: var(--fs-12);font-weight:500;color:var(--c-text_2);white-space:nowrap}
 table.byrank tr.cut .cutnote{display:block}
+/* The Watchlist's rows (S182): a note under the name, the plan's word, and a heading row per line of the book. */
+.pnote{display:block;font-size: var(--fs-12);font-weight:400;color:var(--c-muted);white-space:nowrap}
+td.c-plan{text-align:left;font-weight:600}
+tr.gh td{height:auto;padding:14px 10px 6px;background:var(--c-white);border-bottom:1px solid var(--c-rule_strong);cursor:default;white-space:nowrap}
+tbody tr.gh:hover td{background:var(--c-white);cursor:default}
+tr.gh .gh-in{position:sticky;left:10px;display:inline-flex;gap:8px;align-items:baseline}
+.gh-t{font-weight:600;font-size: var(--fs-13);color:var(--c-ink)}
+.gh-n{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size: var(--fs-12);color:var(--c-ink)}
+.gh-w{font-size: var(--fs-12);color:var(--c-muted)}
+table:not(.grouped) tr.gh{display:none}
 table.byrank tr.cut td.c-stock .sub{display:none!important}
 tr.hdr th:nth-child(1),td.c-rank{position:sticky;left:0;z-index:2;width:52px;min-width:52px;text-align:left}
 thead tr.hdr th:nth-child(1){z-index:4}
@@ -545,6 +577,9 @@ function drawShown(){
   more();}
 drawShown();
 const ths=document.querySelectorAll('thead tr.hdr th');const tbody=document.querySelector('tbody');const tbl=document.querySelector('table');
+// A grouped table (the Watchlist's lines of the book): its first order is kept, and a
+// sort by Rank, smallest first, brings it and its heading rows back. Others have none.
+const firstOrder=Array.from(tbody.rows);const grouped=!!tbody.querySelector('tr.gh');
 // Sortable from the keyboard too (pre-launch audit F20, WCAG 2.1.1/4.1.2):
 // each sortable header is focusable, sorts on Enter or Space, and says how
 // it is sorted (aria-sort); the arrow glyph is decoration.
@@ -561,7 +596,11 @@ ths.forEach(function(th,i){
     ths.forEach(function(o){o.removeAttribute('data-dir');o.classList.remove('on');const a=o.querySelector('.ar');if(a&&o.getAttribute('data-type')){a.textContent='↕';o.setAttribute('aria-sort','none');}});
     th.setAttribute('data-dir',dir);th.classList.add('on');th.querySelector('.ar').textContent=dir==='asc'?'↑':'↓';
     th.setAttribute('aria-sort',ariaSort(dir));
-    const rows=Array.from(tbody.rows);
+    const k0=th.getAttribute('data-k');
+    if(grouped&&k0==='rank'&&dir==='asc'){
+      firstOrder.forEach(function(r){tbody.appendChild(r);});tbl.classList.add('grouped');drawShown();return;}
+    if(grouped)tbl.classList.remove('grouped');
+    const rows=Array.from(tbody.rows).filter(function(r){return !r.classList.contains('gh');});
     rows.sort(function(a,b){
       const va=a.cells[i].getAttribute('data-v'),vb=b.cells[i].getAttribute('data-v');
       const ea=(va===null||va===''),eb=(vb===null||vb==='');
@@ -582,22 +621,28 @@ ths.forEach(function(th,i){
 
 def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
                highlight: str = "", sort_key: str = "rank", sort_desc: bool = False,
-               page_rows: int | None = None, full: bool = False) -> str:
+               page_rows: int | None = None, full: bool = False, *,
+               groups: list | None = None, plan_label: str = "Plan") -> str:
     """The whole table document, for st.iframe. Split out so tests can read it.
 
     `highlight` is a symbol whose row is tinted and tagged "This stock" (the
     stock page's peers). `sort_key`/`sort_desc` name the column the rows
     arrive sorted by, so its header carries the arrow: the column headers are
-    the page's one sort control."""
+    the page's one sort control.
+
+    The Watchlist (density "Watchlist") passes `groups`, a heading row before
+    the row of a given symbol: (symbol, title, count, what it means), and
+    `plan_label`, the plan column's header (the next rebalance, "30 Nov")."""
     cols = columns_for(density, view.columns, movers=sort_key == "d1m")
+    watch = str(density).startswith("Watchlist")
     paths: dict = {}
     if prices_df is not None and not prices_df.empty:
         window = prices_df.iloc[-min(60, len(prices_df)):]
         paths = _year_paths(_spark_window_key(window), window)
     # Full Quant keeps every column on a phone and scrolls sideways, as before;
     # the compact phone list is for the shorter Executive and Core sets.
-    wide = len(cols) > len(_CORE_KEYS)
-    phone_keep = {"rank", "stock", "spark", "price"}
+    wide = len(cols) > len(_CORE_KEYS) and not watch
+    phone_keep = _WATCH_PHONE if watch else {"rank", "stock", "spark", "price"}
     head_cells = []
     if sort_key not in {c[0] for c in cols}:
         sort_key, sort_desc = "rank", False
@@ -607,7 +652,9 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
             # "Now" reads only beside the 3M and 1M places; alone (Core,
             # Executive, Sectors' industry table) it is the qualified place.
             label = "Qualified #"
-        cls = ("t-left " if (k in ("rank", "stock") or t == "text") else "") + (
+        if k == "plan":
+            label = plan_label
+        cls =("t-left " if (k in ("rank", "stock") or t == "text") else "") + (
             "" if (k in phone_keep or wide) else "d-only")
         on = k == sort_key
         if on:
@@ -618,7 +665,10 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
         # The trend column's header is "60D" on a phone, where the full label
         # does not fit; it was blank there.
         text = (f'<span class="lbl-d">{_esc(label)}</span><span class="lbl-m">60D</span>'
-                if k == "spark" else f"<span>{_esc(label)}</span>")
+                if k == "spark" else
+                # On the Watchlist's phone list "Now" stands without its group row.
+                f'<span class="lbl-d">{_esc(label)}</span><span class="lbl-m">Qualified</span>'
+                if watch and k == "qrank" else f"<span>{_esc(label)}</span>")
         # A first click sorts a figure largest first (audit F72: returns opened
         # worst first); a rank, where 1 is best, still opens ascending.
         first = ' data-first="asc"' if (t != "num" or k in _RANK_KEYS) else ' data-first="desc"'
@@ -630,7 +680,13 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     ]
     group_row = '<tr class="grp-row">' + "".join(parts) + "</tr>"
     body = []
+    heads = {str(g[0]): g for g in (groups or ())}
     for row in view.to_dict("records"):
+        g = heads.get(str(row.get("Symbol", "")))
+        if g:
+            body.append(f'<tr class="gh"><td colspan="{len(cols)}"><span class="gh-in">'
+                        f'<span class="gh-t">{_esc(str(g[1]))}</span><span class="gh-n">{int(g[2])}</span>'
+                        f'<span class="gh-w">{_esc(str(g[3]))}</span></span></td></tr>')
         tr = _row_html(row, cols, paths, highlight)
         body.append(tr)
     # Desktop-only cells carry the d-only class too, so the phone hides whole
@@ -638,7 +694,9 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
     hide = [] if wide else [i for i, c in enumerate(cols) if c[0] not in phone_keep]
     body_html = "".join(body)
     if hide:
-        css_hide = ",".join(f"td:nth-child({i + 1})" for i in hide)
+        # A grouped table's heading rows are one cell wide, the first: never hidden.
+        cell = "tr:not(.gh)>td" if groups else "td"
+        css_hide = ",".join(f"{cell}:nth-child({i + 1})" for i in hide)
         extra = "@media (max-width:640px){" + css_hide + "{display:none}}"
     else:
         extra = ""
@@ -663,6 +721,13 @@ def table_html(view: pd.DataFrame, prices_df: pd.DataFrame | None, density: str,
         paged_css += ".wrap{height:auto;overflow-y:visible}"
     if wide:
         extra += "@media (max-width:640px){table{min-width:%dpx}}" % (len(cols) * 92)
+    if watch:
+        # The phone list drops the rank, so the stock is the pinned first column; the
+        # note under the name gives way to the industry there.
+        extra += ("@media (max-width:640px){tr.hdr th:nth-child(2),td.c-stock{left:0}"
+                  ".pnote{display:none}tr.gh .gh-in{left:8px}}")
+    if groups:
+        by_rank = ' class="byrank grouped"' if by_rank else ' class="grouped"'
     return (
         "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Ranking table</title>"
         "<link href='app/static/fonts.css' rel='stylesheet'>"
@@ -677,7 +742,8 @@ SHOW_ALL_KEY = "scr_show_all"
 
 def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
                           density: str, *, highlight: str = "", sort_key: str = "rank",
-                          sort_desc: bool = False, page_rows: int | None = None) -> None:
+                          sort_desc: bool = False, page_rows: int | None = None,
+                          groups: list | None = None, plan_label: str = "Plan") -> None:
     if view.empty:
         st.info("No stocks match these filters. Clear the search or pick another preset.")
         return
@@ -699,6 +765,10 @@ def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
         return
     rows = min(len(view), VISIBLE_ROWS)
     height = 44 + rows * ROW_PX + 4 + 28
-    st.iframe(resolve(table_html(view, prices_df, density, highlight, sort_key, sort_desc, page_rows)),
+    if groups:
+        # The Watchlist shows every row and its heading rows, so only the page scrolls.
+        height = 44 + len(view) * ROW_PX + len(groups) * GROUP_ROW_PX + 4 + 28
+    st.iframe(resolve(table_html(view, prices_df, density, highlight, sort_key, sort_desc, page_rows,
+                                 groups=groups, plan_label=plan_label)),
               height=height)
 
