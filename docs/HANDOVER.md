@@ -44,7 +44,8 @@ TODO.md 158 KB → 35 KB; its `validate` ran the Markdown tests only (34 s), so 
 Then one code PR: S194 L3/L4 (owner, 23 Nov: the Nifty 1000's other 250
 are **Nano Cap**, outside the 1000 is **Ultra Nano Cap**, NSE indices keep their names; the
 750's breadth history only under the 750) and S202 (owner: "S202 ok": a keep-awake visit
-every 4 h, full Production QA on push and daily). Queue item 1 waits on the night's runs.
+every 4 h, full Production QA on push and daily), merged as #627 (f809e9b). Queue item 1 waits on
+the night's runs; the stock page v2 build is in progress.
 
 **Before (22 Nov night):** `main` = 4f3425c (#624). Merged in this session: #619 (Watchlist,
 S182), #620 (S195 report), #622 (S195 clean-up answers), #621 (another session's TODO rows S197,
@@ -58,7 +59,7 @@ Nifty 1000; tracked down to ₹500 Cr, prices from ₹800 Cr, a holding below �
 rebalance); **Combined retired**, its ledger read-only as frozen to Dec 2026. Read TODO S198 before any
 work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
-No work is in progress in any session started from here.
+In progress: the stock page v2 build (queue item 2), in this session.
 
 ### What was done 22 Nov evening (where to read it)
 
@@ -91,13 +92,9 @@ No work is in progress in any session started from here.
    - When the weekly fill has held for a run, make `--with-nifty-1000` the
      default in `scripts/build_weekly_fill_extra.py` and tighten its
      committed-file test.
-2. **S185 replay step, before 1 Dec.** No workflow runs
-   `scripts/replay_frozen_month.py`, and no session has an R2 key, so the 5 Dec
-   check (November's bundle replays, for every system frozen) cannot run. Add a
-   step with the R2 secrets to `monthly_track_record.yml` after the freeze (or a
-   dispatchable job); read its log on 5 Dec. TODO S185.
-3. **Later, not now:** stock page mock-up v2 (now listed in #621's S182 text),
-   then S193 (consistency audit), then the Nifty 1000 leads L3/L4 in TODO S194.
+2. **Stock page v2 (S182)**, owner approved 23 Nov ("Stock v2 approved", "merge when CI is green"):
+   built from mock-up v2 (artifact `EzvufnnvHLsuD9LbTwPi2s`); in progress 23 Nov night.
+3. **S193 (consistency audit)**, once the stock page is live: it reads every page, the stock page too.
 4. **After the 1-5 Dec freeze: S197**, membership from NSE's daily CSVs for
    all seven indices (the Nifty 1000 joins `build_membership_history.py`; a
    missed day is reported, not bridged), and NSE's notices read on the **25th
@@ -117,26 +114,8 @@ No work is in progress in any session started from here.
    the build, **merged before the 31 Dec signal**.
 
 (Items 4 and 5 come from the S197/S198 session, PR #623.)
-6. **Docs-only PRs skip the full validation** (owner, 22 Nov night: "add docs-skip to handover"; take
-   S199). A TODO-only PR runs all of `v1-full-validation` (~14 min: suite, app checks, layout audit),
-   the workflow that is 52% of Actions minutes (S195 report §2); its `pull_request.paths-ignore` lists
-   only R2 paths. Change: add `docs/**`, `CHANGELOG.md` and `*.md` to that list, so a docs-only PR
-   runs lint and parity only; push to main, the daily run and code PRs unchanged. **Check first**
-   whether `validate` is a required status check (Settings, Branches): if it is, a skipped workflow
-   leaves the PR waiting forever, so add a small same-named job that passes on docs-only changes
-   instead. Done when a docs-only PR merges with lint and parity green and no `validate` run, and a
-   code PR still runs it.
-7. **S200, TODO.md trimmed** (owner: "add waste list to handover"). 142 KB, about 35,000 tokens read by
-   every session; rows of thousands of words; conflicts when sessions edit it together. Rows to
-   requirement, done-when and a short status; the narrative to `docs/archive/`; no owner quote lost.
-   Owner says when.
-8. **S201, one living handover**: `docs/HANDOVER.md` edited in place; dated files archived. Three were
-   written on 22 Nov and their queues drifted.
-9. **S202, Production QA cadence**: every push to main and every 6 h (~128 min in 38 h). Measure first
-   how many 6-hourly runs caught something a push run had not; the owner decides on that count.
-
-Items 6-9 are savings; they wait behind items 1-2 (the 23 Nov checks and the S185 replay step, which
-have dates) unless the owner says otherwise.
+Done 23 Nov and gone from the queue: S185 replay step (#625), S199, S201 (#625), S200 (#626),
+S194 L3/L4 and S202 (#627).
 
 ## Found, not fixed (recorded so it is not rediscovered)
 
