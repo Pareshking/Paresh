@@ -64,6 +64,9 @@ ASSETS = (
     # Nothing reads it: nse_compare lost its --extra argument and its workflow never
     # downloads it (storage audit, 15 Nov; owner: "Delete whatever you decided").
     {"name": "prices_extra.parquet", "size": 7_001_785, "downloads": 10},
+    # The frozen Yahoo-era snapshot of 1 Oct 2026; its last reader went in #604 (C6,
+    # owner 22 Nov: "delete both"). nse_sample_check run 44998959937 passed without it.
+    {"name": "prices.parquet", "size": 10_876_794, "downloads": 932},             # deleted 22 Nov (run 45002747120)
 )
 
 
