@@ -150,7 +150,8 @@ _LEADERSHIP_JS = r"""
 const rows=__ROWS__, span=__SPAN__, months=__MONTHS__, then=__THEN__, now=__NOW__;
 let focus=__FOCUS__;
 const e=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pct=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+'%';
+const rnd=(v,dp)=>{const a=Math.abs(v),t=String(a);const r=/e/.test(t)?+a.toFixed(dp):+(Math.round(+(t+'e'+dp))+'e-'+dp);return v<0&&r?-r:r;};  // half away from zero (glossary 12)
+const pct=v=>{const r=rnd(v,1);return (r>0?'+':r<0?'−':'')+Math.abs(r).toFixed(1)+'%';};
 const col=r=>r.c;
 const xs=rows.flatMap(r=>[r.x0,r.x1]);
 // Fit the data, keeping 0 in view: one far dot (a 3-month swing) made a
