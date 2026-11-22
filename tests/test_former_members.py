@@ -166,3 +166,24 @@ def test_the_rebuilt_ledger_is_one_regime_on_the_index_as_it_stood():
     assert first["membership"].startswith("point in time") and "5b356a6ba93b" in first["replaced_configs"]
     assert set(first["months"]) <= set(months) and first["former_members_unpriceable"]   # Yahoo had none
     assert last["config"] == next(iter(months.values()))["config"]                      # the NSE rebuild
+
+
+def test_the_nifty_1000s_former_members_are_priced_too(tmp_path, monkeypatch):
+    # S194 L2: ENNATURE and IGLSPIRITS were in the Nifty 1000 in November 2026 and left; the
+    # former-member file read only the Total Market's record, so their sale had no price.
+    import importlib.util
+
+    import pandas as pd
+
+    spec = importlib.util.spec_from_file_location("sfm", "scripts/sync_former_member_prices.py")
+    sfm = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sfm)
+    listed = tmp_path / "ind_nifty1000_list.csv"
+    pd.DataFrame({"Symbol": ["A", "STAY"]}).to_csv(listed, index=False)
+    monkeypatch.setattr("src.loaders.extra_universe_loader.NIFTY_1000_PATH", str(listed))
+    h1000 = {"baseline": {"date": "2026-10-30", "symbols": ["A", "STAY", "GONE"]},
+             "changes": [{"date": "2026-11-17", "added": [], "removed": ["GONE"]}]}
+    monkeypatch.setattr("src.engine.index_universe.index_history", lambda key, full: h1000)
+    assert sfm.nifty_1000_former({"baseline": {"date": "2021-10-29", "symbols": ["A"]}}, ["A"]) == ["GONE"]
+    monkeypatch.setattr("src.loaders.extra_universe_loader.NIFTY_1000_PATH", str(tmp_path / "missing.csv"))
+    assert sfm.nifty_1000_former({"baseline": {"date": "2021-10-29", "symbols": ["A"]}}, ["A"]) == []

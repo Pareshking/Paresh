@@ -142,3 +142,10 @@ def test_a_bucket_scoped_key_says_the_account_total_is_unknown():
     assert limit["status"] == "PASS" and not limit["account_complete"] and limit["note"]
     part = r2_inventory.account_storage(_Client(["ours", "hidden"], sizes={}), "ours", 1)
     assert not part["complete"] and "hidden" in part["reason"] and part["buckets"]["hidden"] is None
+
+
+def test_every_systems_ranking_is_held_to_a_daily_age():
+    # S194 L5: the Nifty 1000's ranking (and the other systems') was published nightly but never checked.
+    for d in ("snapshots/rankings", "snapshots/rankings_1000", "snapshots/rankings_nano",
+              "snapshots/rankings_combined"):
+        assert d in r2_inventory.DAILY_DATASETS

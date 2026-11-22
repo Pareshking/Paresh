@@ -266,3 +266,21 @@ def test_nano_check_names_the_missing_and_exits_3_without_packs(tmp_path, capsys
     assert b.main(["--nano", "--if-missing", "--out", str(tmp_path / "none.parquet")]) == 3
     assert "Nano Cap stocks not on file" in capsys.readouterr().out
     assert b.main(["--nano", "--if-missing"]) == 0
+
+
+def test_the_fill_covers_the_nifty_1000_outside_the_750(tmp_path):
+    # Owner, 22 Nov 2026: the Nifty 1000's other members follow the 750's price process.
+    from scripts.build_weekly_fill_extra import fill_symbols
+
+    (tmp_path / "data" / "indices").mkdir(parents=True)
+    pd.DataFrame({"Symbol": ["AAA", "NANO"]}).to_csv(tmp_path / "data/indices/ind_niftytotalmarket_list.csv", index=False)
+    pd.DataFrame({"Symbol": ["AAA", "ONLY1000"]}).to_csv(tmp_path / "data/indices/ind_nifty1000_list.csv", index=False)
+    got = fill_symbols(tmp_path)
+    assert "ONLY1000" in got and "AAA" not in got
+
+
+def test_the_daily_sync_asks_for_the_nifty_1000_in_both_calls():
+    from pathlib import Path
+
+    wf = Path(".github/workflows/daily_sync.yml").read_text()
+    assert wf.count("build_weekly_fill_extra.py --nano --with-nifty-1000") == 2

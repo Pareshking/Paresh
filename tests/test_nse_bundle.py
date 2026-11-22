@@ -456,7 +456,7 @@ def test_the_update_adds_a_late_weekend_session_and_keeps_stored_closes(monkeypa
                              "close": [c for _, c in rows]}), pd.DataFrame(), []
 
     monkeypatch.setattr(sync.nh, "read_r2", read_r2)
-    monkeypatch.setattr(sync, "needed", lambda notes: ["AAA"])
+    monkeypatch.setattr(sync, "needed", lambda notes, nifty_1000=False: ["AAA"])
     monkeypatch.setattr(sync, "refresh", lambda *a, **k: 0)
     written = {}
     monkeypatch.setattr(sync, "write", lambda c, a, *x: written.update(closes=c))

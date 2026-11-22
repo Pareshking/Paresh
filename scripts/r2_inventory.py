@@ -182,6 +182,11 @@ def _mb(n: int) -> str:
 DAILY_DATASETS = (
     "prices/screener",
     "snapshots/rankings",
+    # The other systems' rankings, published by the same daily_sync step (S194 L5: a failed
+    # precompute is only a warning there, so without these a stale Nifty 1000 went unseen).
+    "snapshots/rankings_1000",
+    "snapshots/rankings_nano",
+    "snapshots/rankings_combined",
     "market_caps/nse_history",
     "indices/membership/nifty_total_market",
     "universes/point_in_time",

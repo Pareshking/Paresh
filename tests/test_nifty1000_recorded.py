@@ -60,12 +60,13 @@ def test_an_index_first_recorded_after_the_freeze_does_not_move_its_hash():
     assert fh.digest(fh.frozen_view(later)) == fh.digest(fh.frozen_view(hist))
 
 
-def test_recorded_only_lists_do_not_widen_the_long_price_file():
+def test_the_nifty_1000_widens_the_long_price_file():
+    # Owner, 22 Nov 2026: its members follow the 750's price process, the long file included.
     full = {"index": "nifty_total_market", "baseline": {"date": "2021-10-29", "symbols": ["A"]}, "changes": [],
             "indices": {"nifty_total_market": {"baseline": {"date": "2021-10-29", "symbols": ["A"]}, "changes": []},
                         "nifty_1000": {"baseline": {"date": "2026-11-21", "symbols": ["A", "NEWCO"]}, "changes": []}}}
-    assert "NEWCO" not in iu.all_ever_members(full)
-    assert "nifty_1000" in iu.RECORDED_ONLY
+    assert "NEWCO" in iu.all_ever_members(full)
+    assert "nifty_1000" not in iu.RECORDED_ONLY
 
 
 # ── from 1 Nov 2026 (owner, 21 Nov: "start date is 01-Nov for us") ──────────
