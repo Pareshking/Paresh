@@ -10,10 +10,10 @@ import streamlit as st
 
 from src.engine.backtester import run_backtest
 from src.engine.corporate_actions import load_events
-from src.engine.extra_universe import SYSTEM_750
+from src.engine.extra_universe import SYSTEM_750, SYSTEM_1000
 from src.engine.pipeline import price_fingerprint
 from src.engine.rank_history import month_books
-from src.engine.systems import inception, membership_for
+from src.engine.systems import inception, membership_for, unpriced_members
 from src.engine.track_record import (TRACK_RECORD_CONFIG, months_to_cover,
                                     run_backtest_kwargs)
 from src.loaders import former_members, nse_prices
@@ -29,7 +29,7 @@ def _month_books(key: str, _prices: pd.DataFrame, _tradebook: pd.DataFrame, _mem
                        config_weights=cfg["config_weights"])
 
 
-def record_sector_map(symbols) -> dict[str, str]:
+def record_sector_map(symbols, system: str | None = None) -> dict[str, str]:
     """The industry each symbol is capped under in the canonical record.
 
     One source for the live replay and the monthly ledger update, so the two
@@ -42,6 +42,14 @@ def record_sector_map(symbols) -> dict[str, str]:
     idx.columns = [str(c).strip() for c in idx.columns]
     nse = dict(zip(idx["Symbol"].astype(str), idx["Industry"].astype(str)))
     out = {s: nse[s] for s in syms if s in nse}
+    if system == SYSTEM_1000:
+        # The Nifty 1000 keeps NSE's industry for its other 250 too: NSE's list names one for
+        # each (S175/S194), where TradingView's mapping differed for 86 of 250. Only this
+        # system: the ₹2,000 Cr list and Combined keep their record's grouping unchanged.
+        from src.loaders.extra_universe_loader import nifty_1000_members
+        n = nifty_1000_members()
+        listed = dict(zip(n["Symbol"].astype(str), n["Industry"].astype(str)))
+        out.update({s: listed[s] for s in syms if s not in out and s in listed})
     # industry_for maps TradingView labels for EVERY name it is given, current
     # members included, so it must only see the names the index file lacks
     # (as in the research backtest); for 3 of 2026-10's 20 names it disagreed.
@@ -182,7 +190,7 @@ def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | No
         f"_{_benchmark_key(benchmark_close, start)}",
         prices,
         **run_backtest_kwargs(cfg),
-        sector_map=record_sector_map(prices.columns),
+        sector_map=record_sector_map(prices.columns, system),
         _benchmark_close=benchmark_close,
         backtest_months=months,
         _membership=membership,
@@ -196,6 +204,11 @@ def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | No
         _actions=events,
     )
     result = result or {}
+    if system == SYSTEM_1000 and result:
+        # The Nifty 1000's live book is formed at each signal close from the members we
+        # hold a close for; the freeze refuses a month with a gap, the page names them (S175).
+        result = dict(result)
+        result["unpriced"] = unpriced_members(prices, membership, start, months)
 
     # The backtest is the canonical accounting engine and already receives
     # history_start above. Keep this adapter boundary defensive as well: a

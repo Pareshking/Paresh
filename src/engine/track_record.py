@@ -272,6 +272,9 @@ def empty_ledger(inception: pd.Period = INCEPTION) -> dict[str, Any]:
 
 
 _NOT_YET_LOGGED: set[str] = set()
+# Its own set: a ledger that logged "no frozen month yet" in its first month must still
+# warn once it is overdue (S194 F6).
+_MISSING_WARNED: set[str] = set()
 
 
 def _current_month() -> pd.Period:
@@ -306,7 +309,11 @@ def load_ledger(path: Path | str = LEDGER_PATH,
                     p,
                     expected_start,
                 )
-        else:
+        elif str(p) not in _MISSING_WARNED:
+            # Once per file per process too: every rerun reads every system's ledger, and a
+            # system whose first month is not frozen yet (Nifty 1000 in December 2026 if
+            # November is refused) would log this on each click (S194 F6).
+            _MISSING_WARNED.add(str(p))
             logger.warning("No track-record ledger at %s; reporting an empty record.", p)
         return empty_ledger(expected_start or INCEPTION)
     with p.open("r", encoding="utf-8") as fh:

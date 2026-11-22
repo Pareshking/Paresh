@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-22 — Nifty 1000: fixes before its first monthly freeze
+
+- One sector, not two: NSE's Nifty 1000 list writes "Oil, Gas & Consumable Fuels" and "Media, Entertainment & Publication" with commas, the 750's files without. Each showed twice on Sectors and was capped twice. They are now read as one.
+- On the Nifty 1000 only, the 250 stocks it adds to the 750 are capped by NSE's industry, not TradingView's (the two differed for 86 of 250). The 750, "> ₹2,000 Cr" and Combined are unchanged.
+- Portfolio and Actions now say when the Nifty 1000's live book was formed without members we hold no close for, and name them.
+- Portfolio, "Systems, side by side": a system joins the comparison only once every month since its start is frozen. Until then it shows "joins once <month> is frozen".
+- The track record's side-by-side comparison now prices stocks that joined an index after its start. It was reading the wrong field names, so stocks like ENNATURE had no prices there.
+- The stock page and Screener show the names "Nifty Nanocap 250" and "> ₹2,000 Cr" for the two new index tags.
+
 ## 2026-11-22 — Every frozen month keeps the evidence it was struck on
 
 - From November 2026, each month the monthly freeze records is saved with everything that produced its number: the prices the backtest was given, the benchmark, the index membership, the settings, the code version, the month's holdings and the raw Screener price file exactly as downloaded. The copy goes to the R2 archive, is never deleted, and the record names it.

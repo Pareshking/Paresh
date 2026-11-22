@@ -143,7 +143,7 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     tb = record.get("tradebook")
     exposure = bx.load()
     if isinstance(tb, pd.DataFrame) and len(tb):
-        live = bx.exposure(tb, record_sector_map(sorted(set(tb["Symbol"].astype(str)))), membership)
+        live = bx.exposure(tb, record_sector_map(sorted(set(tb["Symbol"].astype(str))), system), membership)
         exposure = bx.merge(exposure, live)
     mw = _market_weights(rank_df)
     corr = correlation(series.prices, syms)[1]
@@ -178,13 +178,30 @@ def _market_weights(rank_df: pd.DataFrame) -> dict[str, float]:
 _NUMBER_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
 
 
-def common_window(starts: dict[str, pd.Period], this: pd.Period) -> tuple[pd.Period | None, set[str]]:
+def waiting_for(start: pd.Period, this: pd.Period, frozen: set | None) -> pd.Period | None:
+    """The first month from `start` to last month that the ledger has not frozen, or None."""
+    if frozen is None:
+        return None
+    m = start
+    while m < this:
+        if m not in frozen:
+            return m
+        m += 1
+    return None
+
+
+def common_window(starts: dict[str, pd.Period], this: pd.Period,
+                  frozen: dict[str, set] | None = None) -> tuple[pd.Period | None, set[str]]:
     """The window the systems are compared over, and the systems in it.
 
     A system joins only after its first full month (owner, 22 Nov 2026: "first full month"): one that
     started this month has a partial month only, so it would shrink every other system's window to a
-    few weeks. The window starts at the latest start among the systems that have joined."""
-    joined = {sid for sid, start in starts.items() if start < this}
+    few weeks. With `frozen` ({system: frozen months}), a full month means a FROZEN month: a system
+    whose ledger lacks a month from its start to last month waits (S194 F5: a refused Nifty 1000
+    November would otherwise join in December with December only, on a window from 1 Nov).
+    The window starts at the latest start among the systems that have joined."""
+    joined = {sid for sid, start in starts.items() if start < this
+              and waiting_for(start, this, (frozen or {}).get(sid) if frozen is not None else None) is None}
     if not joined:
         return None, set()
     return max(starts[sid] for sid in joined), joined
@@ -213,22 +230,25 @@ def _systems(prices, benchmark_close, system, market, as_of) -> list[tuple]:
         if lm.get("mtd_period") and lm.get("strategy_mtd") is not None:
             months[pd.Period(lm["mtd_period"], "M")] = float(lm["strategy_mtd"]) * 100
         if months:
-            got[sid] = (inception(sid), months)
+            got[sid] = (inception(sid), months, {pd.Period(k, "M") for k in (led.get("months") or {})})
     if not got:
         return []
     this = pd.Period(as_of, "M")
-    common, joined = common_window({sid: start for sid, (start, _) in got.items()}, this)
+    frozen = {sid: fz for sid, (_, _, fz) in got.items()}
+    common, joined = common_window({sid: start for sid, (start, _, _) in got.items()}, this, frozen)
     if common is None:
         return []
     rows = []
-    for sid, (start, months) in got.items():
+    for sid, (start, months, fz) in got.items():
         n, sub = names.get(sid, (sid, ""))
         if sid in joined:
             rows.append((n, sub, months.get(this), pr.chain([v for p, v in months.items() if p >= common]),
                          pr.chain(months.values()), start.strftime("%b %Y")))
         else:
+            gap = waiting_for(start, this, fz)
             rows.append((n, sub, months.get(this), None, pr.chain(months.values()),
-                         f"{start:%b %Y} · joins from {(pd.Period(start, 'M') + 1).to_timestamp():%b}"))
+                         f"{start:%b %Y} · joins once {gap:%B} is frozen" if gap is not None
+                         else f"{start:%b %Y} · joins from {(pd.Period(start, 'M') + 1).to_timestamp():%b}"))
     rows.append(("Nifty Total Market", "", pr.ret(market, (this - 1).to_timestamp(how="end").normalize(), as_of),
                  pr.ret(market, (common - 1).to_timestamp(how="end").normalize(), as_of), None, ""))
     return [("common", f"{common.to_timestamp():%-d %b}", len(joined))] + rows
@@ -873,6 +893,9 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
     if book.empty:
         kit.empty("No current model book", "for this system yet.")
         return
+    from src.ui.canonical_book import unpriced_note
+    if (note := unpriced_note(record)) is not None:
+        kit.note(*note)
     try:
         ledger = load_ledger(ledger_path(system), inception(system))
     except (ValueError, OSError) as exc:

@@ -47,6 +47,7 @@ _LONG = {1: "1 month", 3: "3 months", 6: "6 months", 9: "9 months", 12: "12 mont
 INDEX_NAMES = {
     "N50": "Nifty 50", "NN50": "Nifty Next 50", "MID150": "Nifty Midcap 150",
     "SMALL250": "Nifty Smallcap 250", "MICRO250": "Nifty Microcap 250",
+    "NANO250": "Nifty Nanocap 250", "NANO": "> ₹2,000 Cr",   # S175 (the first is our own group, not NSE's)
 }
 
 
