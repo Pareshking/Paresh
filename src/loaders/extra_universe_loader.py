@@ -65,14 +65,49 @@ def nifty_1000_members(path: str = NIFTY_1000_PATH) -> pd.DataFrame:
     }).reset_index(drop=True)
 
 
-def nse_industry(label) -> str:
-    """NSE's industry in the spelling of the 750's files.
+_LABELS_750: dict[str, str] | None = None
+_UNMATCHED: set[str] = set()
 
-    The Nifty 1000 file writes "Oil, Gas & Consumable Fuels" and "Media,
-    Entertainment & Publication" where the 750's write them without commas, so
-    one sector was two on Sectors and under the live sector cap (S194 F2).
+
+def _industry_key(label) -> str:
+    """A spelling-proof key: case, punctuation, spacing and "&" / "and" ignored."""
+    import re
+    return re.sub(r"[^a-z0-9]", "", str(label).lower().replace("&", "and"))
+
+
+def _labels_750() -> dict[str, str]:
+    """{key: label} for every industry the 750's own file (Nifty Total Market) uses."""
+    global _LABELS_750
+    if _LABELS_750 is None:
+        path = os.path.join(REPO_DATA_DIR, "indices", "ind_niftytotalmarket_list.csv")
+        try:
+            frame = pd.read_csv(path)
+            frame.columns = [str(c).strip() for c in frame.columns]
+            _LABELS_750 = {_industry_key(v): str(v).strip() for v in frame["Industry"].dropna().unique()}
+        except (OSError, KeyError, ValueError):
+            _LABELS_750 = {}
+    return _LABELS_750
+
+
+def nse_industry(label) -> str:
+    """NSE's industry in the 750's own spelling, matched automatically.
+
+    The Nifty 1000 file wrote "Oil, Gas & Consumable Fuels" and "Media, Entertainment & Publication" where the 750's
+    write them without commas, so one sector was two on Sectors and under the live sector cap (S194 F2). Owner,
+    22 Nov 2026: "we should match both so in future same issue should be handled automatically". Every label is
+    matched to the 750's label with the same key (case, punctuation, spacing, "&"/"and" ignored); a label the 750
+    does not use at all is kept as NSE writes it and logged once by name.
     """
-    return " ".join(str(label).replace(",", " ").split())
+    text = " ".join(str(label).replace(",", " ").split())
+    hit = _labels_750().get(_industry_key(label))
+    if hit is not None:
+        return hit
+    if _labels_750() and text not in _UNMATCHED and text != xu.UNCLASSIFIED:
+        _UNMATCHED.add(text)
+        import logging
+        logging.getLogger("nse_momentum").warning(
+            "Nifty 1000 industry %r matches none of the 750's; kept as NSE writes it.", text)
+    return text
 
 
 @st.cache_data(show_spinner=False, ttl=3600)

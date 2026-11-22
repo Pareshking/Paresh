@@ -214,6 +214,17 @@ Owner, 22 Nov 2026: "track historical indices constituent changes like we do for
   `not_carried` with the notice), and the entry was rebuilt by
   `scripts/update_membership_history.py --rebuild-nifty-1000`: 1,000 names on every date, no changes before the first
   recorded list (22 Nov). `tests/test_nifty1000_recorded.py` holds the size on every recorded date.
+- **Why the mistake, and what stops it now.** The 750's history never stores NSE's DUMMY placeholders
+  (`is_tradeable_symbol`): a demerger's new company appears the day it lists, is held for a few days, and leaves when
+  NSE excludes it, so the Total Market read 752 from 4 Nov (correctly: NSE's notices name the Total Market). The
+  placeholders went to the indices that held India Glycols on 26 Aug, before the Nifty 1000 existed. The
+  reconstruction assumed every Total Market change applied to the 1000 too, and nothing checked its size. Closed by:
+  (1) from the first recorded list (22 Nov) the record is NSE's own Nifty 1000 file each night, so no Total Market
+  change flows into it; the reconstruction runs only once, or by `--rebuild-nifty-1000` with the notices' exceptions;
+  (2) every night `update_membership_history.py` warns, naming the names, when the 1000 (with NSE's placeholders)
+  does not hold 1,000 (`SIZES`); (3) every day `nifty1000_notices.py` warns on any recorded change no NSE notice names
+  for the Nifty 1000; (4) `tests/test_nifty1000_recorded.py` fails on a count other than 1,000 unless a notice names
+  the extra names.
 - **Not changed:** the Total Market's own record of IGLSPIRITS leaving on 14 Nov (a Saturday; NSE: w.e.f. 16 Nov) has
   no session between the two dates, so no figure moves. The freeze hash (through 2026-09-30) does not cover the
   Nifty 1000; the S185 freeze bundle stores the membership each month is struck on.

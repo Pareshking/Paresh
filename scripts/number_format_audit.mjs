@@ -26,7 +26,7 @@ if (!urls.length) { console.error('usage: number_format_audit.mjs [--report] URL
 const ALLOWED = [/Each line is [\d.]+%/g, /stamp duty \(?[\d.]+%/gi];
 const MON = '(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
 const RULES = {
-  '1 ₹ with decimals': t => t.match(/₹\s?[\d,]*\d\.\d+/g),
+  '1 ₹ with decimals': t => t.match(/₹\s?[\d,]*\d\.\d+(?!\d|\s?(?:lakh|crore))/g),   // ₹1.22 lakh Cr, ₹34.1 lakh are units, not paise
   '1 % with 2+ decimals': t => t.match(/[+−-]?\d+\.\d{2,}\s?%/g),
   '3 date format': t => t.match(new RegExp(`\\b20\\d\\d-\\d\\d-\\d\\d\\b|\\b\\d{1,2}/\\d{1,2}/20\\d\\d\\b|\\b${MON}[a-z]* \\d{1,2}, 20\\d\\d\\b`, 'g')),
   '4 hyphen as minus': t => t.match(/(?<![\w\d.])-(?=₹?\d)[₹\d][\d,.]*\s?(?:%|pts)?/g),

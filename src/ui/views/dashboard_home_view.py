@@ -170,15 +170,17 @@ def sg(v: float | None, digits: int = 1, unit: str = "") -> str:
 
 
 def cr(v: float | None) -> str:
-    """₹ crore, whole, Indian grouping: ₹1,15,000 Cr, ₹38,000 Cr (S173 rule 2: "₹ Cr with no decimals")."""
-    from src.ui.formats import indian_group
-
+    """₹ crore in Indian words: ₹1.15 lakh Cr, ₹38,000 Cr. The lakh-crore form stays (owner, 22 Nov 2026: the
+    whole-crore "₹1,15,000 Cr" was "completely opposite to what I asked")."""
     if v is None:
         return "–"
     sign = "+" if v > 0 else "−" if v < 0 else ""
     a = abs(float(v))
-    whole = round(a / 1000) * 1000 if a >= 1000 else round(a)
-    return f"{sign}₹{indian_group(int(whole))} Cr"
+    if a >= 100000:
+        return f"{sign}₹{a / 100000:.2f} lakh Cr"
+    if a >= 1000:
+        return f"{sign}₹{round(a / 1000) * 1000:,.0f} Cr"
+    return f"{sign}₹{a:,.0f} Cr"
 
 
 def tone(v: float | None) -> str:
@@ -560,7 +562,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
 
 
 def crore(v: float | None) -> str:
-    """cr() for sentences: “₹1,15,000 crore”, not “Cr”."""
+    """cr() for sentences: “₹1.15 lakh crore”, not “Cr”."""
     return cr(v).replace(" Cr", " crore")
 
 
