@@ -205,6 +205,14 @@ jobs:
           node scripts/number_format_audit.mjs http://localhost:8501/ http://localhost:8501/actions http://localhost:8501/screener \
             http://localhost:8501/portfolio http://localhost:8501/market http://localhost:8501/indices http://localhost:8501/sectors \
             http://localhost:8501/backtest http://localhost:8501/guide http://localhost:8501/watchlist "http://localhost:8501/stock?stock=RELIANCE"
+          # The glossary's "Not" forms on every page, 412 and 1400 px (S193 item D, docs/GLOSSARY.md); Nano Cap's
+          # Dashboard, Portfolio and Actions as well, the pages whose sentences change most with the system.
+          node scripts/glossary_audit.mjs http://localhost:8501/ http://localhost:8501/actions http://localhost:8501/screener \
+            http://localhost:8501/portfolio http://localhost:8501/market http://localhost:8501/indices http://localhost:8501/sectors \
+            http://localhost:8501/backtest http://localhost:8501/guide http://localhost:8501/configuration \
+            "http://localhost:8501/watchlist?wl=CUPID,KOTAKBANK,GLAND,EMCURE,AUROPHARMA,DIACABS,SYRMA,TCS,SPECTRUM,TATAMOTORS" \
+            "http://localhost:8501/stock?stock=SANSERA" "http://localhost:8501/?sys=nano" "http://localhost:8501/portfolio?sys=nano" \
+            "http://localhost:8501/actions?sys=nano"
           # CI's browser has no saved list: the Watchlist reads the list its requirements were written on (S182).
           WL="http://localhost:8501/watchlist?wl=CUPID,KOTAKBANK,GLAND,EMCURE,AUROPHARMA,DIACABS,SYRMA,TCS,SPECTRUM,TATAMOTORS"
           node scripts/layout_audit.mjs "$WL" 412,1400

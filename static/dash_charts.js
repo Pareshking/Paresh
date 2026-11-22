@@ -8,9 +8,17 @@ const REDRAW = [];
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const dlong = s => { const [y,m,d] = s.split('-'); return `${+d} ${MON[+m-1]} ${y}`; };
-/* A price for display (S173, owner 22 Nov 2026): whole rupees, Indian grouping; below ₹100 two decimals. */
-const pxf = v => v==null ? '–' : Math.round(v).toLocaleString('en-IN');  // whole rupees at any level (S173)
-const sg = (v,dp=1) => v==null ? '–' : (v>0?'+':v<0?'−':'') + Math.abs(v).toFixed(dp);
+/* Rounding of every displayed figure (glossary 12, owner 23 Nov 2026): half away from zero on the number's
+   decimal value, as formats.half_up does in Python (tests/test_rounding_parity.py holds the two together).
+   Math.round(-24.5) is -24 and (1.005).toFixed(2) is "1.00", so neither is used alone: the number's shortest
+   decimal form is shifted, rounded as a positive number and shifted back. */
+const rnd = (v, dp=0) => { const a = Math.abs(v), t = String(a);
+  const r = /e/.test(t) ? +a.toFixed(dp) : +(Math.round(+(t + 'e' + dp)) + 'e-' + dp); return v < 0 && r ? -r : r; };
+const fx = (v, dp=1) => { const r = rnd(v, dp); return (r < 0 ? '−' : '') + Math.abs(r).toFixed(dp); };   // plain, true minus
+const grp = (v, dp=0) => { const r = rnd(v, dp); return (r < 0 ? '−' : '') + Math.abs(r).toLocaleString('en-IN', {minimumFractionDigits: dp, maximumFractionDigits: dp}); };
+/* A price for display (S173, owner 22 Nov 2026): whole rupees at any level, Indian grouping. */
+const pxf = v => v==null ? '–' : grp(v, 0);
+const sg = (v,dp=1) => { if (v==null) return '–'; const r = rnd(v, dp); return (r>0?'+':r<0?'−':'') + Math.abs(r).toFixed(dp); };
 const inr = v => (v<0?'−':'+') + '₹' + Math.abs(v).toLocaleString('en-IN');
 const NS = 'http://www.w3.org/2000/svg';
 const mk = (tag, attrs={}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
@@ -214,7 +222,7 @@ R.month = (card, s) => {
     $('.seg-axis div', card).innerHTML = s.axis.map(t => `<span style="left:${(t - o.lo) / (o.hi - o.lo) * 100}%">${t > 0 ? '+' : t < 0 ? '−' : ''}${Math.abs(t)}%</span>`).join('');
     rowsInteract(card, '.trow', j => { const k = j ?? s.book, mk = v[s.market], bk = v[s.book];
       ro(card, (j == null ? 'Latest · ' : '') + label, [{v: sg(v[k]) + '%', cls: tone(v[k]), name: s.rows[k].name},
-        {v: sg(v[k] - mk) + ' pts', cls: tone(v[k] - mk), name: 'against the market'},
+        {v: sg(v[k] - mk) + ' pts', cls: tone(v[k] - mk), name: 'against ' + s.rows[s.market].name},
         ...(k !== s.market && k !== s.book ? [{v: sg(bk - v[k]) + ' pts', cls: tone(bk - v[k]), name: 'the book against it'}] : [])]); }); };
   sw.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { sw.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); m = b.dataset.m; draw(); }));
   draw();
@@ -247,19 +255,19 @@ R.shared = (card, s) => {
 /* The book by industry: one segment per industry, labelled where it fits. */
 R.segbar = (card, s) => {
   const bar = $('.segbar', card), G = {strong: 'Strong', turning: 'Turning', weak: 'Weak'};
-  bar.innerHTML = s.segs.map(([n, h, w, , , , g], i) => `<i role="listitem" class="seg-${g}${i % 2 ? ' alt' : ''}" style="flex:${w} 1 0" data-i="${i}" tabindex="0" aria-label="${esc(n)} ${w}%"><span>${esc(n)} ${Math.round(w)}%</span></i>`).join('');
+  bar.innerHTML = s.segs.map(([n, h, w, , , , g], i) => `<i role="listitem" class="seg-${g}${i % 2 ? ' alt' : ''}" style="flex:${w} 1 0" data-i="${i}" tabindex="0" aria-label="${esc(n)} ${w}%"><span>${esc(n)} ${rnd(w)}%</span></i>`).join('');
   const show = i => { bar.querySelectorAll('i').forEach(t => t.classList.toggle('dim', i != null && +t.dataset.i !== i));
     const [n, h, w, r6, r1, , g] = s.segs[i ?? 0];
-    ro(card, i == null ? 'Latest · the largest' : G[g], [{v: w.toFixed(1) + '%', name: `${n}, ${h} holding${h > 1 ? 's' : ''}`}, {v: sg(r6) + ' · ' + sg(r1), cls: tone(r1), name: '6M · 1M'}]); };
+    ro(card, i == null ? 'Latest · the largest' : G[g], [{v: fx(w, 1) + '%', name: `${n}, ${h} holding${h > 1 ? 's' : ''}`}, {v: sg(r6) + ' · ' + sg(r1), cls: tone(r1), name: '6M · 1M'}]); };
   bar.querySelectorAll('i').forEach(t => { const i = +t.dataset.i; t.addEventListener('pointerenter', () => show(i)); t.addEventListener('pointerdown', () => show(i)); t.addEventListener('focus', () => show(i)); });
   bar.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') show(null); });
   const fit = () => bar.querySelectorAll('i').forEach(t => { const sp = t.querySelector('span'); sp.style.visibility = ''; if (sp.offsetWidth > t.clientWidth - 10) sp.style.visibility = 'hidden'; });
-  if (s.totals) $('.seg-key', card).innerHTML = [['strong', 'Strong', 'ahead of the market on both windows'], ['turning', 'Turning', 'ahead on one'], ['weak', 'Weak', 'behind on both']]
-    .filter(([k]) => s.totals[k] != null).map(([k, t, d]) => `<span><i class="seg-${k}"></i><b>${s.totals[k].toFixed(1)}%</b> ${t}, ${d}</span>`).join('');
+  if (s.totals) $('.seg-key', card).innerHTML = [['strong', 'Strong', 'ahead of all ranked stocks on both windows'], ['turning', 'Turning', 'ahead on one'], ['weak', 'Weak', 'behind on both']]
+    .filter(([k]) => s.totals[k] != null).map(([k, t, d]) => `<span><i class="seg-${k}"></i><b>${fx(s.totals[k], 1)}%</b> ${t}, ${d}</span>`).join('');
   show(null); fit(); new ResizeObserver(fit).observe(bar);
 };
 
-/* The index and how many stocks carry it: two panes, one crosshair, 6M / 1Y / 3Y. */
+/* The index and how many stocks carry it: two panes, one crosshair, 6M / 12M / 3Y. */
 R.breadth = (card, s) => {
   const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
   let from = 0, panes = [];
@@ -271,8 +279,8 @@ R.breadth = (card, s) => {
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   chips(card, r => { from = r ? Math.max(0, s.dates.length - r) : 0; draw(); });
   interact(card, () => panes, $('.readout', card), k => { const i = from + k; return {date: dlong(s.dates[i]), items: [
-    {name: 'Nifty 500', color: css('--ink'), v: s.n500[i].toLocaleString('en-IN', {minimumFractionDigits: 1, maximumFractionDigits: 1})},
-    {name: 'of the 750 above their 200D EMA', color: css('--up'), v: s.a200[i] == null ? '–' : s.a200[i].toFixed(0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
+    {name: 'Nifty 500', color: css('--ink'), v: grp(s.n500[i], 1)},
+    {name: 'of the 750 above their 200D EMA', color: css('--up'), v: s.a200[i] == null ? '–' : fx(s.a200[i], 0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
 };
 
 /* ₹100 since the start and how far below its peak, the book and the market: two panes, one crosshair (Portfolio).
@@ -285,10 +293,10 @@ R.growth = (card, s) => {
         {name: 'The book', color: css('--ink'), values: s.book, area: true, width: 2.4},
         {name: 'Nifty500 Momentum 50', color: css('--caution'), values: s.mom},
         {name: 'Nifty Total Market', color: css('--muted'), values: s.market, dash: '5 4'}],
-        height: h, padL: 34, padR: 8, noX: true, yfmt: v => v.toFixed(0), areaBase: Math.min(...s.book) * 0.95}),
+        height: h, padL: 34, padR: 8, noX: true, yfmt: v => fx(v, 0), areaBase: Math.min(...s.book) * 0.95}),
       linePane(bot, {dates: s.dates, series: [{name: 'The book', color: css('--down'), values: s.dd, area: true, width: 1.6},
         {name: 'Nifty Total Market', color: css('--muted'), values: s.ddm, dash: '4 3', width: 1.4}],
-        height: Math.round(h * 0.5), padL: 34, padR: 8, yfmt: v => v.toFixed(0) + '%', areaBase: 0, ticks: 3})]; };
+        height: Math.round(h * 0.5), padL: 34, padR: 8, yfmt: v => fx(v, 0) + '%', areaBase: 0, ticks: 3})]; };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); b.textContent = v; b.className = c || ''; };
   interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
@@ -300,7 +308,7 @@ R.growth = (card, s) => {
 
 /* The holdings, sortable by any column (Portfolio). */
 R.holdings = (card, s) => {
-  const el = $('.hold', card), inrf = v => (v < 0 ? '−' : '') + '₹' + Math.round(Math.abs(v)).toLocaleString('en-IN');
+  const el = $('.hold', card), inrf = v => (rnd(v) < 0 ? '−' : '') + '₹' + grp(Math.abs(v), 0);
   const rk = r => r == null ? 'Out' : '#' + r;
   const MONS = MON;
   const ds = d => { const [y, m, dd] = d.split('-'); return `${+dd} ${MONS[+m - 1]} ’${y.slice(2)}`; };
@@ -317,13 +325,13 @@ R.holdings = (card, s) => {
         + `<td>${esc(h.ind)}<span class="ss"><span class="${h.tone}">${esc(h.status)}</span>${h.size ? ' · ' + esc(h.size) : ''}</span></td>`
         + `<td class="nw">${ds(h.since)}<span class="ss">${h.days} days</span></td>`
         + `<td class="num">${h.q.toLocaleString('en-IN')}</td><td class="num">${pxf(h.ep)}</td><td class="num">${pxf(h.px)}</td>`
-        + `<td class="num">${inrf(h.val)}</td><td class="num">${h.w.toFixed(1)}%</td><td class="num ${tone(h.dayp)}">${sg(h.dayp)}%</td>`
+        + `<td class="num">${inrf(h.val)}</td><td class="num">${fx(h.w, 1)}%</td><td class="num ${tone(h.dayp)}">${sg(h.dayp)}%</td>`
         + `<td class="num ${tone(h.pnl)}">${h.pnl > 0 ? '+' : ''}${inrf(h.pnl)}</td><td class="num b ${tone(h.ret)}">${sg(h.ret)}%</td>`
         + `<td class="num ${emaC}">${h.ema == null ? '–' : sg(h.ema) + '%'}</td><td class="num ${hiC}">${h.hi == null ? '–' : sg(h.hi) + '%'}</td>`
         + `<td class="rk"><span class="rk3"><i>${rk(h.r3)}</i><i>${rk(h.r1)}</i><b class="${rC}">${rk(h.rn)}</b></span></td></tr>`; }).join('');
     const F = s.foot;
     const L = s.text;
-    const foot = `<tr class="tot"><th scope="row">${esc(L.holdings)}</th><td></td><td></td><td></td><td></td><td></td><td class="num">${inrf(F.val)}</td><td class="num">${F.w.toFixed(1)}%</td>`
+    const foot = `<tr class="tot"><th scope="row">${esc(L.holdings)}</th><td></td><td></td><td></td><td></td><td></td><td class="num">${inrf(F.val)}</td><td class="num">${fx(F.w, 1)}%</td>`
       + `<td class="num ${tone(F.day)}">${sg(F.day)}%<span class="ss">${F.dayr > 0 ? '+' : ''}${inrf(F.dayr)}</span></td><td class="num ${tone(F.pnl)}">${F.pnl > 0 ? '+' : ''}${inrf(F.pnl)}<span class="ss">${sg(F.since_fill)}% ${esc(L.before)}</span></td>`
       + `<td></td><td class="num ${F.below_ema ? 'down' : ''}">${F.below_ema} ${esc(L.below)}</td><td class="num ${F.past_high ? 'down' : ''}">${F.past_high} ${esc(L.past_high)}</td><td class="${F.past_rank ? 'down' : ''}">${F.past_rank} ${esc(L.past_rank)}</td></tr>`;
     el.innerHTML = `<table class="ht"><thead><tr>${head}</tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table>`;
@@ -344,7 +352,7 @@ R.history = (card, s) => {
   const draw = () => {
     bars.hidden = view !== 'lines';
     if (view === 'lines' && !pane) { const el = $('.chart', bars);
-      const go = () => { pane = barPane(el, {values: s.rebal.map(r => r[1]), height: 150, yfmt: v => v.toFixed(0), xlab: i => s.rebal[i][0], xn: 12, valueLabels: v => String(v), padR: 30}); };
+      const go = () => { pane = barPane(el, {values: s.rebal.map(r => r[1]), height: 150, yfmt: v => fx(v, 0), xlab: i => s.rebal[i][0], xn: 12, valueLabels: v => String(v), padR: 30}); };
       REDRAW.push(go); go(); new ResizeObserver(go).observe(el);
       interact(bars, () => [pane], $('.readout', bars), k => ({date: 'Rebalance of ' + s.rebal[k][4], items: [
         {name: 'bought', v: String(s.rebal[k][1]), color: css('--up')}, {name: 'sold', v: String(s.rebal[k][2]), color: css('--down')}, {name: 'kept', v: String(s.rebal[k][3]), color: css('--muted')}]}), () => s.rebal.length - 1); }
@@ -356,7 +364,7 @@ R.history = (card, s) => {
       const r = s.lines.filter(x => filt === 'all' || x[1] === filt);
       const A = {BUY: ['Buy', 'up'], SELL: ['Sell', 'down'], HOLD: ['Hold', 'muted']};
       body.innerHTML = `<table class="lt"><thead><tr><th>Month</th><th>Action</th><th>Stock</th><th class="num">Price</th><th class="num">Weight</th><th>Why</th></tr></thead><tbody>`
-        + r.map(x => `<tr><td>${esc(x[0])}</td><td class="${A[x[1]][1]}">${A[x[1]][0]}</td><td><b>${esc(x[2])}</b></td><td class="num">${pxf(x[3])}</td><td class="num">${x[4] == null ? '–' : x[4].toFixed(1) + '%'}</td><td>${esc(x[5])}</td></tr>`).join('') + '</tbody></table>';
+        + r.map(x => `<tr><td>${esc(x[0])}</td><td class="${A[x[1]][1]}">${A[x[1]][0]}</td><td><b>${esc(x[2])}</b></td><td class="num">${pxf(x[3])}</td><td class="num">${x[4] == null ? '–' : fx(x[4], 1) + '%'}</td><td>${esc(x[5])}</td></tr>`).join('') + '</tbody></table>';
     }
   };
   vsw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; vsw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); view = b.dataset.v; filt = 'all'; chipsFor(); draw(); });
@@ -368,8 +376,8 @@ R.history = (card, s) => {
    color: token name, dash}], yfmt "num" | "pct" | "pts", levels [{v, label, color}], range [lo, hi], height, chips [[label, sessions]]. */
 R.lines = (card, s) => {
   const el = $('.chart', card), head = $('.ph', card);
-  const fmt = {num: v => v.toLocaleString('en-IN', {maximumFractionDigits: 0}), pct: v => v.toFixed(0) + '%', pts: v => sg(v, 1)}[s.yfmt || 'num'];
-  const show = {num: v => v.toLocaleString('en-IN', {minimumFractionDigits: 1, maximumFractionDigits: 1}), pct: v => v.toFixed(0) + '%', pts: v => sg(v, 1)}[s.yfmt || 'num'];
+  const fmt = {num: v => grp(v, 0), pct: v => fx(v, 0) + '%', pts: v => sg(v, 1)}[s.yfmt || 'num'];
+  const show = {num: v => grp(v, 1), pct: v => fx(v, 0) + '%', pts: v => sg(v, 1)}[s.yfmt || 'num'];
   head.innerHTML = '<span class="d"></span>' + s.series.map((x, i) => `<span><i class="${x.dash ? 'dash' : ''}" style="color:${css('--' + x.color)}"></i>${esc(x.name)} <b data-v="${i}"></b></span>`).join('');
   let from = 0, pane;
   const draw = () => { const W = el.clientWidth, h = s.height || Math.round(Math.max(200, Math.min(320, W * 0.3)));
@@ -414,13 +422,13 @@ R.rel = (card, s) => {
   sw.innerHTML = s.styles.map((x, i) => `<button class="chip" type="button" data-range="${i}" aria-pressed="${i === 0}">${esc(x.style)}</button>`).join('');
   const draw = () => { const x = s.styles[k], W = top.clientWidth, h = Math.round(Math.max(190, Math.min(300, W * 0.3)));
     panes = [linePane(top, {dates: x.dates, series: [{name: x.label, color: css('--ink'), values: x.rel, area: true, width: 1.8}],
-               height: h, padL: 44, padR: 8, noX: true, yfmt: v => v.toFixed(0), levels: [{v: 100, label: '', color: css('--muted')}]}),
+               height: h, padL: 44, padR: 8, noX: true, yfmt: v => fx(v, 0), levels: [{v: 100, label: '', color: css('--muted')}]}),
              linePane(bot, {dates: x.dates, series: [{name: 'Below its best', color: css('--down'), values: x.dd, area: true, width: 1.4}],
-               height: Math.round(h * 0.5), padL: 44, padR: 8, yfmt: v => v.toFixed(0) + '%', areaBase: 0, ticks: 3})]; };
+               height: Math.round(h * 0.5), padL: 44, padR: 8, yfmt: v => fx(v, 0) + '%', areaBase: 0, ticks: 3})]; };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   chips(card, i => { k = i; draw(); });
   interact(card, () => panes, $('.readout', card), i => { const x = s.styles[k]; return {date: dlong(x.dates[i]), items: [
-    {name: x.label, color: css('--ink'), v: x.rel[i].toFixed(1)},
+    {name: x.label, color: css('--ink'), v: fx(x.rel[i], 1)},
     {name: 'below its best', color: css('--down'), v: sg(x.dd[i]) + '%', vcolor: x.dd[i] < 0 ? css('--down') : ''}]}; },
     () => s.styles[k].dates.length - 1);
 };
@@ -433,18 +441,18 @@ R.pairs = (card, s) => {
   sw.innerHTML = s.pairs.map((x, i) => `<button class="chip" type="button" data-range="${i}" aria-pressed="${i === k}">${esc(x.short)}</button>`).join('');
   const table = x => { const ends = x.dates.map((d, i) => [d, i]).filter(([d, i]) => i === x.dates.length - 1 || d.slice(0, 7) !== x.dates[i + 1].slice(0, 7));
     tb.innerHTML = `<table class="lt"><thead><tr><th>${esc(T.month_end || 'Month end')}</th><th class="num">${esc(x.ours_name)}</th><th class="num">${esc(x.index)}</th></tr></thead><tbody>`
-      + ends.map(([d, i]) => `<tr><td>${dlong(d)}</td><td class="num">${x.ours[i].toFixed(1)}</td><td class="num">${x.nse[i].toFixed(1)}</td></tr>`).join('') + '</tbody></table>'; };
+      + ends.map(([d, i]) => `<tr><td>${dlong(d)}</td><td class="num">${fx(x.ours[i], 1)}</td><td class="num">${fx(x.nse[i], 1)}</td></tr>`).join('') + '</tbody></table>'; };
   const draw = () => { const x = s.pairs[k], W = el.clientWidth, h = Math.round(Math.max(200, Math.min(320, W * 0.3)));
     pane = linePane(el, {dates: x.dates, series: [{name: x.ours_name, color: css('--ink'), values: x.ours, area: true, width: 1.8},
-      {name: x.index, color: css('--up'), values: x.nse, width: 1.6}], height: h, padL: 44, padR: 8, yfmt: v => v.toFixed(0),
+      {name: x.index, color: css('--up'), values: x.nse, width: 1.6}], height: h, padL: 44, padR: 8, yfmt: v => fx(v, 0),
       levels: [{v: 100, label: '', color: css('--muted')}]}); table(x); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   sw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return;
     sw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); k = +b.dataset.range; draw(); el.dispatchEvent(new Event('blur')); });
   interact(card, () => [pane], (r, i) => { const x = s.pairs[k], j = Math.min(i ?? x.dates.length - 1, x.dates.length - 1);
     head.innerHTML = `<span class="d">${i == null ? esc(T.latest || 'Latest') + ' · ' : ''}${dlong(x.dates[j])}</span>`
-      + `<span><i style="color:${css('--ink')}"></i>${esc(x.ours_name)} <b>${x.ours[j].toFixed(1)}</b></span>`
-      + `<span><i style="color:${css('--up')}"></i>${esc(x.index)} <b>${x.nse[j].toFixed(1)}</b></span>`
+      + `<span><i style="color:${css('--ink')}"></i>${esc(x.ours_name)} <b>${fx(x.ours[j], 1)}</b></span>`
+      + `<span><i style="color:${css('--up')}"></i>${esc(x.index)} <b>${fx(x.nse[j], 1)}</b></span>`
       + `<span>${esc(T.gap || 'gap')} <b class="${x.ours[j] - x.nse[j] < 0 ? 'down' : ''}">${sg(x.ours[j] - x.nse[j])}</b></span>`; },
     () => ({date: '', items: []}), () => s.pairs[k].dates.length - 1);
 };
@@ -467,8 +475,8 @@ R.lmap = (card, s) => {
   const col = r => { const [lead, lag] = ends(); return r === lead ? css('--up') : r === lag ? css('--down') : css('--muted'); };
   const read = () => { const R = rows(), [lead] = ends(); const r = hover || R.find(q => q.name === focus) || lead; if (!r) return;
     $('.readout', card).innerHTML = `<span class="d">${hover ? '' : esc(T.latest) + ' · '}${esc(sh(r.name))} · ${r.stocks} ${esc(T.stocks)}</span>`
-      + `<span class="ro"><span>${esc(r.then)}</span><b>${pts1(r.x0)}</b><span>${Math.round(r.y0)}% ${esc(T.above)}</span></span>`
-      + `<span class="ro"><span>${esc(r.now)}</span><b class="${tone(r.x1)}">${pts1(r.x1)}</b><span>${Math.round(r.y1)}% ${esc(T.above)}</span></span>`; };
+      + `<span class="ro"><span>${esc(r.then)}</span><b>${pts1(r.x0)}</b><span>${rnd(r.y0)}% ${esc(T.above)}</span></span>`
+      + `<span class="ro"><span>${esc(r.now)}</span><b class="${tone(r.x1)}">${pts1(r.x1)}</b><span>${rnd(r.y1)}% ${esc(T.above)}</span></span>`; };
   const example = () => { const R = rows(); if (!R.length) { $('.mex', card).innerHTML = ''; return; }
     const [lead] = ends(), narrow = R.filter(r => r.x1 > 0 && r.y1 < 50);
     const ex = R.find(r => r.name === focus) || narrow[0] || lead, n = ex.stocks, per1 = per === 1 ? T.month : `${per} ${T.months}`;
@@ -478,14 +486,14 @@ R.lmap = (card, s) => {
     const lifts = ex.leaders.map(([sym, v]) => `${esc(sym)} ${sg(v)}%, ${T.adds} ${sg(v / n, 2)} ${T.pts}`).join('; ');
     $('.mex', card).innerHTML = `<p class="mh">${esc(T.how)}: ${esc(sh(ex.name))}</p>`
       + `<p><b>${esc(T.q_across.replace('{p}', per1))}</b> ${esc(T.a_across.replace('{n}', n).replace('{name}', sh(ex.name)).replace('{then}', ex.then).replace('{now}', ex.now))} <b>${sg(ex.ret)}%</b>. ${esc(T.a_market)} <b>${sg(ex.bench)}%</b>. ${esc(T.a_diff)} <b>${pts1(ex.x1)}</b>, ${esc(side)}. ${esc(T.a_hollow)} ${pts1(ex.x0)}.</p>`
-      + `<p><b>${esc(T.q_up)}</b> ${esc(T.a_up.replace('{span}', span))} ${ex.a1} / ${ex.o1} = <b>${Math.round(ex.y1)}%</b>; ${esc(T.ago_word)} ${ex.a0} / ${ex.o0} = ${Math.round(ex.y0)}%. ${esc(T.a_up2.replace('{need}', Math.round(span * 0.8)))}</p>`
+      + `<p><b>${esc(T.q_up)}</b> ${esc(T.a_up.replace('{span}', span))} ${ex.a1} / ${ex.o1} = <b>${rnd(ex.y1)}%</b>; ${esc(T.ago_word)} ${ex.a0} / ${ex.o0} = ${rnd(ex.y0)}%. ${esc(T.a_up2.replace('{need}', Math.round(span * 0.8)))}</p>`
       + `<p><b>${esc(T.q_lift)}</b> ${esc(T.a_lift.replace('{n}', n))} ${lifts}.</p>`
-      + `<p><b>${esc(T.q_line)}</b> ${esc(T.a_line)} ${Math.abs(dx).toFixed(1)} ${T.pts} ${dx >= 0 ? T.right : T.left}, ${flat ? T.no_move : Math.abs(dy).toFixed(0) + ' ' + T.pts + ' ' + (dy >= 0 ? T.up : T.down)}: ${esc(reading)} ${esc(T.today.replace('{side}', side).replace('{half}', half))} ${esc(T.four)}</p>`;
-    const fell = R.filter(r => Math.round(r.y1) < Math.round(r.y0)).length;
+      + `<p><b>${esc(T.q_line)}</b> ${esc(T.a_line)} ${fx(Math.abs(dx), 1)} ${T.pts} ${dx >= 0 ? T.right : T.left}, ${flat ? T.no_move : fx(Math.abs(dy), 0) + ' ' + T.pts + ' ' + (dy >= 0 ? T.up : T.down)}: ${esc(reading)} ${esc(T.today.replace('{side}', side).replace('{half}', half))} ${esc(T.four)}</p>`;
+    const fell = R.filter(r => rnd(r.y1) < rnd(r.y0)).length;
     $('.mcap', card).textContent = `${R[0].then} → ${R[0].now}: ${T.fell.replace('{n}', fell).replace('{of}', R.length)}`
       + (narrow.length ? ` ${T.narrow.replace('{span}', span)} ${narrow.map(r => sh(r.name)).join(', ')}.` : '');
     $('.mtab', card).innerHTML = `<table class="lt"><thead><tr><th>${esc(T.sector)}</th><th class="num">${esc(T.lead)} ${esc(R[0].then)}</th><th class="num">${esc(T.lead)} ${esc(R[0].now)}</th><th class="num">${esc(T.share)} ${esc(R[0].then)}</th><th class="num">${esc(T.share)} ${esc(R[0].now)}</th></tr></thead><tbody>`
-      + R.slice().sort((a, b) => b.x1 - a.x1).map(r => `<tr><td>${esc(sh(r.name))}</td><td class="num">${sg(r.x0)}</td><td class="num ${tone(r.x1)}">${sg(r.x1)}</td><td class="num">${Math.round(r.y0)}%</td><td class="num">${Math.round(r.y1)}%</td></tr>`).join('') + '</tbody></table>'; };
+      + R.slice().sort((a, b) => b.x1 - a.x1).map(r => `<tr><td>${esc(sh(r.name))}</td><td class="num">${sg(r.x0)}</td><td class="num ${tone(r.x1)}">${sg(r.x1)}</td><td class="num">${rnd(r.y0)}%</td><td class="num">${rnd(r.y1)}%</td></tr>`).join('') + '</tbody></table>'; };
   const draw = () => { const R = rows(), W = Math.max(280, el.clientWidth), phone = W < 560, H = Math.min(520, Math.max(300, Math.round(W * (phone ? 0.95 : 0.5))));
     const L = 40, Rp = phone ? 8 : 16, Tp = 12, B = 30;
     el.querySelector('svg')?.remove(); const svg = mk('svg', {viewBox: `0 0 ${W} ${H}`, height: H, 'aria-hidden': 'true'}); el.prepend(svg);
@@ -569,18 +577,18 @@ R.btgrowth = (card, s) => {
     const all = s.series.flatMap(x => x.values.filter(v => v != null));
     panes = [linePane(top, {dates: s.dates, series: s.series.map((x, i) => ({name: x.name, color: css('--' + x.color), values: x.values.map(L),
         area: i === 0, width: x.width || (i === 0 ? 2.2 : 1.6), dash: x.dash ? '5 4' : ''})),
-        height: h, padL: 48, padR: 8, noX: true, yfmt: v => Math.round(Math.pow(10, v)).toLocaleString('en-IN'),
+        height: h, padL: 48, padR: 8, noX: true, yfmt: v => grp(Math.pow(10, v), 0),
         tickVals: (s.ticks || []).map(L), areaBase: L(Math.min(...all) * 0.95)}),
       linePane(bot, {dates: s.dates, series: s.series.map((x, i) => ({name: x.name, color: css(i === 0 ? '--down' : '--' + x.color), values: x.dd,
         area: i === 0, width: i === 0 ? 1.6 : 1.3, dash: x.dash ? '4 3' : ''})),
-        height: Math.round(h * 0.45), padL: 48, padR: 8, yfmt: v => v.toFixed(0) + '%', areaBase: 0, ticks: 3,
+        height: Math.round(h * 0.45), padL: 48, padR: 8, yfmt: v => fx(v, 0) + '%', areaBase: 0, ticks: 3,
         xfmt: d => d.slice(0, 4)})]; };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); if (b) { b.textContent = v; b.className = c || ''; } };
   interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
     $('.ph.p1 .d', card).textContent = (i == null ? 'Latest · ' : '') + r.date;
     s.series.forEach((x, j) => { const v = x.values[k], d = x.dd[k];
-      put('g' + j, v == null ? '–' : '₹' + Math.round(v).toLocaleString('en-IN'));
+      put('g' + j, v == null ? '–' : '₹' + pxf(v));
       put('d' + j, d == null ? '–' : sg(d) + '%', d != null && d < 0 && j === 0 ? 'down' : ''); }); },
     k => ({date: dlong(s.dates[k]), items: []}), () => s.dates.length - 1);
 };

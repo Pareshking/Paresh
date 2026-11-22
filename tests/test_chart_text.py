@@ -61,7 +61,8 @@ def test_search_list_shows_plain_labels():
     from src.ui.views.ranking_view import search_label
     assert search_label("[STOCK] LAURUSLABS — Healthcare") == "LAURUSLABS · Healthcare"
     assert search_label("[STOCK] NEWCO — nan") == "NEWCO"
-    assert search_label("[INDUSTRY] Healthcare") == "Healthcare · industry"
+    assert search_label("[INDUSTRY] Healthcare") == "Healthcare · sector"   # NSE's groups are sectors (glossary 2)
+    assert search_label("[TV_INDUSTRY] Biotechnology") == "Biotechnology · TradingView industry"
     assert search_label("[INDEX] Nifty 50") == "Nifty 50 · index"
 
 

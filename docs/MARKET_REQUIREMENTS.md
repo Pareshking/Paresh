@@ -30,7 +30,7 @@ the owner approves the section order.
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 1 | Two questions, each with a verdict word, one sentence, and a scale marking today, a month ago and a year ago | Owner 7 Nov ("tipsheet's question pages as the model") | Top | Are most stocks taking part? + Is the market in an uptrend? + A month ago + A year ago |
+| 1 | Two questions, each with a verdict word, one sentence, and a scale marking today, a month ago and a year ago | Owner 7 Nov ("tipsheet's question pages as the model") | Top | Are most stocks taking part? + Is the Nifty 500 in an uptrend? + A month ago + 12 months ago |
 | 2 | What has changed this month, and what would change the answer (the measure, the reading it needs) | Owner 7 Nov | Each question | What has changed + What would change the answer |
 | 3 | The evidence: each measure with its cut-offs written out, where today sits in its own history (percentile, middle half), a year ago, and its vote; primary measures count twice | Owner 7 Nov (CHANGELOG "Editorial type") | Each question | The evidence + percentile + Primary |
 | 4 | Breadth counted over the members of each date, leavers included, from NSE's first recorded list (29 Oct 2021), said on the page | S150, owner 20 Nov | Note | leavers |

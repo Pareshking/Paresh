@@ -214,10 +214,9 @@ def _finite(x) -> float | None:
 
 
 def signed_number(v: float, digits: int = 1, plus: bool = True) -> str:
-    """Rounded first, then signed with a true minus (U+2212): never "-0.0"."""
-    r = round(v, digits)
-    sign = ("+" if plus else "") if r > 0 else "\u2212" if r < 0 else ""
-    return f"{sign}{abs(r):.{digits}f}"
+    """Rounded first (half away from zero, glossary 12), then signed with a true minus (U+2212): never "-0.0"."""
+    from src.ui.formats import signed
+    return signed(v, digits, plus=plus)
 
 
 def pts(x: float | None) -> str:
@@ -226,7 +225,8 @@ def pts(x: float | None) -> str:
     v = _finite(x)
     if v is None:
         return "\u2013"
-    return f"{signed_number(100 * v)} pts"
+    from src.ui.formats import pts as _pts
+    return _pts(v)
 
 
 def pct(x: float | None, signed: bool = True) -> str:
@@ -235,7 +235,8 @@ def pct(x: float | None, signed: bool = True) -> str:
     v = _finite(x)
     if v is None:
         return "\u2013"
-    return f"{signed_number(100 * v, plus=signed)}%"
+    from src.ui.formats import pct as _pct
+    return _pct(v, signed_=signed)
 
 
 

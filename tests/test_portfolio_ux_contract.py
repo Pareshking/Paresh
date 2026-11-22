@@ -17,7 +17,7 @@ def test_portfolio_holdings_columns_in_the_agreed_order():
     # and how close each holding is to an exit rule; one table, sortable.
     page = PAGE.read_text(encoding="utf-8")
     block = page[page.index("    cols = [[\"s\", \"Stock\""):page.index("    text = {\"holdings\"")]
-    expected = ['"Stock"', '"Industry · size"', '"Entry date"', '"Qty"', '"Entry price"', '"Price"', '"Value"', '"Weight"',
+    expected = ['"Stock"', '"Sector · size"', '"Entry date"', '"Qty"', '"Entry price"', '"Price"', '"Value"', '"Weight"',
                 '"Today"', 'f"P&L from {fill_s}"', '"Since entry"', '"vs 50D EMA"', '"From 52W high"', '"Rank 3M · 1M · now"']
     positions = [block.index(item) for item in expected]
     assert positions == sorted(positions)
@@ -196,7 +196,7 @@ def test_one_word_for_one_thing_across_pages():
     views = ROOT / "src/ui/views"
     backtest = (views / "backtest_view.py").read_text(encoding="utf-8")
     # Backtest, 21 Nov 2026 (S173): Portfolio's drawdown term and "lead over", in pts.
-    assert '"Largest fall from a peak"' in backtest and '"Worst fall"' not in backtest
+    assert '"Max drawdown"' in backtest and '"Worst fall"' not in backtest   # glossary 8 (owner, 23 Nov 2026)
     assert '"Lead over the Nifty 500"' in backtest and "Ahead of the index" not in backtest
     assert '"🟢 BOUGHT", "🔴 SOLD"' not in backtest
     assert "Portfolio risk" not in backtest and "Filter " not in backtest
@@ -242,7 +242,9 @@ def test_header_tiles_say_which_return_is_the_account():
     assert "before costs" in tiles["holdings_note"]
     source = PAGE.read_text(encoding="utf-8")
     head = source[source.index("def header("):source.index("NAV = (")]
-    assert '"Portfolio value"' in head and 'not invested"' in head and '"Since inception, after costs"' in head
+    # Glossary 7: the record's start is a date ("Since 1 Jan 2026"), never "since inception".
+    assert '"Portfolio value"' in head and 'not invested"' in head and 'f"{_fmt.since(begun)}, after costs"' in head
+    assert "Since inception" not in head
     assert '"Since last rebalance"' not in head and '"MTD return"' not in head
 
 

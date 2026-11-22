@@ -1280,7 +1280,8 @@ _PAGES = [
 # either still lands there. These are redirects, not pages -- they are left out
 # of _PAGES, so no menu shows them, and their titles are not the app's tabs.
 _MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch", "track-record": "Track Record",
-          "dashboard": "Dashboard link", "home": "Home link", "breadth": "Breadth link"}
+          "dashboard": "Dashboard link", "home": "Home link", "breadth": "Breadth link",
+          "stock": "Stock link"}
 # Where a moved address now lands (Actions unless listed): the record is part of Portfolio.
 # The Dashboard is the default page, which Streamlit serves at "/" only, so a
 # typed /dashboard is a redirect to it (as /screener was until 7 Nov). /home was
@@ -1289,7 +1290,10 @@ _MOVED = {"qualified": "Qualified", "exit-watch": "Exit Watch", "track-record": 
 # redirect now too.
 # The Market page was served at /breadth until 21 Nov 2026 (owner: "change the
 # address from /breadth to /market with a redirect"); old links land on it.
-_MOVED_TO = {"track-record": "Portfolio", "dashboard": "Dashboard", "home": "Dashboard", "breadth": "Market"}
+# /stock?stock=X (CI's and QA's address for the stock page) showed "Page not found"
+# before the ?stock rule below moved it to the Screener (S193 item K, 23 Nov 2026).
+_MOVED_TO = {"track-record": "Portfolio", "dashboard": "Dashboard", "home": "Dashboard", "breadth": "Market",
+             "stock": "Screener"}
 
 
 def _moved_page(path: str):

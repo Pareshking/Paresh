@@ -63,15 +63,15 @@ def head(vals: list[ip.Valuation], as_of: pd.Timestamp) -> list:
     by = {v.key: v for v in vals}
     big, small = by.get("nifty_50"), by.get("nifty_smallcap_250")
     if big and small and big.pct_now < 50 <= small.pct_now:
-        title = ('Large caps trade <span class="dh-up">below their usual P/E</span>; '
-                 'small caps <span class="dh-down">above it</span>.')
+        title = ('The Nifty 50 trades <span class="dh-up">below its usual P/E</span>; '
+                 'the Nifty Smallcap 250 <span class="dh-down">above it</span>.')
     elif big and small:
         title = (f"The Nifty 50 sits at the {big.pct_now:.0f}th percentile of its P/E since 2021; "
-                 f"the Smallcap 250 at the {small.pct_now:.0f}th.")
+                 f"the Nifty Smallcap 250 at the {small.pct_now:.0f}th.")
     else:
-        title = "NSE's indices: what the market costs, and which styles pay."
+        title = "NSE's indices: what each costs, and which styles pay."
     return [f'<div class="dh-sec">{KICK.format("Indices")}<h1 id="s-top" class="dh-h1">{title}</h1>'
-            f'<p class="dh-lede">NSE\'s own indices, read at the {_d(as_of)} close: what the market costs against its '
+            f'<p class="dh-lede">NSE\'s own indices, read at the {_d(as_of)} close: what each index costs against its '
             'recent past, which investing styles beat their parent index, and how deep a normal year\'s fall goes for '
             'each size. Price returns; dividends are not added.</p></div>']
 
@@ -82,7 +82,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
     h2 = "Valuation against the index's own recent past."
     if n50 and s250:
         h2 = (f"The Nifty 50 at {n50.pe_now:.1f} times earnings is cheaper than {100 - n50.pct_now:.0f}% of days "
-              f"since April 2021; the Smallcap 250 is dearer than {s250.pct_now:.0f}%.")
+              f"since April 2021; the Nifty Smallcap 250 is dearer than {s250.pct_now:.0f}%.")
     rows = [{"name": v.name, "sub": f"percentile since {_dy(v.since)}", "bar": round(v.pct_now, 1), "ago": round(v.pct_1m, 1),
              "vals": [f"{v.pe_3m:.2f}", f"{v.pe_1m:.2f}", f"{v.pe_now:.2f}", f"{v.pct_now:.0f}"],
              "cls": ["muted", "muted", "b", ""],
@@ -127,26 +127,27 @@ def section_styles(sts: list[ip.Style], m1: pd.Timestamp, m3: pd.Timestamp) -> l
     lead = sorted((s for s in sts if s.lead_now is not None), key=lambda s: -s.lead_now)
     ahead = [s.style.lower() for s in lead if s.lead_now > 0]
     behind = [s for s in lead if s.lead_now < -5]
-    h2 = "Each style against the index it picks from, over the last year."
+    h2 = "Each style against the index it picks from, over the last 12 months."
     if ahead and behind:
         lo, hi = min(-s.lead_now for s in behind), max(-s.lead_now for s in behind)
         span = f"{lo:.0f}–{hi:.0f}" if round(lo) != round(hi) else f"{lo:.0f}"
-        h2 = (f'Over the year, {" and ".join(ahead[:2])} <span class="dh-up">lead their parents</span>; '
+        h2 = (f'Over 12 months, {" and ".join(ahead[:2])} <span class="dh-up">lead their parents</span>; '
               f'{" and ".join(s.style.lower() for s in behind)} <span class="dh-down">trail by {span} points</span>.')
     rows = [{"name": s.style, "sub": f"{s.name} against {s.parent_name} · live since {_dy(s.live)}",
              "bar": None if s.lead_now is None else round(s.lead_now, 2), "ago": None if s.lead_1m is None else round(s.lead_1m, 2),
              "vals": [sg(s.lead_3m), sg(s.lead_1m), sg(s.lead_now), sg(s.dy_gap)],
              "cls": [_kt(s.lead_3m), _kt(s.lead_1m), _kt(s.lead_now) + " b", "muted"],
-             "read": [[sg(s.lead_now) + " pts", "12-month lead now", _kt(s.lead_now)], [sg(s.lead_1m) + " pts", "a month ago"],
-                      [sg(s.dy_gap) + " pts", "dividend-yield gap a year"]]}
+             "read": [[sg(s.lead_now) + " pts", "12M lead now", _kt(s.lead_now)], [sg(s.lead_1m) + " pts", "a month ago"],
+                      [sg(s.dy_gap) + " pts", "dividend-yield gap, 12M"]]}
             for s in sts]
     spec = {"label": "Style", "barHead": "Lead over parent, 12 months, pts", "head": [_d(m3), _d(m1), "Now", "Yield gap"],
             "rows": rows, "lo": -15, "hi": 15, "step": 0.5, "rest": "Latest · the first row"}
     return [f'<div class="dh-sec">{KICK.format("Styles")}<h2 id="s-styles" class="dh-h2">{h2}</h2>'
-            '<p class="dh-note">Each style index against the index it picks from: its 12-month price return minus the '
+            '<p class="dh-note">Each style index against the index it picks from: its price return over 12 months minus the '
             "parent's, read 3 months ago, a month ago and now. Only live history is used, from the day NSE first published "
             'the index. Each line is 0.5 points; a lead fills right of the dark zero line, a lag left. The yield gap is the '
-            "style's dividend yield minus the parent's: a price lead understates a style by about that much a year.</p></div>",
+            "style's dividend yield minus the parent's: a price lead understates a style by about that much every 12 months. "
+            f"{_fmt.PTS_NOTE}</p></div>",
             Chart("trows", spec, {"label": "Six styles against their parents", "note": "Each line is 0.5 points"})]
 
 
@@ -215,45 +216,45 @@ def section_size(sizes: list[ip.SizeYears], as_of: pd.Timestamp) -> list:
         return []
     by = {z.size: z for z in sizes}
     large, small = by.get("Large"), by.get("Small")
-    h2 = "How far each size falls within a year."
+    h2 = "How far each size falls within a calendar year."
     if large and small and large.median_fall < 0:
         ratio = small.median_fall / large.median_fall
         word = "twice" if 1.8 <= ratio <= 2.2 else f"{ratio:.1f} times"
-        h2 = (f"In a median year since {ip.SIZE_FROM_YEAR}, small caps fell {abs(small.median_fall):.0f}% at some point, "
-              f"{word} the large caps' {abs(large.median_fall):.0f}%.")
+        h2 = (f"In a median year since {ip.SIZE_FROM_YEAR}, the Small Cap index fell {abs(small.median_fall):.0f}% at some point, "
+              f"{word} the Large Cap index's {abs(large.median_fall):.0f}%.")
     allv = [x for z in sizes for v in z.years.values() for x in v]
     lo, hi = (min(allv) // 20) * 20, -((-max(allv)) // 20) * 20
-    meds = ", ".join(f"{z.size.lower()} {sg(z.median_fall, 1, '%')}" for z in sizes)
+    meds = ", ".join(f"{_fmt.size(z.size)} {sg(z.median_fall, 1, '%')}" for z in sizes)
     charts = []
     for z in sizes:
         ys = sorted(z.years)
         spec = {"values": [round(z.years[y][0], 1) for y in ys], "dots": [round(z.years[y][1], 1) for y in ys],
                 "labels": ["'" + str(y)[2:] for y in ys], "full": [str(y) + (" (year to date)" if y == as_of.year else "") for y in ys],
-                "unit": "Year's return", "dotName": "worst fall within the year", "range": [lo, hi], "height": 200, "xn": 10}
-        charts.append([f'<p class="dh-h3" style="margin:12px 0 0">{e(z.size)} <span class="dh-muted" style="font-weight:400">'
-                       f'{e(z.name)} · median fall {e(sg(z.median_fall, 1, "%"))}</span></p>',
+                "unit": "Year's return", "dotName": "max drawdown within the year", "range": [lo, hi], "height": 200, "xn": 10}
+        charts.append([f'<p class="dh-h3" style="margin:12px 0 0">{e(_fmt.size(z.size))} <span class="dh-muted" style="font-weight:400">'
+                       f'{e(z.name)} · median max drawdown {e(sg(z.median_fall, 1, "%"))}</span></p>',
                        Chart("bars", spec, {"label": f"{z.name} by calendar year"})])
     grid = []
     for i in range(0, len(charts), 2):
         pair = charts[i:i + 2]
         grid.append(Cols(pair[0], pair[1] if len(pair) > 1 else [], (1, 1)))
-    table = how("Each bar is a calendar year's price return; the dot is the worst fall from a high within that year. "
-                f"One scale for all four, from {ip.SIZE_FROM_YEAR} (Midcap 150 and Smallcap 250 start in NSE's file in Apr 2016; "
-                "Microcap 250 in May 2021).",
+    table = how("Each bar is a calendar year's price return; the dot is the max drawdown within that year. "
+                f"One scale for all four, from {ip.SIZE_FROM_YEAR} (the Nifty Midcap 150 and Nifty Smallcap 250 start in NSE's file in "
+                "Apr 2016; the Nifty Microcap 250 in May 2021).",
                 "A tall bar with a deep dot is a year that rose in the end after a hard fall on the way: the fall is "
                 "what a holder sat through.",
-                ["Year"] + [z.size for z in sizes],
+                ["Year"] + [_fmt.size(z.size) for z in sizes],
                 [[str(y)] + [("–" if y not in z.years else f"{sg(z.years[y][0], 1, '%')} · {sg(z.years[y][1], 1, '%')}")
                              for z in sizes] for y in sorted({y for z in sizes for y in z.years}, reverse=True)])
     return ([f'<div class="dh-sec">{KICK.format("Size, year by year")}<h2 id="s-size" class="dh-h2">{e(h2)}</h2>'
-             f'<p class="dh-note">The bar is the calendar year\'s return; the dot is the worst fall within it. '
+             f'<p class="dh-note">The bar is the calendar year\'s return; the dot is the max drawdown within it. '
              f'{as_of.year} is year to date. Median of whole years since {ip.SIZE_FROM_YEAR}: {e(meds)}'
              f'{" (micro from 2022)" if "Micro" in by else ""}.</p></div>'] + grid + [table])
 
 
 GROUP_NOTE = {
-    "Broad market": "Size and breadth: the whole market, the large caps, the mid and small caps.",
-    "Theme": "Ideas that cut across industries: defence, manufacturing, PSUs, business groups, new listings.",
+    "Broad market": "Size and breadth: Nifty Total Market, the large, mid and small company indices.",
+    "Theme": "Ideas that cut across sectors: defence, manufacturing, PSUs, business groups, new listings.",
     "Strategy": "Rules-based selections and weightings: momentum, quality, value, low volatility, equal weight, dividends.",
 }
 
@@ -262,16 +263,16 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
     n = sum(len(v) for v in rows.values())
     tm = ip.ret(f.close["nifty_total_market"], 12, as_of) if "nifty_total_market" in f.close else None
     themes = [r for r in rows.get("Theme", []) if r.returns[12] is not None]
-    h2 = f"NSE's {n} broad, theme and strategy indices over the year."
+    h2 = f"NSE's {n} broad, theme and strategy indices over 12 months."
     if tm is not None and themes:
-        h2 = (f"Over the year the whole market is {'up' if tm >= 0 else 'down'} {abs(tm):.1f}%; among themes, "
+        h2 = (f"Over 12 months Nifty Total Market is {'up' if tm >= 0 else 'down'} {abs(tm):.1f}%; among themes, "
               f"{_short(themes[0].name)} leads at {sg(themes[0].returns[12], 1, '%')} and "
               f"{_short(themes[-1].name)} trails at {sg(themes[-1].returns[12], 1, '%')}.")
     parts = [f'<div class="dh-sec">{KICK.format("Every index")}<h2 id="s-every" class="dh-h2">{e(h2)}</h2>'
              f'<p class="dh-note">NSE\'s {n} broad, theme and strategy indices, in three families, each sorted by its '
-             f'1-year price return. Each window ends on {_dy(as_of)} and starts on the last session on or before the same '
-             'date 1, 3, 6, 9 and 12 months back. Indices younger than a year are listed last, with their launch date in the 1Y column. '
-             "NSE's sector indices are on Sectors, beside the industries they match. Bond, rate, leveraged and inverse "
+             f'price return over 12 months. Each window ends on {_dy(as_of)} and starts on the last session on or before the same '
+             'date 1, 3, 6, 9 and 12 months back. Indices younger than 12 months are listed last, with their launch date in the 12M column. '
+             "NSE's sector indices are on Sectors, beside the sectors they match. Bond, rate, leveraged and inverse "
              'indices, India VIX and the dollar Nifty are left out.</p></div>']
     for g in ip.PAGE_FAMILIES:
         xs = rows.get(g, [])
@@ -292,8 +293,8 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
                      f'<td class="dh-num dh-muted ix-hide-s">{"–" if x.pe is None else f"{x.pe:.1f}"}</td></tr>')
         parts.append(f'<div class="dh-sec dh-sec-cont"><h3 class="ix-fam">{e(lead)}</h3><p class="dh-note">{e(GROUP_NOTE[g])}</p>'
                      '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
-                     + "".join(f'<th scope="col" class="dh-num">{"1Y" if m == 12 else f"{m}M"}</th>' for m in ip.WINDOWS)
-                     + '<th scope="col" class="dh-num ix-hide-s">From 1Y high</th><th scope="col" class="dh-num ix-hide-s">P/E</th>'
+                     + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in ip.WINDOWS)
+                     + '<th scope="col" class="dh-num ix-hide-s">From 12M high</th><th scope="col" class="dh-num ix-hide-s">P/E</th>'
                      f'</tr></thead><tbody>{body}</tbody></table></div></div>')
     return parts
 

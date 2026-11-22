@@ -20,7 +20,7 @@ def test_stock_page_index_badges_are_exact_tags():
     from src.ui import stock_lines as sl
     row = pd.Series({"Symbol": "ABC", "Rank": 5, "Indices": "MID150", "Industry": "IT"})
     parts = sl.kicker(row, stock_view.INDEX_NAMES)
-    assert "Midcap 150" in parts and "Nifty 50" not in parts
+    assert "Nifty Midcap 150" in parts and "Nifty 50" not in parts   # full NSE name (glossary 3)
 
 
 def test_rank_path_reads_oldest_to_now():

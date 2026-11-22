@@ -142,6 +142,19 @@ S194 L3/L4 and S202 (#627).
   `playwright==1.63.0` (the version of the Node package here), which finds the
   pre-installed browser; do not run `playwright install`.
 
+## Approved in advance (owner, 23 Nov ~03:45 IST, before sleeping)
+
+Each only with CI green on the PR's current head, squash merge, nothing deleted, no price edited by hand:
+1. Merge the S193 item D PR (glossary applied to every page + its check) after review, full suite, audits.
+2. Merge tonight's job fixes: 23 Nov first-run results in TODO S188/S194; `--with-nifty-1000` default once
+   the weekly fill holds; the keep-awake schedule if it has not run by 00:41 UTC; a first-run job that fails
+   because of our code.
+3. Fix `/stock?stock=X` "Page not found" (S193 item K) with a test.
+4. Revert one of these merges at once if Production QA fails because of it; root-cause on a branch.
+5. "Continue other pending works also": anything in the queue that needs no new owner decision. S193 items
+   other than D still need the owner one at a time; prepare them (examples, recommendation, opposite view)
+   but do not apply. S203 templates: draft, do not apply. Not S197/S198 (after the 1-5 Dec freeze).
+
 ## Owner decisions of 22 Nov still to record
 
 In the first PR that touches `DASHBOARD_REQUIREMENTS.md` (S174):

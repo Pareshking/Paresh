@@ -309,7 +309,7 @@ def section_broad(ld: sp.Leads, nse: dict, sh) -> list:
     stocks = next((r.stocks for r in ld.rows if r.name == fin.sector), 0)
     h2 = (f'<span class="dh-down">{e(fin.index)} {"rose" if fin.nse3 >= 0 else "fell"} {abs(fin.nse3):.1f}% in three months while '
           f'the sector’s {stocks} ranked stocks {"rose" if fin.ours3 >= 0 else "fell"} {abs(fin.ours3):.1f}%</span>'
-          + (f"; only {e(_list(narrow))} {'is' if len(narrow) == 1 else 'are'} narrower than the market." if narrow else "."))
+          + (f"; only {e(_list(narrow))} {'is' if len(narrow) == 1 else 'are'} narrower than the 750 against Nifty Total Market." if narrow else "."))
     rows = []
     if m3 is not None:
         o3, t3 = ld.market_ret.get(3), (ld.market_ret.get(3) or 0) - m3
@@ -333,11 +333,12 @@ def section_broad(ld: sp.Leads, nse: dict, sh) -> list:
             '<p class="dh-note">Each sector’s ranked stocks, equal-weighted, against NSE’s index for the sector, which holds its own '
             'selection of the sector’s companies and weights them by free-float value: the two differ in stocks and in weights. '
             'The bar is the gap over three months, 0.5 pt a line. The dashed line is the 750’s own gap to Nifty Total Market: '
-            'a bar left of it means the sector’s largest companies did more of the work than in the market as a whole.</p></div>',
+            'a bar left of it means the sector’s largest companies did more of the work than the largest companies did across the 750. '
+            f'{_fmt.PTS_NOTE}</p></div>',
             Chart("trows", spec, {"label": "Each sector against its NSE index", "note": "0.5 pt a line · dashed: the 750 against Nifty Total Market"}),
-            '<div class="dh-sec dh-sec-cont"><h3 class="dh-h3">One year, each line 100 a year ago (or at the index’s launch)</h3></div>',
+            '<div class="dh-sec dh-sec-cont"><h3 class="dh-h3">12 months, each line set to 100 at the start (or at the index’s launch)</h3></div>',
             Chart("pairs", {"pairs": pairs, "start": start, "text": {"gap": "gap", "latest": "Latest", "month_end": "Month end"}},
-                  {"label": "A sector's ranked stocks and NSE's index for it over one year", "table": "Show the table"})]
+                  {"label": "A sector's ranked stocks and NSE's index for it over 12 months", "table": "Show the table"})]
 
 
 def section_indices(ld: sp.Leads, nse: dict, sh) -> list:
@@ -347,9 +348,9 @@ def section_indices(ld: sp.Leads, nse: dict, sh) -> list:
     young = sum(x.young for x in allix)
     h2 = f"NSE’s {len(allix)} sector indices, each beside its sector."
     if full:
-        h2 = (f'Over the year <span class="dh-up">{e(full[0].name)} leads NSE’s sector indices at {sg(full[0].returns[12], 1, "%")}</span> '
+        h2 = (f'Over 12 months <span class="dh-up">{e(full[0].name)} leads NSE’s sector indices at {sg(full[0].returns[12], 1, "%")}</span> '
               f'and <span class="dh-down">{e(full[-1].name)} trails at {sg(full[-1].returns[12], 1, "%")}</span>; '
-              f"{_words(young)} of the {len(allix)} are younger than a year.")
+              f"{_words(young)} of the {len(allix)} are younger than 12 months.")
 
     def cells(ret, hi, pe, young_since=None):
         out = "".join(_num(ret.get(m), "%") for m in (1, 3, 6, 9))
@@ -374,11 +375,11 @@ def section_indices(ld: sp.Leads, nse: dict, sh) -> list:
     note = (f"All {len(allix)} of NSE’s sector indices, each under the sector it belongs to; the first line of each group is the "
             "sector’s ranked stocks, equal-weighted, for comparison, and “for the sector” marks the index set beside it above. "
             f"Price returns; each window ends on {nse['as_of']:%-d %b %Y} and starts on the last session on or before the same date "
-            "1, 3, 6, 9 and 12 months back. An index younger than a year shows its launch in NSE’s daily file. Themes, strategies "
+            "1, 3, 6, 9 and 12 months back. An index younger than 12 months shows its launch in NSE’s daily file. Themes, strategies "
             "and broad indices are on Indices.")
     return [f'<div class="dh-sec">{KICK.format("NSE’s sector indices")}<h2 id="s-indices" class="dh-h2">{h2}</h2>'
             f'<p class="dh-note">{e(note)}</p><div class="dh-scroll"><table class="dh-tab dh-tab-s sx-ix"><thead><tr>'
-            '<th scope="col">Index</th>' + "".join(f'<th scope="col" class="dh-num">{w}</th>' for w in ("1M", "3M", "6M", "9M", "1Y"))
+            '<th scope="col">Index</th>' + "".join(f'<th scope="col" class="dh-num">{w}</th>' for w in ("1M", "3M", "6M", "9M", "12M"))
             + '<th scope="col" class="dh-num">From 52W high</th><th scope="col" class="dh-num">P/E</th></tr></thead>'
             f'<tbody>{body}</tbody></table></div></div>']
 
@@ -391,7 +392,7 @@ def section_months(months: pd.DataFrame, sh, noun: str) -> list:
     if months is None or months.empty:
         return []
     cols = [c for c in months.columns if c not in ("run", "total")]
-    labels = [c.replace(" MTD", " so far") if c.endswith("MTD") else c.replace(" 20", " ’") for c in cols]
+    labels = [c if c.endswith("so far") else c.replace(" 20", " ’") for c in cols]
     longest = months["run"].abs().max()
     h2 = "Each month against the 750."
     ex = ""
@@ -411,7 +412,7 @@ def section_months(months: pd.DataFrame, sh, noun: str) -> list:
         ex += f". Its 12 months, {sg(row['total'])} pts, is the twelve completed months added up."
     body = ""
     for name, r in months.iterrows():
-        cells = "".join(f'<td class="dh-num {_cls(r[c])}{" dh-muted" if c.endswith("MTD") and _cls(r[c]) == "" else ""}">'
+        cells = "".join(f'<td class="dh-num {_cls(r[c])}{" dh-muted" if c.endswith("so far") and _cls(r[c]) == "" else ""}">'
                         f'{"–" if not pd.notna(r[c]) else e(sg(r[c]))}</td>' for c in cols)
         run = int(r["run"])
         run_t = (f"{abs(run)} ahead" if run > 0 else f"{abs(run)} behind") if run else "–"

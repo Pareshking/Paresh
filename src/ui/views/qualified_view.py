@@ -126,7 +126,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
     else:
         actions = kit.page_head(
             "Qualified",
-            f"The {top_n} best-ranked stocks that pass both filters: above their 50-day "
+            f"The {top_n} best-ranked stocks that pass both filters: above their 50D "
             "EMA and within 20% of their 52-week high",
             actions=True,
         )

@@ -233,10 +233,10 @@ def render_stock_panes(symbol: str, close: pd.Series, *, one_line: bool = False,
 # ── The stock page's chart (S182, mock-up v2 approved 23 Nov 2026) ──────────────
 # Today's chart kept and restyled (STOCK_REQUIREMENTS rows 33, 47-49): price with
 # the 50D EMA the ranking uses, Volume in its own pane, and the stock against
-# Nifty Total Market beneath, set to 100 at the start of the range; 6M, 1Y, 3Y.
+# Nifty Total Market beneath, set to 100 at the start of the range; 6M, 12M, 3Y.
 
-RANGES = {"6M": 6, "1Y": 12, "3Y": 36}
-DEFAULT_RANGE = "1Y"
+RANGES = {"6M": 6, "12M": 12, "3Y": 36}   # 12M, not 1Y (glossary 6)
+DEFAULT_RANGE = "12M"
 RS_NAME = "RS against Nifty Total Market"
 
 

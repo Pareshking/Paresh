@@ -118,7 +118,7 @@ def test_every_system_has_a_universe_name():
 
 def test_portfolio_and_dashboard_name_the_systems_universe_not_the_750():
     portfolio = (ROOT / "src" / "ui" / "views" / "portfolio_page.py").read_text(encoding="utf-8")
-    assert "UNIVERSE_SHORT.get(p.system" in portfolio and "the industry’s weight in the {uni}" in portfolio
+    assert "UNIVERSE_SHORT.get(p.system" in portfolio and "the sector’s weight in the {uni}" in portfolio
     assert '"began the year" if size.index[0].month == 1' in portfolio
     assert '<span class="dh-num">The 750</span>' not in portfolio
     dash = (ROOT / "src" / "ui" / "views" / "dashboard_home_view.py").read_text(encoding="utf-8")

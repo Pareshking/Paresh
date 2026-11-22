@@ -69,7 +69,8 @@ _ALL = {
     # the composite score the ranking is sorted by.
     "q3": ("3M ago", "num"), "q1": ("1M ago", "num"),
     "qrank": ("Now", "num"), "score": ("Score", "num"),
-    "idx": ("Index", "text"), "ind": ("Industry", "text"),
+    # "NSE index": the one column where an index's short form is allowed; NSE's 22 groups are sectors (glossary 2, 3).
+    "idx": ("NSE index", "text"), "ind": ("Sector", "text"),
     "mcap": ("Market cap, Cr", "num"),
     "hi": ("From 52W high", "num"), "ath": ("From all-time high", "num"), "ema": ("vs 50D EMA", "num"),
     "vol": ("Volume", "text"),
@@ -85,7 +86,7 @@ _ALL = {
 for _w in PERIOD_WINDOWS:
     _ALL[f"r{_w}"] = (f"{_w}M return", "num")
     _ALL[f"sh{_w}"] = (f"{_w}M Sharpe", "num")
-    _ALL[f"dd{_w}"] = (f"{_w}M largest fall", "num")
+    _ALL[f"dd{_w}"] = (f"{_w}M max drawdown", "num")   # glossary 8
 # Columns where 1 is best: a first click sorts them smallest first.
 _RANK_KEYS = ("rank", "p3", "p1", "q3", "q1", "qrank")
 
