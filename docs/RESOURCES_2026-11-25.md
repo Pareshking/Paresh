@@ -1,14 +1,15 @@
 # Resources and data whereabouts, after the 20-22 Nov changes (S195)
 
-> **Draft, paused 22 Nov 2026 on the owner's word (usage limit).** Sections 1-4 are measured
-> and checked; the summary and the yes/no lines are not yet reviewed, and no PR is open.
+> Drafted 22 Nov 2026 at `main` 8ee4b95; reviewed and brought up to `main` e385c13 (after
+> #615-#619, the Nifty 1000 and the Watchlist) the same evening by the coordinating session.
+> Each "nothing reads it" grep was run again at e385c13; the memory bench was run again.
 
 Owner, 22 Nov 2026: *"memory usage after all these changes and overall GitHub
 resources usage and Data whereabouts, which data is where, location, storage
 and requirements to store or not store in R2 and old data cleaning from R2 if
 any, removing anything stored and not in use from GitHub"*.
 
-Measured on 22 Nov 2026 at `main` 8ee4b95 (after #609), read-only.
+Measured on 22 Nov 2026, read-only: at `main` 8ee4b95 (after #609), then re-checked at e385c13.
 
 **Nothing has been deleted.** Every clean-up candidate is in section 4, each with
 a yes/no line for the owner.
@@ -192,7 +193,7 @@ read by the Backtest page.
 |---|---|---|---|
 | `data/nse_prices/closes.parquet` | 5 | 6.1 MB | **out of git since #602 (S178)**: no further growth |
 | `data/nse_indices_history.parquet` | 1 | 2.2 MB | one-off history file (S170); rewritten only by a manual `--freeze` |
-| `data/reference/weekly_fill_nano.parquet` | 2 | 1.5 MB | rebuilt only when a Nano Cap member is missing |
+| `data/reference/weekly_fill_nano.parquet` | 2 | 1.5 MB | rebuilt when a member outside the 750 is missing; with `--with-nifty-1000` (#615) the 23 Nov run adds the Nifty 1000's 30 |
 | `data/former_member_prices.parquet` | 6 | 0.4 MB | rebuilt when the index loses a name |
 | everything else | | about 1.3 MB | daily CSV and JSON rewrites, which delta-compress well |
 
@@ -222,9 +223,9 @@ location, size and what S172 says.
 | Data | git | Release | R2 | Cache | Size | Must be on R2 (S172)? |
 |---|---|---|---|---|---|---|
 | NSE bhavcopy, actions, caps, closed days (`nse/*`) | | | yes (source of record) | | 511 + 31 + 69 + 1 MiB | already |
-| NSE two-year closes | no (since #602) | `nse_closes.parquet` 2.4 MB | `nse/closes_2y` | yes | 2.4 MB | done (S178) |
+| NSE two-year closes | no (since #602) | `nse_closes.parquet` | `nse/closes_2y` | yes | 3.1 MB: 521 sessions × 1,250 columns, all 1,000 Nifty 1000 members (revision f0a6b0cc…, after the 22 Nov backfill and fill; 2.4 MB before) | done (S178) |
 | Screener store | | `screener_prices.parquet` 8.9 MB | `prices/screener` 122 MiB (14 dates) | yes | | already (app reads R2 first) |
-| Rankings, four systems | | `rankings*.parquet` | `snapshots/rankings*` 30 MiB | yes | | already |
+| Rankings, four systems | | `rankings*.parquet` | `snapshots/rankings`, `_nano`, `_combined`, `_1000` 30 MiB (before `_1000`) | yes | | already; the inventory names all four since #615 |
 | Long NSE file (2008 on) | | 3 files, 42 MB | `prices/nse_long_*` 40 MiB (newest 2) | yes | | already |
 | Long-file inputs (BSE table, packs) | | 352 + 172 + 4 MB | `bse/daily` 334 MiB | | | job inputs, not page data |
 | SS store | | `ss_*` 47 MB | `prices/ss` 185 MiB (newest 3) | | | **R2 copy unread** (4.2) |
@@ -234,6 +235,12 @@ location, size and what S172 says.
 | Job state: `screener_company_ids.json`, `former_member_prices.json`, `reference/nse/MANIFEST.json`, `namechange.csv`, `tejhq_actions.csv`, `nse_index_aliases/corrections/missing_sessions.csv` | yes | | | | about 0.4 MB | no page reads them. Code-like reference tables stay in git (S172 (c)) |
 | Historical-evidence set (15 datasets) | | | about 8 MiB | | | **no reader** (4.5) |
 | Track Record ledgers | `track_record*.json` | | no | | 9 KB | S172 / S185 (each frozen month's book on R2) |
+| Nifty 1000 list and history | `indices/ind_nifty1000_list.csv` 66 KB; `membership_history.json` → `indices.nifty_1000` | | no | | | page data in git, as the other index lists (S172 (b)) |
+| Nifty 1000 notices ledger | `reference/nse/nifty1000_notices.json` 3 KB (#617, S196) | | no | | | a record with each notice's SHA-256; stays in git |
+| Weekly fill for stocks outside the 750 | `reference/weekly_fill_nano.parquet` 1.1 MB | | no | | | grows once by the Nifty 1000's 30 missing members (`--with-nifty-1000`, first nightly run 23 Nov); a parquet, so each rebuild adds its full size to git's history |
+
+The Nifty 1000 is not in the historical-evidence set (4.5): the set's builder lists six indices by hand
+(`scripts/r2_historical_evidence_bootstrap.py:23-29`). Nothing reads the set, so this is noted, not proposed.
 
 `data/track_record_1000.json` is not in git yet. That is expected:
 `systems.py:46` names it, and `load_ledger` returns an empty ledger until the
@@ -335,11 +342,11 @@ first Nifty 1000 freeze on 1-5 Dec (S175 / S194).
 
 > **Owner: stop uploading `reconcile_*` to the release and delete the six assets (the artifact keeps the report)? yes / no**
 
-### 4.5 The historical-evidence set on R2: 15 datasets, about 8 MiB, published nightly
+### 4.5 The historical-evidence set on R2: 17 datasets, about 8 MiB, published nightly
 
 The datasets:
-- `indices/constituents/*` (six) and `indices/membership/*` (the five other
-  than `nifty_total_market`);
+- `indices/constituents/*` (six: the files in `INDEX_FILES`) and `indices/membership/*`
+  (`nifty_total_market` and the five `RESEARCH_INDEXES`);
 - `universes/point_in_time`, `classifications/tv_history`,
   `trading_sessions/confirmed`, `market_caps/nse_snapshot` and
   `corporate_actions/evidence`.
@@ -360,7 +367,7 @@ The datasets:
   membership or caps from R2, some of these gain a reader. Decide after that
   pass.
 
-> **Owner: stop publishing the 14 evidence datasets nothing reads (keep `indices/membership/nifty_total_market`), and keep what is stored? yes / no**
+> **Owner: stop publishing the 16 evidence datasets nothing reads (keep `indices/membership/nifty_total_market`), and keep what is stored? yes / no**
 
 ### 4.6 `indices/prices/research` on R2: 7.0 MiB, 68 revisions
 
@@ -426,8 +433,8 @@ The datasets:
   - `snapshots/rankings_1000` and `track_record_1000.json` postdate the 21 Nov
     inventory. The first R2 copy is from 21 Nov evening; the ledger is
     expected at the 1-5 Dec freeze.
-  - `r2_inventory.py`'s freshness list does not name `snapshots/rankings_1000`.
-    S194's audit should confirm whether it should.
+  - `r2_inventory.py` names `snapshots/rankings_1000`, `_nano` and `_combined` since #615 (S194 L5);
+    the first inventory run after it is a 23 Nov check (TODO S188).
 - **S173** (formatter): no overlap.
 - **S141 / S142** (minutes): the minutes table is S142's partial week. Its full
   week closes on 27 Nov.
