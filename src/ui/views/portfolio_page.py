@@ -671,7 +671,7 @@ def day_section(p: Page) -> list:
              (f"Since {dshort(p.equity.index[1])}", f"{beat} of {len(g)}", "dh-up" if beat > len(g) / 2 else "dh-watch",
               f"Sessions the book beat the market, {beat / len(g) * 100:.0f}%", "", "")]
     spec = {"values": [round(float(v), 2) for v in last["gap"]], "labels": [dshort(d) for d in last.index],
-            "full": [f"{d:%-d %b %Y}" for d in last.index], "unit": "pts against the market", "dp": 2, "xn": 5,
+            "full": [f"{d:%-d %b %Y}" for d in last.index], "unit": "pts against the market", "dp": 1, "xn": 5,
             "lastLabel": "Today", "height": 170}
     return _sec([_head("pf-day", "Day by day against the market", "Day P&L in context"), _kpis(cells, "pf-four"),
                  '<div class="dh-cap"><b>The book against the market, last 20 sessions</b><span>points</span></div>',
@@ -679,7 +679,7 @@ def day_section(p: Page) -> list:
                  how("Each session, the book’s day less Nifty Total Market’s day, in points.",
                      f"One day is mostly noise; a run of bars on one side is not. The book beat the market on {beat} of {len(g)} sessions.",
                      ["Session", "Book", "Market", "Lead, pts"],
-                     [[f"{d:%-d %b %Y}", pct(r.book, 2), pct(r.market, 2), sg(r.gap, 2)] for d, r in last.iloc[::-1].iterrows()])])
+                     [[f"{d:%-d %b %Y}", pct(r.book), pct(r.market), sg(r.gap)] for d, r in last.iloc[::-1].iterrows()])])
 
 
 def trade_stats(p: Page) -> dict:

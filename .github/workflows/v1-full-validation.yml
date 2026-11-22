@@ -164,6 +164,10 @@ jobs:
           node scripts/check_dashboard_requirements.mjs http://localhost:8501/indices docs/INDICES_REQUIREMENTS.md
           node scripts/layout_audit.mjs http://localhost:8501/backtest 412,1400 --open
           node scripts/check_dashboard_requirements.mjs http://localhost:8501/backtest docs/BACKTEST_REQUIREMENTS.md
+          # Prices in whole rupees, returns to one decimal, on every page (S173; owner, 22 Nov 2026).
+          node scripts/number_format_audit.mjs http://localhost:8501/ http://localhost:8501/actions http://localhost:8501/screener \
+            http://localhost:8501/portfolio http://localhost:8501/market http://localhost:8501/indices http://localhost:8501/sectors \
+            http://localhost:8501/backtest http://localhost:8501/guide
 
       - name: Upload V1 validation artifacts
         uses: actions/upload-artifact@v7

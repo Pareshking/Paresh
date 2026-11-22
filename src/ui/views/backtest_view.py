@@ -439,7 +439,7 @@ def section_lead(f: dict) -> list:
     notes = [
         "<b>Price returns, both sides.</b> The rule’s figure includes a dividend only where it was 10% of the price or "
         "more (the long file takes those out as an adjustment); the Nifty 500 figure is NSE’s price index, with no "
-        + (f"dividends. NSE’s own file puts the Nifty 500’s dividend yield at {dy:.2f}% a year on average since Feb 2012, "
+        + (f"dividends. NSE’s own file puts the Nifty 500’s dividend yield at {dy:.1f}% a year on average since Feb 2012, "
            "against about 0.5% for the book (measured 2020–25 only, S125), so against the index with dividends the lead "
            f"is about {dy - 0.5:.1f} points a year smaller than shown." if dy is not None else "dividends."),
         f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill.",
@@ -450,10 +450,10 @@ def section_lead(f: dict) -> list:
     if half is not None and sm.lead_first_half is not None:
         notes.append(f"<b>The two halves.</b> The rule led by {sm.lead_first_half * 100:.2f} pts a month on average to "
                      f"{half - pd.offsets.MonthEnd(1):%b %Y} and {sm.lead_second_half * 100:.2f} after; the median month "
-                     f"{_pts(sm.median_lead, 2)}.")
+                     f"{_pts(sm.median_lead)}.")
     rows = [["Total return", _pcs(sm.total, 0), _pcs(sm.bench_total, 0)],
-            ["A year, compounded", _pc(sm.a_year, 2), _pc(sm.bench_a_year, 2)],
-            ["A year before costs", _pc(st_.get("cagr_gross"), 2), "—"],
+            ["A year, compounded", _pc(sm.a_year), _pc(sm.bench_a_year)],
+            ["A year before costs", _pc(st_.get("cagr_gross")), "—"],
             ["Volatility, a year (daily returns)", _pc(st_.get("volatility")), "—"],
             [f"Sharpe, over {RISK_FREE_RATE:.1%}, ± one standard error",
              f"{st_.get('sharpe', float('nan')):.2f} ± {st_.get('sharpe_stderr_iid', float('nan')):.2f}", "—"],

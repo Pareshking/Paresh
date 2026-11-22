@@ -113,7 +113,7 @@ def _value(v: float, fmt: str | None) -> str:
     if fmt == "rupee":
         return _fmt.inr(v)
     if fmt == "price":
-        return _fmt.inr(v, 2)
+        return _fmt.price(v)
     if fmt == "int":
         r = round(v)
         return (_fmt.MINUS if r < 0 else "") + _fmt.indian_group(abs(r))

@@ -78,6 +78,7 @@ mock-up and approval is recorded in its row of section 7 and in TODO S151.
 |---|---|
 | One figure per cell; numbers right-aligned in IBM Plex Mono with tabular figures; headers right-aligned over numbers | Owner, 20 Nov: the size table is the model ("Clean tables like first image required everywhere") |
 | No sentence fragments inside number cells; a note under the name in small muted text instead | Owner rejected the v6 signals table |
+| Prices, moving averages, 52-week levels and any ₹ level in whole rupees with Indian grouping (₹2,906); below ₹100, two decimals (₹70.05). Returns, percentage changes and points to one decimal (11.1%, +0.4 pts). Display only: stored data, exports and orders keep exact values. One formatter: `formats.price`/`pct`/`pts` in Python, `pxf`/`sg` in `static/dash_charts.js`. Not covered: ratios (beta, P/B, P/E), correlations, ranks, counts, chart-scale notes and statutory rates (stamp duty 0.015%). Checked on every page by `scripts/number_format_audit.mjs` in CI | Owner, 22 Nov 2026: "price etc, Moving averages etc should be in round numbers, return only with Max one decimal values like 11.1% not 11.11%" (S173) |
 | Sentence case for headers and labels; capitals only for the small kicker over a section | Owner, 20 Nov: "Fonts, typography, capital letter etc required" |
 | Group rows with a heading row (Strong · 69.8% · what it means), not with colour alone | v7 strong/weak table |
 | Colour only the cell that carries the meaning (now, the value that crossed a line); past columns muted | v7 |

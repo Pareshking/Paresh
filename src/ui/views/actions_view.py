@@ -229,7 +229,7 @@ def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
             f'<div class="ac-row buy" role="row"><span class="xw-s" role="rowheader"><a href="{stock_href(s)}" target="_self">'
             f'{html.escape(s)}</a><small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
             f'<span class="n" role="cell">#{int(qrank.get(s, 0))}</span>'
-            f'<span class="n" role="cell">{_fmt.inr(r.get("CMP"), 2)}</span>'
+            f'<span class="n" role="cell">{_fmt.price(r.get("CMP"))}</span>'
             f'{ret_cell(r.get("3M Return"))}{ret_cell(r.get("6M Return"))}'
             f'<span class="n" role="cell">{hi_txt}</span></div>')
     return f'<div class="xw" role="table" aria-label="Buy">{"".join(rows)}</div>'

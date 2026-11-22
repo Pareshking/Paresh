@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-22 — Prices in whole rupees, returns to one decimal
+
+- Every page now shows prices, moving averages and 52-week levels in whole rupees (₹2,906, not ₹2,905.90); a stock under ₹100 keeps two decimals (₹70.05) so its moves still show. Returns, weights and points carry one decimal (11.1%, not 11.11%).
+- Display only: the figures behind them, the CSV exports and the Kite basket keep their exact values.
+- Left as they were: ratios such as beta, P/B and P/E, correlations, ranks and counts, chart-scale notes, and statutory rates such as stamp duty (0.015%).
+
 ## 2026-11-22 — Nifty 1000: every member's prices kept like the 750's
 
 - The 250 stocks the Nifty 1000 adds to the 750 are now collected and checked the way the 750 are: Screener every night, with a new member's history fetched in full and a stock Screener cannot serve named under the header until it is; SS every week; NSE's daily closes over Screener's weekly stretch; the long price file from 2010; and prices for members that leave, so a sale is always priced.
