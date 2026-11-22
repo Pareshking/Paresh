@@ -35,13 +35,24 @@ is NSE's exactly.
 
 ## The Screener night (`screener_sync.yml`, 22:37 IST; 00:15 IST until 19 Nov 2026) and when it is late
 
-- **Beyond the 750** (`sync_screener.extra_symbols`): the ₹2,000 Cr list
-  (`ind_nanocap_list.csv`) and, from 21 Nov 2026 (#591, S175), the Nifty 1000's
-  members outside the 750 (`ind_nifty1000_list.csv`). They are fetched after the
-  750 and best effort: none is part of the coverage gate, so a stock Screener
-  cannot serve never fails the night. A new one starts with ten years weekly
-  plus the daily year. On 21 Nov, 58 of the Nifty 1000's other 250 had no price
-  history with us (`docs/THREE_SYSTEMS.md`).
+- **The Nifty 1000 is gated like the 750** (owner, 22 Nov 2026: "Nothing should be
+  without proper price history ... same process we must follow";
+  `sync_screener.gated_universe`): the members of `ind_nifty1000_list.csv` outside
+  the 750 are swept after the 750, a newcomer has its history forced, one Screener
+  cannot serve is recorded as pending (the run fails after publishing), and one that
+  loses its history blocks publication. The same holds in every other step the 750
+  goes through: SS weekly (already, by the membership record), the weekly fill
+  (`build_weekly_fill_extra.py --with-nifty-1000`), the long file
+  (`index_universe.RECORDED_ONLY` emptied), former-member prices
+  (`sync_former_member_prices.nifty_1000_former`) and NSE's two-year closes (joined
+  only by `sync_nse_prices.py --backfill`, run by hand from `nse_prices_backfill.yml`,
+  over the file's whole span; the monthly append never starts a column of the
+  latest sessions). Until 22 Nov they were best-effort extras, and a member that left
+  the ₹2,000 Cr list was not fetched at all: on 21 Nov 58 had no 30 Oct close.
+- **Beyond the Nifty 1000** (`sync_screener.extra_symbols`): the ₹2,000 Cr list
+  (`ind_nanocap_list.csv`), fetched after the gated universe and best effort, so a
+  stock Screener cannot serve never fails the night. A new one starts with ten
+  years weekly plus the daily year.
 
 - **A new index member Screener has no history for** (TRIVENIPT, listed 9 Oct
   2026) is recorded in `data/screener_pending_history.json` with the day it was

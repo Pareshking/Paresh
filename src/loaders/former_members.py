@@ -119,8 +119,23 @@ def industry_for(symbols: Iterable[str], *, tv_file: Path | str = TV_CLASSIFICAT
     def top(counter: Counter) -> str | None:
         return sorted(counter.items(), key=lambda kv: (-kv[1], kv[0]))[0][0] if counter else None
 
+    listed = _nifty_1000_industries()
     out: dict[str, str] = {}
     for s in symbols:
         sector, industry = cls.get(s, (None, None))
-        out[s] = top(votes.get(industry, Counter())) or top(sector_votes.get(sector, Counter())) or "Other"
+        # NSE's own industry from the Nifty 1000 list, only for a name nothing else places:
+        # every name placed before keeps its industry, so no backtest's cap moves (S175).
+        out[s] = (top(votes.get(industry, Counter())) or top(sector_votes.get(sector, Counter()))
+                  or listed.get(s) or "Other")
     return out
+
+
+def _nifty_1000_industries() -> dict[str, str]:
+    """{symbol: NSE industry} from the Nifty 1000 list, in the 750's spelling; {} without it."""
+    try:
+        from src.loaders.extra_universe_loader import nifty_1000_members
+        frame = nifty_1000_members()
+    except (OSError, ValueError, KeyError):
+        return {}
+    return {str(s): str(i) for s, i in zip(frame["Symbol"], frame["Industry"])
+            if str(i) and str(i) != "Unclassified"}
