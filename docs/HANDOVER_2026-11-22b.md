@@ -64,11 +64,11 @@ No work is in progress in any session.
    - When the weekly fill has held for a run, make `--with-nifty-1000` the
      default in `scripts/build_weekly_fill_extra.py` and tighten its
      committed-file test.
-2. **Watchlist build**, branch `claude/friendly-hawking-0fp25l` (`1ff94f8`),
+2. **Done 22 Nov: merged as #619, seen live.** **Watchlist build**, branch `claude/friendly-hawking-0fp25l` (`1ff94f8`),
    untested. The owner approved the full mock-up. Build it on the S173
    formatter (`src/ui/formats.py`), then pass the requirements check, the layout
    audit and `number_format_audit.mjs`.
-3. **S195 resources report, due 25 Nov.** Branch `claude/laughing-cray-ynqt45`
+3. **Done 22 Nov: merged as #620** (the owner's yes/no clean-up list: see the report). **S195 resources report, due 25 Nov.** Branch `claude/laughing-cray-ynqt45`
    (`c44e055`): draft `docs/RESOURCES_2026-11-25.md` plus catalogue fixes.
    It predates #615–#617: add the Nifty 1000 datasets (R2
    `snapshots/rankings_1000`, `nse/closes_2y` now 1,000 wide, the notices
@@ -77,6 +77,23 @@ No work is in progress in any session.
    pane; hover readout fixed height, reuse #589's fix with a test; volume pane
    "Volume"; remove stop loss and chandelier exit), then S193 (consistency
    audit), then the Nifty 1000 leads L3/L4 in TODO S194.
+5. **After the 1-5 Dec freeze: S197**, membership from NSE's daily CSVs for
+   all seven indices (the Nifty 1000 joins `build_membership_history.py`; a
+   missed day is reported, not bridged), and NSE's notices read on the **25th
+   of each month** for all seven as a forward warning and cross-check (the
+   daily `nifty1000_notices.py` step leaves `nse_reference_sync.yml`; the
+   reader is generalised, not deleted). Must be merged **before S198's
+   switch**: Ultra Nano Cap's exclusion is the Nifty 1000 on each month-end
+   date.
+6. **S198, three systems from the January 2027 book** (all decided by the
+   owner, 22 Nov; read the TODO row): Nifty 750 · Nifty 1000 · Ultra Nano Cap
+   (₹1,000 Cr or more outside the Nifty 1000; key `nano` kept). Combined
+   retired, its ledger kept read-only. Below ₹1,000 Cr tracked, not buyable,
+   until below ₹500 Cr; prices collected from ₹800 Cr; a holding below
+   ₹1,000 Cr sold at the rebalance. First, in early December, the
+   measurement and backtest in S198 (a); this needs R2 (a CI job with R2
+   secrets, or #607's read-only key once the owner makes the token). Then
+   the build, **merged before the 31 Dec signal**.
 
 ## Owner decisions of 22 Nov still to record
 
@@ -102,13 +119,16 @@ Recorded today: the NSE two-year file stays monthly (owner: "Keep it monthly");
   bundles: check with `python scripts/replay_frozen_month.py --system 750
   --month 2026-11` and that a bundle exists for every system frozen.
 - 2 Dec: rebalance checks S95, S111, S154; the owner decides S95 and S111 after.
+- 25 Dec: first monthly notices check (S197), if merged by then.
+- 31 Dec: signal for the January 2027 book: S197 and S198 merged before it;
+  the first three-system freeze is 1-5 Jan 2027.
 
 ## Prompt for the new session
 
 ```
 You are taking over coordination of Pareshking/Paresh (NSE Momentum
 Terminal). Read CLAUDE.md, then docs/HANDOVER_2026-11-22b.md, then the open
-rows of docs/TODO.md (S175, S188, S194, S195, S196). Follow the standing rules
+rows of docs/TODO.md (S175, S188, S194, S195, S196, S197, S198). Follow the standing rules
 in the handover exactly: one activity at a time, you do the merges (green CI
 on the current head, squash, expectedHeadSha), check open PRs before taking an
 S-number (next free S199), verify every claim, delete nothing without the
