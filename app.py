@@ -154,7 +154,7 @@ with app_import_guard():
         render_header_kpi_bar,
     )
     from src.ui import page_kit as kit
-    from src.engine import liquidity, systems
+    from src.engine import liquidity
     from src.ui import system_param, watchlist_store
     from src.ui.theme import inject_custom_css
     from src.ui.widget_state import resolve
@@ -1041,18 +1041,6 @@ volume_data = data["volume_data"]
 regime_data = data["regime_data"]
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
-def _traded_value_cached(price_hash: str, _close: pd.DataFrame, _volume: pd.DataFrame):
-    return liquidity.traded_value_cr(_close, _volume)
-
-
-def _traded_value():
-    """The 20-day average traded value, only when the floor is on."""
-    if not liquidity_floor_cr:
-        return None
-    return _traded_value_cached(_price_hash(data["close_prices"]), data["close_prices"], volume_data)
-
-
 # An empty ranking is a pipeline failure, not a view to render. Twelve tabs of
 # empty frames produced a TypeError in the Qualified tab rather than telling
 # anyone what went wrong, so stop here and report what the engine actually saw.
@@ -1194,7 +1182,9 @@ def _page_portfolio() -> None:
 
 
 def _page_watchlist() -> None:
-    render_watchlist_view(rank_df, adj_close)
+    # The same Held marks and qualified trail as the Screener (S184).
+    render_watchlist_view(rank_df, adj_close, book_symbols=_screener_book(),
+                          history_prices=deep_adj_close)
 
 
 def _page_indices() -> None:
@@ -1207,42 +1197,15 @@ def _page_market() -> None:
 
 
 def _page_backtest() -> None:
-    # Backtest reporting starts at the system's canonical inception and
-    # expands by one completed month at each month-end. Older price history is
-    # still used for signal formation, but never becomes portfolio ownership.
-    months = systems.backtest_months(system, deep_adj_close.index[-1])
-    if months == 0:
-        start_label = systems.inception(system).strftime("%B %Y")
-        kit.page_head(
-            "Backtest",
-            f"{system_name} starts its canonical history in {start_label} and gains "
-            "one completed month at every month-end.",
-        )
-        kit.note(
-            "Building.",
-            f"The first reported month completes at the end of {start_label}. "
-            + _record_start(),
-        )
-        return
-    extra_args = ({
-        "months": months,
-        "membership": systems.membership_for(system),
-        "history_start": systems.inception(system).start_time,
-    } if months is not None else {
-        "history_start": systems.inception(system).start_time,
-    })
+    # Research runs on NSE's long price file only (S174, owner 21 Nov 2026: the
+    # "Live system" tab is gone; Portfolio owns the record). The system picker does
+    # not apply: a run picks its own universe in the page's settings.
     render_backtest_view(
         rank_df=rank_df,
-        # Depth, not freshness: the 12-month formation window is warm-up only.
-        # The reported portfolio history starts at canonical inception and
-        # expands one completed month at a time.
-        adj_close=deep_adj_close,
         stock_cap=stock_cap,
         sector_cap=sector_cap,
         weights=weights,
         liquidity_floor_cr=liquidity_floor_cr,
-        traded_value=_traded_value(),
-        **extra_args,
     )
 
 

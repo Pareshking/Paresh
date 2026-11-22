@@ -25,11 +25,11 @@ In data/nse_prices/:
     notes.json       ticker renames and one-off corrections, each with its evidence
 scripts/sync_nse_prices.py builds and extends them.
 
-The closes are also published, monthly, to R2 (CLOSES_DATASET) and the
-data-latest release (CLOSES_ASSET), and leave git once that copy exists
-(owner, 21 Nov 2026: each monthly rewrite added ~1.3 MB to the repository's
-history). closes_path() reads the local file when there is one, else R2, else
-the release, cached for a day.
+The closes are not in git (owner, 21 Nov 2026, TODO S178: each monthly rewrite
+added ~1.3 MB to the repository's history). They are published monthly to R2
+(CLOSES_DATASET) and the data-latest release (CLOSES_ASSET); closes_path()
+reads a local file when a job has just written one, else R2, else the
+release, cached for a day.
 """
 from __future__ import annotations
 

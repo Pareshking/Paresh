@@ -185,6 +185,8 @@ DAILY_DATASETS = (
     "market_caps/nse_history",
     "indices/membership/nifty_total_market",
     "universes/point_in_time",
+    # Every NSE index, daily (S168): backfilled 21 Nov 2026, extended each evening by nse_indices.yml.
+    "indices/nse_close_all",
 )
 
 # Calendar days. A Friday session checked on the following Wednesday is five

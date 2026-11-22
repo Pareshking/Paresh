@@ -227,7 +227,10 @@ def test_a_special_weekend_session_is_read_when_it_is_named(tmp_path):
 @pytest.fixture(scope="module")
 def committed():
     data = npx.load()
-    assert data is not None, "data/nse_prices is missing"
+    # The closes are not in git (TODO S178) and the suite is offline (conftest.py):
+    # they come from the cached published copy.
+    assert data is not None, ("the NSE closes are not cached: run python scripts/fetch_nse_closes.py "
+                              "(CI does, in v1-full-validation.yml)")
     return data
 
 

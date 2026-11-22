@@ -754,13 +754,15 @@ def _calculate_backtest_metrics(
     total_b = float(eq_bench.iloc[-1] / eq_bench.iloc[0] - 1)
 
     n_days = len(dates)  # accrual sessions; the base point is not one of them
-    window_years = n_days / 252.0
-    ann_factor = 252.0 / max(n_days, 1)
-    # An annualised figure, not a compound annual growth rate observed over a
-    # year. The reported window is six completed months, so this raises a
-    # half-year result to the power of two: a +23% half-year prints +51%. It is
-    # the standard convention and it is kept, but `window_years` travels beside
-    # it so no caller can show it without being able to say what it extrapolates.
+    # Calendar time, 365.25-day years, from the first fill (the curve's base point)
+    # to its last day (owner, 21 Nov 2026, Backtest decision D). It used to be
+    # n_days / 252, but NSE averaged about 248 sessions a year over 2010-26, so the
+    # 2010 run's "a year" read 18.87% where the Guide, from calendar time, said
+    # 18.56% for the same run. Under a year the figure still scales a part-year up;
+    # `window_years` travels beside it so no caller shows it without knowing that.
+    _span_days = (pd.Timestamp(eq_strat_net.index[-1]) - pd.Timestamp(eq_strat_net.index[0])).days
+    window_years = max(_span_days, 1) / 365.25
+    ann_factor = 1.0 / window_years
     cagr_net = float((1 + total_s_net) ** ann_factor - 1) if (1 + total_s_net) > 0 else -1.0
     cagr_gross = (
         float((1 + total_s_gross) ** ann_factor - 1) if (1 + total_s_gross) > 0 else -1.0

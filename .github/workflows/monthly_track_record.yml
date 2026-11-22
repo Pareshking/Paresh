@@ -98,8 +98,7 @@ jobs:
         run: python scripts/check_ranking_frames.py --published
 
       # The closes to R2 and the release, where src/loaders/nse_prices.closes_path()
-      # reads them when the repository holds no copy (owner, 21 Nov 2026: out of git,
-      # into R2). After the ranking check above, so only a file the app can rank with
+      # reads them: they are not in git (owner, 21 Nov 2026, TODO S178). After the ranking check above, so only a file the app can rank with
       # is published. Every copy is kept (nse/ is protected in r2_retention.py).
       - name: Publish the NSE closes to R2 and the release
         env:
@@ -160,7 +159,8 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data/track_record*.json data/book_exposure.csv data/former_member_prices.parquet data/former_member_prices.json data/nse_prices
+          # data/nse_prices/closes.parquet is not in git (.gitignore): it is published above.
+          git add data/track_record*.json data/book_exposure.csv data/former_member_prices.parquet data/former_member_prices.json data/nse_prices/actions.parquet data/nse_prices/notes.json
           if git diff --staged --quiet; then
             echo "No new closed months; ledger unchanged."
             exit 0

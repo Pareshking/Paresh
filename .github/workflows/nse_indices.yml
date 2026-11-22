@@ -10,6 +10,10 @@ name: NSE indices (every index, daily)
 on:
   workflow_dispatch:
     inputs:
+      until:
+        description: "Backfill in batches: last day to fetch (e.g. 2015-12-31); empty = up to today. Each batch publishes to R2 and the next continues from it"
+        type: string
+        default: ""
       backfill:
         description: "Build the store from 21 Feb 2012 when none is published (about 2 hours, once)"
         type: boolean
@@ -50,7 +54,7 @@ jobs:
       - name: Add the new sessions (refuses to change a stored close)
         run: |
           python scripts/collect_nse_indices.py --store nse_indices.parquet --fetch --from-r2 \
-            ${{ inputs.backfill && '--backfill' || '' }}
+            ${{ inputs.backfill && '--backfill' || '' }} --until "${{ inputs.until }}"
       - name: Publish to R2
         run: |
           python scripts/r2_publish.py \
@@ -64,9 +68,13 @@ jobs:
         run: |
           python scripts/r2_audit.py --dataset indices/nse_close_all --as-of \
             "$(python -c 'import pandas as pd; print(pd.read_parquet("nse_indices.parquet")["date"].max().date())')"
+      # A batch that stops before today holds no session after the frozen history file,
+      # and writing the app's copy from it would empty that copy.
       - name: Write the app's copy (sessions after the frozen history file)
+        if: ${{ !inputs.until }}
         run: python scripts/export_nse_indices_compact.py --store nse_indices.parquet
       - name: Commit the app's copy
+        if: ${{ !inputs.until }}
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'

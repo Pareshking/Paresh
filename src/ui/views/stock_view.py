@@ -282,8 +282,26 @@ def _render_verdict(row: pd.Series) -> None:
 
 # ── 3. NOTICES ───────────────────────────────────────────────────────────────
 
-def _render_corporate_actions(symbol: str) -> None:
-    events = [e for e in load_events() if e.get("symbol", "").upper() == symbol.upper()]
+def _applied_events(symbol: str, adj_close: pd.DataFrame | None) -> list[dict]:
+    """The logged events for ``symbol`` that the ranking actually applies.
+
+    The log keeps every step ever flagged, including steps the vendor has since
+    restated and Yahoo-era ones the current prices never had; adjust_prices
+    skips those. Listing the whole log showed MBAPL a +900.7% and a −90.0% day
+    in Nov 2020 that NSE's own files do not show (₹70.00, ₹70.05, ₹70.05) and
+    the ranking never applied (S184, 22 Nov 2026). Only what is applied to this
+    stock's prices is a correction a reader needs to know about.
+    """
+    events = [e for e in load_events() if str(e.get("symbol", "")).upper() == symbol.upper()]
+    if not events or adj_close is None or symbol not in adj_close.columns:
+        return []
+    from src.engine.corporate_actions import adjust_prices
+    _, applied = adjust_prices(adj_close[[symbol]], events)
+    return applied
+
+
+def _render_corporate_actions(symbol: str, adj_close: pd.DataFrame | None = None) -> None:
+    events = _applied_events(symbol, adj_close)
     if not events:
         return
     lines = []
@@ -775,6 +793,8 @@ def render_stock_view(
     open_prices: pd.DataFrame | None = None,
     *,
     on_back=None,
+    book_symbols=None,
+    history_prices: pd.DataFrame | None = None,
 ) -> None:
     """Render the detail page for one symbol."""
     match = rank_df[rank_df["Symbol"].astype(str).str.upper() == str(symbol).upper()]
@@ -791,7 +811,7 @@ def render_stock_view(
     _render_identity(row, total_stocks)
     _render_verdict(row)
     _render_exit_status(sym, rank_df)
-    _render_corporate_actions(sym)
+    _render_corporate_actions(sym, adj_close)
 
     _html_block('<div class="sp-sec"><h2>Price and relative strength</h2>'
                 '<span>Drag to pan.</span></div>')
@@ -807,7 +827,12 @@ def render_stock_view(
 
     _render_price_ladder(row, _year_low(sym, adj_close, low_prices))
     _render_gain_vs_pain(row, rank_df)
-    _render_peers(row, rank_df, adj_close)
+    # The peers table reads the qualified place and "Held" like the Screener's
+    # (S184); imported here because ranking_view imports this module.
+    from src.ui.views.ranking_view import with_book_columns
+    _render_peers(row, with_book_columns(
+        rank_df, book_symbols, history_prices if history_prices is not None else adj_close),
+        adj_close)
     _render_data_health(row)
 
     render_data_quality_footer(

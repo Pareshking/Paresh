@@ -278,6 +278,8 @@ def render_ranking_view(
             volume_data=volume_data,
             open_prices=open_prices,
             on_back=_back,
+            book_symbols=book_symbols,
+            history_prices=history_prices,
         )
         return
 
@@ -484,19 +486,8 @@ def render_ranking_view(
     # screen (PAGE_DESIGN §2a: it was one 1,240 px line).
     st.html(_KEY_HTML.format(when=_trail_words(adj_close)))
 
-    view = rank_df.copy()
-    # S87 (owner, 7 Nov): place among the qualified (the list the book buys
-    # from, as on Actions) and the model book's holdings, marked "Held".
-    from src.engine.exit_watch import qualified_ranks
-    view["Qualified Rank"] = view["Symbol"].map(qualified_ranks(rank_df))
-    # The qualified place 3 months and a month ago: the Dashboard's rank trail,
-    # from its own function and price frame, so one stock reads the same on
-    # both pages (S154; Screener decision A, 21 Nov 2026).
-    trail = qualified_trail(history_prices if history_prices is not None else adj_close, rank_df)
-    if trail is not None:
-        view["Qualified (-3M)"] = view["Symbol"].map(trail["3m"])
-        view["Qualified (-1M)"] = view["Symbol"].map(trail["1m"])
-    view["Held"] = view["Symbol"].isin(set(book_symbols or ()))
+    view = with_book_columns(rank_df, book_symbols,
+                             history_prices if history_prices is not None else adj_close)
     # Sessions at a new 52-week high in the last month and three: a stock that
     # keeps making them is strong.
     _nh = _new_high_counts(f"{adj_close.index[-1]}_{adj_close.shape}", adj_close)
@@ -748,6 +739,32 @@ def _qualified_trail(key: str, _prices: pd.DataFrame, symbols: tuple) -> dict:
     _, trails = di.rank_trails(_prices, [s for s in symbols if s in _prices.columns])
     return {"3m": {s: r[0] for s, r in trails.items() if r[0] is not None},
             "1m": {s: r[1] for s, r in trails.items() if r[1] is not None}}
+
+
+def with_book_columns(rank_df: pd.DataFrame, book_symbols=None,
+                      history_prices: pd.DataFrame | None = None) -> pd.DataFrame:
+    """A copy of the ranking with the columns the Screener table reads beside
+    the rank: "Qualified Rank", the qualified place 3M and 1M ago, and "Held".
+
+    S87 (owner, 7 Nov): the place among the qualified (the list the book buys
+    from, as on Actions) and the model book's holdings, marked "Held". The trail
+    is the Dashboard's rank trail, from its own function, so one stock reads the
+    same on every page (S154; Screener decision A, 21 Nov 2026).
+
+    Worked out over the WHOLE ranking, then cut by the caller. The Watchlist and
+    the stock page's peers drew the same table from the bare ranking, so every
+    row read "Out" and nothing was "Held" (S184, 22 Nov 2026); a place worked out
+    on a cut list would be the place within the cut, not among the qualified.
+    """
+    from src.engine.exit_watch import qualified_ranks
+    view = rank_df.copy()
+    view["Qualified Rank"] = view["Symbol"].map(qualified_ranks(rank_df))
+    trail = qualified_trail(history_prices, rank_df)
+    if trail is not None:
+        view["Qualified (-3M)"] = view["Symbol"].map(trail["3m"])
+        view["Qualified (-1M)"] = view["Symbol"].map(trail["1m"])
+    view["Held"] = view["Symbol"].isin(set(book_symbols or ()))
+    return view
 
 
 def qualified_trail(prices: pd.DataFrame | None, rank_df: pd.DataFrame) -> dict | None:
