@@ -146,6 +146,28 @@ def fetch_screener_store(url: str | None = None) -> pd.DataFrame | None:
                 pass
 
 
+def fetch_screener_store_bytes(url: str | None = None) -> tuple[bytes | None, str]:
+    """(the published screener store's raw parquet bytes, where they came from).
+
+    Same order as fetch_screener_store (R2's newest verified revision, then the
+    release asset), but the bytes are returned as fetched, so the monthly freeze
+    can rank on them and archive the very same bytes (S185): a second download
+    could return a store republished in between. (None, reason) on failure.
+    """
+    if url is None:
+        body = app_source.fetch_latest(app_source.SCREENER_STORE, "screener_store")
+        if body:
+            return body, "r2"
+    target = url or SCREENER_STORE_URL
+    try:
+        resp = requests.get(target, timeout=DOWNLOAD_TIMEOUT_S)
+        if resp.status_code != 200:
+            return None, f"http_{resp.status_code}"
+        return resp.content, "release"
+    except Exception as exc:  # noqa: BLE001  the caller refuses to freeze without it
+        return None, type(exc).__name__
+
+
 def from_screener(store: pd.DataFrame) -> PriceFrames | None:
     """Shape the screener store for the engine, or None if it cannot serve.
 

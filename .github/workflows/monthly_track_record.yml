@@ -117,6 +117,15 @@ jobs:
       # BSE closes). No `|| echo` here on purpose: a refusal skips every step
       # below, so nothing is frozen or committed, and the failure alert fires.
       - name: Freeze newly closed months
+        env:
+          PYTHONPATH: .
+          # S185: each frozen month's evidence bundle is published to R2 before
+          # the ledger is written; without these the freeze refuses.
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: python scripts/update_track_record.py
 
       # Nano Cap and Combined keep their own records from October 2026 (owner,
@@ -126,6 +135,15 @@ jobs:
       # Nifty 1000 from November 2026 (S175); update_track_record refuses its
       # freeze while any member lacks a close on the signal date.
       - name: Freeze Nano Cap, Combined and Nifty 1000
+        env:
+          PYTHONPATH: .
+          # S185: each frozen month's evidence bundle is published to R2 before
+          # the ledger is written; without these the freeze refuses.
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           for SYSTEM in nano combined 1000; do
             python scripts/update_track_record.py --system "$SYSTEM" \
@@ -136,12 +154,30 @@ jobs:
       # under SHADOW_CONFIG, from November 2026, never traded. Its own ledger;
       # a failure never stops the live records above from being committed.
       - name: Freeze the shadow record
+        env:
+          PYTHONPATH: .
+          # S185: each frozen month's evidence bundle is published to R2 before
+          # the ledger is written; without these the freeze refuses.
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           python scripts/update_track_record.py --shadow || echo "::warning::Shadow record freeze failed; the live records are unaffected."
 
       # Two more shadow records (owner, 19 Nov 2026, TODO S144): the leads of the
       # 19 Nov risk-overlay study, from the December 2026 book, never traded.
       - name: Freeze the near-high and breadth shadow records
+        env:
+          PYTHONPATH: .
+          # S185: each frozen month's evidence bundle is published to R2 before
+          # the ledger is written; without these the freeze refuses.
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           for BOOK in high90 breadth_long; do
             python scripts/update_track_record.py --shadow "$BOOK" \
@@ -151,6 +187,15 @@ jobs:
       # Skip 5 (owner, 20 Nov 2026, TODO S160): the composite read 5 sessions
       # before the signal, from the December 2026 book, never traded.
       - name: Freeze the skip-5 shadow record
+        env:
+          PYTHONPATH: .
+          # S185: each frozen month's evidence bundle is published to R2 before
+          # the ledger is written; without these the freeze refuses.
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           python scripts/update_track_record.py --shadow skip5 \
             || echo "::warning::Shadow record skip5 freeze failed; the live records are unaffected."
@@ -160,7 +205,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           # data/nse_prices/closes.parquet is not in git (.gitignore): it is published above.
-          git add data/track_record*.json data/book_exposure.csv data/former_member_prices.parquet data/former_member_prices.json data/nse_prices/actions.parquet data/nse_prices/notes.json
+          git add data/track_record*.json data/record_books.json data/book_exposure.csv data/former_member_prices.parquet data/former_member_prices.json data/nse_prices/actions.parquet data/nse_prices/notes.json
           if git diff --staged --quiet; then
             echo "No new closed months; ledger unchanged."
             exit 0
@@ -179,8 +224,8 @@ jobs:
               # The ledger is append-only, so on a conflict this run's version
               # is the one carrying the new month. Keep it and continue. In a
               # rebase that is --theirs (--ours is origin/main).
-              git checkout --theirs -- data/track_record*.json 2>/dev/null || true
-              git add data/track_record*.json
+              git checkout --theirs -- data/track_record*.json data/record_books.json 2>/dev/null || true
+              git add data/track_record*.json data/record_books.json
               GIT_EDITOR=true git rebase --continue || git rebase --abort
             }
             sleep $((i * 5))

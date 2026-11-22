@@ -48,7 +48,7 @@ from src.core.config import (  # noqa: E402
     DEFAULT_SECTOR_CAP, DEFAULT_STOCK_CAP, DEFAULT_TRANSACTION_COST_BPS,
     RANKINGS_SNAPSHOT_URL, SCREENER_STORE_URL,
 )
-from src.engine import systems  # noqa: E402
+from src.engine import freeze_bundle, systems  # noqa: E402
 from src.engine.actions import plan_rebalance  # noqa: E402
 from src.engine.backtester import _hold_cap_on, run_backtest  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750  # noqa: E402
@@ -281,6 +281,22 @@ def main() -> int:
            max_drift_pp=max((abs(r.get("strategy_drift") or 0) for r in rep["rows"]
                              if r["status"] != "accepted"), default=0) * 100,
            accepted=[r["month"] for r in rep["rows"] if r["status"] == "accepted"])
+
+    # 2b. Each frozen month's stored book (S185, data/record_books.json) against the
+    # book today's replay forms for that month. A month the owner accepted as
+    # drifting is listed, not failed; a month with no stored book (frozen before
+    # S185) is skipped. October 2026 would have read "AETHER replay, SKYGOLD stored".
+    stored_books = freeze_bundle.load_books().get("750", {})
+    book_diffs = {m: d for m in sorted(stored_books)
+                  if (d := freeze_bundle.book_differences(
+                      stored_books[m].get("book", []),
+                      freeze_bundle.month_book(res.get("tradebook"), m)))}
+    accepted_months = {r["month"] for r in rep["rows"] if r["status"] == "accepted"}
+    failing = {m: d for m, d in book_diffs.items() if m not in accepted_months}
+    record("stored_books", None if not stored_books else not failing,
+           months=len(stored_books), differ=book_diffs,
+           **({"reason": "no month frozen with a stored book yet (S185 starts with November 2026)"}
+              if not stored_books else {}))
 
     # 3. Struck under today's pinned config.
     membership = systems.membership_for(SYSTEM_750)
