@@ -16,6 +16,7 @@ handed to the scoring engine is never all zeros, and a repair is never silent.
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
@@ -39,8 +40,16 @@ def _warnings(at) -> str:
 
 
 def _engine_weights() -> list[float]:
-    """The normalised vector app.py handed the engine on the last run."""
-    return startup_metrics.snapshot()["facts"]["ranking_weights"]
+    """The normalised vector app.py handed the engine on the last run.
+
+    Read from the module app.py imported on that run, not the one this file
+    imported: when resident memory passes the guard (src/core/memory.GUARD_MB,
+    1,800 MB, easily passed late in a full pytest run), app.py drops every src.*
+    module and imports startup_metrics afresh, so the copy imported here held a
+    previous test's vector (seen 23 Nov 2026: the defaults, in a full run only).
+    """
+    live = sys.modules.get("src.core.startup_metrics", startup_metrics)
+    return live.snapshot()["facts"]["ranking_weights"]
 
 
 def _normalised(ws) -> list[float]:

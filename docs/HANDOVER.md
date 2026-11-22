@@ -140,11 +140,9 @@ have dates) unless the owner says otherwise.
 
 ## Found, not fixed (recorded so it is not rediscovered)
 
-- **`test_zeroed_weight_session_recovers.py::test_a_mirrored_weight_outlives_an_evicted_widget_key`
-  failed once in a full local run** (23 Nov; "the reader's weights were replaced by the defaults")
-  and passes alone on the branch and on `main` 4f3425c: order-dependent, not from a change. Watch
-  whether CI shows it.
-
+- **Fixed 23 Nov: `test_zeroed_weight_session_recovers.py` failed only in a full run.** Cause: past
+  1,800 MB resident (`memory.GUARD_MB`), `app.py` drops every `src.*` module, so the test read a stale
+  `startup_metrics`. Reproduced with `UMIYA_MEMORY_GUARD_MB=1` (fails), fixed by reading the live module.
 - **Production QA races a data-only commit that lands right after a merge**:
   run 45038274440 tested #617's merge (8f11650) while Streamlit already served
   the next commit, `bcfc880` (chore(data)), and failed "Unexpected served
