@@ -148,6 +148,13 @@ have dates) unless the owner says otherwise.
   the next commit, `bcfc880` (chore(data)), and failed "Unexpected served
   revision". S186 handles the opposite case (the live app still on the build
   before). Harmless; the next push's QA passed.
+- **Portfolio QA "Equity card MTD summary / Calendar live-month evidence is incomplete"**: the
+  desktop read came before the page finished streaming (desktop ~1,000-2,300 characters, phone
+  ~3,100). Last seen 20 Nov (run 44744994558); #580's `MONTH_TILE` wait fixed it: 0 in the 42 runs
+  from 21 Nov 04:28 to 22 Nov 19:48. Reopen only if it recurs after #580.
+- **A module rename shows `ModuleNotFoundError` for a few minutes during the redeploy**: run
+  44945662766 (21 Nov 20:19) hit it 3 min after #599 renamed `breadth_view.py` to `market_view.py`;
+  the next run, 10 min later, passed. Readers see it too, so time a rename away from busy hours.
 - **One memory-bench run did not repeat**: Backtest warm 22 s with a 74 MB drop
   mid-run; six more runs gave 4.6-5.2 s. Recorded in the report §1.
 - `audit_page_bench.py` needs the Python `playwright` package: install
