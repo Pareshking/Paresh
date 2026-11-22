@@ -11,7 +11,7 @@ Paste the prompt at the end as the first message of a fresh session.
   **current head** and it merges cleanly with `main`. Squash-merge with
   `expectedHeadSha`. After a squash merge, restart your branch from `main`.
 - **Before taking an S-number,** check open PRs as well as `main`. Next free:
-  **S197**.
+  **S199** (S197 membership from daily CSVs with a monthly notices check, S198 Ultra Nano Cap, both 22 Nov evening).
 - **Verify every claim yourself.** Nothing is deleted without the owner's yes on
   each item; the `ref_*` release files always stay.
 - **Tests:** `python scripts/fetch_nse_closes.py` first, then
@@ -111,7 +111,7 @@ Terminal). Read CLAUDE.md, then docs/HANDOVER_2026-11-22b.md, then the open
 rows of docs/TODO.md (S175, S188, S194, S195, S196). Follow the standing rules
 in the handover exactly: one activity at a time, you do the merges (green CI
 on the current head, squash, expectedHeadSha), check open PRs before taking an
-S-number (next free S197), verify every claim, delete nothing without the
+S-number (next free S199), verify every claim, delete nothing without the
 owner's yes. Close PR #613 (superseded). Then work the queue in order,
 starting with the 23 Nov first-run checks.
 ```
