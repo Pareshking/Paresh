@@ -64,11 +64,11 @@ def _num(value) -> float | None:
         return None
 
 
-def _money(value, decimals: int = 2) -> str:
-    # A share price and its levels (52W high, EMA, the -20% line) carry paise,
-    # as the Screener's price does (audit F66).
+def _money(value, decimals: int = 0) -> str:
+    # A share price and its levels (52W high, EMA, the −20% line): whole rupees, as on every page
+    # (owner, 22 Nov 2026, S173; paise 7-22 Nov, audit F66). `decimals` is kept for callers; ignored.
     v = _num(value)
-    return _fmt.inr(v, decimals) if v is not None else "—"
+    return _fmt.price(v) if v is not None else "–"
 
 
 def _pct(value, decimals: int = 1, signed: bool = True) -> str:
@@ -84,13 +84,14 @@ def _pct(value, decimals: int = 1, signed: bool = True) -> str:
 
 def _ratio(value, decimals: int = 2) -> str:
     v = _num(value)
-    return f"{v:.{decimals}f}" if v is not None else "—"
+    # A true minus (S173 rule 4): a Sharpe of −0.14, not -0.14.
+    return _fmt.signed(v, decimals, plus=False) if v is not None else "–"
 
 
 def _signed_pct(frac: float | None, decimals: int = 1) -> str:
     """A fraction as a signed percentage with a real minus sign."""
     if frac is None:
-        return "—"
+        return "–"
     sign = "+" if frac > 0 else "−" if frac < 0 else ""
     return f"{sign}{abs(frac) * 100:.{decimals}f}%"
 
@@ -139,7 +140,7 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
     # stock a Nifty 50 badge.
     chips = f'<span class="sp-sym">{_html.escape(sym)}</span>'
     for t in tags:
-        if t in ("—", "NAN"):
+        if t in ("–", "NAN"):
             continue
         chips += f'<span class="sp-tag">{_html.escape(INDEX_NAMES.get(t, t))}</span>'
 
@@ -183,7 +184,7 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
         steps = []
         for i, (r, label) in enumerate(path):
             cls = "now" if label == "Now" else ""
-            rank_text = f"#{r}" if r is not None else "—"
+            rank_text = f"#{r}" if r is not None else "–"
             steps.append(f'<span class="sp-step {cls}"><b>{rank_text}</b><i>{label}</i></span>')
             if i < len(path) - 1:
                 steps.append('<span class="sp-arrow">→</span>')
@@ -209,7 +210,7 @@ def _render_identity(row: pd.Series, total_stocks: int) -> None:
         '</div>'
         '<div class="sp-card sp-rank">'
         '<span class="sp-k">Momentum rank</span>'
-        f'<div class="sp-rank-big"><span>#{int(rank) if rank is not None else "—"}</span>'
+        f'<div class="sp-rank-big"><span>#{int(rank) if rank is not None else "–"}</span>'
         f'<i>of {total_stocks} stocks</i></div>'
         f'{path_html}'
         f'<div class="sp-facts">{"".join(facts)}</div>'
@@ -240,12 +241,12 @@ def _render_verdict(row: pd.Series) -> None:
 
     def dist(p: float | None) -> str:
         if p is None:
-            return "—"
+            return "–"
         if abs(p) < 0.05:
             return "At the high"
         return f"{abs(p):.1f}% {'above' if p > 0 else 'below'}"
 
-    ema_txt = "—" if ema_pct is None else f"{abs(ema_pct):.1f}% {'above' if ema_pct >= 0 else 'below'}"
+    ema_txt = "–" if ema_pct is None else f"{abs(ema_pct):.1f}% {'above' if ema_pct >= 0 else 'below'}"
     hi_date = _date_label(row.get("52W High Date"))
     ath_date = _date_label(row.get("ATH Date"))
 
@@ -271,13 +272,13 @@ def _render_verdict(row: pd.Series) -> None:
         f'<div class="sv-main"><span class="sv-k">52W high</span>'
         f'<strong>{_html.escape(hi_value)}</strong></div>'
         f'<div class="sv-side"><em class="{"pass" if near else "fail"}">{hi_status}</em>'
-        f'<span>Date</span><b>{_html.escape(hi_date or "—")}</b></div></div>'
+        f'<span>Date</span><b>{_html.escape(hi_date or "–")}</b></div></div>'
         f'<div class="sv-card ath">'
         f'<div class="sv-main"><span class="sv-k">ATH</span>'
         f'<strong>{_html.escape(ath_value)}</strong>'
         f'<b class="sv-price">{_money(ath)}</b></div>'
         f'<div class="sv-side">'
-        f'<span>Date</span><b>{_html.escape(ath_date or "—")}</b></div></div>'
+        f'<span>Date</span><b>{_html.escape(ath_date or "–")}</b></div></div>'
         '</section>'
     )
 
@@ -310,7 +311,7 @@ def _render_corporate_actions(symbol: str, adj_close: pd.DataFrame | None = None
         move = e.get("move")
         move_str = f"{_fmt.pct(move * 100, fraction=False)}" if move is not None else "a large amount"
         kind = e.get("looks_like") or e.get("kind") or "corporate action"
-        day = _date_label(e.get("date")) or str(e.get("date", "—"))
+        day = _date_label(e.get("date")) or str(e.get("date", "–"))
         lines.append(
             f"On <b>{_html.escape(day)}</b> the price moved <b>{_html.escape(move_str)}</b> in "
             f"one session, which looks like a {_html.escape(str(kind))}."
@@ -513,12 +514,12 @@ def _render_gain_vs_pain(row: pd.Series, rank_df: pd.DataFrame) -> None:
             for k in range(4)
         )
         if pct is None:
-            top, good = "—", ""
+            top, good = "–", ""
         elif pct >= 50:
             top, good = f"Top {max(1, int(np.ceil(100 - pct)))}%", "good"
         else:
             top, good = f"Bottom {max(1, int(np.ceil(pct)))}%", "poor"
-        dd_txt = f"−{abs(dd):.1f}%" if dd is not None else "—"
+        dd_txt = f"−{abs(dd):.1f}%" if dd is not None else "–"
         nb_txt = f"Nifty 500 {_signed_pct(nb)}" if nb is not None else ""
         rows_html.append(
             '<div class="gp-row">'
@@ -639,7 +640,7 @@ def _factsheet_dialog(row: dict) -> None:
 
     with t_trend:
         kit.metric_row([
-            kit.Metric("Rank", f"#{int(_num(r.get('Rank')))}" if _num(r.get("Rank")) is not None else "—"),
+            kit.Metric("Rank", f"#{int(_num(r.get('Rank')))}" if _num(r.get("Rank")) is not None else "–"),
             kit.Metric("Score", _ratio(r.get("Score"), 3)),
             kit.Metric("From 52W high", _pct(r.get("% High"))),
             kit.Metric("vs 50D EMA", _pct(r.get("% 50 EMA"))),
@@ -661,11 +662,11 @@ def _factsheet_dialog(row: dict) -> None:
         gap = str(r.get("Data Gap") or "").strip()
         hz = _num(r.get("Horizons Scored"))
         kit.metric_row([
-            kit.Metric("Horizons scored", f"{int(hz)} of 5" if hz is not None else "—"),
+            kit.Metric("Horizons scored", f"{int(hz)} of 5" if hz is not None else "–"),
             kit.Metric("Gap-filled prices", _pct(r.get("FFill %"), signed=False)),
             kit.Metric("History", "Under 6 months" if str(r.get("Short History") or "No") == "Yes" else "Full"),
         ], key="fs_data")
-        if gap and gap.lower() not in ("nan", "none", "—"):
+        if gap and gap.lower() not in ("nan", "none", "–"):
             kit.callout("Data gap", gap, "warn")
         else:
             kit.callout("No data gaps flagged", "", "up")
@@ -840,4 +841,5 @@ def render_stock_view(
         total_stocks=total_stocks,
         gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum()),
+        as_of=adj_close.index[-1] if adj_close is not None and len(adj_close.index) else None,
     )

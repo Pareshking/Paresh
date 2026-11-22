@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-22 — One way to write numbers, dates and names on every page
+
+- Prices and moving averages are in whole rupees on every page, low-priced stocks included (₹2,906 and ₹70, not ₹2,905.90 or ₹70.05). Returns, weights and points carry one decimal (11.1%, not 11.11%). Large sums read in crore with Indian grouping (₹1,22,000 Cr, not ₹1.22 lakh Cr); amounts on Actions read in rupees (₹34,05,000, not ₹34.1 lakh).
+- Dates read "20 Nov 2026" everywhere, the tables under the charts included (they showed 2026-11-20). Every minus is a true minus, the stock page's Sharpe column too. A missing figure reads "–".
+- One name for one thing: "50D EMA" and "200D EMA" (not "50-day EMA"), and "Nifty Total Market" in full.
+- Each page ends with "Data to <date> · NSE"; the Watchlist and the stock page now have this line too.
+- Display only: the figures behind them, the CSV exports and the Kite basket keep their exact values. Because the blotter's entry and exit are now whole rupees, they no longer reproduce the return beside them to the decimal; the return is still worked out from the exact prices.
+- Left as they were: ratios such as beta, P/B, P/E and Sharpe, correlations, ranks, counts, index levels, chart-scale notes, and statutory rates such as stamp duty (0.015%).
+
 ## 2026-11-22 — Nifty 1000: every member's prices kept like the 750's
 
 - The 250 stocks the Nifty 1000 adds to the 750 are now collected and checked the way the 750 are: Screener every night, with a new member's history fetched in full and a stock Screener cannot serve named under the header until it is; SS every week; NSE's daily closes over Screener's weekly stretch; the long price file from 2010; and prices for members that leave, so a sale is always priced.

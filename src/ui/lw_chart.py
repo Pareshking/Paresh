@@ -113,7 +113,7 @@ def _value(v: float, fmt: str | None) -> str:
     if fmt == "rupee":
         return _fmt.inr(v)
     if fmt == "price":
-        return _fmt.inr(v, 2)
+        return _fmt.price(v)
     if fmt == "int":
         r = round(v)
         return (_fmt.MINUS if r < 0 else "") + _fmt.indian_group(abs(r))
@@ -197,7 +197,7 @@ const fmts={
   num:v=>(v<0?'−':'')+Math.abs(v).toFixed(2),
   int:v=>(Math.round(v)<0?'−':'')+Math.abs(Math.round(v)).toLocaleString('en-IN'),
   rupee:v=>(Math.round(v)<0?'−':'')+'₹'+Math.abs(Math.round(v)).toLocaleString('en-IN'),
-  price:v=>(v<0?'−':'')+'₹'+Math.abs(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}),
+  price:v=>(Math.round(v)<0?'−':'')+'₹'+Math.abs(Math.round(v)).toLocaleString('en-IN'),  // whole rupees (S173)
   share:v=>v.toFixed(0)+'%',
   share1:v=>v.toFixed(1)+'%',
 };
@@ -247,7 +247,7 @@ SPEC.forEach((p,pi)=>{
       horzLine:{visible:false,labelVisible:true,labelBackgroundColor:'var(--c-ink_2)'}},
     handleScroll:{mouseWheel:false,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false},
     handleScale:{mouseWheel:false,pinch:true,axisPressedMouseMove:false},
-    localization:{priceFormatter:p.series.length&&p.series[0].fmt?fmts[p.series[0].fmt]||undefined:undefined,
+    localization:{priceFormatter:(p.series.length&&p.series[0].fmt&&fmts[p.series[0].fmt])||fmts.num,  /* a true minus on every axis (S173 rule 4) */
       timeFormatter:t=>dateText(t)},
   });
   const ss=[], ds=[];

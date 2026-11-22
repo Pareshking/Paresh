@@ -30,7 +30,7 @@ function probe() {
     const body = [...(t.tBodies[0]?.rows || [])].filter(r => r.cells.length === head.cells.length);
     [...head.cells].forEach((th, j) => {
       if (!txt(th) || th.colSpan > 1) return;
-      const cells = body.map(r => r.cells[j]).filter(c => txt(c) && txt(c) !== '—');
+      const cells = body.map(r => r.cells[j]).filter(c => txt(c) && txt(c) !== '—' && txt(c) !== '–');
       if (cells.length < 2) return;
       const hb = box(th), cb = cells.map(box).filter(Boolean); if (!hb || !cb.length) return;
       const al = c => { const a = getComputedStyle(c).textAlign; return a === 'right' || a === 'end' ? 'right' : a === 'center' ? 'center' : 'left'; };

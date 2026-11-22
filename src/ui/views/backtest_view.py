@@ -23,6 +23,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.ui import formats as _fmt
+
 from src.core.config import BENCHMARK_SYMBOL, BENCHMARK_SYMBOL_N50, DEFAULT_TRANSACTION_COST_BPS, RISK_FREE_RATE
 from src.core.market_time import ist_now
 from src.engine import backtest_page as bp
@@ -91,15 +93,15 @@ def _d(t) -> str:
 
 
 def _pc(v, digits: int = 1) -> str:
-    return "—" if v is None or (isinstance(v, float) and not np.isfinite(v)) else sg(v * 100, digits, "%").lstrip("+")
+    return "–" if v is None or (isinstance(v, float) and not np.isfinite(v)) else sg(v * 100, digits, "%").lstrip("+")
 
 
 def _pcs(v, digits: int = 1) -> str:
-    return "—" if v is None or (isinstance(v, float) and not np.isfinite(v)) else sg(v * 100, digits, "%")
+    return "–" if v is None or (isinstance(v, float) and not np.isfinite(v)) else sg(v * 100, digits, "%")
 
 
 def _pts(v, digits: int = 1) -> str:
-    return "—" if v is None or (isinstance(v, float) and not np.isfinite(v)) else sg(v * 100, digits, " pts")
+    return "–" if v is None or (isinstance(v, float) and not np.isfinite(v)) else sg(v * 100, digits, " pts")
 
 
 def _t(v) -> str:
@@ -365,14 +367,14 @@ def tested_line(s: dict, h: dict) -> str:
              f"Signal every {s['rebal_freq']} sessions, bought at the next close")
     items = [f"{h['name']}, members of each date", f"{h['start'].strftime('%b %Y')} to {h['end'].strftime('%b %Y')}",
              f"{s['top_n']} holdings", f"Kept while in the top {s['buffer_n']}",
-             f"Above its {s['ema_period']}-day EMA", f"Within {(1 - s['high_pct']) * 100:g}% of its 52-week high"]
+             f"Above its {s['ema_period']}D EMA", f"Within {(1 - s['high_pct']) * 100:g}% of its 52-week high"]
     if s["ath_pct"] is not None or s["exit_ath_pct"] is not None:
         if s["ath_pct"] is not None:
             items.append(f"Within {(1 - s['ath_pct']) * 100:g}% of its all-time high")
         items.append(f"The all-time high: the highest close since {h['close'].index[0]:%b %Y}, applied after "
                      f"{s['ath_min_years']:g} years on file")
     if s["exit_ema_period"] is not None:
-        items.append(f"Kept while above its {s['exit_ema_period']}-day EMA")
+        items.append(f"Kept while above its {s['exit_ema_period']}D EMA")
     if s["exit_high_pct"] is not None:
         items.append(f"Kept while within {(1 - s['exit_high_pct']) * 100:g}% of its 52-week high")
     if s["exit_ath_pct"] is not None:
@@ -420,7 +422,7 @@ def section_lead(f: dict) -> list:
         h2 = (f'Under a year, so no yearly figure: the rule is <span class="{_t(sm.total)}">{e(_pcs(sm.total))}</span>, '
               f'the Nifty 500 {e(_pcs(sm.bench_total))}.')
     tiles = _kpis([
-        ("A year, compounded", _pc(sm.a_year) if sm.a_year is not None else "—", _t(sm.a_year),
+        ("A year, compounded", _pc(sm.a_year) if sm.a_year is not None else "–", _t(sm.a_year),
          f"Nifty 500 {_pc(sm.bench_a_year)}" if sm.a_year is not None else "needs 12 months"),
         ("Lead over the Nifty 500", _pts(sm.lead) if sm.lead is not None else _pts(sm.total - sm.bench_total),
          _t(sm.lead if sm.lead is not None else sm.total - sm.bench_total), "a year" if sm.lead is not None else "over the run"),
@@ -439,27 +441,27 @@ def section_lead(f: dict) -> list:
     notes = [
         "<b>Price returns, both sides.</b> The rule’s figure includes a dividend only where it was 10% of the price or "
         "more (the long file takes those out as an adjustment); the Nifty 500 figure is NSE’s price index, with no "
-        + (f"dividends. NSE’s own file puts the Nifty 500’s dividend yield at {dy:.2f}% a year on average since Feb 2012, "
+        + (f"dividends. NSE’s own file puts the Nifty 500’s dividend yield at {dy:.1f}% a year on average since Feb 2012, "
            "against about 0.5% for the book (measured 2020–25 only, S125), so against the index with dividends the lead "
            f"is about {dy - 0.5:.1f} points a year smaller than shown." if dy is not None else "dividends."),
         f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill.",
-        "<b>Why the Nifty 500 and not Nifty Total Market.</b> Total Market starts on 14 Oct 2021 and this history in "
-        "2010 (owner, 21 Nov 2026). Total Market is beside it from 2022 in section 3 and in section 4."
+        "<b>Why the Nifty 500 and not Nifty Total Market.</b> Nifty Total Market starts on 14 Oct 2021 and this history in "
+        "2010 (owner, 21 Nov 2026). Nifty Total Market is beside it from 2022 in section 3 and in section 4."
         + (f" For this universe its own index, the {e(f['uidx_name'])}, is shown beside both." if f.get("uidx_name") else ""),
     ]
     if half is not None and sm.lead_first_half is not None:
         notes.append(f"<b>The two halves.</b> The rule led by {sm.lead_first_half * 100:.2f} pts a month on average to "
                      f"{half - pd.offsets.MonthEnd(1):%b %Y} and {sm.lead_second_half * 100:.2f} after; the median month "
-                     f"{_pts(sm.median_lead, 2)}.")
+                     f"{_pts(sm.median_lead)}.")
     rows = [["Total return", _pcs(sm.total, 0), _pcs(sm.bench_total, 0)],
-            ["A year, compounded", _pc(sm.a_year, 2), _pc(sm.bench_a_year, 2)],
-            ["A year before costs", _pc(st_.get("cagr_gross"), 2), "—"],
-            ["Volatility, a year (daily returns)", _pc(st_.get("volatility")), "—"],
+            ["A year, compounded", _pc(sm.a_year), _pc(sm.bench_a_year)],
+            ["A year before costs", _pc(st_.get("cagr_gross")), "–"],
+            ["Volatility, a year (daily returns)", _pc(st_.get("volatility")), "–"],
             [f"Sharpe, over {RISK_FREE_RATE:.1%}, ± one standard error",
-             f"{st_.get('sharpe', float('nan')):.2f} ± {st_.get('sharpe_stderr_iid', float('nan')):.2f}", "—"],
+             f"{st_.get('sharpe', float('nan')):.2f} ± {st_.get('sharpe_stderr_iid', float('nan')):.2f}", "–"],
             [f"Sortino, over {RISK_FREE_RATE:.1%}",
-             f"{st_['sortino']:.2f}" if np.isfinite(st_.get("sortino", float("nan"))) else "—", "—"],
-            ["Turnover, one way, a month", f"{st_.get('avg_turnover', 0):.0f}%", "—"]]
+             f"{st_['sortino']:.2f}" if np.isfinite(st_.get("sortino", float("nan"))) else "–", "–"],
+            ["Turnover, one way, a month", f"{st_.get('avg_turnover', 0):.0f}%", "–"]]
     return ['<div class="dh-sec">', _kick("1", "Ahead of the market"), f'<h2 id="s-lead" class="dh-h2">{h2}</h2>', tiles, "</div>",
             Chart("btgrowth", spec, {"label": "Growth of ₹100 on a log scale, this rule and the Nifty 500, and how far each "
                                               "sits below its peak"}),
@@ -486,7 +488,7 @@ def section_falls(f: dict) -> list:
     needs = (1 / (1 + now) - 1) if now < 0 else 0.0
     tiles = _kpis([
         ("Below its peak now", _pcs(now), "dh-down" if now < 0 else "", f"Nifty 500 {_pcs(bnow)}"),
-        ("Largest fall from a peak", _pcs(big.depth) if big else "—", "dh-down",
+        ("Largest fall from a peak", _pcs(big.depth) if big else "–", "dh-down",
          f"Nifty 500 {_pcs(n500_falls[0].depth)}" if n500_falls else ""),
         ("Days below its peak", f"{cur_days:,}" if now < 0 else "0", "dh-watch" if now < 0 else "",
          f"since {_d(f['current_peak'])}" if now < 0 else "at its peak"),
@@ -523,7 +525,7 @@ def section_years(f: dict) -> list:
     if f.get("uidx_name"):
         cols.append(("uidx", f["uidx_short"]))
     if "tm" in yt and f["h"]["key"] != bp.TOTAL_MARKET:
-        cols.append(("tm", "Total Market"))
+        cols.append(("tm", "Nifty Total Market"))
     lead = (yt["rule"] - yt["n500"]).tolist()
     finite = [v * 100 for v in lead if np.isfinite(v)]
     lo = min(0.0, min(finite or [0.0]))
@@ -551,7 +553,7 @@ def section_years(f: dict) -> list:
             "rows": rows, "lo": float(lo), "hi": float(hi), "step": step, "rest": f"{rows[0]['name']}, the first year" if rows else ""}
     mtd = f.get("mtd")
     note = (f"A dark zero line; a lead left of it is a year behind. The first year starts at "
-            f"the first fill, {_d(f['summary'].first)}. Total Market is NSE’s index, live from 14 Oct 2021, so it starts in "
+            f"the first fill, {_d(f['summary'].first)}. Nifty Total Market is NSE’s index, live from 14 Oct 2021, so it starts in "
             f"{bp.TOTAL_MARKET_FROM}.")
     if mtd:
         note += (f" {mtd['label']} so far, to {_d(mtd['as_of'])}, is not in the table: this rule {_pcs(mtd['rule'])}, "
@@ -578,7 +580,7 @@ def months_grid(m: pd.DataFrame) -> str:
         for label, fn, yv in (("This rule", lambda r: _pcs(r["rule"]), _pcs(yr_rule)),
                               ("Nifty 500", lambda r: _pcs(r["bench"]), _pcs(yr_b)),
                               ("Lead", lambda r: _pts(r["rule"] - r["bench"]).replace(" pts", ""), _pts(yr_rule - yr_b).replace(" pts", ""))):
-            cells = "".join(f'<td class="dh-num">{e(fn(by[k]))}</td>' if k in by else '<td class="dh-num dh-muted">—</td>'
+            cells = "".join(f'<td class="dh-num">{e(fn(by[k]))}</td>' if k in by else '<td class="dh-num dh-muted">–</td>'
                             for k in range(1, 13))
             body += f'<tr><th scope="row">{label}</th>{cells}<td class="dh-num"><b>{e(yv)}</b></td></tr>'
     return (f'<table class="dh-tab bt-months"><thead><tr><th scope="col"></th>{head}</tr></thead><tbody>{body}</tbody></table>'
@@ -715,7 +717,7 @@ def section_trades_head(f: dict) -> list:
         ("Won", f"{won:.0%}", "", "of closed trades"),
         ("Median holding", f"{ts['median_days']:.0f} days", "", "entry fill to exit fill"),
         ("Median trade", _pcs(ts["median_return"]), _t(ts["median_return"]), f"mean {_pcs(ts['mean_return'])}"),
-        ("Gains over losses", f"{pf:.2f}×" if pf else "—", "", "each trade weighted by its size at entry"),
+        ("Gains over losses", f"{pf:.2f}×" if pf else "–", "", "each trade weighted by its size at entry"),
     ])
     return ['<div class="dh-sec">', _kick("6", "Trades"), f'<h2 id="s-trades" class="dh-h2">{h2}</h2>', tiles,
             f'<p class="dh-note">Every trade and the rebalance log are below; the live record’s trades are on '
@@ -725,7 +727,7 @@ def section_trades_head(f: dict) -> list:
 def foot(f: dict) -> list:
     sm = f["summary"]
     idx = f" · indices to {_d(f['indices_as_of'])}" if f.get("indices_as_of") is not None else ""
-    return [f'<p class="dh-foot">Data to {_d(sm.last)}, the last completed month · prices to {_d(f["long_last"])}{idx}.</p>']
+    return [f'<p class="dh-foot">{_fmt.data_to(sm.last, "NSE’s long price file")}, the last completed month · prices to {_d(f["long_last"])}{idx}.</p>']
 
 
 # ── Gathering ─────────────────────────────────────────────────────────────────
@@ -892,7 +894,7 @@ def _download(res: dict, s: dict, h: dict, stock_cap: float, sector_cap: float, 
 def _reason(text: str) -> str:
     """The engine's rebalance-line reasons in the page's words (S173): "Rank 12, new", "Rank 12, kept"."""
     m = re.search(r"Rank #(\w+)", text or "")
-    rank = m.group(1) if m else "—"
+    rank = m.group(1) if m else "–"
     if "New Momentum Leader" in text:
         return f"Rank {rank}, new"
     if "Buffer Zone Retention" in text:

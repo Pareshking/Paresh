@@ -48,7 +48,7 @@ def as_of(close: pd.Series | None, end: pd.Timestamp) -> pd.Series:
 
     Every reader looks a close up "on or before" a date, so an index missing the
     page's session gave yesterday's figure under today's caption ("Indices, 19 Nov"
-    showed Nifty 50 for 18 Nov). Empty reads as "—" everywhere instead."""
+    showed Nifty 50 for 18 Nov). Empty reads as "–" everywhere instead."""
     if close is None:
         return pd.Series(dtype=float)
     s = close.dropna()

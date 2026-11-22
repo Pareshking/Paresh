@@ -60,7 +60,7 @@ def size_of(symbols, on: pd.Timestamp, membership: dict) -> dict[str, str]:
 def exposure(tradebook: pd.DataFrame, industry: dict[str, str], membership: dict) -> pd.DataFrame:
     rows = []
     for d, w in books(tradebook).items():
-        ind = w.groupby(w.index.map(lambda s: industry.get(s, "—"))).sum()
+        ind = w.groupby(w.index.map(lambda s: industry.get(s, "–"))).sum()
         size = w.groupby(w.index.map(size_of(list(w.index), d, membership))).sum()
         rows += [(d, "industry", k, round(float(v), 2)) for k, v in ind.items()]
         rows += [(d, "size", k, round(float(size.get(k, 0.0)), 2)) for k in SIZES]

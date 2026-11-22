@@ -8,6 +8,11 @@ House style (pre-launch audit F5/F6, owner 7 Nov 2026):
   before the rupee symbol (−₹954, not ₹-954). Index levels are not rupees and
   keep NSE's own grouping.
 * Percentages carry one decimal and, where the sign is the point, a + or −.
+* Prices, moving averages and any ₹ level are whole rupees, below ₹100 too (owner,
+  22 Nov 2026: "price etc, Moving averages etc should be in round numbers, return
+  only with Max one decimal values like 11.1% not 11.11%", and the same day: whole
+  rupees "including below ₹100"; S173). Display only: stored data, exports, the
+  Kite basket and every calculation keep their exact values.
 
 No streamlit import, so the theme, the page kit and framed tables can all use it.
 """
@@ -16,7 +21,7 @@ from __future__ import annotations
 import math
 
 MINUS = "−"
-DASH = "—"
+DASH = "–"
 
 
 def _finite(x) -> float | None:
@@ -61,6 +66,15 @@ def inr(x, decimals: int = 0, plus: bool = False) -> str:
     return f"{sign}₹{indian_group(whole)}{frac}"
 
 
+def price(x, plus: bool = False) -> str:
+    """A price or price level for display: "₹2,906", "₹70" (whole rupees, Indian grouping, at any
+    level: S173, owner 22 Nov 2026). Display only."""
+    v = _finite(x)
+    if v is None:
+        return DASH
+    return inr(v, 0, plus=plus)
+
+
 def pts(x, digits: int = 1, fraction: bool = True) -> str:
     """A difference between two returns, in percentage points: 0.083 -> "+8.3 pts".
 
@@ -79,3 +93,27 @@ def pct(x, signed_: bool = True, digits: int = 1, fraction: bool = True) -> str:
     if v is None:
         return DASH
     return f"{signed(v * 100 if fraction else v, digits, plus=signed_)}%"
+
+
+def date(x, short: bool = False) -> str:
+    """A date for display: "20 Nov 2026", or "20 Nov" in a tight column (S173 rule 3). Text that is not a date
+    is returned as it is, so a table can pass every cell through."""
+    import re
+    from datetime import date as _date
+
+    if hasattr(x, "strftime"):
+        d = x
+    else:
+        m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})(?:[ T]00:00:00)?", str(x).strip())
+        if not m:
+            return str(x)
+        d = _date(int(m[1]), int(m[2]), int(m[3]))
+    return f"{d.day} {d.strftime('%b')}" + ("" if short else f" {d.year}")
+
+
+PRICES_SOURCE = "NSE"   # the exchange the closes are from; the vendor is not named on a page (owner, 20-21 Nov 2026: "Let's not show source")
+
+
+def data_to(as_of, source: str = PRICES_SOURCE) -> str:
+    """A page's footer line: "Data to 20 Nov 2026 · NSE" (S173 rule 7)."""
+    return f"Data to {date(as_of)} · {source}"

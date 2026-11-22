@@ -225,7 +225,7 @@ def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | No
 
     closed_trades = result.get("closed_trades")
     if isinstance(closed_trades, pd.DataFrame) and "Exit Date" in closed_trades.columns:
-        # "06 Nov 2026", "—" or "Not exited (mark ...)": parsed one by one
+        # "06 Nov 2026", "–" or "Not exited (mark ...)": parsed one by one
         # ("mixed"), as before, without pandas' format warning in the log.
         exit_date = pd.to_datetime(closed_trades["Exit Date"], format="mixed", errors="coerce")
         result["closed_trades"] = closed_trades.loc[
@@ -301,7 +301,7 @@ def with_live_month(result: dict) -> dict:
         entry = pd.Timestamp(r["Entry Date"]) if pd.notna(r.get("Entry Date")) else None
         extra.append({
             "Month": f"{fill:%b %Y}", "Symbol": r["Symbol"],
-            "Entry Date": f"{entry:%d %b %Y}" if entry is not None else "—",
+            "Entry Date": f"{entry:%d %b %Y}" if entry is not None else "–",
             "Entry Price": r.get("Entry Price"),
             "Exit Date": f"{fill:%d %b %Y}", "Exit Price": r.get("Exit Price"),
             "Return %": r.get("Return %"),
@@ -314,7 +314,7 @@ def with_live_month(result: dict) -> dict:
             entry = pd.Timestamp(r["Entry Date"]) if pd.notna(r.get("Entry Date")) else None
             extra.append({
                 "Month": f"🟢 Open (as of {as_of:%d %b %Y})", "Symbol": r["Symbol"],
-                "Entry Date": f"{entry:%d %b %Y}" if entry is not None else "—",
+                "Entry Date": f"{entry:%d %b %Y}" if entry is not None else "–",
                 "Entry Price": r.get("Entry Price"),
                 "Exit Date": f"Not exited (mark {as_of:%d %b %Y})",
                 "Exit Price": r.get("Price Now"), "Return %": r.get("Return %"),

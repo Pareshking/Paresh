@@ -183,7 +183,7 @@ def build_portfolio_tracker(
     # For Nifty 750, Industry is the canonical NSE industry taxonomy.  The
     # app may also carry TradingView sector/industry fields for other systems,
     # but Portfolio exposure must not silently replace the NSE taxonomy here.
-    out["Sector / Industry"] = mapped("Industry", "—").replace("", np.nan).fillna("—")
+    out["Sector / Industry"] = mapped("Industry", "–").replace("", np.nan).fillna("–")
     out["Current Rank"] = pd.to_numeric(mapped("Rank"), errors="coerce")
     out["Market Cap (Cr)"] = pd.to_numeric(mapped("Market Cap (Cr)"), errors="coerce")
 
@@ -424,9 +424,9 @@ def build_portfolio_history(
                 "Alpha vs Benchmark": float(s_ret - b_ret) if pd.notna(s_ret) and pd.notna(b_ret) else np.nan,
                 "Origin": "Recorded" if entry.get("origin") == "recorded" else "Backfilled",
                 "Universe": "Point-in-time" if entry.get("universe") == "point_in_time" else "Current list",
-                "Frozen On": entry.get("finalized_on") or "—",
-                "Priced From": entry.get("data_as_of") or "—",
-                "Config": entry.get("config") or "—",
+                "Frozen On": entry.get("finalized_on") or "–",
+                "Priced From": entry.get("data_as_of") or "–",
+                "Config": entry.get("config") or "–",
             })
     equity = pd.Series(equity_rows, index=pd.DatetimeIndex(equity_dates), dtype=float)
     benchmark = pd.Series(benchmark_rows, index=pd.DatetimeIndex(benchmark_dates), dtype=float)
@@ -469,8 +469,8 @@ def build_portfolio_history(
                     "Alpha vs Benchmark": float(live_s - live_b) if pd.notna(live_s) and pd.notna(live_b) else np.nan,
                     "Origin": "Live MTD" if live_state == "mtd" else "Closed, awaiting freeze",
                     "Universe": "Current list",
-                    "Frozen On": "—",
-                    "Priced From": live_meta.get("as_of") or "—",
+                    "Frozen On": "–",
+                    "Priced From": live_meta.get("as_of") or "–",
                     "Config": "Live month-to-date" if live_state == "mtd" else "Closed month, not yet frozen",
                 })
     equity_daily = _daily_path(record.get("equity_curve"), months, "strategy", capital)

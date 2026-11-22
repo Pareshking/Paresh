@@ -269,7 +269,7 @@ const chart=Highcharts.chart('c',{chart:{type:'scatter',backgroundColor:'transpa
     title:{text:months+'-month return vs all ranked stocks (equal weight) →',style:{color:'var(--c-muted_2)',fontSize:'11px'}},
     labels:{format:'{value}%',style:{color:'var(--c-muted_2)',fontSize:'11px'}},plotLines:[{value:0,color:'var(--c-rule_strong)',width:1,zIndex:2}]},
   yAxis:{min:0,max:100,tickInterval:20,endOnTick:false,gridLineColor:'var(--c-grid)',
-    title:{text:'↑ Stocks above their '+span+'-day EMA',style:{color:'var(--c-muted_2)',fontSize:'11px'}},
+    title:{text:'↑ Stocks above their '+span+'D EMA',style:{color:'var(--c-muted_2)',fontSize:'11px'}},
     labels:{format:'{value}%',style:{color:'var(--c-muted_2)',fontSize:'11px'}},plotLines:[{value:50,color:'var(--c-rule_strong)',width:1,dashStyle:'Dash',zIndex:2}]},
   tooltip:{useHTML:true,backgroundColor:'var(--c-white)',borderColor:'var(--c-rule)',borderWidth:1,borderRadius:3,shadow:false,padding:8,style:{color:'var(--c-ink)',fontSize:'12px',lineHeight:'17px'},
     formatter:function(){const r=this.series.options.row;
@@ -325,7 +325,7 @@ def render_leadership_map(board: pd.DataFrame, span: int, focus: str | None = No
         "<body>" + text_alternative(" ".join(
             f"{r['full']}: {months}-month return {_fmt.pct(r['ret'], fraction=False)} against the Nifty 500's "
             f"{_fmt.pct(r['bench'], fraction=False)}; {_fmt.pct(r['y1'], signed_=False, fraction=False)} above their "
-            f"{span}-day EMA ({_fmt.pct(r['y0'], signed_=False, fraction=False)} on {then})."
+            f"{span}D EMA ({_fmt.pct(r['y0'], signed_=False, fraction=False)} on {then})."
             for r in rows)) +
         "<div id='pin'></div><div id='c' aria-hidden='true' style='width:100%;height:500px'></div><script>"
         + lib() + "</script><script>" + js + "</script></body></html>"

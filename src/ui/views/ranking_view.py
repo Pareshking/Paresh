@@ -9,6 +9,8 @@ import time
 import pandas as pd
 import streamlit as st
 
+from src.ui import formats as _fmt
+
 from src.ui.widget_state import mirror_key, remember
 from src.ui.system_param import keep_system_only, stock_href
 
@@ -784,7 +786,7 @@ def qualified_trail(prices: pd.DataFrame | None, rank_df: pd.DataFrame) -> dict 
 def data_line(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
     """The data date and the counts; no source named (owner, 20 Nov 2026). A
     dataset that is behind is said, in the caution colour, by what it is."""
-    when = "" if adj_close is None or not len(adj_close.index) else f"Data to {pd.Timestamp(adj_close.index[-1]):%-d %b %Y}. "
+    when = "" if adj_close is None or not len(adj_close.index) else f"{_fmt.data_to(adj_close.index[-1])}. "
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
     line = (f"{when}{len(rank_df)} stocks ranked; {gap_count(rank_df)} with a price gap, "
             f"{short_n} with a short history.")
@@ -849,7 +851,7 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
     def ret(row) -> tuple[str, str]:
         v = pd.to_numeric(pd.Series([row.get("1M Return")]), errors="coerce").iloc[0]
         if pd.isna(v):
-            return "—", ""
+            return "–", ""
         v = round(float(v) * 100, 1)
         return f"{'+' if v > 0 else '−' if v < 0 else ''}{abs(v):.1f}%", ("pos" if v > 0 else "neg" if v < 0 else "")
 
@@ -858,9 +860,9 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
         for row in rows:
             now = int(row["Rank"])
             prev = pd.to_numeric(pd.Series([row.get("Rank (-1M)")]), errors="coerce").iloc[0]
-            was = "—" if pd.isna(prev) else str(int(prev))
+            was = "–" if pd.isna(prev) else str(int(prev))
             moved = None if pd.isna(prev) else int(prev) - now
-            mv = "—" if moved is None else (f"+{moved}" if moved > 0 else f"−{abs(moved)}" if moved < 0 else "0")
+            mv = "–" if moved is None else (f"+{moved}" if moved > 0 else f"−{abs(moved)}" if moved < 0 else "0")
             mcls = "" if not moved else ("pos" if moved > 0 else "neg")
             r_txt, r_cls = ret(row)
             sym = str(row["Symbol"])

@@ -79,7 +79,7 @@ def _body() -> str:
 so a stock counts only while it was a member. Prices are daily closes, adjusted for splits and bonuses.</li>
 <li><b>Score.</b> Each stock's return over 1, 3, 6, 9 and 12 months, divided by its volatility over
 the same window; each window ranked against the other stocks; the five blended ({weights}).</li>
-<li><b>Filters.</b> Above its 50-day EMA and within 20% of its 52-week high.</li>
+<li><b>Filters.</b> Above its 50D EMA and within 20% of its 52-week high.</li>
 <li><b>Book.</b> The top {top_n} stocks that pass both filters, at most {per_industry} from one industry.
 A holding stays while it ranks within the top {buffer_n} and passes both filters. From the 30 Nov 2026
 rebalance every holding goes back to 5% twice a year (March and September); in between, winners run
@@ -193,7 +193,7 @@ leave.</dd>
 <dd>The rank places it among all stocks in the universe; the qualified rank, among those passing both
 filters. The book and the buffer use the qualified rank.</dd>
 <dt>Does the market trend change the model?</dt>
-<dd>No. The header's "Nifty 500 ... % above its 200D EMA" (or below) compares the index with its 200-day EMA for context.
+<dd>No. The header's "Nifty 500 ... % above its 200D EMA" (or below) compares the index with its 200D EMA for context.
 The model holds {top_n} stocks in every market and keeps no cash target.</dd>
 <dt>What do the costs cover?</dt>
 <dd>{cost:.0f} basis points a round trip, meant to cover brokerage, exchange and SEBI fees, GST on them,

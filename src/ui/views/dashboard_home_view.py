@@ -22,6 +22,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.ui import formats as _fmt
+
 from src.core.market_time import ist_now
 from src.engine import dashboard_insights as di
 from src.engine.exit_watch import SELL, UNKNOWN, WATCH, Rules, assess, least_room, nearest_rule
@@ -50,7 +52,7 @@ MOMENTUM_NAMES = {
     "midcap150_mom50": "Midcap150 Momentum 50",
     "smallcap250_mq100": "Smallcap250 Momentum Quality 100",
     "nifty200_mom30": "Nifty200 Momentum 30",
-    "total_market_mq50": "Total Market Momentum Quality 50",
+    "total_market_mq50": "Nifty Total Market Momentum Quality 50",
     "nifty500_mom50": "Nifty500 Momentum 50",
 }
 SIZE_LABELS = {"nifty100": "Nifty 100", "nifty200": "Nifty 200", "midcap150": "Midcap 150", "smallcap250": "Smallcap 250",
@@ -132,11 +134,19 @@ END = '<div class="dh-end"></div>'
 
 def how(what: str, read: str, head: list[str], rows: list[list[str]]) -> str:
     """Under every chart: what it is, how to read it, and its table (agreed 20 Nov, tipsheet pattern)."""
+    from src.ui.formats import date as _date
+
     def cell(c):
-        t = str(c)
+        t = _date(c)                                   # "2026-11-13" -> "13 Nov 2026" (S173 rule 3)
         return t.replace("-", "−", 1) if t.startswith("-") else t
+
+    def _td(c):
+        t = cell(c)
+        # A date stays on one line: "20 Nov 2026" wrapped to three at 412 px (S173 rule 3 keeps the year:
+        # these tables span years, so "20 Nov" alone would be ambiguous).
+        return f'<td style="white-space:nowrap">{e(t)}</td>' if t != str(c) and _date(c) == t else f"<td>{e(t)}</td>"
     table = ('<table class="dh-tab dh-tab-s"><thead><tr>' + "".join(f'<th scope="col">{e(h)}</th>' for h in head)
-             + "</tr></thead><tbody>" + "".join("<tr>" + "".join(f"<td>{e(cell(c))}</td>" for c in r) + "</tr>" for r in rows)
+             + "</tr></thead><tbody>" + "".join("<tr>" + "".join(_td(c) for c in r) + "</tr>" for r in rows)
              + "</tbody></table>")
     body = f'<p><b>What it is</b>{e(what)}</p><p><b>How to read it</b>{e(read)}</p>'
     return (f'<div class="dh-how"><div class="dh-how-b dh-how-wide">{body}</div>'
@@ -153,23 +163,22 @@ def _read_csv(path: Path, **kw) -> pd.DataFrame | None:
 
 def sg(v: float | None, digits: int = 1, unit: str = "") -> str:
     if v is None or (isinstance(v, float) and not np.isfinite(v)):
-        return "—"
+        return "–"
     r = round(float(v), digits)
     sign = "+" if r > 0 else "−" if r < 0 else ""
     return f"{sign}{abs(r):.{digits}f}{unit}"
 
 
 def cr(v: float | None) -> str:
-    """₹ crore in Indian words: ₹1.15 lakh Cr, ₹38,000 Cr."""
+    """₹ crore, whole, Indian grouping: ₹1,15,000 Cr, ₹38,000 Cr (S173 rule 2: "₹ Cr with no decimals")."""
+    from src.ui.formats import indian_group
+
     if v is None:
-        return "—"
+        return "–"
     sign = "+" if v > 0 else "−" if v < 0 else ""
     a = abs(float(v))
-    if a >= 100000:
-        return f"{sign}₹{a / 100000:.2f} lakh Cr"
-    if a >= 1000:
-        return f"{sign}₹{round(a / 1000) * 1000:,.0f} Cr"
-    return f"{sign}₹{a:,.0f} Cr"
+    whole = round(a / 1000) * 1000 if a >= 1000 else round(a)
+    return f"{sign}₹{indian_group(int(whole))} Cr"
 
 
 def tone(v: float | None) -> str:
@@ -288,7 +297,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
     axis = [t for t in range(int(np.ceil(lo_s)), int(np.floor(hi_s)) + 1) if t % 2 == 0]
     spec = {"periods": periods, "values": values, "rows": rows, "lo": float(lo_s), "hi": float(hi_s), "step": step,
             "axis": axis, "market": 0, "book": 1}
-    table_rows = [[r["name"]] + [("—" if values[p["key"]][i] is None else f'{sg(values[p["key"]][i], 2)}%') for p in periods]
+    table_rows = [[r["name"]] + [("–" if values[p["key"]][i] is None else f'{sg(values[p["key"]][i])}%') for p in periods]
                   for i, r in enumerate(rows)]
     return [
         f'<div class="dh-sec">{_kicker("1", "The book this month")}<h1 id="s-month" class="dh-h1">{title}</h1>'
@@ -300,7 +309,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             "style lagged; against the market row, how far momentum is behind.",
             [""] + [p["label"] for p in periods], table_rows),
         '<p class="dh-note">Market: Nifty Total Market, the 750 stocks this site ranks. January to October stay as recorded '
-        'against the Nifty 500; the Total Market comparison is worked out beside them. The book is after costs; indices are '
+        'against the Nifty 500; the Nifty Total Market comparison is worked out beside them. The book is after costs; indices are '
         'price returns. The book’s month-by-month record is on Portfolio.</p>' + END]
 
 
@@ -312,7 +321,7 @@ def _turnover_html(t: di.Turnover | None, industry: pd.Series) -> str:
     if t is None or not t.climbers:
         return ""
     ind = lambda s: e(SHORT.get(str(industry.get(s, "")), str(industry.get(s, ""))))  # noqa: E731
-    rk = lambda v, cls="dh-muted": f'<td class="dh-num {cls}">{"—" if v is None else f"#{v}"}</td>'  # noqa: E731
+    rk = lambda v, cls="dh-muted": f'<td class="dh-num {cls}">{"–" if v is None else f"#{v}"}</td>'  # noqa: E731
     rows = "".join(f'<tr><th scope="row">{e(s)}<span class="dh-sub">{ind(s)}</span></th>{rk(a)}{rk(b)}{rk(c, "dh-b dh-up")}</tr>'
                    for s, a, b, c in t.climbers)
     if t.fallers:
@@ -401,7 +410,7 @@ def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check
             f'<span class="dh-sub dh-b {TONE[wt]}">{e(word)}</span></div>{rk}{_rank_trail_svg(t, rules.buffer_n)}'
             f'<span class="dh-badge {stc}">{status}</span></div>')
     buys = "".join(f'<span class="dh-chip">{e(s)}</span>' for s in plan.buys) or '<span class="dh-muted">None</span>'
-    nxt = " · ".join(e(s) for s in plan.next_in_line) or "—"
+    nxt = " · ".join(e(s) for s in plan.next_in_line) or "–"
     others = n_hold - len(rows)
     last = str(rows["Symbol"].iloc[-1]) if len(rows) else ""
     d3, d1 = (dates or {}).get("3m"), (dates or {}).get("1m")
@@ -442,7 +451,7 @@ def _month_end_count(passed: list[dict], average) -> str:
 
 def _trail_cell(vals: list[float | None], fmt) -> list[str]:
     """Three cells: 3 months ago, 1 month ago, now."""
-    return ["—" if v is None else fmt(v) for v in vals]
+    return ["–" if v is None else fmt(v) for v in vals]
 
 
 def _lag_note(lag) -> str:
@@ -500,21 +509,21 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
             badge, why = '<span class="dh-ev dh-ev-c">Not tested</span>', ""
         elif t["passed"]:
             badge = '<span class="dh-ev dh-ev-t">Pass</span>'
-            why = f'{sg(t["on"], 2)} on vs {sg(t["off"], 2)} off; both halves; on in {t["n_on"]} of {t["n"]} months'
+            why = f'{sg(t["on"])} on vs {sg(t["off"])} off; both halves; on in {t["n_on"]} of {t["n"]} months'
         else:
             badge = '<span class="dh-ev dh-ev-c">Not confirmed</span>'
-            why = f'{sg(t["on"], 2)} on vs {sg(t["off"], 2)} off, {t["n_on"]} of {t["n"]} months; ' + (
+            why = f'{sg(t["on"])} on vs {sg(t["off"])} off, {t["n_on"]} of {t["n"]} months; ' + (
                 "the halves disagree" if t["halves"][0] * t["halves"][1] < 0 else "under the 1-point bar")
         rows.append(
             f'<tr class="{"dh-faint" if d is None else ""}"><th scope="row">{e(x["name"])}<span class="dh-sub">{e(x["sub"])}</span></th>'
             + "".join(f'<td class="dh-num{" dh-muted" if k < 2 else " dh-b"}">{e(v)}</td>' for k, v in enumerate(x["cells"]))
             + f'<td class="dh-hist">{e(x.get("hist", ""))}</td>'
-            + f'<td class="dh-num dh-b {cls}">{"—" if like is None else e(sg(like, 2))}</td>'
+            + f'<td class="dh-num dh-b {cls}">{"–" if like is None else e(sg(like))}</td>'
             f'<td><span class="dh-dbar"><span><i class="dh-f-neg" style="width:{w if d is not None and d < 0 else 0:.0f}%"></i></span>'
             f'<span><i class="dh-f-pos" style="width:{w if d is not None and d >= 0 else 0:.0f}%"></i></span></span>'
             f'<span class="dh-sub dh-b {cls}">{reads}</span></td>'
             f'<td>{badge}<span class="dh-sub">{e(why)}</span></td><td>{e(x["flip"]) if d is not None else ""}</td></tr>')
-    avg = "—" if average is None else sg(average)
+    avg = "–" if average is None else sg(average)
     parts = [f'<div class="dh-sec">{_kicker("3", "Is momentum still working?")}<h2 id="s-mom" class="dh-h2">{head}</h2>'
              '<div class="dh-sub">This ranking’s top 100 against the Nifty 500, points, longest window first</div>'
              f'<div class="dh-tiles">{"".join(tiles)}</div>'
@@ -531,7 +540,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
                       "month so far, from Nifty500 Momentum 50 against Nifty Total Market.",
                       "Bars above the line are months momentum led. A run below it is momentum out of favour; whether the "
                       "year-long lead holds matters more than one month.",
-                      ["Month", "Lead, pts"], [[m, sg(v, 2)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])])]
+                      ["Month", "Lead, pts"], [[m, sg(v)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])])]
     parts.append(
         f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>What today’s readings have meant for next month</b><span>Momentum’s next-month lead after '
         f'months like this, points · all months since 2010 average {e(avg)}</span></div>'
@@ -551,7 +560,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
 
 
 def crore(v: float | None) -> str:
-    """cr() for sentences: “₹1.15 lakh crore”, not “Cr”."""
+    """cr() for sentences: “₹1,15,000 crore”, not “Cr”."""
     return cr(v).replace(" Cr", " crore")
 
 
@@ -574,9 +583,9 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
            f"Net sellers in {f.before_selling_months} of 11 months", "dh-down" if f.before_selling_months > 5 else "dh-muted",
            f"This month has bought back {f.mtd / -f.before * 100:.0f}%" if f.before < 0 and f.mtd > 0 else "")]
     if share is not None:
-        kp.insert(1, ("Against the 750’s market value", sg(share[0], 2, "%"), tone(share[0]),
+        kp.insert(1, ("Against the 750’s market value", sg(share[0], 1, "%"), tone(share[0]),
                       "Bought this month" if share[0] > 0 else "Sold this month", tone(share[0]),
-                      f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {abs(share[1]):.2f}% of it"))
+                      f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {abs(share[1]):.1f}% of it"))
     if dii:
         kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}, {dii[5] if len(dii) > 5 else 'on NSE'}", cr(dii[2]), tone(dii[2]),
                    f"Net sellers on {dii[4]} of {dii[3]} sessions", "dh-down" if dii[4] * 2 > dii[3] else "dh-muted",
@@ -595,7 +604,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                 f'(correlation {sg(ev.corr_same, 2)}) and say nothing about the next ({sg(ev.corr_next, 2)}).</div>'
                 f'<div class="dh-ev-box"><b>{"Not a large-cap story" if ev.large_minus_broad <= 0 else "A large-cap tilt"}.</b> '
                 f'In those heavy-buying months the Nifty 50 {"trailed" if ev.large_minus_broad <= 0 else "beat"} the Nifty 500 '
-                f'by {abs(ev.large_minus_broad):.2f} points on average.</div>')
+                f'by {abs(ev.large_minus_broad):.1f} points on average.</div>')
     head_html = (f'<div class="dh-sec">{_kicker("4", "Money flows")}<h2 id="s-flow" class="dh-h2">{head}</h2>{_kpis(kp)}</div>')
     left = []
     if bars:
@@ -609,7 +618,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                     "Above the line is net buying. The dashed line starts the top quarter of months since 2016; after such months "
                     "momentum has led the market by more the next month than after the rest.",
                     ["Month", "FPI net, ₹ crore", "DII net, ₹ crore"],
-                    [[m, f"{v:,.0f}", "—" if not a else f"{a[1]:,.0f}"] for m, v, a in
+                    [[m, f"{v:,.0f}", "–" if not a else f"{a[1]:,.0f}"] for m, v, a in
                      zip(bars["full"][::-1], bars["values"][::-1], (bars.get("also") or [None] * len(bars["values"]))[::-1])])]
     right = (f'<div class="dh-col1"><div class="dh-sub"><b>What heavy foreign buying has meant</b> · {e(ev.first) if ev else ""} to '
              f'{e(ev.last) if ev else ""}</div>{evid}</div>')
@@ -633,9 +642,9 @@ def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None) -
         lo = min(now, key=now.get) if now else None
         body = "".join(
             f'<tr><th scope="row">{e(n)}</th>'
-            + "".join(f'<td class="dh-num dh-muted">{"—" if x is None else f"{x:.0f}%"}</td>' for x in v[:2])
+            + "".join(f'<td class="dh-num dh-muted">{"–" if x is None else f"{x:.0f}%"}</td>' for x in v[:2])
             + f'<td class="dh-num dh-b{" dh-up" if n == hi else " dh-down" if n == lo else ""}">'
-            f'{"—" if v[2] is None else f"{v[2]:.0f}%"}</td></tr>' for n, v in by_size)
+            f'{"–" if v[2] is None else f"{v[2]:.0f}%"}</td></tr>' for n, v in by_size)
         left = ('<div><div class="dh-cap"><b>Is the rally shared?</b><span>Share above the 200D EMA, by NSE size list</span></div>'
                 '<table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Size</th><th scope="col" class="dh-num">3M ago</th>'
                 f'<th scope="col" class="dh-num">1M ago</th><th scope="col" class="dh-num">Now</th></tr></thead><tbody>{body}</tbody></table>'
@@ -645,8 +654,8 @@ def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None) -
         if hi == "Nifty 100":
             phrase = ', even as <span class="dh-up">large caps are now the broadest part of the market</span>'
     if typical:
-        f1 = lambda v: "—" if v is None else sg(v)  # noqa: E731
-        pc = lambda v: "—" if v is None else f"{v:.0f}%"  # noqa: E731
+        f1 = lambda v: "–" if v is None else sg(v)  # noqa: E731
+        pc = lambda v: "–" if v is None else f"{v:.0f}%"  # noqa: E731
         lines = [("Nifty Total Market", typical["market"], f1, None), ("Equal-weighted 750", typical["equal_weight"], f1, None),
                  ("Median stock", typical["median"], f1, None), ("Share beating the market", typical["beat_share"], pc, 50)]
         body = "".join(f'<tr><th scope="row">{e(n)}</th>' + "".join(
@@ -691,7 +700,7 @@ def _shared_parts(by_size, typical, book_sizes) -> list:
     right_more = [f'<p class="dh-lede-s"><b>Is the rally shared?</b> {say}</p>',
             how("The share of each NSE size list trading above its own 200-day average.",
                 "Above 60% the rally is broad there, below 40% narrow. The triangle marks a month ago.",
-                ["Size", "3M ago", "1M ago", "Now"], [[r[0]] + ["—" if x is None else f"{x}%" for x in r[1:]] for r in rows])]
+                ["Size", "3M ago", "1M ago", "Now"], [[r[0]] + ["–" if x is None else f"{x}%" for x in r[1:]] for r in rows])]
     return [Cols(left, [right] + right_more, (1, 1))]
 
 
@@ -715,7 +724,7 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None)
 
     def cell(v):
         if v is None:
-            return '<td class="dh-num dh-muted">—</td>'
+            return '<td class="dh-num dh-muted">–</td>'
         strong = abs(v) >= 3
         return f'<td class="dh-num {tone(v)}{" dh-hl" if strong else ""}">{e(sg(v))}</td>'
 
@@ -806,7 +815,7 @@ def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], br
                   how("Top: the Nifty 500. Bottom: the share of the 750 above their own 200-day average, counted over the members "
                       "of each date, leavers included.", "When the top line rises while the bottom one falls, fewer stocks are carrying the index.",
                       ["Date", "Nifty 500", "Above 200D EMA"],
-                      [[d, f"{n:,.1f}", "—" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]])]
+                      [[d, f"{n:,.1f}", "–" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]])]
     return parts + [f'<div class="dh-gls">{cells}</div>']
 
 
@@ -834,7 +843,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
         book, record = current_book(adj_close, benchmark_close, system)
     symbols = [] if book is None or book.empty else book["Symbol"].tolist()
     if not symbols:
-        kit.page_head("Dashboard", f"Data to {as_of:%-d %b %Y}.")
+        kit.page_head("Dashboard", f"{_fmt.data_to(as_of)}.")
         kit.note("No model book yet.", "The book forms once the strategy has its price history.")
         return
     meta = (record or {}).get("live_meta") or {}
@@ -850,7 +859,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     closes["nifty100"] = _nse_close("nifty_100")      # Large = Nifty 100 (owner, 21 Nov 2026), from NSE's daily files
     market = closes[bi.TOTAL_MARKET]
     # Index figures end on one session: the last both prices and indices have. An index
-    # without a close for that session reads "—", never the session before (S148).
+    # without a close for that session reads "–", never the session before (S148).
     idx_end = min(as_of, market.index[-1]) if len(market) else as_of
     closes = {k: di.as_of(v, idx_end) for k, v in closes.items()}
     market = closes[bi.TOTAL_MARKET]
@@ -960,7 +969,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     tracker = series.table if series is not None else None
     if tracker is not None and not tracker.empty and "Weight %" in tracker:
         book = book.assign(**{"Weight %": book["Symbol"].map(tracker.set_index("Symbol")["Weight %"])})
-    weights = (book.assign(Industry=book["Symbol"].map(industry).fillna("—"))
+    weights = (book.assign(Industry=book["Symbol"].map(industry).fillna("–"))
                .groupby("Industry").agg(Weight=("Weight %", "sum"), Holdings=("Symbol", "count"))
                .sort_values("Weight", ascending=False).reset_index())
 
@@ -982,7 +991,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_strong_weak(weights, sectors)
     parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(idx_end), breadth)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
-    parts.append(f'<p class="dh-foot">Data to {idx_end:%-d %b %Y}.</p>')
+    parts.append(f'<p class="dh-foot">{_fmt.data_to(idx_end)}.</p>')
     emit(parts)
 
 
@@ -1231,7 +1240,7 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
     sentences count both (staleness audit, 21 Nov 2026)."""
     from src.engine import market_questions as mq
     t = tests.get("tests", {})
-    pct = lambda v: "—" if v is None else f"{v:.0f}%"  # noqa: E731
+    pct = lambda v: "–" if v is None else f"{v:.0f}%"  # noqa: E731
     gap = lambda v: sg(v, unit="%")  # noqa: E731
     out = []
 
@@ -1266,7 +1275,7 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         cut = fpi.get("threshold")
         on = cut is not None and flows.mtd >= cut
         row("fpi", "Heavy foreign buying", "FPI net, last 20 sessions, ₹ thousand crore · top quarter of months: on",
-            ["—" if v is None else sg(v / 1000, 0) for v in flows.trail20], on if cut is not None else None,
+            ["–" if v is None else sg(v / 1000, 0) for v in flows.trail20], on if cut is not None else None,
             "Settled for the month" if on else (f"₹{cut / 1000:,.0f} thousand crore in a month" if cut else ""),
             f"Highest 20-session total since {flows.since:%Y}" if flows.last20_is_record else "")
     if len(n500):
@@ -1363,7 +1372,7 @@ def _nse_close(key: str) -> pd.Series:
         from src.ui import indices_data
         f = indices_data.frames()
         return f.close[key].dropna() if f is not None and key in f.close else pd.Series(dtype=float)
-    except Exception:  # noqa: BLE001 -- a missing copy reads "—", it does not stop the Dashboard
+    except Exception:  # noqa: BLE001 -- a missing copy reads "–", it does not stop the Dashboard
         return pd.Series(dtype=float)
 
 
@@ -1392,8 +1401,8 @@ def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:
     rows_b = [("Above their 200D EMA", f"{t200[2]:.0f}% ({t200[1]:.0f}% a month ago)", ""),
               ("Above their 50D EMA", f"{t50[2]:.0f}% ({t50[1]:.0f}% a month ago)", "")]
     rr = record_risk
-    rows_r = [(f"Beta, {rr.label[0].lower()}{rr.label[1:]}" if rr else "Beta", f"{rr.beta:.1f}" if rr else "—", ""),
-              ("Volatility, a year", f"{rr.vol:.1f}% vs {rr.market_vol:.1f}%" if rr else "—",
+    rows_r = [(f"Beta, {rr.label[0].lower()}{rr.label[1:]}" if rr else "Beta", f"{rr.beta:.1f}" if rr else "–", ""),
+              ("Volatility, a year", f"{rr.vol:.1f}% vs {rr.market_vol:.1f}%" if rr else "–",
                "dh-watch" if rr and rr.vol > rr.market_vol else "")]
     if risk.exit_days is not None and len(risk.exit_days):
         rows_r.append((f"Slowest exit, {risk.exit_days.index[0]}", f"{float(risk.exit_days.iloc[0]):.2f} days",

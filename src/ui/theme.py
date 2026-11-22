@@ -89,12 +89,12 @@ FORMAT_MAP: dict[str, str] = {
     "Persistence": "{:.1f}%",
     "Max DD 3M": "{:.1f}%",
     "FFill %": "{:.1f}%",
-    "Weight %": "{:.2f}%",
+    "Weight %": "{:.1f}%",
     "Del %": "{:.1f}%",
     "Del% 20D Avg": "{:.1f}%",
     "Del% Prev20D": "{:.1f}%",
     "Turnover %": "{:.1f}%",
-    "Cost Drag %": "{:.2f}%",
+    "Cost Drag %": "{:.1f}%",
     "Day Chg %": "{:+.1f}%",
     "Price_Chg_%": "{:+.1f}%",
     # Ratios & Alpha Scores (2 decimal places)
@@ -2048,7 +2048,7 @@ def _is_pct_text_column(col: pd.Series) -> bool:
     """A text column holding only percentages (and dashes): it reads as figures."""
     if pd.api.types.is_numeric_dtype(col):
         return False
-    vals = [str(v).strip() for v in col.dropna() if str(v).strip() not in ("", "—", "-")]
+    vals = [str(v).strip() for v in col.dropna() if str(v).strip() not in ("", "–", "-")]
     return bool(vals) and all(_PCT_TEXT.fullmatch(v) for v in vals)
 
 
@@ -2141,10 +2141,10 @@ def render_saas_table(
                 portfolio_sign_class = "portfolio-pos" if val > 0 else ("portfolio-neg" if val < 0 else "portfolio-flat")
 
             if pd.isna(val) or val is None or str(val).strip() in ("", "nan", "None"):
-                cells_html.append('<td class="td-center text-muted">—</td>')
+                cells_html.append('<td class="td-center text-muted">–</td>')
                 continue
-            if col in pct_text_cols and str(val).strip() in ("—", "-"):
-                cells_html.append('<td class="td-right text-muted">—</td>')
+            if col in pct_text_cols and str(val).strip() in ("–", "-"):
+                cells_html.append('<td class="td-right text-muted">–</td>')
                 continue
 
             # Special column formatting
@@ -2202,7 +2202,7 @@ def render_saas_table(
                         if val > 0
                         else ("badge-red" if val < 0 else "badge-neutral")
                     )
-                    symbol = "▲" if val > 0 else ("▼" if val < 0 else "—")
+                    symbol = "▲" if val > 0 else ("▼" if val < 0 else "–")
                     cells_html.append(
                         f'<td class="td-center"><span class="badge-pill {clr}">{symbol} {abs(int(val))}</span></td>'
                     )
@@ -2222,7 +2222,7 @@ def render_saas_table(
                         if val > 0
                         else ("badge-red" if val < 0 else "badge-neutral")
                     )
-                    symbol = "▲" if val > 0 else ("▼" if val < 0 else "—")
+                    symbol = "▲" if val > 0 else ("▼" if val < 0 else "–")
                     cells_html.append(
                         f'<td class="td-center"><span class="badge-pill {clr}">{symbol} {abs(round(val))}</span></td>'
                     )
@@ -2320,7 +2320,7 @@ def render_saas_table(
                 ):
                     if any(w in c_str for w in _PER_SHARE_PRICE_KEYS):
                         cells_html.append(
-                            f'<td class="td-right">{_fmt.inr(val, 2)}</td>'
+                            f'<td class="td-right">{_fmt.price(val)}</td>'
                         )
                     else:
                         cells_html.append(
@@ -2591,11 +2591,11 @@ document.addEventListener('DOMContentLoaded', function() {{
                 // compare EQUAL: returning 1 for both orders made the
                 // comparator inconsistent, and the browser's sort may then
                 // scramble the rows.
-                const blankA = (txtA === '—' || txtA === '');
-                const blankB = (txtB === '—' || txtB === '');
+                const blankA = (txtA === '–' || txtA === '');
+                const blankB = (txtB === '–' || txtB === '');
                 if (blankA || blankB) return (blankA === blankB) ? 0 : (blankA ? 1 : -1);
 
-                if (txtA.startsWith('▲') || txtA.startsWith('▼') || txtA.startsWith('—')) {{
+                if (txtA.startsWith('▲') || txtA.startsWith('▼') || txtA.startsWith('–')) {{
                     let numA = parseFloat(txtA.replace(/[▲▼—\\s]/g, '')) * (txtA.startsWith('▼') ? -1 : 1);
                     let numB = parseFloat(txtB.replace(/[▲▼—\\s]/g, '')) * (txtB.startsWith('▼') ? -1 : 1);
                     if (!isNaN(numA) && !isNaN(numB)) {{

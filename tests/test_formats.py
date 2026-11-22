@@ -15,7 +15,7 @@ def test_rupees_put_the_sign_before_the_symbol():
     assert inr(-954) == f"{MINUS}₹954"
     assert inr(2340, 2) == "₹2,340.00"
     assert inr(553, plus=True) == "+₹553"
-    assert inr(None) == "—" and inr(float("nan")) == "—"
+    assert inr(None) == "–" and inr(float("nan")) == "–"
 
 
 def test_percentages_round_then_sign_with_a_true_minus():

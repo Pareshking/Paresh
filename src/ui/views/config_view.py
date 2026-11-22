@@ -457,7 +457,7 @@ def _day(value) -> str:
     try:
         return pd.Timestamp(value).strftime("%-d %b %Y")
     except (TypeError, ValueError):
-        return "—"
+        return "–"
 
 
 def _section_data_health(rank_df: pd.DataFrame) -> None:
@@ -481,15 +481,15 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
             _rows.append(
                 {
                     "Date": _day(e.get("date")),
-                    "Symbol": e.get("symbol", "—"),
-                    "Move": f"{_fmt.pct(_move * 100, fraction=False)}" if _move is not None else "—",
+                    "Symbol": e.get("symbol", "–"),
+                    "Move": f"{_fmt.pct(_move * 100, fraction=False)}" if _move is not None else "–",
                     # A null ratio in the log raised TypeError on the format
                     # and took the Configuration page down.
                     "Ratio": (
                         f"{float(e['ratio']):.4f}"
-                        if isinstance(e.get("ratio"), (int, float)) else "—"
+                        if isinstance(e.get("ratio"), (int, float)) else "–"
                     ),
-                    "Looks Like": e.get("looks_like", "—"),
+                    "Looks Like": e.get("looks_like", "–"),
                     "Kind": (
                         "Split / bonus"
                         if e.get("kind") == "split/bonus"
@@ -522,7 +522,7 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
             {
                 "Dataset": label,
                 "Local copy": "Present" if exists else absent,
-                "Size": f"{size_mb:.1f} MB" if exists else "—",
+                "Size": f"{size_mb:.1f} MB" if exists else "–",
                 "File": os.path.basename(path),
             }
         )
@@ -568,7 +568,7 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     # The weights are shown once, by the bar in Momentum score; the count of
     # corporate actions once, in Data health.
     kit.kv_line([
-        ("Universe", (" + ".join(i.title() for i in indices) or "—") + system_note),
+        ("Universe", (" + ".join(i.title() for i in indices) or "–") + system_note),
         ("Score weights", "Default" if is_default else "Yours"),
         ("Backtest max per stock · per sector", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%"),
         ("Backtest liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off"),

@@ -72,6 +72,13 @@ re-wrap when the real face arrives (S145, #564).
 - `.streamlit/config.toml` cannot read Python, so it repeats a few colours;
   a test fails if the two disagree.
 
+## Numbers
+
+How a number reads is in `src/ui/formats.py` (Python) and `static/dash_charts.js` (`pxf`, `sg`) for charts:
+prices and ₹ levels in whole rupees at every level, returns and points to one decimal, the minus
+U+2212. The 8 rules and their exceptions are in `docs/PAGE_DESIGN.md` §3a (S173, owner 22 Nov 2026); CI checks every page
+with `scripts/number_format_audit.mjs`.
+
 ## What is not in it
 
 Breakpoints are not tokens. They are written in the stylesheets, the one that

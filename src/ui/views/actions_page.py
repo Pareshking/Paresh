@@ -18,6 +18,8 @@ import streamlit as st
 from src.engine.exit_watch import CLEAR, SELL, STATUS_LABEL, UNKNOWN, WATCH, Rules, assess, nearest_rule, qualified_ranks
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.ui.system_param import stock_href
+from src.ui import formats as _fmt
+from src.ui.formats import price as _fmt_price
 from src.ui.views.dashboard_home_view import HOME_CSS, emit, html_of, sg
 from src.ui.views.portfolio_page import PF_CSS, _head, _kpis, _sec, dshort, inr, pct, short, tone
 
@@ -101,7 +103,8 @@ def sg_pts(v: float) -> str:
 
 
 def _lakh(v: float) -> str:
-    return f"₹{v / 1e5:.1f} lakh" if v < 1e7 else f"₹{v / 1e7:.2f} crore"
+    # Whole rupees, Indian grouping: ₹34,05,000 (S173 rule 1; was "₹34.1 lakh"), rounded to the thousand.
+    return _fmt.inr(round(v / 1000) * 1000)
 
 
 def _rk(v) -> str:
@@ -154,7 +157,7 @@ def section_change(p: Plan) -> list:
     a = p.assess.set_index("Symbol") if len(p.assess) else pd.DataFrame()
     close = [(s, a.loc[s, "why"]) for s in p.holds if s in a.index and a.loc[s, "status"] == WATCH]
     items = "".join(f'<li><b>{e(s)}</b> {e(str(w))}</li>' for s, w in close) or "<li>No hold is within reach of a line.</li>"
-    nxt = " · ".join(e(s) for s in p.next_in_line[:4]) or "—"
+    nxt = " · ".join(e(s) for s in p.next_in_line[:4]) or "–"
     return _sec([_head("ac-change", "What could still change", f"before the {dshort(p.check)} close"),
                  f'<div class="dh-pair"><div><div class="dh-cap"><b>Holds close to a line</b><span>could still change to a sale</span></div>'
                  f'<ul class="ac-list">{items}</ul></div>'
@@ -214,10 +217,10 @@ def section_sell(p: Plan) -> list:
         s = r["s"]
         ret = p.since.get(s)
         rows += (f'<tr>{_name(p, s)}<td>{e(str(a.loc[s, "why"] if s in a.index else ""))}</td>'
-                 f'<td class="dh-num ac-wide">{e(p.held_since.get(s, "—"))}</td>'
+                 f'<td class="dh-num ac-wide">{e(p.held_since.get(s, "–"))}</td>'
                  f'<td class="dh-num {tone(None if ret is None else ret)}">{pct(None if ret is None else ret * 100)}</td>'
-                 f'<td class="dh-num">{"—" if r["qty"] is None else f"{r['qty']:,}"}</td>'
-                 f'<td class="dh-num">{"—" if r["amount"] is None else inr(r["amount"])}</td></tr>')
+                 f'<td class="dh-num">{"–" if r["qty"] is None else f"{r['qty']:,}"}</td>'
+                 f'<td class="dh-num">{"–" if r["amount"] is None else inr(r["amount"])}</td></tr>')
     note = ("Sell in full. The basket carries these sells with the model book's share counts."
             if p.source == "Model book" else "Sell in full; your share counts are not known, so sells are not in the basket.")
     return _sec([_head("ac-sell", "Sell", f"{len(p.sells)} at today's close"),
@@ -239,13 +242,13 @@ def section_buy(p: Plan) -> list:
         m3 = pd.to_numeric(r["3M Return"].get(s), errors="coerce") * 100 if "3M Return" in r else np.nan
         m6 = pd.to_numeric(r["6M Return"].get(s), errors="coerce") * 100 if "6M Return" in r else np.nan
         rows += (f'<tr>{_name(p, s)}<td class="dh-num">#{int(p.qrank.get(s, 0))}</td>'
-                 f'<td class="dh-num">{"—" if b["price"] is None or pd.isna(b["price"]) else f"{float(b['price']):,.2f}"}</td>'
+                 f'<td class="dh-num">{"–" if b["price"] is None or pd.isna(b["price"]) else _fmt_price(b['price'])}</td>'
                  f'<td class="dh-num ac-wide {tone(m3)}">{pct(None if pd.isna(m3) else m3)}</td>'
                  f'<td class="dh-num ac-wide {tone(m6)}">{pct(None if pd.isna(m6) else m6)}</td>'
-                 f'<td class="dh-num ac-wide">{"—" if pd.isna(hi) else ("at the high" if hi > -0.05 else pct(hi))}</td>'
-                 f'<td class="dh-num ac-wide">{b["w"] * 100:.2f}%</td>'
-                 f'<td class="dh-num dh-b">{"—" if b["amount"] is None else inr(b["amount"])}</td>'
-                 f'<td class="dh-num">{"—" if b["qty"] is None else f"{b['qty']:,}"}</td></tr>')
+                 f'<td class="dh-num ac-wide">{"–" if pd.isna(hi) else ("at the high" if hi > -0.05 else pct(hi))}</td>'
+                 f'<td class="dh-num ac-wide">{b["w"] * 100:.1f}%</td>'
+                 f'<td class="dh-num dh-b">{"–" if b["amount"] is None else inr(b["amount"])}</td>'
+                 f'<td class="dh-num">{"–" if b["qty"] is None else f"{b['qty']:,}"}</td></tr>')
     nxt = "".join(f'<a class="dh-pill" href="{stock_href(s)}" target="_self">#{int(p.qrank.get(s, 0))} {e(s)}</a>'
                   for s in p.next_in_line[:4])
     base = (f"Amounts are the record's target weight of the model book's value today, {inr(p.value)}."
@@ -253,7 +256,7 @@ def section_buy(p: Plan) -> list:
     ev = p.swaps
     evid = ("" if ev is None else
             f'<div class="ac-ev"><b>What swaps have added so far.</b> In their first month the record’s {ev.buys} buys beat Nifty '
-            f'Total Market by {sg(ev.buy_1m)} points on average; the {ev.sold} stocks it sold, by {sg(ev.sold_1m)} in the month after the sale'
+            f'Nifty Total Market by {sg(ev.buy_1m)} points on average; the {ev.sold} stocks it sold, by {sg(ev.sold_1m)} in the month after the sale'
             + ("" if ev.buy_3m is None or ev.sold_3m is None else
                f'. Over three months: {sg(ev.buy_3m)} against {sg(ev.sold_3m)}')
             + f'. {ev.rebought} of the {ev.sold} sold were bought back within two months. '
@@ -294,8 +297,8 @@ def section_hold(p: Plan) -> list:
                  f'<td class="dh-num ac-trail">{_rk(tr[0])}</td><td class="dh-num ac-trail">{_rk(tr[1])}</td>'
                  f'<td class="dh-num"><b>{_rk(tr[2])}</b></td>'
                  f'<td class="dh-num">{e(buf)}</td>'
-                 f'<td class="dh-num {"dh-watch" if pd.notna(ema) and ema < 0.03 else ""}">{"—" if pd.isna(ema) else f"{ema * 100:.1f}%"}</td>'
-                 f'<td class="dh-num {"dh-watch" if pd.notna(hi) and hi < 0.03 else ""}">{"—" if pd.isna(hi) else f"{hi * 100:.1f}%"}</td>'
+                 f'<td class="dh-num {"dh-watch" if pd.notna(ema) and ema < 0.03 else ""}">{"–" if pd.isna(ema) else f"{ema * 100:.1f}%"}</td>'
+                 f'<td class="dh-num {"dh-watch" if pd.notna(hi) and hi < 0.03 else ""}">{"–" if pd.isna(hi) else f"{hi * 100:.1f}%"}</td>'
                  f'<td class="ac-wide">{e(r["why"] or nearest_rule(r, p.rules))}</td>'
                  f'<td class="dh-num {tone(None if ret is None else ret)}">{pct(None if ret is None else ret * 100)}</td></tr>')
     return _sec([_head("ac-hold", "Hold", "closest to a sale first"),
@@ -315,7 +318,7 @@ def footer(p: Plan) -> list:
     from src.ui.components import gap_count
     rd = p.rank_df
     short_n = int((rd.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
-    return [f'<p class="dh-foot">Data to {p.as_of:%-d %b %Y}. {len(rd)} stocks ranked; {gap_count(rd)} with a price gap, '
+    return [f'<p class="dh-foot">{_fmt.data_to(p.as_of)}. {len(rd)} stocks ranked; {gap_count(rd)} with a price gap, '
             f'{short_n} with a short history.</p>']
 
 
@@ -393,8 +396,8 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
         if plan.buys:
             w = float(plan.weights.get(plan.buys[0], 0.0))
             cash = w * len(plan.buys)
-            limit = (f"Each buy gets {w * 100:.2f}%: the record never trims a kept stock to make room, so the buys share the "
-                     f"{cash * 100:.2f}% the sells free up, which is less than the {cfg.get('buy_size', 0.05) * 100:.0f}% buy size "
+            limit = (f"Each buy gets {w * 100:.1f}%: the record never trims a kept stock to make room, so the buys share the "
+                     f"{cash * 100:.1f}% the sells free up, which is less than the {cfg.get('buy_size', 0.05) * 100:.0f}% buy size "
                      "(the rule since 8 Nov)." if w < float(cfg.get("buy_size") or 0.05) - 1e-9 else "")
     else:
         symbols = list(my_symbols or [])

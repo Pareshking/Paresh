@@ -36,7 +36,7 @@ _CSS = """<style>
 
 def _num(v: float | None, unit: str) -> str:
     if v is None:
-        return "—"
+        return "–"
     if unit == "pct":
         return _fmt.pct(v, signed_=False, digits=0, fraction=False)
     return _fmt.signed(v, 1)
@@ -455,7 +455,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
-    # One session for every index (S148): a size index without the Nifty 500's last close reads "—".
+    # One session for every index (S148): a size index without the Nifty 500's last close reads "–".
     from src.engine import dashboard_insights as di
     size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
     size = {k: v for k, v in size.items() if len(v)}
@@ -530,7 +530,7 @@ def _heat_cls(v: float) -> str:
 
 def _run_text(n: int) -> str:
     if not n:
-        return "—"
+        return "–"
     return f"{abs(n)} {'ahead' if n > 0 else 'behind'}"
 
 
@@ -655,7 +655,7 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame, market_name: str 
         for name, r in months.iterrows():
             cells = "".join(
                 f'<td class="{_heat_cls(r[c])}{" mtd" if c.endswith("MTD") else ""}">'
-                f'{"—" if not pd.notna(r[c]) else _fmt.signed(r[c], 1)}</td>' for c in cols)
+                f'{"–" if not pd.notna(r[c]) else _fmt.signed(r[c], 1)}</td>' for c in cols)
             body.append(f'<tr><td>{html.escape(name)}</td>{cells}<td class="run">{_run_text(int(r["run"]))}</td>'
                         f'<td class="tot {_t(r["total"])}">{_num(r["total"], "pts")}</td></tr>')
         example = run_example(months)
@@ -736,7 +736,7 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
-    # One session for every index (S148): a size index without the Nifty 500's last close reads "—".
+    # One session for every index (S148): a size index without the Nifty 500's last close reads "–".
     from src.engine import dashboard_insights as di
     size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
     size = {k: v for k, v in size.items() if len(v)}

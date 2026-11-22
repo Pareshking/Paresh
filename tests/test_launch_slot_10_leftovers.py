@@ -74,4 +74,4 @@ def test_watchlist_renders_the_footer_even_with_an_empty_list(monkeypatch):
 
     watchlist_view.render_watchlist_view(rank_df)
 
-    assert calls == [{"total_stocks": 1, "gap_count": 0, "short_count": 0}]
+    assert calls == [{"total_stocks": 1, "gap_count": 0, "short_count": 0, "as_of": None}]   # no prices, no date (S173 rule 7)

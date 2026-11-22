@@ -3,7 +3,7 @@
 1. A calendar window's OPENING price was looked up on one exact session, and
    Yahoo holes sessions routinely -- a median of 33 symbols per session in the
    published snapshot, 135 on 2026-07-21. The 1M window anchors on that day, so
-   18% of the universe showed "—" for 1M Return and 1M Sharpe while 3M and 6M
+   18% of the universe showed "–" for 1M Return and 1M Sharpe while 3M and 6M
    were complete. Nothing was wrong with the download; the anchor was brittle.
 
 2. The cross-section z-score ran as a Python loop over every date. It is a

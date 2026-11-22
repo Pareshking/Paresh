@@ -12,7 +12,7 @@ academic momentum factor (WML).
   percentile    where today's trailing_12m sits among every past one (0-100)
   crash         the latest month's spread is negative and in the worst 10% of all months
   qualified     the share of the month-end's index members passing the strategy's
-                own gates (above the 50-day EMA, within 20% of the 52-week high;
+                own gates (above the 50D EMA, within 20% of the 52-week high;
                 rank_history.snapshots' `qualifies`), TODO S110 item 2: in the
                 quarter of months with the lowest share since 2010 the next
                 month's spread averaged -0.4 pts, against +1.9 in the highest

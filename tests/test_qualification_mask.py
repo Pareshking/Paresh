@@ -43,7 +43,7 @@ def test_real_booleans_still_work():
 
 @pytest.mark.parametrize("value,expected", [
     ("✅", True), ("❌", False), ("True", True), ("1", True),
-    ("true", True), ("yes", True), ("", False), ("—", False), (None, False),
+    ("true", True), ("yes", True), ("", False), ("–", False), (None, False),
 ])
 def test_truthiness_values(value, expected):
     assert bool(to_bool_mask(pd.Series([value], dtype=object)).iloc[0]) is expected

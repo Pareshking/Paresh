@@ -9,6 +9,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.ui import formats as _fmt
+
 from src.engine import indices_page as ip
 from src.ui import indices_data
 from src.ui.views.dashboard_home_view import HOME_CSS, Chart, Cols, emit, how, html_of, sg, tone
@@ -85,7 +87,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
              "vals": [f"{v.pe_3m:.2f}", f"{v.pe_1m:.2f}", f"{v.pe_now:.2f}", f"{v.pct_now:.0f}"],
              "cls": ["muted", "muted", "b", ""],
              "read": [[f"{v.pe_now:.2f}", "P/E now"], [_ord(v.pct_now), "percentile"],
-                      [_ord(v.pct_1m), "a month ago"], [f"{v.pb_now:.2f}", "P/B"], [f"{v.dy_now:.2f}%", "dividend yield"]]}
+                      [_ord(v.pct_1m), "a month ago"], [f"{v.pb_now:.2f}", "P/B"], [f"{v.dy_now:.1f}%", "dividend yield"]]}
             for v in vals]
     spec = {"label": "Index", "barHead": "Percentile of P/E since 2021", "head": [_d(m3), _d(m1), "Now", "Pctile"],
             "rows": rows, "lo": 0, "hi": 100, "step": 2, "lines": [25, 75], "rest": "Latest · the first row"}
@@ -116,7 +118,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
                       "A line above the band is dearer than three days in four since 2021; below it, cheaper. The two "
                       "colours are two definitions: do not read the 2021 drop as a fall in price.",
                       ["Index", "P/E", "P/B", "Div yield", "Percentile now", "A month ago", "3 months ago"],
-                      [[v.name, f"{v.pe_now:.2f}", f"{v.pb_now:.2f}", f"{v.dy_now:.2f}%", f"{v.pct_now:.0f}",
+                      [[v.name, f"{v.pe_now:.2f}", f"{v.pb_now:.2f}", f"{v.dy_now:.1f}%", f"{v.pct_now:.0f}",
                         f"{v.pct_1m:.0f}", f"{v.pct_3m:.0f}"] for v in vals])]
     return parts
 
@@ -133,10 +135,10 @@ def section_styles(sts: list[ip.Style], m1: pd.Timestamp, m3: pd.Timestamp) -> l
               f'{" and ".join(s.style.lower() for s in behind)} <span class="dh-down">trail by {span} points</span>.')
     rows = [{"name": s.style, "sub": f"{s.name} against {s.parent_name} · live since {_dy(s.live)}",
              "bar": None if s.lead_now is None else round(s.lead_now, 2), "ago": None if s.lead_1m is None else round(s.lead_1m, 2),
-             "vals": [sg(s.lead_3m), sg(s.lead_1m), sg(s.lead_now), sg(s.dy_gap, 2)],
+             "vals": [sg(s.lead_3m), sg(s.lead_1m), sg(s.lead_now), sg(s.dy_gap)],
              "cls": [_kt(s.lead_3m), _kt(s.lead_1m), _kt(s.lead_now) + " b", "muted"],
              "read": [[sg(s.lead_now) + " pts", "12-month lead now", _kt(s.lead_now)], [sg(s.lead_1m) + " pts", "a month ago"],
-                      [sg(s.dy_gap, 2) + " pts", "dividend-yield gap a year"]]}
+                      [sg(s.dy_gap) + " pts", "dividend-yield gap a year"]]}
             for s in sts]
     spec = {"label": "Style", "barHead": "Lead over parent, 12 months, pts", "head": [_d(m3), _d(m1), "Now", "Yield gap"],
             "rows": rows, "lo": -15, "hi": 15, "step": 0.5, "rest": "Latest · the first row"}
@@ -241,7 +243,7 @@ def section_size(sizes: list[ip.SizeYears], as_of: pd.Timestamp) -> list:
                 "A tall bar with a deep dot is a year that rose in the end after a hard fall on the way: the fall is "
                 "what a holder sat through.",
                 ["Year"] + [z.size for z in sizes],
-                [[str(y)] + [("—" if y not in z.years else f"{sg(z.years[y][0], 1, '%')} · {sg(z.years[y][1], 1, '%')}")
+                [[str(y)] + [("–" if y not in z.years else f"{sg(z.years[y][0], 1, '%')} · {sg(z.years[y][1], 1, '%')}")
                              for z in sizes] for y in sorted({y for z in sizes for y in z.years}, reverse=True)])
     return ([f'<div class="dh-sec">{KICK.format("Size, year by year")}<h2 id="s-size" class="dh-h2">{e(h2)}</h2>'
              f'<p class="dh-note">The bar is the calendar year\'s return; the dot is the worst fall within it. '
@@ -281,13 +283,13 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
                 f"{_short(full[-1].name)} trails at {sg(full[-1].returns[12], 1, '%')}.") if full else g
         body = ""
         for x in xs:
-            hi = "—" if x.from_high is None else ("at high" if abs(x.from_high) < 0.05 else sg(x.from_high, 1, "%"))
+            hi = "–" if x.from_high is None else ("at high" if abs(x.from_high) < 0.05 else sg(x.from_high, 1, "%"))
             cells = "".join(_num(x.returns[m], 1, "%") for m in ip.WINDOWS[:-1])
             cells += (_num(x.returns[12], 1, "%") if x.returns[12] is not None
                       else f'<td class="dh-num dh-muted">since {x.live:%-d %b}</td>')
             body += (f'<tr><th scope="row">{e(_short(x.name))}</th>' + cells
                      + f'<td class="dh-num dh-muted ix-hide-s">{e(hi)}</td>'
-                     f'<td class="dh-num dh-muted ix-hide-s">{"—" if x.pe is None else f"{x.pe:.1f}"}</td></tr>')
+                     f'<td class="dh-num dh-muted ix-hide-s">{"–" if x.pe is None else f"{x.pe:.1f}"}</td></tr>')
         parts.append(f'<div class="dh-sec dh-sec-cont"><h3 class="ix-fam">{e(lead)}</h3><p class="dh-note">{e(GROUP_NOTE[g])}</p>'
                      '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
                      + "".join(f'<th scope="col" class="dh-num">{"1Y" if m == 12 else f"{m}M"}</th>' for m in ip.WINDOWS)
@@ -306,7 +308,7 @@ def page_parts(f: ip.Frames) -> list:
     n = sum(len(v) for v in every.values())
     return (head(vals, as_of) + section_valuation(f, vals, m1, m3) + section_styles(sts, m1, m3) + section_lag(sts)
             + section_years(sts, as_of) + section_size(ip.size_years(f), as_of) + section_every(f, every, as_of)
-            + [f'<p class="dh-foot">Data to {_dy(as_of)} · {n} broad, theme and strategy indices</p>'])
+            + [f'<p class="dh-foot">{_fmt.data_to(as_of, "NSE")} · {n} broad, theme and strategy indices</p>'])
 
 
 def render_indices_view() -> None:
