@@ -15,7 +15,7 @@ _Last updated: 23 Nov 2026 (early, IST), coordinating session of 22-23 Nov._
   **current head** and it merges cleanly with `main`. Squash-merge with
   `expectedHeadSha`. After a squash merge, restart your branch from `main`.
 - **Before taking an S-number,** check open PRs as well as `main`. Next free:
-  **S203** (S197, S198 by #621/#623; S199-S202 reserved for queue items 6-9).
+  **S204** (S203 page sentence templates; S197, S198 by #621/#623; S199-S202 reserved for queue items 6-9).
 - **Verify every claim yourself.** Nothing is deleted without the owner's yes on
   each item; the `ref_*` release files always stay.
 - **Tests:** `python scripts/fetch_nse_closes.py` first, then
@@ -175,7 +175,7 @@ Terminal). Read CLAUDE.md, then docs/HANDOVER.md, then the open
 rows of docs/TODO.md (S175, S185, S188, S194, S196, S197, S198). Follow the standing rules
 in the handover exactly: one activity at a time, you do the merges (green CI
 on the current head, squash, expectedHeadSha), check open PRs before taking an
-S-number (next free S203), verify every claim, delete nothing without the
+S-number (next free S204), verify every claim, delete nothing without the
 owner's yes, finish whatever you start before handing over, and follow
 CLAUDE.md's "Saving resources" (finish locally, push once, batch follow-ups). Then work the
 queue in order, starting with the 23 Nov first-run checks.

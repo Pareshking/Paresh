@@ -33,6 +33,15 @@ chart and data-check rules the Dashboard redesign settled, with their sources.
 - Anything promised in a conversation goes in `docs/TODO.md` the same day, with
   how we will know it is done.
 
+## Suggesting (owner, 23 Nov 2026)
+
+When the owner plans something or asks a question, look for a better way to reach the goal, not
+only an answer to the question as asked. Offer one or two alternatives that change the approach
+(example: the owner asked about Gemini writing page text; the better way was templates drafted
+offline, approved once, filled by code, S203). Mark each as a suggestion, give its cost and what it
+gives up, and say which you recommend. Skip it when nothing better exists; never pad with options.
+Improve wording on pages and in docs whenever you touch them.
+
 ## Working on a change
 
 - Branch, commit and push to the branch you are given; open the pull request as a
