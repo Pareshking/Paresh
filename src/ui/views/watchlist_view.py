@@ -32,10 +32,17 @@ def _remove_picked() -> None:
         watchlist_store.save([s for s in watchlist_store.symbols() if s != sym])
 
 
-def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None = None) -> None:
+def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None = None,
+                          book_symbols=None,
+                          history_prices: pd.DataFrame | None = None) -> None:
     """The reader's watchlist: edit it here, or star stocks on their pages."""
     user_symbols = watchlist_store.symbols()
-    matched = rank_df[rank_df["Symbol"].isin(user_symbols)].sort_values("Rank").copy()
+    # The qualified place and "Held" come from the whole ranking, as on the
+    # Screener; from the bare ranking every row read "Out" (S184, 22 Nov 2026).
+    from src.ui.views.ranking_view import with_book_columns
+    full = with_book_columns(rank_df, book_symbols,
+                             history_prices if history_prices is not None else adj_close)
+    matched = full[full["Symbol"].isin(user_symbols)].sort_values("Rank").copy()
 
     count = f"{len(matched)} stock{'s' if len(matched) != 1 else ''}" if user_symbols else "Saved in this browser"
     actions = kit.page_head("Watchlist", count, actions=True)
