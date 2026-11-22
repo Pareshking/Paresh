@@ -114,3 +114,12 @@ def test_the_250_carry_the_owners_name_on_every_page():
 def test_every_system_has_a_universe_name():
     from src.engine.extra_universe import SYSTEMS, UNIVERSE_SHORT
     assert set(UNIVERSE_SHORT) == set(SYSTEMS) and UNIVERSE_SHORT["750"] == "750"
+
+
+def test_portfolio_and_dashboard_name_the_systems_universe_not_the_750():
+    portfolio = (ROOT / "src" / "ui" / "views" / "portfolio_page.py").read_text(encoding="utf-8")
+    assert portfolio.count("UNIVERSE_SHORT.get(p.system") >= 2
+    assert '"began the year" if size.index[0].month == 1' in portfolio
+    assert '<span class="dh-num">The 750</span>' not in portfolio
+    dash = (ROOT / "src" / "ui" / "views" / "dashboard_home_view.py").read_text(encoding="utf-8")
+    assert '"Equal-weighted 750"' not in dash and "Nano Cap and Ultra Nano Cap are our own groups" in dash

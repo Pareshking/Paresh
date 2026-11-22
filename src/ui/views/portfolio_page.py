@@ -402,7 +402,9 @@ def section_exposure(p: Page) -> list:
     rows = sorted(((n, float(now.get(n, 0.0)), float(p.market_weights.get(n, 0.0))) for n in names), key=lambda r: (-r[1], -r[2]))
     top = max([r[1] for r in rows] + [r[2] for r in rows] + [10.0]) * 1.05
     word = {"strong": ("Strong", "dh-up"), "turning": ("Turning", "dh-watch"), "weak": ("Weak", "dh-down")}
-    head = ('<div class="pf-ihead"><span>Industry</span><span></span><span class="dh-num">Book</span><span class="dh-num">The 750</span>'
+    from src.engine.extra_universe import UNIVERSE_SHORT
+    uni = e(UNIVERSE_SHORT.get(p.system, "750"))
+    head = (f'<div class="pf-ihead"><span>Industry</span><span></span><span class="dh-num">Book</span><span class="dh-num">The {uni}</span>'
             '<span class="dh-num">Over / under</span><span>Status</span></div>')
     body = ""
     for n, v, m in rows:
@@ -441,12 +443,19 @@ def section_exposure(p: Page) -> list:
     last = size.iloc[-1] if len(size) else None
     shift = ""
     if first is not None:
-        shift = (f"The book began the year {first.get('Large', 0) + first.get('Mid', 0):.0f}% in large and mid companies and is now "
-                 f"{last.get('Small', 0) + last.get('Micro', 0):.0f}% small and micro. ")
+        # A system whose record starts after January (Nano Cap, Combined, Nifty 1000) names its first rebalance;
+        # "small and micro" takes in Nano Cap and Ultra Nano Cap when the book holds them (S194 L3, 23 Nov 2026).
+        began = "began the year" if size.index[0].month == 1 else f"began {MON[size.index[0].month - 1]} {size.index[0].year}"
+        ours = [k for k in ("Nano Cap", "Ultra Nano Cap") if float(last.get(k, 0) or 0) > 0]
+        small = sum(float(last.get(k, 0) or 0) for k in ("Small", "Micro", *ours))
+        words = "small and micro" if not ours else ", ".join(["small", "micro"] + ours[:-1]) + f" and {ours[-1]}"
+        shift = (f"The book {began} {first.get('Large', 0) + first.get('Mid', 0):.0f}% in large and mid companies and is now "
+                 f"{small:.0f}% {words}. ")
     note = (shift + "Each rebalance’s industry and size weights are worked out from that month’s book and kept, so the history "
             "stays as it was when later lists change. Size is by NSE’s index lists on each date; industries are the record’s own.")
-    return _sec([_head("pf-exp", "Industry & size", "now, against the 750, and at every rebalance since January"),
-                 '<div class="dh-cap"><b>Industry exposure now</b><span>bar: the book’s weight · mark: the industry’s weight in the 750 '
+    since = "since January" if p.system == "750" else "since the record began"
+    return _sec([_head("pf-exp", "Industry & size", f"now, against the {uni}, and at every rebalance {since}"),
+                 f'<div class="dh-cap"><b>Industry exposure now</b><span>bar: the book’s weight · mark: the industry’s weight in the {uni} '
                  'by market value</span></div>', '<div class="pf-ilist">' + head + body + '</div>',
                  '<div class="dh-pair"><div><div class="dh-cap"><b>The book by size, each rebalance</b><span>large · mid · small · micro</span></div>'
                  + srows + key + f'<p class="dh-note pf-gap">{e(note)}</p></div><div><div class="dh-cap"><b>Industries, each rebalance</b>'

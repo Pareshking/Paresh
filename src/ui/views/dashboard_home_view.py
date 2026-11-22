@@ -744,7 +744,8 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None,
     strip = "".join(f'<i class="{size_class(k)}" style="width:{v:.0f}%">{e(k) + " " + f"{v:.0f}%" if v >= 20 else ""}</i>'
                     for k, v in book_sizes.items())
     return [(f'<div class="dh-sec">{_kicker("5", "Size, and where momentum works")}'
-            f'<h2 id="s-size" class="dh-h2">{head}</h2><div class="dh-sub">The book by size, NSE index lists</div>'
+            f'<h2 id="s-size" class="dh-h2">{head}</h2><div class="dh-sub">The book by size, NSE index lists'
+            f'{"; Nano Cap and Ultra Nano Cap are our own groups, with no NSE index" if set(book_sizes) - {"Large", "Mid", "Small", "Micro"} else ""}</div>'
             f'<div class="dh-sizebar" role="img" aria-label="The book by size">{strip}</div>'
             '<div class="dh-scroll"><table class="dh-tab"><thead><tr><th scope="col" rowspan="2">Size · its index · its momentum index</th>'
             '<th scope="col" rowspan="2" class="dh-num">Book</th><th scope="colgroup" colspan="3">Size against the market</th><th></th>'
