@@ -136,6 +136,65 @@ def _serves_expected(served: str) -> bool:
     except (OSError, subprocess.SubprocessError):
         return False
 DEPLOY_WAIT_S = int(os.getenv("UMIYA_DEPLOY_WAIT_S", "300"))
+
+
+def _data_only_lag(served: str) -> list[str]:
+    """The files between an OLDER served build and the triggering commit, when all are under data/.
+
+    Owner, 22 Nov 2026 (S186: "6 pass"): Streamlit Cloud is often minutes behind
+    a data-only commit (the nightly sync's `chore(data)` pushes), and the probe
+    reported that as an [INFRASTRUCTURE] failure (e.g. run 41900593875, 4 Nov)
+    although the code it tested is the code of the trigger. Empty -- so the run
+    still fails -- when the served build is not an ancestor of the trigger, when
+    git cannot answer, when nothing differs, or when any file outside data/
+    differs (code, app.py, requirements, config).
+    """
+    served = (served or "").strip().lower()
+    if not served or not EXPECTED_SHA:
+        return []
+    import subprocess
+
+    try:
+        if subprocess.run(["git", "merge-base", "--is-ancestor", served, EXPECTED_SHA],
+                          capture_output=True, timeout=20).returncode != 0:
+            return []
+        out = subprocess.run(["git", "diff", "--name-only", served, EXPECTED_SHA],
+                             capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if out.returncode != 0:
+        return []
+    files = [ln.strip() for ln in out.stdout.splitlines() if ln.strip()]
+    return files if files and all(f.startswith("data/") for f in files) else []
+
+
+def correspondence(served: str) -> tuple[str, dict | None, str | None]:
+    """(label, failure or None, note or None): the served build judged against the trigger.
+
+    A served build that is the trigger, or descends from it, matches. An older
+    one fails as INFRASTRUCTURE unless only data/ files lie between the two
+    (_data_only_lag): then the run passes with a note saying so, and any real
+    page failure the checks find still fails it.
+    """
+    if EXPECTED_SHA.startswith(served.lower()[:7]):
+        return "match", None, None
+    if _serves_expected(served):
+        # A NEWER build that contains the triggering commit -- in practice the
+        # automated data-sync commit that lands right after a merge.
+        return "match (newer build)", None, None
+    lag = _data_only_lag(served)
+    if lag:
+        return "data-only lag", None, (
+            f"Streamlit Cloud still serves {served[:7]}, not {EXPECTED_SHA[:7]}, after "
+            f"{DEPLOY_WAIT_S}s, but the {len(lag)} file(s) between them are all data "
+            f"({', '.join(lag[:5])}{', ...' if len(lag) > 5 else ''}): the code under test is "
+            f"the trigger's. Passed with this note when every page check passes (S186).")
+    return "mismatch", classify(
+        f"Tested build {served[:7]} but this run was triggered by "
+        f"{EXPECTED_SHA[:7]}; Streamlit had not finished swapping "
+        f"builds within {DEPLOY_WAIT_S}s. This result does not "
+        f"describe the triggering commit.",
+        "INFRASTRUCTURE"), None
 # The app emits its telemetry element as the LAST thing the script run does,
 # after all twelve tab bodies. Reading it the instant stTabs appears loses that
 # race every time and reports the deploy check unverifiable, which is what run
@@ -1185,21 +1244,13 @@ def main() -> None:
                         f"({why}), so this run cannot confirm it tested "
                         f"{EXPECTED_SHA[:7]} rather than the previous build.",
                         "QA"))
-                elif EXPECTED_SHA.startswith(served.lower()[:7]):
-                    report["deploy_correspondence"] = "match"
-                elif _serves_expected(served):
-                    # A NEWER build that contains the triggering commit -- in
-                    # practice the automated data-sync commit that lands right
-                    # after a merge. It tests everything the trigger changed.
-                    report["deploy_correspondence"] = "match (newer build)"
                 else:
-                    report["deploy_correspondence"] = "mismatch"
-                    failures.append(classify(
-                        f"Tested build {served[:7]} but this run was triggered by "
-                        f"{EXPECTED_SHA[:7]}; Streamlit had not finished swapping "
-                        f"builds within {DEPLOY_WAIT_S}s. This result does not "
-                        f"describe the triggering commit.",
-                        "INFRASTRUCTURE"))
+                    label, failure, note = correspondence(served)
+                    report["deploy_correspondence"] = label
+                    if note:
+                        report["deploy_note"] = note
+                    if failure:
+                        failures.append(failure)
 
             if state["state"] == "ready":
                 pass
@@ -1407,6 +1458,8 @@ def main() -> None:
               f"(expected {report.get('expected_revision')}, "
               f"served {report.get('served_revision')}"
               + (f", {reason}" if reason else "") + ")", flush=True)
+        if report.get("deploy_note"):
+            print(f"deploy note           : {report['deploy_note']}", flush=True)
         if report.get("loaded_revision"):
             print(f"modules loaded at     : {report['loaded_revision']}"
                   + (f"  STALE: {len(report['stale_modules'])} src/ file(s) not running"
