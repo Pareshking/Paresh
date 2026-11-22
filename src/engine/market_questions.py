@@ -258,13 +258,13 @@ def breadth_answer(prices: pd.DataFrame, bench: pd.Series, past: pd.DataFrame | 
     ms = [
         _measure("Stocks above their 200D EMA", "pct", [at(a200, k) for k in d], 60, 40,
                  "60% or more is broad, 40% or less is narrow", primary=True, history=a200 if past is not None else a200.iloc[200:]),
-        _measure(f"Stocks ahead of {market} over a year", "pct", [beat[k][0] for k in d], 55, 45,
+        _measure(f"Stocks ahead of {market} over 12 months", "pct", [beat[k][0] for k in d], 55, 45,
                  "55% or more is broad, 45% or less is narrow", primary=True, history=beat_share),
         _measure("Stocks above their 50D EMA", "pct", [at(a50, k) for k in d], 60, 40,
                  "60% or more is broad, 40% or less is narrow", history=a50 if past is not None else a50.iloc[50:]),
         _measure("Net new 52W highs this week, share of stocks", "pts", [at(nnh, k) for k in d], 5, -5,
                  "+5 or more is broad, −5 or less is narrow", history=nnh),
-        _measure(f"Median stock less {market}, a year", "pts", [beat[k][1] for k in d], 3, -3,
+        _measure(f"Median stock less {market}, 12M", "pts", [beat[k][1] for k in d], 3, -3,
                  "+3 pts or more is broad, −3 or less is narrow", history=beat_gap),
     ]
     return _answer("Are most stocks taking part?", ms,
@@ -414,7 +414,7 @@ def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
                            [_f(s.get(_on_or_before(s.index, d[k]))) if d[k] is not None and
                             _on_or_before(s.index, d[k]) is not None else None for k in keys],
                            60, 40, "60% or more is up, 40% or less is down", history=s.iloc[200:]))
-    return _answer("Is the market in an uptrend?", ms,
+    return _answer("Is the Nifty 500 in an uptrend?", ms,
                    ("Strong downtrend", "Downtrend", "No clear trend", "Uptrend", "Strong uptrend"),
                    lambda word, m: _trend_sentence(word, ms))
 
@@ -497,7 +497,7 @@ def leaders_answer(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
         bits.append(f"{best_size[0]} lead{'s' if not best_size[0].endswith('s') else ''} the sizes over six months "
                     f"({best_size[1]:+.1f} pts against {market_name})".replace("-", "−"))
     if len(sectors):
-        bits.append(f"{len(both)} of {len(sectors)} industries are ahead over both six months and one month"
+        bits.append(f"{len(both)} of {len(sectors)} sectors are ahead over both six months and one month"
                     + (f", led by {', '.join(lead_names)}" if lead_names else ""))
     sentence = ("; ".join(bits) + ".") if bits else "Not enough history to say."
     return Leaders(sentence, size, sectors, when, gap)
@@ -585,7 +585,7 @@ def industry_months(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
     """Each industry's equal-weighted return less the equal-weighted market's,
     per calendar month, for the last `months` completed months and the month
     to date (points; S147, src/engine/peer_index). Columns are month labels
-    ("Nov 2025" … "Nov 2026 MTD"), plus "run" (completed months in a row
+    ("Nov 2025" … "Nov so far"), plus "run" (completed months in a row
     ahead, +n, or behind, -n, ending with the last completed month) and
     "total" (the completed months' points summed), sorted by total. `bench`
     is kept for the caller's signature; the comparison no longer reads it."""
@@ -605,7 +605,7 @@ def industry_months(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
     for name, level in levels.items():
         vals = [pi.relative_points(level, market, t0, t1) for t0, t1 in zip(ends[:-1], ends[1:])]
         rows[name] = [np.nan if v is None else v for v in vals]
-    labels = [p.strftime("%b %Y") for p in periods[:-1]] + [periods[-1].strftime("%b") + " MTD"]
+    labels = [p.strftime("%b %Y") for p in periods[:-1]] + [periods[-1].strftime("%b") + " so far"]   # glossary 9
     out = pd.DataFrame.from_dict(rows, orient="index", columns=labels)
     complete = out.iloc[:, :-1]
 

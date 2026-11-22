@@ -444,7 +444,8 @@ def section_lead(f: dict) -> list:
         + (f"dividends. NSE’s own file puts the Nifty 500’s dividend yield at {dy:.1f}% a year on average since Feb 2012, "
            "against about 0.5% for the book (measured 2020–25 only, S125), so against the index with dividends the lead "
            f"is about {dy - 0.5:.1f} points a year smaller than shown." if dy is not None else "dividends."),
-        f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill.",
+        f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill. "
+        f"<b>pts</b>: {_fmt.PTS_NOTE}",
         "<b>Why the Nifty 500 and not Nifty Total Market.</b> Nifty Total Market starts on 14 Oct 2021 and this history in "
         "2010 (owner, 21 Nov 2026). Nifty Total Market is beside it from 2022 in section 3 and in section 4."
         + (f" For this universe its own index, the {e(f['uidx_name'])}, is shown beside both." if f.get("uidx_name") else ""),
@@ -462,7 +463,7 @@ def section_lead(f: dict) -> list:
             [f"Sortino, over {RISK_FREE_RATE:.1%}",
              f"{st_['sortino']:.2f}" if np.isfinite(st_.get("sortino", float("nan"))) else "–", "–"],
             ["Turnover, one way, a month", f"{st_.get('avg_turnover', 0):.0f}%", "–"]]
-    return ['<div class="dh-sec">', _kick("1", "Ahead of the market"), f'<h2 id="s-lead" class="dh-h2">{h2}</h2>', tiles, "</div>",
+    return ['<div class="dh-sec">', _kick("1", "Ahead of the Nifty 500"), f'<h2 id="s-lead" class="dh-h2">{h2}</h2>', tiles, "</div>",
             Chart("btgrowth", spec, {"label": "Growth of ₹100 on a log scale, this rule and the Nifty 500, and how far each "
                                               "sits below its peak"}),
             '<div class="dh-sec dh-sec-cont">'
@@ -480,15 +481,15 @@ def section_falls(f: dict) -> list:
     if now < -0.005:
         peak = f["current_peak"]
         h2 = f'The rule is <span class="dh-down">{e(_pc(-now))} below its {peak:%B %Y} peak</span>'
-        h2 += ("; its largest fall since " + str(f["summary"].first.year) + " has not yet recovered." if big and big.recovered is None
-               else f"; its largest fall, {e(_pc(big.depth))}, was back at its peak on {e(_d(big.recovered))}." if big else ".")
+        h2 += ("; its max drawdown since " + str(f["summary"].first.year) + " has not yet recovered." if big and big.recovered is None
+               else f"; its max drawdown, {e(_pc(big.depth))}, was back at its peak on {e(_d(big.recovered))}." if big else ".")
     else:
-        h2 = "The rule is at its peak" + (f"; its largest fall was {e(_pc(big.depth))}." if big else ".")
+        h2 = "The rule is at its peak" + (f"; its max drawdown was {e(_pc(big.depth))}." if big else ".")
     cur_days = f["current_days"]
     needs = (1 / (1 + now) - 1) if now < 0 else 0.0
     tiles = _kpis([
         ("Below its peak now", _pcs(now), "dh-down" if now < 0 else "", f"Nifty 500 {_pcs(bnow)}"),
-        ("Largest fall from a peak", _pcs(big.depth) if big else "–", "dh-down",
+        ("Max drawdown", _pcs(big.depth) if big else "–", "dh-down",
          f"Nifty 500 {_pcs(n500_falls[0].depth)}" if n500_falls else ""),
         ("Days below its peak", f"{cur_days:,}" if now < 0 else "0", "dh-watch" if now < 0 else "",
          f"since {_d(f['current_peak'])}" if now < 0 else "at its peak"),
@@ -503,7 +504,7 @@ def section_falls(f: dict) -> list:
                 f'<td class="dh-num">{rec}</td><td class="dh-num">{fl.days:,}</td></tr>')
     body = "".join(row("This rule" + (" (open)" if fl.recovered is None else ""), fl) for fl in rule_falls)
     body += "".join(row("Nifty 500", fl).replace("<th scope=\"row\">", '<th scope="row" class="dh-muted">', 1) for fl in n500_falls[:2])
-    table = ('<div class="dh-scroll"><table class="dh-tab bt-t"><thead><tr><th scope="col">Largest falls from a peak</th>'
+    table = ('<div class="dh-scroll"><table class="dh-tab bt-t"><thead><tr><th scope="col">Deepest drawdowns</th>'
              '<th scope="col" class="dh-num">Fall</th><th scope="col" class="dh-num">Peak</th><th scope="col" class="dh-num">Low</th>'
              '<th scope="col" class="dh-num">Back at the peak</th><th scope="col" class="dh-num">Days below</th></tr></thead>'
              f"<tbody>{body}</tbody></table></div>")
@@ -648,10 +649,10 @@ def section_depends(f: dict) -> list:
                       f'<td class="dh-num dh-down">{e(_pcs(dd))}</td></tr>')
     if trows:
         parts += ['<div class="dh-scroll"><table class="dh-tab bt-t"><thead><tr><th scope="col">Against what you could buy</th>'
-                  '<th scope="col" class="dh-num">A year</th><th scope="col" class="dh-num">Largest fall</th></tr></thead>'
+                  '<th scope="col" class="dh-num">A year</th><th scope="col" class="dh-num">Max drawdown</th></tr></thead>'
                   f'<tbody>{trows}</tbody></table></div>',
                   '<p class="dh-note">NSE’s Nifty200 Momentum 30 is the nearest index a fund tracks; it is a price index too. '
-                  'These windows are short and include this rule’s largest fall.</p>']
+                  'These windows are short and include this rule’s max drawdown.</p>']
     return parts + ["</div>", END]
 
 
@@ -685,7 +686,7 @@ def section_trust(f: dict) -> list:
         ("Rules chosen after looking", "The record’s rules were settled while this history was on screen, and the 30-holding "
                                        "settings came from a sweep of it (12 Oct 2026). Only months after a rule was fixed test "
                                        f"it: the shadow books {shadows} (Portfolio).", "Soft spot"),
-        ("Industry cap", "Uses today’s industry labels for every year, not the label of the day"
+        ("Sector cap", "Uses today’s sector labels for every year, not the label of the day"
                          + (f"; {h['unlabelled']} stocks have none and count as their own group." if h["unlabelled"] else "."),
          "Not checked"),
     ]

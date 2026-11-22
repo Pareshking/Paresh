@@ -222,7 +222,7 @@ R.month = (card, s) => {
     $('.seg-axis div', card).innerHTML = s.axis.map(t => `<span style="left:${(t - o.lo) / (o.hi - o.lo) * 100}%">${t > 0 ? '+' : t < 0 ? '−' : ''}${Math.abs(t)}%</span>`).join('');
     rowsInteract(card, '.trow', j => { const k = j ?? s.book, mk = v[s.market], bk = v[s.book];
       ro(card, (j == null ? 'Latest · ' : '') + label, [{v: sg(v[k]) + '%', cls: tone(v[k]), name: s.rows[k].name},
-        {v: sg(v[k] - mk) + ' pts', cls: tone(v[k] - mk), name: 'against the market'},
+        {v: sg(v[k] - mk) + ' pts', cls: tone(v[k] - mk), name: 'against ' + s.rows[s.market].name},
         ...(k !== s.market && k !== s.book ? [{v: sg(bk - v[k]) + ' pts', cls: tone(bk - v[k]), name: 'the book against it'}] : [])]); }); };
   sw.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { sw.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); m = b.dataset.m; draw(); }));
   draw();
@@ -262,12 +262,12 @@ R.segbar = (card, s) => {
   bar.querySelectorAll('i').forEach(t => { const i = +t.dataset.i; t.addEventListener('pointerenter', () => show(i)); t.addEventListener('pointerdown', () => show(i)); t.addEventListener('focus', () => show(i)); });
   bar.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') show(null); });
   const fit = () => bar.querySelectorAll('i').forEach(t => { const sp = t.querySelector('span'); sp.style.visibility = ''; if (sp.offsetWidth > t.clientWidth - 10) sp.style.visibility = 'hidden'; });
-  if (s.totals) $('.seg-key', card).innerHTML = [['strong', 'Strong', 'ahead of the market on both windows'], ['turning', 'Turning', 'ahead on one'], ['weak', 'Weak', 'behind on both']]
+  if (s.totals) $('.seg-key', card).innerHTML = [['strong', 'Strong', 'ahead of all ranked stocks on both windows'], ['turning', 'Turning', 'ahead on one'], ['weak', 'Weak', 'behind on both']]
     .filter(([k]) => s.totals[k] != null).map(([k, t, d]) => `<span><i class="seg-${k}"></i><b>${fx(s.totals[k], 1)}%</b> ${t}, ${d}</span>`).join('');
   show(null); fit(); new ResizeObserver(fit).observe(bar);
 };
 
-/* The index and how many stocks carry it: two panes, one crosshair, 6M / 1Y / 3Y. */
+/* The index and how many stocks carry it: two panes, one crosshair, 6M / 12M / 3Y. */
 R.breadth = (card, s) => {
   const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
   let from = 0, panes = [];

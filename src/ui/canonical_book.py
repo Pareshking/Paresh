@@ -80,8 +80,9 @@ def unpriced_note(record: dict[str, Any] | None) -> tuple[str, str] | None:
     gaps = (record or {}).get("unpriced") or {}
     if not gaps:
         return None
+    from src.ui.formats import date as _date   # "30 Oct 2026", not "2026-10-30" (S173 rule 3)
     day, names = sorted(gaps.items())[-1]
-    head = f"This book was formed without {len(names)} member{'s' if len(names) != 1 else ''} we hold no close for on {day}."
+    head = f"This book was formed without {len(names)} member{'s' if len(names) != 1 else ''} we hold no close for on {_date(day)}."
     body = (", ".join(names[:12]) + (" and more" if len(names) > 12 else "")
             + ". Their prices are being collected; the month is frozen only once every member has a close.")
     return head, body

@@ -81,7 +81,7 @@ def test_returns_and_falls_cover_every_window():
     body = _body(at)
     for months in (1, 3, 6, 9, 12):
         assert f'<th scope="row">{months}M' in body
-    for band in ("Stock", "Market", "Sharpe", "Largest fall", "Rank by return"):
+    for band in ("Stock", "Nifty Total Market", "Sharpe", "Max drawdown", "Rank by return"):
         assert band in body
 
 

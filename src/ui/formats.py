@@ -137,6 +137,23 @@ def date(x, short: bool = False) -> str:
     return f"{d.day} {d.strftime('%b')}" + ("" if short else f" {d.year}")
 
 
+# A stock's size, as the glossary writes it (glossary 3, owner 23 Nov 2026); the data keeps "Large", "Mid", ...
+SIZE_NAMES = {"Large": "Large Cap", "Mid": "Mid Cap", "Small": "Small Cap", "Micro": "Micro Cap"}
+
+
+def size(key) -> str:
+    """A size for display: "Small" -> "Small Cap"; "Nano Cap" and anything else unchanged."""
+    return SIZE_NAMES.get(str(key), str(key))
+
+
+def since(start) -> str:
+    """The start of a system's record, as the glossary writes it (glossary 7): "Since 1 Jan 2026"."""
+    return f"Since {date(start)}"
+
+
+PTS_NOTE = "pts = percentage points: 12% − 8% = 4 pts."   # where a reader first meets pts on a page (glossary 4)
+
+
 PRICES_SOURCE = "NSE"   # the exchange the closes are from; the vendor is not named on a page (owner, 20-21 Nov 2026: "Let's not show source")
 
 

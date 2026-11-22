@@ -155,7 +155,7 @@ BODY = {
                '<div class="key seg-key"></div>'),
     "breadth": ('<div class="cap"><span>{note}</span><span class="chips" role="group" aria-label="Period">'
                 '<button class="chip" type="button" data-range="126" aria-pressed="false">6M</button>'
-                '<button class="chip" type="button" data-range="252" aria-pressed="false">1Y</button>'
+                '<button class="chip" type="button" data-range="252" aria-pressed="false">12M</button>'
                 '<button class="chip" type="button" data-range="0" aria-pressed="true">3Y</button></span></div>'
                 '<div class="readout" aria-live="polite"></div>'
                 '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div><div class="chart" data-pane="bottom" role="img"></div>'),

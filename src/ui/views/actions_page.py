@@ -105,7 +105,9 @@ def sg_pts(v: float) -> str:
 
 def _lakh(v: float) -> str:
     # In lakh and crore, as written before 22 Nov (owner, 22 Nov 2026: "₹34,05,000" was "completely opposite").
-    return f"₹{v / 1e5:.1f} lakh" if v < 1e7 else f"₹{v / 1e7:.2f} crore"
+    # "Cr", never "crore" spelled out (glossary 5, owner 23 Nov 2026); half away from zero (glossary 12).
+    from src.ui.formats import fixed
+    return f"₹{fixed(v / 1e5, 1)} lakh" if v < 1e7 else f"₹{fixed(v / 1e7, 2)} Cr"
 
 
 def _rk(v) -> str:
@@ -157,12 +159,12 @@ def section_change(p: Plan) -> list:
     """Row 25: what could still change before the close that counts."""
     a = p.assess.set_index("Symbol") if len(p.assess) else pd.DataFrame()
     close = [(s, a.loc[s, "why"]) for s in p.holds if s in a.index and a.loc[s, "status"] == WATCH]
-    items = "".join(f'<li><b>{e(s)}</b> {e(str(w))}</li>' for s, w in close) or "<li>No hold is within reach of a line.</li>"
+    items = "".join(f'<li><b>{e(s)}</b> {e(str(w))}</li>' for s, w in close) or "<li>No holding is within reach of a line.</li>"
     nxt = " · ".join(e(s) for s in p.next_in_line[:4]) or "–"
     return _sec([_head("ac-change", "What could still change", f"before the {dshort(p.check)} close"),
-                 f'<div class="dh-pair"><div><div class="dh-cap"><b>Holds close to a line</b><span>could still change to a sale</span></div>'
+                 f'<div class="dh-pair"><div><div class="dh-cap"><b>Holdings close to a line</b><span>could still change to a sale</span></div>'
                  f'<ul class="ac-list">{items}</ul></div>'
-                 f'<div><div class="dh-cap"><b>Next in line</b><span>would come in if a buy drops out or another hold breaks</span></div>'
+                 f'<div><div class="dh-cap"><b>Next in line</b><span>would come in if a buy drops out or another holding breaks a rule</span></div>'
                  f'<p class="ac-next">{nxt}</p></div></div>',
                  f'<div class="dh-cap"><b>Results and corporate actions before the fill</b><span>to {dshort(p.fill)}</span></div>',
                  _events_html(p), f'<p class="dh-note">{e(p.events_note)}</p>'])
@@ -172,11 +174,11 @@ def _events_html(p: Plan) -> str:
     if p.events:
         rows = "".join(f'<li><b>{e(sym)}</b> ({e(role)}) {e(what)}, {dshort(d)}</li>' for d, sym, role, what in p.events)
         return f'<ul class="ac-list">{rows}</ul>'
-    return '<p class="ac-none">None announced for any holding, sell or buy.</p>'
+    return '<p class="ac-none">No board meeting or ex-date is announced for any holding, sell or buy.</p>'
 
 
 def section_after(p: Plan) -> list:
-    """Row 27: the book's industry and size after the trades, against now."""
+    """Row 27: the book's sector and size after the trades, against now."""
     if not len(p.weights):
         return []
     ind = lambda s: _ind(p, s) or "Other"   # noqa: E731
@@ -187,7 +189,7 @@ def section_after(p: Plan) -> list:
                    f'<td class="dh-num {tone(aft.get(k, 0) - now.get(k, 0))}">{sg_pts(aft.get(k, 0) - now.get(k, 0))}</td></tr>' for k in names)
     sz = lambda w: w.groupby(w.index.map(lambda s: p.sizes.get(s, "Other"))).sum() * 100   # noqa: E731
     sn, sa = sz(p.now_weights), sz(p.weights)
-    srows = "".join(f'<tr><th scope="row">{k}</th><td class="dh-num">{sn.get(k, 0):.1f}%</td><td class="dh-num dh-b">{sa.get(k, 0):.1f}%</td>'
+    srows = "".join(f'<tr><th scope="row">{e(_fmt.size(k))}</th><td class="dh-num">{sn.get(k, 0):.1f}%</td><td class="dh-num dh-b">{sa.get(k, 0):.1f}%</td>'
                     f'<td class="dh-num {tone(sa.get(k, 0) - sn.get(k, 0))}">{sg_pts(sa.get(k, 0) - sn.get(k, 0))}</td></tr>'
                     for k in bx.SIZES if sn.get(k, 0) or sa.get(k, 0))
     # Cash in rupees, the figure Portfolio shows: uninvested now; after, plus the sells and less the buys (whole shares).
@@ -199,15 +201,15 @@ def section_after(p: Plan) -> list:
         cash_now, cash_after = max(0.0, 100 - float(p.now_weights.sum()) * 100), max(0.0, 100 - float(p.weights.sum()) * 100)
     head = ('<thead><tr><th scope="col">{0}</th><th scope="col" class="dh-num">Now</th><th scope="col" class="dh-num">After</th>'
             '<th scope="col" class="dh-num">Change, pts</th></tr></thead>')
-    return _sec([_head("ac-after", "The book after the trades", "industry and size, now and after the trades"),
-                 f'<div class="dh-pair"><div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab">{head.format("Industry")}<tbody>{rows}</tbody></table></div>'
+    return _sec([_head("ac-after", "The book after the trades", "sector and size, now and after the trades"),
+                 f'<div class="dh-pair"><div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab">{head.format("Sector")}<tbody>{rows}</tbody></table></div>'
                  f'<div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab">{head.format("Size")}<tbody>{srows}'
                  f'<tr><th scope="row">Cash</th><td class="dh-num">{cash_now:.1f}%</td><td class="dh-num dh-b">{cash_after:.1f}%</td>'
                  f'<td class="dh-num">{sg_pts(cash_after - cash_now)}</td></tr></tbody></table></div></div>',
                  '<p class="dh-note">Now: each stock at its weight today, after it has moved since the last fill. After: the weights the '
-                 'record strikes at the rebalance. Size by NSE’s index lists today: Large is the Nifty 100, Mid the Midcap 150, Small the '
-                 'Smallcap 250, Micro the Microcap 250; Nano Cap the Nifty 1000’s other 250 and Ultra Nano Cap anything outside the '
-                 'Nifty 1000 (our own groups, not NSE indices).</p>'])
+                 'record strikes at the rebalance. Size by NSE’s index lists today: Large Cap is the Nifty 100, Mid Cap the Nifty Midcap 150, '
+                 'Small Cap the Nifty Smallcap 250, Micro Cap the Nifty Microcap 250; Nano Cap the Nifty 1000’s other 250 and Ultra Nano Cap '
+                 f'anything outside the Nifty 1000 (our own groups, not NSE indices). {_fmt.PTS_NOTE}</p>'])
 
 
 def section_sell(p: Plan) -> list:
@@ -257,7 +259,7 @@ def section_buy(p: Plan) -> list:
             if p.source == "Model book" else f"Amounts are each buy's target weight of {inr(p.value)}, the capital in the Kite basket box.")
     ev = p.swaps
     evid = ("" if ev is None else
-            f'<div class="ac-ev"><b>What swaps have added so far.</b> In their first month the record’s {ev.buys} buys beat Nifty '
+            f'<div class="ac-ev"><b>What swaps have added so far.</b> In their first month the record’s {ev.buys} buys beat '
             f'Nifty Total Market by {sg(ev.buy_1m)} points on average; the {ev.sold} stocks it sold, by {sg(ev.sold_1m)} in the month after the sale'
             + ("" if ev.buy_3m is None or ev.sold_3m is None else
                f'. Over three months: {sg(ev.buy_3m)} against {sg(ev.sold_3m)}')

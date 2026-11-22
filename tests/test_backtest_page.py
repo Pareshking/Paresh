@@ -105,13 +105,13 @@ def test_short_books_are_counted_as_too_few_stocks_not_caps():
 # ── The page ──────────────────────────────────────────────────────────────────
 
 def test_one_name_one_unit_on_the_page():
-    """S173: the names the page used to mix are gone from its source."""
+    """S173: the names the page used to mix are gone from its source; glossary 8 (owner, 23 Nov 2026): "Max drawdown", not "largest fall"."""
     src = VIEW.read_text(encoding="utf-8")
-    for banned in ("Max drawdown", "Annualised", '"Alpha', "Alpha vs", "CAGR", "Strategy Net", "Ahead of the index",
+    for banned in ("Largest fall", "largest fall", "Annualised", '"Alpha', "Alpha vs", "CAGR", "Strategy Net", "Ahead of the index",
                    "Worst fall", "Calmar", "Live system", "Personal closes", "Recommendation: 30", "@st.fragment",
                    "render_data_quality_footer", "Zero Look-Ahead"):
         assert banned not in src, banned
-    for name in ('"A year, compounded"', '"Lead over the Nifty 500"', '"Largest fall from a peak"',
+    for name in ('"A year, compounded"', '"Lead over the Nifty 500"', '"Max drawdown"',
                  '"Below its peak now"', '"Months ahead of the Nifty 500"', '"Days below its peak"'):
         assert name in src, name
 
@@ -163,7 +163,7 @@ def test_the_page_parts_carry_the_requirements_markers(monkeypatch):
     for marker in ("Backtest", "a year to the Nifty 500", "Price returns on both sides", "What was tested",
                    "A year, compounded", "Lead over the Nifty 500", "points a year", "calendar time",
                    "Why the Nifty 500 and not Nifty Total Market", "The two halves", "Show the table",
-                   "Below its peak now", "Largest fall from a peak", "Days below its peak", "Back at the peak",
+                   "Below its peak now", "Max drawdown", "Days below its peak", "Back at the peak",
                    "Month by month", "Survivorship", "Look-ahead", "Not checked", "Rules chosen after looking",
                    "found only 10 stocks", "Trades closed", "Median trade", "Portfolio", "Data to", "prices to"):
         assert marker.lower() in text.lower(), marker

@@ -523,24 +523,24 @@ def bars(ws: list[Window], step: int) -> list[Bar]:
 
 
 def returns_heading(ws: list[Window]) -> tuple[str, str, str]:
-    """('Up 200.9% in a year against ', '+0.8% for the market', '; its largest fall was 17.0%.')"""
+    """('Up 200.9% in 12 months against ', '+0.8% for Nifty Total Market', '; its max drawdown was 17.0%.')"""
     w = next((x for x in ws if x.months == 12 and x.ret is not None), None) or next(
         (x for x in reversed(ws) if x.ret is not None), None)
     if w is None:
         return "No return to show for this stock yet.", "", ""
-    span = "a year" if w.months == 12 else f"{w.months} months"
+    span = f"{w.months} months"
     word = "Up" if round(w.ret * 100, 1) >= 0 else "Down"
     a = f"{word} {formats.pct(abs(w.ret), signed_=False)} in {span}"
-    b = f"{formats.pct(w.market)} for the market" if w.market is not None else ""
-    c = f"; its largest fall was {formats.pct(abs(w.fall), signed_=False, fraction=False)}." if w.fall is not None else "."
+    b = f"{formats.pct(w.market)} for {MARKET}" if w.market is not None else ""
+    c = f"; its max drawdown was {formats.pct(abs(w.fall), signed_=False, fraction=False)}." if w.fall is not None else "."
     return (a + (" against " if b else ""), b, c)
 
 
 def returns_note(as_of: pd.Timestamp, uni: Universe) -> str:
     return ("Price returns, without dividends. Each window runs from its first session on or after the same date "
-            f"back to {wl.fmt_day(as_of)}; the market, {MARKET}, over the same sessions. Lead is the stock’s return "
-            f"less the market’s, in points. The typical stock is the median of {uni.the}. Largest fall is the deepest "
-            "fall from a peak inside the window. Sharpe is the window’s return over its volatility, as the ranking "
+            f"back to {wl.fmt_day(as_of)}; {MARKET} over the same sessions. Lead is the stock’s return "
+            f"less {MARKET}’s, in points ({formats.PTS_NOTE[:-1]}). The typical stock is the median of {uni.the}. Max drawdown "
+            "is the deepest fall from a peak inside the window. Sharpe is the window’s return over its volatility, as the ranking "
             f"scores it, not annualised. Rank by return is its place among {uni.the} on that window’s return alone.")
 
 
@@ -553,7 +553,7 @@ def sessions_above(close: pd.Series, ema: pd.Series, last: int = 60) -> tuple[in
 
 
 def rs_words(rs_end: float | None) -> str:
-    """The stock against the market over a year, from RS (100 at the start): 'has almost tripled'."""
+    """The stock against Nifty Total Market over 12 months, from RS (100 at the start): 'has almost tripled'."""
     if rs_end is None:
         return ""
     r = rs_end / 100
@@ -568,17 +568,17 @@ def rs_words(rs_end: float | None) -> str:
 
 
 def price_heading(above: int, of: int, rs_end: float | None) -> tuple[str, str, str]:
-    """('Above its 50D EMA on 57 of the last 60 sessions; ', 'against the market it has almost tripled', ' in a year.')"""
+    """('Above its 50D EMA on 57 of the last 60 sessions; ', 'against Nifty Total Market it has almost tripled', ' in 12 months.')"""
     a = f"Above its 50D EMA on {above} of the last {of} sessions" if of else "Too few sessions for a 50D EMA yet"
     words = rs_words(rs_end)
     if not words:
         return a + ".", "", ""
-    return a + "; ", f"against the market it {words}", " in a year."
+    return a + "; ", f"against {MARKET} it {words}", " in 12 months."
 
 
 PRICE_NOTE = ("Three panes: price with its 50D EMA, the one the ranking reads (none before 30 sessions); volume, the "
               "shares traded each session (taller bars on busier days, blue when the close rose); and RS, the stock’s "
-              f"price over {MARKET}’s, set to 100 at the start of the range: above 100 it has gained more than the market "
+              f"price over {MARKET}’s, set to 100 at the start of the range: above 100 it has gained more than {MARKET} "
               "since then. Prices are adjusted for corporate actions.")
 
 
@@ -588,7 +588,7 @@ PEERS_SHOWN = 8
 
 
 def peers(full: pd.DataFrame, row) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """The industry's eight best-ranked, this stock always among them, and the whole industry."""
+    """The sector's eight best-ranked, this stock always among them, and the whole sector."""
     ind = row.get("Industry")
     if not ind or "Industry" not in full.columns:
         return full.iloc[0:0], full.iloc[0:0]

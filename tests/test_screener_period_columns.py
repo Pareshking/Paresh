@@ -118,7 +118,7 @@ def test_full_quant_renders_a_column_for_every_window(ranked, months):
     html = _render(rank_df, px, "Full Quant (35)")
     assert f"{months}M return" in html
     assert f"{months}M Sharpe" in html
-    assert f"{months}M largest fall" in html
+    assert f"{months}M max drawdown" in html   # glossary 8
 
 
 def test_sharpe_is_quant_only_and_core_shows_3m_drawdown(ranked):
@@ -126,8 +126,8 @@ def test_sharpe_is_quant_only_and_core_shows_3m_drawdown(ranked):
     for d in ("Executive (11)", "Core (17)"):
         html = _render(rank_df, px, d)
         assert "Sharpe" not in html
-        assert "12M largest fall" not in html
-    assert "3M largest fall" in _render(rank_df, px, "Core (17)")
+        assert "12M max drawdown" not in html
+    assert "3M max drawdown" in _render(rank_df, px, "Core (17)")
 
 
 def test_full_quant_is_wider_than_core_which_is_wider_than_executive(ranked):
