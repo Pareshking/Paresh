@@ -170,7 +170,7 @@ jobs:
         if: ${{ steps.scope.outputs.docs_only != 'true' }}
         with:
           node-version: 22
-      - name: Layout audit (Dashboard, Portfolio, Actions, Breadth, Sectors, Screener, Indices, Backtest, Watchlist) and requirements
+      - name: Layout audit (Dashboard, Portfolio, Actions, Breadth, Sectors, Screener, Indices, Backtest, Watchlist, Stock) and requirements
         if: ${{ steps.scope.outputs.docs_only != 'true' }}
         # The app here reads R2 as the live site does (S172, 21 Nov 2026): without the keys
         # it fell back to the release files and drew partial figures the live site did not.
@@ -210,6 +210,10 @@ jobs:
           node scripts/layout_audit.mjs "$WL" 412,1400
           node scripts/check_dashboard_requirements.mjs "$WL" docs/WATCHLIST_REQUIREMENTS.md
           node scripts/layout_audit.mjs http://localhost:8501/watchlist 412,1400
+          # The stock page (S182, mock-up v2 approved 23 Nov 2026): layout, its requirements, and a chart that does not move on hover (row 48).
+          node scripts/layout_audit.mjs "http://localhost:8501/stock?stock=SANSERA" 412,1400
+          node scripts/check_dashboard_requirements.mjs "http://localhost:8501/stock?stock=SANSERA" docs/STOCK_REQUIREMENTS.md
+          node scripts/chart_hover_audit.mjs "http://localhost:8501/stock?stock=SANSERA" 412,1400
 
       - name: Upload V1 validation artifacts
         if: ${{ steps.scope.outputs.docs_only != 'true' }}

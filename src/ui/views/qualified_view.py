@@ -13,11 +13,49 @@ from src.ui import formats as _fmt
 from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.screener_table import render_screener_table
-from src.ui.views.stock_view import _benchmark_returns, _price_day
 
 # Industries shown by name before the rest fold into "others".
 TOP_INDUSTRIES = 6
 
+
+
+PERIODS = (1, 3, 6, 9, 12)
+
+
+def _price_day() -> pd.Timestamp | None:
+    """The ranking's price day (moved here from the stock page's old module, S182)."""
+    from src.core import startup_metrics as _metrics
+
+    try:
+        day = pd.Timestamp(
+            str(_metrics.snapshot().get("facts", {}).get("price_as_of") or "")[:10])
+    except (ValueError, TypeError):
+        return None
+    return None if pd.isna(day) else day
+
+
+def _benchmark_returns(day: pd.Timestamp | None) -> dict[int, float]:
+    """Nifty 500 price return over each calendar window ending on the price day."""
+    try:
+        from src.loaders.price_loader import fetch_benchmark_history
+
+        s = fetch_benchmark_history(period="2y")
+    except Exception:
+        return {}
+    s = pd.to_numeric(s, errors="coerce").dropna()
+    if s.empty:
+        return {}
+    if day is not None:
+        s = s[s.index <= day + pd.Timedelta(days=1)]
+    if s.empty:
+        return {}
+    end_t = s.index[-1]
+    out = {}
+    for m in PERIODS:
+        start = s[s.index <= end_t - pd.DateOffset(months=m)]
+        if not start.empty:
+            out[m] = float(s.iloc[-1] / start.iloc[-1] - 1)
+    return out
 
 def _pct(v: float | None) -> str:
     """The house rule, from one place (duplicate audit, 10 Nov 2026).

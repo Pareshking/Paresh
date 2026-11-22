@@ -10,9 +10,12 @@ the redesigned pages (`docs/PAGE_DESIGN.md`). Checked with:
 
 Each row's **Marker** is text that must appear on the rendered page (see
 `docs/ACTIONS_REQUIREMENTS.md` for the syntax). A row is changed or dropped only with the
-owner's word. Rows marked **Proposed** have not been approved; the owner approves them with
-the mock-up or strikes them. The `Order:` line is added when the owner approves the section
-order.
+owner's word. Rows 22-46 were proposed with the mock-ups and approved with mock-up v2 (owner,
+23 Nov 2026: "Stock v2 approved"). Built in S182 (f); CI reads the list on
+`/stock?stock=SANSERA`, with `scripts/layout_audit.mjs` at 412 and 1400 px and
+`scripts/chart_hover_audit.mjs` for row 48.
+
+Order: 1 · Rank → 2 · Filters and sell rules → 3 · Returns and falls → 4 · Price → 5 · Industry → 6 · Data → Data to
 
 Scope: `/?stock=SYMBOL`, a route of the Screener view (`ranking_view.py:272`), for every
 system (750, > ₹2,000 Cr, Combined). The Screener list itself is `SCREENER_REQUIREMENTS.md`.
@@ -55,38 +58,38 @@ data-heavy pages that S151 counts.
 | 17 | On a phone, return and fall figures stay inside their cells | CHANGELOG 9 Nov | Returns | [phone] 12M |
 | 18 | The industry's best-ranked stocks in the Screener's columns, this stock marked | Live page (`_render_peers`) | Industry | this stock |
 | 19 | Data checks for the stock: gap-filled prices, data gaps, a carried price, short history, all-time-high basis, horizons scored | Live page (`_render_data_health`) | Data | 126 sessions\|horizons |
-| 20 | A stock not in the current ranking says so, with a way back | Live page (`render_stock_view`; no stock fails today, covered by a test the build adds) | Top | not in the current ranking |
+| 20 | A stock not in the current ranking says so, with a way back | Live page (`render_stock_view`). The state cannot show on SANSERA's page, which CI reads, so the marker is the way back; the words are checked by `tests/test_stock_page_v2.py::test_a_stock_not_in_the_ranking_says_so_with_a_way_back` | Top | Back to screener |
 | 21 | Works for each system; picking Combined is kept after a stock page | CHANGELOG (#242, "Combined no longer reverts after a stock page") | Whole page | Rank of |
 
-## Rules from the redesigned pages and the data checks (Proposed)
+## Rules from the redesigned pages and the data checks (approved with mock-up v2, 23 Nov 2026)
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 22 | **Proposed.** The title answers the first question in the serif (rank, filters, held or not); "Stock" and the symbol are the small kicker above it; a lede gives the close, its date and the year against the market | PAGE_DESIGN §2, §2a | Top | [css .kicker] Stock + passes both filters\|passes one filter\|fails both filters |
-| 23 | **Proposed.** Four tiles: close, rank of 750, place among the qualified, and (when held) the model book's return since entry; tile figures in the serif at 30 px | PAGE_DESIGN §2a | Top | Place among the qualified |
-| 24 | **Proposed.** Section headings are sentences that state the finding, in the serif, 30 px (24 px on a phone), each ending in a full stop | PAGE_DESIGN §2, §2a, §8 | Sections | sell rules |
-| 25 | **Proposed.** Rank trail 3M ago · 1M ago · now, as numbers in their own columns, for the rank of 750 and for the place among the qualified, read from `dashboard_insights.rank_trails` on the last session on or before each date (the Dashboard's, Portfolio's and the Screener's dates); a three-point trail with the 20th and 40th lines dashed. The 6M and 2M steps go | PAGE_DESIGN §2, §4.3, §6a; Screener decision A (21 Nov) | Rank | 3M ago + 1M ago + Now |
-| 26 | **Proposed.** One section for filters and sell rules: the ladder, then each rule's line, the fall that reaches it, and today's state (above the 50D EMA, within 20% of the 52W high, in the top 40 of the qualified); the next check date | PAGE_DESIGN §2 (no figure twice: the verdict, ladder and exit status each repeated the 50D EMA) | Filters | Fall to reach it |
-| 27 | **Proposed.** When the model book holds the stock, say so with shares, weight, first buy date and price, return since entry, from Portfolio's own function (`build_portfolio_tracker`), and link to Actions for the plan | PAGE_DESIGN §2 (link, do not repeat), §5.4 (same number as the owning page) | Filters | The model book holds it\|The model book does not hold it |
-| 28 | **Proposed.** Results or corporate actions announced before the next check, from the calendar Actions reads (`data/results_calendar.csv`) | ACTIONS_REQUIREMENTS row 28 (owner 21 Nov) | Filters | board meeting |
-| 29 | **Proposed.** The market is Nifty Total Market and is named; its return covers the same sessions as the stock's (first session on or after the date back) | S165 (owner 21 Nov: "Switch to Nifty total market indices everywhere"); data check below (the live 1M figure starts two sessions earlier than the stock's) | Returns, Price | Nifty Total Market |
-| 30 | **Proposed.** Returns as line bars on one scale (5% a line), the market as a small triangle; the stock, the market, the lead in pts, the typical stock, the largest fall, Sharpe and the rank by return as numbers; a phone drops the last four with a note saying which | PAGE_DESIGN §4.2, §3; ACTIONS_REQUIREMENTS row 14 | Returns | One line is 5% + Lead + [phone] On a wider screen |
-| 31 | **Proposed.** One name for the fall: "Largest fall", as the Screener's column ("3M largest fall") | S173; Screener table | Returns | Largest fall |
-| 32 | **Proposed.** "Rank by return" as a place ("37th") instead of "Top 5%" | PAGE_DESIGN §3 (one figure per cell, numbers) | Returns | Rank by return |
-| 33 | **Proposed.** Chart: price and the 50D EMA the rule uses, the stock against Nifty Total Market beneath (100 at the start of the range); 6M · 1Y · 3Y; values under the pointer in each pane's heading, readout above on touch, arrow keys, latest values at rest; the 20 EMA, the 200 SMA and the 1M, 3M, All ranges go | PAGE_DESIGN §4.1, §4.3 | Price | 6M + 1Y + 3Y + Against Nifty Total Market |
-| 34 | **Proposed.** The chart's 50D EMA is the ranking's (30 prints before it exists, `EMA_MIN_PRINTS`), not `ewm(min_periods=10)` | DATA_CORRECTNESS §5 (owner 10 Nov: 30 prints) | Price | 50D EMA |
-| 35 | **Proposed.** Volume: either dropped or labelled "shares traded, NSE and BSE" (the figure adds both exchanges) | Data check below; PAGE_DESIGN §5.3 | Price | Price |
-| 36 | **Proposed.** Industry in the short names other pages use (Auto, FMCG), one classification; TradingView's sector beside NSE's industry goes | PAGE_DESIGN §8 ("one name, one thing"); SCREENER_REQUIREMENTS row 18 | Top, Industry | Auto\|FMCG\|Healthcare |
-| 37 | **Proposed.** Industry peers: the eight best-ranked with their qualified place filled in (today it reads "Out" for every row), and a link to the Screener for the whole industry instead of a "Show all" window | Data check below; PAGE_DESIGN §2 (no "More" buttons; link to the owning page) | Industry | on the Screener |
-| 38 | **Proposed.** Corporate actions from NSE's action list (kind, terms, ex-date, factor), not the log of large one-day moves; a stock with none says so | Data check below (MBAPL) | Data | NSE’s lists\|NSE's lists |
-| 39 | **Proposed.** Data checks in plain sight, not in a fold | PAGE_DESIGN §2 ("Everything visible") | Data | ranked on all five horizons\|Ranked on all five horizons |
-| 40 | **Proposed.** The Factsheet window goes: it repeated the returns table, rank and levels; stop loss and chandelier exit are not model rules | PAGE_DESIGN §2 ("no figure twice") | Toolbar | Share |
-| 41 | **Proposed.** Sentence case everywhere: no ELIGIBLE, NOT ELIGIBLE, PASS or FAIL in capitals | PAGE_DESIGN §3, §8 | Whole page | [css .kicker] Rank |
-| 42 | **Proposed.** Highs and lows say they are closing prices (they differ from an intraday 52-week high quoted elsewhere); the all-time high gets a line only when it differs from the 52W high | Owner 10 Nov (closing high), PAGE_DESIGN §2 | Filters | closing prices |
-| 43 | **Proposed.** Notes 13.5 px, no line over about 80 characters, a long note in two columns on a wide screen | PAGE_DESIGN §2a | Notes | Price returns |
-| 44 | **Proposed.** Data date at the foot, no source named | Owner 20, 21 Nov; PAGE_DESIGN §2 | Foot | Data to |
-| 45 | **Proposed.** Every figure ends on the page's session (price, ranking, index) | S148, PAGE_DESIGN §5.3 | Whole page | Data to |
-| 46 | **Proposed.** Layout audit clean at 412 and 1400 px; the page joins CI's step with this list | PAGE_DESIGN §7, §8 | Whole page | Rank of 750 |
+| 22 | Approved 23 Nov 2026 (mock-up v2). The title answers the first question in the serif (rank, filters, held or not); "Stock" and the symbol are the small kicker above it; a lede gives the close, its date and the year against the market | PAGE_DESIGN §2, §2a | Top | [css .kicker] Stock + passes both filters\|passes one filter\|fails both filters |
+| 23 | Approved 23 Nov 2026 (mock-up v2). Four tiles: close, rank of 750, place among the qualified, and (when held) the model book's return since entry; tile figures in the serif at 30 px | PAGE_DESIGN §2a | Top | Place among the qualified |
+| 24 | Approved 23 Nov 2026 (mock-up v2). Section headings are sentences that state the finding, in the serif, 30 px (24 px on a phone), each ending in a full stop | PAGE_DESIGN §2, §2a, §8 | Sections | sell rules |
+| 25 | Approved 23 Nov 2026 (mock-up v2). Rank trail 3M ago · 1M ago · now, as numbers in their own columns, for the rank of 750 and for the place among the qualified, read from `dashboard_insights.rank_trails` on the last session on or before each date (the Dashboard's, Portfolio's and the Screener's dates); a three-point trail with the 20th and 40th lines dashed. The 6M and 2M steps go | PAGE_DESIGN §2, §4.3, §6a; Screener decision A (21 Nov) | Rank | 3M ago + 1M ago + Now |
+| 26 | Approved 23 Nov 2026 (mock-up v2). One section for filters and sell rules: the ladder, then each rule's line, the fall that reaches it, and today's state (above the 50D EMA, within 20% of the 52W high, in the top 40 of the qualified); the next check date | PAGE_DESIGN §2 (no figure twice: the verdict, ladder and exit status each repeated the 50D EMA) | Filters | Fall to reach it |
+| 27 | Approved 23 Nov 2026 (mock-up v2). When the model book holds the stock, say so with shares, weight, first buy date and price, return since entry, from Portfolio's own function (`build_portfolio_tracker`), and link to Actions for the plan | PAGE_DESIGN §2 (link, do not repeat), §5.4 (same number as the owning page) | Filters | The model book holds it\|The model book does not hold it |
+| 28 | Approved 23 Nov 2026 (mock-up v2). Results or corporate actions announced before the next check, from the calendar Actions reads (`data/results_calendar.csv`) | ACTIONS_REQUIREMENTS row 28 (owner 21 Nov) | Filters | board meeting |
+| 29 | Approved 23 Nov 2026 (mock-up v2). The market is Nifty Total Market and is named; its return covers the same sessions as the stock's (first session on or after the date back) | S165 (owner 21 Nov: "Switch to Nifty total market indices everywhere"); data check below (the live 1M figure starts two sessions earlier than the stock's) | Returns, Price | Nifty Total Market |
+| 30 | Approved 23 Nov 2026 (mock-up v2). Returns as line bars on one scale (5% a line), the market as a small triangle; the stock, the market, the lead in pts, the typical stock, the largest fall, Sharpe and the rank by return as numbers; a phone drops the last four with a note saying which | PAGE_DESIGN §4.2, §3; ACTIONS_REQUIREMENTS row 14 | Returns | One line is 5% + Lead + [phone] On a wider screen |
+| 31 | Approved 23 Nov 2026 (mock-up v2). One name for the fall: "Largest fall", as the Screener's column ("3M largest fall") | S173; Screener table | Returns | Largest fall |
+| 32 | Approved 23 Nov 2026 (mock-up v2). "Rank by return" as a place ("37th") instead of "Top 5%" | PAGE_DESIGN §3 (one figure per cell, numbers) | Returns | Rank by return |
+| 33 | Approved 23 Nov 2026 (mock-up v2). Chart: price and the 50D EMA the rule uses, the stock against Nifty Total Market beneath (100 at the start of the range); 6M · 1Y · 3Y; values under the pointer in each pane's heading, readout above on touch, arrow keys, latest values at rest; the 20 EMA, the 200 SMA and the 1M, 3M, All ranges go | PAGE_DESIGN §4.1, §4.3 | Price | 6M + 1Y + 3Y + Against Nifty Total Market |
+| 34 | Approved 23 Nov 2026 (mock-up v2). The chart's 50D EMA is the ranking's (30 prints before it exists, `EMA_MIN_PRINTS`), not `ewm(min_periods=10)` | DATA_CORRECTNESS §5 (owner 10 Nov: 30 prints) | Price | 50D EMA |
+| 35 | Approved 23 Nov 2026 (mock-up v2). Volume: either dropped or labelled "shares traded, NSE and BSE" (the figure adds both exchanges). Settled by row 49 (owner 22 Nov: kept, headed "Volume", no exchange named) | Data check below; PAGE_DESIGN §5.3 | Price | Price |
+| 36 | Approved 23 Nov 2026 (mock-up v2). Industry in the short names other pages use (Auto, FMCG), one classification; TradingView's sector beside NSE's industry goes | PAGE_DESIGN §8 ("one name, one thing"); SCREENER_REQUIREMENTS row 18 | Top, Industry | Auto\|FMCG\|Healthcare |
+| 37 | Approved 23 Nov 2026 (mock-up v2). Industry peers: the eight best-ranked with their qualified place filled in (today it reads "Out" for every row), and a link to the Screener for the whole industry instead of a "Show all" window | Data check below; PAGE_DESIGN §2 (no "More" buttons; link to the owning page) | Industry | on the Screener |
+| 38 | Approved 23 Nov 2026 (mock-up v2). Corporate actions from NSE's action list (kind, terms, ex-date, factor), not the log of large one-day moves; a stock with none says so | Data check below (MBAPL) | Data | NSE’s lists\|NSE's lists |
+| 39 | Approved 23 Nov 2026 (mock-up v2). Data checks in plain sight, not in a fold | PAGE_DESIGN §2 ("Everything visible") | Data | ranked on all five horizons\|Ranked on all five horizons |
+| 40 | Approved 23 Nov 2026 (mock-up v2). The Factsheet window goes: it repeated the returns table, rank and levels; stop loss and chandelier exit are not model rules (built: no Factsheet; the toolbar is Back, watchlist, Share, TradingView) | PAGE_DESIGN §2 ("no figure twice") | Toolbar | Share |
+| 41 | Approved 23 Nov 2026 (mock-up v2). Sentence case everywhere: no ELIGIBLE, NOT ELIGIBLE, PASS or FAIL in capitals | PAGE_DESIGN §3, §8 | Whole page | [css .kicker] Rank |
+| 42 | Approved 23 Nov 2026 (mock-up v2). Highs and lows say they are closing prices (they differ from an intraday 52-week high quoted elsewhere); the all-time high gets a line only when it differs from the 52W high | Owner 10 Nov (closing high), PAGE_DESIGN §2 | Filters | closing prices |
+| 43 | Approved 23 Nov 2026 (mock-up v2). Notes 13.5 px, no line over about 80 characters, a long note in two columns on a wide screen | PAGE_DESIGN §2a | Notes | Price returns |
+| 44 | Approved 23 Nov 2026 (mock-up v2). Data date at the foot, no source named | Owner 20, 21 Nov; PAGE_DESIGN §2 | Foot | Data to |
+| 45 | Approved 23 Nov 2026 (mock-up v2). Every figure ends on the page's session (price, ranking, index) | S148, PAGE_DESIGN §5.3 | Whole page | Data to |
+| 46 | Approved 23 Nov 2026 (mock-up v2). Layout audit clean at 412 and 1400 px; the page joins CI's step with this list | PAGE_DESIGN §7, §8 | Whole page | Rank of 750 |
 
 ## The owner's review of mock-up v1 (22 Nov 2026, ~08:35 UTC, relayed by the coordinating session)
 

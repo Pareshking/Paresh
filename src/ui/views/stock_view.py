@@ -1,789 +1,431 @@
-"""Single-stock page, as drawn in the approved light design.
+"""The stock page (S182; mock-up v2 approved by the owner, 23 Nov 2026: "Stock v2 approved").
 
-Order, top to bottom:
-  1. HERO       company, price with its close date, change chips; rank card
-                with the path from three months ago and the score
-  2. VERDICT    passes both screener filters, one, or neither -- by how much
-  3. NOTICES    corporate action in the price history, when there is one
-  4. CHART      price with EMAs and volume, relative strength beneath
-  5. LADDER     where the price sits: 52-week range, filter line, EMA, ATH,
-                stop levels when the source has intraday highs and lows
-  6. RETURNS    gain vs pain: each window's return beside the fall it took,
-                with the Nifty 500 and the typical stock on the same bars
-  7. PEERS      the industry's best-ranked stocks, in the Screener's table
-  8. CHECKS     data caveats; opens itself when one needs reading
+A route of the Screener (`/?stock=SYMBOL`, `ranking_view.py`), for every system.
+It answers what a reader comes with (docs/STOCK_REQUIREMENTS.md):
+
+  Head      kicker, a serif title answering rank / filters / held, a lede, four tiles
+  1 Rank    3M ago · 1M ago · now: the rank of the universe and the place among the qualified
+  2 Filters and sell rules: the ladder, each rule's line and the fall that reaches it,
+            the model book's holding (Portfolio's own function), the calendar before the check
+  3 Returns and falls: line bars on one scale against Nifty Total Market over the same sessions
+  4 Price   today's Lightweight Charts chart, restyled: price and the ranking's 50D EMA,
+            Volume, RS against Nifty Total Market; 6M · 1Y · 3Y; one-line readout
+  5 Industry  the eight best-ranked, qualified places filled; the rest on the Screener
+  6 Data    the checks in plain sight; corporate actions from NSE's own list
+  Foot      Data to <date> · NSE
+
+The words and figures are worked out in src/ui/stock_lines.py (pure functions, tested);
+this module draws them. No stop loss and no chandelier exit (owner, 22 Nov 2026: "we
+don't have exit or SL so remove it"); the Factsheet window that showed them is gone.
 """
 
 from __future__ import annotations
 
-from src.ui.tokens import C
-
-import html as _html
-from urllib.parse import quote as _quote
-
-import numpy as np
+import html
+from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
 
-from src.ui import page_kit as kit
-from src.engine.corporate_actions import load_events
-from src.engine.momentum import CARRIED_MARK
-from src.ui.charts import render_stock_chart
-from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
-from src.ui.screener_table import render_screener_table
-from src.ui import formats as _fmt
+from src.ui import formats
+from src.ui import stock_lines as sl
+from src.ui import watchlist_lines as wl
+from src.ui.components import gap_count, render_data_quality_footer
 
-# ── Palette tokens ───────────────────────────────────────────────────────────
-POS   = C.up
-NEG   = C.down
-ACC   = C.ink
-INK   = C.ink
-SUB   = C.text_2
-MUTED = C.muted
-PERIODS = (1, 3, 6, 9, 12)
-_LONG = {1: "1 month", 3: "3 months", 6: "6 months", 9: "9 months", 12: "12 months"}
+e = html.escape
 
 INDEX_NAMES = {
-    "N50": "Nifty 50", "NN50": "Nifty Next 50", "MID150": "Nifty Midcap 150",
-    "SMALL250": "Nifty Smallcap 250", "MICRO250": "Nifty Microcap 250",
-    "NANO250": "Nano Cap", "NANO": "> ₹2,000 Cr",   # S175 (the first is our own group, not NSE's)
+    "N50": "Nifty 50", "NN50": "Next 50", "MID150": "Midcap 150",
+    "SMALL250": "Smallcap 250", "MICRO250": "Microcap 250",
+    "NANO250": "Nano Cap", "NANO": "> ₹2,000 Cr",   # S175 / S194: our own groups, not NSE indices
 }
 
+SP_CSS = """
+.sp-head{display:flex;flex-direction:column;gap:10px;padding-top:8px;padding-bottom:16px;border-bottom:1px solid var(--c-rule)}
+.dh .sp-head .dh-h1{max-width:24ch}
+.sp-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:12px;border-top:1px solid var(--c-rule)}
+.sp-tiles.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sp-tile{padding:14px 16px 0 0;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sp-tile+.sp-tile{padding-left:16px;border-left:1px solid var(--c-rule)}
+.sp-tile .k{font-size:var(--fs-12);color:var(--c-muted)}
+.sp-tile .v{font-family:var(--font-serif);font-size:var(--fs-30);font-weight:400;line-height:1.2;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
+.sp-tile .s{font-size:var(--fs-13);color:var(--c-text_2)}
+.sp-sec{border-bottom:1px solid var(--c-rule);padding-bottom:16px}
+.dh .dh-h2 .up{color:var(--c-up)}.dh .dh-h2 .down{color:var(--c-down)}.dh .dh-h2 .watch{color:var(--c-caution)}
+.sp-tbox{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.sp-t{border-collapse:collapse;width:100%;font-size:var(--fs-13)}
+.sp-t th,.sp-t td{padding:9px 10px;border-bottom:1px solid var(--c-rule);vertical-align:top;text-align:left}
+.sp-t thead th{font-size:var(--fs-12);font-weight:500;color:var(--c-muted);border-bottom:1px solid var(--c-rule_strong);vertical-align:bottom}
+.sp-t thead th.n{text-align:right}
+.sp-t tbody th{font-weight:500;white-space:nowrap}
+.sp-t .sub{display:block;font-size:var(--fs-12);color:var(--c-muted);font-weight:400}
+.sp-t td.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sp-t td.past{color:var(--c-muted)}
+.sp-t td.up{color:var(--c-up)}.sp-t td.down{color:var(--c-down)}.sp-t td.watch{color:var(--c-caution)}
+.sp-t tr.me th b,.sp-t tr.me td{font-weight:600}
+.sp-t tr.me{background:var(--c-subtle)}
+.sp-t th:first-child,.sp-t td:first-child{padding-left:0}
+.sp-t th:last-child,.sp-t td:last-child{padding-right:0}
+.sp-t a{color:var(--c-ink);text-decoration:none}
+.sp-t a:hover{text-decoration:underline}
+.sp-trail{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:24px;align-items:start}
+.sp-trail svg{width:220px;height:170px;display:block}
+.sp-trail text{fill:var(--c-muted);font-family:var(--font-ui);font-size:12px}
+.sp-trail .cap{font-size:var(--fs-12);color:var(--c-muted);margin-top:4px}
+.sp-ladder{max-width:640px}
+.sp-ladder .track{position:relative;height:22px;margin:0 8px}
+.sp-ladder .track::before{content:"";position:absolute;left:0;right:0;top:9px;height:4px;background:var(--c-rule);border-radius:2px}
+.sp-ladder .seg{position:absolute;top:9px;height:4px;background:var(--c-ink);border-radius:2px}
+.sp-ladder .dot{position:absolute;top:5px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--c-white);border:2px solid var(--c-ink)}
+.sp-ladder .dot.now{background:var(--c-ink)}
+.sp-ladder .dot.line{border-color:var(--c-caution);border-style:dashed}
+.sp-ladder .labels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px;font-size:var(--fs-12);color:var(--c-muted)}
+.sp-ladder .labels div:nth-child(n+2){text-align:center}.sp-ladder .labels div:last-child{text-align:right}
+.sp-ladder .labels b{display:block;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--fs-13);font-weight:500;color:var(--c-ink)}
+.sp-grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start}
+.sp-grid2 .dh-note+.dh-note{margin-top:12px}
+.dh-note b{color:var(--c-ink);font-weight:600}
+a.sp-go{color:var(--c-up);text-decoration:none;font-weight:500}
+a.sp-go:hover{text-decoration:underline}
+.sp-key{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:var(--fs-12);color:var(--c-muted)}
+.sp-key .tri{display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:6px solid var(--c-muted);margin-right:4px}
+.sp-key .ln{display:inline-block;width:4px;height:12px;background:var(--c-ink);margin-right:4px;vertical-align:-1px}
+.sp-ret{--pitch:8px;--lw:4px}
+.lb{position:relative;display:inline-block;vertical-align:middle;height:18px;width:calc(var(--n) * var(--pitch))}
+.lb::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to right,var(--c-rule) 0 var(--lw),transparent var(--lw) var(--pitch))}
+.lb i{position:absolute;top:0;bottom:0}
+.lb .f{left:calc(var(--s) * var(--pitch));width:calc(var(--f) * var(--pitch));background:repeating-linear-gradient(to right,var(--c-ink) 0 var(--lw),transparent var(--lw) var(--pitch))}
+.lb .p{left:calc(var(--pa) * var(--pitch));width:var(--lw);top:auto;height:calc(var(--part) * 18px);background:var(--c-ink)}
+.lb .z{left:calc(var(--z) * var(--pitch) - 3px);width:2px;top:-3px;bottom:-3px;background:var(--c-ink)}
+.lb .m{left:calc(var(--m) * var(--pitch) - 4px);top:auto;bottom:-9px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:6px solid var(--c-muted)}
+.sp-t td.bar{padding-top:11px;padding-bottom:13px}
+.sp-checks{list-style:none;padding:0;margin:0;columns:2 26em;column-gap:32px;font-size:var(--fs-13)}
+.sp-checks li{padding:7px 0 7px 22px;border-bottom:1px solid var(--c-rule);position:relative;break-inside:avoid}
+.sp-checks li::before{content:"✓";position:absolute;left:0;color:var(--c-up)}
+.sp-checks li.bad::before{content:"!";color:var(--c-caution);font-weight:700}
+.sp-cap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-size:var(--fs-13);color:var(--c-muted)}
+.sp-cap b{color:var(--c-ink)}
+.sp-phone{display:none;font-size:var(--fs-12);color:var(--c-muted)}
+.dh-note.sp-cols{max-width:none;columns:2 34em;column-gap:32px}
+@media (max-width:900px){.sp-grid2{grid-template-columns:minmax(0,1fr);gap:16px}}
+@media (max-width:640px){
+ .sp-tiles,.sp-tiles.n3{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .sp-tile:nth-child(3){padding-left:0;border-left:0}
+ .sp-tile:nth-child(n+3){border-top:1px solid var(--c-rule);margin-top:12px}
+ .sp-tiles.n3 .sp-tile:last-child{grid-column:1/-1}
+ .sp-tile .v{font-size:var(--fs-24)}
+ .sp-trail{grid-template-columns:minmax(0,1fr);gap:12px}
+ .sp-ret{--pitch:3px;--lw:2px}
+ .sp-t th,.sp-t td{padding-left:6px;padding-right:6px}
+ .sp-wide,.sp-pline{display:none!important}
+ .sp-phone{display:block}
+}
+"""
 
-# ── Formatting primitives ────────────────────────────────────────────────────
 
-def _num(value) -> float | None:
+def _emit(parts: list) -> None:
+    from src.ui.views.dashboard_home_view import emit
+    emit(parts)
+
+
+def _kick(text: str) -> str:
+    # "kicker" is the class the requirements check reads (rows 22, 41).
+    return f'<p class="dh-kick kicker">{e(text)}</p>'
+
+
+def _h2(plain_a: str, coloured: str = "", plain_b: str = "", tone: str = "up") -> str:
+    mid = f'<span class="{tone}">{e(coloured)}</span>' if coloured else ""
+    return f'<h2 class="dh-h2">{e(plain_a)}{mid}{e(plain_b)}</h2>'
+
+
+def _num_cls(v) -> str:
+    return "" if v is None or round(v, 3) == 0 else ("up" if v > 0 else "down")
+
+
+# ── Data the page reads from the app's own functions ─────────────────────────
+
+def _market() -> pd.Series | None:
+    """Nifty Total Market's closes (S165), the file the Dashboard and Portfolio read."""
     try:
-        if value is None or (isinstance(value, float) and pd.isna(value)):
-            return None
-        if pd.isna(value):
-            return None
-        return float(value)
-    except (TypeError, ValueError):
+        from src.loaders import benchmark_indices as bi
+        s = bi.series(bi.TOTAL_MARKET)
+        return None if s.empty else s
+    except Exception:  # noqa: BLE001 -- a missing index costs the market column, never the page
         return None
 
 
-def _money(value, decimals: int = 0) -> str:
-    # A share price and its levels (52W high, EMA, the −20% line): whole rupees, as on every page
-    # (owner, 22 Nov 2026, S173; paise 7-22 Nov, audit F66). `decimals` is kept for callers; ignored.
-    v = _num(value)
-    return _fmt.price(v) if v is not None else "–"
-
-
-def _pct(value, decimals: int = 1, signed: bool = True) -> str:
-    """A percentage already in percent units (not a fraction).
-
-    Through formats (duplicate audit, 10 Nov 2026): this printed an ASCII
-    hyphen where the whole site uses U+2212, and signed before rounding."""
-    v = _num(value)
-    if v is None:
-        return _fmt.DASH
-    return f"{_fmt.signed(v, decimals, plus=signed)}%"
-
-
-def _ratio(value, decimals: int = 2) -> str:
-    v = _num(value)
-    # A true minus (S173 rule 4): a Sharpe of −0.14, not -0.14.
-    return _fmt.signed(v, decimals, plus=False) if v is not None else "–"
-
-
-def _signed_pct(frac: float | None, decimals: int = 1) -> str:
-    """A fraction as a signed percentage with a real minus sign."""
-    if frac is None:
-        return "–"
-    sign = "+" if frac > 0 else "−" if frac < 0 else ""
-    return f"{sign}{abs(frac) * 100:.{decimals}f}%"
-
-
-def _flag(row: pd.Series, col: str) -> bool:
-    return bool(to_bool_mask(pd.Series([row.get(col)])).iloc[0])
-
-
-def _date_label(raw) -> str:
-    if raw is None or str(raw).strip() in ("", "nan", "NaT", "None"):
-        return ""
+@st.cache_data(show_spinner=False, ttl=3600)
+def _nse_action_list() -> tuple[pd.DataFrame | None, pd.Timestamp | None]:
+    """NSE's own split/bonus/rights/demerger list (data/nse_prices/actions.parquet) and its first date."""
+    from src.loaders.nse_prices import DIR
     try:
-        return pd.Timestamp(str(raw)[:10]).strftime("%-d %b %Y")
-    except (ValueError, TypeError):
-        return ""
+        a = pd.read_parquet(DIR / "actions.parquet")
+    except (OSError, ValueError):
+        return None, None
+    first = pd.to_datetime(a["ex_date"], errors="coerce").min() if "ex_date" in a else None
+    return a, (None if first is None or pd.isna(first) else pd.Timestamp(first))
 
 
-def _html_block(markup: str) -> None:
-    # st.markdown, not st.html: the page's tests read at.markdown, and the
-    # shared stylesheet styles both the same.
-    st.markdown(markup, unsafe_allow_html=True)
-
-
-def _price_day() -> pd.Timestamp | None:
-    from src.core import startup_metrics as _metrics
-
+def _holding(sym: str, prices: pd.DataFrame, rank_df: pd.DataFrame, system: str) -> sl.Holding | None:
+    """The holding as Portfolio shows it: Portfolio's own table (`book_series` ->
+    `build_portfolio_tracker`) at Portfolio's starting capital (PAGE_DESIGN §5.4)."""
     try:
-        day = pd.Timestamp(
-            str(_metrics.snapshot().get("facts", {}).get("price_as_of") or "")[:10])
-    except (ValueError, TypeError):
-        return None
-    return None if pd.isna(day) else day
-
-
-# ── 1. HERO ──────────────────────────────────────────────────────────────────
-
-def _render_identity(row: pd.Series, total_stocks: int) -> None:
-    sym = str(row["Symbol"])
-    name = str(row.get("Company Name") or "").strip() or sym
-    industry = str(row.get("Industry") or "").strip()
-    sector = str(row.get("TV_Sector") or "").strip()
-    tags = [t.strip().upper() for t in str(row.get("Indices") or "").split(",") if t.strip()]
-
-    # Exact tags, as indices_loader writes them (config.SHORT_FORMS). A
-    # substring test ("50" in tag) once gave every MID150/SMALL250/MICRO250
-    # stock a Nifty 50 badge.
-    chips = f'<span class="sp-sym">{_html.escape(sym)}</span>'
-    for t in tags:
-        if t in ("–", "NAN"):
-            continue
-        chips += f'<span class="sp-tag">{_html.escape(INDEX_NAMES.get(t, t))}</span>'
-
-    day = _price_day()
-    mcap = _num(row.get("Market Cap (Cr)"))
-    close_bits = [f"Close · {day:%a %-d %b %Y}" if day is not None else "Close"]
-    if mcap is not None:
-        close_bits.append(f"Market cap {_fmt.inr(mcap)} Cr")
-
-    changes = ""
-    for m in (1, 3, 12):
-        v = _num(row.get(f"{m}M Return"))
-        if v is None:
-            continue
-        cls = "up" if v > 0 else "down" if v < 0 else "flat"
-        arrow = "▲" if v > 0 else "▼" if v < 0 else "•"
-        changes += (
-            f'<span class="sp-chg {cls}">'
-            f'<i>{m}M</i><b>{arrow} {abs(v) * 100:.1f}%</b>'
-            '</span>'
-        )
-
-    cls_parts = [p for p in (industry, sector) if p and p.lower() != "nan"]
-    if len(cls_parts) == 2 and cls_parts[0] == cls_parts[1]:
-        cls_parts = cls_parts[:1]
-    cls_line = " · ".join(_html.escape(p) for p in cls_parts)
-
-    rank = _num(row.get("Rank"))
-    path = []
-    for col, label in (
-        ("Rank (-6M)", "6M"),
-        ("Rank (-3M)", "3M"),
-        ("Rank (-2M)", "2M"),
-        ("Rank (-1M)", "1M"),
-        ("Rank", "Now"),
-    ):
-        v = _num(row.get(col))
-        path.append((int(v) if v is not None else None, label))
-    path_html = ""
-    if len(path) >= 2:
-        steps = []
-        for i, (r, label) in enumerate(path):
-            cls = "now" if label == "Now" else ""
-            rank_text = f"#{r}" if r is not None else "–"
-            steps.append(f'<span class="sp-step {cls}"><b>{rank_text}</b><i>{label}</i></span>')
-            if i < len(path) - 1:
-                steps.append('<span class="sp-arrow">→</span>')
-        path_html = f'<div class="sp-path">{"".join(steps)}</div>'
-    score = _num(row.get("Score"))
-    hz = _num(row.get("Horizons Scored"))
-    facts = []
-    if score is not None:
-        facts.append(f"<span>Score <b>{score:.3f}</b></span>")
-    if hz is not None:
-        facts.append(f"<span>Horizons scored <b>{int(hz)} of 5</b></span>")
-
-    _html_block(
-        '<section class="sp-hero">'
-        '<div class="sp-card sp-id">'
-        f'<div class="sp-chips">{chips}</div>'
-        f'<div class="sp-cls">{cls_line}</div>'
-        f'<h1 class="sp-name">{_html.escape(name)}</h1>'
-        '<div class="sp-price-row"><div class="sp-price-col">'
-        f'<span class="sp-price">{_money(row.get("CMP"), 2)}</span>'
-        f'<span class="sp-close">{_html.escape(" · ".join(close_bits))}</span></div>'
-        f'<div class="sp-changes">{changes}</div></div>'
-        '</div>'
-        '<div class="sp-card sp-rank">'
-        '<span class="sp-k">Momentum rank</span>'
-        f'<div class="sp-rank-big"><span>#{int(rank) if rank is not None else "–"}</span>'
-        f'<i>of {total_stocks} stocks</i></div>'
-        f'{path_html}'
-        f'<div class="sp-facts">{"".join(facts)}</div>'
-        '</div></section>'
-    )
-
-
-# ── 2. VERDICT ───────────────────────────────────────────────────────────────
-
-def _render_verdict(row: pd.Series) -> None:
-    # Distances only: the price, the 50D EMA and the 52W high are printed once,
-    # in the hero and on the ladder. The ATH price is printed here, because no
-    # other block on the page shows it.
-    above = _flag(row, "Above 50 EMA")
-    near = _flag(row, "Near 52W High")
-    ema_pct = _num(row.get("% 50 EMA"))
-    pct_hi = _num(row.get("% High"))
-    ath = _num(row.get("ATH"))
-    pct_ath = _num(row.get("% ATH"))
-
-    # The badge carries the verdict; the title says which filters passed.
-    if above and near:
-        state, title = "pass", "Passes both filters"
-    elif above or near:
-        state, title = "part", "Passes one filter of two"
-    else:
-        state, title = "fail", "Fails both filters"
-
-    def dist(p: float | None) -> str:
-        if p is None:
-            return "–"
-        if abs(p) < 0.05:
-            return "At the high"
-        return f"{abs(p):.1f}% {'above' if p > 0 else 'below'}"
-
-    ema_txt = "–" if ema_pct is None else f"{abs(ema_pct):.1f}% {'above' if ema_pct >= 0 else 'below'}"
-    hi_date = _date_label(row.get("52W High Date"))
-    ath_date = _date_label(row.get("ATH Date"))
-
-    mark = {"pass": "✓", "part": "!", "fail": "✕"}[state]
-
-    ema_status = "PASS" if above else "FAIL"
-    hi_status = "PASS" if near else "FAIL"
-    ema_value = ema_txt
-    hi_value = dist(pct_hi)
-    ath_value = dist(pct_ath)
-
-    _html_block(
-        f'<section class="sp-verdict {state}" aria-label="Screener filters">'
-        f'<div class="sv-head"><span class="sv-head-mark">{mark}</span>'
-        f'<div><b>{title}</b></div>'
-        f'<span class="sv-state">{ "ELIGIBLE" if state == "pass" else "NOT ELIGIBLE" }</span></div>'
-        f'<div class="sv-card ema">'
-        f'<div class="sv-main"><span class="sv-k">50D EMA</span>'
-        f'<strong>{_html.escape(ema_value)}</strong></div>'
-        f'<div class="sv-side"><em class="{"pass" if above else "fail"}">{ema_status}</em>'
-        '</div></div>'
-        f'<div class="sv-card high">'
-        f'<div class="sv-main"><span class="sv-k">52W high</span>'
-        f'<strong>{_html.escape(hi_value)}</strong></div>'
-        f'<div class="sv-side"><em class="{"pass" if near else "fail"}">{hi_status}</em>'
-        f'<span>Date</span><b>{_html.escape(hi_date or "–")}</b></div></div>'
-        f'<div class="sv-card ath">'
-        f'<div class="sv-main"><span class="sv-k">ATH</span>'
-        f'<strong>{_html.escape(ath_value)}</strong>'
-        f'<b class="sv-price">{_money(ath)}</b></div>'
-        f'<div class="sv-side">'
-        f'<span>Date</span><b>{_html.escape(ath_date or "–")}</b></div></div>'
-        '</section>'
-    )
-
-# ── 3. NOTICES ───────────────────────────────────────────────────────────────
-
-def _applied_events(symbol: str, adj_close: pd.DataFrame | None) -> list[dict]:
-    """The logged events for ``symbol`` that the ranking actually applies.
-
-    The log keeps every step ever flagged, including steps the vendor has since
-    restated and Yahoo-era ones the current prices never had; adjust_prices
-    skips those. Listing the whole log showed MBAPL a +900.7% and a −90.0% day
-    in Nov 2020 that NSE's own files do not show (₹70.00, ₹70.05, ₹70.05) and
-    the ranking never applied (S184, 22 Nov 2026). Only what is applied to this
-    stock's prices is a correction a reader needs to know about.
-    """
-    events = [e for e in load_events() if str(e.get("symbol", "")).upper() == symbol.upper()]
-    if not events or adj_close is None or symbol not in adj_close.columns:
-        return []
-    from src.engine.corporate_actions import adjust_prices
-    _, applied = adjust_prices(adj_close[[symbol]], events)
-    return applied
-
-
-def _render_corporate_actions(symbol: str, adj_close: pd.DataFrame | None = None) -> None:
-    events = _applied_events(symbol, adj_close)
-    if not events:
-        return
-    lines = []
-    for e in sorted(events, key=lambda x: x.get("date", "")):
-        move = e.get("move")
-        move_str = f"{_fmt.pct(move * 100, fraction=False)}" if move is not None else "a large amount"
-        kind = e.get("looks_like") or e.get("kind") or "corporate action"
-        day = _date_label(e.get("date")) or str(e.get("date", "–"))
-        lines.append(
-            f"On <b>{_html.escape(day)}</b> the price moved <b>{_html.escape(move_str)}</b> in "
-            f"one session, which looks like a {_html.escape(str(kind))}."
-        )
-    _html_block(
-        '<section class="sp-notice" aria-label="Corporate action">'
-        '<b>Corporate action in the price history</b>'
-        f'<p>{" ".join(lines)} History before the event is rescaled, so the jump is '
-        'not counted as a real gain or loss in the ranking or the backtest.</p></section>'
-    )
-
-
-# ── 5. LADDER ────────────────────────────────────────────────────────────────
-
-def _year_low(symbol: str, adj_close: pd.DataFrame | None,
-              low_prices: pd.DataFrame | None) -> float | None:
-    for frame in (low_prices, adj_close):
-        if frame is not None and symbol in getattr(frame, "columns", []):
-            s = pd.to_numeric(frame[symbol], errors="coerce").dropna().tail(252)
-            if not s.empty:
-                return float(s.min())
-    return None
-
-
-def _render_price_ladder(row: pd.Series, year_low: float | None = None) -> None:
-    """Render the compact price-position scale used on the stock page."""
-    cmp_v = _num(row.get("CMP"))
-    hi = _num(row.get("52W High"))
-    ema_pct = _num(row.get("% 50 EMA"))
-    ema_val = cmp_v / (1 + ema_pct / 100) if cmp_v is not None and ema_pct is not None else None
-    line = hi * 0.8 if hi is not None else None
-
-    if hi is None or year_low is None or hi <= year_low:
-        # Some unit tests exercise the renderer with only ranking columns.
-        # Keep the section visible without inventing a range position.
-        fallback_items = []
-        if hi is not None:
-            fallback_items.append(f'<span><b>52W high</b><strong>{_money(hi)}</strong></span>')
-        if ema_val is not None:
-            fallback_items.append(f'<span><b>50D EMA</b><strong>{_money(ema_val)}</strong></span>')
-        if line is not None:
-            fallback_items.append(f'<span><b>−20% from 52W high</b><strong>{_money(line)}</strong></span>')
-        if not fallback_items:
-            return
-        _html_block(
-            '<section class="sp-card sp-ladder sp-price-position" aria-label="Where the price sits">'
-            '<h2>Where the price sits</h2>'
-            '<div class="sp-range-fallback">'
-            + "".join(fallback_items)
-            + '</div></section>'
-            '<style>'
-            '.sp-range-fallback{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}'
-            '.sp-range-fallback span{display:flex;flex-direction:column;gap:3px;min-width:120px;padding:10px 12px;border-radius:10px;background:var(--c-white);}'
-            '.sp-range-fallback b{font-size:12px;color:var(--c-muted);}'
-            '.sp-range-fallback strong{font-family:var(--font-mono);font-size: 15px;color:var(--c-ink);}'
-            '</style>'
-            '</section>'
-        )
-        return
-
-    span = hi - year_low
-
-    def x(value: float | None) -> float:
-        if value is None:
-            return 0.0
-        return max(0.0, min(100.0, (value - year_low) / span * 100))
-
-    ema_x = x(ema_val)
-    line_x = x(line)
-
-    # Labels are intentionally decoupled from marker positions. The markers
-    # represent the actual price locations; the four labels use equal-width
-    # columns so close prices never make the text collide.
-
-    _html_block(
-        '<section class="sp-card sp-ladder sp-price-position" aria-label="Where the price sits">'
-        '<h2>Where the price sits</h2>'
-        '<div class="sp-range-clean">'
-        '<div class="sp-range-labels">'
-        f'<div class="sp-range-label low">'
-        f'<span class="sp-range-k"><i></i>52W low</span><b>{_money(year_low)}</b></div>'
-        f'<div class="sp-range-label threshold">'
-        f'<span class="sp-range-k"><i></i>−20% from 52W high</span><b>{_money(line)}</b></div>'
-        f'<div class="sp-range-label ema">'
-        f'<span class="sp-range-k"><i></i>50D EMA</span><b>{_money(ema_val)}</b></div>'
-        f'<div class="sp-range-label high">'
-        f'<span class="sp-range-k"><i></i>52W high</span><b>{_money(hi)}</b></div>'
-        '</div>'
-        '<div class="sp-range-track" aria-hidden="true">'
-        f'<span class="sp-range-segment muted" style="left:0%;width:{ema_x:.1f}%"></span>'
-        f'<span class="sp-range-segment positive" style="left:{ema_x:.1f}%;width:{100 - ema_x:.1f}%"></span>'
-        f'<i class="sp-range-dot low" style="left:0%"></i>'
-        f'<i class="sp-range-dot ema" style="left:{ema_x:.1f}%"></i>'
-        f'<i class="sp-range-dot threshold" style="left:{line_x:.1f}%"></i>'
-        f'<i class="sp-range-dot high" style="left:100%"></i>'
-        '</div>'
-        '</div>'
-        '</section>'
-        '<style>'
-        '.sp-price-position{margin:14px 0;}'
-        '.sp-range-clean{margin-top:22px;padding:0 2px 2px;}'
-        '.sp-range-labels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:start;height:62px;}'
-        '.sp-range-label{text-align:center;min-width:0;}'
-        '.sp-range-k{display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--font-ui);font-size:12.5px;line-height:1.2;font-weight:500;white-space:normal;}'
-        '.sp-range-k i{display:inline-block;flex:0 0 8px;width:8px;height:8px;border-radius:50%;}'
-        '.sp-range-label.low .sp-range-k{color:var(--c-down);}'
-        '.sp-range-label.low .sp-range-k i{background:var(--c-down);}'
-        '.sp-range-label.threshold .sp-range-k{color:var(--c-caution);}'
-        '.sp-range-label.threshold .sp-range-k i{background:var(--c-caution);}'
-        '.sp-range-label.ema .sp-range-k{color:var(--c-ink);}'
-        '.sp-range-label.ema .sp-range-k i{background:var(--c-ink);}'
-        '.sp-range-label.high .sp-range-k{color:var(--c-up);}'
-        '.sp-range-label.high .sp-range-k i{background:var(--c-up);}'
-        '.sp-range-label b{display:block;margin-top:5px;font-family:var(--font-mono);font-size: 15px;line-height:1;color:var(--c-ink);font-weight:500;white-space:nowrap;}'
-        '.sp-range-track{position:relative;height:18px;margin:0 10px;}'
-        '.sp-range-segment{position:absolute;top:7px;height:4px;border-radius:2px;}'
-        '.sp-range-segment.muted{background:var(--c-rule);}'
-        '.sp-range-segment.positive{background:var(--c-up_line_2);}'
-        '.sp-range-dot{position:absolute;top:4px;width:10px;height:10px;margin-left:-5px;border:1.5px solid var(--c-white);border-radius:50%;box-sizing:border-box;}'
-        '.sp-range-dot.low{background:var(--c-down);}'
-        '.sp-range-dot.ema{background:var(--c-ink);}'
-        '.sp-range-dot.threshold{background:var(--c-caution);}'
-        '.sp-range-dot.high{background:var(--c-up);}'
-        '@media (max-width:640px){'
-        '.sp-price-position{padding:14px 12px;border-radius:16px;}'
-        '.sp-range-clean{margin-top:20px;padding:0;}'
-        '.sp-range-labels{gap:4px;height:68px;}'
-        '.sp-range-k{font-size:12.5px;line-height:1.15;gap:4px;}'
-        '.sp-range-k i{flex-basis:7px;width:7px;height:7px;}'
-        '.sp-range-label b{font-size:15px;margin-top:4px;}'
-        '.sp-range-track{margin:0 8px;height:18px;}'
-        '}'
-        '</style>'
-    )
-
-
-# ── 6. RETURNS: GAIN VS PAIN ─────────────────────────────────────────────────
-
-def _benchmark_returns(day: pd.Timestamp | None) -> dict[int, float]:
-    """Nifty 500 price return over each calendar window ending on the price day."""
-    try:
+        from src.engine.systems import inception, ledger_path
+        from src.engine.track_record import load_ledger
         from src.loaders.price_loader import fetch_benchmark_history
-
-        s = fetch_benchmark_history(period="2y")
-    except Exception:
-        return {}
-    s = pd.to_numeric(s, errors="coerce").dropna()
-    if s.empty:
-        return {}
-    if day is not None:
-        s = s[s.index <= day + pd.Timedelta(days=1)]
-    if s.empty:
-        return {}
-    end_t = s.index[-1]
-    out = {}
-    for m in PERIODS:
-        start = s[s.index <= end_t - pd.DateOffset(months=m)]
-        if not start.empty:
-            out[m] = float(s.iloc[-1] / start.iloc[-1] - 1)
-    return out
+        from src.ui.book_series import book_series
+        from src.ui.canonical_book import current_book
+        from src.ui.views.portfolio_view import PORTFOLIO_STARTING_CAPITAL
+        bench = fetch_benchmark_history(period="5y")
+        book, record = current_book(prices, bench, system)
+        if book is None or book.empty:
+            return None
+        ledger = load_ledger(ledger_path(system), inception(system))
+        series = book_series(book, record, ledger, rank_df, prices, bench, PORTFOLIO_STARTING_CAPITAL)
+        return sl.holding_from_table(series.table if series is not None else None, sym)
+    except Exception:  # noqa: BLE001 -- the holding's detail is a sentence, never a reason to fail
+        return None
 
 
-def _render_gain_vs_pain(row: pd.Series, rank_df: pd.DataFrame) -> None:
-    """Each window's return grows right, the fall it took grows left."""
-    bench = _benchmark_returns(_price_day())
-    dd_max, r_max = 30.0, 0.0
-    data = []
-    for m in PERIODS:
-        ret = _num(row.get(f"{m}M Return"))
-        dd = _num(row.get(f"Max DD {m}M"))
-        sh = _num(row.get(f"{m}M Sharpe"))
-        pct = None
-        col = rank_df.get(f"{m}M Return")
-        if ret is not None and col is not None:
-            vals = pd.to_numeric(col, errors="coerce").dropna()
-            if len(vals):
-                pct = float((vals < ret).mean() * 100)
-        med = None
-        med_col = rank_df.get(f"Max DD {m}M")
-        if med_col is not None:
-            med = _num(pd.to_numeric(med_col, errors="coerce").median())
-        data.append((m, ret, dd, sh, pct, med, bench.get(m)))
-        if ret is not None:
-            r_max = max(r_max, ret)
-        for v in (dd, med):
-            if v is not None:
-                dd_max = max(dd_max, abs(v))
-    r_scale = max(r_max * 1.15, 0.25)
-
-    rows_html = []
-    for m, ret, dd, sh, pct, med, nb in data:
-        dd_w = abs(dd) / dd_max * 100 if dd is not None else 0
-        r_w = max(0.0, ret) / r_scale * 100 if ret is not None else 0
-        n_w = max(0.0, nb) / r_scale * 100 if nb is not None else 0
-        neg = "neg" if ret is not None and ret < 0 else ""
-        med_mark = (f'<i class="gp-med" style="right:{abs(med) / dd_max * 100:.1f}%" '
-                    f'title="Typical stock: −{abs(med):.1f}%"></i>' if med is not None else "")
-        dots = "".join(
-            f'<i class="{"on" if sh is not None and sh >= k + 1 else "half" if sh is not None and sh > k else ""}"></i>'
-            for k in range(4)
-        )
-        if pct is None:
-            top, good = "–", ""
-        elif pct >= 50:
-            top, good = f"Top {max(1, int(np.ceil(100 - pct)))}%", "good"
-        else:
-            top, good = f"Bottom {max(1, int(np.ceil(pct)))}%", "poor"
-        dd_txt = f"−{abs(dd):.1f}%" if dd is not None else "–"
-        nb_txt = f"Nifty 500 {_signed_pct(nb)}" if nb is not None else ""
-        rows_html.append(
-            '<div class="gp-row">'
-            f'<span class="gp-w"><b>{m}M</b><i>{_LONG[m]}</i></span>'
-            # Each label sits past the end of its bar, clamped so it cannot
-            # run outside the cell: on a phone the cell is 280px and a long
-            # bar pushed the figure out of sight (design audit, 9 Nov 2026).
-            f'<div class="gp-dd">{med_mark}<div class="bar" style="width:{dd_w:.1f}%"></div>'
-            f'<span class="lbl" style="right:min(calc({dd_w:.1f}% + 6px), calc(100% - 52px))">{dd_txt}</span></div>'
-            '<div class="gp-axis"></div>'
-            f'<div class="gp-ret"><div class="bar {neg}" style="width:{r_w:.1f}%"></div>'
-            f'<span class="lbl {neg}" style="left:min(calc({r_w:.1f}% + 8px), calc(100% - 56px))">{_signed_pct(ret)}</span>'
-            f'<div class="nb" style="width:{n_w:.2f}%"></div>'
-            f'<span class="nl" style="left:min(calc({n_w:.2f}% + 6px), calc(100% - 96px))">{nb_txt}</span></div>'
-            f'<span class="gp-sh"><span class="dots">{dots}</span><b>{_ratio(sh)}</b></span>'
-            f'<span class="gp-top"><em class="{good}">{top}</em></span>'
-            '</div>'
-        )
-
-    # Say so when one fall is the worst drop in several windows: the old grid
-    # repeated the same number four times with no explanation.
-    dds = [(d[0], d[2]) for d in data if d[2] is not None]
-    note = ""
-    if len(dds) >= 2:
-        same = [m for m, v in dds if abs(v - dds[0][1]) < 0.01]
-        if len(same) >= 2:
-            note = (f"The same {abs(dds[0][1]):.1f}% fall is the worst drop in every window "
-                    f"from {same[0]}M to {same[-1]}M. ")
-    _html_block(
-        '<section class="sp-card sp-gp" aria-label="Returns and risk">'
-        '<div class="gp-head"><h2>Returns and risk by window</h2>'
-        '<span class="gp-legend"><span><i class="k-dd"></i>Max drawdown</span>'
-        '<span><i class="k-ret"></i>Return</span><span><i class="k-nb"></i>Nifty 500</span>'
-        '<span><i class="k-med"></i>Typical stock</span></span></div>'
-        '<div class="gp-row gp-hdr"><span>Window</span><span class="r">Max drawdown</span><span></span>'
-        '<span>Return</span><span class="r">Sharpe</span><span class="r">Among all</span></div>'
-        f'{"".join(rows_html)}'
-        f'<div class="gp-foot">{_html.escape(note)}Price return, no dividends. Sharpe is the '
-        "window's return over its volatility, as the ranking scores it (not annualised), one "
-        'dot per full point. "Among all" ranks the return against every '
-        'ranked stock.</div></section>'
-    )
+def _calendar(sym: str, as_of: pd.Timestamp, check: pd.Timestamp) -> tuple[list, pd.Timestamp | None]:
+    """Board meetings and ex-dates from the day after the data to the check (Actions' `_events`),
+    and the stock's last results meeting this season (`results_calendar.for_book`)."""
+    try:
+        from src.engine import results_calendar as rc
+        from src.ui.views.actions_page import _events
+        events, _note = _events([sym], set(), set(), as_of, check)
+        cal = rc.load()
+        rep = rc.for_book(cal, [sym], [], as_of + pd.Timedelta(days=1)) if cal is not None else None
+        last = None
+        if rep is not None and len(rep.reported):
+            last = pd.Timestamp(rep.reported["date"].max())
+        return events, last
+    except Exception:  # noqa: BLE001
+        return [], None
 
 
-# ── 7. PEERS ─────────────────────────────────────────────────────────────────
-# The Screener's own table: same columns, sorting, links and phone layout as
-# every other list of stocks, with this stock's row tagged.
-
-PEERS_SHOWN = 8
-
-
-def _peer_rows(row: pd.Series, rank_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """The industry's best-ranked stocks, with this stock always among them,
-    and the whole industry best rank first."""
-    industry = row.get("Industry")
-    if not industry or "Industry" not in rank_df.columns:
-        return rank_df.iloc[0:0], rank_df.iloc[0:0]
-    in_ind = rank_df[rank_df["Industry"] == industry].sort_values("Rank")
-    peers = in_ind.head(PEERS_SHOWN)
-    sym = str(row["Symbol"])
-    if sym not in set(peers["Symbol"].astype(str)):
-        peers = pd.concat([peers.head(PEERS_SHOWN - 1),
-                           in_ind[in_ind["Symbol"].astype(str) == sym]])
-    return peers, in_ind
-
-
-def _render_peers(row: pd.Series, rank_df: pd.DataFrame,
-                  adj_close: pd.DataFrame | None = None) -> None:
-    peers, in_ind = _peer_rows(row, rank_df)
-    if len(peers) <= 1:
-        return
-    industry = str(row.get("Industry"))
-    sym = str(row["Symbol"])
-    with kit.card(f"Best-ranked {industry} stocks", "sp_peers",
-                  f"{len(in_ind)} stocks in the industry"):
-        render_screener_table(peers.reset_index(drop=True), adj_close, "Core", highlight=sym)
-        if len(in_ind) > len(peers):
-            if st.button("Show all", type="tertiary", icon=":material/open_in_full:",
-                         key="sp_peers_all"):
-                _peers_dialog(industry, in_ind.reset_index(drop=True), adj_close, sym)
-
-
-# ── Drill-downs (modal, read-only) ───────────────────────────────────────────
-# Dialogs run as fragments and drop their widgets when closed, so they hold
-# figures only: nothing keyed, nothing the engine reads.
-
-def _factsheet_frame(row: dict) -> pd.DataFrame:
-    """One line per lookback window: return, Sharpe and the worst fall in it."""
-    return pd.DataFrame([
-        {"Window": f"{m} month" + ("s" if m > 1 else ""),
-         "Return": _num(row.get(f"{m}M Return")),
-         "Sharpe": _num(row.get(f"{m}M Sharpe")),
-         "Max drawdown": _num(row.get(f"Max DD {m}M"))}
-        for m in PERIODS
-    ])
-
-
-@st.dialog("Factsheet", width="large")
-def _factsheet_dialog(row: dict) -> None:
-    """Every figure the ranking holds for this stock, grouped."""
-    r = pd.Series(row)
-    sym = str(r.get("Symbol", ""))
-    st.caption(f"{str(r.get('Company Name') or sym)} · {sym}")
-    t_ret, t_trend, t_data = st.tabs(["Returns and risk", "Trend and levels", "Data quality"])
-
-    with t_ret:
-        st.dataframe(
-            _factsheet_frame(row), hide_index=True, width="stretch",
-            column_config={
-                "Window": st.column_config.TextColumn("Window", pinned=True),
-                "Return": st.column_config.NumberColumn("Return", format="percent"),
-                "Sharpe": st.column_config.NumberColumn("Sharpe", format="%.2f"),
-                "Max drawdown": st.column_config.NumberColumn("Max drawdown", format="%.1f%%"),
-            },
-        )
-        st.caption("Return is the price change over the window; the drawdown is the "
-                   "deepest fall from a peak inside it.")
-
-    with t_trend:
-        kit.metric_row([
-            kit.Metric("Rank", f"#{int(_num(r.get('Rank')))}" if _num(r.get("Rank")) is not None else "–"),
-            kit.Metric("Score", _ratio(r.get("Score"), 3)),
-            kit.Metric("From 52W high", _pct(r.get("% High"))),
-            kit.Metric("vs 50D EMA", _pct(r.get("% 50 EMA"))),
-        ], key="fs_trend")
-        kit.metric_row([
-            kit.Metric("Price", _money(r.get("CMP"), 2)),
-            kit.Metric("52W high", _money(r.get("52W High"), 2)),
-            kit.Metric("All-time high", _money(r.get("ATH"), 2)),
-            kit.Metric("Stop loss", _money(r.get("Stop Loss"), 2)),
-            kit.Metric("Chandelier exit", _money(r.get("Chand Exit"), 2)),
-        ], key="fs_levels")
-        with st.container(horizontal=True, vertical_alignment="center", gap="small"):
-            for label, col in (("Above 50D EMA", "Above 50 EMA"),
-                               ("Near 52W high", "Near 52W High"),
-                               ("At all-time high", "At ATH")):
-                kit.badge(label, "up" if _flag(r, col) else "")
-
-    with t_data:
-        gap = str(r.get("Data Gap") or "").strip()
-        hz = _num(r.get("Horizons Scored"))
-        kit.metric_row([
-            kit.Metric("Horizons scored", f"{int(hz)} of 5" if hz is not None else "–"),
-            kit.Metric("Gap-filled prices", _pct(r.get("FFill %"), signed=False)),
-            kit.Metric("History", "Under 6 months" if str(r.get("Short History") or "No") == "Yes" else "Full"),
-        ], key="fs_data")
-        if gap and gap.lower() not in ("nan", "none", "–"):
-            kit.callout("Data gap", gap, "warn")
-        else:
-            kit.callout("No data gaps flagged", "", "up")
-
-
-@st.dialog("Industry peers", width="large")
-def _peers_dialog(industry: str, frame: pd.DataFrame, adj_close: pd.DataFrame | None = None,
-                  highlight: str = "") -> None:
-    """Every ranked stock in the industry, in the Screener's table."""
-    st.caption(f"{industry}. Click a header to sort.")
-    render_screener_table(frame, adj_close, "Core", highlight=highlight)
-
-
-# ── 8. DATA CHECKS ───────────────────────────────────────────────────────────
-
-def _render_data_health(row: pd.Series) -> None:
-    gap = str(row.get("Data Gap") or "")
-    short_hist = str(row.get("Short History") or "No") == "Yes"
-    ffill = _num(row.get("FFill %")) or 0.0
-    ath_src = str(row.get("ATH Source") or "")
-    hz = _num(row.get("Horizons Scored"))
-
-    checks = [
-        (ffill > 10, f"Gap-filled prices, last 12 months: {ffill:.1f}%" if ffill
-         else "No gap-filled prices in the last 12 months"),
-        ("🔴" in gap, "A data gap in the last 12 months" if "🔴" in gap else "No data gaps"),
-        (CARRIED_MARK in gap, "Price is the last print, not the ranking day's"
-         if CARRIED_MARK in gap else "Price is current"),
-        (short_hist, "Less than 6 months of history" if short_hist else "Full 12-month history"),
-        (ath_src != "snapshot", "All-time high from the 20-year record" if ath_src == "snapshot"
-         else "High from a 2-year window, not all-time"),
-    ]
-    if hz is not None and hz < 5:
-        checks.append((True, f"Ranked on {int(hz)} of 5 horizons"))
-    issues = sum(1 for bad, _ in checks if bad)
-    label = "Data checks · all clear" if not issues else f"Data checks · {issues} to review"
-    with st.expander(label, expanded=bool(issues),
-                     icon=":material/verified_user:" if not issues else ":material/warning:"):
-        _html_block(
-            '<div class="sp-checks">'
-            + "".join(f'<span class="{"bad" if bad else ""}">{_html.escape(text)}</span>'
-                      for bad, text in checks)
-            + "</div>"
-        )
-
-
-# ── Actions: back, watchlist, share ──────────────────────────────────────────
+# ── Toolbar ──────────────────────────────────────────────────────────────────
 
 def _share_url(sym: str) -> str:
-    """The short, public link to this stock's page.
-
-    Built from the address the reader is on, minus Streamlit Cloud's /~/+/
-    mount and any page path: the short form is the one production QA has
-    confirmed reaches the stock page (audit_deep_links, "short_query").
-    """
+    """The short, public link `/?stock=SYMBOL` (owner, 20 Nov 2026: the URL stays as it is)."""
     from urllib.parse import urlsplit
-
     try:
         parts = urlsplit(str(st.context.url or ""))
         base = f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else ""
-    except Exception:
+    except Exception:  # noqa: BLE001
         base = ""
-    return f"{base}/?stock={_quote(sym, safe='')}"
+    return f"{base}/?stock={quote(sym, safe='')}"
 
 
-def _render_exit_status(sym: str, rank_df: pd.DataFrame) -> None:
-    """If you hold it: where it stands against the three rules that sell it."""
-    from src.engine.exit_watch import CLEAR, SELL, STATUS_LABEL, assess
-
-    a = assess(rank_df, [sym])
-    if a.empty or a.iloc[0]["status"] not in STATUS_LABEL:
-        return
-    r = a.iloc[0]
-    status = r["status"]
-    if status == CLEAR:
-        why = "clear of all three sell rules"
-    else:
-        why = r["why"] or ""
-    cls = {SELL: "sell", CLEAR: "clear"}.get(status, "watch")
-    _html_block(
-        f'<div class="sp-exit {cls}"><span class="lbl">If you hold it</span>'
-        f'<b>{_html.escape(STATUS_LABEL[status])}</b><span>{_html.escape(why)}</span>'
-        '<a href="/actions" target="_self">Actions →</a></div>'
-    )
-
-
-def _render_actions(sym: str, on_back=None, row: dict | None = None) -> None:
+def _render_actions(sym: str, on_back=None) -> None:
+    from src.ui import page_kit as kit
     from src.ui import watchlist_store
 
     on_list = sym.upper() in watchlist_store.symbols()
-    with st.container(key="sp_actions", horizontal=True, vertical_alignment="center",
-                      gap="small"):
+    with st.container(key="sp_actions", horizontal=True, vertical_alignment="center", gap="small"):
         if on_back:
             on_back()
         st.space("stretch")
-        st.button(
-            "In watchlist" if on_list else "Add to watchlist",
-            icon=":material/star:" if on_list else ":material/star_border:",
-            key="sp_watch",
-            type="secondary",
-            on_click=watchlist_store.toggle,
-            args=(sym,),
-            help=("Remove from your watchlist" if on_list else
-                  "Save to your watchlist, kept in this browser"),
-        )
-        if row is not None and st.button("Factsheet", icon=":material/table_view:",
-                                         key="sp_factsheet", type="secondary",
-                                         help="Every figure the ranking holds for this stock"):
-            _factsheet_dialog(row)
-        st.link_button("Chart", kit.tradingview_url(sym), icon=":material/open_in_new:",
-                       help="Opens this stock on TradingView in a new tab")
+        st.button("In watchlist" if on_list else "Add to watchlist",
+                  icon=":material/star:" if on_list else ":material/star_border:",
+                  key="sp_watch", type="secondary", on_click=watchlist_store.toggle, args=(sym,),
+                  help=("Remove from your watchlist" if on_list else "Save to your watchlist, kept in this browser"))
         with st.popover("Share", icon=":material/link:", key="sp_share"):
             st.caption("Link to this stock's page. Use the copy button on the right.")
             st.code(_share_url(sym), language=None, wrap_lines=True)
+        st.link_button("Chart on TradingView", kit.tradingview_url(sym), icon=":material/open_in_new:",
+                       help="Opens this stock on TradingView in a new tab")
 
 
-# ── Main entry ────────────────────────────────────────────────────────────────
+# ── Sections ─────────────────────────────────────────────────────────────────
+
+def head_html(row, uni: sl.Universe, held: bool, as_of, market12, q, n_q, ln, holding) -> list:
+    kick = " · ".join(sl.kicker(row, INDEX_NAMES))
+    ts = sl.tiles(row, uni, q, n_q, as_of, ln, holding if held else None)
+    tiles = "".join(f'<div class="sp-tile"><span class="k">{e(t.label)}</span><span class="v">{e(t.value)}</span>'
+                    f'<span class="s">{e(t.sub)}</span></div>' for t in ts)
+    return ['<div class="sp-head">', _kick(kick), f'<h1 class="dh-h1">{e(sl.title(row, uni, held))}</h1>',
+            f'<p class="dh-lede">{e(sl.lede(row, as_of, market12))}</p>',
+            f'<div class="sp-tiles{" n3" if len(ts) == 3 else ""}">{tiles}</div></div>']
+
+
+def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
+    a, b = sl.rank_heading(row, uni, q, n_q, ln)
+    heads = "".join(f'<th scope="col" class="n">{lab}<span class="sub">{e(wl.fmt_day(d)) if d is not None else formats.DASH}</span></th>'
+                    for lab, d in zip(("3M ago", "1M ago", "Now"), tr.dates))
+    rk = "".join(f'<td class="n{" past" if i < 2 else ""}">{"–" if r is None else r}</td>' for i, r in enumerate(tr.ranks))
+    pl = "".join(f'<td class="n{" past" if i < 2 else (" up" if p is not None and p <= ln.buy else "")}">{e(sl.place_text(p))}</td>'
+                 for i, p in enumerate(tr.places))
+    ys = sl.trail_points(tr.places, ln.keep)
+    xs = (35, 115, 195)
+    pts = " ".join(f"{x},{y}" for x, y in zip(xs, ys))
+    dots = "".join(f'<circle cx="{x}" cy="{y}" r="{5 if i == 2 else 4}" style="fill:var(--c-{"ink" if i == 2 else "white"})" '
+                   f'stroke="var(--c-ink)" stroke-width="2"/>' for i, (x, y) in enumerate(zip(xs, ys)))
+    label = ("Place among the qualified: " + ", ".join(sl.place_text(p) for p in tr.places)
+             + f"; buy line {wl.fmt_ordinal(ln.buy)}, keep line {wl.fmt_ordinal(ln.keep)}")
+    t = 'style="fill:var(--c-muted);font-family:IBM Plex Sans,system-ui,sans-serif;font-size:12px"'
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="220" height="170" viewBox="0 0 220 170">'
+           '<line x1="20" x2="210" y1="52" y2="52" stroke="var(--c-muted)" stroke-dasharray="4 4"/>'
+           '<line x1="20" x2="210" y1="110" y2="110" stroke="var(--c-muted)" stroke-dasharray="2 4"/>'
+           f'<text x="210" y="66" text-anchor="end" {t}>Buy line, {wl.fmt_ordinal(ln.buy)}</text>'
+           f'<text x="210" y="124" text-anchor="end" {t}>Keep line, {wl.fmt_ordinal(ln.keep)}</text>'
+           f'<polyline points="{pts}" fill="none" stroke="var(--c-ink)" stroke-width="2"/>{dots}'
+           f'<text x="35" y="166" text-anchor="middle" {t}>3M</text><text x="115" y="166" text-anchor="middle" {t}>1M</text>'
+           f'<text x="195" y="166" text-anchor="middle" {t}>Now</text></svg>')
+    # st.html's cleaner drops inline SVG, so the trail is an image with the theme's colours
+    # written in, as the Dashboard's rank trail is.
+    from src.ui.tokens import resolve
+    img = (f'<img width="220" height="170" alt="{e(label)}" '
+           f'src="data:image/svg+xml,{quote(resolve(svg))}">')
+    return ['<section class="dh-sec sp-sec">', _kick("1 · Rank"), _h2(a, b, ".", "up" if q is not None and q <= ln.keep else "down"),
+            '<div class="sp-trail"><div><div class="sp-tbox"><table class="sp-t"><thead><tr><th scope="col"></th>'
+            f'{heads}</tr></thead><tbody><tr><th scope="row">{e(uni.rank_label)}</th>{rk}</tr>'
+            f'<tr><th scope="row">Place among the qualified</th>{pl}</tr></tbody></table></div>'
+            f'<p class="dh-note" style="margin-top:12px">{e(sl.rank_note(row, uni, ln))}</p></div>'
+            f'<div>{img}<div class="cap">Place among the qualified; higher is better.</div></div></div>', "</section>"]
+
+
+def rules_html(row, a: dict | None, q, ln, high_pct, ladder: sl.Ladder, held, holding, check, events, last_res) -> list:
+    from src.ui.system_param import page_href
+    from src.engine.exit_watch import SELL, WATCH
+    ca, cb = sl.rules_heading(a, check, high_pct)
+    status = (a or {}).get("status")
+    tone = "down" if status == SELL else "watch" if status == WATCH else "up"
+    at_high = ladder.close is not None and ladder.high is not None and round(ladder.close) >= round(ladder.high)
+    seg_from = ladder.x(ladder.ema) if ladder.ema is not None else 0.0
+    now_x = ladder.x(ladder.close)
+    dots = (f'<span class="seg" style="left:{min(seg_from, now_x)}%;width:{abs(now_x - seg_from)}%"></span>'
+            f'<span class="dot" style="left:0%"></span><span class="dot line" style="left:{ladder.x(ladder.line)}%"></span>'
+            f'<span class="dot" style="left:{ladder.x(ladder.ema)}%"></span>'
+            + ('' if at_high else '<span class="dot" style="left:100%"></span>')
+            + f'<span class="dot now" style="left:{now_x}%"></span>')
+    hi_label = "52W high · close" if at_high else "52W high"
+    labels = (f'<div>52W low<b>{formats.price(ladder.low)}</b>{e(formats.date(ladder.low_date)) if ladder.low_date is not None else ""}</div>'
+              f'<div>−{round((1 - high_pct) * 100)}% line<b>{formats.price(ladder.line)}</b>filter line</div>'
+              f'<div>50D EMA<b>{formats.price(ladder.ema)}</b>trend line</div>'
+              f'<div>{hi_label}<b>{formats.price(ladder.high)}</b>{e(formats.date(ladder.high_date)) if ladder.high_date is not None else ""}</div>')
+    aria = (f"52W low {formats.price(ladder.low)}, −20% line {formats.price(ladder.line)}, 50D EMA "
+            f"{formats.price(ladder.ema)}, 52W high {formats.price(ladder.high)}, close {formats.price(ladder.close)}")
+    rows = "".join(
+        f'<tr><th scope="row">{e(r.name)}<span class="sub">{e(r.kind)}</span></th><td class="n sp-pline">{e(r.line)}</td>'
+        f'<td class="n">{e(r.fall)}</td><td class="n {"up" if r.ok else "down"}">{e(r.today)}</td></tr>'
+        for r in sl.rules(row, a, q, ln, high_pct))
+    lead, rest = sl.holding_sentence(held, holding)
+    book = (f'<p class="dh-note"><b>{e(lead)}</b>{e(rest)} {e(sl.calendar_sentence(check, events, last_res))} '
+            f'<a class="sp-go" href="{e(page_href("actions"))}" target="_self">The plan, share by share, on Actions →</a></p>')
+    return ['<section class="dh-sec sp-sec">', _kick("2 · Filters and sell rules"), _h2("", ca, cb, tone),
+            f'<div class="sp-ladder" role="img" aria-label="{e(aria)}"><div class="track">{dots}</div>'
+            f'<div class="labels">{labels}</div></div>',
+            '<div class="sp-grid2"><div class="sp-tbox"><table class="sp-t"><thead><tr><th scope="col">Rule</th>'
+            '<th scope="col" class="n sp-pline">Line</th><th scope="col" class="n">Fall to reach it</th>'
+            f'<th scope="col" class="n">Today</th></tr></thead><tbody>{rows}</tbody></table></div>'
+            f'<div>{book}<p class="dh-note">{e(sl.highs_note(row))}</p></div></div>', "</section>"]
+
+
+def returns_html(ws: list[sl.Window], as_of, uni) -> list:
+    step = sl.line_step(ws)
+    bs = sl.bars(ws, step)
+    a, b, c = sl.returns_heading(ws)
+    body = []
+    for w, bar in zip(ws, bs):
+        style = (f"--n:{bar.n};--z:{bar.zero};--s:{bar.start};--f:{bar.filled};--part:{bar.part};"
+                 f"--pa:{bar.part_at if bar.part_at is not None else 0};--m:{bar.market if bar.market is not None else 0}")
+        inner = ('<i class="f"></i>' + ('<i class="p"></i>' if bar.part_at is not None else "") + '<i class="z"></i>'
+                 + ('<i class="m"></i>' if bar.market is not None else ""))
+        aria = f"{formats.pct(w.ret)} against {formats.pct(w.market)} for the market"
+        start = f'<span class="sub sp-wide">from {e(formats.date(w.start))}</span>' if w.start is not None else ""
+        body.append(
+            f'<tr><th scope="row">{w.months}M{start}</th>'
+            f'<td class="bar"><span class="lb" role="img" aria-label="{e(aria)}" style="{style}">{inner}</span></td>'
+            f'<td class="n {_num_cls(w.ret)}">{formats.pct(w.ret)}</td><td class="n">{formats.pct(w.market)}</td>'
+            f'<td class="n sp-wide {_num_cls(w.lead)}">{formats.pts(w.lead)}</td>'
+            f'<td class="n sp-wide">{formats.pct(w.typical)}</td>'
+            f'<td class="n">{formats.pct(w.fall, fraction=False)}</td>'
+            f'<td class="n sp-wide">{formats.pct(w.typical_fall, fraction=False)}</td>'
+            f'<td class="n sp-wide">{formats.signed(w.sharpe, 2, plus=False) if w.sharpe is not None else formats.DASH}</td>'
+            f'<td class="n sp-wide">{wl.fmt_ordinal(w.place) if w.place is not None else formats.DASH}</td></tr>')
+    return ['<section class="dh-sec sp-sec">', _kick("3 · Returns and falls"), _h2(a, b, c),
+            f'<div class="sp-key"><span><i class="ln"></i>One line is {step}% of return, one scale for every row</span>'
+            f'<span><i class="tri"></i>{sl.MARKET}, same sessions</span></div>',
+            '<div class="sp-tbox sp-ret"><table class="sp-t"><thead><tr><th scope="col">Window</th><th scope="col">Return</th>'
+            '<th scope="col" class="n">Stock</th><th scope="col" class="n">Market</th><th scope="col" class="n sp-wide">Lead</th>'
+            '<th scope="col" class="n sp-wide">Typical stock</th><th scope="col" class="n">Largest fall</th>'
+            '<th scope="col" class="n sp-wide">Typical fall</th><th scope="col" class="n sp-wide">Sharpe</th>'
+            f'<th scope="col" class="n sp-wide">Rank by return</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>',
+            '<p class="sp-phone">On a wider screen: each window’s first day, the lead in pts, the typical stock’s '
+            'return and fall, Sharpe, and rank by return.</p>',
+            f'<p class="dh-note sp-cols">{e(sl.returns_note(as_of, uni))}</p>', "</section>"]
+
+
+def industry_html(row, shown: pd.DataFrame, in_ind: pd.DataFrame, as_of) -> list:
+    from src.ui.industry_names import short_industry
+    from src.ui.system_param import stock_href, suffix
+    sym = str(row["Symbol"])
+    body = []
+    for _, r in shown.iterrows():
+        s = str(r["Symbol"])
+        me = s == sym
+        q = sl.num(r.get("Qualified Rank"))
+        name = sl.short_name(r.get("Company Name"), s) + (" · this stock" if me else "")
+        cells = "".join(f'<td class="n {_num_cls(sl.num(r.get(f"{m}M Return")))}">{formats.pct(sl.num(r.get(f"{m}M Return")))}</td>'
+                        for m in (1, 3, 6, 12))
+        ema = sl.num(r.get("% 50 EMA"))
+        body.append(
+            f'<tr class="{"me" if me else ""}"><td class="n">{int(r["Rank"])}</td>'
+            f'<td class="n">{e(sl.place_text(None if q is None else int(q)))}</td>'
+            f'<th scope="row"><a href="{e(stock_href(s))}" target="_self"><b>{e(s)}</b></a><span class="sub">{e(name)}</span></th>'
+            f'<td class="n">{formats.price(r.get("CMP"))}</td>{cells}'
+            f'<td class="n">{e(sl.from_high(r, as_of))}</td>'
+            f'<td class="n {_num_cls(ema)}">{formats.pct(ema, fraction=False)}</td></tr>')
+    ind_full = str(row.get("Industry") or "")
+    ind = short_industry(ind_full)
+    href = f"screener?ind={quote(ind_full, safe='')}{suffix()}"
+    return ['<section class="dh-sec sp-sec">', _kick("5 · Industry"), _h2(sl.industry_heading(row, in_ind)),
+            '<div class="sp-tbox"><table class="sp-t"><thead><tr><th scope="col" class="n">Rank</th>'
+            '<th scope="col" class="n">Qualified</th><th scope="col">Stock</th><th scope="col" class="n">Price</th>'
+            '<th scope="col" class="n">1M</th><th scope="col" class="n">3M</th><th scope="col" class="n">6M</th>'
+            '<th scope="col" class="n">12M</th><th scope="col" class="n">From 52W high</th>'
+            f'<th scope="col" class="n">vs 50D EMA</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>',
+            f'<p class="dh-note">The {"eight" if len(shown) == sl.PEERS_SHOWN else len(shown)} best-ranked of the '
+            f'industry’s {len(in_ind)}, with this stock; returns in %. '
+            f'<a class="sp-go" href="{e(href)}" target="_self">All {len(in_ind)} {e(ind)} stocks on the Screener →</a></p>',
+            "</section>"]
+
+
+def data_html(dc: sl.DataChecks) -> list:
+    items = [(ok, text) for ok, text in dc.items] + [(True, sl.action_line(a)) for a in dc.actions]
+    lis = "".join(f'<li class="{"" if ok else "bad"}">{e(text)}</li>' for ok, text in items)
+    note = ('<p class="dh-note">Corporate actions are read from NSE’s own lists; the prices before an ex-date are '
+            'scaled by its factor, so the step is not counted as a gain or a fall in the ranking or the record.</p>'
+            if dc.actions else "")
+    return ['<section class="dh-sec sp-sec">', _kick("6 · Data"), _h2(sl.data_heading(dc)),
+            f'<ul class="sp-checks">{lis}</ul>', note, "</section>"]
+
+
+# ── Not in the ranking (row 20) ──────────────────────────────────────────────
+
+def _render_not_ranked(symbol: str, rank_df: pd.DataFrame, uni: sl.Universe, as_of, on_back) -> None:
+    from src.ui.views.watchlist_view import _nse_lists
+    try:
+        changes, listed = _nse_lists()
+    except Exception:  # noqa: BLE001
+        changes, listed = None, set()
+    rows = wl.not_ranked([symbol], rank_df, universe=uni.short, changes=changes, listed=listed)
+    why = f"{rows[0].why} {rows[0].where if rows[0].where != wl.MISSING else ''}".strip() if rows else ""
+    new = rows[0].replace_with if rows else ""
+    if new:
+        from src.ui.system_param import stock_href
+        go = f' <a class="sp-go" href="{e(stock_href(new))}" target="_self">{e(new)}’s page →</a>'
+    else:
+        go = " Back to the Screener for the stocks that are ranked."
+    _render_actions(symbol, on_back)
+    _emit(['<div class="sp-head">', _kick(f"Stock · {symbol}"),
+           f'<h1 class="dh-h1">{e(symbol)} is not in the current ranking of {e(uni.the)}.</h1>',
+           f'<p class="dh-lede">{e(why)}{go}</p></div>',
+           f'<p class="dh-foot">{e(sl.foot(as_of))}</p>'])
+
+
+# ── Main entry ───────────────────────────────────────────────────────────────
 
 def render_stock_view(
     symbol: str,
@@ -797,49 +439,87 @@ def render_stock_view(
     on_back=None,
     book_symbols=None,
     history_prices: pd.DataFrame | None = None,
+    system: str | None = None,
 ) -> None:
-    """Render the detail page for one symbol."""
+    """Render the page for one symbol."""
+    from src.engine.exit_watch import assess, qualified_ranks
+    from src.engine.track_record import TRACK_RECORD_CONFIG
+    from src.ui import system_param
+    from src.ui.stock_chart import RANGES, relative_strength, render_price_chart, ranking_ema, window
+    from src.ui.views.dashboard_home_view import HOME_CSS
+    from src.ui.views.ranking_view import _month_ago, with_book_columns
+
+    system = system or system_param.current()
+    uni = sl.universe(system, len(rank_df))
+    as_of = (pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close.index)
+             else pd.Timestamp.today().normalize())
+    st.html(f"<style>{HOME_CSS}{SP_CSS}</style>")
+
     match = rank_df[rank_df["Symbol"].astype(str).str.upper() == str(symbol).upper()]
     if match.empty:
-        st.warning(f"{symbol} is not in the current ranking.")
-        if on_back:
-            on_back()
+        _render_not_ranked(str(symbol).upper(), rank_df, uni, as_of, on_back)
         return
     row = match.iloc[0]
-    total_stocks = len(rank_df)
     sym = str(row["Symbol"])
+    prices = history_prices if history_prices is not None else adj_close
+    ln = wl.lines()
+    high_pct = float(TRACK_RECORD_CONFIG["high_pct"])
+    held = sym in set(book_symbols or ())
 
-    _render_actions(sym, on_back, row.to_dict())
-    _render_identity(row, total_stocks)
-    _render_verdict(row)
-    _render_exit_status(sym, rank_df)
-    _render_corporate_actions(sym, adj_close)
+    qmap = qualified_ranks(rank_df)
+    q = int(qmap[sym]) if sym in qmap.index else None
+    n_q = len(qmap)
+    full = with_book_columns(rank_df, book_symbols, prices)
+    me = full[full["Symbol"].astype(str) == sym]
+    past = ([me.iloc[0].get("Qualified (-3M)"), me.iloc[0].get("Qualified (-1M)")]
+            if not me.empty and "Qualified (-3M)" in me.columns else [None, None])
+    tr = sl.trail(row, [_month_ago(adj_close, 3), _month_ago(adj_close, 1), as_of], past, q)
 
-    _html_block('<div class="sp-sec"><h2>Price and relative strength</h2>'
-                '<span>Drag to pan.</span></div>')
-    render_stock_chart(
-        sym,
-        rank_df,
-        adj_close,
-        high_prices=high_prices,
-        low_prices=low_prices,
-        volume_data=volume_data,
-        open_prices=open_prices,
-    )
+    a = assess(rank_df, [sym])
+    a_row = a.iloc[0].to_dict() if not a.empty else None
+    from src.ui.views.actions_view import next_rebalance
+    check, _fill = next_rebalance(as_of)
+    events, last_res = _calendar(sym, as_of, check)
+    holding = _holding(sym, prices, rank_df, system) if held else None
 
-    _render_price_ladder(row, _year_low(sym, adj_close, low_prices))
-    _render_gain_vs_pain(row, rank_df)
-    # The peers table reads the qualified place and "Held" like the Screener's
-    # (S184); imported here because ranking_view imports this module.
-    from src.ui.views.ranking_view import with_book_columns
-    _render_peers(row, with_book_columns(
-        rank_df, book_symbols, history_prices if history_prices is not None else adj_close),
-        adj_close)
-    _render_data_health(row)
+    market = _market()
+    if market is not None:
+        market = market[market.index <= as_of]     # one session for the whole page (S148)
+    ws = sl.windows(row, rank_df, adj_close.index, market)
+    m12 = next((w.market for w in ws if w.months == 12), None)
 
+    closes = adj_close[sym] if sym in adj_close.columns else None
+    chart_close = (history_prices[sym].dropna() if history_prices is not None and sym in history_prices.columns
+                   else closes.dropna() if closes is not None else pd.Series(dtype=float))
+    chart_close = chart_close[chart_close.index <= as_of]
+
+    _render_actions(sym, on_back)
+    _emit(head_html(row, uni, held, as_of, m12, q, n_q, ln, holding)
+          + rank_html(row, uni, q, n_q, ln, tr)
+          + rules_html(row, a_row, q, ln, high_pct, sl.ladder(row, closes, high_pct), held, holding, check,
+                       events, last_res)
+          + returns_html(ws, as_of, uni))
+
+    # 4 · Price: the chart is a widget (the range control), so the section is drawn in pieces.
+    ema = ranking_ema(chart_close) if not chart_close.empty else pd.Series(dtype=float)
+    above, of = sl.sessions_above(chart_close, ema)
+    rs = relative_strength(window(chart_close, RANGES["1Y"]), market)
+    pa, pb, pc = sl.price_heading(above, of, float(rs.iloc[-1]) if len(rs) else None)
+    _emit(['<section class="dh-sec sp-sec" style="padding-bottom:0;border-bottom:0">', _kick("4 · Price"), _h2(pa, pb, pc),
+           f'<div class="sp-cap"><b>Price and relative strength</b><span>against {sl.MARKET}</span></div>', "</section>"])
+    vol = volume_data[sym] if volume_data is not None and sym in volume_data.columns else None
+    if not chart_close.empty:
+        render_price_chart(sym, chart_close, vol, market)
+    _emit([f'<div class="sp-sec"><p class="dh-note">{e(sl.PRICE_NOTE)}</p></div>'])
+
+    shown, in_ind = sl.peers(full, row)
+    actions_df, actions_from = _nse_action_list()
+    dc = sl.data_checks(row, as_of, sl.nse_actions(actions_df, sym), actions_from)
+    _emit((industry_html(row, shown, in_ind, as_of) if len(in_ind) else [])
+          + data_html(dc) + [f'<p class="dh-foot">{e(sl.foot(as_of))}</p>'])
     render_data_quality_footer(
-        total_stocks=total_stocks,
+        total_stocks=len(rank_df),
         gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum()),
-        as_of=adj_close.index[-1] if adj_close is not None and len(adj_close.index) else None,
+        # No `as_of`: the page's own foot line carries "Data to <date> · NSE" (S173 rule 7).
     )

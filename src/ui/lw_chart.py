@@ -18,10 +18,15 @@ Series types: line, area, histogram, baseline (fills above/below zero), candlest
 A histogram with "volume": True sits on its own hidden scale in the bottom fifth of
 the pane; an optional "colors" list colours each bar.
 fmt: pct (value is already in percent, signed), share (percent, unsigned, whole),
-share1 (percent, unsigned, one decimal), price (₹, two decimals: a share price),
-num, int, rupee. A series may set "range": [lo, hi] to pin the value axis.
+share1 (percent, unsigned, one decimal), price (₹, whole rupees: a share price, S173),
+num, int, rupee, lvl (a level such as an index set to 100, one decimal, unsigned). A series may set "range": [lo, hi] to pin the value axis.
 A series may set "abs": True to show magnitudes in the legend (new lows are
 drawn below zero but read as positive counts).
+
+`one_line=True` (the stock page, S182 / STOCK_REQUIREMENTS row 48): each pane's
+readout is one line at a fixed height that never wraps, the date first in the
+top pane only, so moving the pointer can never move a plot (the #589 rule for
+these charts); arrow keys step the reading a session at a time.
 """
 from __future__ import annotations
 
@@ -114,6 +119,8 @@ def _value(v: float, fmt: str | None) -> str:
         return _fmt.inr(v)
     if fmt == "price":
         return _fmt.price(v)
+    if fmt == "lvl":
+        return f"{v:,.1f}"
     if fmt == "int":
         r = round(v)
         return (_fmt.MINUS if r < 0 else "") + _fmt.indian_group(abs(r))
@@ -147,7 +154,7 @@ def summary(panes: list[dict]) -> str:
     return " ".join(parts)
 
 
-def chart_html(panes: list[dict]) -> str:
+def chart_html(panes: list[dict], one_line: bool = False, label: str = "") -> str:
     spec = [
         {
             "height": int(p.get("height", 240)),
@@ -179,15 +186,28 @@ def chart_html(panes: list[dict]) -> str:
         ".dot{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;"
         "pointer-events:none;z-index:4;display:none}"
         ".sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}"
+        + (_ONE_LINE_CSS if one_line else "") +
         "</style></head><body><p class='sr'>" + _html.escape(summary(panes)) + "</p>"
-        "<div id='root' aria-hidden='true'></div><script>"
+        + ("<div id='root' role='img' tabindex='0' aria-label='" + _html.escape(label or "Chart. Arrow keys move the reading.", quote=True) + "'></div>"
+           if one_line else "<div id='root' aria-hidden='true'></div>") + "<script>"
         + _lib()
         + "</script><script>(function(){"
         "const SPEC=" + _json(spec) + ";"
         "const LEGEND_PX=" + str(LEGEND_PX) + ";"
+        "const ONE_LINE=" + ("true" if one_line else "false") + ";"
         + _JS
         + "})();</script></body></html>"
     )
+
+
+# One line at a fixed height: the readout cannot wrap, so no reading can push a plot down
+# (owner, 22 Nov 2026: "Mock up chart is jumping"; STOCK_REQUIREMENTS row 48).
+_ONE_LINE_CSS = (
+    ".lg{flex-wrap:nowrap;white-space:nowrap;overflow:hidden;height:" + str(LEGEND_PX) + "px;min-height:0;"
+    "line-height:16px;padding-bottom:4px}"
+    ".lg>span{flex:none}"
+    "#root{outline:none;touch-action:pan-y}#root:focus-visible{box-shadow:0 0 0 2px var(--c-up)}"
+)
 
 
 _JS = r"""
@@ -200,6 +220,7 @@ const fmts={
   price:v=>(Math.round(v)<0?'−':'')+'₹'+Math.abs(Math.round(v)).toLocaleString('en-IN'),  // whole rupees (S173)
   share:v=>v.toFixed(0)+'%',
   share1:v=>v.toFixed(1)+'%',
+  lvl:v=>v.toLocaleString('en-IN',{minimumFractionDigits:1,maximumFractionDigits:1}),
 };
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -330,7 +351,9 @@ function paint(pi,time){
     const sw=s.type==='baseline'?(s.negColor||colorOf(s)):colorOf(s);
     html+='<span><i class="'+(marked(s)?'':'sq')+'" style="background:'+sw+'"></i>'+esc(s.name)+'<b>'+f(v)+'</b></span>';
   });
-  lg.innerHTML=html+(shown?'<span class="d">'+dateText(shown)+'</span>':'');
+  const day=shown?'<span class="d">'+dateText(shown)+'</span>':'';
+  // One line: the date leads, in the top pane only (the panes share one date).
+  lg.innerHTML=ONE_LINE?(pi===0?day+html:html):html+day;
 }
 charts.forEach((c,ci)=>{
   c.subscribeCrosshairMove(param=>{
@@ -367,15 +390,33 @@ function resize(){
   later();
 }
 window.addEventListener('resize',resize);
+if(ONE_LINE){
+  // Arrow keys step the reading a session at a time (PAGE_DESIGN 4.1); leaving the chart shows the latest.
+  let ki=-1;
+  const at=(d,key)=>{for(let i=d.length-1;i>=0;i--){if(d[i].time<=key)return d[i];}return null;};
+  root.addEventListener('keydown',ev=>{
+    if(ev.key!=='ArrowLeft'&&ev.key!=='ArrowRight')return;
+    const d=SPEC[0].series[0].data;if(!d.length)return;
+    ev.preventDefault();
+    if(ki<0)ki=d.length-1;
+    ki=Math.max(0,Math.min(d.length-1,ki+(ev.key==='ArrowLeft'?-1:1)));
+    const t=d[ki].time;
+    syncing=true;
+    charts.forEach((c,ci)=>{const pt=at(SPEC[ci].series[0].data,t);if(pt)c.setCrosshairPosition(pt.value,pt.time,seriesByPane[ci][0]);});
+    SPEC.forEach((p,pi)=>paint(pi,t));
+    syncing=false;
+  });
+  root.addEventListener('blur',()=>{ki=-1;charts.forEach(c=>c.clearCrosshairPosition());SPEC.forEach((p,pi)=>paint(pi,null));});
+}
 if(window.ResizeObserver)new ResizeObserver(resize).observe(root);
 later();
 """
 
 
-def render(panes: list[dict], key: str | None = None) -> None:
+def render(panes: list[dict], key: str | None = None, one_line: bool = False, label: str = "") -> None:
     """Draw the panes in one iframe. Does nothing if no pane has two points."""
     live = [p for p in panes if any(len(s["data"]) >= 2 for s in p["series"])]
     if not live:
         return
     height = sum(int(p.get("height", 240)) + LEGEND_PX + GAP_PX for p in live) + 4
-    st.iframe(resolve(chart_html(live)), height=height)
+    st.iframe(resolve(chart_html(live, one_line=one_line, label=label)), height=height)

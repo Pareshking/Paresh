@@ -136,13 +136,14 @@ def test_tradingview_url_is_encoded_and_external():
 PROBE = str(Path(__file__).parent / "_stock_page_probe_app.py")
 
 
-def test_the_stock_page_offers_a_factsheet_that_opens_without_error():
+def test_the_stock_page_has_no_factsheet_window():
+    """The Factsheet repeated the page and showed a stop loss and a chandelier exit, which are not
+    model rules (STOCK_REQUIREMENTS rows 40 and 50; owner, 22 Nov 2026)."""
     at = AppTest.from_file(PROBE, default_timeout=180)
     at.query_params["stock"] = "S3"
     at.run()
     assert not at.exception
-    at.button(key="sp_factsheet").click().run()
-    assert not at.exception, [e.value for e in at.exception]
+    assert not [b for b in at.button if b.key == "sp_factsheet" or "Factsheet" in str(b.label)]
 
 
 def test_the_screener_has_one_sort_the_column_headers():
@@ -154,7 +155,8 @@ def test_the_screener_has_one_sort_the_column_headers():
 
 
 def test_the_stock_dialogs_are_module_level():
-    for fname, expected in (("stock_view.py", {"_factsheet_dialog", "_peers_dialog"}),):
+    # The stock page has no window since mock-up v2 (S182): the peers link to the Screener.
+    for fname, expected in (("stock_view.py", set()),):
         tree = ast.parse((VIEWS / fname).read_text(encoding="utf-8"))
         top = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)
                and any("dialog" in ast.unparse(d) for d in n.decorator_list)}

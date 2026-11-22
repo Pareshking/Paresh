@@ -63,17 +63,18 @@ def test_the_watchlist_reads_the_screeners_place_and_held_mark(monkeypatch):
     assert table.loc["H", "Qualified Rank"] == 6  # not its place within the list
 
 
-def test_the_stock_pages_peers_read_the_screeners_place(monkeypatch):
+def test_the_stock_pages_peers_read_the_screeners_place():
+    from src.ui import stock_lines as sl
     rank_df = _ranking()
-    seen = _capture(monkeypatch, stock_view)
     full = with_book_columns(rank_df, book_symbols=["G"])
     row = full.set_index("Symbol").loc["G"].copy()
     row["Symbol"] = "G"
-    stock_view._render_peers(row, full)
-    assert seen, "the peers table was not drawn"
-    peers = seen[-1].set_index("Symbol")
+    shown, in_ind = sl.peers(full, row)
+    html = "".join(stock_view.industry_html(row, shown, in_ind, pd.Timestamp("2026-11-20")))
+    peers = shown.set_index("Symbol")
     assert peers.loc["G", "Qualified Rank"] == 5
     assert bool(peers.loc["G", "Held"])
+    assert "5th" in html and "this stock" in html
 
 
 def test_the_stock_page_hands_its_peers_the_book_columns():
@@ -83,33 +84,11 @@ def test_the_stock_page_hands_its_peers_the_book_columns():
     assert "with_book_columns(" in src
 
 
-# ── The stock page's corporate-action note (S184) ────────────────────────────
+# ── The stock page's corporate actions: NSE's own list (S184, STOCK_REQUIREMENTS row 38) ──
 
-_MBAPL_LOG = [
-    {"date": "2020-11-14", "symbol": "MBAPL", "move": 9.007144, "ratio": 10.007144,
-     "looks_like": "10:1 reverse split", "kind": "split/bonus", "source": "yahoo"},
-    {"date": "2020-11-17", "symbol": "MBAPL", "move": -0.9, "ratio": 0.1,
-     "looks_like": "1:10 split", "kind": "split/bonus", "source": "yahoo"},
-]
-
-
-def _closes(values: list[float]) -> pd.DataFrame:
-    days = pd.to_datetime(["2020-11-12", "2020-11-13", "2020-11-16", "2020-11-17", "2020-11-18"])
-    return pd.DataFrame({"MBAPL": values}, index=days)
-
-
-def test_a_logged_step_the_prices_do_not_have_is_not_shown(monkeypatch):
-    # NSE's closes for MBAPL: ₹70.00, ₹70.05, ₹70.05 -- no step either day.
-    monkeypatch.setattr(stock_view, "load_events", lambda: list(_MBAPL_LOG))
-    assert stock_view._applied_events("MBAPL", _closes([70.0, 70.0, 70.05, 70.05, 70.1])) == []
-
-
-def test_a_step_still_in_the_prices_is_shown(monkeypatch):
-    monkeypatch.setattr(stock_view, "load_events", lambda: [_MBAPL_LOG[1]])
-    shown = stock_view._applied_events("MBAPL", _closes([70.0, 70.0, 70.05, 7.005, 7.01]))
-    assert [e["date"] for e in shown] == ["2020-11-17"]
-
-
-def test_no_prices_means_no_note(monkeypatch):
-    monkeypatch.setattr(stock_view, "load_events", lambda: list(_MBAPL_LOG))
-    assert stock_view._applied_events("MBAPL", None) == []
+def test_the_log_of_large_moves_is_not_read_any_more():
+    """MBAPL's +900.7% and −90.0% days of Nov 2020 (Yahoo, in corporate_actions_log.json) are not in
+    NSE's closes (₹70.00, ₹70.05, ₹70.05); the page reads NSE's action list only."""
+    import inspect
+    src = inspect.getsource(stock_view)
+    assert "load_events" not in src and "corporate_actions_log" not in src
