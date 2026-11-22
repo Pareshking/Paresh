@@ -38,10 +38,12 @@ _Last updated: 23 Nov 2026 (early, IST), coordinating session of 22-23 Nov._
 
 ## State at handover
 
-**23 Nov (this session):** one PR on branch `ccr-b633a7d9-f1fqfl`, not yet opened when
-written: S185 replay step (queue item 2), S199 (queue item 6, with the owner's
-correction), S201 (this file). Queue item 1 waits on the night's runs; S202's count is
-being measured.
+**23 Nov (this session):** #625 merged (fd6de89): S185 replay step (queue item 2), S199
+(Markdown-only PRs, owner's correction), S201 (this file). S200 (TODO trim) in its own
+Markdown-only PR. Next, one code PR: S194 L3/L4 (owner, 23 Nov: the Nifty 1000's other 250
+are **Nano Cap**, outside the 1000 is **Ultra Nano Cap**, NSE indices keep their names; the
+750's breadth history only under the 750) and S202 (owner: "S202 ok": a keep-awake visit
+every 4 h, full Production QA on push and daily). Queue item 1 waits on the night's runs.
 
 **Before (22 Nov night):** `main` = 4f3425c (#624). Merged in this session: #619 (Watchlist,
 S182), #620 (S195 report), #622 (S195 clean-up answers), #621 (another session's TODO rows S197,
