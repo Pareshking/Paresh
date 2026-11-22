@@ -193,3 +193,25 @@ def test_formatting_goes_through_one_set_of_helpers():
         "1st", "2nd", "3rd", "11th", "12th", "13th", "21st", "697th"]
     assert wl.fmt_system("Nifty 750") == "the Nifty 750" and wl.fmt_system("> ₹2,000 Cr") == "> ₹2,000 Cr"
     assert wl.MISSING == "–"
+
+
+def test_dates_and_dash_are_the_shared_formatters():
+    """S173: the page writes dates and missing values through src/ui/formats.py, not its own copy."""
+    from src.ui import formats
+    for d in ("2026-11-20", "2026-01-05"):
+        assert wl.fmt_date(d) == formats.date(pd.Timestamp(d))
+        assert wl.fmt_day(d) == formats.date(pd.Timestamp(d), short=True)
+    assert wl.MISSING is formats.DASH and wl.MINUS is formats.MINUS
+
+
+def test_the_foot_names_the_data_date_once():
+    """Row 28 / S173 rule 7: one "Data to <date> · NSE" line. The page writes its own foot line, so it must
+    not also hand the date to the shared footer (both printed it on 22 Nov, one line apart)."""
+    from src.ui import formats
+    from src.ui.views import watchlist_view as wv
+
+    ranking = _ranking()
+    foot = wv._foot(pd.Timestamp("2026-11-20"), ["S1", "S2", "ZZZ"], ranking[ranking["Symbol"].isin(["S1", "S2"])], ranking)
+    assert foot.startswith(formats.data_to(pd.Timestamp("2026-11-20")) + ".")
+    assert foot.count("Data to") == 1 and "2 of your 3 symbols ranked among the 9" in foot
+    # That the view does not also hand the date to the shared footer: test_launch_slot_10_leftovers.

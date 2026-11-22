@@ -74,4 +74,6 @@ def test_watchlist_renders_the_footer_even_with_an_empty_list(monkeypatch):
 
     watchlist_view.render_watchlist_view(rank_df)
 
-    assert calls == [{"total_stocks": 1, "gap_count": 0, "short_count": 0, "as_of": None}]   # no prices, no date (S173 rule 7)
+    # No `as_of`: the page's own foot line carries "Data to <date> · NSE", so the shared footer
+    # must not print it a second time (S173 rule 7; both did on 22 Nov, S182).
+    assert calls == [{"total_stocks": 1, "gap_count": 0, "short_count": 0}]

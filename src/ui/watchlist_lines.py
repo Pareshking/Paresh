@@ -28,23 +28,22 @@ from dataclasses import dataclass, field
 import pandas as pd
 
 from src.engine.track_record import TRACK_RECORD_CONFIG
+from src.ui import formats
 
-# ── Formatting (one place; to be replaced by the shared formatter, S173) ─────
+# ── Formatting: the shared formatter (S173, src/ui/formats.py); the words below are this page's own ──
 
-MISSING = "–"                       # missing data; the page says why beside it
-MINUS = "−"
+MISSING = formats.DASH              # missing data; the page says why beside it
+MINUS = formats.MINUS
 
 
 def fmt_day(t) -> str:
-    """20 Nov."""
-    t = pd.Timestamp(t)
-    return f"{t.day} {t:%b}"
+    """20 Nov (a tight column or a sentence where the year is plain)."""
+    return formats.date(pd.Timestamp(t), short=True)
 
 
 def fmt_date(t) -> str:
     """20 Nov 2026."""
-    t = pd.Timestamp(t)
-    return f"{t.day} {t:%b %Y}"
+    return formats.date(pd.Timestamp(t))
 
 
 def fmt_weekday(t) -> str:

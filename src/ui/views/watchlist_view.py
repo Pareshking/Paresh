@@ -22,6 +22,7 @@ import streamlit as st
 
 from src.core.market_time import ist_now
 
+from src.ui import formats
 from src.ui import watchlist_lines as wl
 from src.ui import watchlist_store
 from src.ui.components import gap_count, render_data_quality_footer
@@ -192,7 +193,7 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
         total_stocks=len(rank_df),
         gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
-        as_of=adj_close.index[-1] if adj_close is not None and len(adj_close.index) else None,
+        # No `as_of`: the page's own foot line above carries "Data to <date> · NSE" (S173 rule 7).
     )
 
 
@@ -297,8 +298,8 @@ def _fill_section(matched: pd.DataFrame, plan) -> None:
 
 
 def _foot(as_of, user_symbols: list, matched: pd.DataFrame, rank_df: pd.DataFrame) -> str:
-    """The data date and the list's own data health; no source named (owner, 20 Nov 2026)."""
-    text = f"Data to {wl.fmt_date(as_of)}."
+    """The data date and the list's own data health; the exchange named, never the vendor (S173 rule 7)."""
+    text = f"{formats.data_to(as_of)}."
     if not user_symbols:
         return text
     n, k = len(user_symbols), len(matched)
