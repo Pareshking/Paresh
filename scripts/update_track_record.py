@@ -24,7 +24,11 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import io
+import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -55,7 +59,8 @@ from src.engine import systems  # noqa: E402
 from src.engine.model_record import record_sector_map  # noqa: E402
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_1000, SYSTEM_NANO, SYSTEMS  # noqa: E402
 from src.engine.membership import describe  # noqa: E402
-from src.loaders import former_members, nse_prices  # noqa: E402
+from src.engine import freeze_bundle  # noqa: E402
+from src.loaders import former_members, nse_prices, price_source  # noqa: E402
 from src.loaders import extra_universe_loader as xl  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 from src.loaders.price_loader import fetch_benchmark_history  # noqa: E402
@@ -164,6 +169,72 @@ def _keep_exposure(tradebook) -> None:
         print(f"::warning::book exposure not updated: {exc}")
 
 
+def _code_sha() -> str:
+    sha = os.environ.get("GITHUB_SHA")
+    if sha:
+        return sha
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"],
+                                       cwd=Path(__file__).resolve().parents[1], text=True).strip()
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
+def _archive_months(added, ledger, *, system_key, as_of, frame, benchmark, membership,
+                    store_bytes, store_source, kwargs, sector_map, actions, backtest_months,
+                    cfg, fingerprint, result, force, publish=True, publisher=None,
+                    books_path=None):
+    """Build and publish one evidence bundle per added month (S185); return the books.
+
+    Raises on any failure, before anything is written. On success each added
+    month's ledger row gets `freeze_revision` (the bundle's sha256 on R2) and
+    `screener_store_sha256`, and the returned books (data/record_books.json)
+    hold the month's tradebook rows. `publish=False` (--no-archive) records the
+    month with no freeze_revision.
+    """
+    from src.engine.track_record import calendar_month_returns
+
+    if publish and publisher is None:
+        from src.storage.r2 import R2Config
+        R2Config.from_env()  # raises when R2 is not configured: no freeze without evidence
+        publisher = freeze_bundle.publish
+    code_sha = _code_sha()
+    strat = calendar_month_returns(result["equity_curve"])
+    bench = calendar_month_returns(result["benchmark"])
+    store_sha = freeze_bundle._sha(store_bytes)
+    books = freeze_bundle.load_books(books_path or freeze_bundle.BOOKS_PATH)
+    revisions = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        for month in added:
+            period = pd.Period(month, freq="M")
+            row = ledger["months"][month]
+            book_rows = freeze_bundle.month_book(result.get("tradebook"), month)
+            data = freeze_bundle.build(
+                system=system_key, month=month, as_of=as_of, frame=frame, benchmark=benchmark,
+                membership=membership, screener_store=store_bytes, screener_source=store_source,
+                kwargs=kwargs, sector_map=sector_map, actions=list(actions or []),
+                backtest_months=backtest_months, cfg=cfg, fingerprint=fingerprint(period),
+                results={"strategy": float(strat.loc[period]),
+                         "benchmark": float(bench.loc[period]) if period in bench.index else None,
+                         "ledger_strategy": row["strategy"], "ledger_benchmark": row["benchmark"],
+                         "ledger_alpha": row["alpha"]},
+                book=book_rows, code_sha=code_sha,
+            )
+            revision = publisher(data, system=system_key, month=month, code_sha=code_sha,
+                                 workdir=Path(tmp)) if publish else None
+            revisions[month] = (revision, book_rows)
+            print(f"  evidence {month}: {len(data):,} bytes, "
+                  + (f"R2 revision {revision[:16]}" if revision else "NOT published (--no-archive)"))
+    for month, (revision, book_rows) in revisions.items():
+        ledger["months"][month]["freeze_revision"] = revision
+        ledger["months"][month]["screener_store_sha256"] = store_sha
+        freeze_bundle.add_book(books, system=system_key, month=month,
+                               as_of=pd.Timestamp(as_of).strftime("%Y-%m-%d"),
+                               freeze_revision=revision, screener_store_sha256=store_sha,
+                               book=book_rows, force=force)
+    return books
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--system", default=SYSTEM_750, choices=list(SYSTEMS))
@@ -197,6 +268,13 @@ def main() -> int:
         help="Rewrite months already recorded. This destroys the record's "
         "immutability guarantee; use only for a deliberate rebuild.",
     )
+    ap.add_argument(
+        "--no-archive",
+        action="store_true",
+        help="Freeze without publishing the month's evidence bundle to R2 (a local "
+        "run with no R2 credentials). The month is recorded with no freeze_revision. "
+        "Never used by the scheduled job (S185).",
+    )
     args = ap.parse_args()
 
     system, ledger_file, start, cfg = record_setup(args.system, args.shadow, args.ledger)
@@ -223,10 +301,20 @@ def main() -> int:
     # Screener's store holds both the 750 and the Nano Cap list; it is the
     # frame's base, and basis_frame below lays NSE under it (owner, 2026-10-02:
     # Screener first, NSE second, no Yahoo).
-    store = nse_prices.screener_store()
-    if store is None or store.empty or not isinstance(store.columns, pd.MultiIndex):
-        print("✗ Screener's store is unavailable; refusing to freeze months without it")
+    # The raw bytes, fetched once: the frame is built from them and the same bytes
+    # go into the month's evidence bundle (S185), never a second download that the
+    # nightly job may have replaced in between.
+    store_bytes, store_source = price_source.fetch_screener_store_bytes()
+    try:
+        store = pd.read_parquet(io.BytesIO(store_bytes)) if store_bytes else None
+    except Exception as exc:  # noqa: BLE001
+        print(f"✗ Screener's store is unreadable ({type(exc).__name__}); refusing to freeze")
         return 1
+    if store is None or store.empty or not isinstance(store.columns, pd.MultiIndex):
+        print(f"✗ Screener's store is unavailable ({store_source}); refusing to freeze months without it")
+        return 1
+    print(f"  Screener store: {len(store_bytes):,} bytes from {store_source}, "
+          f"sha256 {freeze_bundle._sha(store_bytes)[:16]}")
     closes = store.xs("Close", axis=1, level=-1)
     closes.index = pd.DatetimeIndex(closes.index).normalize()
     closes = closes[~closes.index.duplicated(keep="last")].sort_index()
@@ -271,7 +359,7 @@ def main() -> int:
         # lacks, and Yahoo's frame only what neither has. Yahoo's corporate-action log
         # corrects Yahoo, so it is not applied to these series.
         nse, info = nse_prices.basis_frame(adj_close, membership, months=months,
-                                           screener="auto" if basis == "screener" else None)
+                                           screener=store if basis == "screener" else None)
         if nse is None:
             print(f"✗ price basis unavailable ({info.get('why')}); refusing to freeze "
                   "months on a different basis under the NSE fingerprint (use --prices yahoo)")
@@ -326,11 +414,14 @@ def main() -> int:
         return config_fingerprint_for_month(cfg, period)
     print(f"  config fingerprint (current month): {fingerprint(pd.Period(as_of, freq='M'))}")
 
+    # Every argument of this call goes into the month's evidence bundle (S185).
+    run_kwargs = run_backtest_kwargs(cfg)
+    sector_map = record_sector_map(adj_close.columns)
     result = run_backtest(
         f"trackrecord_{system}{f'_shadow_{book.key}' if book else ''}_{as_of:%Y%m%d}_{months}",
         adj_close,
-        **run_backtest_kwargs(cfg),
-        sector_map=record_sector_map(adj_close.columns),
+        **run_kwargs,
+        sector_map=sector_map,
         _benchmark_close=benchmark,
         backtest_months=months,
         _membership=membership,
@@ -444,12 +535,33 @@ def main() -> int:
     if args.dry_run:
         print("→ dry run; nothing written")
         return 0
+    books = None
+    # Beside the ledger it describes (data/record_books.json for the scheduled job).
+    books_path = Path(ledger_file).with_name(freeze_bundle.BOOKS_PATH.name)
+    if added:
+        # S185: no month is frozen without its evidence. The bundles are published
+        # first; a failure writes nothing (no ledger, no book) and fails the step.
+        try:
+            books = _archive_months(
+                added, ledger, system_key=freeze_bundle.system_key(ledger_file), as_of=as_of,
+                frame=adj_close, benchmark=benchmark, membership=membership,
+                store_bytes=store_bytes, store_source=store_source, kwargs=run_kwargs,
+                sector_map=sector_map, actions=actions, backtest_months=months, cfg=cfg,
+                fingerprint=fingerprint, result=result, force=args.force,
+                publish=not args.no_archive, books_path=books_path,
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"✗ refusing to freeze {', '.join(added)}: the evidence bundle was not "
+                  f"published ({type(exc).__name__}: {exc}); nothing written")
+            return 1
     if system == SYSTEM_750 and not book:
         _keep_exposure(result.get("tradebook"))
     if not added and not args.force:
         print("→ no new closed months; file untouched")
         return 0
 
+    if books is not None:
+        freeze_bundle.save_books(books, books_path)
     save_ledger(ledger, ledger_file)
     s = summary_stats(ledger)
     print(f"✓ wrote {ledger_file}: {s['months']} months, "

@@ -125,6 +125,7 @@ PROTECTED_DATASETS: tuple[str, ...] = (
     "classifications/",
     "calculations/",                    # the ranking archive
     "snapshots/rankings*",              # rankings, rankings_nano, rankings_combined, rankings_1000
+    "record/freezes/",                  # each frozen month's evidence bundle (S185): every revision kept
 )
 
 # Protected datasets the owner allowed to be thinned to their newest copies,

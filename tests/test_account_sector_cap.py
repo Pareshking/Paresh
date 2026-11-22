@@ -89,7 +89,13 @@ def test_the_freeze_script_and_the_live_replay_run_one_configuration():
     calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call)
              and isinstance(n.func, ast.Name) and n.func.id == "run_backtest"]
     assert len(calls) == 1
-    assert "run_backtest_kwargs(cfg)" in [ast.unparse(k.value) for k in calls[0].keywords if k.arg is None]
+    spread = [ast.unparse(k.value) for k in calls[0].keywords if k.arg is None]
+    # S185: the freeze binds the arguments to a name first, so the month's evidence
+    # bundle records exactly what was passed; that name must hold run_backtest_kwargs(cfg).
+    bound = {t.id for n in ast.walk(tree) if isinstance(n, ast.Assign)
+             and ast.unparse(n.value) == "run_backtest_kwargs(cfg)"
+             for t in n.targets if isinstance(t, ast.Name)}
+    assert "run_backtest_kwargs(cfg)" in spread or any(s in bound for s in spread)
 
 
 def test_ledger_months_are_struck_under_the_capped_config():
