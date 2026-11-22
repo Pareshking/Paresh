@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-22 — Portfolio: a new system joins the comparison after its first full month
+
+- "Systems, side by side" compares the systems over the window they have all traded. The Nifty 1000, started in November, had only part of a month, and it was shrinking everyone's window from 1 October to 1 November. A system now joins the window after its first full month: until then it shows its own figures and "joins from" the next month. The heading counts the systems instead of saying "three".
+
 ## 2026-11-21 — Size and momentum indices from NSE's own daily closes
 
 - Nifty Total Market, Nifty 50, Nifty 200, Midcap 150, Smallcap 250, Microcap 250 and the five momentum indices now come from NSE's own daily closes, from each index's launch (Total Market daily from 14 Oct 2021; Nifty 50 and Nifty 200 from Feb 2012). Before, they were Screener's charts, which were weekly before Oct 2025. Screener now fills in only the newest sessions, until NSE's file for the day arrives.
