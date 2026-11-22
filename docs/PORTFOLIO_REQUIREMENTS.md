@@ -11,7 +11,7 @@ insensitive, `|` separates alternatives, ` + ` joins texts that must all appear:
 a row that asks for two things tests both). Change a row only with the owner's
 word.
 
-Order: current book → industry & size → returns → equity, drawdown & risk → calendar returns → day by day against the market → trades → three systems
+Order: current book → industry & size → returns → equity, drawdown & risk → calendar returns → day by day against the market → trades → systems, side by side
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
@@ -48,7 +48,7 @@ Order: current book → industry & size → returns → equity, drawdown & risk 
 | 32 | Risk: volatility, beta and tracking error, marked as an early reading | Review 20 Nov | Equity & drawdown | Volatility + Tracking error + Since 1 Jan 2026, + also the last 12 months and each year|>Window< |
 | 33 | Trades filtered (all, winners, losers, open) with export | Live page | Trades | Trade history + Winners + Losers + Open + Export CSV |
 | 34 | Rebalance lines filtered (buy, sell, hold) | Live page | Rebalances | Buy + Sell + Hold |
-| 35 | Systems compared over the same window, not month columns (owner, 20 Nov: "difficult for past months when next year data will be there") | Owner 20 Nov | Three systems | Since 1 Oct, all three |
+| 35 | Systems compared over the same window, not month columns (owner, 20 Nov: "difficult for past months when next year data will be there"). A system joins the window only after its first full month (owner, 22 Nov 2026: "first full month"): one that started this month shows its own figures and "joins from" the next month, so it never shrinks the others' window to a few weeks; the heading counts the systems in the window (S183) | Owner 20 Nov; owner 22 Nov | Systems, side by side | compared over the same window + after its first full month |
 | 37 | Column widths fit their content: numbers sized to fit, the name column takes the rest (owner, 20 Nov: "abnormal spaces") | Owner 20 Nov | Tables | Current book |
 | 38 | Holdings show the entry date and days held | Owner 20 Nov ("Portfolio must have entry date column") | Current book | Entry date + days |
 | 39 | Holdings show how close each is to an exit rule: against its 50D EMA, from its 52-week high, rank against #40; a holding past a line is marked | Owner 20 Nov ("which other columns we should add, why?") | Current book | vs 50D + From 52W + past an exit rule |
