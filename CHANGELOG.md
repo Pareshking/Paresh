@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-22 — Nifty 1000: every member's prices kept like the 750's
+
+- The 250 stocks the Nifty 1000 adds to the 750 are now collected and checked the way the 750 are: Screener every night, with a new member's history fetched in full and a stock Screener cannot serve named under the header until it is; SS every week; NSE's daily closes over Screener's weekly stretch; the long price file from 2010; and prices for members that leave, so a sale is always priced.
+- Until now they were collected on a best-effort basis, and 13 that had left the ₹2,000 Cr list were no longer fetched at all. On 21 Nov, 58 of the 250 had no close for 30 Oct.
+
 ## 2026-11-22 — Nifty 1000: fixes before its first monthly freeze
 
 - One sector, not two: NSE's Nifty 1000 list writes "Oil, Gas & Consumable Fuels" and "Media, Entertainment & Publication" with commas, the 750's files without. Each showed twice on Sectors and was capped twice. They are now read as one.

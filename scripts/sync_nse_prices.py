@@ -37,9 +37,25 @@ from src.loaders.nse_identity import EQUITY_L as EQUITY_LIST  # noqa: E402
 from src.loaders.indices_loader import fetch_indices_data  # noqa: E402
 
 
-def needed(notes: dict) -> list[str]:
+def nifty_1000_symbols() -> set[str]:
+    """The Nifty 1000's members today (empty without the list): owner, 22 Nov 2026, its
+    members follow the 750's price process, this file included. They join it only by
+    `--backfill`, with the file's whole span, never as a column of the latest sessions."""
+    from src.loaders.extra_universe_loader import NIFTY_1000_PATH
+
+    path = Path(NIFTY_1000_PATH)
+    if not path.exists():
+        return set()
+    listed = pd.read_csv(path)
+    listed.columns = [str(c).strip() for c in listed.columns]
+    return {str(s).strip().upper() for s in listed["Symbol"].dropna()}
+
+
+def needed(notes: dict, *, nifty_1000: bool = False) -> list[str]:
     core = fetch_indices_data(["NIFTY TOTAL MARKET"])["Symbol"].unique().tolist()
     syms = set(core) | set(former_members.symbols_needed(load_history_or_none(), core))
+    if nifty_1000:
+        syms |= nifty_1000_symbols()
     syms |= set(notes.get("renames", {}))
     # The old symbols of renames into anything needed (nse_identity), so the
     # history before a ticker change is kept and joined.
@@ -189,7 +205,10 @@ def merge_sessions(closes: pd.DataFrame, actions: pd.DataFrame, prices: pd.DataF
     """
     wide = na.wide(prices)["close"]
     wide.index = pd.DatetimeIndex(wide.index)
-    cols = [s for s in needed(notes) if s in wide.columns or s in closes.columns]
+    # A Nifty 1000 member joins only by --backfill (whole span); once on file it is extended.
+    base = set(needed(notes))
+    cols = [s for s in needed(notes, nifty_1000=True)
+            if s in closes.columns or (s in base and s in wide.columns)]
     merged = pd.concat([closes.reindex(columns=cols), wide.reindex(columns=cols)]).sort_index()
     merged = merged[~merged.index.duplicated(keep="first")]
     acts = pd.concat([actions, keep_actions(new_actions, set(cols))], ignore_index=True)
@@ -250,6 +269,52 @@ def update(pause: float, source: str = "r2") -> int:
     print(f"appended {added} sessions; file now ends {merged.index[-1]:%Y-%m-%d}")
     if source == "r2":
         refresh()                          # a failure keeps the actions just written
+    return 0
+
+
+def backfill_columns(closes: pd.DataFrame, actions: pd.DataFrame, prices: pd.DataFrame,
+                     new_actions: pd.DataFrame, lacking: list[str]
+                     ) -> tuple[pd.DataFrame, pd.DataFrame, list[str], list[str]]:
+    """(closes, actions, added, not found): `lacking` added over the file's whole span.
+
+    Columns and closes already on file are not touched; only new columns are joined.
+    """
+    wide = na.wide(prices)["close"]
+    wide.index = pd.DatetimeIndex(wide.index)
+    add = [s for s in lacking if s in wide.columns and wide[s].notna().any()]
+    if not add:
+        return closes, actions, [], sorted(lacking)
+    merged = closes.join(wide[add].reindex(closes.index))
+    acts = pd.concat([actions, keep_actions(new_actions, set(add))], ignore_index=True)
+    acts = acts.drop_duplicates(subset=["symbol", "series", "kind", "ex_date", "purpose"]).reset_index(drop=True)
+    return merged, acts, add, sorted(set(lacking) - set(add))
+
+
+def backfill() -> int:
+    """Add every needed stock the file lacks (the Nifty 1000's), over its whole span, from R2."""
+    data = npx.load()
+    if data is None:
+        print("nothing committed to extend; run --build first")
+        return 1
+    closes, actions, notes = data["closes"], data["actions"], data["notes"]
+    lacking = sorted(s for s in needed(notes, nifty_1000=True) if s not in closes.columns)
+    if not lacking:
+        print(f"every needed stock is on file ({closes.shape[1]})")
+        return 0
+    first, last = closes.index[0].date(), closes.index[-1].date()
+    print(f"{len(lacking)} needed stocks not on file; reading R2 {first} to {last}")
+    try:
+        prices, new_actions, bad = nh.read_r2(first, last)
+    except Exception as exc:  # noqa: BLE001  no credentials, no network: keep the file
+        print(f"R2 unreadable ({type(exc).__name__}: {exc}); committed file kept")
+        return 1
+    if bad:
+        print(f"unreadable days {bad}; committed file kept")   # a half-read span would be a silent gap
+        return 1
+    merged, acts, added, absent = backfill_columns(closes, actions, prices, new_actions, lacking)
+    if added:
+        write(merged, acts)
+    print(f"added {len(added)} stocks over {len(closes)} sessions; on no session in R2: {absent}")
     return 0
 
 
@@ -331,6 +396,8 @@ def main() -> int:
                       help="read the last sessions back from R2 and compare with the file")
     mode.add_argument("--rehearse-append", action="store_true",
                       help="cut the last committed sessions, re-append them from R2, compare; writes nothing")
+    mode.add_argument("--backfill", action="store_true",
+                      help="add the needed stocks the file lacks (the Nifty 1000's) over its whole span, from R2")
     mode.add_argument("--update", action="store_true",
                       help="append the sessions since the last one on file, then re-read the actions")
     mode.add_argument("--refresh-actions", action="store_true",
@@ -346,6 +413,8 @@ def main() -> int:
         return verify_r2()
     if args.rehearse_append:
         return rehearse_append()
+    if args.backfill:
+        return backfill()
     if args.refresh_actions:
         return refresh()
     if args.build:

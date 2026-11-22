@@ -35,10 +35,11 @@ INDICES: dict[str, str] = {
 }
 DEFAULT_INDEX = "nifty_500"
 NIFTY_100_PARTS = ("nifty_50", "nifty_next_50")
-# Lists recorded but not ranked (src/core/config.RECORDED_INDICES_URLS): kept out of
-# all_ever_members, so the long NSE price file does not take in ~250 stocks before their
-# prices are backfilled and audited (S175, owner 21 Nov 2026: record first, prices next).
-RECORDED_ONLY = ("nifty_1000",)
+# Lists recorded but not ranked: kept out of all_ever_members, so the long NSE price file
+# does not take their stocks in. Empty since 22 Nov 2026: the Nifty 1000 was held here
+# ("record first, prices next", owner 21 Nov) and now follows the 750's price process,
+# the long file and its audits included (owner, 22 Nov: "same process we must follow").
+RECORDED_ONLY: tuple[str, ...] = ()
 
 
 def _stored(full: dict[str, Any], key: str) -> dict[str, Any] | None:

@@ -1,0 +1,82 @@
+name: NSE closes backfill (Nifty 1000)
+
+# Run by hand only. Adds to the two-year NSE closes (data/nse_prices) every needed
+# stock the file lacks, over the file's whole span, read from R2: the Nifty 1000's
+# members, which follow the 750's price process (owner, 22 Nov 2026: "Nothing should
+# be without proper price history ... same process we must follow"). The monthly
+# append never starts such a column (sync_nse_prices.merge_sessions); once a stock
+# is on file the monthly job extends it like any other.
+#
+# The same checks as the monthly job before anything is published: the app's own
+# ranking frame must build on the new file. Shares the freeze's concurrency group,
+# so it never runs beside a freeze.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: track-record
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: .
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Fails (no `|| echo`) when R2 cannot be read in full: nothing below runs.
+      - name: Add the stocks the file lacks, over its whole span
+        run: python scripts/sync_nse_prices.py --backfill
+
+      - name: Check the app can rank with the new NSE closes
+        run: python scripts/check_ranking_frames.py --published
+
+      - name: Publish the NSE closes to R2 and the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_nse_closes.sh
+
+      - name: Commit the corporate actions
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          # data/nse_prices/closes.parquet is not in git (.gitignore): it is published above.
+          git add data/nse_prices/actions.parquet
+          if git diff --staged --quiet; then
+            echo "No new corporate actions."
+            exit 0
+          fi
+          git commit -m "chore(data): NSE closes backfill, corporate actions [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed."
+              exit 0
+            fi
+            git fetch origin main
+            git rebase origin/main || { git checkout --theirs -- data/nse_prices/actions.parquet; git add data/nse_prices/actions.parquet; GIT_EDITOR=true git rebase --continue || git rebase --abort; }
+            sleep $((i * 5))
+          done
+          echo "::error::Could not push the corporate actions after 5 attempts."
+          exit 1

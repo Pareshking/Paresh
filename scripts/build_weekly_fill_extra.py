@@ -112,6 +112,25 @@ def nano_symbols(root: Path = ROOT) -> set[str]:
     return syms - set(tm["Symbol"].astype(str).str.strip().str.upper())
 
 
+def fill_symbols(root: Path = ROOT) -> set[str]:
+    """nano_symbols plus the Nifty 1000's members outside the 750: the stocks the file fills.
+
+    Owner, 22 Nov 2026: the Nifty 1000's other members follow the 750's price process
+    ("same process we must follow"), so Screener's weekly stretch is filled for them too.
+    The daily sync's `--nano --if-missing` rebuilds the file when one is not on it.
+    """
+    syms = nano_symbols(root)
+    path = root / "data" / "indices" / "ind_nifty1000_list.csv"
+    if path.exists():
+        listed = pd.read_csv(path)
+        listed.columns = [str(c).strip() for c in listed.columns]
+        tm = pd.read_csv(root / "data" / "indices" / "ind_niftytotalmarket_list.csv")
+        tm.columns = [str(c).strip() for c in tm.columns]
+        syms |= (set(listed["Symbol"].astype(str).str.strip().str.upper())
+                 - set(tm["Symbol"].astype(str).str.strip().str.upper()))
+    return syms
+
+
 def missing(path: Path, symbols: set[str]) -> set[str]:
     """The symbols `path` has no column for (all of them when there is no file)."""
     if not path.exists():
@@ -250,11 +269,14 @@ def main(argv=None) -> int:
     ap.add_argument("--if-missing", action="store_true",
                     help="--nano: exit 0 when every Nano Cap stock is on file; else, with no packs "
                          "given, name the missing ones and exit 3")
+    ap.add_argument("--with-nifty-1000", action="store_true",
+                    help="--nano: also the Nifty 1000's members outside the 750 (fill_symbols; the daily "
+                         "sync passes it from 22 Nov 2026, the default once the committed file holds them)")
     ap.add_argument("--out", type=Path)
     args = ap.parse_args(argv)
     if args.nano:
         out = args.out or NANO_OUT
-        symbols = nano_symbols()
+        symbols = fill_symbols() if args.with_nifty_1000 else nano_symbols()
         lacking = missing(out, symbols)
         if args.if_missing and not lacking:
             print(f"{out.name}: all {len(symbols)} Nano Cap stocks on file")

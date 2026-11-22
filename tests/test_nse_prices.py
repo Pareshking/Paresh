@@ -456,7 +456,7 @@ def _session(day, **close):
 
 def test_new_sessions_are_appended_and_stored_closes_are_never_overwritten(monkeypatch):
     mod = _script()
-    monkeypatch.setattr(mod, "needed", lambda notes: ["AAA", "BBB"])
+    monkeypatch.setattr(mod, "needed", lambda notes, nifty_1000=False: ["AAA", "BBB"])
     closes = pd.DataFrame({"AAA": [10.0], "BBB": [20.0]}, index=pd.DatetimeIndex(["2026-02-02"]))
     prices = pd.concat([_session("2026-02-02", AAA=99.0, BBB=99.0),       # already on file: must not change
                         _session("2026-02-03", AAA=11.0, BBB=21.0)])
@@ -465,3 +465,23 @@ def test_new_sessions_are_appended_and_stored_closes_are_never_overwritten(monke
     assert added == 1 and list(merged.index.strftime("%Y-%m-%d")) == ["2026-02-02", "2026-02-03"]
     assert merged.loc["2026-02-02", "AAA"] == 10.0 and merged.loc["2026-02-03", "BBB"] == 21.0
     assert acts.empty
+
+
+
+def test_a_nifty_1000_member_joins_only_by_backfill_and_is_then_extended(monkeypatch):
+    # Owner, 22 Nov 2026: "Nothing should be without proper price history". The monthly append must
+    # not start a column of the latest sessions; --backfill adds the whole span, then it is extended.
+    mod = _script()
+    monkeypatch.setattr(mod, "needed", lambda notes, nifty_1000=False: ["AAA"] + (["NEW"] if nifty_1000 else []))
+    empty = pd.DataFrame(columns=npx.ACTION_COLS)
+    closes = pd.DataFrame({"AAA": [10.0, 10.5]}, index=pd.DatetimeIndex(["2026-02-02", "2026-02-03"]))
+    later = _session("2026-02-04", AAA=11.0, NEW=5.0)
+    merged, _, _ = mod.merge_sessions(closes, empty, later, pd.DataFrame(), {})
+    assert list(merged.columns) == ["AAA"]                   # not a two-day column
+
+    span = pd.concat([_session("2026-02-02", AAA=99.0, NEW=4.0), _session("2026-02-03", AAA=99.0, NEW=4.5)])
+    filled, _, added, absent = mod.backfill_columns(closes, empty, span, pd.DataFrame(), ["NEW", "NOWHERE"])
+    assert added == ["NEW"] and absent == ["NOWHERE"]
+    assert list(filled["NEW"]) == [4.0, 4.5] and list(filled["AAA"]) == [10.0, 10.5]   # stored closes untouched
+    merged, _, n = mod.merge_sessions(filled, empty, later, pd.DataFrame(), {})
+    assert n == 1 and list(merged["NEW"]) == [4.0, 4.5, 5.0]

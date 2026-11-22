@@ -155,6 +155,27 @@ def _check_portfolio(at: AppTest, nav: list) -> None:
     _check_requirements(_page_text(at), "PORTFOLIO_REQUIREMENTS.md", "Portfolio")
 
 
+MIN_1000_ROWS = 900  # the Nifty 1000, less members still being priced (S175): more than the 750's
+
+
+def _check_nifty_1000() -> None:
+    """The Screener with ?sys=1000 ranks the Nifty 1000, not the 750 (S194 L5: no check opened it)."""
+    at = AppTest.from_file(APP, default_timeout=900)
+    at.query_params["sys"] = "1000"
+    at.run(timeout=900)
+    _check_clean(at, "first load, ?sys=1000")
+    screener = [e for e in _elements(at, "page_link") if e.proto.label == "Screener"]
+    if not screener:
+        _fail("no Screener link in the navigation (?sys=1000)")
+    at._page_hash = screener[0].proto.page_script_hash
+    at.run(timeout=900)
+    _check_clean(at, "Screener, ?sys=1000")
+    rows = max((f.proto.srcdoc.count("<tr data-stock=") for f in _elements(at, "iframe")), default=0)
+    print(f"Nifty 1000 ranking table rows: {rows}")
+    if rows < MIN_1000_ROWS:
+        _fail(f"{rows} Nifty 1000 ranking rows, expected at least {MIN_1000_ROWS}")
+
+
 def main() -> int:
     at = AppTest.from_file(APP, default_timeout=900)
     at.run(timeout=900)
@@ -208,6 +229,7 @@ def main() -> int:
         _fail(f"{wide} Full Quant rows, expected at least {MIN_TABLE_ROWS}")
 
     _check_stock_links(at)
+    _check_nifty_1000()
 
     print("HEADLESS_STREAMLIT_SMOKE=PASS")
     return 0

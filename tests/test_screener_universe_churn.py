@@ -176,3 +176,43 @@ def test_a_newcomer_gets_the_daily_year_over_the_weekly_decade(monkeypatch):
     assert close.loc["2026-09-21":"2026-09-25"].tolist() == [2.0] * 5
     # Older weekly points survive.
     assert close.loc["2026-08-28"] == 1.0
+
+
+def test_nifty_1000_members_are_gated_like_the_750(monkeypatch, tmp_path):
+    # Owner, 22 Nov 2026: "Use Nifty 1000 CSV ... check how nifty 750 works". S194: 13 members
+    # had left the ₹2,000 Cr list and were no longer fetched; 18 were never in the store.
+    import json
+
+    import pandas as pd
+
+    import scripts.sync_screener as sync
+
+    monkeypatch.setattr(sync, "PENDING_FILE", tmp_path / "pending.json")
+    n1000 = tmp_path / "ind_nifty1000_list.csv"
+    pd.DataFrame({"Symbol": ["AAA", "EXITED", "FRESH", "NOPAGE"]}).to_csv(n1000, index=False)
+    monkeypatch.setattr(sync, "RECORDED_LIST", str(n1000))
+    monkeypatch.setattr(sync, "EXTRA_LIST", "/nonexistent/ind_nanocap_list.csv")
+    monkeypatch.setattr(sync, "fetch_indices_data", lambda selected: pd.DataFrame({"Symbol": ["ZZZ", "AAA"]}))
+    monkeypatch.setattr(sync.sl, "load_store", lambda: _frame(["AAA", "ZZZ", "EXITED"]))
+    monkeypatch.setattr(sync.sl, "load_ids", lambda: {})
+    monkeypatch.setattr(sync.sl, "save_ids", lambda ids: None)
+    monkeypatch.setattr(sync, "_drop_unsettled", lambda frame: (frame, []))
+    monkeypatch.setattr(sync, "_deep_check_due", lambda: False)
+    calls = []
+
+    def fake_fetch(symbols, **kwargs):
+        calls.append((list(symbols), kwargs.get("days")))
+        served = [s for s in symbols if s != "NOPAGE"]
+        return _frame(served), kwargs["ids"], [s for s in symbols if s == "NOPAGE"]
+
+    monkeypatch.setattr(sync.sl, "fetch_universe", fake_fetch)
+    monkeypatch.setattr(sync.sl, "merge_into_store",
+                        lambda frame, **k: (_frame(["AAA", "ZZZ", "EXITED", "FRESH"]), 1, 0))
+
+    assert sync.gated_universe(["AAA", "ZZZ"], str(n1000)) == ["AAA", "ZZZ", "EXITED", "FRESH", "NOPAGE"]
+    assert sync.gated_universe(["AAA"], str(tmp_path / "missing.csv")) == ["AAA"]
+    assert sync.run() == 0                       # published; the workflow fails on the pending file
+    # Newcomers forced first (ten years, then the daily year); the sweep has the 750 before the 1000's
+    # extras, and the member that left the ₹2,000 Cr list is fetched again.
+    assert calls == [(["FRESH", "NOPAGE"], 3650), (["FRESH"], 365), (["AAA", "ZZZ", "EXITED"], 365)]
+    assert list(json.loads((tmp_path / "pending.json").read_text())["symbols"]) == ["NOPAGE"]

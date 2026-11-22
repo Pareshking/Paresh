@@ -39,6 +39,25 @@ from src.loaders import nse_prices  # noqa: E402
 START = "2024-09-30"   # the deep frame's own start: a 12-month window before 2026
 
 
+def nifty_1000_former(history: dict | None, current: list[str]) -> list[str]:
+    """Names the Nifty 1000 ever listed that neither it nor `current` holds today (S194 L2).
+
+    The Nifty 1000 is scored on its own point-in-time list, so a name that left it
+    needs a price for its sale just as a former 750 member does (ENNATURE and
+    IGLSPIRITS, in and out in November 2026, had none). Empty without the list.
+    """
+    from src.engine.index_universe import index_history
+    from src.loaders.extra_universe_loader import NIFTY_1000_PATH
+
+    h1000 = index_history("nifty_1000", history) if history else None
+    if not h1000 or not Path(NIFTY_1000_PATH).exists():
+        return []
+    listed = pd.read_csv(NIFTY_1000_PATH)
+    listed.columns = [str(c).strip() for c in listed.columns]
+    now = set(current) | set(listed["Symbol"].astype(str).str.strip().str.upper())
+    return symbols_needed(h1000, now)
+
+
 def fetch(symbols: list[str], start: str = START) -> tuple[pd.DataFrame, dict[str, str]]:
     """(closes from `start`, symbol -> source): Screener first, NSE for the rest."""
     out, source = {}, {}
@@ -70,7 +89,8 @@ def main() -> int:
     args = ap.parse_args()
 
     current = fetch_indices_data(args.indices)["Symbol"].unique().tolist()
-    needed = symbols_needed(load_history(), current)
+    history = load_history()
+    needed = sorted(set(symbols_needed(history, current)) | set(nifty_1000_former(history, current)))
     print(f"{len(needed)} former members lack prices in the current {len(current)}-stock universe")
     old = load()
     if args.only_if_out_of_date:
