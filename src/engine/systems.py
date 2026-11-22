@@ -109,27 +109,3 @@ def membership_for(system: str) -> dict[str, Any] | None:
     if system == SYSTEM_NANO:
         return hnano
     return combined_history(h750, hnano)
-
-
-# Backtest reporting starts at each system's canonical live inception.
-# Price history before these months remains available for signal formation
-# (12-month momentum + EMA warm-up), but it is never presented as portfolio
-# ownership or performance history.
-BACKTEST_START = {
-    SYSTEM_750: str(INCEPTION),
-    SYSTEM_1000: "2026-11",
-    SYSTEM_NANO: "2026-09",
-    SYSTEM_COMBINED: "2026-09",
-}
-
-
-def backtest_months(system: str, last_session) -> int | None:
-    """Completed months a system's backtest may report as of `last_session`.
-
-    None for the 750 (its own default applies); 0 while the first month is
-    still running.
-    """
-    if system not in BACKTEST_START:
-        return None
-    last_completed = pd.Timestamp(last_session).to_period("M") - 1
-    return max(0, (last_completed - pd.Period(BACKTEST_START[system], freq="M")).n + 1)

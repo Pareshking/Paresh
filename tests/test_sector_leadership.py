@@ -83,10 +83,24 @@ def test_the_worked_example_states_the_sectors_own_numbers_and_direction():
                    "y_now": 13 / 40, "y_then": 14 / 39, "above_now": 13, "obs_now": 40,
                    "above_then": 14, "obs_then": 39})
     text = leadership_explainer(r, "Information Technology", 200)
-    assert "−1.60 − (−4.60) = **+3.00%**" in text
+    # A lead is a difference of two returns: pts, not % (S173, Sectors build 21 Nov 2026).
+    assert "The difference, **+3.00 pts**" in text and "−1.6%" in text and "−4.6%" in text
     assert "13 of 40 = **32%**" in text and "14 of 39 = 36%" in text
-    assert "moved 6.3 points right and 3 points down" in text
-    assert "the lead is narrow" in text and "200-day EMA" in text and "160 sessions" in text
+    assert "moved 6.3 pts right and 3 pts down" in text
+    assert "the lead is narrow" in text and "200D EMA" in text and "160 sessions" in text
+    assert "the 750" in text and "the index" not in text
+
+
+def test_the_worked_example_says_same_share_when_breadth_did_not_move():
+    """Cons. Services on 20 Nov 2026: 19 of 43 both times; the old text said "more of its stocks"."""
+    from src.ui.views.sector_view import leadership_explainer
+    r = pd.Series({"Then": pd.Timestamp("2026-10-19"), "Now": pd.Timestamp("2026-11-20"), "Stocks": 43,
+                   "ret_now": 0.024, "bench_now": 0.0203, "x_now": 0.004, "x_then": -0.013,
+                   "y_now": 19 / 43, "y_then": 19 / 43, "above_now": 19, "obs_now": 43,
+                   "above_then": 19, "obs_then": 43})
+    text = leadership_explainer(r, "Consumer Services", 200)
+    assert "neither up nor down" in text and "the same share of its stocks" in text
+    assert "more of its stocks" not in text
 
 
 def test_three_month_period_and_the_two_heavy_lifters():

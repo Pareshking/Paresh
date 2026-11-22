@@ -1,39 +1,56 @@
+"""Backtest (S174): has this rule beaten the market over a long, honest history, and what does it depend on?
+
+Built from mock-up v1, approved by the owner on 21 Nov 2026 with his seven decisions
+(docs/BACKTEST_REQUIREMENTS.md): one page of research runs on NSE's long price file
+(the tab that replayed the live system's recent months is gone: Portfolio owns the record); the Nifty 500 the headline
+benchmark, with each universe's own NSE index "for this universe" and Nifty Total
+Market from 2022; "a year" over calendar time; price returns on both sides with the
+dividend gap stated; the cost, rule and tax tests stored weekly for the default run
+only (data/backtest_reference.json, scripts/build_backtest_reference.py).
+
+Figures: src/engine/backtest_page.py, from one run of `run_backtest`. Every fall from
+a peak is `metrics.drawdown`. Type and charts: the Dashboard's (dashboard_home_view,
+src/ui/dash_charts.py).
 """
-Strategy Backtesting View Controller with Friction & Turnover Attribution.
-"""
+from __future__ import annotations
 
 import html
-import math
+import json
+import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.core.config import RISK_FREE_RATE
-from src.core.config import DEFAULT_TRANSACTION_COST_BPS
-from src.core.config import BENCHMARK_SYMBOL, BENCHMARK_SYMBOL_N50
+from src.core.config import BENCHMARK_SYMBOL, BENCHMARK_SYMBOL_N50, DEFAULT_TRANSACTION_COST_BPS, RISK_FREE_RATE
 from src.core.market_time import ist_now
-from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest
-from src.engine.corporate_actions import load_events
-from src.engine.membership import load_history_or_none
+from src.engine import backtest_page as bp
 from src.engine import compute_gate
-from src.engine.pipeline import price_fingerprint
-from src.loaders.price_loader import fetch_benchmark_history
-from src.loaders import former_members, nse_prices
-from src.loaders.ranking_store import actions_digest
-from src.ui import page_kit as kit
-from src.ui import formats as _fmt
-from src.ui.system_param import page_href
+from src.engine import portfolio_report as pr
 from src.engine.backtest_export import RunSpec, export_zip, rules_table, trades_table
-from src.engine.track_record import TRACK_RECORD_CONFIG, build_combined_grid, ledger_from_curves, summary_stats
+from src.engine.backtester import DEFAULT_BACKTEST_MONTHS, run_backtest  # noqa: F401  (kept for the 18-month rule's test)
+from src.engine.pipeline import price_fingerprint
+from src.engine.track_record import SHADOWS, TRACK_RECORD_CONFIG
+from src.loaders.price_loader import fetch_benchmark_history
+from src.ui import page_kit as kit
+from src.ui.system_param import page_href
+from src.ui.views.dashboard_home_view import END, HOME_CSS, Chart, emit, how, sg
+from src.ui.views.portfolio_page import history_spec
 
-# How a held stock's weight is set at each rebalance (owner, 11 Nov 2026: the
-# page reset every holding at every rebalance while the record follows the
-# six-monthly rule from the 30 Nov 2026 signal; TODO S111 measured both).
+e = html.escape
+ROOT = Path(__file__).resolve().parents[3]
+REFERENCE = ROOT / "data" / "backtest_reference.json"
+HISTORICAL_INDUSTRIES = bp.HISTORICAL_INDUSTRIES
+MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+# How a held stock's weight is set at each rebalance (owner, 11 Nov 2026; decision G of
+# 21 Nov 2026: the six-monthly reset is the default, applied from the first month).
 REBALANCE_RULES = {
     "live": "Six-monthly reset: winners run to 15%, new buys 5% (the live rule)",
     "monthly": "Reset every holding to its target weight at every rebalance",
 }
+RULE_WORDS = {"live": "Six-monthly reset, winners run to 15%", "monthly": "Monthly reset to 5%"}
 
 
 def rebalance_rule_kwargs(rule: str) -> dict:
@@ -43,72 +60,80 @@ def rebalance_rule_kwargs(rule: str) -> dict:
     cfg = TRACK_RECORD_CONFIG
     return {"hold_cap": cfg["hold_cap"], "hold_cap_from": None, "buy_size": cfg["buy_size"],
             "weight_reset_months": tuple(cfg["weight_reset_months"])}
-from src.ui.components import (
-    gap_count, render_data_quality_footer, _render_calendar_returns, _render_yearly_summary,
-)
-from src.ui.theme import render_saas_table
 
 
+SCORE_LABELS = {
+    "sharpe": "Sharpe of each lookback window (the live system)",
+    "return": "Plain return of each lookback window",
+}
 
-def _months_txt(years: float) -> str:
-    n = max(1, int(round(years * 12)))
-    return f"{n} month" + ("" if n == 1 else "s")
-
-def _canonical_account_stats(ledger: dict, live_meta: dict | None) -> dict:
-    """Summarise the canonical account using Track Record's frozen months and live mark."""
-    meta = live_meta or {}
-    period = meta.get("mtd_period")
-    mtd = None
-    if period:
-        mtd = {
-            "period": pd.Period(period, freq="M"),
-            "strategy": meta.get("strategy_mtd"),
-            "benchmark": meta.get("benchmark_mtd"),
-            "as_of": meta.get("as_of"),
-        }
-    return summary_stats(ledger, mtd=mtd)
-
-
-def _running_month(ledger: dict, live_meta: dict | None, allowed: bool) -> dict | None:
-    """The month in progress, to date, for the Backtest's calendar grid (TODO S126).
-
-    The engine reports completed months only; its `live_meta` carries the running
-    month measured as Portfolio measures it (each book from the close it was filled
-    at, the month's rebalance charged). Shown only when it is the month right after
-    the grid's last one and the run reaches the latest session (`allowed`): a History
-    run ending earlier has no month in progress.
-    """
-    meta = live_meta or {}
-    if not allowed or not meta.get("mtd_period") or meta.get("strategy_mtd") is None:
-        return None
-    period = pd.Period(meta["mtd_period"], freq="M")
-    months = (ledger or {}).get("months") or {}
-    if not months or period != max(pd.Period(k, freq="M") for k in months) + 1:
-        return None
-    s, b = meta.get("strategy_mtd"), meta.get("benchmark_mtd")
-    values = {"strategy": float(s),
-              "benchmark": None if b is None else float(b),
-              "alpha": None if b is None else float(s) - float(b)}
-    return {"period": period, "values": values, "as_of": meta.get("as_of")}
+BT_CSS = """
+.bt-tested{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:var(--fs-13);color:var(--c-text_2);border-top:1px solid var(--c-ink);border-bottom:1px solid var(--c-rule_soft);padding:10px 0;margin:0}
+.bt-tested b{color:var(--c-ink);font-weight:600}
+.bt-warn{margin:0;font-size:var(--fs-13);color:var(--c-caution);max-width:80ch}
+.dh-tab.bt-t{min-width:0;width:auto}.bt-t th,.bt-t td{padding-right:22px}.bt-t tbody th{white-space:nowrap}
+.dh-tab.bt-checks{min-width:0}.bt-checks td{white-space:normal}.bt-checks td.bt-st{white-space:nowrap;font-weight:600;font-size:var(--fs-12)}
+.dh-tab.bt-months{min-width:860px;font-size:var(--fs-12)}.bt-months th,.bt-months td{padding:4px 8px 4px 0}
+.bt-months tr.bt-y th{padding-top:12px;border-bottom:1px solid var(--c-rule)}
+.dh-note .bt-l{color:var(--c-up)}
+@media (max-width:640px){.bt-checks tr{display:grid;grid-template-columns:minmax(0,1fr) auto;border-bottom:1px solid var(--c-rule_soft)}
+.bt-checks th,.bt-checks td{border-bottom:0!important}.bt-checks td:nth-child(2){grid-column:1/-1;grid-row:2;padding-top:0}.bt-checks thead{display:none}
+.bt-t th,.bt-t td{padding-right:12px}}
+"""
 
 
-def _day(value) -> str:
-    """A date as the rest of the site writes it (01 Oct 2026); a dash when absent."""
-    try:
-        return f"{pd.Timestamp(value):%-d %b %Y}" if value else "—"
-    except (TypeError, ValueError):
-        return str(value)
+# ── Small formats ─────────────────────────────────────────────────────────────
 
 
-@st.fragment
-def _tone(v) -> str:
-    if v is None or pd.isna(v):
-        return ""
-    return "up" if v > 0 else "down" if v < 0 else ""
+def _d(t) -> str:
+    t = pd.Timestamp(t)
+    return f"{t.day} {MON[t.month - 1]} {t.year}"
 
 
-MODE_LIVE = "Live system"
-MODE_HISTORY = "History from 2010"
+def _pc(v, digits: int = 1) -> str:
+    return "—" if v is None or (isinstance(v, float) and not np.isfinite(v)) else sg(v * 100, digits, "%").lstrip("+")
+
+
+def _pcs(v, digits: int = 1) -> str:
+    return "—" if v is None or (isinstance(v, float) and not np.isfinite(v)) else sg(v * 100, digits, "%")
+
+
+def _pts(v, digits: int = 1) -> str:
+    return "—" if v is None or (isinstance(v, float) and not np.isfinite(v)) else sg(v * 100, digits, " pts")
+
+
+def _t(v) -> str:
+    return "" if v is None or not np.isfinite(v) else ("dh-up" if v > 0 else "dh-down" if v < 0 else "")
+
+
+def _kt(v) -> str:
+    return "" if v is None or not np.isfinite(v) else ("up" if v > 0 else "down" if v < 0 else "")
+
+
+def _rupees(v) -> str:
+    return f"₹{v:,.0f}"
+
+
+def _kpis(cells) -> str:
+    """(label, value, value tone, sub)."""
+    return ('<div class="dh-kpis">' + "".join(
+        f'<div class="dh-kpi"><span class="dh-k-l">{e(a)}</span><span class="dh-k-v {t}">{e(v)}</span>'
+        f'<span class="dh-k-sub">{e(s)}</span></div>' for a, v, t, s in cells) + "</div>")
+
+
+def _kick(n: str, text: str) -> str:
+    return f'<p class="dh-kick">{e(n)} · {e(text)}</p>'
+
+
+def _step(lo: float, hi: float) -> float:
+    """A line-bar step that puts 40 to 60 lines on the row (PAGE_DESIGN 4.2)."""
+    for s in (0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 20.0):
+        if (hi - lo) / s <= 60:
+            return s
+    return 25.0
+
+
+# ── Inputs ────────────────────────────────────────────────────────────────────
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -126,17 +151,11 @@ def _long_value():
     return nse_long.load_value()
 
 
-HISTORICAL_INDUSTRIES = Path(__file__).resolve().parents[3] / "data" / "reference" / "historical_industries.csv"
-
-
-@st.cache_data(show_spinner=False)
-def _historical_industries() -> dict[str, str]:
-    """NSE sector (the 22-name level the app ranks on) for stocks no current list labels."""
+def _reference() -> dict | None:
     try:
-        frame = pd.read_csv(HISTORICAL_INDUSTRIES)
+        return json.loads(REFERENCE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return {}
-    return dict(zip(frame["NSE_SYMBOL"], frame["SECTOR"]))
+        return None
 
 
 def _history_bounds() -> dict | None:
@@ -144,8 +163,7 @@ def _history_bounds() -> dict | None:
     loaded = _long_file()
     if loaded is None:
         kit.note("The long price file is not available yet.",
-                 "It is built weekly from NSE's bhavcopy by the 'NSE long price file' workflow "
-                 "and published to the data-latest release.")
+                 "It is built weekly from NSE's bhavcopy by the 'NSE long price file' workflow.")
         return None
     close, _value, report = loaded
     # A year of prices before the first month, for the 12-month lookback and the EMA.
@@ -154,18 +172,15 @@ def _history_bounds() -> dict | None:
     if first > last:
         kit.note("The long price file has no completed month to test yet.")
         return None
-    return {"close": close, "report": report,
-            "months": list(pd.period_range(first, last, freq="M"))}
+    return {"close": close, "report": report, "months": list(pd.period_range(first, last, freq="M"))}
 
 
 def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict | None:
-    """The long backtest's inputs for the settings applied, or None when it cannot run.
+    """The run's inputs for the settings applied, or None when it cannot run.
 
-    Owner, 2026-10-03: any index from Jan 2010, a start and end month, and a
-    traded-value floor; size from the index tier, no market-cap cutoff. Prices
-    are NSE's own (src/loaders/nse_long.py), membership each index's own point-in-
-    time timeline (src/engine/index_universe.py). The controls live in the
-    settings form (_settings_form) since 9 Oct 2026, so nothing runs until Apply.
+    Owner, 3 Oct 2026: any index from Jan 2010, a start and end month, and a traded-value
+    floor; size from the index tier. Prices are NSE's own (src/loaders/nse_long.py),
+    membership each index's own point-in-time timeline (src/engine/index_universe.py).
     """
     from src.engine import index_universe as iu
     from src.loaders import nse_long
@@ -178,140 +193,101 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
         return None
     first = max(iu.first_month(membership), bounds["months"][0])
     start, end = choice["start"], choice["end"]
+    moved = None
     if start < first:
-        kit.caption(f"{iu.INDICES[key]}'s point-in-time list begins {first.strftime('%b %Y')}, "
-                    "so the test starts there.")
+        # The slider's first month is the file's; an index whose list begins later starts there, said
+        # only when the reader moved the start (the default always starts at the list's first month).
+        moved = None if start == bounds["months"][0] else f"{iu.INDICES[key]}'s point-in-time list begins {first.strftime('%b %Y')}, so the test starts there."
         start = first
     if start > end:
         kit.note(f"{iu.INDICES[key]} has no completed month in the window chosen.",
                  f"Its list begins {first.strftime('%b %Y')}; move the start or end month.")
         return None
     floor = float(choice["floor"] or 0.0)
-
-    # The frame ends at the first session after the end month: the engine reports
-    # the completed months before its last session's month.
-    after = close.index[close.index >= (end + 1).start_time]
-    cut = after[0] if len(after) else close.index[-1]
-    # Ending at the latest completed month, the frame runs to the file's last
-    # session instead, so the month in progress can be shown to date (TODO S126).
-    # The engine still reports only completed months: its window ends at the last
-    # month-end before the frame's last session either way.
     to_latest = end == bounds["months"][-1]
-    if to_latest:
-        cut = close.index[-1]
-    cols = sorted(iu.ever_members(membership) & set(close.columns))
-    frame = close.loc[:cut, cols]
+    frame = bp.frame_for(close, iu.ever_members(membership), end, to_latest)
+    cols = list(frame.columns)
 
-    # Industry for the cap: the current lists, then TradingView mapped to NSE's
-    # names, then data/reference/historical_industries.csv (NSE's sector for the
-    # names that left before today's lists, looked up 3 Oct 2026). A stock
-    # nothing places is its own group, not one shared "Other" the cap would squeeze.
-    sec = rank_df.set_index("Symbol")["Industry"].to_dict() if "Industry" in rank_df.columns else {}
-    sec.update(former_members.industry_for([c for c in cols if c not in sec]))
-    past = _historical_industries()
-    sec.update({c: past[c] for c in cols if sec.get(c, "Other") == "Other" and c in past})
-    unlabelled = [c for c in cols if sec.get(c, "Other") == "Other"]
-    sec.update({c: f"Unlabelled · {c}" for c in unlabelled})
+    # Today's list's industries, then the leavers' (bp.industry_map): the same map the weekly
+    # reference uses, so the stored tests re-run exactly this page's default.
+    sec, unlabelled = bp.industry_map(cols, bp.index_file_industries())
 
     traded = None
     if floor:
         value = _long_value()
         if value is None:
-            kit.note("Traded value is not available right now, so the floor is off for this run.",
-                     "The long file's traded-value part could not be fetched.")
+            kit.note("Traded value is not available right now, so the floor is off for this run.")
             floor = 0.0
         else:
-            traded = nse_long.average_value(value.reindex(columns=cols).loc[:cut])
+            traded = nse_long.average_value(value.reindex(columns=cols).loc[:frame.index[-1]])
 
-    return {
-        "close": frame, "membership": membership, "start": start, "end": end,
-        "months": (end - start).n + 1, "floor": floor,
-        # The Nifty 50 against its own index; the others against the Nifty 500,
-        # the broadest index on file (data/benchmarks.csv holds the two).
-        "benchmark": (BENCHMARK_SYMBOL_N50, "Nifty 50") if key == "nifty_50"
-                      else (BENCHMARK_SYMBOL, "Nifty 500"),
-        "traded_value": traded,
-        "sector_map": sec, "unlabelled": len(unlabelled), "name": iu.INDICES[key],
-        "built": report.get("built"), "last_session": report.get("last_session"),
-        "to_latest": to_latest,
-    }
+    return {"key": key, "close": frame, "membership": membership, "start": start, "end": end,
+            "months": (end - start).n + 1, "floor": floor, "traded_value": traded, "moved": moved,
+            "sector_map": sec, "unlabelled": unlabelled, "name": iu.INDICES[key],
+            "built": report.get("built"), "last_session": report.get("last_session"),
+            "priced": report.get("symbols_priced"), "to_latest": to_latest, "first": first,
+            "latest": bounds["months"][-1]}
 
 
-SCORE_LABELS = {
-    "sharpe": "Risk-adjusted return (Sharpe) · the live system",
-    "return": "Plain lookback return",
-}
-
-
-def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
-                   bounds: dict | None) -> dict:
-    """Every backtest setting in one form; nothing runs until Apply (owner, 9 Oct 2026).
-
-    A slider used to start a full backtest on every tick (~20 s on the 2010
-    history), most of them abandoned. Inside a form the widgets only report
-    their values on Apply. An expander rather than a popover: the columns stack
-    on a phone, and the form has grown.
-    """
+def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float, bounds: dict) -> dict:
+    """Every setting in one form; nothing runs until Apply (owner, 9 Oct 2026)."""
     from src.engine import index_universe as iu
 
-    with st.expander("Backtest settings", icon=":material/tune:"):
+    with st.expander("Change the test", icon=":material/tune:"):
         with st.form("bt_settings", border=False):
-            # Research of 12 Oct 2026 (scripts/research_regime_sweep.py): ahead of the
-            # live settings on all five indexes tested. A note only; defaults unchanged.
-            st.caption("Recommendation: 30 holdings · keep while in the top 90 · 200D EMA · "
-                       "within 20% of the 52W high · live lookback weights")
             choice: dict = {}
-            if bounds is not None:
-                st.markdown("**Window**")
-                h1, h2 = st.columns([1, 2])
-                choice["index"] = h1.selectbox(
-                    "Index", list(iu.INDICES), format_func=iu.INDICES.get,
-                    index=list(iu.INDICES).index(iu.DEFAULT_INDEX), key="bt_hist_index")
-                months = bounds["months"]
-                choice["start"], choice["end"] = h2.select_slider(
-                    "Start and end month", months, value=(months[0], months[-1]),
-                    format_func=lambda m: m.strftime("%b %Y"), key="bt_hist_months",
-                    help="An index whose point-in-time list begins later starts there.")
-                choice["floor"] = st.number_input(
-                    "Minimum traded value (₹ Cr, 20-day average; 0 = off)", min_value=0.0,
-                    max_value=500.0, value=float(liquidity_floor_cr or 0.0), step=1.0,
-                    key="bt_hist_floor")
+            st.markdown("**Window**")
+            h1, h2 = st.columns([1, 2])
+            choice["index"] = h1.selectbox(
+                "Universe", list(iu.INDICES), format_func=iu.INDICES.get,
+                index=list(iu.INDICES).index(bp.DEFAULT_INDEX), key="bt_hist_index")
+            months = bounds["months"]
+            choice["start"], choice["end"] = h2.select_slider(
+                "Start and end month", months, value=(months[0], months[-1]),
+                format_func=lambda m: m.strftime("%b %Y"), key="bt_hist_months",
+                help="An index whose point-in-time list begins later starts there.")
+            choice["floor"] = st.number_input(
+                "Minimum traded value (₹ Cr, 20-day average; 0 = off)", min_value=0.0,
+                max_value=500.0, value=float(liquidity_floor_cr or 0.0), step=1.0, key="bt_hist_floor")
 
             st.markdown("**Portfolio**")
             c1, c2 = st.columns(2)
-            top_n = c1.number_input("Holdings", min_value=1, max_value=100, value=20, step=1,
-                                    key="bt_top_n")
+            top_n = c1.number_input("Holdings", min_value=1, max_value=100, value=20, step=1, key="bt_top_n")
             keep_rank = c2.number_input(
-                "Keep a holding while its rank is within top", min_value=1, max_value=750,
+                "Keep a holding while its rank is within the top", min_value=1, max_value=750,
                 value=40, step=1, key="bt_keep_rank",
-                help="Rank buffer: a stock already held is sold only when it ranks below this. "
-                     "Below the number of holdings it is raised to it.")
+                help="A stock already held is sold only when it ranks below this. Below the number of "
+                     "holdings it is raised to it.")
             c3, c4 = st.columns(2)
             rebal = c3.number_input(
                 "Rebalance every (trading days)", min_value=1, max_value=252, value=21, step=1,
                 key="bt_rebal_days",
-                help="21 = monthly, at each calendar month's last session (the live system). "
-                     "Any other number: every that many sessions.")
+                help="21 = monthly: the signal is each calendar month's last close, the purchase the next "
+                     "session's close (the live system). Any other number: every that many sessions.")
             weighting = c4.selectbox("Weighting", ["Equal Weight", "Inverse Volatility"],
+                                     format_func={"Equal Weight": "Equal weight",
+                                                  "Inverse Volatility": "Inverse volatility"}.get,
                                      index=0, key="bt_weight_scheme")
             rule = st.selectbox(
                 "Rebalance rule", list(REBALANCE_RULES), format_func=REBALANCE_RULES.get, index=0,
                 key="bt_rebalance_rule",
-                help="The live book, from the 30 Nov 2026 signal: holdings keep their drifted weight "
-                     "(cut back only above 15%), each new buy is 5% of the account at the last reset, "
-                     "and every holding goes back to its target weight in March and September. The "
-                     "other rule resets every holding at every rebalance, as the record did before.")
+                help="The live book, from the 30 Nov 2026 signal: holdings keep their drifted weight (cut "
+                     "back only above 15%), each new buy is 5% of the account at the last reset, and every "
+                     "holding goes back to its target weight in March and September. Applied here from the "
+                     "first month. The other rule resets every holding at every rebalance, as the record did "
+                     "before.")
             cost = st.number_input(
                 "Trading cost (bps a round trip)", min_value=0.0, max_value=300.0,
                 value=float(DEFAULT_TRANSACTION_COST_BPS), step=1.0, key="bt_cost",
-                help="Round-trip cost (STT + stamp duty + brokerage + slippage). "
-                     "Standard NSE equity is about 25-35 bps.")
+                help="30 bps: about 22 bps of it is statutory (STT 0.1% each side, stamp duty 0.015% on the "
+                     "buy, exchange and SEBI fees, GST); the rest pays the spread, which has not been "
+                     "measured (S123).")
 
-            st.markdown("**Rules** · to buy, a stock must pass every buy rule; a holding is "
-                        "kept while it passes every keep rule (blank = same as buy)")
+            st.markdown("**Rules** · to buy, a stock must pass every buy rule; a holding is kept while it "
+                        "passes every keep rule (blank = same as buy)")
             b_col, k_col = st.columns(2)
-            b_col.caption("TO BUY")
-            k_col.caption("TO KEEP HOLDING")
+            b_col.caption("To buy")
+            k_col.caption("To keep holding")
             ema_period = b_col.number_input(
                 "Close above its EMA of (sessions)", min_value=2, max_value=400, value=50,
                 step=1, key="bt_ema_period", help="The live system uses 50.")
@@ -327,19 +303,16 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
             off_ath = b_col.number_input(
                 "Within this % of its all-time high (blank = no rule)", min_value=0.5,
                 max_value=95.0, value=None, step=0.5, key="bt_ath_off", placeholder="no rule",
-                help="All-time high = the highest close on file up to each signal date: since "
-                     "2008 on History, since the Personal price history begins on Live.")
+                help="All-time high = the highest close on file up to each signal date, since 2008.")
             exit_ath = k_col.number_input(
                 "Within this % of its all-time high ", min_value=0.5, max_value=95.0, value=None,
                 step=0.5, key="bt_exit_ath", placeholder="same as buy")
             ath_years = st.number_input(
                 "All-time-high rule: years of prices on file before it applies", min_value=0.0,
                 max_value=30.0, value=3.0, step=0.5, key="bt_ath_years",
-                help="The price history starts on a fixed date (History: Jan 2008; Live: Sep "
-                     "2016), so a stock trading before then may have its real peak earlier. "
-                     "Such a stock is held to the all-time-high rule only after this many years "
-                     "of prices on file; until then the 52-week rule decides alone. A stock that "
-                     "listed after the history starts is held to it from the first day.")
+                help="The price history starts in Jan 2008, so a stock trading before then may have its real "
+                     "peak earlier. Such a stock is held to the all-time-high rule only after this many years "
+                     "of prices on file; a stock that listed later is held to it from the first day.")
 
             st.markdown("**Score** · how stocks are ranked")
             score = st.radio("Score each lookback window by", list(SCORE_LABELS),
@@ -350,14 +323,16 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
                 bw[i].slider(lbl, 0.0, 1.0, float(weights[i]), 0.05, key=f"btw_{i + 1}")
                 for i, lbl in enumerate(["1M", "3M", "6M", "9M", "12M"])
             )
-            st.form_submit_button("Apply", type="primary", icon=":material/play_arrow:",
-                                  use_container_width=True)
+            st.caption("A setting chosen after seeing its result on this same history flatters the result: only "
+                       "months after a rule was fixed test it. The 30-holding settings from the 12 Oct 2026 sweep "
+                       "are recorded forward as a shadow book (Portfolio), not offered here as advice.")
+            st.form_submit_button("Apply", type="primary", icon=":material/play_arrow:", use_container_width=True)
 
     def frac(off):
         return None if off is None else 1.0 - float(off) / 100.0
 
     return {
-        "history": choice or None,
+        "history": choice,
         "top_n": int(top_n), "rebal_freq": int(rebal), "weight_method": weighting,
         "buffer_n": max(int(keep_rank), int(top_n)), "cost_bps": float(cost),
         "ema_period": int(ema_period), "high_pct": frac(off_52w), "ath_pct": frac(off_ath),
@@ -368,141 +343,502 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float,
     }
 
 
-def _backtest_body(
-    rank_df: pd.DataFrame,
-    adj_close: pd.DataFrame,
-    stock_cap: float,
-    sector_cap: float,
-    weights: tuple[float, ...],
-    liquidity_floor_cr: float = 0.0,
-    traded_value: pd.DataFrame | None = None,
-    months: int = DEFAULT_BACKTEST_MONTHS,
-    membership: dict | None = None,
-    history_start: pd.Timestamp | None = None,
-) -> None:
-    """Fragment: reruns only when backtest-tab widgets change, not on every global rerun.
-
-    Two tabs (owner, 2026-10-03): the live system's recent months, and the
-    history from 2010. Lazy: only the open tab runs its backtest.
-    """
-    history_mode = st.session_state.get("bt_mode", MODE_LIVE) == MODE_HISTORY
-    actions = kit.page_head(
-        "Backtest",
-        "Any index, any months from 2010, on NSE's own prices" if history_mode else
-        f"Last {months} completed month{'s' if months != 1 else ''}",
-        actions=True,
-    )
-    live_tab, history_tab = st.tabs([MODE_LIVE, MODE_HISTORY], key="bt_mode", on_change="rerun")
-    history_mode = bool(history_tab.open)
-    with history_tab if history_mode else live_tab:
-        _backtest_tab(rank_df, adj_close, stock_cap, sector_cap, weights, liquidity_floor_cr,
-                      traded_value, months, membership, history_start,
-                      history_mode=history_mode, actions=actions)
+def is_default(s: dict, h: dict, stock_cap: float, sector_cap: float) -> bool:
+    """The run the page opens on, and the one data/backtest_reference.json tests."""
+    cfg = TRACK_RECORD_CONFIG
+    return (h["key"] == bp.DEFAULT_INDEX and h["start"] == h["first"] and h["end"] == h["latest"]
+            and not h["floor"] and s["top_n"] == cfg["top_n"] and s["buffer_n"] == cfg["buffer_n"]
+            and s["rebal_freq"] == 21 and s["weight_method"] == cfg["weight_method"] and s["rule"] == bp.DEFAULT_RULE
+            and s["cost_bps"] == cfg["cost_bps"] and s["ema_period"] == cfg["ema_period"]
+            and abs((s["high_pct"] or 0) - cfg["high_pct"]) < 1e-9 and s["ath_pct"] is None
+            and s["exit_ema_period"] is None and s["exit_high_pct"] is None and s["exit_ath_pct"] is None
+            and s["score_method"] == "sharpe"
+            and np.allclose(s["weights"], cfg["config_weights"])
+            and abs(stock_cap - cfg["stock_cap"]) < 1e-9 and abs(sector_cap - cfg["sector_cap"]) < 1e-9)
 
 
-def _backtest_tab(
-    rank_df: pd.DataFrame,
-    adj_close: pd.DataFrame,
-    stock_cap: float,
-    sector_cap: float,
-    weights: tuple[float, ...],
-    liquidity_floor_cr: float,
-    traded_value: pd.DataFrame | None,
-    months: int,
-    membership: dict | None,
-    history_start: pd.Timestamp | None,
-    *,
-    history_mode: bool,
-    actions,
-) -> None:
-    """One tab's controls, backtest and views."""
-    bounds = _history_bounds() if history_mode else None
-    if history_mode and bounds is None:
-        return
-    settings = _settings_form(weights, liquidity_floor_cr, bounds)
-    history = _history_inputs(rank_df, settings["history"], bounds) if history_mode else None
-    if history_mode and history is None:
-        return
-    bt_n, bt_rebal = settings["top_n"], settings["rebal_freq"]
-    bt_weight, keep_rank = settings["weight_method"], settings["buffer_n"]
-    cost_drag_bps, active_weights = settings["cost_bps"], settings["weights"]
-    ema_period, high_pct = settings["ema_period"], settings["high_pct"]
-    ath_pct, score_method = settings["ath_pct"], settings["score_method"]
-    exit_rules = {k: settings[k] for k in ("exit_ema_period", "exit_high_pct", "exit_ath_pct")}
-    ath_min_years = settings["ath_min_years"]
-    rule = settings.get("rule", "live")
+# ── The page's parts ───────────────────────────────────────────────────────────
 
-    # Keyed on the WHOLE price history and the applied corporate actions. The
-    # old key (last date + shape) missed an intraday refresh, a vendor
-    # restatement and a newly logged split alike, and served the cached answer
-    # for up to an hour.
-    # Score on the index as it stood: the stocks it once held and has since
-    # dropped need prices too, or the pool is only the survivors.
-    # The exploratory backtest may replace adj_close with an alternate price basis below.
-    membership = membership if membership is not None else load_history_or_none()
-    # Prices as NSE published them (loaders/nse_prices.py): a past month ranks
-    # on what was known then, not on a vendor's later restatement. Where the
-    # file does not reach back far enough, the long Personal (Screener) history stands.
-    _nse, _nse_info = (None, {}) if history else nse_prices.basis_frame(adj_close, membership, months=months)
-    if history:
-        adj_close, _events = history["close"], []
-        membership, months = history["membership"], history["months"]
-        history_start = history["start"].start_time
-        liquidity_floor_cr, traded_value = history["floor"], history["traded_value"]
-        price_basis = ("NSE closes, adjusted for splits, bonuses and demergers, for rights issues of "
-                       "index stocks, and for dividends of 10% or more of the price")
-        kit.caption(
-            f"{history['name']}, point in time · Prices: {price_basis} · file built "
-            f"{_day(history.get('built'))}, last session {_day(history.get('last_session'))}."
-        )
-    elif _nse is not None:
-        adj_close, _events = _nse, []
-        # NSE's file runs to the latest session, often a day ahead of the long Screener history
-        # (on the 1st its first session of the month is already in). Months are counted back
-        # from the frame's end, so a month that has just closed needs one more in the window.
-        if history_start is not None:
-            months = max(months, int((pd.Period(adj_close.index[-1], freq="M")
-                                      - pd.Period(history_start, freq="M")).n))
-        price_basis = (
-            "Personal closes, NSE's where Personal has none; no dividends"
-            if _nse_info.get("basis") == "screener_primary" else
-            "NSE closes, adjusted for splits, bonuses and demergers; no dividends"
-        )
-        kit.caption(f"Prices: {price_basis}.")
+
+def tested_line(s: dict, h: dict) -> str:
+    rebal = ("Signal at the month’s last close, bought at the next close" if s["rebal_freq"] == 21 else
+             f"Signal every {s['rebal_freq']} sessions, bought at the next close")
+    items = [f"{h['name']}, members of each date", f"{h['start'].strftime('%b %Y')} to {h['end'].strftime('%b %Y')}",
+             f"{s['top_n']} holdings", f"Kept while in the top {s['buffer_n']}",
+             f"Above its {s['ema_period']}-day EMA", f"Within {(1 - s['high_pct']) * 100:g}% of its 52-week high"]
+    if s["ath_pct"] is not None or s["exit_ath_pct"] is not None:
+        if s["ath_pct"] is not None:
+            items.append(f"Within {(1 - s['ath_pct']) * 100:g}% of its all-time high")
+        items.append(f"The all-time high: the highest close since {h['close'].index[0]:%b %Y}, applied after "
+                     f"{s['ath_min_years']:g} years on file")
+    if s["exit_ema_period"] is not None:
+        items.append(f"Kept while above its {s['exit_ema_period']}-day EMA")
+    if s["exit_high_pct"] is not None:
+        items.append(f"Kept while within {(1 - s['exit_high_pct']) * 100:g}% of its 52-week high")
+    if s["exit_ath_pct"] is not None:
+        items.append(f"Kept while within {(1 - s['exit_ath_pct']) * 100:g}% of its all-time high")
+    items.append(RULE_WORDS.get(s["rule"], s["rule"]))
+    if s["weight_method"] != "Equal Weight":
+        items.append(s["weight_method"].capitalize())
+    if s["score_method"] != "sharpe":
+        items.append("Scored on plain returns")
+    if not np.allclose(s["weights"], TRACK_RECORD_CONFIG["config_weights"]):
+        items.append("Lookback weights " + " · ".join(f"{w:.2f}".lstrip("0") for w in s["weights"]))
+    if h["floor"]:
+        items.append(f"Traded value ₹{h['floor']:g} Cr or more")
+    items += [f"{s['cost_bps']:g} bps a round trip", rebal]
+    return ('<div class="bt-tested" aria-label="What was tested"><span><b>What was tested</b></span>'
+            + "".join(f"<span>{e(i)}</span>" for i in items) + "</div>")
+
+
+def head(f: dict) -> list:
+    sm, h = f["summary"], f["h"]
+    if sm.a_year is not None:
+        title = (f"Since {sm.first.year} this rule made {_pc(sm.a_year)} a year to the Nifty 500’s "
+                 f"{_pc(sm.bench_a_year)}, before tax.")
     else:
-        adj_close = former_members.with_former_members(adj_close, membership)
-        _events = load_events()
-        price_basis = "Personal closes, adjusted for splits and bonuses; no dividends"
-        kit.caption(f"Prices: {price_basis}.")
-    ph = f"{price_fingerprint(adj_close)}_{actions_digest(_events)}"
-    if liquidity_floor_cr:
-        kit.caption(f"Liquidity floor on: a stock is bought only while its 20-day average "
-                    f"traded value is ₹{liquidity_floor_cr:g} Cr or more"
-                    + ("." if history else " (Configuration)."))
-        if traded_value is not None:
-            ph += f"_{price_fingerprint(traded_value)}"
-    bench_symbol, bench_name = history["benchmark"] if history else (BENCHMARK_SYMBOL, "Nifty 500")
-    benchmark_close = fetch_benchmark_history(period="max" if history else "2y", symbol=bench_symbol)
-    if benchmark_close.empty:
-        st.error(f"{bench_name} benchmark ({bench_symbol}) data is unavailable. Backtest stopped to "
-                 "prevent an invalid benchmark comparison.")
-        return
-    sec_map = history["sector_map"] if history else (
-        rank_df.set_index("Symbol")["Industry"].to_dict()
-        if "Industry" in rank_df.columns
-        else {}
-    )
-    if history and history["unlabelled"]:
-        kit.caption(f"{history['unlabelled']} of these stocks have no industry on record (mostly ones "
-                    "that left before today's lists); each counts as its own group for the industry cap.")
-    if sec_map and not history:
-        # The sector cap needs an industry for every name it can hold, and the
-        # index files only label the current members.
-        sec_map.update(former_members.industry_for([c for c in adj_close.columns if c not in sec_map]))
+        title = f"Over {sm.months} months this rule returned {_pcs(sm.total)}, the Nifty 500 {_pcs(sm.bench_total)}."
+    lede = (f"{'The record’s rules' if f['default'] else 'These rules'} replayed on the {h['name']} as it stood each "
+            f"month, {_d(sm.first)} to {_d(sm.last)}, on NSE’s closes, after {f['s']['cost_bps']:g} bps a round trip. "
+            "Price returns on both sides. A replay of the past, not a forecast.")
+    out = [f'<div class="dh-sec"><p class="dh-kick">Backtest</p><h1 id="s-top" class="dh-h1">{e(title)}</h1>'
+           f'<p class="dh-lede">{e(lede)}</p></div>', tested_line(f["s"], h)]
+    if h.get("moved"):
+        out.append(f'<p class="dh-note">{e(h["moved"])}</p>')
+    if not f["default"]:
+        out.append('<p class="bt-warn">These settings differ from the record’s. A setting chosen after seeing its result '
+                   'on this same history flatters the result; only months after a rule was fixed test it.</p>')
+    return out
 
-    # One backtest computes at a time across the whole server (compute_gate,
-    # TODO S65). A cached result returns at once; only a new run waits.
+
+def section_lead(f: dict) -> list:
+    sm, st_ = f["summary"], f["stats"]
+    if sm.lead is not None:
+        h2 = (f'The lead over the Nifty 500 is <span class="{_t(sm.lead)}">{abs(sm.lead) * 100:.1f} points a year</span>; '
+              f'the rule was ahead in {sm.ahead} of {sm.months} months.')
+    else:
+        h2 = (f'Under a year, so no yearly figure: the rule is <span class="{_t(sm.total)}">{e(_pcs(sm.total))}</span>, '
+              f'the Nifty 500 {e(_pcs(sm.bench_total))}.')
+    tiles = _kpis([
+        ("A year, compounded", _pc(sm.a_year) if sm.a_year is not None else "—", _t(sm.a_year),
+         f"Nifty 500 {_pc(sm.bench_a_year)}" if sm.a_year is not None else "needs 12 months"),
+        ("Lead over the Nifty 500", _pts(sm.lead) if sm.lead is not None else _pts(sm.total - sm.bench_total),
+         _t(sm.lead if sm.lead is not None else sm.total - sm.bench_total), "a year" if sm.lead is not None else "over the run"),
+        ("₹100 became", _rupees(100 * (1 + sm.total)), "", f"Nifty 500 {_rupees(100 * (1 + sm.bench_total))}"),
+        ("Months ahead of the Nifty 500", f"{sm.ahead} of {sm.months}", "",
+         f"{sm.ahead / max(sm.months, 1):.0%} · up in {sm.up}"),
+    ])
+    ch = f["chart"]
+    series = [{"name": "This rule", "short": "This rule", "color": "ink", "values": ch["series"]["rule"], "dd": ch["dd"]["rule"]},
+              {"name": "Nifty 500", "short": "Nifty 500", "color": "muted", "values": ch["series"]["n500"],
+               "dd": ch["dd"]["n500"], "dash": True}]
+    top = max(v for v in ch["series"]["rule"] + ch["series"]["n500"] if v is not None)
+    ticks = [t for t in (50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000) if t <= top * 1.2]
+    spec = {"dates": ch["dates"], "series": series, "ticks": ticks, "ddHead": "Below its peak"}
+    dy, half = f["div_yield"], sm.split
+    notes = [
+        "<b>Price returns, both sides.</b> The rule’s figure includes a dividend only where it was 10% of the price or "
+        "more (the long file takes those out as an adjustment); the Nifty 500 figure is NSE’s price index, with no "
+        + (f"dividends. NSE’s own file puts the Nifty 500’s dividend yield at {dy:.2f}% a year on average since Feb 2012, "
+           "against about 0.5% for the book (measured 2020–25 only, S125), so against the index with dividends the lead "
+           f"is about {dy - 0.5:.1f} points a year smaller than shown." if dy is not None else "dividends."),
+        f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill.",
+        "<b>Why the Nifty 500 and not Nifty Total Market.</b> Total Market starts on 14 Oct 2021 and this history in "
+        "2010 (owner, 21 Nov 2026). Total Market is beside it from 2022 in section 3 and in section 4."
+        + (f" For this universe its own index, the {e(f['uidx_name'])}, is shown beside both." if f.get("uidx_name") else ""),
+    ]
+    if half is not None and sm.lead_first_half is not None:
+        notes.append(f"<b>The two halves.</b> The rule led by {sm.lead_first_half * 100:.2f} pts a month on average to "
+                     f"{half - pd.offsets.MonthEnd(1):%b %Y} and {sm.lead_second_half * 100:.2f} after; the median month "
+                     f"{_pts(sm.median_lead, 2)}.")
+    rows = [["Total return", _pcs(sm.total, 0), _pcs(sm.bench_total, 0)],
+            ["A year, compounded", _pc(sm.a_year, 2), _pc(sm.bench_a_year, 2)],
+            ["A year before costs", _pc(st_.get("cagr_gross"), 2), "—"],
+            ["Volatility, a year (daily returns)", _pc(st_.get("volatility")), "—"],
+            [f"Sharpe, over {RISK_FREE_RATE:.1%}, ± one standard error",
+             f"{st_.get('sharpe', float('nan')):.2f} ± {st_.get('sharpe_stderr_iid', float('nan')):.2f}", "—"],
+            [f"Sortino, over {RISK_FREE_RATE:.1%}",
+             f"{st_['sortino']:.2f}" if np.isfinite(st_.get("sortino", float("nan"))) else "—", "—"],
+            ["Turnover, one way, a month", f"{st_.get('avg_turnover', 0):.0f}%", "—"]]
+    return ['<div class="dh-sec">', _kick("1", "Ahead of the market"), f'<h2 id="s-lead" class="dh-h2">{h2}</h2>', tiles, "</div>",
+            Chart("btgrowth", spec, {"label": "Growth of ₹100 on a log scale, this rule and the Nifty 500, and how far each "
+                                              "sits below its peak"}),
+            '<div class="dh-sec dh-sec-cont">'
+            + how("₹100 put in at the first fill and left to the rule, against ₹100 in the Nifty 500, weekly closes on a "
+                  "log scale (equal heights are equal percentage moves). The lower pane is how far each sits below its "
+                  "own highest value so far, on daily closes.",
+                  "Move the pointer, tap, or use the arrow keys; the values follow in the headings. At rest they are "
+                  "the latest.", ["Measure", "This rule", "Nifty 500"], rows)
+            + "".join(f'<p class="dh-note">{n}</p>' for n in notes) + "</div>", END]
+
+
+def section_falls(f: dict) -> list:
+    rule_falls, n500_falls, now, bnow = f["falls"], f["bench_falls"], f["below_now"], f["bench_below_now"]
+    big = rule_falls[0] if rule_falls else None
+    if now < -0.005:
+        peak = f["current_peak"]
+        h2 = f'The rule is <span class="dh-down">{e(_pc(-now))} below its {peak:%B %Y} peak</span>'
+        h2 += ("; its largest fall since " + str(f["summary"].first.year) + " has not yet recovered." if big and big.recovered is None
+               else f"; its largest fall, {e(_pc(big.depth))}, was back at its peak on {e(_d(big.recovered))}." if big else ".")
+    else:
+        h2 = "The rule is at its peak" + (f"; its largest fall was {e(_pc(big.depth))}." if big else ".")
+    cur_days = f["current_days"]
+    needs = (1 / (1 + now) - 1) if now < 0 else 0.0
+    tiles = _kpis([
+        ("Below its peak now", _pcs(now), "dh-down" if now < 0 else "", f"Nifty 500 {_pcs(bnow)}"),
+        ("Largest fall from a peak", _pcs(big.depth) if big else "—", "dh-down",
+         f"Nifty 500 {_pcs(n500_falls[0].depth)}" if n500_falls else ""),
+        ("Days below its peak", f"{cur_days:,}" if now < 0 else "0", "dh-watch" if now < 0 else "",
+         f"since {_d(f['current_peak'])}" if now < 0 else "at its peak"),
+        ("Recovered", "Not yet" if now < 0 else "Yes", "dh-watch" if now < 0 else "dh-up",
+         f"needs {_pcs(needs)}" if now < 0 else ""),
+    ])
+
+    def row(name, fl):
+        rec = _d(fl.recovered) if fl.recovered is not None else '<span class="dh-watch">not yet</span>'
+        return (f'<tr><th scope="row">{e(name)}</th><td class="dh-num dh-down">{e(_pcs(fl.depth))}</td>'
+                f'<td class="dh-num">{e(_d(fl.peak))}</td><td class="dh-num">{e(_d(fl.low))}</td>'
+                f'<td class="dh-num">{rec}</td><td class="dh-num">{fl.days:,}</td></tr>')
+    body = "".join(row("This rule" + (" (open)" if fl.recovered is None else ""), fl) for fl in rule_falls)
+    body += "".join(row("Nifty 500", fl).replace("<th scope=\"row\">", '<th scope="row" class="dh-muted">', 1) for fl in n500_falls[:2])
+    table = ('<div class="dh-scroll"><table class="dh-tab bt-t"><thead><tr><th scope="col">Largest falls from a peak</th>'
+             '<th scope="col" class="dh-num">Fall</th><th scope="col" class="dh-num">Peak</th><th scope="col" class="dh-num">Low</th>'
+             '<th scope="col" class="dh-num">Back at the peak</th><th scope="col" class="dh-num">Days below</th></tr></thead>'
+             f"<tbody>{body}</tbody></table></div>")
+    return ['<div class="dh-sec">', _kick("2", "Falls from a peak"), f'<h2 id="s-falls" class="dh-h2">{h2}</h2>', tiles, table,
+            '<p class="dh-note">A fall runs from the highest close before it to the day that close is regained; days are '
+            'calendar days. Daily closes, as on Portfolio (<code>metrics.drawdown</code>).</p></div>', END]
+
+
+def _span(r) -> str:
+    n, a, b = int(r["months"]), int(r["first_month"]), int(r["last_month"])
+    if n == 12:
+        return ""
+    return f"{MON[a - 1]}–{MON[b - 1]}" if n > 1 else MON[b - 1]
+
+
+def section_years(f: dict) -> list:
+    yt: pd.DataFrame = f["years"]
+    cols = [("n500", "Nifty 500")]
+    if f.get("uidx_name"):
+        cols.append(("uidx", f["uidx_short"]))
+    if "tm" in yt and f["h"]["key"] != bp.TOTAL_MARKET:
+        cols.append(("tm", "Total Market"))
+    lead = (yt["rule"] - yt["n500"]).tolist()
+    finite = [v * 100 for v in lead if np.isfinite(v)]
+    lo = min(0.0, min(finite or [0.0]))
+    hi = max(0.0, max(finite or [0.0]))
+    step = _step(lo, hi)
+    lo, hi = np.floor(lo / step) * step, np.ceil(hi / step) * step
+    if hi - lo < step * 40:
+        hi = lo + step * 40 if lo < 0 else step * 40
+    rows = []
+    for (_, r), ld in zip(yt.iterrows(), lead):
+        vals = [_pcs(r["rule"])] + [_pcs(r.get(k)) for k, _ in cols] + [_pts(ld).replace(" pts", "")]
+        rows.append({"name": str(int(r["year"])), "sub": _span(r), "bar": None if not np.isfinite(ld) else round(ld * 100, 2),
+                     "vals": vals, "cls": [_kt(r["rule"])] + ["muted"] * len(cols) + [_kt(ld) + " b"],
+                     "read": [[_pts(ld), "lead over the Nifty 500", _kt(ld)], [_pcs(r["rule"]), "this rule"],
+                              [_pcs(r["n500"]), "Nifty 500"]]})
+    ahead = sum(1 for v in lead if np.isfinite(v) and v > 0)
+    known = sum(1 for v in lead if np.isfinite(v))
+    worst = int(np.nanargmin(lead)) if known else None
+    if worst is not None and lead[worst] < 0:
+        h2 = (f'Ahead in <span class="dh-up">{ahead} of {known} years</span>; {int(yt.iloc[worst]["year"])} was the worst, '
+              f'<span class="dh-down">{e(_pts(lead[worst]))}</span> behind.')
+    else:
+        h2 = f'Ahead in <span class="dh-up">every year</span> of {known}.'
+    spec = {"label": "Year", "barHead": "Lead over the Nifty 500", "head": ["This rule"] + [c for _, c in cols] + ["Lead, pts"],
+            "rows": rows, "lo": float(lo), "hi": float(hi), "step": step, "rest": f"{rows[0]['name']}, the first year" if rows else ""}
+    mtd = f.get("mtd")
+    note = (f"A dark zero line; a lead left of it is a year behind. The first year starts at "
+            f"the first fill, {_d(f['summary'].first)}. Total Market is NSE’s index, live from 14 Oct 2021, so it starts in "
+            f"{bp.TOTAL_MARKET_FROM}.")
+    if mtd:
+        note += (f" {mtd['label']} so far, to {_d(mtd['as_of'])}, is not in the table: this rule {_pcs(mtd['rule'])}, "
+                 f"the Nifty 500 {_pcs(mtd['bench'])}.")
+    grid = months_grid(f["monthly"])
+    return ['<div class="dh-sec">', _kick("3", "Year by year"), f'<h2 id="s-years" class="dh-h2">{h2}</h2>', "</div>",
+            Chart("trows", spec, {"label": "Each calendar year: this rule, the Nifty 500 and the lead",
+                                  "note": f"Each line is {step:g} pts"}),
+            f'<div class="dh-sec dh-sec-cont"><p class="dh-note">{e(note)}</p>'
+            f'<details><summary>Show the table · month by month</summary><div class="dh-scroll">{grid}</div></details></div>', END]
+
+
+def months_grid(m: pd.DataFrame) -> str:
+    """Month by month, Portfolio's layout: this rule, the Nifty 500 and the lead in pts, a block a year."""
+    if m.empty:
+        return ""
+    head = "".join(f'<th scope="col" class="dh-num">{x}</th>' for x in MON + ["Year"])
+    body = ""
+    for y, g in m.groupby(m.index.year):
+        by = {d.month: r for d, r in g.iterrows()}
+        yr_rule = float((1 + g["rule"]).prod() - 1)
+        yr_b = float((1 + g["bench"]).prod() - 1)
+        body += f'<tr class="bt-y"><th scope="rowgroup" colspan="14">{y}</th></tr>'
+        for label, fn, yv in (("This rule", lambda r: _pcs(r["rule"]), _pcs(yr_rule)),
+                              ("Nifty 500", lambda r: _pcs(r["bench"]), _pcs(yr_b)),
+                              ("Lead", lambda r: _pts(r["rule"] - r["bench"]).replace(" pts", ""), _pts(yr_rule - yr_b).replace(" pts", ""))):
+            cells = "".join(f'<td class="dh-num">{e(fn(by[k]))}</td>' if k in by else '<td class="dh-num dh-muted">—</td>'
+                            for k in range(1, 13))
+            body += f'<tr><th scope="row">{label}</th>{cells}<td class="dh-num"><b>{e(yv)}</b></td></tr>'
+    return (f'<table class="dh-tab bt-months"><thead><tr><th scope="col"></th>{head}</tr></thead><tbody>{body}</tbody></table>'
+            '<p class="dh-note">Lead in pts. A year compounds its months; the first year from the first fill.</p>')
+
+
+def section_depends(f: dict) -> list:
+    sm, ref, alt = f["summary"], f["reference"], f["alternatives"]
+    parts = ['<div class="dh-sec">', _kick("4", "What the result depends on")]
+    rows = []
+    if ref:
+        r = ref["rows"]
+        at = ref.get("after_tax") or {}
+        tax_cost = None
+        if at.get("rule") is not None and at.get("nifty_500") is not None and r.get("as_tested") and r.get("nifty_500"):
+            tax_cost = (r["as_tested"] - r["nifty_500"]) - (at["rule"] - at["nifty_500"])
+        cost_hit = (r["as_tested"] - r["cost_60"]) if r.get("cost_60") is not None else None
+        rule_hit = abs(r["as_tested"] - r["monthly_reset"]) if r.get("monthly_reset") is not None else None
+        bits = []
+        if tax_cost is not None:
+            bits.append(f'Tax costs the lead <span class="dh-down">{tax_cost * 100:.1f} points a year</span>')
+        if cost_hit is not None and rule_hit is not None:
+            bits.append("costs matter more than the rebalance rule" if cost_hit > rule_hit else
+                        "the rebalance rule matters more than costs")
+        h2 = ("; ".join(bits) + ".") if bits else "What the result depends on, for the default run."
+        h2 = h2[0].upper() + h2[1:]
+        items = [("As tested", "six-monthly reset, 30 bps", sm.a_year, True),
+                 ("Monthly reset", "the record’s rule to Oct 2026", r.get("monthly_reset"), False),
+                 ("Costs 60 bps", "a round trip", r.get("cost_60"), False),
+                 ("Costs 100 bps", "a round trip", r.get("cost_100"), False),
+                 ("After tax", "estimate, sold at the end, no other gains", at.get("rule"), False),
+                 ("Nifty 500", "price index", sm.bench_a_year, False),
+                 ("Nifty 500 after tax", "bought at the start, sold at the end", at.get("nifty_500"), False)]
+        items = [x for x in items if x[2] is not None]
+        hi_v = max(v for *_, v, _b in items) * 100
+        step = _step(0, hi_v)
+        hi = float(np.ceil(hi_v / step) * step)
+        for name, sub, v, base in items:
+            rows.append({"name": name, "sub": sub, "bar": round(v * 100, 2), "vals": [_pc(v)], "cls": ["b" if base else ""],
+                         "read": [[_pc(v), name.lower() + ", a year"]]})
+        spec = {"label": f"{_d(sm.first)} – {_d(sm.last)}", "barHead": f"A year, 0 to {hi:g}%", "head": ["A year"],
+                "rows": rows, "lo": 0.0, "hi": hi, "step": step, "lines": [round(sm.bench_a_year * 100, 2)] if sm.bench_a_year else [],
+                "rest": "As tested"}
+        stale = "" if ref.get("long_last_session") == f"{f['long_last']:%Y-%m-%d}" else (
+            f" These tests were run on the long file to {_d(ref['long_last_session'])}; this page reads the file to "
+            f"{_d(f['long_last'])}, so they can differ slightly until the next weekly run.")
+        parts += [f'<h2 id="s-depends" class="dh-h2">{h2}</h2>', "</div>",
+                  Chart("trows", spec, {"label": "The default run, re-run with other costs and rules, and after tax",
+                                        "note": f"Each line is {step:g}%; the dashed line is the Nifty 500"}),
+                  '<div class="dh-sec dh-sec-cont">'
+                  f'<p class="dh-note">The rows other than “As tested” '
+                  f'and “Nifty 500” are re-run once a week on the default settings only (run of {_d(ref["built"])}). After tax: '
+                  f'{e(at.get("rates", ""))}, for an investor with no other gains; the index position is taxed once, long term, '
+                  f'when sold.{e(stale)}</p>']
+    else:
+        parts += ['<h2 id="s-depends" class="dh-h2">Costs, the rebalance rule and tax are tested for the default run only.</h2>',
+                  '<p class="dh-note">These settings are not the default, so the stored tests (60 and 100 bps, the monthly reset, '
+                  'after tax) do not apply to them. Change the cost or the rule above to see either here.</p>']
+    trows = ""
+    for title, span, items in alt:
+        trows += (f'<tr class="dh-grp-row"><th scope="rowgroup" colspan="3">{e(title)}'
+                  f'<span class="dh-sub">{e(span)}</span></th></tr>')
+        for name, a, dd in items:
+            trows += (f'<tr><th scope="row">{e(name)}</th><td class="dh-num {_t(a)}">{e(_pc(a))}</td>'
+                      f'<td class="dh-num dh-down">{e(_pcs(dd))}</td></tr>')
+    if trows:
+        parts += ['<div class="dh-scroll"><table class="dh-tab bt-t"><thead><tr><th scope="col">Against what you could buy</th>'
+                  '<th scope="col" class="dh-num">A year</th><th scope="col" class="dh-num">Largest fall</th></tr></thead>'
+                  f'<tbody>{trows}</tbody></table></div>',
+                  '<p class="dh-note">NSE’s Nifty200 Momentum 30 is the nearest index a fund tracks; it is a price index too. '
+                  'These windows are short and include this rule’s largest fall.</p>']
+    return parts + ["</div>", END]
+
+
+def section_trust(f: dict) -> list:
+    st_, h, sm = f["stats"], f["h"], f["summary"]
+    pit, cur = int(st_.get("pit_periods", 0) or 0), int(st_.get("current_universe_periods", 0) or 0)
+    stale, short = f["stale"], f["short"]
+    stale_txt = ("No sale used a price five or more sessions old." if not stale else
+                 f"{len(stale)} sale{'s' if len(stale) > 1 else ''} used a price {min(x['sessions'] for x in stale)} to "
+                 f"{max(x['sessions'] for x in stale)} sessions old ({', '.join(sorted({x['symbol'] for x in stale})[:6])}"
+                 f"{'…' if len(stale) > 6 else ''}), {min(x['exit'].year for x in stale)}–{max(x['exit'].year for x in stale)}: "
+                 "stocks taken over or delisted, sold at their last price.")
+    short_txt = ("Every rebalance found enough stocks that passed the rules." if not short else
+                 "; ".join(f"{d:%B %Y} found only {n} stocks that passed the rules" for d, n in short[:3])
+                 + "; the rest of the book sat in cash at 0% until the next rebalance.")
+    shadows = ", ".join(f"“{b.name.replace(' (shadow)', '')}” from {b.inception.strftime('%b %Y')}" for b in SHADOWS.values())
+    checks = [
+        ("Survivorship", f"{pit} of {pit + cur} rebalances picked from the {h['name']} as it stood that day, leavers included; "
+                         f"the long file prices all {h['priced']:,} stocks the lists ever named." if h.get("priced") else
+                         f"{pit} of {pit + cur} rebalances picked from the {h['name']} as it stood that day, leavers included.",
+         "Checked" if not cur else "Soft spot"),
+        ("Look-ahead", "Ranked on the month’s last close, bought at the next close; the first day the book earns is the day "
+                       "after. Index lists are used from their effective date (NSE announces them about four weeks ahead).",
+         "Checked"),
+        ("Stocks that stopped trading", "Valued at their last price. " + stale_txt, "Checked"),
+        ("Cash", short_txt, "Checked"),
+        ("Costs", f"{f['s']['cost_bps']:g} bps a round trip: about 22 statutory, the rest for the spread, which has not been "
+                  "measured. The last book’s sale is not charged.", "Soft spot"),
+        ("Tax", "Not in any figure above except the two after-tax rows. A monthly book realises most gains within a year.",
+         "Soft spot"),
+        ("Rules chosen after looking", "The record’s rules were settled while this history was on screen, and the 30-holding "
+                                       "settings came from a sweep of it (12 Oct 2026). Only months after a rule was fixed test "
+                                       f"it: the shadow books {shadows} (Portfolio).", "Soft spot"),
+        ("Industry cap", "Uses today’s industry labels for every year, not the label of the day"
+                         + (f"; {h['unlabelled']} stocks have none and count as their own group." if h["unlabelled"] else "."),
+         "Not checked"),
+    ]
+    if sm.first < pd.Timestamp("2012-02-21"):
+        checks.append(("The index before Feb 2012", "Nifty 500 closes before 21 Feb 2012 come from the Kaggle dataset, not yet "
+                                                    "checked against NSE’s own file (S167).", "Not checked"))
+    checks.append(("A second source for the result", "None: the replay is our own engine. Prices pass the long file’s audits "
+                                                     "(other price histories, BSE, Screener).", "Not checked"))
+    tone = {"Checked": "dh-up", "Soft spot": "dh-watch", "Not checked": "dh-watch"}
+    body = "".join(f'<tr><th scope="row">{e(a)}</th><td>{e(b)}</td><td class="bt-st {tone[c]}">{e(c)}</td></tr>' for a, b, c in checks)
+    return ['<div class="dh-sec">', _kick("5", "Can it be trusted"),
+            '<h2 id="s-trust" class="dh-h2">Survivorship and look-ahead are handled; <span class="dh-watch">costs, tax and the '
+            'choice of rules</span> are the soft spots.</h2>',
+            '<div class="dh-scroll"><table class="dh-tab bt-checks"><thead><tr><th scope="col">Check</th>'
+            '<th scope="col">What this run shows</th><th scope="col">Status</th></tr></thead>'
+            f'<tbody>{body}</tbody></table></div></div>', END]
+
+
+def section_trades_head(f: dict) -> list:
+    ts = f["trades"]
+    if not ts or not ts.get("closed"):
+        return ['<div class="dh-sec">', _kick("6", "Trades"), '<h2 id="s-trades" class="dh-h2">No trade closed in this run.</h2></div>']
+    won = ts["won"]
+    h2 = (f'{ts["closed"]:,} trades closed; ' + ('<span class="dh-down">fewer than half won</span>, and the winners paid for the rest.'
+                                                if won < 0.5 else f'<span class="dh-up">{won:.0%} won</span>.'))
+    pf = ts.get("profit_factor")
+    tiles = _kpis([
+        ("Trades closed", f"{ts['closed']:,}", "", f"{ts['open']} still held"),
+        ("Won", f"{won:.0%}", "", "of closed trades"),
+        ("Median holding", f"{ts['median_days']:.0f} days", "", "entry fill to exit fill"),
+        ("Median trade", _pcs(ts["median_return"]), _t(ts["median_return"]), f"mean {_pcs(ts['mean_return'])}"),
+        ("Gains over losses", f"{pf:.2f}×" if pf else "—", "", "each trade weighted by its size at entry"),
+    ])
+    return ['<div class="dh-sec">', _kick("6", "Trades"), f'<h2 id="s-trades" class="dh-h2">{h2}</h2>', tiles,
+            f'<p class="dh-note">Every trade and the rebalance log are below; the live record’s trades are on '
+            f'<a class="bt-l" href="{page_href("portfolio")}" target="_self">Portfolio</a>, which owns the record.</p></div>']
+
+
+def foot(f: dict) -> list:
+    sm = f["summary"]
+    idx = f" · indices to {_d(f['indices_as_of'])}" if f.get("indices_as_of") is not None else ""
+    return [f'<p class="dh-foot">Data to {_d(sm.last)}, the last completed month · prices to {_d(f["long_last"])}{idx}.</p>']
+
+
+# ── Gathering ─────────────────────────────────────────────────────────────────
+
+
+def _store():
+    try:
+        from src.ui import indices_data
+        return indices_data.frames()
+    except Exception:  # noqa: BLE001  the page draws without the index store, saying less
+        return None
+
+
+def gather(res: dict, s: dict, h: dict, bench: pd.Series, default: bool) -> dict:
+    eq = pd.Series(res["equity_curve"]).dropna()
+    eq.index = pd.DatetimeIndex(eq.index)
+    bench = pd.to_numeric(bench, errors="coerce").dropna()
+    bench.index = pd.DatetimeIndex(bench.index)
+    store = _store()
+    close = store.close if store is not None else pd.DataFrame()
+    others = {"n500": bench}
+    uidx_name = uidx_short = None
+    key = h["key"]
+    if key in bp.UNIVERSE_INDEX:
+        ikey, uidx_name = bp.UNIVERSE_INDEX[key]
+        if key == "nifty_50":
+            u = fetch_benchmark_history(period="max", symbol=BENCHMARK_SYMBOL_N50)
+        else:
+            u = close[ikey] if ikey in close else pd.Series(dtype=float)
+        u = pd.to_numeric(u, errors="coerce").dropna()
+        if len(u):
+            u.index = pd.DatetimeIndex(u.index)
+            others["uidx"] = u
+            uidx_short = uidx_name.replace("Nifty ", "")
+        else:
+            uidx_name = None
+    tm = close[bp.TOTAL_MARKET].dropna() if bp.TOTAL_MARKET in close else pd.Series(dtype=float)
+    first_year = {"tm": bp.TOTAL_MARKET_FROM}
+    if "uidx" in others:
+        u = others["uidx"]
+        first_year["uidx"] = u.index[0].year + (0 if (u.index[0].month, u.index[0].day) <= (1, 7) else 1)
+    year_inputs = dict(others)
+    if len(tm):
+        year_inputs["tm"] = tm
+    years = bp.years_table(eq, year_inputs, first_year)
+    sm = bp.summary(eq, bench)
+
+    falls = bp.falls(eq, 3)
+    bench_cal = bp.on_calendar(bench, eq.index)
+    now = bp.below_peak_now(eq)
+    peak_at = eq.loc[:eq.index[-1]].idxmax() if now < 0 else eq.index[-1]
+    alts = []
+    mom = close[bp.MOMENTUM_INDEX].dropna() if bp.MOMENTUM_INDEX in close else pd.Series(dtype=float)
+    if len(mom) and eq.index[-1] > mom.index[0]:
+        start = mom.index[0] + pd.offsets.MonthEnd(0)
+        w = bp.window(eq, {"mom": mom, "n500": bench}, start)
+        if w:
+            alts.append(("Since Nifty200 Momentum 30 went live", f"{_d(w['from'])} – {_d(w['to'])}",
+                         [(f"This rule, {h['name']}", *w["rule"]), ("Nifty200 Momentum 30", *w["mom"]), ("Nifty 500", *w["n500"])]))
+    ref = _reference() if default else None
+    if len(tm) and eq.index[-1] > tm.index[0]:
+        start = tm.index[0] + pd.offsets.MonthEnd(0)
+        w = bp.window(eq, {"tm": tm, "n500": bench}, start)
+        if w:
+            items = [(f"This rule, {h['name']}", *w["rule"])]
+            tu = (ref or {}).get("total_market_universe")
+            if tu and key != bp.TOTAL_MARKET:
+                items.append(("This rule, Nifty Total Market", tu["rule"][0], tu["rule"][1]))
+            items += [("Nifty Total Market", *w["tm"]), ("Nifty 500", *w["n500"])]
+            alts.append(("Since Nifty Total Market went live", f"{_d(w['from'])} – {_d(w['to'])}", items))
+
+    meta = res.get("live_meta") or {}
+    mtd = None
+    if h.get("to_latest") and meta.get("strategy_mtd") is not None and meta.get("mtd_period"):
+        per = pd.Period(meta["mtd_period"], "M")
+        if per == pd.Period(sm.last, "M") + 1:
+            mtd = {"label": per.strftime("%B"), "as_of": meta.get("as_of"), "rule": float(meta["strategy_mtd"]),
+                   "bench": None if meta.get("benchmark_mtd") is None else float(meta["benchmark_mtd"])}
+    dy = None
+    if store is not None and "nifty_500" in store.dy:
+        v = store.dy["nifty_500"].dropna()
+        dy = float(v.mean()) if len(v) else None
+    chart = bp.weekly_chart(eq, {"n500": bench})
+    return {
+        "s": s, "h": h, "default": default, "stats": res.get("stats") or {}, "summary": sm,
+        "falls": falls, "bench_falls": bp.falls(bench_cal, 2), "below_now": now,
+        "bench_below_now": bp.below_peak_now(bench_cal), "current_peak": pd.Timestamp(peak_at),
+        "current_days": int((eq.index[-1] - pd.Timestamp(peak_at)).days),
+        "years": years, "monthly": bp.months(eq, bench), "alternatives": alts, "reference": ref,
+        "uidx_name": uidx_name, "uidx_short": uidx_short, "mtd": mtd, "div_yield": dy, "chart": chart,
+        "stale": bp.stale_exits(res.get("closed_trades"), h["close"]),
+        "short": bp.short_books(res.get("monthly"), s["top_n"]),
+        "trades": bp.trade_stats(res.get("closed_trades")),
+        "long_last": pd.Timestamp(h["close"].index[-1]),
+        "indices_as_of": store.as_of if store is not None else None,
+    }
+
+
+def page_parts(f: dict) -> list:
+    """Everything but the widgets, in order (for tests and the requirements check)."""
+    return (head(f) + section_lead(f) + section_falls(f) + section_years(f) + section_depends(f)
+            + section_trust(f) + section_trades_head(f) + foot(f))
+
+
+# ── The page ──────────────────────────────────────────────────────────────────
+
+
+def _run(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float) -> dict | None:
+    ph = price_fingerprint(h["close"])
+    if h["traded_value"] is not None:
+        ph += f"_{price_fingerprint(h['traded_value'])}"
     queued = st.empty()
+    # One backtest computes at a time across the whole server (compute_gate, TODO S65).
     if compute_gate.busy():
         mine = compute_gate.holder() is not None and compute_gate.holder() == compute_gate.current_session()
         queued.warning(
@@ -514,543 +850,100 @@ def _backtest_tab(
             icon=":material/hourglass_top:",
         )
     with st.spinner("Running the backtest…"):
-        bt_res = run_backtest(
-            ph,
-            adj_close,
-            _benchmark_close=benchmark_close,
-            top_n=bt_n,
-            rebal_freq=bt_rebal,
-            weight_method=bt_weight,
-            config_weights=active_weights,
-            stock_cap=stock_cap,
-            sector_cap=sector_cap,
-            sector_map=sec_map,
-            cost_bps=cost_drag_bps,
-            buffer_n=keep_rank,
-            _membership=membership,
-            backtest_months=months,
-            stateful_history=True,
-            history_start=history_start,
-            _actions=_events,
-            liquidity_floor_cr=liquidity_floor_cr,
-            _traded_value=traded_value,
-            ema_period=ema_period,
-            high_pct=high_pct,
-            score_method=score_method,
-            ath_pct=ath_pct,
-            ath_min_years=ath_min_years,
-            **exit_rules,
-            **rebalance_rule_kwargs(rule),
-        )
+        res = run_backtest(
+            ph, h["close"], _benchmark_close=bench, top_n=s["top_n"], rebal_freq=s["rebal_freq"],
+            weight_method=s["weight_method"], config_weights=s["weights"], stock_cap=stock_cap,
+            sector_cap=sector_cap, sector_map=h["sector_map"], cost_bps=s["cost_bps"], buffer_n=s["buffer_n"],
+            _membership=h["membership"], backtest_months=h["months"], stateful_history=True,
+            history_start=h["start"].start_time, _actions=[], liquidity_floor_cr=h["floor"],
+            _traded_value=h["traded_value"], ema_period=s["ema_period"], high_pct=s["high_pct"],
+            score_method=s["score_method"], ath_pct=s["ath_pct"], ath_min_years=s["ath_min_years"],
+            exit_ema_period=s["exit_ema_period"], exit_high_pct=s["exit_high_pct"], exit_ath_pct=s["exit_ath_pct"],
+            **rebalance_rule_kwargs(s["rule"]))
     queued.empty()
+    return res
 
-    if bt_res is None:
-        st.warning(
-            f"Insufficient price history to backtest the last "
-            f"{months} completed month{'s' if months != 1 else ''}. The strategy needs a "
-            "full 12-month formation window BEFORE the reported period, so "
-            "roughly 18 months of continuous daily data is required."
-        )
-        return
 
-    if not bt_res.get("stats", {}).get("total_return") and bt_res["equity_curve"].empty:
-        # The first month of a system: its first book exists (Actions, Portfolio)
-        # but no month has completed, so there is no return to report yet.
-        kit.empty("No completed month yet.",
-                  "The first book is on Actions and Portfolio; returns appear here when "
-                  "the month closes.")
-        return
-
-    # The backtest runs on the DEEPEST history available, which is not always
-    # the history the live screener ranks on -- a ranking wants the freshest
-    # complete session, a backtest wants years. When the two differ, say so:
-    # they do not share a corporate-action adjustment basis, so a name with a
-    # demerger can sit at a different level in each, and a reader comparing a
-    # backtest holding against today's table deserves to know why.
+def _download(res: dict, s: dict, h: dict, stock_cap: float, sector_cap: float, eq: pd.Series) -> None:
+    """One download (owner, 8 Oct 2026): the rules this run followed and every trade it made."""
     try:
-        from src.core import startup_metrics as _m
-        from src.loaders.price_source import display_name as _display
-
-        _ranked_on = str(_m.snapshot().get("facts", {}).get("price_source") or "")
-        # In history mode the long NSE file is the history: nothing to explain.
-        if _ranked_on and _ranked_on != "yahoo" and not history:
-            st.caption(
-                f"Long price history used: {_display(_ranked_on)} does not yet "
-                f"reach far enough back for {months} months."
-            )
-    except Exception:
-        pass
-
-    stats = bt_res["stats"]
-
-    # Say which window these numbers describe. The backtest reports the last
-    # completed calendar months only -- the month in progress is excluded, so a
-    # part-month return is never shown beside whole ones.
-    _eq_idx = bt_res["equity_curve"].index
-    bt_window_label = (
-        f"{_eq_idx[0]:{'%-d %b' if _eq_idx[0].year == _eq_idx[-1].year else '%-d %b %Y'}} "
-        f"to {_eq_idx[-1]:%-d %b %Y}"
-        if len(_eq_idx)
-        else f"last {months} completed month{'s' if months != 1 else ''}"
-    )
-
-    # What was tested, in one line: the reader's first question of any result.
-    _rebal_txt = "monthly, first trading day" if bt_rebal == 21 else f"every {bt_rebal} trading days"
-    st.html(
-        '<div class="bt-sum"><b>Tested</b>'
-        f"<span>{html.escape(bt_window_label)}</span>"
-        f"<span>Holdings <b>{bt_n}</b></span><span>Rebalance <b>{_rebal_txt}</b></span>"
-        f"<span>Weighting <b>{html.escape(bt_weight.lower())}</b></span>"
-        f"<span>Rule <b>{'six-monthly reset, winners run to 15%' if rule == 'live' else 'reset every rebalance'}</b></span>"
-        f"<span>Costs <b>{cost_drag_bps:.0f} bps</b> a round trip</span>"
-        f"<span>Keep while in top <b>{keep_rank}</b></span>"
-        f"<span>Buy above <b>{ema_period}D EMA</b></span>"
-        f"<span>Buy within <b>{(1 - high_pct):.1%}</b> of 52W high</span>"
-        + (f"<span>Buy within <b>{(1 - ath_pct):.1%}</b> of ATH</span>" if ath_pct is not None else "")
-        + (f"<span>ATH since <b>{pd.Timestamp(adj_close.index[0]):%b %Y}</b>, applied from "
-           f"<b>{ath_min_years:g} yrs</b> on file</span>"
-           if (ath_pct is not None or exit_rules["exit_ath_pct"] is not None) and len(adj_close) else "")
-        + (f"<span>Keep above <b>{exit_rules['exit_ema_period']}D EMA</b></span>"
-           if exit_rules["exit_ema_period"] is not None else "")
-        + (f"<span>Keep within <b>{(1 - exit_rules['exit_high_pct']):.1%}</b> of 52W high</span>"
-           if exit_rules["exit_high_pct"] is not None else "")
-        + (f"<span>Keep within <b>{(1 - exit_rules['exit_ath_pct']):.1%}</b> of ATH</span>"
-           if exit_rules["exit_ath_pct"] is not None else "")
-        + f"<span>Score <b>{'plain return' if score_method == 'return' else 'Sharpe'}</b></span></div>"
-    )
-
-    # The Weighting Scheme control is inert whenever the stock cap admits only
-    # one fully-invested book. The backtester reports it; nothing displayed it,
-    # so the selector stayed lit while making no difference to the simulation.
-    _cash = float(stats.get("cap_cash_max", 0.0) or 0.0)
-    if _cash > 1e-6:
-        kit.note(
-            f"The caps left up to {_cash:.1%} of the book in cash.",
-            "Caps are never raised, so weight they cannot place is held as cash at 0%. "
-            "Hold more names, or loosen the stock cap in Configuration → Portfolio limits.",
-        )
-
-    # Equal weight is that one book already, so the note is only news for
-    # another scheme.
-    if stats.get("scheme_neutralised") and bt_weight != "Equal Weight":
-        kit.note(
-            f"{bt_weight} made no difference to this run.",
-            f"A {stock_cap:.0%} stock cap across {bt_n} holdings leaves {1 / max(bt_n, 1):.1%} "
-            "in every name. Raise the cap in Configuration → Portfolio limits, or hold fewer names.",
-        )
-
-    # ── Survivorship coverage ────────────────────────────────────────────────
-    # run_backtest counts how many rebalances were scored against the index as
-    # it ACTUALLY stood versus how many fell back to today's constituent list,
-    # and its own comment says a caller reporting the return without reporting
-    # this overstates the result. No caller reported it. Index additions skew
-    # toward recent winners and this screen preferentially buys exactly those,
-    # so a month scored on today's list can hold names it could not have known
-    # to hold. The direction of that bias is known; the size is not, which is
-    # the reason to state it rather than to estimate it.
-    _pit = int(stats.get("pit_periods", 0) or 0)
-    _cur = int(stats.get("current_universe_periods", 0) or 0)
-    if _cur:
-        _from = stats.get("pit_from")
-        kit.note(
-            f"Read with care: {_cur} of {_pit + _cur} rebalances used today's index lists.",
-            "Stocks added to an index tend to be recent winners, so those months flatter "
-            "the result by an amount this run cannot measure. "
-            + (
-                f"From {_from} every rebalance uses the index as it stood."
-                if _from
-                else "No rebalance in this window had point-in-time membership."
-            )
-        )
-
-    # ── Executive KPI Cards Grid ─────────────────────────────────────────────
-
-    # The +/- is the standard error of the SHARPE, so it belongs beside the
-    # Sharpe value. It used to render at the end of the "Sortino: x / +/-y s.e."
-    # subline, where it read as the Sortino's own error, and the one tooltip
-    # covering both described the Sharpe denominator ("annualised volatility")
-    # for a ratio that divides by downside deviation.
-    _rf = stats.get("risk_free_rate", RISK_FREE_RATE)
-    _se = float(stats.get("sharpe_stderr_iid", float("nan")))
-    _sortino = float(stats.get("sortino", float("nan")))
-    # Both can legitimately be absent: the standard error needs a non-empty
-    # sample, and the Sortino is withheld when too few sessions fell below the
-    # MAR to estimate a downside deviation. Printing a bare "nan" beside a
-    # formatted ratio reads like a bug, so say nothing and n/a respectively.
-    sharpe_se_txt = f" \u00b1{_se:.2f}" if math.isfinite(_se) else ""
-    sortino_txt = f"{_sortino:.2f}" if math.isfinite(_sortino) else "n/a"
-
-    # One strip of six, a line under each figure, as on Portfolio. The costs
-    # and the window are in the Tested line above; the risk-free rate and how
-    # each ratio is made are under Method. Under a year the annualised figure
-    # is a scaled-up part-year, so it says so, and the Calmar (which divides
-    # that figure) is left out.
-    _yrs = stats.get("window_years", 0) or 0
-    kit.readings([
-        kit.Reading("Strategy return", f"{_fmt.pct(stats['total_return'])}",
-                    f"{_fmt.pct(stats['gross_return'])} before costs", _tone(stats["total_return"])),
-        # Under a year there is no annual figure to show: scaling a part-year
-        # up invents one (audit F10).
-        kit.Reading("Annualised", f"{_fmt.pct(stats['ann_return'])}" if _yrs >= 1 else "—",
-                    f"{bench_name} {_fmt.pct(stats['ann_bench'])}" if _yrs >= 1
-                    else f"needs 12 months; this is {_months_txt(_yrs)}",
-                    _tone(stats["ann_return"]) if _yrs >= 1 else ""),
-        kit.Reading("Ahead of the index", _fmt.pts(stats['alpha']),
-                    f"{bench_name} {_fmt.pct(stats['bench_return'])}", _tone(stats["alpha"])),
-        # Its basis on the tile (audit F69): daily returns, annualised, over the
-        # risk-free rate the engine uses.
-        kit.Reading("Sharpe", f"{stats['sharpe']:.2f}",
-                    f"daily, annualised, over {RISK_FREE_RATE:.1%} · "
-                    + (f"{sharpe_se_txt.strip()} · " if sharpe_se_txt else "") + f"Sortino {sortino_txt}"),
-        kit.Reading("Max drawdown", _fmt.pct(stats['max_drawdown']),
-                    f"Calmar {stats['calmar']:.2f}" if _yrs >= 1 else "peak to trough",
-                    "down" if stats["max_drawdown"] < 0 else ""),
-        kit.Reading("Months ahead of index", f"{stats.get('beat_rate', 0):.0%}",
-                    f"{stats['win_rate']:.0%} up · turnover {stats['avg_turnover']:.0f}%",
-                    "up" if stats.get("beat_rate", 0) >= 0.5 else "down"),
-    ], "Backtest")
-
-    eq = bt_res["equity_curve"]
-    bm = bt_res["benchmark"].reindex(eq.index).ffill() if bt_res.get("benchmark") is not None else None
-    with kit.card("Growth of ₹100", "bt_growth", "daily"):
-        kit.growth_chart(eq.index, eq.tolist(),
-                         None if bm is None else bm.tolist(), names=("Strategy", bench_name), key="bt")
-
-    # Year-separated calendar returns. This changes presentation only; the
-    # canonical grid still supplies every monthly and compounded return.
-    with kit.card("Calendar returns", "bt_calendar",
-                  f"Strategy, {bench_name} and Alpha · year by year"):
-        _ledger = ledger_from_curves(eq, bm)
-        _mtd = _running_month(_ledger, bt_res.get("live_meta"),
-                              history is None or bool(history.get("to_latest")))
-        _grid = build_combined_grid(
-            _ledger, alpha_as_difference=True,
-            mtd_period=_mtd["period"] if _mtd else None,
-            mtd_values=_mtd["values"] if _mtd else None,
-        )
-        if _grid.empty:
-            kit.empty("No full month in this window yet.")
-        else:
-            _grid["SERIES"] = _grid["SERIES"].replace({"Nifty 500": bench_name})
-            # Year by year first (owner, 9 Oct 2026): the CY column of each block below.
-            _render_yearly_summary(_grid, bench_name,
-                                   through=f"{pd.Timestamp(_mtd['as_of']):%-d %b}" if _mtd else None)
-            _render_calendar_returns(_grid)
-            # Say whose months these are. This grid is a REPLAY on today's
-            # prices, and Portfolio's grid of the same months is the frozen
-            # record -- so January reads 0.0% here and -0.2% there, October
-            # -4.0% here and -4.3% there, and nothing said why (owner, 11 Nov
-            # 2026). The causes are in docs/MONTHS_THAT_DIFFER.md: one
-            # holding in the twentieth slot for January and February, a store
-            # that carried BSE closes for October.
-            st.caption(
-                "Re-run on today's prices, so a month here can differ from the same month on "
-                "Portfolio, which shows what was recorded at the time. After costs, from the "
-                "first fill to the last completed month · CY Jan–Dec, FY Apr–Mar · Alpha is the "
-                "strategy's return minus the index's over the same period (a difference, not "
-                "compounded)."
-                + (f" {_mtd['period'].strftime('%b').upper()} is the month in progress, to "
-                   f"{_day(_mtd['as_of'])}: it is in the CY, FY and quarter cells, not in the "
-                   "figures above, which stop at the last completed month." if _mtd else "")
-            )
-
-    # One download (owner, 2026-10-08): the rules this run followed, and every
-    # trade it made. A CSV has no sheets, so it is a ZIP of two CSV files.
-    with kit.card("Download", "bt_export", "The rules this run used and every trade it made"):
-        try:
-            _trades = trades_table(bt_res.get("closed_trades"))
-            _universe = history["name"] if history else "Nifty Total Market (the live 750 system)"
-            _rules = rules_table(RunSpec(
-                mode=MODE_HISTORY if history else MODE_LIVE,
-                universe=_universe, benchmark=bench_name,
-                first_fill=eq.index[0] if len(eq) else None,
-                last_session=eq.index[-1] if len(eq) else None,
-                top_n=bt_n, rebal_freq=bt_rebal, buffer_n=int(keep_rank),
-                weight_method=bt_weight, cost_bps=cost_drag_bps,
-                stock_cap=stock_cap, sector_cap=sector_cap, weights=tuple(active_weights),
-                liquidity_floor_cr=float(liquidity_floor_cr or 0.0), price_basis=price_basis,
-                has_industry_map=bool(sec_map), stats=stats,
-                ema_period=int(ema_period), high_pct=high_pct, ath_pct=ath_pct,
-                ath_min_years=float(ath_min_years), score_method=score_method,
-                exit_ema_period=exit_rules["exit_ema_period"],
-                exit_high_pct=exit_rules["exit_high_pct"], exit_ath_pct=exit_rules["exit_ath_pct"],
-                generated=f"{ist_now():%Y-%m-%d %H:%M}",
-            ), _trades)
-            _slug = "".join(c if c.isalnum() else "_" for c in _universe).strip("_").lower()
-            _span = f"{eq.index[0]:%Y%m}_{eq.index[-1]:%Y%m}" if len(eq) else "empty"
-            st.download_button(
-                "Download rules + all trades (ZIP of 2 CSV files)",
-                export_zip(_rules, _trades), f"backtest_{_slug}_{_span}.zip", "application/zip",
-                key="dl_bt_export", icon=":material/download:",
-            )
-            _n_open = int((_trades["Status"] == "Open").sum()) if len(_trades) else 0
-            st.caption(f"{len(_trades)} trades ({len(_trades) - _n_open} closed, {_n_open} open) in "
-                       "backtest_trades.csv; the rules and what each column means in backtest_rules.csv.")
-        except Exception as exc:  # the page must not fail because a download could not be built
-            st.caption(f"The download is unavailable for this run ({type(exc).__name__}: {exc}).")
-
-    # "Rebalance periods": fill to fill, not calendar months (audit, 8 Nov 2026: the
-    # name sat it beside the calendar grid, Jan -4.2% here and 0.0% there).
-    _views = ["Rebalance periods", "Every trade", "Rebalance log", "Method"]
-    view = st.segmented_control(
-        "Backtest detail",
-        _views,
-        default=_views[0],
-        key="bt_hist_view" if history else "bt_view",
-        label_visibility="collapsed",
-    ) or _views[0]
-
-    # Backtest is research runs only (owner's decision 5, 7 Nov): the live
-    # record's account, today's book and this month's changes are Portfolio's
-    # and Actions', and this page no longer repeats them.
-    if not history:
-        kit.caption_link("These are this run's results. The live record, today's book and this "
-                         "month's changes are on Portfolio.", page_href("portfolio"), "Portfolio")
-
-    # ── Monthly Performance Breakdown & Rebalance Tradebook ──────────────────
-    if view in ("Rebalance periods", "Every trade", "Rebalance log"):
-        with kit.card(view, "bt_perf"):
-            c_dl = st.container()
-            sub_view = view
-
-            monthly = bt_res.get("monthly", pd.DataFrame())
-            tradebook = bt_res.get("tradebook", pd.DataFrame())
-            closed_trades = bt_res.get("closed_trades", pd.DataFrame())
-
-            if sub_view == "Rebalance periods":
-                if not monthly.empty:
-                    m_df = monthly.copy()
-                    if "Period Start" in m_df.columns:
-                        m_df["Period Start"] = pd.to_datetime(
-                            m_df["Period Start"]
-                        ).dt.strftime("%-d %b %Y")
-                    if "Period End" in m_df.columns:
-                        m_df["Period End"] = pd.to_datetime(m_df["Period End"]).dt.strftime(
-                            "%-d %b %Y"
-                        )
-
-                    disp_cols = [
-                        "Period Start",
-                        "Period End",
-                        "Strategy Net",
-                        "Benchmark",
-                        "Alpha vs Benchmark",
-                        "Turnover %",
-                        "Cost Drag %",
-                        "Buys",
-                        "Sells",
-                        "Holdings",
-                    ]
-                    active_cols = [c for c in disp_cols if c in m_df.columns]
-
-                    render_saas_table(m_df[active_cols])
-                    c_dl.download_button(
-                        "Export months CSV",
-                        m_df[active_cols].to_csv(index=False).encode(),
-                        f"monthly_performance_{ist_now():%Y%m%d}.csv",
-                        "text/csv",
-                        key="dl_bt_monthly_csv",
-                    )
-                else:
-                    kit.empty("No months in this window.")
-
-            elif sub_view == "Every trade":
-                if not closed_trades.empty:
-                    ct_df = closed_trades.copy()
-
-                    # Trade KPI summary metrics
-                    closed_only = (
-                        ct_df[ct_df["Status"] == "Closed"]
-                        if "Status" in ct_df.columns
-                        else ct_df
-                    )
-                    # A trade whose fill price is missing has a NaN return, not a
-                    # zero one. Leaving it in the base counts it as a loss in the
-                    # win rate while contributing nothing to either P&L total.
-                    closed_only = closed_only[closed_only["Return %"].notna()]
-                    if not closed_only.empty and "Return %" in closed_only.columns:
-                        n_closed = len(closed_only)
-                        wins = closed_only[closed_only["Return %"] > 0]
-                        losses = closed_only[closed_only["Return %"] < 0]
-                        win_rate_pct = (len(wins) / n_closed * 100) if n_closed > 0 else 0.0
-                        avg_win = (wins["Return %"].mean() * 100) if not wins.empty else 0.0
-                        avg_loss = (
-                            (losses["Return %"].mean() * 100) if not losses.empty else 0.0
-                        )
-                        tot_gain = wins["Return %"].sum() if not wins.empty else 0.0
-                        tot_loss = (
-                            abs(losses["Return %"].sum()) if not losses.empty else 0.001
-                        )
-                        profit_factor = (tot_gain / tot_loss) if tot_loss > 0 else 0.0
-                        best_tr = (
-                            (closed_only["Return %"].max() * 100)
-                            if not closed_only.empty
-                            else 0.0
-                        )
-                        worst_tr = (
-                            (closed_only["Return %"].min() * 100)
-                            if not closed_only.empty
-                            else 0.0
-                        )
-
-                        kit.readings([
-                            kit.Reading("Closed trades", f"{n_closed}", f"{win_rate_pct:.1f}% of them won"),
-                            kit.Reading("Profit factor", f"{profit_factor:.2f}×", "total gains ÷ total losses"),
-                            kit.Reading("Average win / loss", f"+{avg_win:.1f}% / {avg_loss:.1f}%", ""),
-                            kit.Reading("Best / worst", f"+{best_tr:.1f}% / {worst_tr:.1f}%", ""),
-                        ], "Closed trades")
-
-                    tf1, tf2 = st.columns([1.5, 1], vertical_alignment="center")
-                    all_months = ["All months"] + [
-                        m for m in ct_df["Month"].unique() if m
-                    ]
-                    sel_m = tf1.selectbox(
-                        "Month", all_months, index=0, key="bt_ct_month_filter"
-                    )
-
-                    tr_filter = tf2.pills(
-                        "Outcome",
-                        ["All", "Winners", "Losers", "Open"],
-                        default="All",
-                        key="bt_ct_outcome_filter",
-                        label_visibility="collapsed",
-                    )
-
-                    if sel_m != "All months":
-                        ct_df = ct_df[ct_df["Month"] == sel_m]
-
-                    if tr_filter == "Winners":
-                        ct_df = ct_df[ct_df["Return %"] > 0]
-                    elif tr_filter == "Losers":
-                        ct_df = ct_df[ct_df["Return %"] < 0]
-                    elif tr_filter == "Open":
-                        ct_df = ct_df[ct_df["Status"] == "Open"]
-
-                    disp_trade_cols = [
-                        "Month",
-                        "Symbol",
-                        "Entry Date",
-                        "Entry Price",
-                        "Exit Date",
-                        "Exit Price",
-                        "Return %",
-                        "Holding (Days)",
-                        "Reason for Exit",
-                    ]
-                    active_ct_cols = [c for c in disp_trade_cols if c in ct_df.columns]
-
-                    render_saas_table(ct_df[active_ct_cols])
-                    c_dl.download_button(
-                        "Export trades CSV",
-                        closed_trades[active_ct_cols].to_csv(index=False).encode(),
-                        f"realised_trades_{ist_now():%Y%m%d}.csv",
-                        "text/csv",
-                        key="dl_bt_realized_trades_csv",
-                    )
-                else:
-                    kit.empty("No trades in this window.")
-
-            else:
-                # ── Rebalance Log View ───────────────────────────────────────────
-                if not tradebook.empty:
-                    t1, t2 = st.columns([1.5, 1], vertical_alignment="center")
-                    all_periods = ["All rebalances"] + [
-                        p for p in tradebook["Period"].unique() if p
-                    ]
-                    selected_period = t1.selectbox(
-                        "Rebalance",
-                        all_periods,
-                        index=0,
-                        key="bt_tb_period_filter",
-                    )
-
-                    action_filter = t2.pills(
-                        "Action",
-                        ["All", "Buy", "Sell", "Hold"],
-                        default="All",
-                        key="bt_tb_action_filter",
-                        label_visibility="collapsed",
-                    )
-
-                    tb_view = tradebook.copy()
-                    if selected_period != "All rebalances":
-                        tb_view = tb_view[tb_view["Period"] == selected_period]
-
-                    if action_filter == "Buy":
-                        tb_view = tb_view[tb_view["Action"].str.contains("BUY")]
-                    elif action_filter == "Sell":
-                        tb_view = tb_view[tb_view["Action"].str.contains("SELL")]
-                    elif action_filter == "Hold":
-                        tb_view = tb_view[tb_view["Action"].str.contains("HOLD")]
-
-                    tb_disp_cols = [
-                        "Period",
-                        "Action",
-                        "Symbol",
-                        "Price",
-                        "Return %",
-                        "Weight %",
-                        "Reason / Signal",
-                    ]
-                    active_tb_cols = [c for c in tb_disp_cols if c in tb_view.columns]
-
-                    render_saas_table(tb_view[active_tb_cols])
-
-                    c_dl.download_button(
-                        "Export rebalance log CSV",
-                        tradebook[active_tb_cols].to_csv(index=False).encode(),
-                        f"rebalance_log_{ist_now():%Y%m%d}.csv",
-                        "text/csv",
-                        key="dl_bt_tradebook_csv",
-                    )
-                else:
-                    kit.empty("No rebalances in this window.")
-
-    if view == "Method":
-      with kit.card("Method", "bt_method", "how every figure on this page is made"):
-        st.markdown(
-            "**Zero Look-Ahead Execution**: At each rebalance date $T$, stocks are ranked using closing prices strictly up to $T$. "
-            "Positions are filled at the $T+1$ close, so the first session they earn anything in is $T+2$ — the $T \\rightarrow T+1$ move "
-            "happens before the book exists and is not credited to it.\n\n"
-            "**Fill-to-fill accounting**: every period runs from one fill to the next, which is why a period's end date is the following "
-            "period's start date. Each stock's realised return is exactly its exit fill divided by its entry fill, and the per-period "
-            "strategy return is those same fills weighted — the tradebook and the equity curve are one calculation, not two.\n\n"
-            f"**Transaction Cost Drag**: Deducts **{cost_drag_bps:.0f} bps a round trip**, charged on one-way turnover (selling one unit and buying another costs it once), reflecting STT, Exchange fees, GST, Stamp duty and slippage.\n\n"
-            f"**Rank Persistence Buffer**: Top **{keep_rank}** buffer zone prevents unnecessary trading when stocks oscillate around the rank threshold.\n\n"
-            f"**Ratios**: Sharpe is the annualised mean daily return less a **{_rf:.1%}** risk-free rate, over "
-            "annualised volatility, ± one standard error; Sortino divides the same excess by the downside "
-            "deviation below that rate. Annualised "
-            "compounds the total return to a 252-session year; over less than a year it scales a part-year up, so "
-            "it is not an observed annual return. Calmar is the annualised return over the max drawdown (the largest fall from a peak), "
-            "shown for a year or more. Turnover is the average per rebalance."
-        )
-
-    render_data_quality_footer(
-        total_stocks=len(rank_df),
-        gap_count=gap_count(rank_df),
-        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
-    )
+        trades = trades_table(res.get("closed_trades"))
+        rules = rules_table(RunSpec(
+            mode="Research run on NSE's long price file", universe=h["name"], benchmark="Nifty 500",
+            first_fill=eq.index[0] if len(eq) else None, last_session=eq.index[-1] if len(eq) else None,
+            top_n=s["top_n"], rebal_freq=s["rebal_freq"], buffer_n=s["buffer_n"], weight_method=s["weight_method"],
+            cost_bps=s["cost_bps"], stock_cap=stock_cap, sector_cap=sector_cap, weights=tuple(s["weights"]),
+            liquidity_floor_cr=float(h["floor"] or 0.0),
+            price_basis=("NSE closes, adjusted for splits, bonuses, demergers and rights issues, and for dividends of "
+                         "10% or more of the price"),
+            has_industry_map=bool(h["sector_map"]), stats=res.get("stats") or {}, ema_period=s["ema_period"],
+            high_pct=s["high_pct"], ath_pct=s["ath_pct"], ath_min_years=s["ath_min_years"], score_method=s["score_method"],
+            exit_ema_period=s["exit_ema_period"], exit_high_pct=s["exit_high_pct"], exit_ath_pct=s["exit_ath_pct"],
+            generated=f"{ist_now():%Y-%m-%d %H:%M}"), trades)
+        slug = "".join(c if c.isalnum() else "_" for c in h["name"]).strip("_").lower()
+        span = f"{eq.index[0]:%Y%m}_{eq.index[-1]:%Y%m}" if len(eq) else "empty"
+        st.download_button("Download the rules and every trade (ZIP of 2 CSV files)", export_zip(rules, trades),
+                           f"backtest_{slug}_{span}.zip", "application/zip", key="dl_bt_export",
+                           icon=":material/download:")
+    except Exception as exc:  # the page must not fail because a download could not be built
+        st.caption(f"The download is unavailable for this run ({type(exc).__name__}: {exc}).")
 
 
-# The parameter sweep was removed from this page (owner, 9 Oct 2026): it is
-# heavy, invites fitting to noise, and the Apply form covers one-off what-ifs.
-# src/engine/parameter_sweep.py remains for deliberate offline research.
+def _reason(text: str) -> str:
+    """The engine's rebalance-line reasons in the page's words (S173): "Rank 12, new", "Rank 12, kept"."""
+    m = re.search(r"Rank #(\w+)", text or "")
+    rank = m.group(1) if m else "—"
+    if "New Momentum Leader" in text:
+        return f"Rank {rank}, new"
+    if "Buffer Zone Retention" in text:
+        return f"Rank {rank}, kept"
+    return text
 
 
-def render_backtest_view(
-    rank_df: pd.DataFrame,
-    adj_close: pd.DataFrame,
-    stock_cap: float,
-    sector_cap: float,
-    weights: tuple[float, ...],
-    liquidity_floor_cr: float = 0.0,
-    traded_value: pd.DataFrame | None = None,
-    months: int = DEFAULT_BACKTEST_MONTHS,
-    membership: dict | None = None,
-    history_start: pd.Timestamp | None = None,
-) -> None:
-    """Renders the Walk-Forward Historical Strategy Backtesting Interface."""
-    _backtest_body(
-        rank_df, adj_close, stock_cap, sector_cap, weights,
-        liquidity_floor_cr, traded_value, months, membership, history_start
-    )
+def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: float, weights: tuple[float, ...],
+                         liquidity_floor_cr: float = 0.0) -> None:
+    """One page of research runs on NSE's long price file (S174)."""
+    st.html(f"<style>{HOME_CSS}{BT_CSS}</style>")
+    top = st.container()
+    bounds = _history_bounds()
+    if bounds is None:
+        return
+    s = _settings_form(weights, liquidity_floor_cr, bounds)
+    h = _history_inputs(rank_df, s["history"], bounds)
+    if h is None:
+        return
+    bench = fetch_benchmark_history(period="max", symbol=BENCHMARK_SYMBOL)
+    if bench.empty:
+        st.error("The Nifty 500's closes are unavailable. Backtest stopped rather than compare against nothing.")
+        return
+    res = _run(s, h, bench, stock_cap, sector_cap)
+    if res is None:
+        st.warning("Not enough price history for this window: the rules need a 12-month lookback before the first "
+                   "month tested.")
+        return
+    eq = pd.Series(res.get("equity_curve")).dropna()
+    if eq.empty or len(eq) < 2:
+        kit.empty("No completed month in this window yet.")
+        return
+    default = is_default(s, h, stock_cap, sector_cap)
+    f = gather(res, s, h, bench, default)
+    with top:
+        emit(head(f))
+    emit(section_lead(f) + section_falls(f) + section_years(f) + section_depends(f) + section_trust(f)
+         + section_trades_head(f))
+    _download(res, s, h, stock_cap, sector_cap, eq)
+    tb = res.get("tradebook")
+    trades = pr.trades_table(res.get("closed_trades"), tb, h["close"].index, h["sector_map"])
+    with st.expander("Show the table · every trade and the rebalance log", expanded=False):
+        spec = history_spec(trades, tb, [])
+        for line in spec["lines"]:
+            line[5] = _reason(line[5])
+        emit([Chart("history", spec,
+                    {"label": "Every trade and every rebalance line",
+                     "note": "A trade is one stock from the fill that bought it to the fill that sold it. A rebalance line is "
+                             "one stock’s action at one rebalance (bought, sold or kept). Signal is the close the rule read; "
+                             "the fill is the next session’s close. Returns are before costs."})])
+    emit([END] + foot(f))
+
+
+__all__ = ["render_backtest_view", "page_parts", "gather", "is_default", "rebalance_rule_kwargs", "REBALANCE_RULES"]
