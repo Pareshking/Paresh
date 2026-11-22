@@ -9,6 +9,7 @@
 - **Dates and measures:** the record's start is a date ("Since 1 Jan 2026" on the 750, each system's own date), never "since inception". The running month is named ("Month so far · Nov", "so far in November"). The worst fall from a peak is "Max drawdown" everywhere, the Screener's "3M max drawdown" column included. Portfolio's "Exit rule" is "Sell rule", and Actions says "holding", not "hold". The Dashboard's "200-day average" is the "200D EMA" it always was.
 - **Rounding:** every figure shown rounds half away from zero, in Python and in the charts alike. SONACOMS at ₹892.50 now reads ₹893 in tables as well as charts, and −2.45% reads −2.5%. Stored prices and every calculation are unchanged.
 - **Two fixes on Actions:** the Nifty 1000's note gives the date as "30 Oct 2026", not "2026-10-30". Where nothing is announced, it now says "No board meeting or ex-date is announced for any holding, sell or buy." The swaps line no longer says "Nifty Nifty Total Market".
+- The stock page's address `/stock?stock=SANSERA` no longer flashes "Page not found" before it opens: `/stock` is a redirect to the Screener now, keeping `?stock=` and `?sys=` (S193 item K).
 - A new check, `scripts/glossary_audit.mjs`, reads every page at 412 and 1400 px and fails on any form the glossary rules out. It runs in CI beside the number-format audit.
 
 ## 2026-11-23 — Stock page rebuilt from the approved mock-up
