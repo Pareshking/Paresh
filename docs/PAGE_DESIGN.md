@@ -162,9 +162,9 @@ the order of its chips:
 
 | Why | Opens on | Charts |
 |---|---|---|
-| `lately`: how it has moved recently | 12M (labelled "12M", glossary 6) | breadth and the 200D EMA share (Dashboard, Market; chips 6M · 12M · 3Y); net new 52W highs each week (12M · 3Y); share above each average and new highs against new lows (3M · 6M · 12M); size indices against the Nifty 500; a sector against its NSE index; the stock chart (6M · 12M · 3Y) |
-| `record`: a book's, a rule's or an index's whole history | all of it | Portfolio's ₹100 since start; Backtest; a style against its parent; momentum's lead every month (from Dec 2021) |
-| `fixed`: a stated exception, with its reason in `range.note` | as stated | **Market's Nifty 500 against its 10-month average opens on 3Y**: twelve monthly points against a ten-month average show almost no history of the line crossing it |
+| `lately`: how it has moved recently | 12M (labelled "12M", glossary 6) | breadth and the 200D EMA share (Dashboard, Market; chips 6M · 12M · 3Y); net new 52W highs each week (12M · 3Y); share above each average and new highs against new lows (3M · 6M · 12M); size indices against the Nifty 500; a sector against its NSE index; the stock chart (6M · 12M · 3Y); Dashboard's foreign flows each month |
+| `record`: a book's, a rule's or an index's whole history | all of it | Portfolio's ₹100 since start and the book's lead by month; Backtest; a style against its parent; momentum's lead every month (the system's whole record, from Dec 2021 on the 750); Indices' Nifty 500 P/E (chips 3Y · 5Y · All) and each size index by calendar year |
+| `fixed`: a stated exception, with its reason in `range.note` | as stated | **Market's Nifty 500 against its 10-month average opens on 3Y**: twelve monthly points against a ten-month average show almost no history of the line crossing it. **Portfolio's day by day opens on its last 20 sessions**, the window the "Last 20 sessions" tile counts; a year of daily bars is too thin to read, and the record is in the Since tile and the ₹100 chart |
 
 - **One period picker, in the chart.** Range chips sit in the frame and redraw it in
   place; the data for the longest chip is sent once (the stock chart: three years,
@@ -192,7 +192,9 @@ breadth by size):
   line; a fall fills leftward from it. Use one scale for every row and every
   period shown, so rows and months compare.
 - Each line is a stated step (0.25% for monthly returns, 0.5 pt for gaps,
-  2.5% for shares); say it on the chart.
+  2.5% for shares); say it on the chart. A month whose returns would need more
+  than 65 lines at 0.25% (520 px at the 8 px pitch) takes 0.5%, then 1% or 2%
+  (`dashboard_home_view._month_scale`; Nano Cap's November was 68 lines).
 - The last line fills part of its height, so values less than a step apart
   still differ; the exact figure always sits at the end of the row.
 - Markers in the same two colours: a small muted triangle for "a month ago",

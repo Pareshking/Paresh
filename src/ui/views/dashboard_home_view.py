@@ -347,10 +347,10 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
         periods.append({"key": "prev", "label": prev["label"]})
         values["prev"] = [_r2(prev.get("market")), _r2(prev.get("book"))] + [_r2(prev["momentum"].get(k)) for k in order]
     every = [v for vs in values.values() for v in vs if v is not None] + [0.0]
-    step = 0.25
-    lo_s, hi_s = np.floor(min(every)) - 0.5, np.ceil(max(every)) + 0.5
+    lo_s, hi_s, step = _month_scale(min(every), max(every))
     n = int(round((hi_s - lo_s) / step))
-    axis = [t for t in range(int(np.ceil(lo_s)), int(np.floor(hi_s)) + 1) if t % 2 == 0]
+    tick = int(8 * step)     # an axis number every eight lines: 2% at the usual 0.25% step
+    axis = [t for t in range(int(np.ceil(lo_s)), int(np.floor(hi_s)) + 1) if t % tick == 0]
     spec = {"periods": periods, "values": values, "rows": rows, "lo": float(lo_s), "hi": float(hi_s), "step": step,
             "axis": axis, "market": 0, "book": 1}
     table_rows = [[r["name"]] + [(mw.DASH if values[p["key"]][i] is None else f'{sg(values[p["key"]][i])}%') for p in periods]
@@ -367,7 +367,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
     return [
         f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h1 id="s-month" class="dh-h1">{title}</h1>'
         f'<p class="dh-lede">{e(lede)}</p>{kp}<div class="dh-cap"><b>The month</b><span>to {as_of:%-d %b}, price return</span></div></div>',
-        Chart("month", spec, {"note": "Each line is 0.25%; filled lines right of the dark zero line are a gain, left a fall.", "n": n}),
+        Chart("month", spec, {"note": f"Each line is {step:g}%; filled lines right of the dark zero line are a gain, left a fall.", "n": n}),
         how("Each row is a return for the month: Nifty Total Market (about 750 stocks), the model book, "
             "and NSE’s momentum indices. Switch to the last finished month to compare.",
             "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "
@@ -1136,6 +1136,22 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
 
 # ── v8 chart inputs ─────────────────────────────────────────────────────────
+
+
+MONTH_STEPS = (0.25, 0.5, 1.0, 2.0)
+MONTH_MAX_LINES = 520 // 8     # the widest track the layout audit allows, at the 8 px pitch
+
+
+def _month_scale(lo: float, hi: float) -> tuple[float, float, float]:
+    """The month's line-bar scale: (lo, hi, step). The step is 0.25% (docs/PAGE_DESIGN.md 4.2) unless a row would
+    then hold more than 65 lines, wider than the 520 px a bar track may take at its fixed 8 px pitch; then it takes
+    the next of 0.5, 1 and 2%. Nano Cap's month in Nov 2026 was 68 lines at 0.25%, 544 px."""
+    lo_s, hi_s = float(np.floor(lo)) - 0.5, float(np.ceil(hi)) + 0.5
+    for step in MONTH_STEPS:
+        a, b = (lo_s, hi_s) if step <= 0.5 else (float(np.floor(lo_s / step) * step), float(np.ceil(hi_s / step) * step))
+        if (b - a) / step <= MONTH_MAX_LINES or step == MONTH_STEPS[-1]:
+            return a, b, step
+    raise AssertionError("unreachable")
 
 
 def _frozen_span(ledger: dict) -> str:

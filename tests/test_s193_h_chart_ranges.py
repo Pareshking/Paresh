@@ -183,3 +183,33 @@ def test_the_stock_heading_follows_the_range():
     text = (ROOT / "src" / "ui" / "views" / "stock_view.py").read_text(encoding="utf-8")
     assert "sp-price-h" in text and "follow=follow" in text
     assert stock_chart.RANGE_WORDS == {"6M": "6 months", "12M": "12 months", "3Y": "3 years"}
+
+
+# ── Dashboard: momentum's lead is its whole record; the month's track fits 520 px ───
+
+def test_momentum_lead_bars_are_the_whole_record():
+    from src.ui.views import dashboard_home_view as dh
+    months = [str(p) for p in pd.period_range("2021-12", "2026-10", freq="M")]
+    sp = pd.DataFrame({"month": months, "top": 1.0, "nifty500": 0.5})
+    bars = dh._lead_bars(sp, None)
+    assert len(bars["values"]) == len(months) == 59 and bars["full"][0] == "Dec 2021"
+    assert bars["dates"][0] == "2021-12-31" and bars["dates"][-1] == "2026-10-31"
+    assert dh.LEAD_RANGE == {"default": "all", "why": "record"} and dh.FLOWS_RANGE["default"] == "12M"
+    assert '"range":{"default":"all","why":"record"}' in dc.frame_html("bars", {**bars, "range": dh.LEAD_RANGE})
+
+
+@pytest.mark.parametrize("lo,hi,step", [(-1.2, 2.3, 0.25), (-7.0, 7.0, 0.25), (-7.2, 7.4, 0.5), (-30.0, 25.0, 1.0)])
+def test_the_month_track_takes_a_coarser_step_rather_than_pass_520px(lo, hi, step):
+    from src.ui.views import dashboard_home_view as dh
+    a, b, s = dh._month_scale(lo, hi)
+    assert s == step and a <= lo and b >= hi and (b - a) / s * 8 <= 520
+    assert float(np.round(-a / s, 9)).is_integer()     # the zero line falls on a line boundary
+
+
+def test_portfolio_and_indices_state_their_ranges():
+    from src.ui.views import indices_view as iv
+    from src.ui.views import portfolio_page as pp
+    assert pp.MONTH_RANGE["default"] == "all" and pp.DAY_RANGE["why"] == "fixed" and "20 sessions" in pp.DAY_RANGE["note"]
+    assert iv.PE_RANGE == {"default": "all", "why": "record", "chips": ["3Y", "5Y", "all"]}
+    for r in (pp.MONTH_RANGE, pp.DAY_RANGE, iv.PE_RANGE, iv.SIZE_RANGE):
+        dc.check_range(r)
