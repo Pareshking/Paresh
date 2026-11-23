@@ -14,6 +14,7 @@ src/ui/dash_charts.py).
 """
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import re
@@ -158,51 +159,42 @@ def _long_value():
     return nse_long.load_value()
 
 
-@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
-def _run_frame_shared(stamp: str, key: str, end: str, to_latest: bool,
-                      _close: pd.DataFrame, _columns: frozenset) -> tuple[pd.DataFrame, str]:
-    """The run's price frame and its whole-history fingerprint, computed once (S208).
+@st.cache_data(show_spinner=False, ttl=3600, max_entries=16)
+def _fingerprint_once(kind: str, stamp: str, inputs: str, _frame: pd.DataFrame) -> str:
+    """A run frame's whole-history fingerprint, once per input (S208).
 
-    The fingerprint (owner decision 3B: every row, not a partial hash) used to be
-    recomputed in `_run` on every rerun. `stamp` names the long file the frame was cut
-    from (its build, last session and the stored object), so a refreshed file is a new key.
+    Only the string is kept, not the frame: holding the run frame and the traded-value
+    frame in st.cache_resource cost ~45 MB resident on the page bench, for less than the
+    hash it saved. `stamp` names the stored file (its build, last session, object and
+    shape) and `inputs` everything the frame is cut by, so a new file or window is a new
+    key. The fingerprint still covers every row (owner decision 3B).
     """
-    frame = bp.frame_for(_close, _columns, pd.Period(end, freq="M"), to_latest)
-    return frame, price_fingerprint(frame)
+    return price_fingerprint(_frame)
+
+
+def _file_stamp(frame: pd.DataFrame, report: dict | None = None) -> str:
+    report = report or {}
+    last = frame.index[-1] if len(frame.index) else "-"
+    return f"{report.get('built')}|{report.get('last_session')}|{id(frame)}|{frame.shape}|{last}"
 
 
 def _run_frame(close: pd.DataFrame, report: dict, key: str, columns, end: pd.Period,
                to_latest: bool) -> tuple[pd.DataFrame, str]:
-    """_run_frame_shared, as a private shallow copy for this rerun (copy-on-write)."""
-    stamp = f"{report.get('built')}|{report.get('last_session')}|{id(close)}|{close.shape}"
-    frame, fingerprint = _run_frame_shared(stamp, key, str(end), bool(to_latest), close,
-                                           frozenset(columns))
-    return frame.copy(deep=False), fingerprint
-
-
-@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
-def _traded_shared(stamp: str, cols_key: str, last: str, _value: pd.DataFrame,
-                   _cols: tuple) -> tuple[pd.DataFrame, str]:
-    """The run's average traded value and its fingerprint, computed once (S208).
-
-    Both used to be recomputed on every rerun with a floor set. `stamp` names the
-    value file (the stored object and its shape), `cols_key` the run's columns and
-    `last` the frame's last session, so a different file, universe or window is a new key.
-    """
-    from src.loaders import nse_long
-
-    traded = nse_long.average_value(_value.reindex(columns=list(_cols)).loc[:pd.Timestamp(last)])
-    return traded, price_fingerprint(traded)
+    """The run's price frame, built per rerun as before, and its fingerprint, hashed once."""
+    frame = bp.frame_for(close, columns, end, to_latest)
+    cols = hashlib.md5(",".join(map(str, sorted(map(str, columns)))).encode()).hexdigest()
+    fingerprint = _fingerprint_once("run", _file_stamp(close, report), f"{key}|{end}|{bool(to_latest)}|{cols}", frame)
+    return frame, fingerprint
 
 
 def _traded(value: pd.DataFrame, cols: list, last) -> tuple[pd.DataFrame, str]:
-    """_traded_shared, as a private shallow copy for this rerun (copy-on-write)."""
-    import hashlib
+    """The run's average traded value, per rerun as before, and its fingerprint, hashed once."""
+    from src.loaders import nse_long
 
-    stamp = f"{id(value)}|{value.shape}|{value.index[-1] if len(value.index) else '-'}"
+    traded = nse_long.average_value(value.reindex(columns=cols).loc[:last])
     cols_key = hashlib.md5(",".join(map(str, cols)).encode()).hexdigest()
-    traded, fingerprint = _traded_shared(stamp, cols_key, str(pd.Timestamp(last)), value, tuple(cols))
-    return traded.copy(deep=False), fingerprint
+    fingerprint = _fingerprint_once("traded", _file_stamp(value), f"{cols_key}|{pd.Timestamp(last)}", traded)
+    return traded, fingerprint
 
 
 def _reference() -> dict | None:

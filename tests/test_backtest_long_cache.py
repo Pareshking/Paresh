@@ -3,7 +3,8 @@
 `_long_file` moved from st.cache_data (a fresh unpickled copy on every rerun) to
 st.cache_resource (the one stored object), which is only safe while no caller writes
 to it. The run's price frame and its whole-history fingerprint (owner decision 3B) are
-computed once in a cached loader instead of on every rerun.
+hashed once per input instead of on every rerun; only the fingerprint is kept, not the
+frame (the frames cost ~45 MB resident on the page bench).
 """
 from __future__ import annotations
 
@@ -42,10 +43,10 @@ def page(monkeypatch):
         return real(df)
 
     monkeypatch.setattr(bv, "price_fingerprint", counted)
-    for cached in (bv._long_file, bv._long_value, bv._run_frame_shared, bv._traded_shared):
+    for cached in (bv._long_file, bv._long_value, bv._fingerprint_once):
         cached.clear()
     yield close, calls
-    for cached in (bv._long_file, bv._long_value, bv._run_frame_shared, bv._traded_shared):
+    for cached in (bv._long_file, bv._long_value, bv._fingerprint_once):
         cached.clear()
 
 
@@ -103,7 +104,7 @@ def test_traded_value_and_its_fingerprint_are_computed_once(page, monkeypatch):
         return bv._history_inputs(pd.DataFrame(), choice, bounds)
 
     runs = [rerun_with_floor() for _ in range(4)]
-    assert averaged["n"] == 1  # was once per rerun
+    assert averaged["n"] == 4  # the average itself is per rerun, as on main (memory, S208)
     assert calls["n"] == 2  # the run frame once, the traded value once
     h = runs[-1]
     assert h["traded_fingerprint"] == pipeline.price_fingerprint(h["traded_value"])
