@@ -107,3 +107,20 @@ def test_market_size_rows_survive_a_nifty_500_close_the_stocks_do_not_have(monke
     mqv.render_market_page_questions(pd.DataFrame({"Symbol": ["A"], "Industry": ["X"]}), prices, bench, size)
     assert seen["b"].index[-1] == pd.Timestamp("2026-11-20")
     assert list(seen["s"]) == ["Nifty Microcap 250"]
+
+
+def test_header_regime_ends_on_the_prices_session(monkeypatch):
+    # S216: the header printed the Nifty 500's 23 Nov close beside "Prices · closes of 20 Nov".
+    import src.loaders.price_loader as pl
+
+    idx = pd.bdate_range("2025-06-02", "2026-11-20").append(pd.DatetimeIndex(["2026-11-23"]))
+    close = pd.Series(100.0, index=idx)
+    close.iloc[-2], close.iloc[-1] = 120.0, 90.0
+    monkeypatch.setattr(pl, "fetch_benchmark_history", lambda period="2y", symbol=None: close)
+    pl.get_market_regime.clear()
+    assert pl.get_market_regime(end="2026-11-20").current_price == 120.0
+    assert pl.get_market_regime().current_price == 90.0
+    assert pl.get_market_regime(end="2020-01-01").current_price == 0.0
+    pl.get_market_regime.clear()
+    src = _src("app.py")
+    assert 'regime_data = get_market_regime(end=f"{_last_px:%Y-%m-%d}")' in src

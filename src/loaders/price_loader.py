@@ -292,9 +292,12 @@ def fetch_benchmark_history(
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
+def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL, end: str | None = None) -> RegimeData:
     """
     Computes market regime by comparing benchmark index price with its 200 DMA.
+    `end` (the prices' last session, "YYYY-MM-DD") bounds the index: after NSE's close the file has
+    today's Screener close while the stocks end on the last nightly sync, and the header read
+    "Nifty 500 23,764" (23 Nov) beside "Prices · closes of 20 Nov" (S216, 23 Nov 2026).
     Reuses fetch_benchmark_history (2y window, already cached) so no second
     HTTP round-trip is needed at cold start.
     """
@@ -317,6 +320,10 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL) -> RegimeData:
             )
 
         close_s = pd.to_numeric(close_s, errors="coerce").dropna()
+        if end is not None:
+            close_s = close_s[close_s.index <= pd.Timestamp(end)]
+        if close_s.empty:
+            return RegimeData(status=MarketRegime.UNKNOWN, current_price=0.0, dma_200=0.0, distance_pct=0.0)
         price = float(close_s.iloc[-1])
         # The 200D EMA, as Breadth and Sectors use (pre-launch audit F7): the
         # header said "3.1% above 200D average" from a simple average (2.97% on
