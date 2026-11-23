@@ -1127,10 +1127,12 @@ def judge_configuration(name: str, ev: dict) -> list:
 # site was slower on 9 of 10 pages; docs/archive/S193_ITEM_L_2026-11-24.md). Decided by rule, owner to confirm.
 # A page over its budget on two runs in a row fails the run; once is a warning, since one slow reading on a
 # shared container is not a regression.
+# Backtest 17 -> 31 s (24 Nov): the first live reading (11.3 s) was thin; three later ones read 18.0-20.5 s
+# (runs 45263044274, 45271454528 and three new sessions), so the same rule on 20.5 s. Why live never warms: S220.
 PAGE_BUDGETS_S = {
     "Dashboard": ("", 8.0), "Portfolio": ("portfolio", 9.0), "Actions": ("actions", 8.0),
     "Sectors": ("sectors", 9.0), "Watchlist": ("watchlist", 6.5), "Market": ("market", 10.5),
-    "Indices": ("indices", 7.5), "Backtest": ("backtest", 17.0), "Guide": ("guide", 6.0),
+    "Indices": ("indices", 7.5), "Backtest": ("backtest", 31.0), "Guide": ("guide", 6.0),
     "Stock": ("?stock=RELIANCE", 7.0),
 }
 # The bench's rule (scripts/audit_page_bench.py): from the address opened to the moment

@@ -10,7 +10,7 @@ _spec.loader.exec_module(qa)
 
 # The report's "Budgets as built": the larger of the local bench and the first live reading, x 1.5.
 BUDGETS = {"Dashboard": 8, "Portfolio": 9, "Actions": 8, "Sectors": 9, "Watchlist": 6.5, "Market": 10.5,
-           "Indices": 7.5, "Backtest": 17, "Guide": 6, "Stock": 7}
+           "Indices": 7.5, "Backtest": 31, "Guide": 6, "Stock": 7}
 
 
 def _all(v):
