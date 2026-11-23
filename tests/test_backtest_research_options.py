@@ -117,9 +117,68 @@ def test_the_options_reach_the_backtest():
     src = _view()
     call = src[src.index("res = run_backtest("):]
     call = call[:call.index("queued.empty()")]
+    assert "**engine_kwargs(s)" in call
+    kw = src[src.index("def engine_kwargs("):src.index("SCORE_LABELS")]
     for arg in ('ema_period=s["ema_period"]', 'high_pct=s["high_pct"]', 'score_method=s["score_method"]',
-                'ath_pct=s["ath_pct"]'):
-        assert arg in call
+                'ath_pct=s["ath_pct"]', 'exit_ema_period=s["exit_ema_period"]', 'exit_high_pct=s["exit_high_pct"]',
+                'score_skip=int(s.get("score_skip") or 0)'):
+        assert arg in kw
+
+
+# ── S219-6: the new settings, and the default run unchanged ─────────────────
+
+# The run the page opened on before S219-6: every keyword its run_backtest call passed from the form.
+_BEFORE = dict(top_n=20, rebal_freq=21, weight_method="Equal Weight", buffer_n=40, cost_bps=30.0, ema_period=50,
+               high_pct=0.8, score_method="sharpe", ath_pct=None, ath_min_years=3.0, exit_ema_period=None,
+               exit_high_pct=None, exit_ath_pct=None)
+
+
+def _form_defaults():
+    from src.engine.track_record import TRACK_RECORD_CONFIG as cfg
+    return {**_BEFORE, "weights": tuple(cfg["config_weights"]), "rule": "live", "score_skip": 0,
+            "hold_cap": cfg["hold_cap"]}
+
+
+def test_the_new_settings_default_to_the_run_before_them():
+    """Skip 0 days and a 15% holding cap are what the page ran before they existed: the keywords are the
+    old call's plus score_skip=0, and the result (CAGR, final value, trades) is the same."""
+    from src.engine.track_record import TRACK_RECORD_CONFIG as cfg
+    from src.ui.views import backtest_view as bv
+
+    s = _form_defaults()
+    kw = bv.engine_kwargs(s)
+    before = {**_BEFORE, "config_weights": tuple(cfg["config_weights"]), **bv.rebalance_rule_kwargs("live")}
+    assert {k: v for k, v in kw.items() if k != "score_skip"} == before and kw["score_skip"] == 0
+    old, new = _bt(**before), _bt(**kw)
+    assert new["stats"]["ann_return"] == old["stats"]["ann_return"]
+    assert new["stats"]["total_return"] == old["stats"]["total_return"]
+    pd.testing.assert_series_equal(old["equity_curve"], new["equity_curve"])
+    pd.testing.assert_frame_equal(old["tradebook"], new["tradebook"])
+
+
+def test_a_new_setting_changes_the_run_and_the_settings_line():
+    from src.ui.views import backtest_view as bv
+
+    s = _form_defaults()
+    assert bv.engine_kwargs({**s, "hold_cap": 0.10})["hold_cap"] == 0.10
+    assert bv.engine_kwargs({**s, "rule": "monthly", "hold_cap": 0.10}).get("hold_cap") is None
+    assert not _bt(**bv.engine_kwargs({**s, "score_skip": 5}))["equity_curve"].equals(_bt(**bv.engine_kwargs(s))["equity_curve"])
+    h = {"name": "Nifty 500", "start": pd.Period("2010-01", "M"), "end": pd.Period("2026-10", "M"), "floor": 0.0,
+         "close": pd.DataFrame(index=pd.to_datetime(["2008-01-01"]))}
+    items = bv.tested_items(s, h)
+    assert items[:6] == ["Nifty 500", "Jan 2010 to Oct 2026", "20 holdings", "keep to rank 40",
+                         "rebalanced monthly, at the month’s last close", "skip 0 days"]
+    assert "six-monthly reset, winners run to 15%" in items
+    assert "skip 5 days" in bv.tested_items({**s, "score_skip": 5}, h)
+
+
+def test_change_the_test_remembers_whether_it_is_open():
+    src = _view()
+    assert 'key="bt_change_open"' in src and "on_change=_remember_open" in src
+    assert "expanded=bool(st.session_state.get(OPEN_MIRROR))" in src
+    for key in ("bt_score_skip", "bt_hold_cap"):
+        form = src[src.index('with st.form("bt_settings"'):src.index("st.form_submit_button(")]
+        assert f'key="{key}"' in form
 
 
 # ── Separate rules for keeping a holding ─────────────────────────────────────
@@ -160,6 +219,8 @@ def test_any_number_of_holdings_and_any_keep_rank():
 def test_the_page_passes_the_keep_rules_and_rank_to_the_backtest():
     src = _view()
     call = src[src.index("res = run_backtest("):src.index("queued.empty()")]
+    assert "**engine_kwargs(s)" in call
+    call = src[src.index("def engine_kwargs("):src.index("SCORE_LABELS")]
     for arg in ('exit_ema_period=s["exit_ema_period"]', 'exit_high_pct=s["exit_high_pct"]',
                 'exit_ath_pct=s["exit_ath_pct"]', 'buffer_n=s["buffer_n"]'):
         assert arg in call, arg
@@ -201,7 +262,7 @@ def test_the_minimum_history_is_validated():
 
 def test_the_page_labels_the_ath_with_where_the_history_starts():
     src = _view()
-    assert "The all-time high: the highest close since" in src
+    assert "all-time high: the highest close since" in src
     assert 'key="bt_ath_years"' in src and 'ath_min_years=s["ath_min_years"]' in src
 
 
@@ -220,7 +281,7 @@ def test_rebalance_rule_defaults_to_the_live_rule():
         "buy_size": TRACK_RECORD_CONFIG["buy_size"],
         "weight_reset_months": tuple(TRACK_RECORD_CONFIG["weight_reset_months"])}
     assert rebalance_rule_kwargs("monthly") == {}
-    assert '**rebalance_rule_kwargs(s["rule"])' in src
+    assert "**rebalance_rule_kwargs(s[\"rule\"], s.get(\"hold_cap\")))" in src and "**engine_kwargs(s)" in src
 
 
 # ── score_skip (owner, 20 Nov 2026; TODO S160) ──────────────────────────────

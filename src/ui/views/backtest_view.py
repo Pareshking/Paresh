@@ -57,13 +57,25 @@ REBALANCE_RULES = {
 RULE_WORDS = {"live": "Six-monthly reset, winners run to 15%", "monthly": "Monthly reset to 5%"}
 
 
-def rebalance_rule_kwargs(rule: str) -> dict:
-    """run_backtest keywords for a rebalance rule, the live one from the record's config."""
+def rebalance_rule_kwargs(rule: str, hold_cap: float | None = None) -> dict:
+    """run_backtest keywords for a rebalance rule, the live one from the record's config. `hold_cap`
+    (a fraction) replaces the record's 15% cap under the live rule (S219-6); the monthly reset has none."""
     if rule != "live":
         return {}
     cfg = TRACK_RECORD_CONFIG
-    return {"hold_cap": cfg["hold_cap"], "hold_cap_from": None, "buy_size": cfg["buy_size"],
-            "weight_reset_months": tuple(cfg["weight_reset_months"])}
+    return {"hold_cap": cfg["hold_cap"] if hold_cap is None else float(hold_cap), "hold_cap_from": None,
+            "buy_size": cfg["buy_size"], "weight_reset_months": tuple(cfg["weight_reset_months"])}
+
+
+def engine_kwargs(s: dict) -> dict:
+    """The settings' own run_backtest keywords (everything but the window's inputs and the caps)."""
+    return dict(top_n=s["top_n"], rebal_freq=s["rebal_freq"], weight_method=s["weight_method"],
+                config_weights=s["weights"], cost_bps=s["cost_bps"], buffer_n=s["buffer_n"],
+                ema_period=s["ema_period"], high_pct=s["high_pct"], score_method=s["score_method"],
+                ath_pct=s["ath_pct"], ath_min_years=s["ath_min_years"], exit_ema_period=s["exit_ema_period"],
+                exit_high_pct=s["exit_high_pct"], exit_ath_pct=s["exit_ath_pct"],
+                score_skip=int(s.get("score_skip") or 0),
+                **rebalance_rule_kwargs(s["rule"], s.get("hold_cap")))
 
 
 SCORE_LABELS = {
@@ -277,11 +289,20 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
             "latest": bounds["months"][-1]}
 
 
+OPEN_MIRROR = "bt_change_open__v"
+
+
+def _remember_open() -> None:
+    st.session_state[OPEN_MIRROR] = bool(st.session_state.get("bt_change_open"))
+
+
 def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float, bounds: dict) -> dict:
     """Every setting in one form; nothing runs until Apply (owner, 9 Oct 2026)."""
     from src.engine import index_universe as iu
 
-    with st.expander("Change the test", icon=":material/tune:"):
+    # Opens in place under the settings line; open or shut, it stays so for the session (S219-6).
+    with st.expander("Change the test", icon=":material/tune:", expanded=bool(st.session_state.get(OPEN_MIRROR)),
+                     key="bt_change_open", on_change=_remember_open):
         with st.form("bt_settings", border=False):
             choice: dict = {}
             st.markdown("**Window**")
@@ -324,6 +345,12 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float, bounds
                      "holding goes back to its target weight in March and September. Applied here from the "
                      "first month. The other rule resets every holding at every rebalance, as the record did "
                      "before.")
+            hold_cap = st.number_input(
+                "Cut a holding back when it grows past (% of the book)", min_value=5.0, max_value=100.0,
+                value=float(TRACK_RECORD_CONFIG["hold_cap"]) * 100, step=1.0, key="bt_hold_cap",
+                help="Under the six-monthly reset a holding keeps the weight the market gave it and is cut back "
+                     "to this only when it grows past it. 15% is the live rule. The monthly reset puts every "
+                     "holding back to its target each month, so this setting does not apply to it.")
             cost = st.number_input(
                 "Trading cost (bps a round trip)", min_value=0.0, max_value=300.0,
                 value=float(DEFAULT_TRANSACTION_COST_BPS), step=1.0, key="bt_cost",
@@ -341,13 +368,17 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float, bounds
                 step=1, key="bt_ema_period", help="The live system uses 50.")
             exit_ema = k_col.number_input(
                 "Close above its EMA of (sessions) ", min_value=2, max_value=400, value=None,
-                step=1, key="bt_exit_ema", placeholder="same as buy")
+                step=1, key="bt_exit_ema", placeholder="same as buy",
+                help="The exit average: a holding is sold when its close falls below this average. Blank = the "
+                     "buy rule's average (the live system).")
             off_52w = b_col.number_input(
                 "Within this % of its 52-week high", min_value=0.5, max_value=95.0, value=20.0,
                 step=0.5, key="bt_52w_off", help="The live system uses 20%.")
             exit_52w = k_col.number_input(
                 "Within this % of its 52-week high ", min_value=0.5, max_value=95.0, value=None,
-                step=0.5, key="bt_exit_52w", placeholder="same as buy")
+                step=0.5, key="bt_exit_52w", placeholder="same as buy",
+                help="A holding is sold when its close is further than this below its 52-week high. Blank = the "
+                     "buy rule's 20% (the live system).")
             off_ath = b_col.number_input(
                 "Within this % of its all-time high (blank = no rule)", min_value=0.5,
                 max_value=95.0, value=None, step=0.5, key="bt_ath_off", placeholder="no rule",
@@ -363,8 +394,17 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float, bounds
                      "of prices on file; a stock that listed later is held to it from the first day.")
 
             st.markdown("**Score** · how stocks are ranked")
-            score = st.radio("Score each lookback window by", list(SCORE_LABELS),
-                             format_func=SCORE_LABELS.get, key="bt_score", horizontal=True)
+            sc1, sc2 = st.columns([2, 1])
+            score = sc1.radio("Score each lookback window by", list(SCORE_LABELS),
+                              format_func=SCORE_LABELS.get, key="bt_score", horizontal=True,
+                              help="Sharpe: each window's return divided by its ups and downs (the live system). "
+                                   "Plain return: the window's return alone, so a jumpy stock scores as high as "
+                                   "a steady one with the same gain.")
+            skip = sc2.number_input(
+                "Leave out the latest sessions (days)", min_value=0, max_value=63, value=0, step=1,
+                key="bt_score_skip",
+                help="The score is read this many sessions before each signal day, so the last few days' moves "
+                     "do not count; the filters and the purchase stay on the signal day. 0 = the live system.")
             st.caption("Lookback weights · how much each window counts in the score")
             bw = st.columns(5)
             active = tuple(
@@ -387,7 +427,8 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float, bounds
         "exit_ema_period": None if exit_ema is None else int(exit_ema),
         "exit_high_pct": frac(exit_52w), "exit_ath_pct": frac(exit_ath),
         "ath_min_years": float(ath_years),
-        "score_method": score, "weights": active, "rule": rule,
+        "score_method": score, "weights": active, "rule": rule, "score_skip": int(skip),
+        "hold_cap": float(hold_cap) / 100.0,
     }
 
 
@@ -400,7 +441,8 @@ def is_default(s: dict, h: dict, stock_cap: float, sector_cap: float) -> bool:
             and s["cost_bps"] == cfg["cost_bps"] and s["ema_period"] == cfg["ema_period"]
             and abs((s["high_pct"] or 0) - cfg["high_pct"]) < 1e-9 and s["ath_pct"] is None
             and s["exit_ema_period"] is None and s["exit_high_pct"] is None and s["exit_ath_pct"] is None
-            and s["score_method"] == "sharpe"
+            and s["score_method"] == "sharpe" and not s.get("score_skip")
+            and (s.get("hold_cap") is None or abs(s["hold_cap"] - cfg["hold_cap"]) < 1e-9)
             and np.allclose(s["weights"], cfg["config_weights"])
             and abs(stock_cap - cfg["stock_cap"]) < 1e-9 and abs(sector_cap - cfg["sector_cap"]) < 1e-9)
 
@@ -408,35 +450,46 @@ def is_default(s: dict, h: dict, stock_cap: float, sector_cap: float) -> bool:
 # ── The page's parts ───────────────────────────────────────────────────────────
 
 
-def tested_line(s: dict, h: dict) -> str:
-    rebal = ("Signal at the month’s last close, bought at the next close" if s["rebal_freq"] == 21 else
-             f"Signal every {s['rebal_freq']} sessions, bought at the next close")
-    items = [f"{h['name']}, members of each date", f"{h['start'].strftime('%b %Y')} to {h['end'].strftime('%b %Y')}",
-             f"{s['top_n']} holdings", f"Kept while in the top {s['buffer_n']}",
-             f"Above its {s['ema_period']}D EMA", f"Within {(1 - s['high_pct']) * 100:g}% of its 52-week high"]
+def tested_items(s: dict, h: dict) -> list[str]:
+    """The run's settings in short plain words, in the order of the form (S219-6)."""
+    rebal = ("monthly, at the month’s last close" if s["rebal_freq"] == 21 else f"every {s['rebal_freq']} sessions")
+    skip = int(s.get("score_skip") or 0)
+    items = [h["name"], f"{h['start'].strftime('%b %Y')} to {h['end'].strftime('%b %Y')}",
+             f"{s['top_n']} holdings", f"keep to rank {s['buffer_n']}", f"rebalanced {rebal}",
+             f"skip {skip} day{'' if skip == 1 else 's'}",
+             "Sharpe score" if s["score_method"] == "sharpe" else "plain-return score",
+             f"buy above its {s['ema_period']}D EMA", f"within {(1 - s['high_pct']) * 100:g}% of its 52-week high"]
+    if s["ath_pct"] is not None:
+        items.append(f"within {(1 - s['ath_pct']) * 100:g}% of its all-time high")
     if s["ath_pct"] is not None or s["exit_ath_pct"] is not None:
-        if s["ath_pct"] is not None:
-            items.append(f"Within {(1 - s['ath_pct']) * 100:g}% of its all-time high")
-        items.append(f"The all-time high: the highest close since {h['close'].index[0]:%b %Y}, applied after "
+        items.append(f"all-time high: the highest close since {h['close'].index[0]:%b %Y}, applied after "
                      f"{s['ath_min_years']:g} years on file")
     if s["exit_ema_period"] is not None:
-        items.append(f"Kept while above its {s['exit_ema_period']}D EMA")
+        items.append(f"sell below its {s['exit_ema_period']}D EMA")
     if s["exit_high_pct"] is not None:
-        items.append(f"Kept while within {(1 - s['exit_high_pct']) * 100:g}% of its 52-week high")
+        items.append(f"sell beyond {(1 - s['exit_high_pct']) * 100:g}% below its 52-week high")
     if s["exit_ath_pct"] is not None:
-        items.append(f"Kept while within {(1 - s['exit_ath_pct']) * 100:g}% of its all-time high")
-    items.append(RULE_WORDS.get(s["rule"], s["rule"]))
+        items.append(f"sell beyond {(1 - s['exit_ath_pct']) * 100:g}% below its all-time high")
+    if s["rule"] == "live":
+        cap = s.get("hold_cap")
+        cap = TRACK_RECORD_CONFIG["hold_cap"] if cap is None else cap
+        items.append(f"six-monthly reset, winners run to {cap * 100:g}%")
+    else:
+        items.append(RULE_WORDS.get(s["rule"], s["rule"]).lower())
     if s["weight_method"] != "Equal Weight":
-        items.append(s["weight_method"].capitalize())
-    if s["score_method"] != "sharpe":
-        items.append("Scored on plain returns")
+        items.append(s["weight_method"].lower())
     if not np.allclose(s["weights"], TRACK_RECORD_CONFIG["config_weights"]):
-        items.append("Lookback weights " + " · ".join(f"{w:.2f}".lstrip("0") for w in s["weights"]))
+        items.append("lookback weights " + " / ".join(f"{w:.2f}".lstrip("0") for w in s["weights"]))
     if h["floor"]:
-        items.append(f"Traded value ₹{h['floor']:g} Cr or more")
-    items += [f"{s['cost_bps']:g} bps a round trip", rebal]
-    return ('<div class="bt-tested" aria-label="What was tested"><span><b>What was tested</b></span>'
-            + "".join(f"<span>{e(i)}</span>" for i in items) + "</div>")
+        items.append(f"traded value ₹{h['floor']:g} Cr or more")
+    items.append(f"{s['cost_bps']:g} bps a round trip")
+    return items
+
+
+def tested_line(s: dict, h: dict) -> str:
+    """The one line first on the page: what this run tested, "Change the test" right under it."""
+    return ('<div class="bt-tested" aria-label="What was tested"><span><b>What was tested</b> '
+            + e(" · ".join(tested_items(s, h))) + "</span></div>")
 
 
 def head(f: dict) -> list:
@@ -454,7 +507,7 @@ def head(f: dict) -> list:
             f"month, {_d(sm.first)} to {_d(sm.last)}, on NSE’s closes, after {f['s']['cost_bps']:g} bps a round trip. "
             "Price returns on both sides. A replay of the past, not a forecast.")
     out = [f'<div class="dh-sec"><p class="dh-kick">Backtest</p><h1 id="s-top" class="dh-h1">{title}</h1>'
-           f'<p class="dh-lede">{e(lede)}</p></div>', tested_line(f["s"], h)]
+           f'<p class="dh-lede">{e(lede)}</p></div>']
     if h.get("moved"):
         out.append(f'<p class="dh-note">{e(h["moved"])}</p>')
     if not f["default"]:
@@ -908,7 +961,7 @@ def gather(res: dict, s: dict, h: dict, bench: pd.Series, default: bool) -> dict
 
 def page_parts(f: dict) -> list:
     """Everything but the widgets, in order (for tests and the requirements check)."""
-    return (head(f) + section_lead(f) + section_falls(f) + section_years(f) + section_depends(f)
+    return ([tested_line(f["s"], f["h"])] + head(f) + section_lead(f) + section_falls(f) + section_years(f) + section_depends(f)
             + section_trust(f) + section_trades_head(f) + foot(f))
 
 
@@ -934,15 +987,10 @@ def _run(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float
         )
     with st.spinner("Running the backtest…"):
         res = run_backtest(
-            ph, h["close"], _benchmark_close=bench, top_n=s["top_n"], rebal_freq=s["rebal_freq"],
-            weight_method=s["weight_method"], config_weights=s["weights"], stock_cap=stock_cap,
-            sector_cap=sector_cap, sector_map=h["sector_map"], cost_bps=s["cost_bps"], buffer_n=s["buffer_n"],
-            _membership=h["membership"], backtest_months=h["months"], stateful_history=True,
-            history_start=h["start"].start_time, _actions=[], liquidity_floor_cr=h["floor"],
-            _traded_value=h["traded_value"], ema_period=s["ema_period"], high_pct=s["high_pct"],
-            score_method=s["score_method"], ath_pct=s["ath_pct"], ath_min_years=s["ath_min_years"],
-            exit_ema_period=s["exit_ema_period"], exit_high_pct=s["exit_high_pct"], exit_ath_pct=s["exit_ath_pct"],
-            **rebalance_rule_kwargs(s["rule"]))
+            ph, h["close"], _benchmark_close=bench, stock_cap=stock_cap, sector_cap=sector_cap,
+            sector_map=h["sector_map"], _membership=h["membership"], backtest_months=h["months"],
+            stateful_history=True, history_start=h["start"].start_time, _actions=[],
+            liquidity_floor_cr=h["floor"], _traded_value=h["traded_value"], **engine_kwargs(s))
     queued.empty()
     return res
 
@@ -962,6 +1010,8 @@ def _download(res: dict, s: dict, h: dict, stock_cap: float, sector_cap: float, 
             has_industry_map=bool(h["sector_map"]), stats=res.get("stats") or {}, ema_period=s["ema_period"],
             high_pct=s["high_pct"], ath_pct=s["ath_pct"], ath_min_years=s["ath_min_years"], score_method=s["score_method"],
             exit_ema_period=s["exit_ema_period"], exit_high_pct=s["exit_high_pct"], exit_ath_pct=s["exit_ath_pct"],
+            score_skip=int(s.get("score_skip") or 0),
+            hold_cap=rebalance_rule_kwargs(s["rule"], s.get("hold_cap")).get("hold_cap"),
             generated=f"{ist_now():%Y-%m-%d %H:%M}"), trades)
         slug = "".join(c if c.isalnum() else "_" for c in h["name"]).strip("_").lower()
         span = f"{eq.index[0]:%Y%m}_{eq.index[-1]:%Y%m}" if len(eq) else "empty"
@@ -1000,15 +1050,19 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
                          liquidity_floor_cr: float = 0.0) -> None:
     """One page of research runs on NSE's long price file (S174)."""
     st.html(f"<style>{HOME_CSS}{BT_CSS}</style>")
-    top = st.container()
+    # First on the page: the run's settings in one line, "Change the test" under it (S219-6), then the answer.
+    line = st.container()
     bounds = _history_bounds()
     if bounds is None:
         return
-    _system_note()
     s = _settings_form(weights, liquidity_floor_cr, bounds)
+    _system_note()
+    top = st.container()
     h = _history_inputs(rank_df, s["history"], bounds)
     if h is None:
         return
+    with line:
+        emit([tested_line(s, h)])
     bench = fetch_benchmark_history(period="max", symbol=BENCHMARK_SYMBOL)
     if bench.empty:
         # A failure is an amber note, not a red box (S193 E, rule 4).
@@ -1044,4 +1098,5 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
     emit([END] + foot(f))
 
 
-__all__ = ["render_backtest_view", "page_parts", "gather", "is_default", "rebalance_rule_kwargs", "REBALANCE_RULES"]
+__all__ = ["render_backtest_view", "page_parts", "gather", "is_default", "rebalance_rule_kwargs", "engine_kwargs",
+           "tested_items", "REBALANCE_RULES"]
