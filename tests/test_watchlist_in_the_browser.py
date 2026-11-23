@@ -120,3 +120,22 @@ def test_the_filters_sheet_narrows_the_table():
     assert not at.exception
     assert _table_rows(at) == everyone
     assert not at.warning, [w.value for w in at.warning]
+
+
+def test_the_name_search_offers_unlisted_stocks_by_name_and_adds_one(session, monkeypatch):
+    """S219-5: a stock is added by name, as on the Screener; the label carries the company's name, so
+    typing it finds the stock, and picking one appends it to the saved list."""
+    import pandas as pd
+
+    from src.ui.views import watchlist_view as wv
+    monkeypatch.setattr(wv.st, "session_state", session)
+    rank = pd.DataFrame({"Symbol": ["TCS", "ABB", "INFY"], "Rank": [2, 1, 3],
+                         "Company Name": ["Tata Consultancy Services Ltd.", "ABB India Ltd.", None]})
+    opts = wv.search_options(rank, ["ABB"])
+    assert list(opts) == ["TCS", "INFY"]                      # rank order, listed ones left out
+    assert opts["TCS"] == "TCS · Tata Consultancy Services Ltd." and opts["INFY"] == "INFY"
+    session["_wl_seen"] = "ABB"
+    session["wl_text"] = "ABB"
+    session["wl_add_pick"] = "TCS"
+    wv._add_picked()
+    assert watchlist_store.symbols() == ["ABB", "TCS"] and session["wl_add_pick"] is None
