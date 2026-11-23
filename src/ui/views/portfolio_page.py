@@ -357,10 +357,12 @@ def holdings_spec(p: Page) -> dict:
         rows.append({"s": s, "co": co, "co_short": co.removesuffix(" Ltd.").removesuffix(" Limited").removesuffix(" Ltd"),
                      "ind": short(ind), "status": st_, "tone": tn, "size": _fmt.size(p.sizes.get(s, "")) if p.sizes.get(s) else "",
                      "since": f"{pd.Timestamp(h['Entry Date']):%Y-%m-%d}", "days": int(h.get("Holding Days") or 0),
-                     "q": int(h["Shares"]), "ep": round(float(h["Entry Price"]), 2), "px": round(float(h["Current Price"]), 2),
-                     "val": round(float(h["Current Value (₹)"])), "w": round(float(h["Weight %"]), 2),
-                     "dayp": round(float(h.get("Day P&L %") or 0), 2), "pnl": round(float(h["P&L since Rebalance (₹)"])),
-                     "ret": round(float(h["Return since Entry %"]), 2),
+                     # Unrounded: the page rounds once, half up (S193 A13). Rounded here to 2 dp first,
+                     # 188.549 became 188.55 and then +188.6% against Actions' +188.5%.
+                     "q": int(h["Shares"]), "ep": float(h["Entry Price"]), "px": float(h["Current Price"]),
+                     "val": round(float(h["Current Value (₹)"])), "w": float(h["Weight %"]),
+                     "dayp": float(h.get("Day P&L %") or 0), "pnl": round(float(h["P&L since Rebalance (₹)"])),
+                     "ret": float(h["Return since Entry %"]),
                      "ema": None if pd.isna(ema) else round(float(ema), 1), "hi": None if pd.isna(hi) else round(float(hi), 1),
                      "r3": tr[0], "r1": tr[1], "rn": tr[2]})
     val = sum(x["val"] for x in rows)
@@ -805,10 +807,11 @@ def history_spec(trades: pd.DataFrame, tb: pd.DataFrame | None, rebal: list) -> 
 
     def num(v):
         return None if v is None or pd.isna(v) else float(v)
-    rows = [[r["Symbol"], r["Industry"], iso(r["Entry signal date"]), iso(r["Entry date"]), round(float(r["Entry price"]), 2),
+    # Prices and returns unrounded: the page rounds once, half up (S193 A13).
+    rows = [[r["Symbol"], r["Industry"], iso(r["Entry signal date"]), iso(r["Entry date"]), float(r["Entry price"]),
              None if pd.isna(r["Entry rank"]) else int(r["Entry rank"]), num(r["Entry weight %"]), iso(r["Exit signal date"]),
-             iso(r["Exit date"]), None if num(r["Exit price"]) is None else round(num(r["Exit price"]), 2),
-             None if pd.isna(r["Exit rank"]) else int(r["Exit rank"]), round(float(r["Return %"]), 2), int(r["Days held"]),
+             iso(r["Exit date"]), num(r["Exit price"]),
+             None if pd.isna(r["Exit rank"]) else int(r["Exit rank"]), float(r["Return %"]), int(r["Days held"]),
              str(r["Exit rule"]).replace(" (< 50 EMA)", ""), r["Status"]] for _, r in trades.iterrows()]
     lines = []
     if isinstance(tb, pd.DataFrame) and len(tb):
