@@ -280,8 +280,23 @@ def months_of(p: Page) -> dict[str, dict]:
     ps = sorted(book)
     mkt = pr.month_returns(p.market, ps, p.as_of)
     mom = pr.month_returns(p.mom, ps, p.as_of)
+    # The system's first month starts at its first fill for every series, as the book and
+    # the recorded Nifty 500 do (S193 A12, owner 23 Nov 2026); calendar_html footnotes it.
+    first, fill = first_fill(p)
+    if fill is not None and first in book:
+        end = min(first.to_timestamp(how="end").normalize(), p.as_of)
+        mkt[first], mom[first] = pr.ret(p.market, fill, end), pr.ret(p.mom, fill, end)
     lead = {k: (book[k] - mkt[k]) if mkt.get(k) is not None else None for k in ps}
     return {"book": book, "market": mkt, "lead": lead, "mom": mom, "n500": n5}
+
+
+def first_fill(p: Page) -> tuple[pd.Period, pd.Timestamp | None]:
+    """The system's first month and its first fill (the month's first session)."""
+    from src.engine.dashboard_insights import first_fill as _first_fill
+    from src.engine.systems import inception
+
+    first = inception(p.system)
+    return first, _first_fill(p.market, first)
 
 
 def header(p: Page) -> list:
@@ -622,9 +637,13 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
     names = {"book": "The book", "market": "Nifty Total Market", "lead": "Lead, pts", "mom": "Momentum 50", "n500": "Nifty 500, as recorded"}
     pick = {"All": list(names), "The book": ["book"], "Nifty Total Market": ["market"], "Lead": ["lead"], "Momentum 50": ["mom"]}.get(show, list(names))
 
-    def cell(v, b=False, q=False):
+    first, fill = first_fill(p)
+    mark_month = first.month - 1 if fill is not None and first in m["book"] else None
+
+    def cell(v, b=False, q=False, mark=False):
         cls = "dh-num" + (" pf-q" if q else "") + (f" dh-b {tone(v)}" if b else "")
-        return f'<td class="{cls}">{"–" if v is None else sg(v)}</td>'
+        sup = '<sup class="dh-muted">*</sup>' if mark and v is not None else ""
+        return f'<td class="{cls}">{"–" if v is None else sg(v)}{sup}</td>'
     head = ('<thead><tr><th scope="col">%</th>' + "".join(f'<th scope="col" class="dh-num">{x}</th>' for x in MON)
             + "".join(f'<th scope="col" class="dh-num{" pf-q" if i == 0 else ""}">{q}</th>' for i, (q, _) in enumerate(pr.QUARTERS))
             + '<th scope="col" class="dh-num pf-q">Year</th></tr></thead>')
@@ -645,10 +664,12 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
                 qs = [None if a is None or c is None else a - c for a, c in zip(bk["quarters"], mk["quarters"])]
                 yr = None if bk["year"] is None or mk["year"] is None else bk["year"] - mk["year"]
             body += (f'<tr class="{"dh-muted" if k == "n500" else ""}"><th scope="row">{names[k]}</th>'
-                     + "".join(cell(v, b) for v in r["months"]) + "".join(cell(v, b, i == 0) for i, v in enumerate(qs)) + cell(yr, b, True) + "</tr>")
+                     + "".join(cell(v, b, mark=(y == first.year and i == mark_month)) for i, v in enumerate(r["months"])) + "".join(cell(v, b, i == 0) for i, v in enumerate(qs)) + cell(yr, b, True) + "</tr>")
     body += (f'<tr class="pf-yr pf-ghost"><th scope="rowgroup" colspan="18">{this.year + 1}<span class="dh-muted"> · from January, a row group '
              'like the one above; each year adds its own</span></th></tr>') if len(cal) == 1 else ""
-    grid = f'<div class="dh-scroll"><table class="dh-tab pf-grid pf-nw">{head}<tbody>{body}</tbody></table></div>'
+    foot = (f'<p class="dh-note">* {first:%b %Y}, the first month: from the fill, {fill:%-d %b}. A system\u2019s first month has '
+            'no book before it, so the book and every index start at its first fill.</p>' if mark_month is not None else "")
+    grid = f'<div class="dh-scroll"><table class="dh-tab pf-grid pf-nw">{head}<tbody>{body}</tbody></table></div>{foot}'
     # Calendar and financial years
     ys = ""
     for y, row in cal.items():

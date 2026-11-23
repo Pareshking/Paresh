@@ -43,7 +43,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 #644 (S214), #645 (numpy 2.5.5; Dependabot #641-#643 carried in and closed), #646 (S205 step 1).
 
 **Open pull requests**
-- **S193 A13/A14 PR** (branch `claude/handover-session-setup-7bd5zk`): owner approved both; merge when CI is green on its current head.
+- **#649, S193 A10/A12/A13/A14** (branch `claude/handover-session-setup-7bd5zk`): owner approved the four fixes; merge on the owner's word once CI is green on its current head.
 - **#638 (S211, one date rule):** draft. Merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
   published ranks move). It conflicts with main again: merge main into it once, just before merging. Reminder
   `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
@@ -57,17 +57,15 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
   deployed, the same log should no longer say "Replacing with pyarrow<25".
 - (c) Optional: set the Dependabot secrets (TODO S209). Until then every Dependabot PR fails validate at the R2 step.
 
-**S205:** layout step 6 min 33 s (#647) and 6 min 10 s (#648). Owner decision: set the target at 7 min (then S205 is
-done) or build the parallel runner. Recommended: 7 min.
+**S205 done** (owner, 23 Nov: target 7 min; 6 min 33 s and 6 min 10 s).
 
 **S208 merged** (#648, 8da8793): bench memory equal to main (490 MB warm). Found: Portfolio hashes 17 times per warm rerun.
 
 **Benches:** run `audit_page_bench.py` in a worktree nobody commits to. A commit in the served checkout makes the app
 log "New revision pulled ... caches dropped" and the run reads seconds slower (seen 23 Nov).
 
-**S193 for the owner next, one at a time:** A10 (750 breadth a month ago, 38% Dashboard vs 37% Sectors) and A12 (a
-system's first month: the Nifty 500 from the fill, the market and lead from the month-end). A5 and A11 need a
-`record_run` on the R2 store first (a CI job with R2 secrets). See the S193 item A report's last section.
+**S193 item A:** A10, A12, A13, A14 approved and in the open PR. A5 and A11 need a `record_run` on the R2 store first
+(a CI job with R2 secrets). Then items B, C, E-L, one at a time with the owner.
 
 **Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S207 closed 23 Nov (measured: leave both). These were taken over from the speed session.
 
@@ -98,7 +96,7 @@ any work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
 ## Queue: one at a time, in this order
 
-0. **Finish what is open**: merge the A13/A14 PR on green; the owner's 24 Nov items (a)-(c) above; S205's target. Then S213 and the S193 items (one at a time with the owner).
+0. **Finish what is open**: #649 (owner's word, CI green); the owner's 24 Nov items (a)-(c) above. Then S213 and the S193 items (one at a time with the owner).
 
 1. **23 Nov first-run checks** (record each in TODO S188 with its run ID). The
    Screener sync is scheduled 17:07 UTC but GitHub starts it 5-7 h late (22:09,

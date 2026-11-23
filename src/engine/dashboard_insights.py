@@ -74,6 +74,20 @@ def month_end_before(index: pd.DatetimeIndex, when: pd.Timestamp) -> pd.Timestam
     return on_or_before(index, first - pd.Timedelta(days=1))
 
 
+def first_fill(close: pd.Series | None, month: pd.Period | None) -> pd.Timestamp | None:
+    """The first session of `month` in `close`: a system's first fill (S193 A12).
+
+    A system's first month has no book before it, so the record measures the book and the
+    Nifty 500 from that close (backtester.py, "A system's first month has no old book").
+    Every index set beside it in that month starts there too (owner, 23 Nov 2026).
+    """
+    if close is None or month is None:
+        return None
+    s = close.dropna()
+    days = s.index[(s.index >= month.start_time) & (s.index <= month.end_time)]
+    return pd.Timestamp(days[0]) if len(days) else None
+
+
 def calendar_month_returns(close: pd.Series) -> pd.Series:
     """Percent per calendar month, by month-end closes, indexed by Period."""
     s = close.dropna().sort_index()
@@ -100,14 +114,20 @@ class BookMonth:
 
 
 def book_month(ledger_months: dict, book_mtd: float | None, market: pd.Series,
-               momentum: dict[str, pd.Series], as_of: pd.Timestamp, year: int | None = None) -> BookMonth:
+               momentum: dict[str, pd.Series], as_of: pd.Timestamp, year: int | None = None,
+               first_month: pd.Period | None = None) -> BookMonth:
     """`ledger_months`: the track record's {"YYYY-MM": {"strategy": fraction, ...}}.
-    `book_mtd`: percent. Months compared with the market's calendar month."""
+    `book_mtd`: percent. Months compared with the market's calendar month, except the
+    system's `first_month`, which starts at its first fill for the market and momentum
+    as it does for the book (S193 A12)."""
     as_of = pd.Timestamp(as_of)
     year = year or as_of.year
     mkt_m = calendar_month_returns(market[market.index <= as_of])
     start = pd.Timestamp(f"{year - 1}-12-31")
     month_open = as_of.to_period("M").to_timestamp() - pd.Timedelta(days=1)
+    fill = first_fill(market, first_month)
+    if fill is not None and as_of.to_period("M") == first_month:
+        month_open = fill
     rows = []
     for key in sorted(ledger_months):
         p = pd.Period(key, freq="M")
@@ -116,7 +136,12 @@ def book_month(ledger_months: dict, book_mtd: float | None, market: pd.Series,
         s = ledger_months[key].get("strategy")
         if s is None or p not in mkt_m.index:
             continue
-        rows.append((p, float(s) * 100, float(mkt_m.loc[p])))
+        m = float(mkt_m.loc[p])
+        if fill is not None and p == first_month:
+            m = window_return(market, fill, p.end_time)
+            if m is None:
+                continue
+        rows.append((p, float(s) * 100, m))
     if book_mtd is not None:
         m_mtd = window_return(market, month_open, as_of)
         if m_mtd is not None:

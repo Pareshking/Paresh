@@ -855,8 +855,9 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     closes = {k: di.as_of(v, idx_end) for k, v in closes.items()}
     market = closes[bi.TOTAL_MARKET]
     momentum = {k: closes[k] for k in MOMENTUM_NAMES}
-    bm = di.book_month(ledger.get("months", {}), book_mtd, market, momentum, idx_end)
-    inc = pd.Period(str(ledger.get("inception", "2026-01")), freq="M").to_timestamp() - pd.Timedelta(days=1)
+    first_month = pd.Period(str(ledger.get("inception", "2026-01")), freq="M")
+    bm = di.book_month(ledger.get("months", {}), book_mtd, market, momentum, idx_end, first_month=first_month)
+    inc = first_month.to_timestamp() - pd.Timedelta(days=1)
     since_mkt = di.window_return(market, inc, idx_end)
 
     a = assess(rank_df, symbols, rules)
