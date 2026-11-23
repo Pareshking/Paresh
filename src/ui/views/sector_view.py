@@ -512,7 +512,7 @@ def section_inside(ld: sp.Leads, shares: list[sp.Share], board: pd.DataFrame, ra
         txt = {k: ("–" if vals[k] is None else f"{vals[k]:.0f}%") for k in ("b3", "b1", "now", "ema50", "near")}
         txt["med3"] = sg(vals["med3"], 1, "%")
         txt["leaders"] = leaders or "–"
-        return {"name": "All 750" if ref else sh(s.name), "sub": f"{s.stocks} stocks", "ref": ref, "v": vals, "t": txt,
+        return {"name": "All ranked stocks" if ref else sh(s.name), "sub": f"{s.stocks} stocks", "ref": ref, "v": vals, "t": txt,
                 "c": {"med3": _kt(vals["med3"]), "b3": "muted", "b1": "muted"}}
     cols = [{"k": "name", "label": noun.capitalize()},
             {"k": "b3", "label": "Above 200D EMA, 3M ago", "num": True}, {"k": "b1", "label": "Above 200D EMA, 1M ago", "num": True},

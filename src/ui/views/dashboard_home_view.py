@@ -917,11 +917,12 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
     # 4. flows against the 750's market value
     share = None
-    mcap = _read_csv(FILES["mcap"])
-    if flows is not None and mcap is not None and {"Symbol", "MarketCap"} <= set(mcap.columns):
-        ranked = set(rank_df["Symbol"])
-        value_cr = float(pd.to_numeric(mcap[mcap["Symbol"].isin(ranked)]["MarketCap"], errors="coerce").sum()) / 1e7
-        share = di.fpi_share_of_value(flows, value_cr)
+    if flows is not None:
+        # Every ranked stock's value: NSE's file, then the > ₹2,000 Cr list's own month-end figure (S193 C).
+        from src.loaders.extra_universe_loader import system_market_caps
+        caps = system_market_caps(rank_df["Symbol"].drop_duplicates(), str(FILES["mcap"]))
+        if len(caps):
+            share = di.fpi_share_of_value(flows, float(caps.sum()) / 1e7)
     # 5. size
     sizes = di.size_table(closes, market, idx_end)
     lists = {}
@@ -978,7 +979,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     lead_bars = _lead_bars(spreads, lead)
     fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_dii"], dtype={"period": str}))
     compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
-    breadth = _breadth_spec(n500, hist.get("above_200"), idx_end)
+    breadth = _breadth_spec(n500, hist.get("above_200"), idx_end, UNIVERSE_SHORT.get(system, "750"))
 
     uni = UNIVERSE_SHORT.get(system, "750")
     parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{idx_end:%B}", uni)]
@@ -1130,14 +1131,16 @@ def _flow_compare(nse: pd.DataFrame | None, nsdl: pd.DataFrame | None) -> tuple[
     return float(pd.to_numeric(f["net"], errors="coerce").sum()), nsdl_sum, int(dates.nunique())
 
 
-def _breadth_spec(n500: pd.Series, above_200: pd.Series | None, as_of: pd.Timestamp) -> dict | None:
-    """Three years of the Nifty 500 and the share of the 750 above the 200D EMA, on the index's sessions."""
+def _breadth_spec(n500: pd.Series, above_200: pd.Series | None, as_of: pd.Timestamp,
+                  universe: str = "750") -> dict | None:
+    """Three years of the Nifty 500 and the share of the system's ranked stocks above the 200D EMA, on the
+    index's sessions. `universe` names them in the chart's readout (UNIVERSE_SHORT; S193 C)."""
     if n500 is None or n500.empty or above_200 is None:
         return None
     idx = n500[(n500.index > as_of - pd.DateOffset(years=3)) & (n500.index <= as_of)]
     a = above_200.reindex(idx.index, method="ffill")
     return {"dates": [f"{d:%Y-%m-%d}" for d in idx.index], "n500": [round(float(v), 1) for v in idx.values],
-            "a200": [None if pd.isna(v) else round(float(v), 1) for v in a.values]}
+            "a200": [None if pd.isna(v) else round(float(v), 1) for v in a.values], "uni": universe}
 
 
 def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, typical, flows=None,

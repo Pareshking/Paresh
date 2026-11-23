@@ -87,8 +87,9 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     bench = nse_benchmarks()
     nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
                 else _series_of(bench, "nifty500"))
+    from src.engine.extra_universe import UNIVERSE_SHORT
     render_market_page_questions(rank_df, history_prices if history_prices is not None else adj_close,
-                             nifty500, size_closes(), pit_ok)
+                             nifty500, size_closes(), pit_ok, UNIVERSE_SHORT.get(system, "750"))
 
     with st.container(key="br_chart_head", horizontal=True, vertical_alignment="center", gap="small"):
         st.html('<h2 id="q-charts" class="br-charts-h">Today\'s charts</h2>', width="stretch")

@@ -948,6 +948,17 @@ def _reason(text: str) -> str:
     return text
 
 
+def _system_note() -> None:
+    """Say so when a system other than the 750 is chosen: these runs pick their own index (S193 C)."""
+    from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES
+    from src.ui import system_param
+
+    system = system_param.current()
+    if system != SYSTEM_750:
+        kit.note(f"The {SYSTEM_NAMES.get(system, system)} system does not change these runs: each run picks its own "
+                 "index in the settings below.")
+
+
 def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: float, weights: tuple[float, ...],
                          liquidity_floor_cr: float = 0.0) -> None:
     """One page of research runs on NSE's long price file (S174)."""
@@ -956,6 +967,7 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
     bounds = _history_bounds()
     if bounds is None:
         return
+    _system_note()
     s = _settings_form(weights, liquidity_floor_cr, bounds)
     h = _history_inputs(rank_df, s["history"], bounds)
     if h is None:

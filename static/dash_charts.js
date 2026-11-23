@@ -280,7 +280,7 @@ R.breadth = (card, s) => {
   chips(card, r => { from = r ? Math.max(0, s.dates.length - r) : 0; draw(); });
   interact(card, () => panes, $('.readout', card), k => { const i = from + k; return {date: dlong(s.dates[i]), items: [
     {name: 'Nifty 500', color: css('--ink'), v: grp(s.n500[i], 1)},
-    {name: 'of the 750 above their 200D EMA', color: css('--up'), v: s.a200[i] == null ? '–' : fx(s.a200[i], 0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
+    {name: `of the ${esc(s.uni || '750')} above their 200D EMA`, color: css('--up'), v: s.a200[i] == null ? '–' : fx(s.a200[i], 0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
 };
 
 /* ₹100 since the start and how far below its peak, the book and the market: two panes, one crosshair (Portfolio).

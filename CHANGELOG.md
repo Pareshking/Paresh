@@ -1,5 +1,13 @@
 # Changelog
 
+
+## 2026-11-23 — Every page names the system it shows (S193 C)
+
+- Labels that said "750" on every system now name the chosen one: the breadth chart's readout on the Dashboard and Market, Sectors' first row ("All ranked stocks"), and Configuration's universe under the > ₹2,000 Cr list.
+- Sentences true only of the 750 now say what is true: Portfolio names the book's own largest size groups and its size legend lists the groups drawn; Market's chart note says "members of each date" only on the 750; the Guide says the other systems follow the same steps on their own lists.
+- Foreign buying against the > ₹2,000 Cr list's market value, and Portfolio's sector marks, now count every stock on the list. NSE's file covers only the Nifty 1000, which is 192 of the list's 411 stocks; the rest take the list's own month-end value. The share it shows will fall.
+- Backtest says when the chosen system does not change its runs.
+
 ## 2026-11-23 — A system's first month is measured from its first fill on every line (S193 A12, A10)
 
 - In a system's first month the book and the recorded Nifty 500 start at the first fill (nano: 1 Oct), but Nifty Total Market, Momentum 50 and the lead beside them started at the month-end before. They now start at the fill too, on Portfolio and the Dashboard, and the calendar marks that month "from the fill". Nano's October lead reads −5.5 pts (was −4.6); the 750's January +3.4 (was +3.2). The frozen records are unchanged.
