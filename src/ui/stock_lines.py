@@ -296,26 +296,29 @@ def rules(row, a: dict | None, q: int | None, ln: wl.Lines, high_pct: float) -> 
     gap = round((1 - high_pct) * 100)
     hi_level = num(row.get("52W High"))
 
-    def fall(c, ok):
+    def fall(c, ok, have=True, none="Not yet"):
+        # A line the stock does not have yet is not a line it is below (S193 E: MILKYMIST, 70 sessions).
         if not ok:
-            return "Below it"
+            return "Below it" if have else none
         return DASH if c is None else formats.pct(c, signed_=False)
 
+    short = str(row.get("Short History") or "") == "Yes"
     if ema_pct is None:
         e_today = DASH
     else:
         e_today = f"{formats.pct(ema_pct, fraction=False)} {'above' if ema_pct >= 0 else 'below'}"
     if hi_pct is None:
-        h_today = DASH
+        h_today = f"None before {HIGH_SESSIONS} sessions" if short else DASH
     elif abs(hi_pct) < 0.05:
         h_today = "At the high"
     else:
         h_today = f"{formats.pct(hi_pct, fraction=False)} from it"
     return [
-        Rule("Above its 50D EMA", "filter and sell rule", formats.price(ema_level(row)), fall(ema_c, ema_ok),
-             e_today, ema_ok),
+        Rule("Above its 50D EMA", "filter and sell rule", formats.price(ema_level(row)),
+             fall(ema_c, ema_ok, ema_pct is not None, DASH), e_today, ema_ok),
         Rule(f"Within {gap}% of its 52W high", "filter and sell rule",
-             formats.price(None if hi_level is None else hi_level * high_pct), fall(hi_c, hi_ok), h_today, hi_ok),
+             formats.price(None if hi_level is None else hi_level * high_pct),
+             fall(hi_c, hi_ok, hi_pct is not None, "No 52W high yet" if short else DASH), h_today, hi_ok),
         Rule(f"In the top {ln.keep} of the qualified", "sell rule", wl.fmt_ordinal(ln.keep),
              ("Out" if q is None else wl.fmt_count(int(room), "place") if room is not None and room >= 0 else "Past it"),
              place_text(q), q is not None and q <= ln.keep),
