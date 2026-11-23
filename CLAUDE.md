@@ -65,8 +65,17 @@ all Actions minutes), and every session reads the docs above, so text and pushes
 - **Batch.** Finish a change locally (code, tests, docs, TODO, CHANGELOG), run the checks, then push
   once. Do not push small follow-ups one at a time; collect them and push together. Before pushing a
   docs-only fix to an open PR, ask whether it can wait for the next push.
-- **One PR per piece of work**, not one per document. A TODO or handover update rides in the PR of
-  the work it describes, unless the work is already merged.
+- **Open the PR last** (owner, 23 Nov 2026). CI runs only on a pull request and on main, so commit
+  and push to the working branch as you go and open the PR once the batch is finished. Every push to
+  an open PR is a full run, and every merge is another on main.
+- **One PR per decision round, not per item or document.** Items that are ready together go in one
+  PR (S213 and S218 would have been one; item B one, opened when done). A TODO or handover update
+  rides in the PR of the work it describes. Keep apart only a live fault on the site (it goes out
+  alone, at once) and an item still waiting for the owner. Cap a batch at about a day's decided
+  work, so a Production QA failure after the merge has few places to look.
+- **Run CI's checks locally before opening the PR:** `pytest`, `ruff`, `headless_smoke.py`, and
+  for page changes the number, glossary and requirement audits (`scripts/number_format_audit.mjs`,
+  `glossary_audit.mjs`, `check_dashboard_requirements.mjs`), so the PR's one run passes.
 - **Keep the docs lean.** A TODO row holds the requirement, how we know it is done, and a one- or
   two-line status with run IDs; the narrative goes in the PR or `docs/archive/`. Do not paste logs or
   long evidence into TODO rows.
