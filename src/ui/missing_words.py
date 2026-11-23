@@ -45,7 +45,7 @@ def system_too_young(first_month=None) -> str:
 
 def book_too_short(need: int, have: int) -> str:
     """Why a risk figure that needs more sessions of the book reads "–"."""
-    return f"{SYSTEM_TOO_YOUNG}: the figure needs {need} sessions of the book, it has {have}"
+    return f"{SYSTEM_TOO_YOUNG} (the figure needs {need} sessions of the book; it has {have})"
 
 
 def stock_too_new(listed=None, sessions: int | None = None) -> str:
