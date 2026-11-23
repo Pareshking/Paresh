@@ -53,7 +53,7 @@ def _scale(a: mq.Answer) -> str:
     return (f'<div class="mq-scale" aria-hidden="true"><span class="bar"></span>{dots}</div>'
             f'<div class="mq-ends" aria-hidden="true"><span>{html.escape(a.words[0])}</span>'
             f'<span>{html.escape(a.words[2])}</span><span>{html.escape(a.words[4])}</span></div>'
-            '<p class="mq-key">● Today · ○ A month ago · dashed ring: A year ago</p>')
+            '<p class="mq-key">● Today · ○ A month ago · dashed ring: 12 months ago</p>')
 
 
 def _tone(a: mq.Answer) -> str:
@@ -108,7 +108,7 @@ def size_closes(levels: pd.DataFrame | None = None, ok: bool = True) -> dict[str
     read before was not reachable everywhere, and the Breadth page then showed only the Nifty 500, found 21 Nov 2026)."""
     from src.loaders import benchmark_indices as bi
     frame = bi.read()
-    names = {"nifty50": "Nifty 50", "midcap150": "Midcap 150", "smallcap250": "Smallcap 250", "microcap250": "Microcap 250"}
+    names = {"nifty50": "Nifty 50", "midcap150": "Nifty Midcap 150", "smallcap250": "Nifty Smallcap 250", "microcap250": "Nifty Microcap 250"}
     out = {}
     for key, name in names.items():
         s = bi.series(key, frame=frame).dropna()
@@ -223,7 +223,7 @@ def question_section_html(a: mq.Answer, kind: str, anchor: str) -> str:
         if m.history:
             since = m.history[5]
             sub.append(f"{_ordinal(m.history[4])} percentile" + (f" since {since:%b %Y}" if since is not None else ""))
-        sub.append(f"A year ago {_num(m.year_ago, m.unit)}")
+        sub.append(f"12 months ago {_num(m.year_ago, m.unit)}")
         rows.append(
             f'<tr><td>{html.escape(m.name)}<br><span class="qp-note" style="margin:0">'
             f'{"Primary. " if m.primary else ""}{html.escape(sentence_case(m.rule))}</span></td>'
@@ -368,7 +368,7 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
             daily = nnh if nnh is not None and len(nnh) else weekly
             a = mq._on_or_before(daily.index, end - pd.DateOffset(years=1))
             _chart_head(f"Net new 52W highs this week: {_fmt.signed(daily.iloc[-1], 1)}% of stocks"
-                        + (f"; a year ago {_fmt.signed(daily.loc[a], 1)}%" if a is not None else ""),
+                        + (f"; 12 months ago {_fmt.signed(daily.loc[a], 1)}%" if a is not None else ""),
                         "Each week, the stocks that made a new 52-week high in the last five sessions less "
                         "those that made a new low, each counted once, as a share of the stocks that could "
                         "make one. Above zero, more stocks are making highs.")
@@ -400,12 +400,12 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
             month_end = ("" if me is None or me_at is None or me_at == b.index[-1] else
                          f"; at the {me_at:%-d %b} month-end it was {side(me)}")
             _chart_head(f"The Nifty 500 is {side(today)} its 10-month average on {b.index[-1]:%-d %b}{month_end}",
-                        "Monthly closes against the average of the last ten, this month at today's close. Above "
+                        f"Monthly closes against the average of the last ten, {b.index[-1]:%B} at today's close. Above "
                         "the average the 10-month rule reads up; the classic rule reads only month-ends. Three years; "
                         "price only.")
         mm, aa = m.loc[since:], avg.loc[since:]
         dc.render("lines", {"dates": _dates(mm.index), "yfmt": "num", "series": [
-            {"name": "Nifty 500, monthly close (this month: today)", "values": _vals(mm, 1), "color": "ink"},
+            {"name": f"Nifty 500, monthly close ({b.index[-1]:%b}: today)", "values": _vals(mm, 1), "color": "ink"},
             {"name": "10-month average", "values": _vals(aa.reindex(mm.index), 1), "color": "muted", "dash": True}]},
             label="The Nifty 500's monthly closes and its 10-month average")
     with right:
@@ -422,10 +422,10 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
         if rel:
             last = {k: float(v.dropna().iloc[-1]) - 100 for k, v in rel.items() if len(v.dropna())}
             best, worst = max(last, key=last.get), min(last, key=last.get)
-            _chart_head(f"Over the year, {best} did best against the Nifty 500 ({_fmt.signed(last[best], 1)} pts) and "
+            _chart_head(f"Over 12 months, {best} did best against the Nifty 500 ({_fmt.signed(last[best], 1)} pts) and "
                         f"{worst} worst ({_fmt.signed(last[worst], 1)} pts)",
-                        "Each size index divided by the Nifty 500, set to 100 a year ago (the dashed line); above 100 it has "
-                        "done better. Price only.")
+                        "Each size index divided by the Nifty 500, set to 100 at the start 12 months ago (the dashed line); above 100 it has "
+                        f"done better. Price only. {_fmt.PTS_NOTE}")
             idx = sorted(set().union(*[set(v.dropna().index) for v in rel.values()]))
             colours = ["ink", "up", "caution", "teal", "violet"]
             dc.render("lines", {"dates": _dates(idx), "yfmt": "num",
@@ -470,10 +470,10 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
             '<div class="qp-head"><p class="qp-kick">Market</p>'
             f'<h1 class="qp-title">{html.escape(title)}</h1>'
             '<p class="qp-sub">Two questions, answered from the ranked stocks and NSE’s index closes: are most stocks '
-            'taking part, and is the market in an uptrend. Then today’s charts.</p></div>'
+            'taking part, and is the Nifty 500 in an uptrend. Then today’s charts.</p></div>'
             '<nav class="qp-nav" aria-label="On this page">'
             '<a href="#q-breadth">Are most stocks taking part?</a>'
-            '<a href="#q-trend">Is the market in an uptrend?</a><a href="#q-charts">Today\'s charts</a></nav>')
+            '<a href="#q-trend">Is the Nifty 500 in an uptrend?</a><a href="#q-charts">Today\'s charts</a></nav>')
     if breadth is not None:
         st.html(question_section_html(breadth, "breadth", "q-breadth")
                 + '<p class="qp-behind">Behind the answer</p>')
@@ -555,7 +555,7 @@ def run_example(months: pd.DataFrame) -> str:
     name = months[months["run"].abs() == longest].index[0]
     n = int(row["run"])
     side = "ahead" if n > 0 else "behind"
-    completed = [c for c in months.columns if c not in ("run", "total") and not c.endswith("MTD")]
+    completed = [c for c in months.columns if c not in ("run", "total") and not c.endswith("so far")]
     inside = completed[len(completed) - abs(n):][::-1]          # newest first
 
     def short(col: str) -> str:
@@ -596,7 +596,7 @@ def _rel_bars_html(sec: pd.DataFrame) -> str:
             f'<span class="rb-v">{_num(r.rel_6m, "pts")}<small> · {_num(r.rel_1m, "pts")}</small></span></div>')
     return ('<h3 style="margin-top:6px">Six months against all ranked stocks, and the last month</h3>'
             '<p class="qp-note" style="margin:0 0 8px">Bars: the industry\'s six-month return less all ranked '
-            'stocks\', each equal-weighted. Rings: the last month. Right of the line is ahead of the market.</p>'
+            'stocks\', each equal-weighted. Rings: the last month. Right of the line is ahead of all ranked stocks.</p>'
             '<style>.rb-row{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr) 120px;gap:12px;'
             'align-items:center;padding:3px 0;font-size:13.5px}.rb-n{color:var(--c-text_2);white-space:nowrap;'
             'overflow:hidden;text-overflow:ellipsis}.rb-t{position:relative;height:14px}'
@@ -658,7 +658,7 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame, market_name: str 
         body = []
         for name, r in months.iterrows():
             cells = "".join(
-                f'<td class="{_heat_cls(r[c])}{" mtd" if c.endswith("MTD") else ""}">'
+                f'<td class="{_heat_cls(r[c])}{" mtd" if c.endswith("so far") else ""}">'
                 f'{"–" if not pd.notna(r[c]) else _fmt.signed(r[c], 1)}</td>' for c in cols)
             body.append(f'<tr><td>{html.escape(name)}</td>{cells}<td class="run">{_run_text(int(r["run"]))}</td>'
                         f'<td class="tot {_t(r["total"])}">{_num(r["total"], "pts")}</td></tr>')

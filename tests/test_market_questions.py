@@ -77,7 +77,7 @@ def test_leaders_groups_industries_against_the_equal_weighted_market():
     out = mq.leaders_answer(prices, industry, soaring, None)
     g = out.sectors.set_index("Industry")["group"]
     assert g["Leaders"] == "ahead on both" and g["Turning"] == "gaining"
-    assert "1 of 3 industries" in out.sentence and "Leaders" in out.sentence
+    assert "1 of 3 sectors" in out.sentence and "Leaders" in out.sentence   # glossary 2
     # The market (every ranked stock, equal weight) trailed that index: size leadership.
     six, one = out.market_vs_index
     assert six is not None and six < 0 and one is not None and one < 0
@@ -167,7 +167,7 @@ def test_industry_months_counts_the_current_run_and_marks_the_month_to_date():
     industry = pd.Series({**{f"A{i}": "Ahead" for i in range(5)}, **{f"B{i}": "Behind" for i in range(5)},
                           **{f"R{i}": "Riser" for i in range(5)}})
     out = mq.industry_months(prices, industry, bench)
-    assert out.columns[-3] == "Nov MTD" and list(out.columns[-2:]) == ["run", "total"]
+    assert out.columns[-3] == "Nov so far" and list(out.columns[-2:]) == ["run", "total"]
     assert out.loc["Ahead", "run"] == 4          # Jul, Aug, Sep, Oct ahead; June (its base month) behind
     assert out.loc["Behind", "run"] <= -11
     assert out.loc["Riser", "run"] >= 11

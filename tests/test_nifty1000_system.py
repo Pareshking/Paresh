@@ -156,7 +156,7 @@ def test_f4_l1_unpriced_members_skips_frozen_months_and_names_the_rest():
         "2026-11-30": ["XCO"]}
     from src.ui.canonical_book import unpriced_note
     head, body = unpriced_note({"unpriced": {"2026-10-30": ["XCO"]}})
-    assert "1 member" in head and "2026-10-30" in head and body.startswith("XCO.")
+    assert "1 member" in head and "30 Oct 2026" in head and body.startswith("XCO.")   # S173 rule 3: no ISO date
     assert unpriced_note({}) is None
 
 

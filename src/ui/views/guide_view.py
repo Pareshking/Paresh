@@ -80,7 +80,7 @@ so a stock counts only while it was a member. Prices are daily closes, adjusted 
 <li><b>Score.</b> Each stock's return over 1, 3, 6, 9 and 12 months, divided by its volatility over
 the same window; each window ranked against the other stocks; the five blended ({weights}).</li>
 <li><b>Filters.</b> Above its 50D EMA and within 20% of its 52-week high.</li>
-<li><b>Book.</b> The top {top_n} stocks that pass both filters, at most {per_industry} from one industry.
+<li><b>Book.</b> The top {top_n} stocks that pass both filters, at most {per_industry} from one sector.
 A holding stays while it ranks within the top {buffer_n} and passes both filters. From the 30 Nov 2026
 rebalance every holding goes back to 5% twice a year (March and September); in between, winners run
 (see Weighting).</li>
@@ -103,8 +103,8 @@ sharpe_m     = return_m / volatility_m</pre>
 <p>For each window, across the stocks that day: values beyond three standard deviations are pulled in
 to that limit, the result is turned into a z-score, and the z-score is capped at ±3, in that order.</p>
 <pre>score = ({score}) / (sum of the weights of the windows the stock has)</pre>
-<p>A stock without, say, a 12-month history is scored on the windows it has, with their weights
-rescaled; it is not given an average 12-month value. These are the record's weights. The
+<p>A stock without, say, 12 months of history is scored on the windows it has, with their weights
+rescaled; it is not given an average value for the missing window. These are the record's weights. The
 Configuration page can change them for the Screener and the Backtest; the record and the model book
 on Portfolio and Actions keep these.</p>
 <p>From the {members_from} ranking the score is worked out over the index members of that day only, as the
@@ -113,14 +113,16 @@ scored over a wider set of stocks and are left exactly as they were recorded.</p
 
 <h2 id="filters">Filters</h2>
 <ul>
-<li><b>Trend:</b> the close above its {ema_period}-day exponential moving average.</li>
+<li><b>Trend:</b> the close above its {ema_period}D EMA. An EMA (exponential moving average) is an average of past
+closes that gives the latest days the most weight, so it turns sooner than a simple average (SMA), which weights
+every day alike. The site writes them 50D EMA and 200D EMA: the average over 50 or 200 sessions.</li>
 <li><b>Near the high:</b> the close at or above {high_pct:.0%} of its 52-week high.</li>
 </ul>
 <p>A stock that fails either is not bought; a holding that fails either at a rebalance is sold.
 No liquidity filter is applied, in the record or by default in the Backtest.</p>
-<h3>A stock needs {min_prints} closes before it has a moving average</h3>
+<h3>A stock needs {min_prints} closes before it has a {ema_period}D EMA</h3>
 <p>From the {warmup_from} ranking a stock with fewer than {min_prints} daily closes has no
-{ema_period}-day average at all, so it cannot be above one and cannot pass the trend filter. It is
+{ema_period}D EMA at all, so it cannot be above one and cannot pass the trend filter. It is
 not ranked low; it is simply not among the stocks that qualify, and it cannot be bought. A recent
 listing therefore waits about six weeks of trading before the model will look at it. This is the
 rule the Screener has always used, and the months already recorded replay as they were.</p>
@@ -136,11 +138,11 @@ figure only lines up with another measured the same way.</p>
 <ul>
 <li><b>Size:</b> {top_n} stocks, each 1/{top_n} of the account at the rebalance, then held as they
 move until the next one.</li>
-<li><b>Caps:</b> a new buy is never above {stock_cap:.0%} of the account and no NSE industry is above
-{sector_cap:.0%} of the book at a rebalance, so at most {per_industry} of the {top_n} from one industry; the
-next-ranked stock from another industry takes the place. From the 30 Nov 2026 rebalance a holding that
-is kept is trimmed only above 15%, not back to {stock_cap:.0%} (see Weighting), so a name the market has
-carried up sits above the buy size until a reset. Between rebalances prices can carry an industry past
+<li><b>Caps:</b> a new buy is never above {stock_cap:.0%} of the account and no NSE sector is above
+{sector_cap:.0%} of the book at a rebalance, so at most {per_industry} of the {top_n} from one sector; the
+next-ranked stock from another sector takes the place. From the 30 Nov 2026 rebalance a holding that
+is kept is trimmed only above 15%, not back to {stock_cap:.0%} (see Weighting), so a holding whose price
+has risen sits above the buy size until a reset. Between rebalances prices can carry a sector past
 its cap until the next rebalance trims it.</li>
 <li><b>Buffer:</b> a holding is kept while its rank among stocks passing both filters stays within
 {buffer_n}, so a move from 18th to 24th does not trigger a sale and a repurchase.</li>
@@ -153,10 +155,10 @@ is traded. Every return on the site is before tax; tax was estimated only in the
 <p><b>Equal weight</b> sets each new book's targets: 1/{top_n} of the account a holding.</p>
 <p><b>Six-monthly reset</b> (from the 30 Nov 2026 rebalance). Until then every rebalance put each
 holding back to 1/{top_n}, selling some of a winner and topping up a laggard. From then that happens
-twice a year, at the March and September rebalances. In between, a holding that stays is left as the
-market moved it unless it is above 15%, when it is cut to 15%, and each new buy is 5% of the account
+twice a year, at the March and September rebalances. In between, a holding that stays is left as its
+price moved it unless it is above 15%, when it is cut to 15%, and each new buy is 5% of the account
 as it stood at the last reset, paid from cash; when cash is short the new names get fewer shares, and
-no holding is sold to pay for them. No industry is above 40% after a rebalance. Tested on the
+no holding is sold to pay for them. No sector is above 40% after a rebalance. Tested on the
 Nifty 500 from 2010 with an estimate of tax: the monthly reset earned 15.4% a year after tax and the
 six-monthly 15.3%, with far fewer trades between resets; in 2026 the six-monthly reset did best.
 Against the alternative of simply holding the index, both price only, both sold at the end and taxed:
@@ -192,9 +194,16 @@ leave.</dd>
 <dt>Why does a stock's rank differ from its qualified rank?</dt>
 <dd>The rank places it among all stocks in the universe; the qualified rank, among those passing both
 filters. The book and the buffer use the qualified rank.</dd>
-<dt>Does the market trend change the model?</dt>
+<dt>Does the Nifty 500's trend change the model?</dt>
 <dd>No. The header's "Nifty 500 ... % above its 200D EMA" (or below) compares the index with its 200D EMA for context.
-The model holds {top_n} stocks in every market and keeps no cash target.</dd>
+The model holds {top_n} stocks whatever the index does and keeps no cash target.</dd>
+<dt>What does "pts" mean?</dt>
+<dd>pts = percentage points: 12% − 8% = 4 pts. A gap between two returns is written in points, by subtraction:
++46.3% against +1.3% is 45.0 pts. Written as a percentage it could be read as a relative return (44.4%).
+"bps" (basis points, hundredths of a point) is kept for costs.</dd>
+<dt>What is a max drawdown?</dt>
+<dd>The worst fall from a peak to a later low over a window: "6M max drawdown" is the deepest such fall in the
+last six months. Plain "drawdown" is how far a price or the book is below its peak today.</dd>
 <dt>What do the costs cover?</dt>
 <dd>{cost:.0f} basis points a round trip, meant to cover brokerage, exchange and SEBI fees, GST on them,
 stamp duty, STT and the bid-ask spread. STT (0.1% on the buy and on the sell) and stamp duty (0.015% on

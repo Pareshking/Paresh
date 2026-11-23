@@ -9,8 +9,8 @@ It answers what a reader comes with (docs/STOCK_REQUIREMENTS.md):
             the model book's holding (Portfolio's own function), the calendar before the check
   3 Returns and falls: line bars on one scale against Nifty Total Market over the same sessions
   4 Price   today's Lightweight Charts chart, restyled: price and the ranking's 50D EMA,
-            Volume, RS against Nifty Total Market; 6M · 1Y · 3Y; one-line readout
-  5 Industry  the eight best-ranked, qualified places filled; the rest on the Screener
+            Volume, RS against Nifty Total Market; 6M · 12M · 3Y; one-line readout
+  5 Sector    the eight best-ranked, qualified places filled; the rest on the Screener
   6 Data    the checks in plain sight; corporate actions from NSE's own list
   Foot      Data to <date> · NSE
 
@@ -34,9 +34,9 @@ from src.ui.components import gap_count, render_data_quality_footer
 
 e = html.escape
 
-INDEX_NAMES = {
-    "N50": "Nifty 50", "NN50": "Next 50", "MID150": "Midcap 150",
-    "SMALL250": "Smallcap 250", "MICRO250": "Microcap 250",
+INDEX_NAMES = {   # NSE indices by their full names in the kicker (glossary 3)
+    "N50": "Nifty 50", "NN50": "Nifty Next 50", "MID150": "Nifty Midcap 150",
+    "SMALL250": "Nifty Smallcap 250", "MICRO250": "Nifty Microcap 250",
     "NANO250": "Nano Cap", "NANO": "> ₹2,000 Cr",   # S175 / S194: our own groups, not NSE indices
 }
 
@@ -332,7 +332,7 @@ def returns_html(ws: list[sl.Window], as_of, uni) -> list:
                  f"--pa:{bar.part_at if bar.part_at is not None else 0};--m:{bar.market if bar.market is not None else 0}")
         inner = ('<i class="f"></i>' + ('<i class="p"></i>' if bar.part_at is not None else "") + '<i class="z"></i>'
                  + ('<i class="m"></i>' if bar.market is not None else ""))
-        aria = f"{formats.pct(w.ret)} against {formats.pct(w.market)} for the market"
+        aria = f"{formats.pct(w.ret)} against {formats.pct(w.market)} for {sl.MARKET}"
         start = f'<span class="sub sp-wide">from {e(formats.date(w.start))}</span>' if w.start is not None else ""
         body.append(
             f'<tr><th scope="row">{w.months}M{start}</th>'
@@ -348,9 +348,9 @@ def returns_html(ws: list[sl.Window], as_of, uni) -> list:
             f'<div class="sp-key"><span><i class="ln"></i>One line is {step}% of return, one scale for every row</span>'
             f'<span><i class="tri"></i>{sl.MARKET}, same sessions</span></div>',
             '<div class="sp-tbox sp-ret"><table class="sp-t"><thead><tr><th scope="col">Window</th><th scope="col">Return</th>'
-            '<th scope="col" class="n">Stock</th><th scope="col" class="n">Market</th><th scope="col" class="n sp-wide">Lead</th>'
-            '<th scope="col" class="n sp-wide">Typical stock</th><th scope="col" class="n">Largest fall</th>'
-            '<th scope="col" class="n sp-wide">Typical fall</th><th scope="col" class="n sp-wide">Sharpe</th>'
+            '<th scope="col" class="n">Stock</th><th scope="col" class="n">Nifty Total Market</th><th scope="col" class="n sp-wide">Lead, pts</th>'
+            '<th scope="col" class="n sp-wide">Typical stock</th><th scope="col" class="n">Max drawdown</th>'
+            '<th scope="col" class="n sp-wide">Typical max drawdown</th><th scope="col" class="n sp-wide">Sharpe</th>'
             f'<th scope="col" class="n sp-wide">Rank by return</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>',
             '<p class="sp-phone">On a wider screen: each window’s first day, the lead in pts, the typical stock’s '
             'return and fall, Sharpe, and rank by return.</p>',
@@ -380,14 +380,14 @@ def industry_html(row, shown: pd.DataFrame, in_ind: pd.DataFrame, as_of) -> list
     ind_full = str(row.get("Industry") or "")
     ind = short_industry(ind_full)
     href = f"screener?ind={quote(ind_full, safe='')}{suffix()}"
-    return ['<section class="dh-sec sp-sec">', _kick("5 · Industry"), _h2(sl.industry_heading(row, in_ind)),
+    return ['<section class="dh-sec sp-sec">', _kick("5 · Sector"), _h2(sl.industry_heading(row, in_ind)),
             '<div class="sp-tbox"><table class="sp-t"><thead><tr><th scope="col" class="n">Rank</th>'
             '<th scope="col" class="n">Qualified</th><th scope="col">Stock</th><th scope="col" class="n">Price</th>'
             '<th scope="col" class="n">1M</th><th scope="col" class="n">3M</th><th scope="col" class="n">6M</th>'
             '<th scope="col" class="n">12M</th><th scope="col" class="n">From 52W high</th>'
             f'<th scope="col" class="n">vs 50D EMA</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>',
             f'<p class="dh-note">The {"eight" if len(shown) == sl.PEERS_SHOWN else len(shown)} best-ranked of the '
-            f'industry’s {len(in_ind)}, with this stock; returns in %. '
+            f'sector’s {len(in_ind)}, with this stock; returns in %. '
             f'<a class="sp-go" href="{e(href)}" target="_self">All {len(in_ind)} {e(ind)} stocks on the Screener →</a></p>',
             "</section>"]
 
@@ -503,7 +503,7 @@ def render_stock_view(
     # 4 · Price: the chart is a widget (the range control), so the section is drawn in pieces.
     ema = ranking_ema(chart_close) if not chart_close.empty else pd.Series(dtype=float)
     above, of = sl.sessions_above(chart_close, ema)
-    rs = relative_strength(window(chart_close, RANGES["1Y"]), market)
+    rs = relative_strength(window(chart_close, RANGES["12M"]), market)
     pa, pb, pc = sl.price_heading(above, of, float(rs.iloc[-1]) if len(rs) else None)
     _emit(['<section class="dh-sec sp-sec" style="padding-bottom:0;border-bottom:0">', _kick("4 · Price"), _h2(pa, pb, pc),
            f'<div class="sp-cap"><b>Price and relative strength</b><span>against {sl.MARKET}</span></div>', "</section>"])

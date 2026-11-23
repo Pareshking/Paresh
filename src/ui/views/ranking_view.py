@@ -114,14 +114,15 @@ def _kept(key: str, default, options: list | None = None):
         return default
     return value
 
-_SEARCH_KINDS = {"[STOCK] ": "", "[INDEX] ": "index", "[INDUSTRY] ": "industry",
-                 "[SECTOR] ": "sector", "[TV_INDUSTRY] ": "sub-industry"}
+# NSE's 22 groups (the ranking's "Industry" column) read "sector"; "industry" is kept for TradingView's split (glossary 2).
+_SEARCH_KINDS = {"[STOCK] ": "", "[INDEX] ": "index", "[INDUSTRY] ": "sector",
+                 "[SECTOR] ": "TradingView sector", "[TV_INDUSTRY] ": "TradingView industry"}
 
 
 def search_label(value: str) -> str:
     """What the search list shows for an option (audit F36). The value keeps its
     bracketed kind, which the handlers read; the reader sees "LAURUSLABS ·
-    Healthcare" and "Healthcare · industry", not "[STOCK]" or "[INDUSTRY]"."""
+    Healthcare" and "Healthcare · sector", not "[STOCK]" or "[INDUSTRY]"."""
     for tag, kind in _SEARCH_KINDS.items():
         if value.startswith(tag):
             rest = value[len(tag):]
@@ -421,10 +422,10 @@ def render_ranking_view(
     with st.container(key="scr_toolbar", horizontal=True, vertical_alignment="center",
                       gap="small"):
         selected_search = st.selectbox(
-            "Search stock, industry or index",
+            "Search stock, sector or index",
             options=search_options,
             index=None,
-            placeholder="Search stock, industry or index",
+            placeholder="Search stock, sector or index",
             key="rank_search_predictive",
             label_visibility="collapsed",
             format_func=search_label,
@@ -715,7 +716,7 @@ def screener_title(rank_df: pd.DataFrame) -> str:
     if prev is None or prev.isna().all():
         return head + "."
     new = int((prev > 50).sum())
-    return f"{head}; {new} of the {n_top} are new this month."
+    return f"{head}; {new} of the {n_top} were not in the top {n_top} a month ago."   # not the running month (glossary 9)
 
 
 def screener_lede(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:

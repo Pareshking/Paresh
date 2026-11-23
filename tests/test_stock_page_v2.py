@@ -217,7 +217,8 @@ def test_line_bars_use_one_scale_and_fill_left_for_a_fall():
 
 def test_the_returns_heading_and_note():
     ws = [sl.Window(12, None, 2.009156, 0.008, None, -16.996686, None, None, None)]
-    assert "".join(sl.returns_heading(ws)) == "Up 200.9% in a year against +0.8% for the market; its largest fall was 17.0%."
+    assert "".join(sl.returns_heading(ws)) == ("Up 200.9% in 12 months against +0.8% for Nifty Total Market; "
+                                               "its max drawdown was 17.0%.")   # glossary 1, 6, 8
     note = sl.returns_note(DAY, sl.Universe("750", 750))
     assert "not annualised" in note and "Nifty Total Market" in note and "the median of the 750" in note
 
@@ -235,11 +236,11 @@ def test_the_chart_keeps_price_volume_and_rs_against_nifty_total_market():
     close = pd.Series(np.linspace(100, 300, len(idx)), index=idx)
     market = pd.Series(np.linspace(100, 150, len(idx)), index=idx)
     vol = pd.Series(1e5, index=idx)
-    panes, has_vol = stock_chart.price_chart_panes(close, vol, market, stock_chart.RANGES["1Y"])
+    panes, has_vol = stock_chart.price_chart_panes(close, vol, market, stock_chart.RANGES["12M"])
     assert has_vol and [p["series"][0]["name"] for p in panes] == ["Price", "Volume", stock_chart.RS_NAME]
     assert [s["name"] for s in panes[0]["series"]] == ["Price", "50D EMA"]
     assert panes[2]["series"][0]["data"][0][1] == pytest.approx(100.0)     # 100 at the start of the range
-    assert list(stock_chart.RANGES) == ["6M", "1Y", "3Y"]
+    assert list(stock_chart.RANGES) == ["6M", "12M", "3Y"]   # glossary 6
     assert stock_chart.RS_NAME == "RS against Nifty Total Market"
 
 
@@ -255,7 +256,7 @@ def test_the_readout_is_one_line_at_a_fixed_height():
 
 def test_the_price_heading():
     assert sl.price_heading(57, 60, 298.6) == ("Above its 50D EMA on 57 of the last 60 sessions; ",
-                                               "against the market it has almost tripled", " in a year.")
+                                               "against Nifty Total Market it has almost tripled", " in 12 months.")
     assert sl.rs_words(110.0) == "is 10.0% ahead" and sl.rs_words(80.0) == "is 20.0% behind"
     above, of = sl.sessions_above(pd.Series([1.0, 3.0, 2.0]), pd.Series([np.nan, 2.0, 2.5]))
     assert (above, of) == (1, 2)

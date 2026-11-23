@@ -100,7 +100,8 @@ def test_the_title_answers_who_leads_and_can_be_bought():
         "Rank (-1M)": [70, 2, 3, 10],
         "Above 50 EMA": [True, True, False, True], "Near 52W High": [True, True, True, True],
     })
-    assert rv.screener_title(df) == "2 of the top 3 can be bought; 1 of the 3 are new this month."
+    # "a month ago", not "this month": the comparison is with the rank a month back (glossary 9).
+    assert rv.screener_title(df) == "2 of the top 3 can be bought; 1 of the 3 were not in the top 3 a month ago."
     assert rv.screener_title(df.drop(columns="Rank (-1M)")) == "2 of the top 3 can be bought."
 
 

@@ -122,7 +122,7 @@ def _value(v: float, fmt: str | None) -> str:
     if fmt == "lvl":
         return f"{v:,.1f}"
     if fmt == "int":
-        r = round(v)
+        r = _fmt.half_up(v, 0)
         return (_fmt.MINUS if r < 0 else "") + _fmt.indian_group(abs(r))
     return _fmt.signed(v, 2, plus=False)
 
@@ -212,15 +212,19 @@ _ONE_LINE_CSS = (
 
 _JS = r"""
 const root=document.getElementById('root');
+/* Half away from zero on the decimal value (glossary 12), as formats.half_up and dash_charts.js's rnd. */
+const rnd=(v,dp=0)=>{const a=Math.abs(v),t=String(a);const r=/e/.test(t)?+a.toFixed(dp):+(Math.round(+(t+'e'+dp))+'e-'+dp);return v<0&&r?-r:r;};
+const grp=(v,dp)=>Math.abs(rnd(v,dp)).toLocaleString('en-IN',{minimumFractionDigits:dp,maximumFractionDigits:dp});
+const sgn=(v,dp,plus)=>{const r=rnd(v,dp);return r>0?(plus?'+':''):r<0?'−':'';};
 const fmts={
-  pct:v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+'%',
-  num:v=>(v<0?'−':'')+Math.abs(v).toFixed(2),
-  int:v=>(Math.round(v)<0?'−':'')+Math.abs(Math.round(v)).toLocaleString('en-IN'),
-  rupee:v=>(Math.round(v)<0?'−':'')+'₹'+Math.abs(Math.round(v)).toLocaleString('en-IN'),
-  price:v=>(Math.round(v)<0?'−':'')+'₹'+Math.abs(Math.round(v)).toLocaleString('en-IN'),  // whole rupees (S173)
-  share:v=>v.toFixed(0)+'%',
-  share1:v=>v.toFixed(1)+'%',
-  lvl:v=>v.toLocaleString('en-IN',{minimumFractionDigits:1,maximumFractionDigits:1}),
+  pct:v=>sgn(v,1,true)+Math.abs(rnd(v,1)).toFixed(1)+'%',
+  num:v=>sgn(v,2)+Math.abs(rnd(v,2)).toFixed(2),
+  int:v=>sgn(v,0)+grp(v,0),
+  rupee:v=>sgn(v,0)+'₹'+grp(v,0),
+  price:v=>sgn(v,0)+'₹'+grp(v,0),  // whole rupees (S173)
+  share:v=>sgn(v,0)+Math.abs(rnd(v,0)).toFixed(0)+'%',
+  share1:v=>sgn(v,1)+Math.abs(rnd(v,1)).toFixed(1)+'%',
+  lvl:v=>sgn(v,1)+grp(v,1),
 };
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

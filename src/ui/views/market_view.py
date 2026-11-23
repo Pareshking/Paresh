@@ -94,7 +94,7 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         st.html('<h2 id="q-charts" class="br-charts-h">Today\'s charts</h2>', width="stretch")
         history_days = st.segmented_control(
             "Period", [63, 126, 252], default=126, required=True,
-            format_func=lambda x: {63: "3M", 126: "6M", 252: "1Y"}[x],
+            format_func=lambda x: {63: "3M", 126: "6M", 252: "12M"}[x],
             key="br_lb_days", label_visibility="collapsed",
         ) or 126
         with st.popover("Chart settings", icon=":material/tune:"):
@@ -113,7 +113,7 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                                            default="% of Universe", key="hl_fmt_radio") or "% of Universe"
 
     if not sel_mas:
-        kit.empty("Pick at least one moving average", "under Chart settings.")
+        kit.empty("Pick at least one EMA or SMA", "under Chart settings.")
         return
 
     # Whole-history fingerprint, not last date + shape (an intraday refresh
@@ -189,7 +189,7 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                     disp = hl_events_df[hl_events_df["Event"].str.contains("high", case=False)]
                 elif ev_sel == "Lows":
                     disp = hl_events_df[hl_events_df["Event"].str.contains("low", case=False)]
-                render_saas_table(disp, max_height=420)
+                render_saas_table(disp.rename(columns={"Industry": "Sector"}), max_height=420)   # glossary 2
 
     # Data date and counts, no sources (owner, 20-21 Nov 2026).
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())

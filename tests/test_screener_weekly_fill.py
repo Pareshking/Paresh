@@ -229,7 +229,7 @@ def test_extra_files_are_read_in_order_and_never_replace_nse(tmp_path):
 
 
 def test_the_committed_nano_file_holds_the_nano_cap_list_and_not_the_750():
-    from scripts.build_weekly_fill_extra import NANO_START, nano_symbols
+    from scripts.build_weekly_fill_extra import NANO_START, fill_symbols
     from src.loaders import price_source as ps
 
     nano = pd.read_parquet(ps.WEEKLY_FILL_NANO)
@@ -238,7 +238,10 @@ def test_the_committed_nano_file_holds_the_nano_cap_list_and_not_the_750():
     assert not set(nano.columns) & set(tm["Symbol"].str.strip().str.upper())
     # Every stock on the list now or at a month-end on file; the daily sync
     # rebuilds the file when one is missing (--nano --if-missing).
-    assert nano_symbols() <= set(nano.columns)
+    # Since 23 Nov 2026 (daily_sync run 45081696293) the file holds the Nifty 1000's
+    # members outside the 750 too, and the fill covers them by default.
+    lacking = fill_symbols() - set(nano.columns)
+    assert not lacking, f"weekly fill lacks {sorted(lacking)}"
     assert nano.index.min() >= NANO_START and nano.notna().sum().min() > 0
 
 
@@ -284,3 +287,15 @@ def test_the_daily_sync_asks_for_the_nifty_1000_in_both_calls():
 
     wf = Path(".github/workflows/daily_sync.yml").read_text()
     assert wf.count("build_weekly_fill_extra.py --nano --with-nifty-1000") == 2
+
+
+def test_the_nifty_1000_is_the_default_and_nano_only_is_the_old_set(monkeypatch, tmp_path):
+    from scripts import build_weekly_fill_extra as b
+
+    asked = []
+    monkeypatch.setattr(b, "fill_symbols", lambda *a: asked.append("fill") or {"ZZZ"})
+    monkeypatch.setattr(b, "nano_symbols", lambda *a: asked.append("nano") or {"ZZZ"})
+    out = str(tmp_path / "none.parquet")
+    assert b.main(["--nano", "--if-missing", "--out", out]) == 3 and asked == ["fill"]
+    asked.clear()
+    assert b.main(["--nano", "--nano-only", "--if-missing", "--out", out]) == 3 and asked == ["nano"]
