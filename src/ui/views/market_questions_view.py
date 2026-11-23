@@ -465,6 +465,12 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
+    # The prices' session bounds the index, as on the Dashboard: after the close the live Nifty 500 has
+    # today while the stocks and the size indices end on the last nightly sync, and the rule below then
+    # emptied every size row (23 Nov 2026: 23 Nov against 20 Nov; CI failed Market requirements 7 and 12).
+    bench = bench[bench.index <= prices.index.max()]
+    if bench.dropna().empty:
+        return False
     # One session for every index (S148): a size index without the Nifty 500's last close reads "–".
     from src.engine import dashboard_insights as di
     size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
@@ -717,6 +723,12 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
+    # The prices' session bounds the index, as on the Dashboard: after the close the live Nifty 500 has
+    # today while the stocks and the size indices end on the last nightly sync, and the rule below then
+    # emptied every size row (23 Nov 2026: 23 Nov against 20 Nov; CI failed Market requirements 7 and 12).
+    bench = bench[bench.index <= prices.index.max()]
+    if bench.dropna().empty:
+        return False
     # One session for every index (S148): a size index without the Nifty 500's last close reads "–".
     from src.engine import dashboard_insights as di
     size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}

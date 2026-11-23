@@ -90,3 +90,20 @@ def test_nightly_snapshot_keeps_the_lists_stocks(tmp_path, monkeypatch):
     spec.loader.exec_module(mod)
     assert mod._extra_list_symbols({"BBB"}) == ["AAA", "CCC"]
     assert "cap_symbols += _extra_list_symbols(set(cap_symbols))" in _src("scripts/sync_data.py")
+
+
+def test_market_size_rows_survive_a_nifty_500_close_the_stocks_do_not_have(monkeypatch):
+    # 23 Nov 2026, after the close: the live Nifty 500 had 23 Nov, the stocks and the size indices 20 Nov.
+    # The one-session rule emptied every size index and "By size" showed the Nifty 500 alone.
+    import src.ui.views.market_questions_view as mqv
+
+    idx = pd.bdate_range("2026-01-01", "2026-11-20")
+    prices = pd.DataFrame({"A": range(len(idx))}, index=idx, dtype=float) + 100
+    bench = pd.Series(range(len(idx) + 1), index=idx.append(pd.DatetimeIndex(["2026-11-23"])), dtype=float) + 100
+    size = {"Nifty Microcap 250": pd.Series(range(len(idx)), index=idx, dtype=float) + 50}
+    seen = {}
+    monkeypatch.setattr(mqv, "_answers", lambda key, px, ind, b, s, pit: seen.update(b=b, s=s) or (None, None, None))
+    monkeypatch.setattr(mqv.st, "html", lambda *a, **k: None)
+    mqv.render_market_page_questions(pd.DataFrame({"Symbol": ["A"], "Industry": ["X"]}), prices, bench, size)
+    assert seen["b"].index[-1] == pd.Timestamp("2026-11-20")
+    assert list(seen["s"]) == ["Nifty Microcap 250"]

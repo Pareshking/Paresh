@@ -7,6 +7,7 @@
 - Sentences true only of the 750 now say what is true: Portfolio names the book's own largest size groups and its size legend lists the groups drawn; Market's chart note says "members of each date" only on the 750; the Guide says the other systems follow the same steps on their own lists.
 - Foreign buying against the > ₹2,000 Cr list's market value, and Portfolio's sector marks, now count every stock on the list. NSE's daily market-cap file has them all, but the nightly copy kept only the 750 and the Nifty 1000 (192 of the list's 411 stocks); it now keeps the list's stocks too, and until the next nightly they take the list's own month-end value. The share it shows will fall.
 - Backtest says when the chosen system does not change its runs.
+- Market's "By size" and Sectors' size leaders no longer lose every index except the Nifty 500 between NSE's close and the nightly sync: the Nifty 500 is read up to the stocks' last session, as on the Dashboard (S216).
 
 ## 2026-11-23 — A system's first month is measured from its first fill on every line (S193 A12, A10)
 
