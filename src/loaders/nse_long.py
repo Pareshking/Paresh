@@ -9,7 +9,12 @@ and nse_long_prices.yml uploads it weekly:
     nse_long_value.parquet   traded value per session, Rs crore
     nse_long_report.json     what the build found
 
-The files are cached in DATA_DIR and fetched again after CACHE_TTL_S. Never
+The files are cached in DATA_DIR, each with the revision it is (a `.revision`
+file beside it: R2's SHA-256, or the release asset's ETag). A copy is kept while
+it is the revision published now and replaced as soon as it is not, whatever
+its age (S214; the 24-hour copy kept a republished week out for a day, the flaw
+S210 fixed for the NSE closes). When neither R2 nor the release can be asked,
+the copy on disk is used as it is, with a warning past CACHE_TTL_S. Never
 raises: anything unreachable returns None and the page says so.
 
 Where they come from (S142, owner 17 Nov 2026: "Yes weekly"): R2 first, the
@@ -41,6 +46,7 @@ from src.core.logger import logger
 CLOSE_FILE = "nse_long_close.parquet"
 VALUE_FILE = "nse_long_value.parquet"
 REPORT_FILE = "nse_long_report.json"
+# Only for the log: a copy older than this, used because nothing could be asked, is a warning.
 CACHE_TTL_S = 24 * 3600
 TIMEOUT_S = 120
 
@@ -73,8 +79,45 @@ def _report_text(parquet_bytes: bytes) -> bytes:
     return str(frame[REPORT_COLUMN].iloc[0]).encode("utf-8")
 
 
+def _revision_file(path: Path) -> Path:
+    return path.with_name(path.name + ".revision")
+
+
+def _held_revision(path: Path) -> str | None:
+    """The revision the copy on disk was saved as, or None (no copy, or saved before S214)."""
+    try:
+        return _revision_file(path).read_text(encoding="utf-8").strip() or None if path.exists() else None
+    except OSError:
+        return None
+
+
+def _write(cache: Path, name: str, data: bytes, revision: str) -> Path:
+    cache.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=cache, suffix=".part")
+    with os.fdopen(fd, "wb") as fh:
+        fh.write(data)
+    path = cache / name
+    os.replace(tmp, path)
+    _revision_file(path).write_text(revision, encoding="utf-8")
+    return path
+
+
+def _stale(path: Path, name: str) -> Path | None:
+    """The copy on disk when nothing could be asked: used as it is, logged as unchecked."""
+    if not path.exists():
+        return None
+    age_h = (time.time() - path.stat().st_mtime) / 3600
+    (logger.info if age_h * 3600 < CACHE_TTL_S else logger.warning)(
+        "Long NSE file %s: neither R2 nor the release answered; using the copy on disk "
+        "(%.0f h old, revision %s) unchecked.", name, age_h, (_held_revision(path) or "unknown")[:16])
+    return path
+
+
 def _from_r2(name: str, cache: Path, as_of: str | None = None) -> tuple[Path | None, str | None]:
-    """(cached path, as_of) of `name` read from R2, or (None, None) when R2 is off or fails."""
+    """(cached path, as_of) of `name` at R2's current revision, or (None, None) when R2 is off or fails.
+
+    The copy on disk is kept when it was saved as that revision; otherwise the
+    revision is read (size and SHA-256 checked against the manifest)."""
     try:
         from r2.consumers import r2_streamlit
 
@@ -85,16 +128,15 @@ def _from_r2(name: str, cache: Path, as_of: str | None = None) -> tuple[Path | N
 
         reader = R2DatasetReader(R2Archive(R2Config.from_env()))
         ref = reader.resolve_current(R2_DATASETS[name], as_of=as_of)
+        revision = f"r2:{ref.revision_sha256}"
+        path = cache / name
+        if _held_revision(path) == revision:
+            return path, ref.as_of
         data = reader.read_bytes(ref)          # size and SHA-256 checked against the manifest
         if name == REPORT_FILE:
             data = _report_text(data)
-        cache.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=cache, suffix=".part")
-        with os.fdopen(fd, "wb") as fh:
-            fh.write(data)
-        path = cache / name
-        os.replace(tmp, path)
-        logger.info("Long NSE file %s from R2 (as_of %s).", name, ref.as_of)
+        path = _write(cache, name, data, revision)
+        logger.info("Long NSE file %s from R2 (as_of %s, revision %s).", name, ref.as_of, ref.revision_sha256[:16])
         return path, ref.as_of
     except Exception as exc:  # noqa: BLE001  the release is the fallback
         logger.info("Long NSE file %s not read from R2 (%s); trying the release.", name, type(exc).__name__)
@@ -103,33 +145,36 @@ def _from_r2(name: str, cache: Path, as_of: str | None = None) -> tuple[Path | N
 
 def _fetch(name: str, base: str, cache: Path, as_of: str | None = None,
            try_r2: bool = True) -> Path | None:
-    """The asset on disk: the cached copy while fresh, else R2, else the release; None if unreachable."""
+    """The asset on disk at the revision published now: R2's, else the release's (its ETag,
+    asked with a one-byte ranged GET, as nse_prices does: HEAD gives 401 on the signed
+    URL); the copy on disk if neither answers; None if there is nothing at all."""
     path = cache / name
-    if path.exists() and time.time() - path.stat().st_mtime < CACHE_TTL_S:
-        return path
     if try_r2:
         got, _ = _from_r2(name, cache, as_of)
         if got is not None:
             return got
-    resp = None
+    url = f"{base}/{name}"
     try:
-        resp = requests.get(f"{base}/{name}", timeout=TIMEOUT_S, stream=True)
-        if resp.status_code != 200:
+        probe = requests.get(url, headers={"Range": "bytes=0-0"}, timeout=30, stream=True)
+        try:
+            etag = probe.headers.get("ETag", "").strip() if probe.status_code in (200, 206) else ""
+            code = probe.status_code
+        finally:
+            probe.close()
+        if code not in (200, 206):
+            logger.info("Long NSE file %s unavailable (HTTP %s).", name, code)
+            return _stale(path, name)
+        if etag and _held_revision(path) == f"release:{etag}":
+            return path
+        resp = requests.get(url, timeout=TIMEOUT_S)
+        if resp.status_code != 200 or not resp.content:
             logger.info("Long NSE file %s unavailable (HTTP %s).", name, resp.status_code)
-            return path if path.exists() else None
-        cache.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=cache, suffix=".part")
-        with os.fdopen(fd, "wb") as fh:
-            for chunk in resp.iter_content(chunk_size=1 << 18):
-                fh.write(chunk)
-        os.replace(tmp, path)
-        return path
+            return _stale(path, name)
+        tag = resp.headers.get("ETag", "").strip() or etag
+        return _write(cache, name, resp.content, f"release:{tag}" if tag else "release:unknown")
     except Exception as exc:  # noqa: BLE001  a stale copy beats none
         logger.info("Long NSE file %s fetch failed (%s).", name, type(exc).__name__)
-        return path if path.exists() else None
-    finally:
-        if resp is not None:
-            resp.close()
+        return _stale(path, name)
 
 
 def load(base: str = NSE_LONG_BASE_URL, cache: Path | str = DATA_DIR, *,
@@ -144,12 +189,8 @@ def load(base: str = NSE_LONG_BASE_URL, cache: Path | str = DATA_DIR, *,
     cache = Path(cache)
     names = (CLOSE_FILE, REPORT_FILE) + ((VALUE_FILE,) if with_value else ())
     # The closes first; the other files from the same build date when they come from R2.
-    close_path = cache / CLOSE_FILE
-    as_of, tried = None, False
-    if not (close_path.exists() and time.time() - close_path.stat().st_mtime < CACHE_TTL_S):
-        _, as_of = _from_r2(CLOSE_FILE, cache)
-        tried = True
-    paths = {CLOSE_FILE: _fetch(CLOSE_FILE, base, cache, try_r2=not tried)}
+    got, as_of = _from_r2(CLOSE_FILE, cache)
+    paths = {CLOSE_FILE: got or _fetch(CLOSE_FILE, base, cache, try_r2=False)}
     paths.update({n: _fetch(n, base, cache, as_of) for n in names if n != CLOSE_FILE})
     if any(p is None for p in paths.values()):
         return None

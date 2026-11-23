@@ -191,8 +191,8 @@ def test_the_historical_industries_use_nse_sector_names_and_fill_the_gaps():
 # --- R2 first, the release as fallback (S142, owner 17 Nov 2026: "Yes weekly") ---
 
 class _Ref:
-    def __init__(self, dataset, as_of):
-        self.dataset, self.as_of = dataset, as_of
+    def __init__(self, dataset, as_of, revision_sha256="0" * 64):
+        self.dataset, self.as_of, self.revision_sha256 = dataset, as_of, revision_sha256
 
 
 def _fake_r2(monkeypatch, objects, calls):
@@ -214,9 +214,12 @@ def _fake_r2(monkeypatch, objects, calls):
                 as_of = dates[-1]
             if (dataset, as_of) not in objects:
                 raise FileNotFoundError(f"{dataset} {as_of}")
-            return _Ref(dataset, as_of)
+            import hashlib
+
+            return _Ref(dataset, as_of, hashlib.sha256(objects[(dataset, as_of)]).hexdigest())
 
         def read_bytes(self, ref):
+            calls.append(("read", ref.dataset, ref.as_of))
             return objects[(ref.dataset, ref.as_of)]
 
     monkeypatch.setattr(r2_streamlit, "enabled", lambda: True)
@@ -285,3 +288,60 @@ def test_the_long_file_logs_to_the_apps_own_log():
     from src.loaders import nse_long
 
     assert nse_long.logger is app_logger
+
+
+def test_a_copy_is_kept_while_it_is_the_published_revision_and_replaced_within_the_day(tmp_path, monkeypatch):
+    """S214: the long file was kept 24 h whatever was published; a republish inside
+    the day must be picked up, and an unchanged revision must not be downloaded again."""
+    from src.loaders import nse_long
+
+    close, files = _build_bytes(tmp_path, nse_long)
+    ds = nse_long.R2_DATASETS
+    objects = {(ds[n], "2026-11-13"): b for n, b in files.items()}
+    calls = []
+    _fake_r2(monkeypatch, objects, calls)
+    cache = tmp_path / "cache"
+    assert nse_long.load(base="http://127.0.0.1:9/unreachable", cache=cache, with_value=False) is not None
+    reads = [c for c in calls if c[0] == "read"]
+    assert len(reads) == 2                                   # closes and report, first time
+
+    calls.clear()
+    assert nse_long.load(base="http://127.0.0.1:9/unreachable", cache=cache, with_value=False) is not None
+    assert not [c for c in calls if c[0] == "read"]          # same revision: nothing downloaded
+
+    # A republish of the same week minutes later (new bytes, new SHA-256): replaced at once.
+    shorter = close.iloc[:-1]
+    shorter.to_parquet(tmp_path / "c2.parquet")
+    objects[(ds[nse_long.CLOSE_FILE], "2026-11-13")] = (tmp_path / "c2.parquet").read_bytes()
+    calls.clear()
+    c, _, _ = nse_long.load(base="http://127.0.0.1:9/unreachable", cache=cache, with_value=False)
+    assert ("read", ds[nse_long.CLOSE_FILE], "2026-11-13") in calls
+    assert len(c) == len(shorter)
+
+
+def test_the_release_copy_follows_the_assets_etag(tmp_path, monkeypatch):
+    from src.loaders import nse_long
+
+    monkeypatch.setattr(nse_long, "_from_r2", lambda *a, **k: (None, None))
+    served = {"etag": '"v1"', "body": b"one", "gets": 0}
+
+    class Resp:
+        def __init__(self, code, body, etag):
+            self.status_code, self.content, self.headers = code, body, {"ETag": etag}
+
+        def close(self):
+            pass
+
+    def get(url, headers=None, timeout=None, stream=False):
+        if headers and headers.get("Range"):
+            return Resp(206, served["body"][:1], served["etag"])
+        served["gets"] += 1
+        return Resp(200, served["body"], served["etag"])
+
+    monkeypatch.setattr(nse_long.requests, "get", get)
+    path = nse_long._fetch(nse_long.REPORT_FILE, "http://x", tmp_path)
+    assert path.read_bytes() == b"one" and served["gets"] == 1
+    nse_long._fetch(nse_long.REPORT_FILE, "http://x", tmp_path)
+    assert served["gets"] == 1                               # same ETag: kept
+    served.update(etag='"v2"', body=b"two")
+    assert nse_long._fetch(nse_long.REPORT_FILE, "http://x", tmp_path).read_bytes() == b"two"
