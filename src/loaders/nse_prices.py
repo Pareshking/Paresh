@@ -28,8 +28,14 @@ scripts/sync_nse_prices.py builds and extends them.
 The closes are not in git (owner, 21 Nov 2026, TODO S178: each monthly rewrite
 added ~1.3 MB to the repository's history). They are published monthly to R2
 (CLOSES_DATASET) and the data-latest release (CLOSES_ASSET); closes_path()
-reads a local file when a job has just written one, else R2, else the
-release, cached for a day.
+reads a local file when a job has just written one, else the published copy.
+
+The published copy is kept on disk for as long as it IS the published copy,
+not for a fixed time (TODO S210). Until 23 Nov 2026 a copy under a day old
+was used without asking: the nightly job restored a 14-hour-old copy from its
+Actions cache, ranked on it after the closes had been republished, and
+production, holding the new copy, rejected the precomputed table on every
+boot ("price_fingerprint differs") and ranked live instead.
 """
 from __future__ import annotations
 
@@ -56,8 +62,16 @@ CLOSES_FILE = "closes.parquet"
 CLOSES_DATASET = "nse/closes_2y"
 CLOSES_ASSET = "nse_closes.parquet"
 CLOSES_CACHE_NAME = "nse_prices_closes.parquet"
+# A running process asks which revision is published at most this often. A
+# job is a new process and always asks; the app picks a republish up within
+# ten minutes. The question is a pointer read (R2) or a one-byte GET (release).
+CLOSES_RECHECK_S = 600
+# The answer we cannot get (R2 and the release both unreachable): a copy this
+# young is used as it is, an older one too, but with a warning (never None).
 CLOSES_CACHE_TTL_S = 24 * 3600
 _CLOSES_LOCK = threading.Lock()
+# cache path -> (time of the last check, the revision found)
+_CLOSES_CHECKED: dict[str, tuple[float, str]] = {}
 BASIS = "nse_as_published"
 BASIS_SCREENER = "screener_primary"
 # face_value prices a rights issue (nse_adjusted._rights: issue price = face value
@@ -75,37 +89,159 @@ def _readable(path: Path) -> bool:
     return not frame.empty
 
 
-def _published_closes(cache_dir: Path | str | None = None) -> Path | None:
-    """The published closes on disk: a copy under a day old, else R2, else the
-    release; a stale copy when both fail; None when there is none. Never raises."""
-    from src.core.config import DATA_DIR, NSE_LONG_BASE_URL
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for block in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _revision_file(cache: Path) -> Path:
+    return cache.with_name(cache.name + ".revision")
+
+
+def _held_revision(cache: Path) -> str | None:
+    """The revision the copy on disk is: its SHA-256, or the release ETag it was saved with."""
+    try:
+        return _revision_file(cache).read_text(encoding="utf-8").strip() or None
+    except OSError:
+        return None
+
+
+def _save(cache: Path, body: bytes, revision: str) -> bool:
+    """Write `body` over the copy, with the revision it is. False if it is not a readable frame."""
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=cache.parent, suffix=".part")
+    with os.fdopen(fd, "wb") as fh:
+        fh.write(body)
+    if not _readable(Path(tmp)):
+        os.unlink(tmp)
+        return False
+    os.replace(tmp, cache)
+    _revision_file(cache).write_text(revision, encoding="utf-8")
+    return True
+
+
+def _r2_reader():
+    """The manifest-checked R2 reader, or None when no R2 keys are configured."""
     from src.loaders import app_source
 
-    cache = Path(cache_dir or DATA_DIR) / CLOSES_CACHE_NAME
-    with _CLOSES_LOCK:
-        if cache.exists() and time.time() - cache.stat().st_mtime < CLOSES_CACHE_TTL_S:
-            return cache
-        body, source = app_source.fetch_latest(CLOSES_DATASET, "nse_closes"), "r2"
-        if body is None:
-            source = "release"
-            try:
-                import requests
+    config = app_source.r2_config()
+    return None if config is None else app_source.R2DatasetReader(app_source.R2Archive(config))
 
-                resp = requests.get(f"{NSE_LONG_BASE_URL}/{CLOSES_ASSET}", timeout=60)
-                body = resp.content if resp.status_code == 200 else None
-            except Exception:  # noqa: BLE001  a stale copy beats none
-                body = None
-        if body:
-            cache.parent.mkdir(parents=True, exist_ok=True)
-            fd, tmp = tempfile.mkstemp(dir=cache.parent, suffix=".part")
-            with os.fdopen(fd, "wb") as fh:
-                fh.write(body)
-            if _readable(Path(tmp)):
-                os.replace(tmp, cache)
-                app_source.record("nse_closes", source)
-                return cache
-            os.unlink(tmp)
-        return cache if cache.exists() else None
+
+def _from_r2(cache: Path) -> tuple[str, Path | None] | None:
+    """(current revision, the copy at that revision) from R2, or None when R2 cannot answer.
+
+    The pointer names the revision by its SHA-256, so a copy on disk with that
+    SHA-256 is that revision and is kept; anything else is replaced. The
+    object is read only when the copy is not it (R2DatasetReader checks size
+    and SHA-256 before a byte is returned).
+    """
+    from src.loaders import app_source
+
+    try:
+        reader = _r2_reader()
+        if reader is None:
+            return None
+        ref = reader.resolve_current(CLOSES_DATASET)
+        if cache.exists() and _held_revision(cache) == ref.revision_sha256 \
+                and _sha256(cache) == ref.revision_sha256:
+            return ref.revision_sha256, cache
+        body = reader.read_bytes(ref)
+    except Exception as exc:  # noqa: BLE001  the release is the fallback
+        from src.core.logger import logger
+
+        logger.info("NSE closes not read from R2 (%s); trying the release.", type(exc).__name__)
+        return None
+    if not _save(cache, body, ref.revision_sha256):
+        return None
+    app_source.record("nse_closes", "r2")
+    _log_revision("r2", ref.revision_sha256, ref.as_of)
+    return ref.revision_sha256, cache
+
+
+def _from_release(cache: Path) -> tuple[str, Path | None] | None:
+    """(current revision, the copy at that revision) from the release, or None when it cannot answer.
+
+    The revision is the asset's ETag, asked for with a one-byte ranged GET (the
+    signed URL GitHub redirects a release download to refuses HEAD with 401;
+    measured 23 Nov 2026, the 206 carries the full download's ETag). The asset
+    is downloaded only when the copy on disk was saved under another ETag.
+    """
+    import requests
+
+    from src.core.config import NSE_LONG_BASE_URL
+    from src.loaders import app_source
+
+    url = f"{NSE_LONG_BASE_URL}/{CLOSES_ASSET}"
+    try:
+        probe = requests.get(url, headers={"Range": "bytes=0-0"}, timeout=30, stream=True)
+        try:
+            etag = probe.headers.get("ETag", "").strip() if probe.status_code in (200, 206) else ""
+        finally:
+            probe.close()
+        if etag and cache.exists() and _held_revision(cache) == f"release:{etag}":
+            return f"release:{etag}", cache
+        resp = requests.get(url, timeout=60)
+        if resp.status_code != 200:
+            return None
+        revision = f"release:{resp.headers.get('ETag', '').strip() or etag or _sha_of(resp.content)}"
+        if not _save(cache, resp.content, revision):
+            return None
+    except Exception:  # noqa: BLE001  a held copy beats none
+        return None
+    app_source.record("nse_closes", "release")
+    _log_revision("release", revision, None)
+    return revision, cache
+
+
+def _sha_of(body: bytes) -> str:
+    return hashlib.sha256(body).hexdigest()
+
+
+def _log_revision(source: str, revision: str, as_of: str | None) -> None:
+    from src.core.logger import logger
+
+    logger.info("NSE closes: revision %s from %s%s", revision[:16], source,
+                f" (as of {as_of})" if as_of else "")
+
+
+def _published_closes(cache_dir: Path | str | None = None, *,
+                      now: float | None = None) -> Path | None:
+    """The published closes on disk, at the revision published NOW; None if there is none.
+
+    R2's current revision when R2 is configured, else the release's. The copy on
+    disk is kept while it is that revision and replaced as soon as it is not,
+    whatever its age. A running process asks at most every CLOSES_RECHECK_S.
+    When neither can be asked, the copy on disk is used as it is, logged as
+    unchecked. Never raises.
+    """
+    from src.core.config import DATA_DIR
+
+    cache = Path(cache_dir or DATA_DIR) / CLOSES_CACHE_NAME
+    now = time.time() if now is None else now
+    key = str(cache.resolve())
+    with _CLOSES_LOCK:
+        checked = _CLOSES_CHECKED.get(key)
+        if (checked is not None and cache.exists() and now - checked[0] < CLOSES_RECHECK_S
+                and _held_revision(cache) == checked[1]):
+            return cache
+        found = _from_r2(cache) or _from_release(cache)
+        if found is not None:
+            _CLOSES_CHECKED[key] = (now, found[0])
+            return found[1]
+        _CLOSES_CHECKED.pop(key, None)
+        if not cache.exists():
+            return None
+        from src.core.logger import logger
+
+        age_h = (now - cache.stat().st_mtime) / 3600
+        (logger.info if age_h * 3600 < CLOSES_CACHE_TTL_S else logger.warning)(
+            "NSE closes: neither R2 nor the release answered; using the copy on disk "
+            "(%.0f h old, revision %s) unchecked.", age_h, (_held_revision(cache) or "unknown")[:16])
+        return cache
 
 
 def closes_path(directory: Path | str = DIR) -> Path | None:
