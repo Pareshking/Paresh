@@ -9,6 +9,7 @@
 - Every page's "Data to" footer names the session the header shows. Foreign flows are cut at that session and dated ("Foreign, 2 to 20 Nov"); the flows chart writes "₹1.34 lakh Cr", not "+₹1,34,230".
 - A stock too new for a 52-week high is told so ("66 of 126 sessions"), not that it is 20% below one.
 - No exception text, emoji or the non-existent "Force Refresh" button reaches readers; a missing date reads "–", not "None".
+- A stock opened from a table on Actions, Sectors or Watchlist now goes straight to the Screener, so Back returns to the page you came from (it stayed on the stock).
 
 ## 2026-11-23 — Sentences checked against the data (S193 B)
 

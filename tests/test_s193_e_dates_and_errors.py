@@ -265,3 +265,12 @@ def test_no_cross_mark_emoji_or_missing_control_in_reader_text():
         s = p.read_text(encoding="utf-8")
         assert "❌" not in s, p
         assert "Force Refresh" not in s, p          # the control is "Clear cached files" on Configuration
+
+
+def test_k_f1_a_table_row_opens_the_screener_address_not_the_host_path():
+    # S193 K crawl, 23 Nov: rows on Actions, Sectors and Watchlist set window.location.search, so the host kept
+    # its own path (/sectors?stock=X), app.py redirected it and Back looped on the stock.
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "src" / "ui" / "screener_table.py").read_text(encoding="utf-8")
+    assert "window.location.search=" not in src
+    assert "'screener'+search" in src

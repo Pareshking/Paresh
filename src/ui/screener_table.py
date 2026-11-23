@@ -550,7 +550,9 @@ _JS = """
 function openStock(sym){
   const search='?stock='+encodeURIComponent(sym)+SYS;
   try{const host=window.parent;const s=host.document.createElement('script');
-      s.textContent='window.location.search='+JSON.stringify(search)+';';
+      // Straight to the Screener's own address (system_param.stock_href): setting only the search kept the
+      // host's path (/sectors?stock=X), app.py redirected it, and Back replayed the redirect (S193 K, F1).
+      s.textContent='window.location.assign(new URL('+JSON.stringify('screener'+search)+',window.location.href).href);';
       host.document.body.appendChild(s);s.remove();}
   catch(e){window.open(search,'_blank');}
 }

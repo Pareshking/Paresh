@@ -1234,11 +1234,13 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
     out["band_note"] = (f"shaded: foreign investors' usual range since {done.index[0]:%Y}, {sg(q1 / 1000, 0)} to {sg(q3 / 1000, 0)} thousand Cr "
                         "(the middle half of all months)")
     dii = _dii_months(nse)
+    if dii:   # the readout keeps one line per series on a phone (layout audit, 412 px)
+        out["band_note"] += "; domestic is banks, insurers and mutual funds"
     if dii:
         out["also"] = [None if p not in dii else
                        [("domestic" + (", all exchanges" if len(dii[p]) > 6 else "") if dii[p][5]
                          else f"domestic, {dii[p][1]:%-d}–{dii[p][2]:%-d %b}"
-                         + (", all exchanges" if len(dii[p]) > 6 else " (banks, insurers, MFs)")),
+                         + (", all exchanges" if len(dii[p]) > 6 else "")),
                         round(dii[p][0])] for p in mo.index]
     return out
 
