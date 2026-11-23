@@ -74,6 +74,19 @@ session's scratchpad, so rebuild it) is the next and last step.
 **Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S208 (price_fingerprint once per frame;
 the Backtest long file in `st.cache_resource`); S207 closed 23 Nov (measured: leave both). These were taken over from the speed session.
 
+**Scheduled tasks** (each wakes the session named, not the new one; re-create in the new session what it should own):
+- This session's two half-hourly work loops, `trig_01CFi7nxJC5Gti62ywnEwomh` (:07) and `trig_01S36K78BdCHt1Fm7AZnNgVb`
+  (:37): **paused** at handover (enabled=false, not deleted). Re-point them with `persistent_session_id` set to the new
+  session, or make new ones, then re-enable.
+- `trig_01MGhPjDNkLj9QptrreSjzZh` (1 Dec 13:30 UTC, S211 #638) wakes this old session: make the same reminder in the new one.
+- Dated checks bound to older sessions, which report to a coordinator that no longer runs: 24 Nov 02:30 breadth and
+  nse_indices watch (`trig_0194vQthfEA6jXUT7spGoRF7`); 27 Nov Actions minutes, S142 (`trig_01QTwto7k1BWzPFFnaissSje`);
+  29 Nov backtest_reference (`trig_01QfSuxiNviZAhv1nfPusyKP`); 2 Dec Nifty 1000 freeze, S175
+  (`trig_01AjSMwKNXfYVdewJdcpCLRS`), rebalance checks S95/S111/S154 (`trig_01QXFw7kaDiQbDDuQADzDpW3`) and shadow-book
+  freeze (`trig_01W1hDhfdR1Jq9EUNACgpocp`); 5 Dec S185 bundle replay (`trig_01UybbZV8wWHwaCEgqHqw6MH`); 2 Jan shadow-book
+  first month (`trig_012BpE6DUZxvNPHTzzmmeXmb`). Re-create those the new session should answer for.
+- #647's PR events also come to this session: subscribe the new session to #647.
+
 **Local state:** nothing uncommitted. The worktree `.claude/worktrees/agent-aa31e63eff604b062` (branch s205, merged)
 and the s213 worktree are scratch; the main checkout is on `ccr-b633a7d9-f1fqfl` (#638's branch).
 
