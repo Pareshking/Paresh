@@ -72,7 +72,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 session's scratchpad, so rebuild it) is the next and last step.
 
 **Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S208 (price_fingerprint once per frame;
-the Backtest long file in `st.cache_resource`); S207 (b, c). These were taken over from the speed session.
+the Backtest long file in `st.cache_resource`); S207 closed 23 Nov (measured: leave both). These were taken over from the speed session.
 
 **Local state:** nothing uncommitted. The worktree `.claude/worktrees/agent-aa31e63eff604b062` (branch s205, merged)
 and the s213 worktree are scratch; the main checkout is on `ccr-b633a7d9-f1fqfl` (#638's branch).
