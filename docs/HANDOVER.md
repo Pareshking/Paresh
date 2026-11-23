@@ -61,7 +61,7 @@ Nifty 1000; tracked down to ₹500 Cr, prices from ₹800 Cr, a holding below �
 rebalance); **Combined retired**, its ledger read-only as frozen to Dec 2026. Read TODO S198 before any
 work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
-In progress: S193 (queue item 2), in this session. Item A's report is `docs/archive/S193_ITEM_A_2026-11-23.md` (14 mismatches); the owner decided A1-A4, A6-A9 on 23 Nov; the fixes are in #634 (see TODO S193). A2 waits for the 1-5 Dec freeze (owner), then check. Next: A6 (nightly Nifty 500 signals file), A9's engine impact measured for the owner, then A5 and A10-A14.
+In progress: S193 (queue item 2), in this session. Item A's report is `docs/archive/S193_ITEM_A_2026-11-23.md` (14 mismatches); the owner decided A1-A4, A6-A9 on 23 Nov; the fixes are in #634 (see TODO S193). Next: A6 (nightly Nifty 500 signals file), A9's engine impact measured for the owner, then A5 and A10-A14.
 
 ### What was done 22 Nov evening (where to read it)
 

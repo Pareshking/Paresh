@@ -3,6 +3,7 @@
 ## 2026-11-23 — Figures that disagreed between pages (S193 item A, owner's decisions)
 
 - **Stock page:** the rank in the chosen system comes first, then every other system that ranks the stock ("Also 17th of 1,000 in the Nifty 1000"), each with a link. A stock the chosen system does not rank now says where it is ranked; it said "in none of the systems' lists" before.
+- **Portfolio, Nifty 1000:** "Started with" is the ₹1 Cr put in, and the gain is the value less ₹1 Cr. It read "Started with ₹1,05,50,323" and a gain of ₹0. The index line no longer names a date after the prices ("for 30 Nov not in yet").
 - **Portfolio, a record younger than the window:** "3 months", "6 months" and "This year" are left out when the record began inside them; "Since 1 Oct 2026" stays. They showed since-start figures under their own labels. The table of other indices measures the book and the indices over the same window.
 - **One rank on every page:** Portfolio now values the book and ranks its trail on the same closes as Dashboard, Actions, Screener and Watchlist. Its rank 3 months ago differed by 1 to 5 places, and CUPID read +188.6% against +188.5% on Actions. Portfolio prints the sessions the ranks are read on (19 Oct, not 20 Oct).
 - **Dashboard on the 1000 and Nano:** "Against the 750's market value" and "only N% of the 750" name the system shown. The share beating Nifty Total Market says "over the past month", the window it is measured over; it said "so far in November".

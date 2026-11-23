@@ -154,7 +154,10 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     mw = _market_weights(rank_df)
     corr = correlation(series.prices, syms)[1]
     systems = _systems(series.prices, benchmark_close, system, market, as_of)
-    return Page(as_of=as_of, capital=float(series.history["equity"].iloc[0]) if len(series.history["equity"]) else 0.0,
+    # The money put in, not the equity's first point: with no frozen month that point is today's
+    # value, so the Nifty 1000 read "Started with ₹1,05,50,323" and a gain of ₹0 (S193 A2).
+    from src.core.config import MODEL_BOOK_CAPITAL
+    return Page(as_of=as_of, capital=float(MODEL_BOOK_CAPITAL),
                 value=series.value, holdings=series.holdings, equity=series.equity, market=market, mom=mom,
                 table=table, history=series.history, meta=meta, record=record, ledger=ledger, rank_df=rank_df,
                 prices=series.prices, cfg=dict(TRACK_RECORD_CONFIG), trails=trails, industry_state=state,
@@ -295,8 +298,10 @@ def header(p: Page) -> list:
     # The book's own latest day; the market's only when its index has that session (S148: one date for both).
     eq = p.equity.dropna()
     mk = p.market.dropna()
+    # The live month's point can carry the month-end date (30 Nov on 20 Nov); the day is the price date.
+    last = min(pd.Timestamp(eq.index[-1]), pd.Timestamp(p.as_of)) if len(eq) else pd.Timestamp(p.as_of)
     day = {"book": float(eq.iloc[-1] / eq.iloc[-2] - 1) * 100 if len(eq) > 1 else None,
-           "market": float(mk.iloc[-1] / mk.iloc[-2] - 1) * 100 if len(mk) > 1 and mk.index[-1] >= eq.index[-1] else None}
+           "market": float(mk.iloc[-1] / mk.iloc[-2] - 1) * 100 if len(mk) > 1 and mk.index[-1] >= last else None}
     tab = p.table
     dayr = float(pd.to_numeric(tab["Day P&L (₹)"], errors="coerce").sum())
     m = months_of(p)
@@ -310,7 +315,7 @@ def header(p: Page) -> list:
               f"Nifty Total Market {pct(mkt_since)}"),
              ("Day P&L", pct(day["book"]), tone(day["book"]), inr(dayr, plus=True), tone(dayr),
               f"Nifty Total Market {pct(day['market'])}" if day["market"] is not None
-              else f"Nifty Total Market for {dshort(eq.index[-1])} not in yet"),
+              else f"Nifty Total Market for {dshort(last)} not in yet"),
              (f"Month so far · {this:%b}", pct(mtd), tone(mtd),
               "" if gap is None else f"{_fmt.fixed(abs(gap), 1)} pts {'ahead of' if gap >= 0 else 'behind'} Nifty Total Market", tone(gap),
               f"Nifty Total Market {pct(mmtd)}"),
