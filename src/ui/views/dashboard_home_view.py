@@ -904,7 +904,9 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     first_month = pd.Period(str(ledger.get("inception", "2026-01")), freq="M")
     bm = di.book_month(ledger.get("months", {}), book_mtd, market, momentum, idx_end, first_month=first_month)
     inc = first_month.to_timestamp() - pd.Timedelta(days=1)
-    since_mkt = di.window_return(market, inc, idx_end)
+    # The market from the first fill's close, where the book starts (owner, 23 Nov 2026: "2: from the fill").
+    fill0 = di.first_fill(market, first_month)
+    since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, idx_end)
 
     a = assess(rank_df, symbols, rules)
     check, fill = next_rebalance(as_of)

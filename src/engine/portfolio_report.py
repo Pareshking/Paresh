@@ -47,8 +47,12 @@ def ret(s: pd.Series, start: pd.Timestamp, end: pd.Timestamp) -> float | None:
 # ── Periods ─────────────────────────────────────────────────────────────────
 
 
-def periods(book: pd.Series, market: pd.Series, mom: pd.Series, as_of: pd.Timestamp) -> list[tuple]:
-    """(label, book %, market %, momentum %) for each period the record covers."""
+def periods(book: pd.Series, market: pd.Series, mom: pd.Series, as_of: pd.Timestamp,
+            fill: pd.Timestamp | None = None) -> list[tuple]:
+    """(label, book %, market %, momentum %) for each period the record covers.
+
+    `fill`: the system's first fill. A row that starts with the record measures the indices from that
+    close, as the book is (owner, 23 Nov 2026: "2: from the fill"; S193 A12 one level up)."""
     b = _clean(book).loc[:as_of]
     if len(b) < 2:
         return []
@@ -80,13 +84,14 @@ def periods(book: pd.Series, market: pd.Series, mom: pd.Series, as_of: pd.Timest
     o_today = _clean(mom).index.max() >= end if len(_clean(mom)) else False
     for label, t in rows:
         today = label == "Today"
-        out.append((label, ret(b, t, end), None if today and not m_today else ret(market, t, end),
-                    None if today and not o_today else ret(mom, t, end)))
+        ti = fill if fill is not None and t <= start < fill else t
+        out.append((label, ret(b, t, end), None if today and not m_today else ret(market, ti, end),
+                    None if today and not o_today else ret(mom, ti, end)))
     yrs = (end - start).days / 365.25
     if yrs > 1:
         total = b.iloc[-1] / b.iloc[0]
         m = _clean(market)
-        mt = ret(m, start, end)
+        mt = ret(m, fill if fill is not None and start < fill else start, end)
         out.append(("A year, since start", float((total ** (1 / yrs) - 1) * 100),
                     None if mt is None else float(((1 + mt / 100) ** (1 / yrs) - 1) * 100), None))
     return out
@@ -189,9 +194,14 @@ def capture(book: pd.Series, market: pd.Series, n: int = 60) -> tuple[float, flo
     return float(up.b.mean() / up.m.mean() * 100), float(dn.b.mean() / dn.m.mean() * 100)
 
 
-def daily_gaps(book: pd.Series, market: pd.Series) -> pd.DataFrame:
-    """Each session: the book's day, the market's day, and the gap in points."""
+def daily_gaps(book: pd.Series, market: pd.Series, fill: pd.Timestamp | None = None) -> pd.DataFrame:
+    """Each session: the book's day, the market's day, and the gap in points.
+
+    `fill`: the system's first fill. The book holds cash until that close, so that session is not one
+    the book could beat the market in; the sessions start after it (owner, 23 Nov 2026: "from the fill")."""
     x = pd.concat([_clean(book).pct_change(), _clean(market).pct_change()], axis=1, join="inner").dropna() * 100
+    if fill is not None:
+        x = x[x.index > pd.Timestamp(fill)]
     x.columns = ["book", "market"]
     x["gap"] = x["book"] - x["market"]
     return x
