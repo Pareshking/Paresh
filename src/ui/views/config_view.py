@@ -568,7 +568,9 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     # The weights are shown once, by the bar in Momentum score; the count of
     # corporate actions once, in Data health.
     kit.kv_line([
-        ("Universe", (" + ".join(i.title() for i in indices) or "–") + system_note),
+        # The > ₹2,000 Cr list ranks only its own stocks, not Nifty Total Market's (S193 C).
+        ("Universe", f"{SYSTEM_NAMES[SYSTEM_NANO]} list" if st.session_state.get("cfg_system") == SYSTEM_NANO
+         else (" + ".join(i.title() for i in indices) or "–") + system_note),
         ("Score weights", "Default" if is_default else "Yours"),
         ("Backtest max per stock · per sector", f"{_risk('cfg_stc')}% · {_risk('cfg_sc')}%"),
         ("Backtest liquidity floor", f"₹{_risk('cfg_lfv')} Cr" if _risk("cfg_lf") else "Off"),

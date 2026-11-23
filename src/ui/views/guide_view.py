@@ -64,6 +64,10 @@ def _body() -> str:
     high_basis = str(_metrics.snapshot().get("facts", {}).get("price_high_basis") or "").strip()
     basis_note = f" Today's tables measured it on {high_basis}." if high_basis else ""
     weights = " · ".join(f"{k} {float(v) * 100:.0f}%" for k, v in w.items())
+    # The steps describe the Nifty 750; the other systems run them on their own lists (S193 C).
+    from src.engine.extra_universe import SYSTEM_1000, SYSTEM_NAMES, SYSTEM_NANO
+    import html as _html
+    others = _html.escape(f"{SYSTEM_NAMES[SYSTEM_1000]} and the {SYSTEM_NAMES[SYSTEM_NANO]} list")
     score = " + ".join(f"{float(v):.2f}·z({k})" for k, v in w.items())
     return f"""
 <div class="gd">
@@ -76,7 +80,8 @@ def _body() -> str:
 <h2 id="steps">The five steps</h2>
 <ol>
 <li><b>Universe.</b> About 750 stocks: the Nifty Total Market as NSE published it on each date,
-so a stock counts only while it was a member. Prices are daily closes, adjusted for splits and bonuses.</li>
+so a stock counts only while it was a member. Prices are daily closes, adjusted for splits and bonuses.
+The {others} follow the same steps on their own lists.</li>
 <li><b>Score.</b> Each stock's return over 1, 3, 6, 9 and 12 months, divided by its volatility over
 the same window; each window ranked against the other stocks; the five blended ({weights}).</li>
 <li><b>Filters.</b> Above its 50D EMA and within 20% of its 52-week high.</li>

@@ -345,7 +345,7 @@ def _vals(s: pd.Series, nd: int = 2) -> list:
 
 
 def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
-                    nnh: pd.Series | None = None) -> None:
+                    nnh: pd.Series | None = None, pit: bool = True, universe: str = "750") -> None:
     """The index above the share above the 200D EMA (the Dashboard's chart, one spec), and net new highs
     week by week with its usual range: the site's chart kit (Breadth, 21 Nov 2026)."""
     from src.ui import dash_charts as dc
@@ -365,8 +365,9 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
                         f"200D EMA went from {share200.loc[s0]:.0f}% to {share200.iloc[-1]:.0f}%",
                         "The index above, the share of the ranked stocks above their own 200D EMA below, "
                         "on one time axis. When the index rises while the lower line falls, fewer stocks "
-                        "are carrying it. Members of each date, leavers included.")
-        spec = _breadth_spec(bench.dropna(), share200, end)
+                        "are carrying it. " + ("Members of each date, leavers included." if pit else
+                                               "Today\u2019s members throughout."))
+        spec = _breadth_spec(bench.dropna(), share200, end, universe)
         if spec:
             dc.render("breadth", spec, label="The Nifty 500 and the share of stocks above their 200D EMA",
                       note="Tap or drag for a date")
@@ -457,13 +458,19 @@ _CHART_CSS = """<style>
 
 
 def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
-                                  size: dict[str, pd.Series], pit: bool = True) -> bool:
+                                  size: dict[str, pd.Series], pit: bool = True, universe: str = "750") -> bool:
     """The Market page's two questions, each followed by the charts behind
     its answer. Returns False when there is not enough data to answer them."""
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
+    # The prices' session bounds the index, as on the Dashboard: after the close the live Nifty 500 has
+    # today while the stocks and the size indices end on the last nightly sync, and the rule below then
+    # emptied every size row (23 Nov 2026: 23 Nov against 20 Nov; CI failed Market requirements 7 and 12).
+    bench = bench[bench.index <= prices.index.max()]
+    if bench.dropna().empty:
+        return False
     # One session for every index (S148): a size index without the Nifty 500's last close reads "–".
     from src.engine import dashboard_insights as di
     size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
@@ -486,7 +493,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
         st.html(question_section_html(breadth, "breadth", "q-breadth")
                 + '<p class="qp-behind">Behind the answer</p>')
         share200, weekly, nnh = _chart_series(key, px, bench.dropna(), pit)
-        _breadth_charts(bench.dropna(), share200, weekly, nnh)
+        _breadth_charts(bench.dropna(), share200, weekly, nnh, pit, universe)
     if trend is not None:
         sec = question_section_html(trend, "trend", "q-trend")
         table = size_trend_html(bench, size)
@@ -716,6 +723,12 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
         return False
     syms = [s for s in rank_df["Symbol"] if s in prices.columns]
     px = prices[syms]
+    # The prices' session bounds the index, as on the Dashboard: after the close the live Nifty 500 has
+    # today while the stocks and the size indices end on the last nightly sync, and the rule below then
+    # emptied every size row (23 Nov 2026: 23 Nov against 20 Nov; CI failed Market requirements 7 and 12).
+    bench = bench[bench.index <= prices.index.max()]
+    if bench.dropna().empty:
+        return False
     # One session for every index (S148): a size index without the Nifty 500's last close reads "–".
     from src.engine import dashboard_insights as di
     size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}

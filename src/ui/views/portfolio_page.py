@@ -174,12 +174,14 @@ def _n500() -> pd.Series:
 
 
 def _market_weights(rank_df: pd.DataFrame) -> dict[str, float]:
-    """Each industry's share of the 750 by market value (NSE's market caps)."""
-    try:
-        mc = pd.read_csv(ROOT / "data" / "nse_market_caps.csv").set_index("Symbol")["MarketCap"]
-    except (OSError, KeyError, ValueError):
-        return {}
+    """Each industry's share of the system's ranked stocks by market value: NSE's market caps, then
+    the > ₹2,000 Cr list's own month-end figures for the stocks NSE's file lacks (S193 C)."""
+    from src.loaders.extra_universe_loader import system_market_caps
+
     r = rank_df.drop_duplicates("Symbol").set_index("Symbol")
+    mc = system_market_caps(r.index, str(ROOT / "data" / "nse_market_caps.csv"))
+    if mc.empty:
+        return {}
     w = pd.to_numeric(mc.reindex(r.index), errors="coerce").groupby(r["Industry"]).sum()
     return (w / w.sum() * 100).to_dict() if w.sum() > 0 else {}
 
@@ -482,7 +484,8 @@ def section_exposure(p: Page) -> list:
     return _sec([_head("pf-exp", "Sector & size", f"now, against the {uni}, and at every rebalance {since}"),
                  f'<div class="dh-cap"><b>Sector exposure now</b><span>bar: the book’s weight · mark: the sector’s weight in the {uni} '
                  'by market value</span></div>', '<div class="pf-ilist">' + head + body + '</div>',
-                 '<div class="dh-pair"><div><div class="dh-cap"><b>The book by size, each rebalance</b><span>Large Cap · Mid Cap · Small Cap · Micro Cap</span></div>'
+                 '<div class="dh-pair"><div><div class="dh-cap"><b>The book by size, each rebalance</b>'
+                 f'<span>{e(" · ".join(_fmt.size(k) for k in drawn))}</span></div>'
                  + srows + key + f'<p class="dh-note pf-gap">{e(note)}</p></div><div><div class="dh-cap"><b>Sectors, each rebalance</b>'
                  '<span>% of the book, the largest at any rebalance first</span></div>'
                  f'<div class="dh-scroll">{heat}</div></div></div>'])
@@ -528,8 +531,22 @@ def section_returns(p: Page) -> list:
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Index</th>'
                  f'<th scope="col" class="dh-num">{_fmt.since(begun) if young else "This year"}</th>'
                  f'<th scope="col" class="dh-num">The book’s lead, pts</th></tr></thead><tbody>{ytd}</tbody></table></div>'
-                 f'<p class="dh-note">The book is mostly Small Cap and Micro Cap, so Nifty Total Market is not its only fair yardstick. The mix holds the four '
+                 f'<p class="dh-note">The book is mostly {e(book_size_words(p))}, so Nifty Total Market is not its only fair yardstick. The mix holds the four '
                  f'NSE size indices in the book’s own size split, reset at each rebalance (see Sector &amp; size). {_fmt.PTS_NOTE}</p></div></div>'])
+
+
+def book_size_words(p: Page) -> str:
+    """The two size groups holding most of the book today ("Small Cap and Micro Cap" on the 750;
+    "Nano Cap and Ultra Nano Cap" on the > ₹2,000 Cr list), from its own size split (S193 C)."""
+    ex = p.exposure
+    if ex is None or not len(ex):
+        return "Small Cap and Micro Cap"
+    size = ex[ex["kind"] == "size"]
+    if size.empty:
+        return "Small Cap and Micro Cap"
+    last = size[size["date"] == size["date"].max()].groupby("name")["weight"].sum().sort_values(ascending=False)
+    top = [_fmt.size(k) for k, v in last.items() if v > 0][:2]
+    return " and ".join(top) if top else "Small Cap and Micro Cap"
 
 
 def growth_spec(p: Page) -> dict:

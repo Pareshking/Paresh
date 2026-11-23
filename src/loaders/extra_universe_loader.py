@@ -197,6 +197,30 @@ def list_market_caps(symbols: list[str], path: str = LIST_PATH) -> pd.Series:
     return caps.reindex(symbols).dropna()
 
 
+def system_market_caps(symbols, nse_path: str | None = None, list_path: str = LIST_PATH) -> pd.Series:
+    """Market caps in rupees for a system's ranked stocks (S193 C, K4).
+
+    NSE's file (data/nse_market_caps.csv) holds the Nifty 1000 only: on 30 Oct it priced
+    192 of the 411 stocks on the > ₹2,000 Cr list (₹7.2 lakh Cr of ₹36.9 lakh Cr), so a share
+    "of the list's market value" left out every stock outside the Nifty 1000. NSE's daily file has
+    them all; the nightly snapshot now keeps the list's stocks too (scripts/sync_data.py). A stock
+    the snapshot still lacks takes its month-end value from the list itself.
+    """
+    from src.core.config import REPO_MCAP_FILE
+
+    symbols = [str(s) for s in symbols]
+    path = nse_path or REPO_MCAP_FILE
+    try:
+        nse = pd.read_csv(path).set_index("Symbol")["MarketCap"]
+        nse = pd.to_numeric(nse[~nse.index.duplicated()], errors="coerce").reindex(symbols)
+    except (OSError, KeyError, ValueError):
+        nse = pd.Series(index=symbols, dtype=float)
+    missing = [s for s in symbols if pd.isna(nse.get(s))]
+    if missing:
+        nse = nse.fillna(list_market_caps(missing, list_path))
+    return nse.dropna()
+
+
 def join_prices(core: pd.DataFrame | None, extra: pd.DataFrame | None,
                 extra_symbols: list[str]) -> pd.DataFrame:
     """The 750's price frame beside the extra universe's, one copy per stock.

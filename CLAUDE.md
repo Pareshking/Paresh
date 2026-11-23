@@ -45,8 +45,11 @@ Improve wording on pages and in docs whenever you touch them.
 ## Working on a change
 
 - Branch, commit and push to the branch you are given; open the pull request as a
-  draft. Merge only when the owner says to, and only after CI is green **on the
-  PR's current head** (a notification can name an earlier commit).
+  draft. **Merge without asking once CI is green on the PR's current head** (owner,
+  23 Nov 2026: "Do not take permission if CI is green henceforth and merge it"). Check
+  the head yourself (a notification can name an earlier commit), squash-merge with
+  `expectedHeadSha`, and read Production QA after. Owner decisions on what a change
+  does (a page's wording, a rule, a number) are still the owner's: this is about the merge.
 - After a squash merge, restart the branch from `main`; push with
   `--force-with-lease`.
 - Tests: `python -m pytest tests -q`. Lint: `ruff check`. A data file the
