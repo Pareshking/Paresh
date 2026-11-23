@@ -236,17 +236,6 @@ def _kpis(items: list[tuple[str, str, str, str, str, str]]) -> str:
     return f'<div class="dh-kpis">{cells}</div>'
 
 
-def _bars(rows: list[tuple[str, float, str, bool]], scale: float) -> str:
-    out = []
-    for name, v, cls, bold in rows:
-        w = max(0.0, min(100.0, v / scale * 100)) if scale else 0
-        b = " dh-b" if bold else ""
-        out.append(f'<div class="dh-bar"><span class="dh-bar-n{b}">{e(name)}</span>'
-                   f'<span class="dh-bar-t"><span class="dh-bar-f {cls}" style="width:{w:.0f}%"></span></span>'
-                   f'<span class="dh-bar-v{b}">{e(sg(v, unit="%"))}</span></div>')
-    return "".join(out)
-
-
 def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None, as_of: pd.Timestamp,
                  prev: dict | None = None, begun: pd.Timestamp | None = None) -> list:
     """`prev`: {"label", "market", "book", "momentum": {key: %}} for the last finished month."""
@@ -800,10 +789,6 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame) -> list:
             f'<div class="dh-gcards">{"".join(cards)}</div>'
             '<p class="dh-note">Each sector’s stocks, equal-weighted, against all ranked stocks built the same way: 6M · 1M in '
             'points, as on Sectors.</p>' + END]
-
-
-def _and(names: list[str]) -> str:
-    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
 def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], breadth: dict | None = None,

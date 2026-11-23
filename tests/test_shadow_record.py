@@ -21,12 +21,10 @@ from src.engine.track_record import (
     SHADOW_CONFIG,
     SHADOW_INCEPTION,
     SHADOW_LEDGER_PATH,
-    SHADOW_NAME,
     TRACK_RECORD_CONFIG,
     config_fingerprint,
     load_ledger,
 )
-from src.ui.views.track_record_view import comparison_frame
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -89,18 +87,3 @@ def test_the_monthly_workflow_freezes_the_shadow_after_the_live_records():
 
 def test_a_missing_shadow_ledger_before_its_start_reads_empty(tmp_path):
     assert load_ledger(tmp_path / "track_record_shadow.json", SHADOW_INCEPTION)["months"] == {}
-
-
-def _ledger(months: dict[str, float]) -> dict:
-    return {"months": {k: {"strategy": v, "benchmark": 0.0, "alpha": v} for k, v in months.items()}}
-
-
-def test_the_side_by_side_table_shows_the_shadow_frozen_months_only():
-    ledgers = {SYSTEM_750: _ledger({"2026-10": 0.01, "2026-11": 0.02})}
-    shadow = _ledger({"2026-10": 0.99, "2026-11": 0.03})  # October predates it: never shown
-    live = {SYSTEM_750: {"mtd_period": "2026-12", "strategy_mtd": 0.005}}
-    table = comparison_frame(ledgers, live, shadow)
-    row = table[table["SYSTEM"] == SHADOW_NAME].iloc[0]
-    assert pd.isna(row["OCT"]) and row["NOV"] == 0.03 and pd.isna(row["DEC"])
-    assert list(table["SYSTEM"]).index(SHADOW_NAME) == len(table) - 1
-    assert SHADOW_NAME not in set(comparison_frame(ledgers, live)["SYSTEM"])

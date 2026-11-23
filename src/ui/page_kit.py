@@ -10,7 +10,6 @@ from __future__ import annotations
 import html
 import json
 import math
-import re
 from urllib.parse import quote
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -213,12 +212,6 @@ def _finite(x) -> float | None:
     return v if math.isfinite(v) else None
 
 
-def signed_number(v: float, digits: int = 1, plus: bool = True) -> str:
-    """Rounded first (half away from zero, glossary 12), then signed with a true minus (U+2212): never "-0.0"."""
-    from src.ui.formats import signed
-    return signed(v, digits, plus=plus)
-
-
 def pts(x: float | None) -> str:
     """A difference between two returns (a fraction) in percentage points:
     0.083 -> "+8.3 pts" (owner, 8 Nov 2026, S97 d). Formatting only."""
@@ -281,15 +274,6 @@ def caption(text: str) -> None:
     st.html(f'<p class="pg-cap">{html.escape(sentence(text))}</p>')
 
 
-def safe_href(href: str) -> str:
-    """The link if it is relative or http(s); "#" for anything else (javascript:, data:, ...)."""
-    h = (href or "").strip()
-    scheme = re.match(r"([A-Za-z][A-Za-z0-9+.-]*):", re.sub(r"[\x00-\x20]", "", h))
-    if scheme and scheme.group(1).lower() not in ("http", "https"):
-        return "#"
-    return h
-
-
 def safe_json(obj) -> str:
     """JSON that cannot close the HTML element it sits in: <, > and & as JSON escapes.
 
@@ -298,13 +282,6 @@ def safe_json(obj) -> str:
     """
     return (json.dumps(obj).replace("&", "\\u0026").replace("<", "\\u003c")
             .replace(">", "\\u003e"))
-
-
-def caption_link(text: str, href: str, label: str) -> None:
-    """A caption that ends in a link onward (audit F33): "… on Actions →"."""
-    href = safe_href(href)
-    st.html(f'<p class="pg-cap">{html.escape(text)} '
-            f'<a class="pg-onward" href="{html.escape(href)}" target="_self">{html.escape(label)} →</a></p>')
 
 
 def kv_line(pairs: list[tuple[str, str]], lead: str = "") -> None:

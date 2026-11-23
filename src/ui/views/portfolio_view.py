@@ -46,69 +46,6 @@ def _month_labels(live_period: str | None, state: str, today: pd.Timestamp | Non
     return {"prefix": f"{marked} MTD" if marked else "MTD", "badge": "MTD", "next": ""}
 
 
-def _no_return_clause(labels: dict) -> str:
-    marked = labels["prefix"].split(" ")[0]
-    return (f" {marked} MTD has no return yet: the new book was bought at the first close of "
-            "the month and starts accruing the next session.")
-
-
-def _calendar_note(labels: dict, live_period: str | None, state: str, pending: bool = False) -> str:
-    """A note under the calendar only when the live month needs one (owner, 2026-10-07:
-    the quarter / FY convention and "live month-to-date" are not needed)."""
-    if not live_period:
-        return ""
-    marked = labels["prefix"].split(" ")[0]
-    if state == "closed":
-        return f"{marked} is closed, not yet frozen."
-    if pending:
-        return _no_return_clause(labels).strip()
-    return ""
-
-
-def _benchmark_returns_from_daily(
-    benchmark_close: pd.Series | None,
-    as_of: pd.Timestamp,
-    inception_date: pd.Timestamp,
-) -> tuple[float, float, float]:
-    """Calculate benchmark day, MTD and inception returns from daily closes.
-
-    These are presentation/accounting facts, not backtest outputs. Every value
-    is measured from the same canonical NIFTY 500 daily series and the same
-    portfolio as-of session.
-    """
-    if benchmark_close is None or benchmark_close.empty or pd.isna(as_of):
-        return np.nan, np.nan, np.nan
-    s = pd.to_numeric(benchmark_close, errors="coerce").dropna().sort_index()
-    s = s.loc[:pd.Timestamp(as_of)]
-    if len(s) < 2:
-        return np.nan, np.nan, np.nan
-
-    day = float(s.iloc[-1] / s.iloc[-2] - 1.0)
-    if isinstance(inception_date, pd.Period):
-        inception_ts = inception_date.start_time.normalize()
-    else:
-        inception_ts = pd.Timestamp(inception_date).normalize()
-    # From the close of the first fill -- the first session of the inception
-    # month, when the first book was bought -- as the record counts. The last
-    # close before it (31 Dec for a January start) added a day the strategy
-    # was not invested: +0.16% on 12 Oct 2026, so -8.4% here beside the
-    # record's -7.6% (owner, 12 Oct 2026).
-    from_fill = s.loc[s.index >= inception_ts]
-    inception_base = float(from_fill.iloc[0]) if not from_fill.empty else float(s.iloc[0])
-    total = float(s.iloc[-1] / inception_base - 1.0) if inception_base > 0 else np.nan
-
-    # Month to date from the previous month's last close, as the record's live
-    # month now is; in the inception month, from the first fill.
-    month_start = pd.Timestamp(as_of).normalize().replace(day=1)
-    prior_month = s.loc[s.index < month_start]
-    if month_start <= inception_ts or prior_month.empty:
-        mtd_base = inception_base
-    else:
-        mtd_base = float(prior_month.iloc[-1])
-    mtd = float(s.iloc[-1] / mtd_base - 1.0) if np.isfinite(mtd_base) and mtd_base > 0 else np.nan
-    return day, mtd, total
-
-
 def tile_labels(fill_date, month_prefix: str) -> dict:
     """Header-tile words that say which figure is the account's return.
 
@@ -545,8 +482,8 @@ def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | 
 def render_portfolio_view(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
     """Render the model book: src/ui/views/portfolio_page.py (mock-up v3, owner approved 20 Nov 2026).
 
-    `prices` is the adjusted-close frame the ranking is computed on
-    (pipeline.ranked_prices, passed by app.py).
+    `prices` is the longest continuous adjusted-close history (app.py passes
+    `deep_adj_close`).
     """
     from src.ui.views import portfolio_page
     portfolio_page.render(prices, rank_df)

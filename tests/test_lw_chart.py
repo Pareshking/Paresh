@@ -1,4 +1,5 @@
 """The shared chart component: data in, one self-contained document out."""
+
 import numpy as np
 import pandas as pd
 
@@ -41,8 +42,7 @@ def test_nothing_is_drawn_for_a_single_point(monkeypatch):
 
 def test_the_library_is_v5_and_the_logo_is_off():
     html = lw.chart_html([{"series": [{"name": "x", "data": [("2026-01-01", 1.0), ("2026-01-02", 2.0)]}]}])
-    from src.ui.highcharts_lib import _STATIC
-    lib = (_STATIC / "lightweight-charts.standalone.production.js").read_text(encoding="utf-8")
+    lib = (lw._STATIC / "lightweight-charts.standalone.production.js").read_text(encoding="utf-8")
     assert "Lightweight Charts™ v5." in lib and "lightweight-charts@5" in html
     assert "attributionLogo:false" in html
     # v4's per-type factories are gone in v5; every series goes through addSeries

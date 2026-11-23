@@ -72,7 +72,7 @@ def test_v1_workflows_explicitly_isolate_r2_only_paths():
 
 
 def test_v1_workflow_does_not_execute_stage4b():
-    """V1 must never run Stage-4B research steps; those belong in stage4b-independent-validation."""
+    """V1 must never run Stage-4B research steps."""
     v1_lines = (ROOT / ".github" / "workflows" / "v1-full-validation.yml").read_text(encoding="utf-8").splitlines()
     # Only check step `run:` lines and `name:` lines, not comments or branch filters
     step_lines = [
@@ -86,8 +86,3 @@ def test_v1_workflow_does_not_execute_stage4b():
         "V1 Full Validation must not execute Stage-4B research workloads: "
         + ", ".join(set(violations))
     )
-
-
-def test_stage4b_independent_workflow_exists():
-    wf = ROOT / ".github" / "workflows" / "stage4b-independent-validation.yml"
-    assert wf.exists(), "Independent Stage-4B workflow is missing"

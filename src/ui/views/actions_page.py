@@ -519,7 +519,7 @@ def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, syst
         emit(header(p))
     emit(section_change(p) + section_sell(p) + section_buy(p) + section_after(p) + section_hold(p))
     with st.expander("Buy candidates · the qualified list", expanded=False):
-        render_qualified_view(rank_df, adj_close, embedded=True)
+        render_qualified_view(rank_df, adj_close)
     emit(footer(p))
 
 

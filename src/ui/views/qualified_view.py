@@ -1,6 +1,7 @@
 """
 Qualified: the best-ranked stocks that pass both filters -- above their
-50D EMA and within 20% of their 52-week high.
+50D EMA and within 20% of their 52-week high. Drawn inside the Actions page
+("Buy candidates").
 """
 
 
@@ -11,51 +12,12 @@ import streamlit as st
 from src.core.market_time import ist_now
 from src.ui import formats as _fmt
 from src.ui import page_kit as kit
-from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
+from src.ui.components import to_bool_mask
 from src.ui.screener_table import render_screener_table
 
 # Industries shown by name before the rest fold into "others".
 TOP_INDUSTRIES = 6
 
-
-
-PERIODS = (1, 3, 6, 9, 12)
-
-
-def _price_day() -> pd.Timestamp | None:
-    """The ranking's price day (moved here from the stock page's old module, S182)."""
-    from src.core import startup_metrics as _metrics
-
-    try:
-        day = pd.Timestamp(
-            str(_metrics.snapshot().get("facts", {}).get("price_as_of") or "")[:10])
-    except (ValueError, TypeError):
-        return None
-    return None if pd.isna(day) else day
-
-
-def _benchmark_returns(day: pd.Timestamp | None) -> dict[int, float]:
-    """Nifty 500 price return over each calendar window ending on the price day."""
-    try:
-        from src.loaders.price_loader import fetch_benchmark_history
-
-        s = fetch_benchmark_history(period="2y")
-    except Exception:
-        return {}
-    s = pd.to_numeric(s, errors="coerce").dropna()
-    if s.empty:
-        return {}
-    if day is not None:
-        s = s[s.index <= day + pd.Timedelta(days=1)]
-    if s.empty:
-        return {}
-    end_t = s.index[-1]
-    out = {}
-    for m in PERIODS:
-        start = s[s.index <= end_t - pd.DateOffset(months=m)]
-        if not start.empty:
-            out[m] = float(s.iloc[-1] / start.iloc[-1] - 1)
-    return out
 
 def _pct(v: float | None) -> str:
     """The house rule, from one place (duplicate audit, 10 Nov 2026).
@@ -105,13 +67,9 @@ def industry_rows(df: pd.DataFrame) -> list[tuple[str, float, str, bool]]:
     return rows
 
 
-def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
-                          embedded: bool = False) -> None:
-    """The qualified list: readings, the table, where they come from.
-
-    `embedded` draws it as the Actions page's "Buy candidates" section: no page
-    header or footer, the picker and export in a bar of their own.
-    """
+def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> None:
+    """The qualified list and where it comes from, drawn as the Actions page's
+    "Buy candidates" section: the picker and export in a bar of their own."""
     ab_ema = (to_bool_mask(rank_df["Above 50 EMA"]) if "Above 50 EMA" in rank_df.columns
               else pd.Series(True, index=rank_df.index, dtype=bool))
     nr_hi = (to_bool_mask(rank_df["Near 52W High"]) if "Near 52W High" in rank_df.columns
@@ -119,17 +77,9 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
     passing = rank_df[ab_ema & nr_hi].sort_values("Rank")
 
     top_n = int(st.session_state.get("qual_top_n", 30) or 30)
-    if embedded:
-        actions = st.container(horizontal=True, vertical_alignment="center", key="qual_pool_bar")
-        with actions:
-            kit.caption("Best-ranked stocks passing both filters.")
-    else:
-        actions = kit.page_head(
-            "Qualified",
-            f"The {top_n} best-ranked stocks that pass both filters: above their 50D "
-            "EMA and within 20% of their 52-week high",
-            actions=True,
-        )
+    actions = st.container(horizontal=True, vertical_alignment="center", key="qual_pool_bar")
+    with actions:
+        kit.caption("Best-ranked stocks passing both filters.")
     view = passing.head(top_n).copy()
     # Place among the qualified, as on the Screener (audit, 8 Nov 2026: this table
     # showed "–" in Qualified # for every row).
@@ -149,23 +99,6 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
                   "above its 50D EMA and within 20% of its 52-week high.")
         return
 
-    if not embedded:
-        bench = _benchmark_returns(_price_day())
-        _corr, corr_mean = correlation(adj_close, view["Symbol"].tolist())
-        avg3 = pd.to_numeric(view.get("3M Return"), errors="coerce").mean()
-        avg6 = pd.to_numeric(view.get("6M Return"), errors="coerce").mean()
-        kit.readings([
-            kit.Reading("Qualified", f"{len(view)}", f"of {len(passing)} that pass both filters"),
-            kit.Reading("Average 3M return", _pct(avg3),
-                        f"Nifty 500 {_pct(bench[3])} over the same 3 months" if 3 in bench else "calendar 3 months",
-                        _tone(avg3)),
-            kit.Reading("Average 6M return", _pct(avg6),
-                        f"Nifty 500 {_pct(bench[6])}" if 6 in bench else "calendar 6 months",
-                        _tone(avg6)),
-            kit.Reading("Average correlation", "–" if corr_mean is None else f"{corr_mean:.2f}",
-                        correlation_note(corr_mean)),
-        ], "Qualified list today")
-
     with kit.card("The list", "qual_list"):
         render_screener_table(view, adj_close, "Core")
 
@@ -175,11 +108,3 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, *,
         top2 = sum(r[1] for r in rows[:2]) / len(view)
         if top2 >= 0.4:
             kit.caption(f"{rows[0][0]} and {rows[1][0]}: {top2:.0%} of the list.")
-
-    if embedded:
-        return
-    render_data_quality_footer(
-        total_stocks=len(rank_df),
-        gap_count=gap_count(rank_df),
-        short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
-    )

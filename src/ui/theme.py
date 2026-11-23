@@ -32,11 +32,6 @@ def is_tick_true(value) -> bool:
     )
 
 
-def clean_html(html_str: str) -> str:
-    """Strips leading whitespace from every line to ensure Markdown NEVER interprets HTML as code blocks."""
-    return re.sub(r"^[ \t]+", "", html_str, flags=re.MULTILINE).strip()
-
-
 FORMAT_MAP: dict[str, str] = {
     # Currency & Prices (Integer rounded with commas)
     "CMP": "{:,.0f}",

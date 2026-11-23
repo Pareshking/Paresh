@@ -26,7 +26,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
@@ -44,11 +44,6 @@ INCEPTION = pd.Period("2026-01", freq="M")
 # missing ledger reads as an empty track record rather than an error.
 LEDGER_PATH = Path(__file__).resolve().parents[2] / "data" / "track_record.json"
 SCHEMA_VERSION = 1
-
-MONTH_LABELS = [
-    "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-    "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
-]
 
 
 # The configuration the record is kept under. It mirrors the Backtest tab's
@@ -428,10 +423,8 @@ def calendar_month_returns(curve: pd.Series) -> pd.Series:
 def ledger_from_curves(strategy_curve: pd.Series, benchmark_curve: pd.Series | None = None) -> dict[str, Any]:
     """A ledger-shaped dict of calendar-month returns, built from two equity curves.
 
-    The Portfolio page's calendar grid reads the frozen ledger; a backtest has no
-    ledger, only curves. This gives `build_combined_grid` the same input from a
-    curve, so a backtest's year-by-month table is computed by the very code the
-    record's is (CY, FY and quarter conventions included). Alpha is the month's
+    A backtest has no ledger, only curves; this gives it the ledger's shape.
+    Alpha is the month's
     strategy return minus its benchmark return, as in the ledger. The ledger's
     inception is the first month of the curve, so the grid starts there and not
     at the record's own inception.
@@ -584,145 +577,6 @@ def _series_from(ledger: dict[str, Any], field: str) -> pd.Series:
     if not rows:
         return pd.Series(dtype=float)
     return pd.Series(rows).sort_index()
-
-
-def build_grid(
-    ledger: dict[str, Any],
-    field: str = "strategy",
-    mtd: tuple[pd.Period, float] | None = None,
-    years: Sequence[int] | None = None,
-) -> pd.DataFrame:
-    """Year-by-month grid with CY, FY and calendar-quarter aggregates.
-
-    `mtd` adds the live, unfrozen month-to-date figure into its own cell so the
-    current month is visible without being recorded. It is included in the
-    quarter and CY compounding -- a year-to-date number that ignored the
-    running month would be wrong in the other direction -- and the caller
-    labels it as partial.
-    """
-    series = _series_from(ledger, field)
-    start = ledger_inception(ledger)
-    if mtd is not None:
-        period, value = mtd
-        if value is not None and np.isfinite(value) and period >= start:
-            series.loc[period] = float(value)
-            series = series.sort_index()
-
-    if series.empty:
-        return pd.DataFrame()
-
-    if years is None:
-        years = range(start.year, int(series.index.max().year) + 1)
-
-    def _get(y: int, m: int) -> float | None:
-        p = pd.Period(year=y, month=m, freq="M")
-        return float(series.loc[p]) if p in series.index else None
-
-    rows = []
-    for y in years:
-        monthly = [_get(y, m) for m in range(1, 13)]
-        row: dict[str, Any] = {"YEAR": y}
-        for label, val in zip(MONTH_LABELS, monthly):
-            row[label] = val
-        row["CY RETURN"] = compound([v for v in monthly if v is not None])
-        # Indian financial year: Apr of this row's year through Mar of the next.
-        fy_months = [_get(y, m) for m in range(4, 13)] + [
-            _get(y + 1, m) for m in range(1, 4)
-        ]
-        row["FY RETURN"] = compound([v for v in fy_months if v is not None])
-        for qi in range(4):
-            q_vals = [v for v in monthly[qi * 3 : qi * 3 + 3] if v is not None]
-            row[f"Q{qi + 1}"] = compound(q_vals)
-        rows.append(row)
-
-    return pd.DataFrame(rows)
-
-
-SERIES_LABELS: dict[str, str] = {
-    "strategy": "Strategy",
-    "benchmark": "Nifty 500",
-    "alpha": "Alpha",
-}
-
-
-def build_combined_grid(
-    ledger: dict[str, Any],
-    mtd_period: pd.Period | None = None,
-    mtd_values: dict[str, float | None] | None = None,
-    years: Sequence[int] | None = None,
-    alpha_as_difference: bool = True,
-) -> pd.DataFrame:
-    """All three series in one grid, three rows per year.
-
-    Strategy, benchmark and alpha in separate tables meant comparing them
-    required switching views and holding numbers in your head. The question
-    being asked of this table is almost always "how did we do against the index
-    in June", and that should be one glance down a column.
-
-    Rows are grouped by year, then Strategy / Nifty 500 / Alpha, so a year reads
-    as a block. Each row is built by `build_grid`, so the CY/FY/quarter
-    conventions cannot drift between the combined and per-series views.
-
-    The Alpha row's CY, FY and quarter cells are the plain difference, the
-    year's strategy return minus the year's index return (owner, 2026-10-07,
-    TODO S40): 2010 at +17.7% against +25.2% reads -7.5 pts on every page.
-    `alpha_as_difference=False` gives the monthly alphas compounded instead
-    (-6.4% for 2010), which Portfolio showed until then; the monthly cells are
-    differences either way.
-    """
-    mtd_values = mtd_values or {}
-
-    if years is None:
-        seen: set[int] = set()
-        for field in SERIES_LABELS:
-            s = _series_from(ledger, field)
-            seen.update(int(p.year) for p in s.index)
-        if mtd_period is not None and any(
-            mtd_values.get(f) is not None for f in SERIES_LABELS
-        ):
-            seen.add(int(mtd_period.year))
-        if not seen:
-            return pd.DataFrame()
-        years = range(min(seen), max(seen) + 1)
-
-    rows: list[dict[str, Any]] = []
-    for year in years:
-        for field, label in SERIES_LABELS.items():
-            pair = None
-            value = mtd_values.get(field)
-            if mtd_period is not None and value is not None:
-                pair = (mtd_period, value)
-            grid = build_grid(ledger, field=field, mtd=pair, years=[year])
-            if grid.empty:
-                # Keep the row so every year shows all three series; a series
-                # with nothing recorded reads as blank rather than vanishing,
-                # which would silently misalign the block.
-                blank: dict[str, Any] = {"SERIES": label, "YEAR": year}
-                for label_m in MONTH_LABELS:
-                    blank[label_m] = None
-                for extra in ("CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"):
-                    blank[extra] = None
-                rows.append(blank)
-                continue
-            rows.append({"SERIES": label, **grid.iloc[0].to_dict()})
-        if alpha_as_difference:
-            block = {r["SERIES"]: r for r in rows[-len(SERIES_LABELS):] if r.get("YEAR") == year}
-            strat, bench, alpha = (block.get(SERIES_LABELS[k]) for k in ("strategy", "benchmark", "alpha"))
-            if strat is not None and bench is not None and alpha is not None:
-                for col in ("CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"):
-                    a, b = strat.get(col), bench.get(col)
-                    ok = a is not None and b is not None and np.isfinite(a) and np.isfinite(b)
-                    alpha[col] = float(a) - float(b) if ok else None
-
-    if not rows:
-        return pd.DataFrame()
-    frame = pd.DataFrame(rows)
-    ordered = (
-        ["SERIES", "YEAR"]
-        + MONTH_LABELS
-        + ["CY RETURN", "FY RETURN", "Q1", "Q2", "Q3", "Q4"]
-    )
-    return frame[[c for c in ordered if c in frame.columns]]
 
 
 def _elapsed_fraction(period: pd.Period, as_of: Any | None) -> float:

@@ -61,7 +61,7 @@ def test_the_symbol_is_typed_once_in_the_shipped_code():
     root = Path(config.__file__).resolve().parents[2]
     this_file = Path(config.__file__).resolve()
     offenders, scanned = [], 0
-    for folder in ("src", "scripts", "agent", "research"):
+    for folder in ("src", "scripts", "research"):
         for path in sorted((root / folder).rglob("*.py")):
             if path == this_file:
                 continue

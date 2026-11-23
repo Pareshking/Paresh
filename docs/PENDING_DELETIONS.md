@@ -5,7 +5,7 @@ can't do it, whatever possible please delete it."*
 
 ## S195 clean-up (owner, 22 Nov 2026: "go with your recommendations")
 
-`docs/RESOURCES_2026-11-25.md` section 4 has the evidence for each.
+`docs/RESOURCES.md` section 4 has the evidence for each.
 
 - **R2 `calculations/rankings`** (25 MiB, retired 16 Nov) and **`indices/prices/research`** (7 MiB, retired
   22 Nov): in `RETIRED_DATASETS`, protection removed for them only. The retention workflow plans on merge (dry run);

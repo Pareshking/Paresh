@@ -1,7 +1,7 @@
 """Every chart frame carries its content in words (audit F26)."""
 import pandas as pd
 
-from src.ui import charts, lw_chart
+from src.ui import lw_chart
 
 
 def _panes():
@@ -32,14 +32,6 @@ def test_time_series_frame_hides_the_drawing_and_names_its_series():
 def test_summary_text_is_escaped():
     out = lw_chart.chart_html([{"series": [{"name": "<b>x</b>", "data": [("2026-11-05", 1.0), ("2026-11-06", 2.0)]}]}])
     assert "<b>x</b>" not in out and "&lt;b&gt;x&lt;/b&gt;" in out
-
-
-def test_correlation_summary_names_the_most_and_least_alike_pair():
-    c = pd.DataFrame([[1, 0.8, 0.1], [0.8, 1, -0.2], [0.1, -0.2, 1]],
-                     index=list("ABC"), columns=list("ABC"), dtype=float)
-    assert charts.correlation_summary(c) == (
-        "Correlation of daily returns of 3 stocks. Most alike: A and B (0.80). "
-        "Least alike: B and C (−0.20).")
 
 
 def test_portfolio_curve_ends_on_the_account_value_shown_above_it():
