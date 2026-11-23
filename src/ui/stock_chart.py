@@ -281,7 +281,10 @@ def render_price_chart(symbol: str, close_full: pd.Series, volume: pd.Series | N
                         label=f"{symbol}: price and 50D EMA, volume, and relative strength against "
                               "Nifty Total Market. Arrow keys move the reading.")
     except ChartUnavailable as exc:
-        st.warning(f"No chart for {symbol}: {exc}")
+        from src.core.logger import logger
+        logger.warning("No chart for %s: %s", symbol, exc)
+        st.warning(f"No chart for {symbol} in this range: there are no closes to draw. "
+                   "The figures on the page still hold; pick a longer range to try again.")
         return
     if not has_volume:
         st.caption("Volume unavailable for this symbol.")

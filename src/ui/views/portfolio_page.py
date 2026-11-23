@@ -1014,7 +1014,10 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
     try:
         book, record = current_book(prices, benchmark_close, system)
     except (ValueError, KeyError) as exc:
-        st.error(f"Canonical Track Record book is invalid: {exc}")
+        from src.core.logger import logger
+        logger.error("Portfolio: the model book did not pass its check: %s", exc)
+        kit.note("The model book could not be read just now.",
+                 "The record itself is unchanged. Reload the page in a few minutes; the book shows again once its nightly check passes.")
         return
     if book.empty:
         kit.empty("No current model book", "for this system yet.")
@@ -1025,7 +1028,10 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
     try:
         ledger = load_ledger(ledger_path(system), inception(system))
     except (ValueError, OSError) as exc:
-        st.error(f"Portfolio Track Record could not be read: {exc}")
+        from src.core.logger import logger
+        logger.error("Portfolio: the track record's ledger could not be read: %s", exc)
+        kit.note("The track record could not be read just now.",
+                 "The model book is unchanged. Reload the page in a few minutes.")
         return
     series = book_series(book, record, ledger, rank_df, prices, benchmark_close, PORTFOLIO_STARTING_CAPITAL)
     if series is None:

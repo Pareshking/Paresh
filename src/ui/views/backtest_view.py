@@ -946,7 +946,9 @@ def _download(res: dict, s: dict, h: dict, stock_cap: float, sector_cap: float, 
                            f"backtest_{slug}_{span}.zip", "application/zip", key="dl_bt_export",
                            icon=":material/download:")
     except Exception as exc:  # the page must not fail because a download could not be built
-        st.caption(f"The download is unavailable for this run ({type(exc).__name__}: {exc}).")
+        from src.core.logger import logger
+        logger.warning("Backtest download not built: %s: %s", type(exc).__name__, exc)
+        st.caption("The download is not available for this run; the figures on the page are complete. Run it again to retry.")
 
 
 def _reason(text: str) -> str:

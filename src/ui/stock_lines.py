@@ -109,8 +109,11 @@ def filters_state(row) -> str:
 
 def failed_filters(row) -> str:
     a, h = tick(row.get("Above 50 EMA")), tick(row.get("Near 52W High"))
-    return ("both filters" if not a and not h else "the 50D EMA filter" if not a
-            else "the 52W-high filter" if not h else "")
+    # A recent listing has no 52W high to be near: say so, not that it is far below one (S193 E).
+    young = (not h and num(row.get("% High")) is None and str(row.get("Short History") or "") == "Yes")
+    why = f", too new to have a 52W high (none before {HIGH_SESSIONS} sessions)" if young else ""
+    return ("both filters" + why if not a and not h else "the 50D EMA filter" if not a
+            else "the 52W-high filter" + why if not h else "")
 
 
 # ── Head ─────────────────────────────────────────────────────────────────────

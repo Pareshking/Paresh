@@ -799,6 +799,17 @@ def qualified_trail(prices: pd.DataFrame | None, rank_df: pd.DataFrame) -> dict 
         return None
 
 
+def behind_phrase(item: dict) -> str:
+    """One clause per stale source, in words for each state (S193 E: the line read "Market caps are to date
+    unknown; All-time highs are to 2y window, not all-time")."""
+    label = str(item.get("label") or "The data")
+    if item.get("date") is not None:
+        return f"{label} are to {item.get('as_of')}"
+    if label == "All-time highs":
+        return "All-time highs are not in, so the highs shown are the last two years’"
+    return f"{label} carry no date, so they may be old"
+
+
 def data_line(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
     """The data date and the counts; no source named (owner, 20 Nov 2026). A
     dataset that is behind is said, in the caution colour, by what it is."""
@@ -811,7 +822,7 @@ def data_line(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
         for item in data_freshness() or []:
             label = str(item.get("label") or "")
             if item.get("stale") and "ranked from" not in label.lower():
-                behind.append(f"{html.escape(label)} are to {html.escape(str(item.get('as_of') or ''))}")
+                behind.append(html.escape(behind_phrase(item)))
     except Exception:  # noqa: BLE001
         behind = []
     extra = (' <span style="color:var(--c-caution)">' + "; ".join(behind) + ".</span>") if behind else ""
