@@ -802,12 +802,12 @@ def qualified_trail(prices: pd.DataFrame | None, rank_df: pd.DataFrame) -> dict 
 def behind_phrase(item: dict) -> str:
     """One clause per stale source, in words for each state (S193 E: the line read "Market caps are to date
     unknown; All-time highs are to 2y window, not all-time")."""
-    label = str(item.get("label") or "The data")
-    if item.get("date") is not None:
-        return f"{label} are to {item.get('as_of')}"
-    if label == "All-time highs":
-        return "All-time highs are not in, so the highs shown are the last two years’"
-    return f"{label} carry no date, so they may be old"
+    label, as_of = str(item.get("label") or "The data"), str(item.get("as_of") or "")
+    if "2y window" in as_of:
+        return f"{label} are not in, so the highs shown are the last two years’"
+    if not as_of or as_of == "date unknown":
+        return f"{label} carry no date, so they may be old"
+    return f"{label} are to {as_of}"
 
 
 def data_line(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
