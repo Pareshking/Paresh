@@ -1231,12 +1231,29 @@ def _qualify_cached(key: str, _prices: pd.DataFrame, dates: tuple) -> dict:
     return qualified_on(_prices[cols].astype("float64"), [pd.Timestamp(d) for d in dates], membership)
 
 
+def _qualify_saved(session: pd.Timestamp, path: Path | None = None) -> dict:
+    """{session: share} from data/qualified_now.json when it was read for `session`, else {}."""
+    try:
+        d = json.loads((path or ROOT / "data" / "qualified_now.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    if d.get("as_of") != f"{pd.Timestamp(session):%Y-%m-%d}":
+        return {}
+    vals = {pd.Timestamp(k): float(v) for k, v in (d.get("nifty500") or {}).items()}
+    return vals if len(vals) == 3 else {}
+
+
 def _qualify_today(adj_close: pd.DataFrame | None, as_of: pd.Timestamp) -> dict:
     """{session: share of the Nifty 500 passing the filters} on the rank trail's
     dates, by the monthly job's rule (`momentum_health.qualified_on`), so the
     row's "Now" is today and not the last month-end (staleness audit, 21 Nov 2026)."""
     if adj_close is None or adj_close.empty:
         return {}
+    # The nightly reading first, the same on every system (S193 A6: Nano Cap's prices hold no
+    # Nifty 500 stock, so its row fell back to month-ends under "Now"); live when it is older.
+    saved = _qualify_saved(adj_close.loc[:as_of].index[-1] if len(adj_close.loc[:as_of]) else as_of)
+    if saved:
+        return saved
     try:
         from src.engine.pipeline import price_fingerprint
         px = adj_close.loc[:as_of]
