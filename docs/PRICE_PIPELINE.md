@@ -99,6 +99,10 @@ membership).
 - **Splits, bonuses, consolidations:** from NSE's corporate-action file, each
   applied only where the price actually moved by its factor
   (`src/loaders/nse_adjusted.py`).
+  - NSE abbreviates some consolidations (`CNSLDATNRE1 TO RS10`, CCAVENUE, Oct 2026)
+    and lists some with a record date and no ex-date. Both are read: under T+1
+    the ex-date is the record date (`nse_bundle.fill_ex_dates`), and the price
+    check still decides (S213).
 - **Rights issues** (`src/engine/reconcile.py`): the factor comes from NSE's
   terms, `(held·cum + new·issue) / ((held+new)·cum)`, with issue = face value
   + premium.
@@ -283,6 +287,12 @@ never read again, and no audit that could fail a job. Now (GitHub cron is UTC):
 | 2nd of the month, 21:13 / 02:43 on the 3rd | `nse_history_import.yml` | NSE's yearly corporate-action list for last year and this year (so January also re-reads the year just ended); no prices (the mirror ends Sep 2023, all of it on R2). Fails when NSE gives no year |
 | 3rd of the month, 22:37 / 04:07 on the 4th | `nse_history_audit.yml` | The history audit, then its limits (`audit_limits.py history`; `nse_history_audit.py --fail-on-limits` does the same by hand) |
 | Saturdays 03:30 / 09:00 | `nse_long_prices.yml` | Build, publish, audit, then the audit limits. Each scheduled build ignores both packs: every session and corporate-action day read from R2 again (as `full=yes`), so a file revised on R2 after it was first read is picked up (owner, 13 Oct 2026: "every Saturday"). Each build adjusts NSE's raw closes from scratch, actions deduplicated, so a full read never adjusts twice |
+
+Every build of the long file also compares it with the live Screener store
+(`scripts/check_long_against_screener.py`, S213): a one-day move of 50% or more in
+one and not the other, over the last 60 sessions, fails the job. That is an action
+one of them did not apply. The Saturday audits compare against Screener's frozen
+3 Oct 2026 copy, so they cannot see a new one.
 
 The import runs on the 2nd and the audit on the 3rd; the long-file builds share
 one concurrency group, so two never run at once. A manual run reads only what

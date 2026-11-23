@@ -236,7 +236,10 @@ ACTION_COLUMNS = ["date", "series", "symbol", "security", "record_date",
 # no split at all and counted NCRPS bonuses as equity bonuses; both are
 # pinned in tests/test_nse_bundle.py with NSE's own wording.
 _SPLIT = re.compile(r"SPLIT|SPLT|SUB[- ]?DIVISION|SUBDIVISION")
-_CONSOLIDATION = re.compile(r"CONSOLIDAT")
+# NSE's Bc file also writes a consolidation "CNSLDATNRE1 TO RS10" (CCAVENUE, 12 Oct 2026),
+# "CNSLDATN RE 1 TO RS 10" (SHEKHAWATI 2024), "CNSLDATNRS10 TO RS1000" (KAUSHALYA 2024):
+# read as "other" until S213, so the 10:1 went unapplied and the long file read +840%.
+_CONSOLIDATION = re.compile(r"CONSOLIDAT|CNSLDAT")
 # Preference shares issued as bonus: equity holders keep every share, so
 # the equity price has no bonus step (TVSMOTOR 2025-08-25 moved -0.3%).
 _BONUS_PREFERENCE = re.compile(r"BONUS\s*(?:NCRPS|PREF|RPS|NCPS|DEBENTURE)")
@@ -272,6 +275,31 @@ _PREMIUM = re.compile(r"(?:PREMIUM|PREM|PRM)\.?[\s@-]*(?:OF)?\s*(?:RS|RE|INR)?\.
 _AT_PAR = re.compile(r"\bAT\s+PAR\b|@\s*PAR\b")
 
 
+PRICE_STEP_KINDS = ("split", "consolidation", "bonus")
+
+
+def fill_ex_dates(actions: pd.DataFrame) -> pd.DataFrame:
+    """A split, consolidation or bonus NSE lists without an ex-date takes its record date.
+
+    Under T+1 settlement (India, from 27 Jan 2023) the ex-date is the record date. NSE's Bc file
+    left the ex-date out of CCAVENUE's 10:1 consolidation (record date 13 Oct 2026; trading halted
+    13-16 Oct, first price at the new level 19 Oct), and every reader drops an action with no
+    ex-date. nse_adjusted confirms the step on the first session on or after the date the stock
+    trades, so a halt after the record date is crossed (S213).
+    """
+    if actions is None or actions.empty or "record_date" not in actions or "ex_date" not in actions:
+        return actions
+    ex = pd.to_datetime(actions["ex_date"], errors="coerce")
+    rec = pd.to_datetime(actions["record_date"], errors="coerce")
+    miss = ex.isna() & rec.notna() & actions["kind"].isin(PRICE_STEP_KINDS)
+    if not miss.any():
+        return actions
+    out = actions.copy()
+    out["ex_date"] = pd.to_datetime(out["ex_date"], errors="coerce")
+    out.loc[miss, "ex_date"] = rec[miss]
+    return out
+
+
 def classify_purpose(purpose: str) -> dict:
     """What an action is and, where the words say it, the price factor.
 
@@ -285,6 +313,8 @@ def classify_purpose(purpose: str) -> dict:
     nse_adjusted prices it against the close before the ex-date.
     """
     text = (purpose or "").upper()
+    # "CNSLDATNRE1": the face value glued to the word, which _FACE's word boundary misses.
+    text = re.sub(r"(CNSLDATN)(?=R[SE])", r"\1 ", text)
     kind = next((k for k, rx in _KINDS if rx.search(text)), "other")
     info = {"kind": kind, "ratio_new": np.nan, "ratio_held": np.nan,
             "face_from": np.nan, "face_to": np.nan, "amount": np.nan,

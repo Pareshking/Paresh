@@ -43,7 +43,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 #644 (S214), #645 (numpy 2.5.5; Dependabot #641-#643 carried in and closed), #646 (S205 step 1).
 
 **Open pull requests**
-- **S193 item C merged (#650), S216 merged (#650, #651).** **S217 PR #652** (K3, owner chose per system, A2 B2): each system's momentum tiles from its own record; merge when CI is green on its current head (CLAUDE.md). After 2 Dec's `momentum_health` run, check the 750 and list files gained November's row.
+- Merged 23 Nov: #650 (S193 C), #651 (S216), #652 (S217), #653 (since-start market from the fill). **S213 PR** (price pipeline end to end): open; merge when CI is green.
 - **#638 (S211, one date rule):** draft. Merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
   published ranks move). It conflicts with main again: merge main into it once, just before merging. Reminder
   `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
@@ -67,7 +67,7 @@ log "New revision pulled ... caches dropped" and the run reads seconds slower (s
 **S193 item A:** A10, A12, A13, A14 merged (#649). Item C merged (#650). Since-start market: owner chose "2: from the fill" (23 Nov); done. A5 and A11 need a `record_run` on the R2 store first
 (a CI job with R2 secrets). Then items B, C, E-L, one at a time with the owner.
 
-**Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S207 closed 23 Nov (measured: leave both). These were taken over from the speed session.
+**S213 done** (23 Nov; `docs/archive/S213_PRICE_TRACE_2026-11-23.md`): CCAVENUE fixed by rule with a nightly check. **S218 waits on the owner**: a new listing's sessions before Screener's first price (TRIVENIPT). S207 closed 23 Nov (measured: leave both).
 
 **Scheduled tasks** (moved to session_016X4g5Y1bsnhgFzzKddp8Wc on 23 Nov; the old copies are disabled, not deleted):
 work loops `trig_01KG5jvzmWy7SdBisDHRCQAK` (:07) and `trig_01T3tgnXxsesBznuVJpMLaZD` (:37); S211 #638 1 Dec 13:30 UTC

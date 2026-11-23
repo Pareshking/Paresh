@@ -189,5 +189,6 @@ def read_r2(since: date, until: date, *, archive=None, reader=None
         acts = nb.repair_swapped_dates(acts).drop_duplicates(["symbol", "ex_date", "purpose"])
         parsed = pd.DataFrame([nb.classify_purpose(p) for p in acts["purpose"]], index=acts.index)
         acts[["kind", "price_factor"]] = parsed[["kind", "price_factor"]]
+        acts = nb.fill_ex_dates(acts)
     p = pd.concat(prices, ignore_index=True) if prices else pd.DataFrame(columns=KEEP)
     return p, acts, unreadable

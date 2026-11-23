@@ -242,6 +242,17 @@ jobs:
       - name: Audit limits
         if: env.NIGHTLY != 'yes'
         run: python scripts/audit_limits.py long --audit audit --report data_cache/nse_long/nse_long_report.json
+      # Every night, against the live Screener store (S213): a one-day move of 50% or more in one
+      # and not the other is an action one of them missed (CCAVENUE's 10:1 consolidation, 19 Oct
+      # 2026, read +840% here for a month). The file is already published; this fails the job.
+      - name: Steps Screener does not have
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Read only: this job never uploads the Screener store, so it is not in screener-sync's queue.
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern screener_prices.parquet --output screener_ref.parquet --clobber
+          python scripts/check_long_against_screener.py --long data_cache/nse_long/nse_long_close.parquet --screener screener_ref.parquet
       - uses: actions/upload-artifact@v7
         if: always() && env.NIGHTLY != 'yes'
         with:
