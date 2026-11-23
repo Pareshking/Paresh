@@ -7,19 +7,11 @@
 //   node scripts/chart_hover_audit.mjs <url> [widths=412,1400]     exit 1 on any movement.
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
+import { settle } from './_settle.mjs';
 
 const url = process.argv[2] || 'http://localhost:8501/stock?stock=SANSERA';
 const widths = (process.argv.find(a => /^\d+(,\d+)*$/.test(a)) || '412,1400').split(',').map(Number);
 const STOPS = [0.03, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 0.99];
-
-async function settled(p) {
-  let quiet = 0;
-  for (let i = 0; i < 240 && quiet < 2; i++) {
-    const busy = await p.evaluate(() => !!document.querySelector('[data-testid="stStatusWidget"]')).catch(() => false);
-    quiet = busy ? 0 : quiet + 1;
-    await p.waitForTimeout(1000);
-  }
-}
 
 // In the chart frame: each pane's readout height and its plot canvas's top, relative to the frame.
 const measure = () => [...document.querySelectorAll('.pane')].map(p => {
@@ -35,8 +27,7 @@ for (const w of widths) {
   const page = await b.newPage({ viewport: { width: w, height: 900 } });
   await page.goto(url);
   await page.waitForSelector('[data-testid="stMainBlockContainer"] h1', { timeout: 240000 }).catch(() => {});
-  await page.waitForTimeout(4000);
-  await settled(page);
+  await settle(page);
   // A modal over the page ("Page not found" when /stock?stock= is redirected to the Screener) takes the pointer.
   for (let k = 0; k < 3 && await page.$('[role="dialog"]'); k++) { await page.keyboard.press('Escape'); await page.waitForTimeout(500); }
   const frames = [];

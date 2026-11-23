@@ -12,6 +12,7 @@
 // Exit 1 on any finding, unless --report.
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
+import { settle } from './_settle.mjs';
 
 const args = process.argv.slice(2);
 const report = args.includes('--report');
@@ -96,11 +97,7 @@ if (fromFiles) {
       const p = await b.newPage({ viewport: { width, height: 900 } });
       await p.goto(url);
       await p.waitForSelector('.site, .dh, [data-testid="stMainBlockContainer"] h1', { timeout: 180000 }).catch(() => {});
-      for (let i = 0, quiet = 0; i < 240 && quiet < 3; i++) {       // until Streamlit finishes the run
-        const busy = await p.evaluate(() => !!document.querySelector('[data-testid="stStatusWidget"]')).catch(() => false);
-        quiet = busy ? 0 : quiet + 1; await p.waitForTimeout(1000);
-      }
-      await p.waitForTimeout(3000);
+      await settle(p);                 // Streamlit's run over, fonts in, frames still (S205)
       let t = '';
       for (const f of p.frames()) {
         try {

@@ -11,6 +11,7 @@
 // Usage: node scripts/layout_audit.mjs <url> [widths=412,1400] [--open]   exit 1 when anything is found.
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
+import { settle, framesStill } from './_settle.mjs';
 
 const url = process.argv[2] || 'http://localhost:8501/portfolio';
 const widths = (process.argv.find(a => /^\d+(,\d+)*$/.test(a)) || '412,1400').split(',').map(Number);
@@ -68,10 +69,10 @@ function probe() {
 const b = await chromium.launch(); let bad = 0;
 for (const w of widths) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });
-  await p.goto(url); await p.waitForSelector('.dh, .qp-head, .scr-head', { timeout: 240000 }); await p.waitForTimeout(8000);
-  if (process.argv.includes('--open')) for (const s of await p.locator('[data-testid="stExpander"] summary').all()) { await s.click(); await p.waitForTimeout(2500); }
+  await p.goto(url); await p.waitForSelector('.dh, .qp-head, .scr-head', { timeout: 240000 }); await settle(p);
+  if (process.argv.includes('--open')) { for (const s of await p.locator('[data-testid="stExpander"] summary').all()) await s.click(); await settle(p); }
   const H = await p.evaluate(() => (document.querySelector('[data-testid="stMain"]') || document.scrollingElement).scrollHeight);
-  await p.setViewportSize({ width: w, height: Math.min(H + 50, 16000) }); await p.waitForTimeout(4000);
+  await p.setViewportSize({ width: w, height: Math.min(H + 50, 16000) }); await framesStill(p);
   const found = [];
   for (const f of p.frames()) {
     const where = f === p.mainFrame() ? 'page' : (((await f.content().catch(() => '')).match(/render\("(\w+)"/) || [])[1] || null);
@@ -84,7 +85,7 @@ for (const w of widths) {
         const inner = await f.evaluate(() => Math.round(document.getElementById('c').getBoundingClientRect().bottom));
         return fb ? Math.round(fb.height - inner) : 0; };
       let sp = await spare();
-      if (sp > 24) { await f.evaluate(() => document.fonts.ready); await p.waitForTimeout(5000); sp = await spare(); }
+      if (sp > 24) { await framesStill(p, { same: 3 }); sp = await spare(); }
       if (sp > 24) found.push([where, 'frame taller than its drawing', `${sp} px spare`]); }
   }
   const gaps = await p.evaluate(() => {

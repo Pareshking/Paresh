@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
+import { settle } from './_settle.mjs';   // waits until the run is over, as the Backtest needs (21 Nov 2026)
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const docText = readFileSync(resolve(root, process.argv[3] || 'docs/DASHBOARD_REQUIREMENTS.md'), 'utf8');
 const rows = docText.split('\n')
@@ -35,20 +36,9 @@ async function read(p) {
 async function open(width) {
   const p = await b.newPage({ viewport: { width, height: 900 } });
   await p.goto(target);
-  await p.waitForSelector('.site, .dh, [data-testid="stMainBlockContainer"] h1', { timeout: 180000 }).catch(() => {}); await p.waitForTimeout(4000);
-  await settled(p);
+  await p.waitForSelector('.site, .dh, [data-testid="stMainBlockContainer"] h1', { timeout: 180000 }).catch(() => {});
+  await settle(p);
   return p;
-}
-// Wait until Streamlit has finished the run: its status widget ("Running...") shows while a script runs, and a
-// page that draws its title first and a long calculation after (Backtest, 21 Nov 2026) read too early on a
-// slow CI machine. Two quiet reads a second apart, at most four minutes.
-async function settled(p) {
-  let quiet = 0;
-  for (let i = 0; i < 240 && quiet < 2; i++) {
-    const busy = await p.evaluate(() => !!document.querySelector('[data-testid="stStatusWidget"]')).catch(() => false);
-    quiet = busy ? 0 : quiet + 1;
-    await p.waitForTimeout(1000);
-  }
 }
 const p = await open(1280);
 // The page's text and every chart frame's (the Dashboard's charts are frames).
@@ -60,7 +50,7 @@ for (const label of Object.keys(extra)) {
   try {
     const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const btn = p.getByRole('button', { name: new RegExp(esc) }).or(p.getByRole('tab', { name: new RegExp(esc) })).or(p.getByText(label, { exact: true }));
-    await btn.first().waitFor({ timeout: 90000 }); await btn.first().click({ timeout: 8000 }); await p.waitForTimeout(5000); extra[label] = await read(p); }
+    await btn.first().waitFor({ timeout: 90000 }); await btn.first().click({ timeout: 8000 }); await settle(p); extra[label] = await read(p); }
   catch (err) { console.error("could not tap", label, String(err).slice(0, 200)); extra[label] = ""; }
 }
 // Each [css SELECTOR] marker reads only what that selector matches, in every frame.
