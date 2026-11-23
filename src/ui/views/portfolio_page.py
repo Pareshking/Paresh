@@ -221,11 +221,11 @@ def common_window(starts: dict[str, pd.Period], this: pd.Period,
 def _systems(prices, benchmark_close, system, market, as_of) -> list[tuple]:
     """("common", "1 Oct", systems in the window), then (name, this month %, since the common start %,
     since its own start %, started) for each live system, then the market."""
-    from src.engine.extra_universe import SYSTEM_750, SYSTEM_NAMES, SYSTEMS
+    from src.engine.extra_universe import SYSTEM_NAMES, SYSTEMS
     from src.engine.systems import inception, ledger_path
     from src.engine.track_record import load_ledger
     from src.ui.views.track_record_view import _comparison_price_frame, _record_mtd
-    names = {sid: (n, "this book" if sid == SYSTEM_750 else "") for sid, n in SYSTEM_NAMES.items()}
+    names = {sid: (n, "this book" if sid == system else "") for sid, n in SYSTEM_NAMES.items()}   # S193 B9
     got = {}
     for sid in SYSTEMS:
         try:
@@ -483,7 +483,8 @@ def section_exposure(p: Page) -> list:
     note = (shift + "Each rebalance’s sector and size weights are worked out from that month’s book and kept, so the history "
             "stays as it was when later lists change. Size is by NSE’s index lists on each date; sectors are the record’s own.")
     since = f"since {_fmt.date(_start(p))}"
-    return _sec([_head("pf-exp", "Sector & size", f"now, against the {uni}, and at every rebalance {since}"),
+    # _head escapes its own text; `uni` is already escaped for the HTML below (S193 B6: "&gt;" showed).
+    return _sec([_head("pf-exp", "Sector & size", f"now, against the {UNIVERSE_SHORT.get(p.system, '750')}, and at every rebalance {since}"),
                  f'<div class="dh-cap"><b>Sector exposure now</b><span>bar: the book’s weight · mark: the sector’s weight in the {uni} '
                  'by market value</span></div>', '<div class="pf-ilist">' + head + body + '</div>',
                  '<div class="dh-pair"><div><div class="dh-cap"><b>The book by size, each rebalance</b>'
@@ -510,7 +511,11 @@ def section_returns(p: Page) -> list:
     ytd_start = max(pd.Timestamp(start), year_start)
     young = ytd_start > year_start
     book_ytd = pr.ret(p.equity, ytd_start, p.as_of)
-    vals = {k: pr.ret(p.indices[k], ytd_start, p.as_of) for k, _ in YTD_ROWS if k in p.indices}
+    # A young book's indices start at its first fill, as the header's (owner, 23 Nov 2026: "2: from the
+    # fill"); the book from the money put in. The table read +8.5% from 30 Sep beside +9.6% (S193 B8).
+    fill = first_fill(p)[1] if young else None
+    idx_start = fill if fill is not None else ytd_start
+    vals = {k: pr.ret(p.indices[k], idx_start, p.as_of) for k, _ in YTD_ROWS if k in p.indices}
     ex_since = p.exposure[pd.to_datetime(p.exposure["date"]) > ytd_start] if len(p.exposure) else p.exposure
     vals["mix"] = pr.size_mix(ex_since, {k: p.indices[v] for k, v in SIZE_INDEX.items()}, p.as_of)
     ytd = (f'<tr class="pf-hl"><th scope="row">The book, after costs</th><td class="dh-num dh-b {tone(book_ytd)}">{pct(book_ytd)}</td><td></td></tr>'
@@ -609,7 +614,9 @@ def section_equity(p: Page) -> list:
                       ("How they move together, 90 sessions", "–" if p.correlation is None else f"{p.correlation:.2f}", "",
                        "Average correlation of the holdings", "", "Low: the list is well spread" if p.correlation is not None and p.correlation < 0.3 else "")]
     windows = " · ".join(f"{r.label}, {r.sessions} sessions" for r in risks[:1])
-    second = (p.equity.index[0] + pd.Timedelta(days=1) + pd.DateOffset(years=1))
+    # A year of the book: from its first fill (the 1000: 2 Nov 2026), not the money-put-in point before it.
+    began = first_fill(p)[1]
+    second = (began if began is not None else p.equity.index[0] + pd.Timedelta(days=1)) + pd.DateOffset(years=1)
     more = ("" if len(risks) > 1 else f" · from {second:%B %Y} also the last 12 months and each year")
     rtable = ""
     if len(risks) > 1:
@@ -640,11 +647,12 @@ def section_equity(p: Page) -> list:
                      "move in Nifty Total Market. Tracking error: how much the book’s return differs from Nifty Total Market’s, scaled to a year "
                      "(the spread of the daily gaps). Capture: on Nifty Total Market’s up days and down days, the book’s average move as a share "
                      "of the index’s.",
-                     f"Tracking error {te:.1f}% means: over 12 months in which Nifty Total Market makes +10%, a book like this one would usually end between about "
+                     (f"Tracking error {te:.1f}% means: over 12 months in which Nifty Total Market makes +10%, a book like this one would usually end between about "
                      f"{_fmt.signed(ex_lo, 0)}% and {_fmt.signed(ex_hi, 0)}% (10 ± {te:.1f}, two years in three), and outside that range one year in three. On a "
                      f"typical day the book and Nifty Total Market differ by about {te / np.sqrt(pr.YEAR):.1f} point (tracking error ÷ √250). An "
                      "index fund aims for well under 1%; a 20-stock small-company momentum book cannot be close to Nifty Total Market, and that "
-                     "distance is where its lead comes from.",
+                     "distance is where its lead comes from.")
+                     if rk else "No risk figures yet: they need more sessions of the book than it has.",   # S193 B7: read 0.0%
                      ["Measure", "The book", "Nifty Total Market"],
                      [["Volatility, a year", f"{rk.vol:.1f}%", f"{rk.market_vol:.1f}%"], ["Beta", f"{rk.beta:.2f}", "1.00"],
                       ["Tracking error", f"{rk.tracking:.1f}%", "–"], ["Sessions", str(rk.sessions), str(rk.sessions)]] if rk else [])])

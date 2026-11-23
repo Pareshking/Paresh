@@ -506,7 +506,7 @@ def render_ranking_view(
                              history_prices if history_prices is not None else adj_close)
     # Sessions at a new 52-week high in the last month and three: a stock that
     # keeps making them is strong.
-    _nh = _new_high_counts(f"{adj_close.index[-1]}_{adj_close.shape}", adj_close)
+    _nh = _new_high_counts(f"{adj_close.index[-1]}_{_frame_key(adj_close.iloc[:0])}", adj_close)
     view["New Highs 1M"] = view["Symbol"].map(_nh["1M"]).fillna(0).astype(int)
     view["New Highs 3M"] = view["Symbol"].map(_nh["3M"]).fillna(0).astype(int)
     if selected_search and str(selected_search).strip():
@@ -631,7 +631,7 @@ def _reset_screener_filters() -> None:
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _new_high_counts(_key: str, _prices: pd.DataFrame) -> pd.DataFrame:
+def _new_high_counts(key: str, _prices: pd.DataFrame) -> pd.DataFrame:
     return new_extreme_counts(_prices)["high"]
 
 
@@ -645,8 +645,10 @@ def top50_changes(rank_df: pd.DataFrame):
         return None, None
     prev = pd.to_numeric(rank_df["Rank (-1M)"], errors="coerce")
     now = pd.to_numeric(rank_df["Rank"], errors="coerce")
-    entered = rank_df[(now <= 50) & (prev > 50)].sort_values("Rank")
-    left = rank_df[(now > 50) & (prev <= 50)].sort_values("Rank")
+    # A stock with no rank a month ago (new listing, new member) was not in the top 50 then
+    # either: `prev > 50` dropped it (S193 B5: 19 entered where 22 did, 20 Nov, the list).
+    entered = rank_df[(now <= 50) & ~(prev <= 50)].sort_values("Rank")
+    left = rank_df[~(now <= 50) & (prev <= 50)].sort_values("Rank")
     return entered, left
 
 
@@ -719,7 +721,7 @@ def screener_title(rank_df: pd.DataFrame) -> str:
     prev = pd.to_numeric(top.get("Rank (-1M)"), errors="coerce") if "Rank (-1M)" in top.columns else None
     if prev is None or prev.isna().all():
         return head + "."
-    new = int((prev > 50).sum())
+    new = int((~(prev <= 50)).sum())     # no rank a month ago counts as outside (S193 B5)
     return f"{head}; {new} of the {n_top} were not in the top {n_top} a month ago."   # not the running month (glossary 9)
 
 

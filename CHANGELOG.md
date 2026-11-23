@@ -1,6 +1,14 @@
 # Changelog
 
 
+## 2026-11-23 — Sentences checked against the data (S193 B)
+
+- Market on the > ₹2,000 Cr list showed the Nifty 1000's chart headings and shaded range for up to an hour (a cache shared between systems). Each system now gets its own.
+- The Dashboard's book-against-momentum line says "ahead of them" and "behind all of them" when it is (the 1000 read "level with the best" while 0.9 points ahead).
+- "At the last month-end, which the tests read" now counts each signal's month-end reading: 0 and 5 on 30 Oct, not 3 and 2.
+- The Screener counts a stock with no rank a month ago among those new to the top 50 (22, not 19, on the list).
+- Portfolio: the Nifty 1000 draws its daily path from its 2 Nov fill (it read "1 session" and a 0.0% tracking error); the list's indices since 1 Oct start at the fill, as the header; "this book" marks the system shown; no stray "&gt;".
+
 ## 2026-11-23 — A new listing starts on its listing day (S218)
 
 - A new listing whose Screener prices start a few sessions late now takes its first closes from NSE, at Screener's level. TRIVENIPT starts on 12 Oct 2026 (₹684.00, its highest close so far), not 14 Oct. It applies to listings from 12 Oct 2026 on; earlier ones and every frozen month are unchanged.

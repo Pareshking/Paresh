@@ -308,7 +308,7 @@ def bucket_by_last_session(s: pd.Series, freq: str) -> pd.Series:
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _chart_series(_key: str, _prices: pd.DataFrame, _bench: pd.Series, pit: bool = True):
+def _chart_series(key: str, _prices: pd.DataFrame, _bench: pd.Series, pit: bool = True):
     """The series behind the Breadth charts, computed once per price set."""
     from src.engine import pit_breadth
     past = pit_breadth.load("total_market") if pit else None
@@ -711,7 +711,7 @@ def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame, market_name: str 
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _leaders_full(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.Series,
+def _leaders_full(key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.Series,
                   _size: dict[str, pd.Series], market_name: str = "the Nifty 500"):
     return (mq.leaders_answer(_prices, _industry, _bench, _size, market_name=market_name),
             mq.industry_months(_prices, _industry, _bench))

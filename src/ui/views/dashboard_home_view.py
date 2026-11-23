@@ -256,6 +256,22 @@ def _kpis(items: list[tuple[str, str, str, str, str, str]]) -> str:
     return f'<div class="dh-kpis">{cells}</div>'
 
 
+def _against_momentum(book: float, lo: float, hi: float) -> str:
+    """Where the book stands against NSE's momentum indices this month (S193 B2, B3).
+
+    Level within 0.05 pts of the best (one decimal on the page), ahead above it, behind
+    below the worst, within the range otherwise. The level test used to come first and
+    caught every book above the best too, so "ahead" never printed (the 1000, 20 Nov:
+    +5.5% against a best of +4.6%, read "level")."""
+    if abs(book - hi) < 0.05:
+        return "is level with the best of them."
+    if book > hi:
+        return "is ahead of them."
+    if book < lo - 0.05:
+        return "is behind all of them."
+    return "is within their range."
+
+
 def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None, as_of: pd.Timestamp,
                  prev: dict | None = None, begun: pd.Timestamp | None = None) -> list:
     """`prev`: {"label", "market", "book", "momentum": {key: %}} for the last finished month."""
@@ -275,7 +291,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
     if mom and bm.market_mtd is not None and bm.book_mtd is not None:
         n = {5: "All five", 4: "All four"}.get(len(mom), f"All {len(mom)}")
         lede = f"Nifty Total Market is {up(bm.market_mtd)}. {n} NSE momentum indices are up {lo:.1f} to {hi:.1f}%; the book, {up(bm.book_mtd)}, "
-        lede += "is level with the best of them." if bm.book_mtd >= hi - 0.05 else ("is ahead of them." if bm.book_mtd > hi else "is within their range.")
+        lede += _against_momentum(bm.book_mtd, lo, hi)
         if style_lag:
             lede += " What lagged is the style, not the stock picking."
     level = bm.level_with_momentum
@@ -1312,6 +1328,21 @@ def _qualify_today(adj_close: pd.DataFrame | None, as_of: pd.Timestamp) -> dict:
         return {}
 
 
+def _last_month_end(series: pd.Series, as_of: pd.Timestamp) -> float | None:
+    """The reading on the last session of the month before `as_of`'s month."""
+    s = pd.to_numeric(series, errors="coerce").dropna().sort_index()
+    at = di.month_end_before(s.index, as_of)
+    return None if at is None else float(s.loc[at])
+
+
+def _month_end_change(series: pd.Series, as_of: pd.Timestamp, test) -> bool | None:
+    """test(reading, change) on the last month-end, its change taken from the month-end before it."""
+    s = pd.to_numeric(series, errors="coerce").dropna().sort_index()
+    at = di.month_end_before(s.index, as_of)
+    prev = None if at is None else di.month_end_before(s.index, at)
+    return None if prev is None else bool(test(float(s.loc[at]), float(s.loc[at]) - float(s.loc[prev])))
+
+
 def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth: dict, tests: dict,
              qualify_now: dict | None = None) -> list[dict]:
     """One row per signal: today's reading, its state, and its test (data/signal_tests.json).
@@ -1350,8 +1381,12 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         gs = mq._ema_gap_series(n500)
         g = di.trail_of(gs, as_of)
         on = g[2] is not None and g[2] > 0
+        # Every test reads month-ends (signal_tests.all_tests), so each row's month-end state is its
+        # last month-end reading, never today's (S193 B4: "at the last month-end 3 and 2" was 0 and 5).
+        me_g = _last_month_end(gs, as_of)
         row("trend_fast", "Nifty 500 vs its 200D EMA", "Above: on", [gap(v) for v in g], on,
-            "Back below the EMA" if on else "Back above the EMA", where(gs, g[2]))
+            "Back below the EMA" if on else "Back above the EMA", where(gs, g[2]),
+            me_on=None if me_g is None else me_g > 0)
     if flows is not None and "fpi" in t:
         fpi = t["fpi"]
         cut = fpi.get("threshold")
@@ -1359,7 +1394,8 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         row("fpi", "Heavy foreign buying", "FPI net, last 20 sessions, ₹ thousand Cr · top quarter of months: on",
             ["–" if v is None else sg(v / 1000, 0) for v in flows.trail20], on if cut is not None else None,
             "Settled for the month" if on else (f"₹{_fmt.fixed(cut / 1000, 0)} thousand Cr in a month" if cut else ""),
-            f"Highest 20-session total since {flows.since:%Y}" if flows.last20_is_record else "")
+            f"Highest 20-session total since {flows.since:%Y}" if flows.last20_is_record else "",
+            me_on=None if cut is None or len(flows.monthly) < 2 else flows.monthly[-2][1] * 1000 >= cut)   # last whole month
     if len(n500):
         tr = [mq.ten_month_today(n500, d) for d in di.trail_dates(as_of).values()]
         on = tr[2] is not None and tr[2] > 0
@@ -1396,20 +1432,24 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
     if a200 is not None and len(a200.dropna()):
         tr = di.trail_of(a200, as_of)
         on = tr[2] is not None and tr[2] <= 40
+        me_b = _last_month_end(a200, as_of)
         row("breadth_thin", "Breadth thin", "Nifty 500 above the 200D EMA · 40% or fewer: on", [pct(v) for v in tr],
-            None if tr[2] is None else on, "Above 40%" if on else "Back to 40% or below", where(a200, tr[2]))
+            None if tr[2] is None else on, "Above 40%" if on else "Back to 40% or below", where(a200, tr[2]),
+            me_on=None if me_b is None else me_b <= 40)
     if a50 is not None and len(a50.dropna()):
         tr = di.trail_of(a50, as_of)
         jump = _since_month_end(a50, as_of)
         row("participation_jump", "Participation jump", "Nifty 500 above the 50D EMA · up 15+ pts in a month: on",
-            [pct(v) for v in tr], None if jump is None else jump >= 15, "A month without a jump", where(a50, tr[2]))
+            [pct(v) for v in tr], None if jump is None else jump >= 15, "A month without a jump", where(a50, tr[2]),
+            me_on=_month_end_change(a50, as_of, lambda v, ch: ch >= 15))
     if len(n500):
         fh = mq._from_high_series(n500)
         tr = di.trail_of(fh, as_of)
         up = _since_month_end(fh, as_of)
         on = None if up is None or tr[2] is None else (up >= 5 and tr[2] >= -3)
         row("rebound", "Sharp rebound", "Nifty 500 from its 52W high · within 3% after a 5-pt jump: on",
-            [gap(v) for v in tr], on, "", where(fh, tr[2]))
+            [gap(v) for v in tr], on, "", where(fh, tr[2]),
+            me_on=_month_end_change(fh, as_of, lambda v, ch: ch >= 5 and v >= -3))
     return out
 
 
