@@ -39,3 +39,9 @@ def test_a_selling_month_says_sold():
         assert "have sold" in src and "f.mtd < 0" in src
         return
     assert "have sold" in html and "bought −" not in html and "bought -" not in html
+
+
+def test_book_too_short_reads_one_colon_in_a_note():
+    from src.ui import missing_words as mw
+    note = "No risk figures yet: " + mw.book_too_short(63, 20) + "."
+    assert note.count(":") == 1 and "63 sessions" in note and "it has 20" in note
