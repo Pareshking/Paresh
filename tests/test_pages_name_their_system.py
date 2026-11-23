@@ -74,3 +74,19 @@ def test_market_caps_cover_the_whole_list(tmp_path):
 def test_backtest_and_guide_say_what_the_system_changes():
     assert "does not change these runs" in _src("src/ui/views/backtest_view.py")
     assert "follow the same steps on their own lists" in _src("src/ui/views/guide_view.py")
+
+
+def test_nightly_snapshot_keeps_the_lists_stocks(tmp_path, monkeypatch):
+    # K4's root cause: daily_sync read NSE's whole market-cap file but committed only the 750 and the 1000.
+    import importlib.util
+
+    import src.loaders.extra_universe_loader as xl
+
+    lst = tmp_path / "list.csv"
+    pd.DataFrame({"Symbol": ["AAA", "BBB", "aaa ", "CCC"]}).to_csv(lst, index=False)
+    monkeypatch.setattr(xl, "LIST_PATH", str(lst))
+    spec = importlib.util.spec_from_file_location("sync_data_t", ROOT / "scripts" / "sync_data.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod._extra_list_symbols({"BBB"}) == ["AAA", "CCC"]
+    assert "cap_symbols += _extra_list_symbols(set(cap_symbols))" in _src("scripts/sync_data.py")

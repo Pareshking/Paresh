@@ -190,6 +190,25 @@ def _precompute_rankings(symbols, universe_df, mcaps, out_name=None) -> None:
     )
 
 
+
+def _extra_list_symbols(seen: set) -> list[str]:
+    """The > ₹2,000 Cr list's stocks for the committed market-cap snapshot (S193 C, 23 Nov 2026).
+
+    NSE's daily market-cap file carries every listed stock (2,625 on 20 Nov), but only the
+    750 and the Nifty 1000 were kept, so the list's own pages divided by the 192 of its 411
+    stocks inside the Nifty 1000. The same file carries them: no extra request.
+    """
+    import pandas as pd
+
+    from src.loaders.extra_universe_loader import LIST_PATH
+
+    try:
+        listed = pd.read_csv(LIST_PATH, usecols=["Symbol"])
+    except (OSError, ValueError):
+        return []
+    syms = listed["Symbol"].astype(str).str.strip().str.upper()
+    return [s for s in dict.fromkeys(syms) if s and s not in seen]
+
 def run_daily_sync() -> None:
     """Synchronizes all NSE market data, constituents and price histories."""
     print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] Starting daily automated sync...")
@@ -265,6 +284,7 @@ def run_daily_sync() -> None:
         seen = set(cap_symbols)
         cap_symbols += [s for s in n1000.get("Symbol", pd.Series(dtype=str)).astype(str).str.strip().str.upper()
                         if s not in seen]
+    cap_symbols += _extra_list_symbols(set(cap_symbols))
     mcaps = fetch_market_caps(cap_symbols, force_refresh=True)
     print(f"Market cap cache updated for {len(mcaps)} tickers.")
 

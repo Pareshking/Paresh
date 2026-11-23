@@ -5,7 +5,7 @@
 
 - Labels that said "750" on every system now name the chosen one: the breadth chart's readout on the Dashboard and Market, Sectors' first row ("All ranked stocks"), and Configuration's universe under the > ₹2,000 Cr list.
 - Sentences true only of the 750 now say what is true: Portfolio names the book's own largest size groups and its size legend lists the groups drawn; Market's chart note says "members of each date" only on the 750; the Guide says the other systems follow the same steps on their own lists.
-- Foreign buying against the > ₹2,000 Cr list's market value, and Portfolio's sector marks, now count every stock on the list. NSE's file covers only the Nifty 1000, which is 192 of the list's 411 stocks; the rest take the list's own month-end value. The share it shows will fall.
+- Foreign buying against the > ₹2,000 Cr list's market value, and Portfolio's sector marks, now count every stock on the list. NSE's daily market-cap file has them all, but the nightly copy kept only the 750 and the Nifty 1000 (192 of the list's 411 stocks); it now keeps the list's stocks too, and until the next nightly they take the list's own month-end value. The share it shows will fall.
 - Backtest says when the chosen system does not change its runs.
 
 ## 2026-11-23 — A system's first month is measured from its first fill on every line (S193 A12, A10)

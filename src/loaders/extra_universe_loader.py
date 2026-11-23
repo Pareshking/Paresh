@@ -202,8 +202,9 @@ def system_market_caps(symbols, nse_path: str | None = None, list_path: str = LI
 
     NSE's file (data/nse_market_caps.csv) holds the Nifty 1000 only: on 30 Oct it priced
     192 of the 411 stocks on the > ₹2,000 Cr list (₹7.2 lakh Cr of ₹36.9 lakh Cr), so a share
-    "of the list's market value" left out every stock outside the Nifty 1000. A stock NSE's file lacks takes
-    its month-end value from the list itself (THREE_SYSTEMS.md: the list's own figures).
+    "of the list's market value" left out every stock outside the Nifty 1000. NSE's daily file has
+    them all; the nightly snapshot now keeps the list's stocks too (scripts/sync_data.py). A stock
+    the snapshot still lacks takes its month-end value from the list itself.
     """
     from src.core.config import REPO_MCAP_FILE
 
