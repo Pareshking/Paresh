@@ -1121,6 +1121,109 @@ def judge_configuration(name: str, ev: dict) -> list:
     return found
 
 
+# ── Load time per page (S193 L, owner 23 Nov 2026: "With your recommendation") ─────────────
+# Budgets in seconds: the slowest warm reading of each page across the three systems x 1.5,
+# rounded up to 0.5 s (docs/archive/S193_ITEM_L_2026-11-24.md). A page over its budget on two
+# runs in a row fails the run; once is a warning, since one slow reading on a shared container
+# is not a regression.
+PAGE_BUDGETS_S = {
+    "Dashboard": ("", 4.0), "Portfolio": ("portfolio", 5.0), "Actions": ("actions", 3.0),
+    "Sectors": ("sectors", 9.0), "Watchlist": ("watchlist", 2.0), "Market": ("market", 6.0),
+    "Indices": ("indices", 3.0), "Backtest": ("backtest", 10.0), "Guide": ("guide", 2.0),
+    "Stock": ("?stock=RELIANCE", 2.5),
+}
+# The bench's rule (scripts/audit_page_bench.py): from the address opened to the moment
+# Streamlit's run is over and stays over for SETTLE_S.
+PAGE_SETTLE_S = 1.5
+PAGE_TIMEOUT_S = 90.0
+# The previous run's readings. Nothing in the repository or on R2 holds them: the workflow
+# restores this file from the GitHub Actions cache before the run and saves it after, and the
+# only reader is the next Production QA run (CLAUDE.md: name who reads it).
+PAGE_TIMES_FILE = Path(os.getenv("UMIYA_QA_PAGE_TIMES", ".qa_page_times/page_times.json"))
+# "0" records and warns without failing. Default on, as the owner decided; the first live readings
+# (23 Nov 2026, from a cloud session, not a GitHub runner) were over budget on 9 of 10 pages, which
+# is in TODO S193 (L) for the owner, not loosened here.
+PAGE_TIMES_ENFORCE = os.getenv("UMIYA_PAGE_TIMES_ENFORCE", "1") != "0"
+
+
+def time_to_idle(page, t0: float, timeout_s: float = PAGE_TIMEOUT_S) -> float | None:
+    """Seconds from t0 until the app's run has finished and stayed finished; None on a timeout."""
+    quiet_since, seen_run = None, False
+    while time.perf_counter() - t0 < timeout_s:
+        try:
+            state = app_frame(page).get_attribute('[data-testid="stApp"]', "data-test-script-state",
+                                                  timeout=2_000)
+        except Exception:
+            state = None
+        now = time.perf_counter()
+        if state == "running":
+            seen_run = True
+        if state != "notRunning" or not seen_run:
+            quiet_since = None
+        elif quiet_since is None:
+            quiet_since = now
+        elif now - quiet_since >= PAGE_SETTLE_S:
+            return round(quiet_since - t0, 2)
+        time.sleep(0.1)
+    return None
+
+
+def measure_page_loads(browser, base: str) -> dict:
+    """Each budgeted page opened once in a new browser session (a new reader on a warm server)."""
+    out: dict = {}
+    for name, (path, _budget) in PAGE_BUDGETS_S.items():
+        ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+        try:
+            t0 = time.perf_counter()
+            page.goto(base + path, wait_until="domcontentloaded", timeout=int(PAGE_TIMEOUT_S * 1000))
+            out[name] = time_to_idle(page, t0)
+        except Exception as exc:
+            out[name] = None
+            print(f"    page time {name}: {type(exc).__name__}: {exc}"[:200], flush=True)
+        finally:
+            ctx.close()
+        print(f"    page time {name:<10} {out[name]}s (budget {_budget:g}s)", flush=True)
+    return out
+
+
+def read_previous_times(path: Path = PAGE_TIMES_FILE) -> dict | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def judge_page_times(now: dict, previous: dict | None) -> tuple[list, dict]:
+    """Failures for pages over budget on this run and the one before, and a row per page.
+
+    A page with no reading (timed out) counts as over its budget. With no previous run on
+    record (the first run, or a cache that expired), nothing fails: the run is recorded.
+    """
+    before = (previous or {}).get("seconds") or {}
+    rows, failures = {}, []
+    for name, (_path, budget) in PAGE_BUDGETS_S.items():
+        v, p = now.get(name), before.get(name)
+        over = v is None or v > budget
+        was_over = name in before and (p is None or p > budget)
+        rows[name] = {"seconds": v, "budget": budget, "over": over, "previous": p, "previous_over": was_over}
+        if over and was_over:
+            failures.append(classify(
+                f"{name} is over its {budget:g} s load budget on two runs in a row: "
+                f"{'no reading' if v is None else f'{v:g} s'} now, "
+                f"{'no reading' if p is None else f'{p:g} s'} on run {previous.get('run_id', '?')}",
+                "APPLICATION"))
+    return failures, rows
+
+
+def write_page_times(now: dict, path: Path = PAGE_TIMES_FILE) -> dict:
+    record = {"run_id": os.getenv("GITHUB_RUN_ID", "local"), "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+              "url": URL, "seconds": now}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+    return record
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     failures: list[dict] = []
@@ -1418,6 +1521,19 @@ def main() -> None:
                     failures.append(classify(
                         f"The app's own stock deep link did not open a stock "
                         f"page: {mounted}", "APPLICATION"))
+
+                # Load time per page (S193 L), on the app's own mount so the wrapper's
+                # own load is not counted; every page warm, as the budgets were set.
+                print("[page times]", flush=True)
+                times = measure_page_loads(browser, URL + "~/+/")
+                previous = read_previous_times()
+                time_failures, report["page_times"] = judge_page_times(times, previous)
+                if PAGE_TIMES_ENFORCE:
+                    failures.extend(time_failures)
+                else:
+                    report["page_time_warnings"] = [f["detail"] for f in time_failures]
+                (OUT / "page_times.json").write_text(
+                    json.dumps(write_page_times(times), indent=2), encoding="utf-8")
         except Exception as exc:
             failures.append(classify(
                 f"Browser session error: {type(exc).__name__}: {exc}", "QA"))
@@ -1516,6 +1632,11 @@ def main() -> None:
         if _cfg.get("first_weight_slider_html"):
             print(f"    1M markup         : {_cfg['first_weight_slider_html']}",
                   flush=True)
+    for _pn, _pr in (report.get("page_times") or {}).items():
+        _flag = (" OVER, and on the run before" if _pr["over"] and _pr["previous_over"]
+                 else " over (once: a warning)" if _pr["over"] else "")
+        print(f"page time [{_pn:<10}] {_pr['seconds']}s of {_pr['budget']:g}s "
+              f"(before: {_pr['previous']}){_flag}", flush=True)
     print(f"5xx responses         : {len(bad_responses)}", flush=True)
     for f in failures:
         print(f"  [{f['kind']}] {f['detail']}", flush=True)

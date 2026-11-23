@@ -97,8 +97,8 @@ def _young_row(y: ip.YoungValuation) -> tuple[dict, list, str]:
            "vals": [mw.DASH, mw.DASH, f"{y.pe_now:.2f}", mw.DASH], "cls": ["muted", "muted", "b", "muted"],
            "read": [[f"{y.pe_now:.2f}", "P/E now"], [pb, "P/B"], [dy, "dividend yield"]]}
     table = [y.name, f"{y.pe_now:.2f}", pb, dy, mw.DASH, mw.DASH, mw.DASH]
-    note = (f" {mw.DASH} for the {y.name}: {mw.index_too_new()} for a percentile or a past reading: NSE’s daily files "
-            f"carry its P/E from {_dy(y.first)}.")
+    note = (f" {mw.DASH} for the {y.name}: {mw.index_too_new()} for a percentile or a past reading (NSE’s daily files "
+            f"carry its P/E from {_dy(y.first)}).")
     return row, table, note
 
 

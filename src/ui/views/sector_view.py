@@ -259,8 +259,10 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
         h2 += f", {e(sh(fell.name))} among them: its six-month lead read {sg(fell.lead6_3m)} pts on {_d(ld.d3)}"
     h2 += "."
 
-    def rd(r_name, l6, l1, ago):
-        return [[sg(l6) + " pts", "six-month lead now", _kt(l6)], [sg(ago) + " pts", "a month ago"], [sg(l1) + " pts", "one-month lead", _kt(l1)]]
+    def rd(r_name, l6, l1, ago, l3=None, l12=None):
+        return [[sg(l6) + " pts", "six-month lead now", _kt(l6)], [sg(ago) + " pts", "a month ago"],
+                [sg(l1) + " pts", "one-month lead", _kt(l1)], [sg(l3) + " pts", "three-month", _kt(l3)],
+                [sg(l12) + " pts", "twelve-month", _kt(l12)]]
     g = ld.gap
     rows = []
     if g.get("6") is not None:
@@ -268,7 +270,7 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
                      "bar": _r(g["6"]), "ago": _r(g.get("6_1m")),
                      "vals": [sg(g.get("6_3m")), sg(g.get("6_1m")), sg(g["6"]), sg(g.get("1")), sg(g.get("3")), sg(g.get("12"))],
                      "cls": ["muted", "muted", _kt(g["6"]) + " b", _kt(g.get("1")), _kt(g.get("3")), _kt(g.get("12"))],
-                     "read": rd("The 750", g["6"], g.get("1"), g.get("6_1m"))})
+                     "read": rd("The 750", g["6"], g.get("1"), g.get("6_1m"), g.get("3"), g.get("12"))})
     for key, (label, what) in GROUP_WORDS.items():
         rs = [r for r in ld.rows if r.group == key]
         if not rs:
@@ -278,7 +280,7 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
             rows.append({"name": sh(r.name), "sub": f"{r.stocks} stocks", "bar": _r(r.lead6), "ago": _r(r.lead6_1m),
                          "vals": [sg(r.lead6_3m), sg(r.lead6_1m), sg(r.lead6), sg(r.lead1), sg(r.lead3), sg(r.lead12)],
                          "cls": ["muted", "muted", _kt(r.lead6) + " b", _kt(r.lead1), _kt(r.lead3), _kt(r.lead12)],
-                         "read": rd(r.name, r.lead6, r.lead1, r.lead6_1m)})
+                         "read": rd(r.name, r.lead6, r.lead1, r.lead6_1m, r.lead3, r.lead12)})
     spec = {"label": f"{noun.capitalize()} · lead, pts", "barHead": "Six-month lead over the 750, pts",
             "head": [_d(ld.d3), _d(ld.d1), "Now", "1M", "3M", "12M"], "rows": rows, "lo": -20, "hi": 20, "step": 1,
             "rest": "Latest · the first row"}
