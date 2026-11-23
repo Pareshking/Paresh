@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23 — "Stocks that qualify" reads the same on every system
+
+- The Dashboard's "Stocks that qualify" (the Nifty 500's share passing the filters) now comes from one reading made every night, so the 750, the 1000, Nano Cap and Combined show the same figures. On Nano Cap the row showed the 30 Oct month-end under "Now", because its prices hold no Nifty 500 stock (S193 A6).
+
 ## 2026-11-23 — Figures that disagreed between pages (S193 item A, owner's decisions)
 
 - **Stock page:** the rank in the chosen system comes first, then every other system that ranks the stock ("Also 17th of 1,000 in the Nifty 1000"), each with a link. A stock the chosen system does not rank now says where it is ranked; it said "in none of the systems' lists" before.

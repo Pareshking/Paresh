@@ -191,6 +191,8 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data/breadth_history.csv data/signal_tests.json
+          # Read by every system's Dashboard (S193 A6); absent until its first good run.
+          if [ -f data/qualified_now.json ]; then git add data/qualified_now.json; fi
           if git diff --staged --quiet; then
             echo "Breadth unchanged."
             exit 0

@@ -8,6 +8,10 @@ Writes
                                universe "total_market": the 750 ranked here, members of the day,
                                from NSE's first recorded list (29 Oct 2021); "nifty500": from 2010.
     data/signal_tests.json     src/engine/signal_tests.py's results.
+    data/qualified_now.json    the share of the Nifty 500 passing the filters on the Dashboard's three
+                               dates (today, a month and three months back): read by every system's
+                               Dashboard, so the Nano Cap one (no Nifty 500 stock in its prices) shows
+                               the same "Stocks that qualify" as the 750's (S193 A6).
 
 Prices: the backtest's long NSE file (src/loaders/nse_long.py), which holds the
 stocks that have since left the index. Run by daily_sync after the membership
@@ -34,6 +38,7 @@ from src.loaders import nse_long  # noqa: E402
 
 OUT = ROOT / "data" / "breadth_history.csv"
 TESTS = ROOT / "data" / "signal_tests.json"
+QUALIFIED = ROOT / "data" / "qualified_now.json"
 FIELDS = ["date", "universe", "above_200", "above_50", "net_new_highs", "beat_share", "beat_gap"]
 UNIVERSES = {"total_market": "nifty_total_market", "nifty500": "nifty_500"}
 # Prices from a year before the start, so the EMAs and the 52W window are full.
@@ -55,6 +60,30 @@ def readings(close: pd.DataFrame, history: dict, bench: pd.Series) -> pd.DataFra
     out["beat_share"] = [b[0] for b in beat]
     out["beat_gap"] = [b[1] for b in beat]
     return out
+
+
+def qualified(close: pd.DataFrame, history: dict) -> dict:
+    """{session: share} on the Dashboard's three dates for the last session, by the monthly job's
+    rule (`momentum_health.qualified_on`) and the rank trail's dates (`dashboard_insights`)."""
+    from src.engine import index_universe as iu
+    from src.engine.dashboard_insights import on_or_before, trail_dates
+    from src.engine.momentum_health import qualified_on
+    if not history or close.empty:
+        return {}
+    cols = sorted(iu.ever_members(history) & set(close.columns))
+    days = [on_or_before(close.index, d) for d in trail_dates(close.index[-1]).values()]
+    return qualified_on(close[cols].astype("float64"), [d for d in days if d is not None], history)
+
+
+def write_qualified(close: pd.DataFrame, history: dict) -> None:
+    q = qualified(close, history)
+    if len(q) != 3:
+        print(f"::warning::Nifty 500 qualified share on {len(q)} of 3 dates; {QUALIFIED.name} kept.")
+        return
+    QUALIFIED.write_text(json.dumps({"as_of": f"{close.index[-1]:%Y-%m-%d}",
+                                     "nifty500": {f"{d:%Y-%m-%d}": round(v, 4) for d, v in sorted(q.items())}},
+                                    indent=1) + "\n")
+    print(f"{QUALIFIED.name}: " + ", ".join(f"{d:%d %b} {v:.0%}" for d, v in sorted(q.items())))
 
 
 def main() -> int:
@@ -83,6 +112,8 @@ def main() -> int:
         return 0
     rows = pd.concat([p.assign(universe=k).rename_axis("date").reset_index() for k, p in parts.items()])
     rows[FIELDS].to_csv(OUT, index=False, float_format="%.2f", date_format="%Y-%m-%d")
+
+    write_qualified(close, index_history("nifty_500", full))
 
     spreads = pd.read_csv(ROOT / "data" / "momentum_health.csv")
     fpi = pd.read_csv(ROOT / "data" / "nsdl_fpi_daily.csv", parse_dates=["date"]).set_index("date")["equity_net"]
