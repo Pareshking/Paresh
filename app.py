@@ -1167,6 +1167,8 @@ def _page_screener() -> None:
         footnote=_system_line,
         book_symbols=_screener_book(),
         history_prices=deep_adj_close,
+        members=data["idx_info"]["Symbol"].astype(str).tolist() if data.get("idx_info") is not None else [],
+        other_rankings=_other_rankings,
     )
 
 

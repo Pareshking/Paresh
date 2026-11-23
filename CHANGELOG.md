@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23 — The stock page says which system ranks a stock it does not
+
+- Under Nano Cap (or any system), a stock that system does not rank but another does now says where: "Not a member of the > ₹2,000 Cr list. Ranks 12th of 750 in the Nifty 750", with a link to it there. It said "in none of the systems' lists" before. A stock on this system's list that is too new to rank says so, as on the Watchlist (S193 item A).
+
 ## 2026-11-23 — One name and one unit per thing on every page (the glossary)
 
 - Every page now follows `docs/GLOSSARY.md`, the 12 names and units the owner chose on 23 Nov. Only the words changed: each figure is measured against the same index as before.

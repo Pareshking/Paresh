@@ -404,16 +404,30 @@ def data_html(dc: sl.DataChecks) -> list:
 
 # ── Not in the ranking (row 20) ──────────────────────────────────────────────
 
-def _render_not_ranked(symbol: str, rank_df: pd.DataFrame, uni: sl.Universe, as_of, on_back) -> None:
+def _render_not_ranked(symbol: str, rank_df: pd.DataFrame, uni: sl.Universe, as_of, on_back,
+                       members=(), other_rankings=None) -> None:
     from src.ui.views.watchlist_view import _nse_lists
     try:
         changes, listed = _nse_lists()
     except Exception:  # noqa: BLE001
         changes, listed = None, set()
-    rows = wl.not_ranked([symbol], rank_df, universe=uni.short, changes=changes, listed=listed)
+    # The same pointers as the Watchlist (S193 item A #1): without the other systems'
+    # rankings a stock ranked in the 750 read "in none of the systems' lists" under Nano.
+    try:
+        others = other_rankings() if callable(other_rankings) else (other_rankings or {})
+    except Exception:  # noqa: BLE001 -- another system's ranking is a pointer, never a reason to fail
+        others = {}
+    rows = wl.not_ranked([symbol], rank_df, universe=uni.short, members=members or (),
+                         changes=changes, listed=listed, others=others)
     why = f"{rows[0].why} {rows[0].where if rows[0].where != wl.MISSING else ''}".strip() if rows else ""
     new = rows[0].replace_with if rows else ""
-    if new:
+    elsewhere = rows[0].system if rows and rows[0].kind == wl.ELSEWHERE else ""
+    sys_key = {v: k for k, v in _system_names().items()}.get(elsewhere) if elsewhere else None
+    if sys_key:
+        from src.ui.system_param import suffix
+        href = f"screener?stock={quote(symbol, safe='')}{suffix(sys_key)}"
+        go = f' <a class="sp-go" href="{e(href)}" target="_self">{e(rows[0].link_label)} →</a>'
+    elif new:
         from src.ui.system_param import stock_href
         go = f' <a class="sp-go" href="{e(stock_href(new))}" target="_self">{e(new)}’s page →</a>'
     else:
@@ -423,6 +437,11 @@ def _render_not_ranked(symbol: str, rank_df: pd.DataFrame, uni: sl.Universe, as_
            f'<h1 class="dh-h1">{e(symbol)} is not in the current ranking of {e(uni.the)}.</h1>',
            f'<p class="dh-lede">{e(why)}{go}</p></div>',
            f'<p class="dh-foot">{e(sl.foot(as_of))}</p>'])
+
+
+def _system_names() -> dict:
+    from src.engine.extra_universe import SYSTEM_NAMES
+    return dict(SYSTEM_NAMES)
 
 
 # ── Main entry ───────────────────────────────────────────────────────────────
@@ -440,8 +459,11 @@ def render_stock_view(
     book_symbols=None,
     history_prices: pd.DataFrame | None = None,
     system: str | None = None,
+    members=(),
+    other_rankings=None,
 ) -> None:
-    """Render the page for one symbol."""
+    """Render the page for one symbol. members (this system's list) and other_rankings
+    ({system name: ranking}, or a callable giving it) explain a stock this system does not rank."""
     from src.engine.exit_watch import assess, qualified_ranks
     from src.engine.track_record import TRACK_RECORD_CONFIG
     from src.ui import system_param
@@ -457,7 +479,8 @@ def render_stock_view(
 
     match = rank_df[rank_df["Symbol"].astype(str).str.upper() == str(symbol).upper()]
     if match.empty:
-        _render_not_ranked(str(symbol).upper(), rank_df, uni, as_of, on_back)
+        _render_not_ranked(str(symbol).upper(), rank_df, uni, as_of, on_back,
+                           members=members, other_rankings=other_rankings)
         return
     row = match.iloc[0]
     sym = str(row["Symbol"])
