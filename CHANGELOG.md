@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-23 — The Backtest page computes twice as fast
+
+- The Backtest page's first open went from 25 s to 13 s on the same machine (S204). Two steps that ran once per rebalance or once per day now use plain NumPy: the 52-week high on each signal date, and each day's value of the holdings. The 12-month Sharpe score does less pandas work around the same arithmetic. With all three, a full run from 2010 takes 6.9 s instead of 17.7 s.
+- Every figure is unchanged. The default run and the four stored tests were compared field by field and match exactly, as does `scripts/audit_baseline.py check`. A new test pins how a ±infinite price counts towards the 52-week high, the same way pandas counts it.
+- Memory is unchanged: the page's peak is about 830 MB, as before.
+
 ## 2026-11-23 — One name and one unit per thing on every page (the glossary)
 
 - Every page now follows `docs/GLOSSARY.md`, the 12 names and units the owner chose on 23 Nov. Only the words changed: each figure is measured against the same index as before.

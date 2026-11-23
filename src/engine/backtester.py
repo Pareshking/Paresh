@@ -32,20 +32,33 @@ DEFAULT_BACKTEST_MONTHS: int = 6
 
 
 def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
-    """Return the canonical 252-session high at one row, matching pandas rolling.
+    """Return the canonical 252-session high at one row, equal to pandas rolling.
 
-    Keep the same rolling operation as the full-history reference rather than
-    replacing it with DataFrame.max/count: pandas rolling has its own handling
-    of missing/non-finite values, and signal parity matters more than saving a
-    few operations on this small window. Only the 252-row slice is materialised.
+    The reference is ``prices.rolling(252, min_periods=126).max().iloc[idx]``,
+    and this returns exactly its values (tests/test_backtester_rolling_high_parity.py
+    asserts equality, not closeness). Rolling the whole 252-row window to keep
+    its last row cost 11.7 s of a 36 s default Backtest run (S204, 23 Nov 2026),
+    so the last row is computed directly with pandas' own rules:
+
+    - pandas rolling turns +inf and -inf into NaN before it aggregates, so a
+      non-finite value is neither a candidate for the high nor an observation
+      towards ``min_periods`` (``[inf, 2, 1]`` gives 2.0; ``[-inf, -inf, 1]``
+      with ``min_periods=2`` gives NaN);
+    - fewer than ``min_periods`` finite values gives NaN;
+    - the result is float64 whatever the input dtype.
+
+    A max picks one of its inputs, with no rounding, so equality is exact.
+    The result owns its array, so keeping ~200 of them (``_high_at_cache``)
+    pins no window: the 8 Oct 2026 incident, tests/test_memory_guardrails.py.
     """
-    window = prices.iloc[max(0, idx - 251) : idx + 1]
-    # .copy(): a row of a one-dtype frame is a VIEW, and it kept the whole
-    # 252-row rolled frame alive. run_backtest keeps one of these per signal
-    # date (_high_at_cache), so the History-from-2010 run held ~200 of them,
-    # ~580 MB, to keep ~3 MB of values -- the backtest that took production
-    # down on 8 Oct 2026. Same values; tests/test_memory_guardrails.py.
-    return window.rolling(252, min_periods=HIGH_52W_MIN_OBSERVATIONS).max().iloc[-1].copy()
+    window = prices.iloc[max(0, idx - 251) : idx + 1].to_numpy(dtype="float64")
+    finite = np.isfinite(window)
+    if window.shape[0]:
+        high = np.where(finite, window, -np.inf).max(axis=0)
+    else:
+        high = np.full(window.shape[1], np.nan)
+    high[finite.sum(axis=0) < HIGH_52W_MIN_OBSERVATIONS] = np.nan
+    return pd.Series(high, index=prices.columns, name=prices.index[idx], dtype="float64")
 
 
 def ath_history(prices: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
@@ -1168,6 +1181,16 @@ def run_backtest(
         benchmark_ret = benchmark_series.pct_change(fill_method=None)
         benchmark_level = benchmark_series
 
+    # The daily accrual loop reads one row of the held names and one benchmark
+    # return per session. Selecting `prices_ff[held_cols].iloc[j]` built a new
+    # frame every session, ~6 s of a 36 s default run (S204, 23 Nov 2026); the
+    # same values read by position from one array cost milliseconds. Both
+    # series are on `prices.index`, so a row position means the same session.
+    # For a float64 frame (what the Backtest page passes) this is a view, not a
+    # copy.
+    ff_values = prices_ff.to_numpy(dtype=float)
+    bench_values = benchmark_ret.to_numpy(dtype=float)
+
     # Keep the EMA matrix (the pandas adjust=True semantics are part of the
     # strategy), but do not materialise a second full-history 52-week-high
     # matrix. In History from 2010 that matrix adds tens of MB at 750 symbols and thousands of sessions,
@@ -1541,7 +1564,10 @@ def run_backtest(
         held_w = np.array([float(wts.get(s, 0.0)) for s in held_cols], dtype=float)
         cash = max(1.0 - float(held_w.sum()), 0.0)
         if held_cols:
-            base_px = prices_ff[held_cols].iloc[fwd_start].to_numpy(dtype=float)
+            # Column positions, once per period; get_indexer refuses a frame
+            # with repeated column labels rather than reading the wrong one.
+            held_pos = prices_ff.columns.get_indexer(held_cols)
+            base_px = ff_values[fwd_start, held_pos]
             base_ok = np.isfinite(base_px) & (base_px > 0)
         book_value_prev = cash + float(held_w.sum())
         for d_idx, j in enumerate(range(fwd_start + 1, exit_idx + 1)):
@@ -1551,7 +1577,7 @@ def run_backtest(
                 continue
             equity_dates.append(prices.index[j])
             if held_cols:
-                px = prices_ff[held_cols].iloc[j].to_numpy(dtype=float)
+                px = ff_values[j, held_pos]
                 with np.errstate(divide="ignore", invalid="ignore"):
                     growth = np.where(base_ok & np.isfinite(px), px / base_px, 1.0)
                 book_value = cash + float((held_w * growth).sum())
@@ -1564,7 +1590,7 @@ def run_backtest(
 
             # Deduct friction on the first rebalance day
             net_r = gross_r - (friction_drag if d_idx == 0 else 0.0)
-            bench_r = float(benchmark_ret.iloc[j]) if pd.notna(benchmark_ret.iloc[j]) else 0.0
+            bench_r = float(bench_values[j]) if not np.isnan(bench_values[j]) else 0.0
 
             strat_gross_daily.append(gross_r)
             strat_net_daily.append(net_r)
@@ -1574,9 +1600,9 @@ def run_backtest(
         if period_strat_rets and in_report_window:
             s_ret_c = float(np.prod([1 + r for r in period_strat_rets]) - 1)
             b_rets = [
-                float(benchmark_ret.iloc[j])
-                for j in range(fwd_start + 1, min(exit_idx + 1, len(benchmark_ret)))
-                if pd.notna(benchmark_ret.iloc[j])
+                float(bench_values[j])
+                for j in range(fwd_start + 1, min(exit_idx + 1, len(bench_values)))
+                if not np.isnan(bench_values[j])
             ]
             b_ret_c = float(np.prod([1 + r for r in b_rets]) - 1) if b_rets else 0.0
             period_records.append(
