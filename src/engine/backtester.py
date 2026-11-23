@@ -31,7 +31,7 @@ SESSIONS_PER_MONTH: int = 21
 DEFAULT_BACKTEST_MONTHS: int = 6
 
 
-def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
+def _rolling_high_at(prices: pd.DataFrame, idx: int, legacy: bool = False) -> pd.Series:
     """Return the canonical 52-week high at one row (the last 12 months, S211), equal to pandas rolling.
 
     The reference is pandas rolling over the rows from the last session on or before
@@ -54,7 +54,9 @@ def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
     """
     # The last 12 months, opening on or before the date a year back (S211; was the last 252 rows).
     from src.engine.calendar_momentum import year_window_start
-    window = prices.iloc[year_window_start(prices.index, idx) : idx + 1].to_numpy(dtype="float64")
+    # legacy: the last 252 rows, the rule before S211, for replaying months struck under it.
+    first = max(0, idx - 251) if legacy else year_window_start(prices.index, idx)
+    window = prices.iloc[first : idx + 1].to_numpy(dtype="float64")
     finite = np.isfinite(window)
     if window.shape[0]:
         high = np.where(finite, window, -np.inf).max(axis=0)
@@ -112,6 +114,7 @@ def _calendar_period_sharpe(
     *,
     prices_anchor: pd.DataFrame | None = None,
     metric: str = "sharpe",
+    legacy_start: bool = False,
 ) -> tuple[pd.Series, int]:
     """V1 period-scale Sharpe -- the screener's definition, not a copy of it.
 
@@ -123,7 +126,8 @@ def _calendar_period_sharpe(
     put its gaps where both engines returned NaN.
     """
     return period_sharpe_at(
-        prices, log_returns, end_idx, months, prices_anchor=prices_anchor, metric=metric
+        prices, log_returns, end_idx, months, prices_anchor=prices_anchor, metric=metric,
+        legacy_start=legacy_start,
     )
 
 
@@ -166,6 +170,7 @@ def _composite_z_score(
     weights: Sequence[float],
     prices_anchor: pd.DataFrame | None = None,
     metric: str = "sharpe",
+    legacy_start: bool = False,
 ) -> pd.Series:
     """Canonical multi-window composite z-score used by every ranking method.
 
@@ -188,7 +193,7 @@ def _composite_z_score(
             continue
         raw_mom, _ = _calendar_period_sharpe(
             prices, log_returns, start_idx, int(w_period),
-            prices_anchor=prices_anchor, metric=metric,
+            prices_anchor=prices_anchor, metric=metric, legacy_start=legacy_start,
         )
         # winsorise -> z -> clamp, the documented pipeline, applied by the same
         # function the screener uses. Z-scoring first and clipping afterwards is
@@ -994,7 +999,7 @@ def _warmup_cutoff_rows(prices: pd.DataFrame, min_prints: int) -> np.ndarray:
 
 
 def _signal_scores(prices, log_ret, idx, windows, weights, *, anchor, metric, members,
-                   on, members_from):
+                   on, members_from, legacy_start=False):
     """The composite z-score at one signal, among the day's members once the
     members-only rule applies (MEMBERS_ONLY_SCORING_FROM), else the whole frame."""
     if (members is not None and members_from
@@ -1003,9 +1008,10 @@ def _signal_scores(prices, log_ret, idx, windows, weights, *, anchor, metric, me
         return _composite_z_score(
             prices[cols], log_ret[cols], idx, windows, weights,
             prices_anchor=None if anchor is None else anchor[cols], metric=metric,
+            legacy_start=legacy_start,
         ).reindex(prices.columns)
     return _composite_z_score(prices, log_ret, idx, windows, weights,
-                              prices_anchor=anchor, metric=metric)
+                              prices_anchor=anchor, metric=metric, legacy_start=legacy_start)
 
 
 @st.cache_data(show_spinner=False, ttl=3600, max_entries=64)
@@ -1040,6 +1046,7 @@ def run_backtest(
     ath_min_years: float = 3.0,
     members_only_scoring_from: str | None = MEMBERS_ONLY_SCORING_FROM,
     ema_warmup_from: str | None = EMA_WARMUP_FROM,
+    window_rule_from: str | None = None,
     hold_cap: float | None = None,
     hold_cap_from: str | None = None,
     buy_size: float | None = None,
@@ -1205,6 +1212,14 @@ def run_backtest(
                   if ema_warmup_from else None)
     _warm_from = pd.Timestamp(ema_warmup_from).normalize() if ema_warmup_from else None
 
+    # S211's one date rule (on or before, a calendar 52-week high) applies to every
+    # signal, unless a replay of the live record names the signal it started from:
+    # then earlier signals keep the rule their months were struck under.
+    _rule_from = pd.Timestamp(window_rule_from).normalize() if window_rule_from else None
+
+    def _legacy(idx: int) -> bool:
+        return _rule_from is not None and pd.Timestamp(prices.index[idx]).normalize() < _rule_from
+
     def _ema_at(idx: int, frame: pd.DataFrame) -> pd.Series:
         """One signal row of an EMA matrix, with the warm-up where it applies."""
         row = frame.iloc[idx]
@@ -1232,7 +1247,7 @@ def run_backtest(
         cached = _high_at_cache.get(idx)
         if cached is not None:
             return cached
-        high = _rolling_high_at(prices, idx)
+        high = _rolling_high_at(prices, idx, legacy=_legacy(idx))
         _high_at_cache[idx] = high
         return high
 
@@ -1347,6 +1362,7 @@ def run_backtest(
             prices, log_ret, max(start_idx - score_skip, 0), WINDOWS, norm_w if norm_w else [0.2] * 5,
             anchor=prices_anchor, metric=score_method, members=idx_mask,
             on=dates[start_idx], members_from=members_only_scoring_from,
+            legacy_start=_legacy(start_idx),
         )
         score = composite_score[valid & composite_score.notna()]
 
@@ -1786,6 +1802,7 @@ def run_backtest(
             prices, log_ret, max(rebal_idx - score_skip, 0), WINDOWS, norm_w if norm_w else [0.2] * 5,
             anchor=prices_anchor, metric=score_method, members=p_idx_mask,
             on=prices.index[rebal_idx], members_from=members_only_scoring_from,
+            legacy_start=_legacy(rebal_idx),
         )
         p_ranked = p_score[p_valid & p_score.notna()].sort_values(ascending=False)
         live_ranks = {s: p_ranked.index.get_loc(s) + 1 for s in p_ranked.index}

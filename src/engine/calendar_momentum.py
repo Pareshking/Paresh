@@ -226,8 +226,14 @@ def period_sharpe_at(
     prices_anchor: pd.DataFrame | None = None,
     latest_as_of: pd.Timestamp | None = None,
     metric: str = "sharpe",
+    legacy_start: bool = False,
 ) -> tuple[pd.Series, int]:
     """The canonical System-1 period Sharpe for ONE as-of row.
+
+    ``legacy_start=True`` opens the window on the first session ON OR AFTER the
+    date back, the rule before S211. Only a replay of a live month signalled
+    before the rule's go-live (``TRACK_RECORD_CONFIG["window_rule_from"]``) uses
+    it, so frozen months replay as they were struck.
 
     ``metric="return"`` gives the same window's plain log return instead: same
     as-of date, same opening anchor, same availability rule, only without the
@@ -278,7 +284,10 @@ def period_sharpe_at(
     else:
         as_of = pd.Timestamp(dates[end_idx]).normalize()
     target = as_of - pd.DateOffset(months=months)
-    start_idx = max(int(dates.searchsorted(target, side="right")) - 1, 0)   # on or before (S211)
+    if legacy_start:   # the pre-S211 rule, for replaying months struck under it
+        start_idx = int(dates.searchsorted(target, side="left"))
+    else:              # on or before (S211)
+        start_idx = max(int(dates.searchsorted(target, side="right")) - 1, 0)
     if start_idx >= end_idx:
         return pd.Series(np.nan, index=prices.columns), start_idx
     if target < pd.Timestamp(dates[0]).normalize():

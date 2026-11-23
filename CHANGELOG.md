@@ -3,7 +3,7 @@
 ## 2026-12 — One date rule for every window (S211)
 
 - Every return, rank and 52-week high now starts on the last session on or before the same date back, on every page and in the ranking and the Backtest, as index providers read a month-end price. On 20 Nov, with 20 Oct a holiday, the stock page read Nifty Total Market's month from 21 Oct (+9.9%) and Indices from 19 Oct (+8.8%); both now read 19 Oct. The 52-week high is the last 12 months everywhere; a year is 252 sessions; Portfolio's "1 week" is 7 days back.
-- The Backtest's history changes with it: 18.45% a year from 2010, against 18.75%. Frozen months of the record stay as recorded; the 31 Dec rebalance is the first chosen under the new rule.
+- The Backtest's history changes with it: 18.45% a year from 2010, against 18.75%. Frozen months of the record stay as recorded, and Portfolio's replay of them keeps the rule they were chosen under; the 31 Dec rebalance is the first chosen under the new rule.
 
 ## 2026-11-23 — "Stocks that qualify" reads the same on every system
 
