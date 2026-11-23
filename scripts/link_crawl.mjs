@@ -161,7 +161,7 @@ async function checkClick(p, src, l) {
     await load(p, src.url);
     if (!(await clickLink(p, l))) { r.checks.a = { ok: false, why: 'link not found on the page to click (after a reload)' }; return r; }
   }
-  await p.waitForURL(u => !sameDoc(u.toString(), src.url) || (l.href.includes('#') && u.toString().includes('#')), { timeout: 4000 }).catch(() => {});
+  await p.waitForURL(u => !sameDoc(u.toString(), src.url) || (l.href.includes('#') && u.toString().includes('#')), { timeout: 15000 }).catch(() => {});   // CI runs 3-4x slower than a laptop (24 Nov, run 45251578501: Dashboard 74 s); a click that works returns at once
   await p.waitForTimeout(500);
   await settle(p);
   const after = await state(p);
@@ -170,7 +170,10 @@ async function checkClick(p, src, l) {
   if (sameDoc(after.url, src.url) && !l.href.startsWith('#') && framed.length) {
     r.checks.a = { ok: false, why: `opened inside its frame (${rel(framed[0])}); the page stayed` };
   } else if (sameDoc(after.url, src.url) && !l.href.startsWith('#') && !(l.kind === 'a' && sameDoc(new URL(l.href, src.url).toString(), src.url))) {
-    r.checks.a = { ok: false, why: 'nothing happened: the page stayed where it was' };
+    const under = await p.evaluate(h => { const a = [...document.querySelectorAll('a[href]')].find(x => x.getAttribute('href') === h);
+      if (!a) return 'link gone'; const q = a.getBoundingClientRect(); const el = document.elementFromPoint(q.x + q.width / 2, q.y + q.height / 2);
+      return `${a.offsetParent ? 'visible' : 'hidden'}, under the pointer: ${el === a || a.contains(el) ? 'the link' : (el && (el.className || el.tagName))}`; }, l.href).catch(() => '?');
+    r.checks.a = { ok: false, why: `nothing happened: the page stayed where it was (${under})` };
   } else r.checks.a = opens(after) ? { ok: true } : { ok: false, why: whyNot(after) };
   const cross = crossSystem(l.text);
   const want = cross !== undefined ? cross : (src.system === '750' ? null : src.system);
