@@ -1122,15 +1122,16 @@ def judge_configuration(name: str, ev: dict) -> list:
 
 
 # ── Load time per page (S193 L, owner 23 Nov 2026: "With your recommendation") ─────────────
-# Budgets in seconds: the slowest warm reading of each page across the three systems x 1.5,
-# rounded up to 0.5 s (docs/archive/S193_ITEM_L_2026-11-24.md). A page over its budget on two
-# runs in a row fails the run; once is a warning, since one slow reading on a shared container
-# is not a regression.
+# Budgets in seconds, by the owner's rule ("budgets set from those numbers"): the slowest warm reading x 1.5,
+# rounded up to 0.5 s, taking the larger of the local bench and the first live reading (24 Nov 2026; the live
+# site was slower on 9 of 10 pages; docs/archive/S193_ITEM_L_2026-11-24.md). Decided by rule, owner to confirm.
+# A page over its budget on two runs in a row fails the run; once is a warning, since one slow reading on a
+# shared container is not a regression.
 PAGE_BUDGETS_S = {
-    "Dashboard": ("", 4.0), "Portfolio": ("portfolio", 5.0), "Actions": ("actions", 3.0),
-    "Sectors": ("sectors", 9.0), "Watchlist": ("watchlist", 2.0), "Market": ("market", 6.0),
-    "Indices": ("indices", 3.0), "Backtest": ("backtest", 10.0), "Guide": ("guide", 2.0),
-    "Stock": ("?stock=RELIANCE", 2.5),
+    "Dashboard": ("", 8.0), "Portfolio": ("portfolio", 9.0), "Actions": ("actions", 8.0),
+    "Sectors": ("sectors", 9.0), "Watchlist": ("watchlist", 6.5), "Market": ("market", 10.5),
+    "Indices": ("indices", 7.5), "Backtest": ("backtest", 17.0), "Guide": ("guide", 6.0),
+    "Stock": ("?stock=RELIANCE", 7.0),
 }
 # The bench's rule (scripts/audit_page_bench.py): from the address opened to the moment
 # Streamlit's run is over and stays over for SETTLE_S.

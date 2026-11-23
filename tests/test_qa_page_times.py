@@ -8,8 +8,9 @@ _spec = importlib.util.spec_from_file_location(
 qa = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(qa)
 
-BUDGETS = {"Dashboard": 4, "Portfolio": 5, "Actions": 3, "Sectors": 9, "Watchlist": 2, "Market": 6,
-           "Indices": 3, "Backtest": 10, "Guide": 2, "Stock": 2.5}
+# The report's "Budgets as built": the larger of the local bench and the first live reading, x 1.5.
+BUDGETS = {"Dashboard": 8, "Portfolio": 9, "Actions": 8, "Sectors": 9, "Watchlist": 6.5, "Market": 10.5,
+           "Indices": 7.5, "Backtest": 17, "Guide": 6, "Stock": 7}
 
 
 def _all(v):

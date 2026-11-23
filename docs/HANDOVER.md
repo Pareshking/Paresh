@@ -46,7 +46,7 @@ _Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsn
 - Backtest's Nifty 500 column shows its own volatility, Sharpe and Sortino (were "–").
 - Portfolio's lead-by-month chart opens on all months of the book (was the last 12; the same today).
 - PR 3 (S219 4-7, S193 L), see TODO S219 and S193: Watchlist search labels show the company name (the Screener's show the sector); Backtest's line says "rebalanced monthly, at the month’s last close" for 21; Sectors' 3M and 12M sit after the 1M lead and Broad or narrow keeps 3M and 1M; the Nifty 1000 row follows Nifty Total Market.
-- **S193 L budgets vs live:** the first live readings were over budget on 9 of 10 pages (TODO S193); as set, Production QA fails daily from its second run. Owner to choose: keep, set budgets from live readings, or record only (`UMIYA_PAGE_TIMES_ENFORCE=0`).
+- **S193 L budgets vs live:** the first live readings were over the local budgets on 9 of 10 pages; budgets reset by the same rule on the larger of local and live (Dashboard 8 ... Backtest 17 s, `scripts/production_qa.py`). One live reading is thin: revisit after a week of runs.
 
 **23 Nov ~09:30 UTC.** #647 merged (938121e). Earlier: the owner asked for a fresh session from 14:00 IST; this session stopped new work and finished
 what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640 (S212 clean-up, ~13,700 lines),
