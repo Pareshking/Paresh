@@ -5,7 +5,7 @@ state, queue and dates sections); do not write a dated copy. Earlier dated
 handovers are in `docs/archive/HANDOVER_*.md`. Paste the prompt at the end as
 the first message of a fresh session.
 
-_Last updated: 23 Nov 2026 (early, IST), coordinating session of 22-23 Nov._
+_Last updated: 23 Nov 2026 ~14:00 IST (08:30 UTC), coordinating session of 22-23 Nov (session_016X4g5aV4BforqdG6bYB6KH)._
 
 ## The owner's standing rules (unchanged)
 
@@ -38,35 +38,49 @@ _Last updated: 23 Nov 2026 (early, IST), coordinating session of 22-23 Nov._
 
 ## State at handover
 
-**23 Nov ~06:30 UTC (coordinator, session_016X4g5aV4BforqdG6bYB6KH):** merged today: #628 (stock page v2), #634
-(S193 item A fixes), #635 (A6, `qualified_now.json`), #630 (S204, another session), #636 (S210), #637, #639 (S209, pinned
-dependencies; edit `requirements.in`, regenerate `requirements.txt`). Open:
-- **#638 (S211, one date rule):** draft; merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
-  published ranks move). The record's replay keeps the old rule for signals before 31 Dec (`window_rule_from`). Reminder
-  `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
-- **S212 clean-up PR** (dead code, ~13,700 lines, owner-approved incl. `agent/` and `parameter_sweep`). Branches: this
-  session cannot push tags or delete branches (proxy 403, permission check); the owner runs the script recorded in TODO S212.
-- **#607** parked by the owner (read-only R2 key).
+**23 Nov ~08:30 UTC.** The owner asked for a fresh session from 14:00 IST; this session stopped new work and finished
+what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640 (S212 clean-up, ~13,700 lines),
+#644 (S214), #645 (numpy 2.5.5; Dependabot #641-#643 carried in and closed), #646 (S205 step 1).
 
-The owner, 23 Nov: "take over other sessions work ... I will not communicate anything between you two now". The
-speed-and-tooling session handed over and stopped:
-- S204 done (#630): Backtest default run 17.7 → 6.9 s, five reference runs and audit_baseline identical. S206 (Numba) closed: day loop < 0.13 s.
-- S205 open: layout step 15 min 37 s of 18 min 51 s (run 45107993629), fixed sleeps at layout_audit.mjs:71/74/87. Order: idle check (number_format_audit.mjs:47), load each page/width once, measure on CI, `run_page_audits.sh` only if still > 6 min. Done: ≤ 6 min, every page and width checked, a broken branch still fails, 2–3 clean runs.
-- S207 open: (b) read_history vs build() in build_nse_long_prices.py and (c) Dashboard `_history_inputs`/breadth profile not measured; (a) answered by S210.
-- S208 approved, not started: price_fingerprint once per frame in its cached loader; backtest_view `_long_file`/`_long_value` to st.cache_resource; float64 kept.
-- S209 merged (#639, fb2f6ff): edit requirements.in, regenerate requirements.txt (`uv pip compile requirements.in --universal --python-version 3.14 --exclude-newer 2026-11-22T17:37:00Z -o requirements.txt`). Open: Dependabot on a uv file unverified; Streamlit boot log should show no package replaced.
-- S210 merged (#636); open until the Streamlit log after the first nightly daily_sync since #636 reads "Precomputed ranking accepted" for all three systems.
-- S214 open: nse_long.py:44 CACHE_TTL_S 24 h, same flaw as S210; fix like `_published_closes` (R2 revision_sha256 or release ETag by ranged GET, .revision sidecar) with a test for a revision change inside 24 h.
-- S215 open, folded into S213: the > ₹2,000 Cr table published 377 of 411; name the 34 with reasons from the nightly counts, fix or record in §5.
-- Branch ccr-92ffad7f-s210 (5ba5e39) merged in #636: delete with the S212 branch clean-up.
+**Open pull requests**
+- **S213 batch PR** (branch `ccr-b633a7d9-s213`, draft, opened at this handover). Merge when CI is green on its
+  current head. It carries:
+  - S215 explained: the 34 stocks missing from the > ₹2,000 Cr ranking are new listings under 63 sessions (NSE
+    `EQUITY_L.csv`; DATA_CORRECTNESS §5). The reconciliation log now prints `new_listings=N` apart from `missing=`
+    (owner, 23 Nov: "Let log shows"; `momentum.too_new_to_rank`, counted from the first price).
+  - S205 step 2: the number-format audit saves each page's text (`--save`), and the glossary audit reuses it
+    (`--cache`) for the nine pages both read. Shared reader: `scripts/_page_text.mjs`. A planted glossary fault in
+    saved text is still reported.
+  - pyarrow back to 24.0.0, and Dependabot ignores 25+. The owner's 23 Nov 07:58 boot log showed Streamlit Cloud
+    replacing #645's 26.0.1 ("known segfault, apache/arrow#50471"), as on 7 Nov.
+  - The S205 CI figure after #646: the layout step went from 15 min 37 s to 7 min 40 s.
+- **#638 (S211, one date rule):** draft. Merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
+  published ranks move). It conflicts with main again: merge main into it once, just before merging. Reminder
+  `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
+- **#607** is parked by the owner (read-only R2 key).
+
+**Waiting on the owner (24 Nov, laptop back):**
+- (a) Run the branch clean-up in TODO S212: tags for group C, then delete the merged branches. This session could
+  not: proxy 403 on tags, branch deletes refused.
+- (b) Send the Streamlit log after tonight's nightly run, the first past #636/#644. S210 is done when it reads
+  "Precomputed ranking accepted" for all three systems: open each system once after boot. Once the S213 PR is
+  deployed, the same log should no longer say "Replacing with pyarrow<25".
+- (c) Optional: set the Dependabot secrets (TODO S209). Until then every Dependabot PR fails validate at the R2 step.
+
+**After the S213 PR merges:** read the layout step's time on its CI run. If it is 6 min or less, S205 is done after
+2-3 clean runs (record the run IDs). If not, the parallel runner (`run_page_audits.sh`; the patch is in the old
+session's scratchpad, so rebuild it) is the next and last step.
+
+**Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S208 (price_fingerprint once per frame;
+the Backtest long file in `st.cache_resource`); S207 (b, c). These were taken over from the speed session.
+
+**Local state:** nothing uncommitted. The worktree `.claude/worktrees/agent-aa31e63eff604b062` (branch s205, merged)
+and the s213 worktree are scratch; the main checkout is on `ccr-b633a7d9-f1fqfl` (#638's branch).
 
 From the **January 2027** book: three systems, **Nifty 750 · Nifty 1000 · Ultra Nano Cap** (replaces "> ₹2,000 Cr", key
 `nano` kept: ₹1,000 Cr or more outside the Nifty 1000; tracked down to ₹500 Cr, prices from ₹800 Cr, a holding below
 ₹1,000 Cr sold at the rebalance); **Combined retired**, its ledger read-only as frozen to Dec 2026. Read TODO S198 before
 any work on the systems; the 1-5 Dec freeze runs on today's four systems.
-
-Next, in order: S214 (Backtest long file kept 24 h unchecked), S205 (layout audit time), S213 with S215 (price pipeline
-end to end; 377 of 411 published), S208/S207; S193 A5 and A10-A14 after.
 
 ### What was done 22 Nov evening (where to read it)
 
@@ -79,6 +93,9 @@ end to end; 377 of 411 published), S208/S207; S193 A5 and A10-A14 after.
 | #611 (S185) | was already merged 12:54 UTC (a relayed message said otherwise) | TODO S185 |
 
 ## Queue: one at a time, in this order
+
+0. **Finish what is open**: merge the S213 PR on green; the owner's 24 Nov items (a)-(c) above; then S205's
+   CI figure and, only if needed, the runner. Then S213, S208, S207, and the S193 items (one at a time with the owner).
 
 1. **23 Nov first-run checks** (record each in TODO S188 with its run ID). The
    Screener sync is scheduled 17:07 UTC but GitHub starts it 5-7 h late (22:09,
@@ -166,7 +183,7 @@ In the first PR that touches `DASHBOARD_REQUIREMENTS.md` (S174):
 
 ## Dates to watch
 
-- 23 Nov: queue item 1; breadth after Monday's sync.
+- 24 Nov: the owner's branch clean-up and Streamlit log (S210 "accepted" for all three systems; no pyarrow "Replacing").
 - 27 Nov: Actions-minutes week ends; S142 (private repo) decided after. Also
   Friday's `ss_sync`: the first without the `reconcile_*` upload (should pass).
 - 29 Nov (Sun) 03:17 UTC: the scheduled `r2_retention` run (the retired
@@ -186,11 +203,11 @@ In the first PR that touches `DASHBOARD_REQUIREMENTS.md` (S174):
 ```
 You are taking over coordination of Pareshking/Paresh (NSE Momentum
 Terminal). Read CLAUDE.md, then docs/HANDOVER.md, then the open
-rows of docs/TODO.md (S175, S185, S188, S194, S196, S197, S198). Follow the standing rules
+rows of docs/TODO.md (S205, S209, S210, S211, S212, S213, S185, S188, S197, S198). Follow the standing rules
 in the handover exactly: one activity at a time, you do the merges (green CI
 on the current head, squash, expectedHeadSha), check open PRs before taking an
-S-number (next free S204), verify every claim, delete nothing without the
+S-number (next free S216), verify every claim, delete nothing without the
 owner's yes, finish whatever you start before handing over, and follow
 CLAUDE.md's "Saving resources" (finish locally, push once, batch follow-ups). Then work the
-queue in order, starting with the 23 Nov first-run checks.
+queue in order, starting with item 0 (merge the S213 PR when green).
 ```
