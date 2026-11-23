@@ -1,6 +1,13 @@
 # Changelog
 
 
+## 2026-11-23 — Each system's momentum tiles from its own record (S217)
+
+- The Dashboard's "Is momentum still working?" tiles showed the Nifty 500's top 100 against the Nifty 500 under every system. Each system now shows its own record: the top fifth of its own members, ranked at each month-end, against all of them at equal weight.
+- The 750's record starts in December 2021 (its members are recorded from October 2021); the > ₹2,000 Cr list's in October 2026; the Nifty 1000's begins with December 2026. A record under 12 months leaves the longer windows empty and says it is being collected; the month-end job adds a row for each system.
+- The month so far is the system's own top fifth from the last month-end, no longer NSE's Nifty500 Momentum 50. The signal tests still use the Nifty 500's record since 2010, and now say so.
+- Beside each system's own record, one line gives the Nifty 500's members since 2010 by the same rule: its deepest fall and how long the earlier ones took to recover, the context a short record cannot give.
+
 ## 2026-11-23 — The header and the page show the same session (S216)
 
 - Between NSE's close and the nightly sync, the header showed today's Nifty 500 beside the previous session's prices ("Nifty 500 23,764" beside "closes of 20 Nov"). It now reads the index up to the prices' last session, so its level and 200D EMA gap match the page below it.
