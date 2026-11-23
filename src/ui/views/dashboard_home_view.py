@@ -715,8 +715,8 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                 f'Nifty 500 the next month by {ev.after_heavy:.1f} points on average, against {ev.after_rest:.1f} after the rest; ahead '
                 f'{ev.hit_heavy:.0f}% of the time against {ev.hit_rest:.0f}%. '
                 + (f'It held in both halves ({halves}).' if held else f'It did not hold in both halves ({halves}).')
-                + f'<span class="dh-ev dh-ev-t">Tested here · {ev.months} months of flows, {ev.heavy_months} heavy, in-sample; '
-                  'the latest has no next month to test yet</span></div>'
+                + f'<span class="dh-ev dh-ev-t">Tested here · {ev.tested} months with a next month, {ev.tested_heavy} heavy, '
+                  'in-sample</span></div>'
                 f'<div class="dh-ev-box"><b>No forecast for the Nifty 500.</b> Flows move with the Nifty 500 in the same month '
                 f'(correlation {sg(ev.corr_same, 2)}) and say nothing about the next ({sg(ev.corr_next, 2)}).</div>'
                 f'<div class="dh-ev-box"><b>{"Not a large-cap story" if ev.large_minus_broad <= 0 else "A large-cap tilt"}.</b> '

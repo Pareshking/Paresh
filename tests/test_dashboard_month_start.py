@@ -45,3 +45,22 @@ def test_book_too_short_reads_one_colon_in_a_note():
     from src.ui import missing_words as mw
     note = "No risk figures yet: " + mw.book_too_short(63, 20) + "."
     assert note.count(":") == 1 and "63 sessions" in note and "it has 20" in note
+
+
+def test_flow_evidence_counts_only_months_with_a_next_month():
+    import numpy as np
+    import pandas as pd
+    from src.engine.dashboard_insights import flow_evidence
+    months = pd.period_range("2015-01", "2018-12", freq="M")
+    rng = np.random.default_rng(0)
+    nsdl = pd.DataFrame({"date": [m.to_timestamp(how="end").normalize() for m in months]
+                         + [pd.Timestamp("2019-01-15")],
+                         "equity_net": list(rng.normal(0, 1000, len(months))) + [5.0]})
+    spreads = pd.DataFrame({"month": [str(m) for m in months], "top": rng.normal(1, 2, len(months)),
+                            "nifty500": rng.normal(0, 2, len(months))})
+    days = pd.date_range("2015-01-01", "2018-12-31", freq="B")
+    bench = pd.DataFrame({"nifty500": np.linspace(100, 150, len(days)), "nifty50": np.linspace(100, 140, len(days))},
+                         index=days)
+    ev = flow_evidence(nsdl, spreads, bench)
+    assert ev.tested == ev.months - 1          # the last month has no next month to test
+    assert ev.tested_heavy <= ev.heavy_months
