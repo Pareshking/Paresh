@@ -19,7 +19,12 @@ const grp = (v, dp=0) => { const r = rnd(v, dp); return (r < 0 ? '−' : '') + M
 /* A price for display (S173, owner 22 Nov 2026): whole rupees at any level, Indian grouping. */
 const pxf = v => v==null ? '–' : grp(v, 0);
 const sg = (v,dp=1) => { if (v==null) return '–'; const r = rnd(v, dp); return (r>0?'+':r<0?'−':'') + Math.abs(r).toFixed(dp); };
-const inr = v => (v<0?'−':'+') + '₹' + Math.abs(v).toLocaleString('en-IN');
+// ₹ crore in Indian words, as dashboard_home_view.cr writes them (PAGE_DESIGN 3a rule 2; S193 E): ₹1.34 lakh Cr,
+// ₹38,000 Cr, ₹954 Cr; the readout printed "+₹1,34,230" with no unit.
+const inr = v => { if (v==null) return '–'; const a = Math.abs(v), s = v>0?'+':v<0?'−':'';
+  if (a >= 100000) return s + '₹' + rnd(a/100000, 2).toFixed(2) + ' lakh Cr';
+  if (a >= 1000) return s + '₹' + (rnd(a/1000)*1000).toLocaleString('en-IN') + ' Cr';
+  return s + '₹' + rnd(a).toLocaleString('en-IN') + ' Cr'; };
 const NS = 'http://www.w3.org/2000/svg';
 const mk = (tag, attrs={}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
 
@@ -90,7 +95,7 @@ function barPane(el,o){
   let lo=Math.min(0,...o.values,...ends,...dv,...bnd.slice(0,2))*fx, hi=Math.max(0,...o.values,...ends,...dv,...bnd.slice(0,2))*fx;
   if(o.range){lo=o.range[0];hi=o.range[1];}
   const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo)), bw=(W-padL-padR)/n, gap=Math.min(6,bw*.28);
-  if(bnd.length){ mk('rect',{x:padL,width:W-padL-padR,y:Y(bnd[1]),height:Math.max(1,Y(bnd[0])-Y(bnd[1])),fill:css('--caution-soft')},svg);
+  if(bnd.length){ mk('rect',{x:padL,width:W-padL-padR,y:Y(bnd[1]),height:Math.max(1,Y(bnd[0])-Y(bnd[1])),fill:css('--fill')},svg);
     if(bnd[2]){ const t=mk('text',{x:padL+4,y:Y(bnd[1])+12,class:'lbl-band'},svg); t.textContent=bnd[2]; } }
   for(const t of niceTicks(lo,hi,4)){ mk('line',{x1:padL,x2:W-padR,y1:Y(t),y2:Y(t),stroke:t===0?css('--ink'):css('--rule-soft'),'stroke-width':1,opacity:t===0?.5:1},svg);
     mk('text',{x:W-padR+8,y:Y(t)+4},svg).textContent=String(o.yfmt(t)).replace('-','−'); }
@@ -107,8 +112,8 @@ function barPane(el,o){
               :`M${x},${y0}V${y1-rr}Q${x},${y1} ${x+rr},${y1}H${x+w-rr}Q${x+w},${y1} ${x+w},${y1-rr}V${y0}Z`;
     const last=i===n-1 && o.markLast;
     bars.push(mk('path',{d,fill:up?css('--up'):css('--down'),opacity:last||!o.markLast?1:.72},svg));
-    const u=o.values2&&o.values2[i]; if(u!=null){ const same=(u>=0)===(v>=0), base=same?v:0, end=base+u; bar(x,w,u,css(o.color2||'--teal'),base);
-      if(o.valueLabels){ const t=mk('text',{x:x+w/2,y:end>=0?Y(end)-5:Y(end)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css(o.color2||'--teal')}`); } } });
+    const u=o.values2&&o.values2[i]; if(u!=null){ const same=(u>=0)===(v>=0), base=same?v:0, end=base+u; bar(x,w,u,css(o.color2||'--s-dii'),base);
+      if(o.valueLabels){ const t=mk('text',{x:x+w/2,y:end>=0?Y(end)-5:Y(end)+13,'text-anchor':'middle',class:'lbl-v'},svg); t.textContent=o.valueLabels(u); t.setAttribute('style',`fill:${css(o.color2||'--s-dii')}`); } } });
   (o.dots||[]).forEach((v,i)=>{ if(v!=null) mk('circle',{cx:padL+i*bw+bw/2,cy:Y(v),r:Math.max(2.5,Math.min(4,bw/5)),fill:css('--ink')},svg); });
   const step=Math.max(1,Math.ceil(n/Math.min(o.xn||6,Math.max(2,Math.floor((W-padL-padR)/78)))));
   for(let i=0;i<n;i+=step){ const first=i===0&&bw<40; const t=mk('text',{x:first?padL:padL+i*bw+bw/2,y:H-6,'text-anchor':first?'start':'middle'},svg); t.textContent=o.xlab(i); }
@@ -239,7 +244,7 @@ R.bars = (card, s) => {
     const lvl = s.levels && s.levels.length ? ' · ' + (v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between) : '';
     const items = [{name: s.unit + lvl, color: c, v: s.money ? inr(v) : sg(v, s.dp ?? 1), vcolor: c}];
     if (s.dots && s.dots[k] != null) items.push({name: s.dotName || '', color: css('--ink'), v: sg(s.dots[k], s.dp ?? 1), vcolor: css('--down')});
-    const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css(s.color2 || '--teal'), v: s.money ? inr(a[1]) : sg(a[1], s.dp ?? 1), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
+    const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css(s.color2 || '--s-dii'), v: s.money ? inr(a[1]) : sg(a[1], s.dp ?? 1), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
     return {date: s.full[k] + (k === s.values.length - 1 && s.lastNote ? s.lastNote : ''), items}; }, () => s.values.length - 1);
 };
 
@@ -272,14 +277,14 @@ R.breadth = (card, s) => {
   const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
   let from = 0, panes = [];
   const draw = () => { const dates = s.dates.slice(from), n5 = s.n500.slice(from), a = s.a200.slice(from);
-    panes = [linePane(top, {dates, series: [{name: 'Nifty 500', color: css('--ink'), values: n5, area: true, width: 1.8}], height: 180, noX: true, yfmt: v => v.toLocaleString('en-IN')}),
+    panes = [linePane(top, {dates, series: [{name: 'Nifty 500', color: css('--s-n500'), values: n5, area: true, width: 1.8, dash: '5 4'}], height: 180, noX: true, yfmt: v => v.toLocaleString('en-IN')}),
              linePane(bot, {dates, series: [{name: 'Above their 200D EMA', color: css('--up'), values: a, area: true, width: 1.8}], height: 130, range: [0, 100], ticks: 4, yfmt: v => v + '%', areaBase: 0,
                bands: [{from: 60, to: 100, fill: css('--up-soft')}, {from: 0, to: 40, fill: css('--down-soft')}],
                levels: [{v: 60, label: 'Broad', color: css('--up')}, {v: 40, label: 'Narrow', color: css('--down')}]})]; };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   chips(card, r => { from = r ? Math.max(0, s.dates.length - r) : 0; draw(); });
   interact(card, () => panes, $('.readout', card), k => { const i = from + k; return {date: dlong(s.dates[i]), items: [
-    {name: 'Nifty 500', color: css('--ink'), v: grp(s.n500[i], 1)},
+    {name: 'Nifty 500', color: css('--s-n500'), v: grp(s.n500[i], 1)},
     {name: `of the ${esc(s.uni || '750')} above their 200D EMA`, color: css('--up'), v: s.a200[i] == null ? '–' : fx(s.a200[i], 0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
 };
 
@@ -290,12 +295,12 @@ R.growth = (card, s) => {
   let panes = [];
   const draw = () => { const W = top.clientWidth, h = Math.round(Math.max(200, Math.min(340, W * 0.32)));
     panes = [linePane(top, {dates: s.dates, series: [
-        {name: 'The book', color: css('--ink'), values: s.book, area: true, width: 2.4},
-        {name: 'Nifty500 Momentum 50', color: css('--caution'), values: s.mom},
-        {name: 'Nifty Total Market', color: css('--muted'), values: s.market, dash: '5 4'}],
+        {name: 'The book', color: css('--s-book'), values: s.book, area: true, width: 2.4},
+        {name: 'Nifty500 Momentum 50', color: css('--s-mom50'), values: s.mom},
+        {name: 'Nifty Total Market', color: css('--s-market'), values: s.market, dash: '5 4'}],
         height: h, padL: 34, padR: 8, noX: true, yfmt: v => fx(v, 0), areaBase: Math.min(...s.book) * 0.95}),
       linePane(bot, {dates: s.dates, series: [{name: 'The book', color: css('--down'), values: s.dd, area: true, width: 1.6},
-        {name: 'Nifty Total Market', color: css('--muted'), values: s.ddm, dash: '4 3', width: 1.4}],
+        {name: 'Nifty Total Market', color: css('--s-market'), values: s.ddm, dash: '4 3', width: 1.4}],
         height: Math.round(h * 0.5), padL: 34, padR: 8, yfmt: v => fx(v, 0) + '%', areaBase: 0, ticks: 3})]; };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); b.textContent = v; b.className = c || ''; };

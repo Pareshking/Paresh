@@ -38,6 +38,18 @@ def _finite(x) -> float | None:
     return v if math.isfinite(v) else None
 
 
+def _missing(x) -> bool:
+    """None, NaN, NaT or an infinite number: a value that is not there."""
+    if x is None:
+        return True
+    try:
+        if x != x:          # NaN and NaT are not equal to themselves
+            return True
+    except (TypeError, ValueError):
+        return False
+    return isinstance(x, float) and math.isinf(x)
+
+
 def half_up(v: float, digits: int = 0) -> Decimal:
     """v rounded half away from zero on its decimal value: 892.5 -> 893, -2.45 -> -2.5, 0.05 -> 0.1.
 
@@ -123,10 +135,13 @@ def pct(x, signed_: bool = True, digits: int = 1, fraction: bool = True) -> str:
 
 def date(x, short: bool = False) -> str:
     """A date for display: "20 Nov 2026", or "20 Nov" in a tight column (S173 rule 3). Text that is not a date
-    is returned as it is, so a table can pass every cell through."""
+    is returned as it is, so a table can pass every cell through. A missing date (None, NaN, NaT) or an
+    infinite number reads "–" (S193 E), never "None" or "nan"."""
     import re
     from datetime import date as _date
 
+    if _missing(x):
+        return DASH
     if hasattr(x, "strftime"):
         d = x
     else:
@@ -158,5 +173,31 @@ PRICES_SOURCE = "NSE"   # the exchange the closes are from; the vendor is not na
 
 
 def data_to(as_of, source: str = PRICES_SOURCE) -> str:
-    """A page's footer line: "Data to 20 Nov 2026 · NSE" (S173 rule 7)."""
-    return f"Data to {date(as_of)} · {source}"
+    """A page's footer line: "Data to 20 Nov 2026 · NSE" (S173 rule 7); "Data from NSE" when the date is
+    missing, never "Data to None" (S193 E)."""
+    return f"Data from {source}" if _missing(as_of) else f"Data to {date(as_of)} · {source}"
+
+
+def closes_not_in(names, day) -> str:
+    """The one sentence for indices without a close for the page's session (S148, S193 E):
+    "NSE's 20 Nov closes for Nifty 50 and Nifty Bank are not in yet." "" when none."""
+    names = [str(n) for n in names if n]
+    if not names:
+        return ""
+    if len(names) > 4:      # a list that long is not read: the count, the rows say which
+        return f"NSE’s {date(day, short=True)} closes for {len(names)} of these indices are not in yet."
+    who = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    return f"NSE’s {date(day, short=True)} {'close' if len(names) == 1 else 'closes'} for {who} {'is' if len(names) == 1 else 'are'} not in yet."
+
+
+def session_of(prices) -> object:
+    """The session a page's figures and footer end on: the ranking's session, the date the header pill
+    shows (S193 E). A newer session the vendor is still publishing is held back by the ranking, so the
+    frame's last row can be a session ahead of the header; None for an empty frame."""
+    if prices is None or not len(getattr(prices, "index", ())):
+        return None
+    import pandas as pd
+    from src.engine.pipeline import ranking_as_of
+
+    day = ranking_as_of(prices) if getattr(prices, "ndim", 1) == 2 else ""
+    return pd.Timestamp(day) if day else pd.Timestamp(prices.index[-1])

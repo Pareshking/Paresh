@@ -175,7 +175,10 @@ def _edit_holdings() -> None:
                 try:
                     got = holdings_from_kite_csv(pd.read_csv(up))
                 except Exception as exc:  # a wrong file is reported, not raised
-                    st.error(f"Could not read that file: {exc}")
+                    from src.core.logger import logger
+                    logger.warning("Holdings CSV not read: %s", exc)
+                    st.error("That file could not be read as Kite’s holdings CSV: it needs an Instrument or Symbol "
+                             "column. Your saved holdings are unchanged.")
                 else:
                     if st.button(f"Use these {len(got)} holdings", key="xw_csv_use"):
                         holdings_store.save(got)

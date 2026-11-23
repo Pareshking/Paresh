@@ -78,7 +78,7 @@ table.sp-t{border-collapse:collapse;width:100%;font-size:var(--fs-13)}
 .sp-ladder .seg{position:absolute;top:9px;height:4px;background:var(--c-ink);border-radius:2px}
 .sp-ladder .dot{position:absolute;top:5px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--c-white);border:2px solid var(--c-ink)}
 .sp-ladder .dot.now{background:var(--c-ink)}
-.sp-ladder .dot.line{border-color:var(--c-caution);border-style:dashed}
+.sp-ladder .dot.line{border-color:var(--c-muted);border-style:dashed}
 .sp-ladder .labels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px;font-size:var(--fs-12);color:var(--c-muted)}
 .sp-ladder .labels div:nth-child(n+2){text-align:center}.sp-ladder .labels div:last-child{text-align:right}
 .sp-ladder .labels b{display:block;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--fs-13);font-weight:500;color:var(--c-ink)}
@@ -506,7 +506,8 @@ def render_stock_view(
 
     system = system or system_param.current()
     uni = sl.universe(system, len(rank_df))
-    as_of = (pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close.index)
+    # The session the header shows, not the frame's last row (S193 E).
+    as_of = (formats.session_of(adj_close) if adj_close is not None and len(adj_close.index)
              else pd.Timestamp.today().normalize())
     st.html(f"<style>{HOME_CSS}{SP_CSS}</style>")
 
@@ -531,7 +532,9 @@ def render_stock_view(
             if not me.empty and "Qualified (-3M)" in me.columns else [None, None])
     tr = sl.trail(row, [_month_ago(adj_close, 3), _month_ago(adj_close, 1), as_of], past, q)
 
-    a = assess(rank_df, [sym])
+    # Closes in the 52-week window, for a recent listing's "too new to have a 52-week high: 70 of 126 sessions".
+    n_win = int(adj_close[sym].loc[:as_of].iloc[-252:].notna().sum()) if sym in adj_close.columns else None
+    a = assess(rank_df, [sym], sessions=None if n_win is None else {sym: n_win})
     a_row = a.iloc[0].to_dict() if not a.empty else None
     from src.ui.views.actions_view import next_rebalance
     check, _fill = next_rebalance(as_of)

@@ -279,8 +279,9 @@ def _against_momentum(book: float, lo: float, hi: float) -> str:
 
 def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None, as_of: pd.Timestamp,
                  prev: dict | None = None, begun: pd.Timestamp | None = None, frozen: str = "",
-                 fill: pd.Timestamp | None = None) -> list:
-    """`prev`: {"label", "market", "book", "momentum": {key: %}} for the last finished month."""
+                 fill: pd.Timestamp | None = None, late: str = "") -> list:
+    """`prev`: {"label", "market", "book", "momentum": {key: %}} for the last finished month.
+    `late`: the sentence saying the index figures end a session early (`index_late_note`), or ""."""
     gap = None if bm.book_mtd is None or bm.market_mtd is None else bm.book_mtd - bm.market_mtd
     mom = bm.momentum_mtd
     lo, hi = (min(mom.values()), max(mom.values())) if mom else (None, None)
@@ -346,10 +347,19 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "
             "style lagged; against the Nifty Total Market row, how far momentum is behind.",
             [""] + [p["label"] for p in periods], table_rows),
-        f'<p class="dh-note">{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. '
+        f'<p class="dh-note">{e(late + " ") if late else ""}{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. '
         + (f'{e(frozen)} {"stay" if " to " in frozen else "stays"} as recorded against the Nifty 500; the Nifty Total Market comparison is worked out beside them. '
            if frozen else '') + 'The book is after costs; indices are '
         'price returns. The book’s month-by-month record is on Portfolio.</p>' + END]
+
+
+def index_late_note(idx_end: pd.Timestamp, as_of: pd.Timestamp) -> str:
+    """One sentence when NSE's Nifty Total Market close for the page's session is not in yet, in Portfolio's
+    words (S193 E); "" when the indices are on the page's session."""
+    if idx_end is None or as_of is None or pd.Timestamp(idx_end) >= pd.Timestamp(as_of):
+        return ""
+    return (f"Nifty Total Market to {pd.Timestamp(idx_end):%-d %b}: NSE’s closes for {pd.Timestamp(as_of):%-d %b} are not in yet, "
+            f"so the index figures end a session early; the book’s are to {pd.Timestamp(as_of):%-d %b}.")
 
 
 def _r2(v):
@@ -636,7 +646,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
             + (f', after selling {e(cr(-f.before).lstrip("+"))} over the 11 months before.' if f.before < 0 else '.'))
     if dii and dii[2] < 0:
         head += ' <span class="dh-down">Domestic institutions are selling into it.</span>'
-    kp = [(f"Foreign, month so far · {f.as_of:%b}", cr(f.mtd), tone(f.mtd),
+    kp = [(f"Foreign, {f.month_span}", cr(f.mtd), tone(f.mtd),
            "Record: largest month since " + _first_year(f) if rec else f"Rank {f.month_rank} of {f.months_in_record} months",
            "dh-up" if rec else "dh-muted",
            f"Previous high {cr(f.prior_record[1]).lstrip('+')}, {f.prior_record[0]}" if f.prior_record and rec else ""),
@@ -799,7 +809,7 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None,
         f'<tr><th scope="row">{e(_fmt.size(s))}<span class="dh-sub">{e(SIZE_LABELS[parents[s]])} · '
         f'{e(SIZE_LABELS[moms[s]]) if moms[s] else "no momentum index"}'
         f'{" against the " + e(SIZE_LABELS[mom_parents[s]]) if moms[s] and mom_parents[s] != parents[s] else ""}</span></th>'
-        f'<td class="dh-num{" dh-b dh-watch" if book_sizes.get(s, 0) >= 20 else " dh-muted"}">{book_sizes.get(s, 0):.0f}%</td>'
+        f'<td class="dh-num{" dh-b" if book_sizes.get(s, 0) >= 20 else " dh-muted"}">{book_sizes.get(s, 0):.0f}%</td>'
         + "".join(cell(v) for v in vs) + '<td></td>' + "".join(cell(v) for v in prem) + "</tr>" for s, vs, prem in rows)
     strip = "".join(f'<i class="{size_class(k)}" style="width:{v:.0f}%">{e(_fmt.size(k)) + " " + f"{v:.0f}%" if v >= 20 else ""}</i>'
                     for k, v in book_sizes.items())
@@ -844,7 +854,7 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame) -> list:
         "weak": "Behind all ranked stocks on both windows.",
     }
     cards = []
-    for k, title, cls in (("strong", "Strong", "up"), ("turning", "Turning", "watch"), ("weak", "Weak", "down")):
+    for k, title, cls in (("strong", "Strong", "up"), ("turning", "Turning", "turning"), ("weak", "Weak", "down")):
         items = [x for x in srt if x[5] == k]
         if not items:
             continue
@@ -859,7 +869,7 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame) -> list:
     return [f'<div class="dh-sec">{_kicker("6", "Where the book is strong and weak")}<h2 id="s-book" class="dh-h2">{head}</h2></div>',
             Chart("segbar", {"segs": segs, "totals": {k: round(v, 1) for k, v in tot.items()}}, {"label": "The book by sector status"}),
             how("The book’s weight in each sector, coloured by how that sector stands against all ranked stocks over six "
-                "months and one month.", "Blue is ahead on both, amber ahead on one, rust behind on both. The cards give each "
+                "months and one month.", "Blue is ahead on both, grey ahead on one, rust behind on both. The cards give each "
                 "sector’s figures.", ["Sector", "Weight", "Status"],
                 [[x[0], f"{x[2]:.1f}%", x[6].capitalize()] for x in sorted(segs, key=lambda x: -x[2])]),
             f'<div class="dh-gcards">{"".join(cards)}</div>'
@@ -903,7 +913,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
     cfg = TRACK_RECORD_CONFIG
     rules = Rules(buffer_n=int(cfg["buffer_n"]), high_pct=float(cfg["high_pct"]))
-    as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else pd.Timestamp(ist_now().date())
+    # The session the header shows, not the frame's last row (S193 E).
+    as_of = _fmt.session_of(adj_close) if adj_close is not None and len(adj_close) else pd.Timestamp(ist_now().date())
     st.html(f"<style>{HOME_CSS}</style>")
 
     with st.spinner("Loading the model book…"):
@@ -925,18 +936,20 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     closes = {k: bi.series(k, frame=frame) for k in bi.SERIES}
     closes["nifty100"] = _nse_close("nifty_100")      # Large = Nifty 100 (owner, 21 Nov 2026), from NSE's daily files
     market = closes[bi.TOTAL_MARKET]
-    # Index figures end on one session: the last both prices and indices have. An index
-    # without a close for that session reads "–", never the session before (S148).
+    # The book stays on the page's session (`as_of`). When NSE's Nifty Total Market close for it is not in
+    # yet, the index figures end on the index's last session (`idx_end`) and a sentence says so, as on
+    # Portfolio (S193 E, owner 23 Nov 2026). An index without a close for that session reads "–" (S148).
     idx_end = min(as_of, market.index[-1]) if len(market) else as_of
+    idx_late = index_late_note(idx_end, as_of)
     closes = {k: di.as_of(v, idx_end) for k, v in closes.items()}
     market = closes[bi.TOTAL_MARKET]
     momentum = {k: closes[k] for k in MOMENTUM_NAMES}
     first_month = pd.Period(str(ledger.get("inception", "2026-01")), freq="M")
-    bm = di.book_month(ledger.get("months", {}), book_mtd, market, momentum, idx_end, first_month=first_month)
+    bm = di.book_month(ledger.get("months", {}), book_mtd, market, momentum, as_of, first_month=first_month)
     inc = first_month.to_timestamp() - pd.Timedelta(days=1)
     # The market from the first fill's close, where the book starts (owner, 23 Nov 2026: "2: from the fill").
     fill0 = di.first_fill(market, first_month)
-    since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, idx_end)
+    since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, as_of)
 
     a = assess(rank_df, symbols, rules)
     check, fill = next_rebalance(as_of)
@@ -989,16 +1002,18 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     spreads = _read_csv(FILES["spreads"])
     from src.engine import system_momentum as sm
     own = sm.for_tiles(sm.read(system if system in sm.SYSTEMS else SYSTEM_750))
-    mtd = _month_so_far(key, adj_close, tuple(rank_df["Symbol"].drop_duplicates()), idx_end)
+    mtd = _month_so_far(key, adj_close, tuple(rank_df["Symbol"].drop_duplicates()), as_of)
     lead = sm.tiles(own, mtd)
     streak = di.losing_streak(own, mtd) if own is not None else 0
-    nsdl = _read_csv(FILES["nsdl"])
-    flows = di.flows_summary(nsdl)
+    # Flows are read to the page's session: NSDL's file can run ahead of the prices (S193 E).
+    nsdl = di.cut_at(_read_csv(FILES["nsdl"]), as_of)
+    flows = di.flows_summary(nsdl, as_of)
     ev = di.flow_evidence(nsdl, spreads, bench) if flows is not None else None
-    dii = _dii_now(_read_csv(FILES["nse_dii"], dtype={"period": str}))
+    nse_dii = _read_csv(FILES["nse_dii"], dtype={"period": str})
+    dii = _dii_now(nse_dii)
     tests = _load_tests()
     signals = _signals(spreads, n500, idx_end, flows, nifty500_breadth(adj_close, as_of), tests,
-                       qualify_now=_qualify_today(adj_close, idx_end))
+                       qualify_now=_qualify_today(adj_close, as_of))
     average = tests.get("average")
 
     # 4. flows against the 750's market value
@@ -1061,16 +1076,17 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                .sort_values("Weight", ascending=False).reset_index())
 
     # v8 chart inputs (S151)
-    prev = _last_month(ledger, market, momentum, idx_end, first_month=(inc + pd.Timedelta(days=1)).to_period("M"))
+    prev = _last_month(ledger, market, momentum, as_of, first_month=(inc + pd.Timedelta(days=1)).to_period("M"))
     lead_bars = _lead_bars(own, lead)
-    fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_dii"], dtype={"period": str}))
-    compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
+    fpi_bars = _fpi_bars(nsdl, ev, flows, nse_dii)
+    compare = _flow_compare(di.cut_at(_read_csv(FILES["nse_flows"]), as_of), nsdl)
     breadth = _breadth_spec(n500, hist.get("above_200"), idx_end, UNIVERSE_SHORT.get(system, "750"))
 
     uni = UNIVERSE_SHORT.get(system, "750")
-    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{idx_end:%B}", uni)]
-    parts += section_book(bm, since, since_mkt, idx_end, prev, inc + pd.Timedelta(days=1), frozen=_frozen_span(ledger),
-                          fill=fill0 if fill0 is not None and first_month == idx_end.to_period("M") else None)
+    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{as_of:%B}", uni)]
+    parts += section_book(bm, since, since_mkt, as_of, prev, inc + pd.Timedelta(days=1), frozen=_frozen_span(ledger),
+                          fill=fill0 if fill0 is not None and first_month == as_of.to_period("M") else None,
+                          late=idx_late)
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
                                results_line, turnover, hist.get("dates"))
     own_since = pd.Period(own["month"].iloc[0], "M").strftime("%B %Y") if own is not None else ""
@@ -1078,15 +1094,15 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_momentum(lead, streak, signals, average, lead_bars,
                               None if short or own is None else di.momentum_lag(own), uni, own_since,
                               long=_long_record(spreads), short=short,
-                              so_far=f"{idx_end:%B}" if mtd is not None and mtd < 0 else None)
+                              so_far=f"{as_of:%B}" if mtd is not None and mtd < 0 else None)
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
-    parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{idx_end:%B}")
+    parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}")
     parts += section_strong_weak(weights, sectors)
     parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(idx_end), breadth,
                             UNIVERSE_SHORT.get(system, "750"), system == SYSTEM_750)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
-    parts.append(f'<p class="dh-foot">{_fmt.data_to(idx_end)}.</p>')
+    parts.append(f'<p class="dh-foot">{_fmt.data_to(as_of)}.</p>')
     emit(parts)
 
 
@@ -1218,11 +1234,13 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
     out["band_note"] = (f"shaded: foreign investors' usual range since {done.index[0]:%Y}, {sg(q1 / 1000, 0)} to {sg(q3 / 1000, 0)} thousand Cr "
                         "(the middle half of all months)")
     dii = _dii_months(nse)
+    if dii:   # the readout keeps one line per series on a phone (layout audit, 412 px)
+        out["band_note"] += "; domestic is banks, insurers and mutual funds"
     if dii:
         out["also"] = [None if p not in dii else
                        [("domestic" + (", all exchanges" if len(dii[p]) > 6 else "") if dii[p][5]
                          else f"domestic, {dii[p][1]:%-d}–{dii[p][2]:%-d %b}"
-                         + (", all exchanges" if len(dii[p]) > 6 else " (banks, insurers, MFs)")),
+                         + (", all exchanges" if len(dii[p]) > 6 else "")),
                         round(dii[p][0])] for p in mo.index]
     return out
 
@@ -1453,13 +1471,15 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         cut = float(q.quantile(0.25))
         me_on = None if me_tr[2] is None else me_tr[2] <= cut
         live = [v * 100 for _, v in sorted((qualify_now or {}).items())]
-        tr = live if len(live) == 3 else me_tr
+        # Without today's reading the row keeps the month-ends under 3M and 1M ago and reads "–" under Now:
+        # the last month-end is not today (S193 E; the list showed 30 Oct's 17% under "Now").
+        tr = live if len(live) == 3 else [me_tr[0], me_tr[1], None]
         me_at = q.index[q.index <= as_of][-1] if len(q.index[q.index <= as_of]) else None
         note = ("" if me_at is None or me_tr[2] is None else
                 f" · the test reads month-ends: {me_at:%-d %b} {me_tr[2]:.0f}%")
         on = tr[2] is not None and tr[2] <= cut
         row("qualify", "Stocks that qualify", f"Nifty 500 above 50D EMA, near the high · {cut:.0f}% or fewer: on"
-            + (note if len(live) == 3 else " · month-ends"),
+            + (note if len(live) == 3 else " · 3M and 1M ago are month-ends; today’s share is not worked out yet, so Now reads –" + note),
             [pct(v) for v in tr], None if tr[2] is None else on,
             f"Above {cut:.0f}% at the next month-end" if on else f"{cut:.0f}% or fewer at a month-end",
             where(q, tr[2], "month-ends"), me_on=me_on)
@@ -1605,8 +1625,8 @@ HOME_CSS = """
 .dh-sub{display:block;font-size:var(--fs-12);color:var(--c-muted);font-weight:400}
 .dh-mono{font-family:var(--font-mono)}
 .dh-b{font-weight:700}
-.dh-up{color:var(--c-up)}.dh-down{color:var(--c-down)}.dh-watch{color:var(--c-caution)}.dh-muted{color:var(--c-muted)}
-.dh h3.dh-up{color:var(--c-up)!important}.dh h3.dh-down{color:var(--c-down)!important}.dh h3.dh-watch{color:var(--c-caution)!important}
+.dh-up{color:var(--c-up)}.dh-down{color:var(--c-down)}.dh-watch{color:var(--c-caution)}.dh-turning{color:var(--c-muted)}.dh-muted{color:var(--c-muted)}
+.dh h3.dh-up{color:var(--c-up)!important}.dh h3.dh-down{color:var(--c-down)!important}.dh h3.dh-watch{color:var(--c-caution)!important}.dh h3.dh-turning{color:var(--c-muted)!important}
 .dh-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
 .dh-kpi{background:var(--c-white);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
 .dh-k-l{font-size:var(--fs-12);color:var(--c-muted)}
@@ -1672,7 +1692,7 @@ HOME_CSS = """
 .dh-how-t .dh-tab td:not(:first-child),.dh-how-t .dh-tab th:not(:first-child){text-align:right;font-family:var(--font-mono)}
 .dh-gcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px;align-items:start}
 .dh-gcard{border:1px solid var(--c-rule_soft);border-top:3px solid var(--c-rule);border-radius:var(--r-sm);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
-.dh-g-up{border-top-color:var(--c-up)}.dh-g-watch{border-top-color:var(--c-caution)}.dh-g-down{border-top-color:var(--c-down)}
+.dh-g-up{border-top-color:var(--c-up)}.dh-g-turning{border-top-color:var(--c-mid)}.dh-g-down{border-top-color:var(--c-down)}
 .dh-gc-h{display:flex;justify-content:space-between;align-items:baseline}
 .dh .dh-gc-h h3{margin:0!important;padding:0!important;font-family:var(--font-ui)!important;font-size:var(--fs-17)!important}
 .dh-gc-h b{font-size:var(--fs-24)}
@@ -1693,7 +1713,7 @@ HOME_CSS = """
 .dh-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:32px}
 .dh-lede-s{margin:6px 0 0;font-size:var(--fs-13)}
 .dh-ev{font-size:var(--fs-12);font-weight:600;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block}
-.dh-ev-t{color:var(--c-up);background:var(--c-up_tint)}.dh-ev-r{color:var(--c-caution);background:var(--c-caution_tint)}.dh-ev-c{color:var(--c-muted);background:var(--c-fill_soft)}
+.dh-ev-t{color:var(--c-up);background:var(--c-up_tint)}.dh-ev-c{color:var(--c-muted);background:var(--c-fill_soft)}
 .dh-ev-box{border-left:3px solid var(--c-rule);padding:2px 0 2px 12px;font-size:var(--fs-13)}
 .dh-ev-up{border-left-color:var(--c-up)}
 .dh-mbars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px}
@@ -1705,13 +1725,13 @@ HOME_CSS = """
 .dh-mb-n{font-size:var(--fs-12);text-align:center;color:var(--c-muted)}
 .dh-sizebar{display:flex;height:26px;border-radius:3px;overflow:hidden;font-size:var(--fs-12);font-weight:600}
 .dh-sizebar i{display:flex;align-items:center;padding-left:8px;font-style:normal;white-space:nowrap;overflow:hidden}
-.dh-sz-large{background:var(--c-ink)}.dh-sz-mid{background:var(--c-muted)}.dh-sz-small{background:var(--c-caution);color:var(--c-white)}.dh-sz-micro{background:var(--c-caution_line)}.dh-sz-nano-cap{background:var(--c-caution_tint);color:var(--c-caution_ink)}.dh-sz-ultra-nano-cap,.dh-sz-outside,.dh-sz-other{background:var(--c-rule_strong);color:var(--c-ink)}
+.dh-sz-large{background:var(--c-size_1);color:var(--c-white)}.dh-sz-mid{background:var(--c-size_2);color:var(--c-white)}.dh-sz-small{background:var(--c-size_3);color:var(--c-white)}.dh-sz-micro{background:var(--c-size_4);color:var(--c-ink)}.dh-sz-nano-cap{background:var(--c-size_5);color:var(--c-ink)}.dh-sz-ultra-nano-cap,.dh-sz-outside,.dh-sz-other{background:var(--c-size_6);color:var(--c-ink)}
 .dh-segbar{display:flex;height:40px;border-radius:4px;overflow:hidden;gap:2px}
 .dh-segbar i{display:flex;align-items:center;padding-left:6px;font-style:normal;font-size:var(--fs-12);font-weight:600;white-space:nowrap;overflow:hidden;color:var(--c-white)}
-.dh-seg-strong{background:var(--c-up)}.dh-seg-slow{background:var(--c-up_line);color:var(--c-ink)!important}.dh-seg-turning{background:var(--c-caution_line);color:var(--c-ink)!important}.dh-seg-weak{background:var(--c-down)}
+.dh-seg-strong{background:var(--c-up)}.dh-seg-slow{background:var(--c-up_line);color:var(--c-ink)!important}.dh-seg-turning{background:var(--c-mid);color:var(--c-ink)!important}.dh-seg-weak{background:var(--c-down)}
 .dh-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
 .dh-card{border:1px solid var(--c-rule_soft);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
-.dh-card-strong{border-top:3px solid var(--c-up)}.dh-card-turning{border-top:3px solid var(--c-caution)}.dh-card-weak{border-top:3px solid var(--c-down)}
+.dh-card-strong{border-top:3px solid var(--c-up)}.dh-card-turning{border-top:3px solid var(--c-mid)}.dh-card-weak{border-top:3px solid var(--c-down)}
 .dh-card-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .dh .dh-card-h h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important}
 .dh-ind{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:8px 0;border-top:1px solid var(--c-rule_soft);font-size:var(--fs-13)}

@@ -999,9 +999,7 @@ def _emit_startup_metrics(outcome: str) -> None:
 
 
 if not data:
-    st.error(
-        "❌ Failed to initialise market data. Please verify your internet connection or reload."
-    )
+    st.error("Prices could not be loaded just now, so no page can be shown. Nothing saved is lost; reload in a minute.")
     _emit_startup_metrics("data_init_failed")
     st.stop()
 
@@ -1037,18 +1035,10 @@ if rank_df.empty:
     # construction. getattr keeps the diagnostics optional either way.
     diag = getattr(calc, "ranking_diagnostics", {}) or {}
     metrics.note("ranking_diagnostics", diag)
-    st.error(
-        "❌ The momentum engine ranked 0 stocks, so there is nothing to show.\n\n"
-        f"- Universe: **{diag.get('universe', 'unknown')}** symbols\n"
-        f"- Price series loaded: **{diag.get('price_columns', 'unknown')}**, "
-        f"matching the universe: **{diag.get('symbols_matching_prices', 'unknown')}**\n"
-        f"- With any price history: **{diag.get('with_price_history', 'unknown')}**\n"
-        f"- Meeting the {diag.get('min_observations', 63)}-observation minimum: "
-        f"**{diag.get('meeting_min_observations', 'unknown')}**\n\n"
-        "This is almost always upstream price data, not the ranking itself. "
-        "Use **Force Refresh** to rebuild the cache, or retry shortly if the "
-        "price provider is rate limiting."
-    )
+    # The engine's counts go to the log and the startup metrics, not to the reader (S193 E).
+    logger.error("The ranking is empty: %s", diag)
+    st.error("No stock could be ranked from the prices loaded just now, so no page can be shown. "
+             "The published ranking and the model book are unchanged; reload in a few minutes.")
     _emit_startup_metrics("empty_ranking")
     st.stop()
 

@@ -388,7 +388,7 @@ def holdings_spec(p: Page) -> dict:
     r = p.rank_df.drop_duplicates("Symbol").set_index("Symbol")
     hc = int(round((1 - float(p.cfg.get("high_pct", 0.8))) * 100))
     cut = int(p.cfg.get("buffer_n", 40))
-    word = {"strong": ("Strong", "up"), "turning": ("Turning", "watch"), "weak": ("Weak", "down")}
+    word = {"strong": ("Strong", "up"), "turning": ("Turning", "turning"), "weak": ("Weak", "down")}
     rows = []
     for _, h in t.iterrows():
         s = str(h["Symbol"])
@@ -455,7 +455,7 @@ def section_exposure(p: Page) -> list:
     names = list(dict.fromkeys(list(now) + [k for k, v in p.market_weights.items() if v >= 4 and k not in now]))
     rows = sorted(((n, float(now.get(n, 0.0)), float(p.market_weights.get(n, 0.0))) for n in names), key=lambda r: (-r[1], -r[2]))
     top = max([r[1] for r in rows] + [r[2] for r in rows] + [10.0]) * 1.05
-    word = {"strong": ("Strong", "dh-up"), "turning": ("Turning", "dh-watch"), "weak": ("Weak", "dh-down")}
+    word = {"strong": ("Strong", "dh-up"), "turning": ("Turning", "dh-turning"), "weak": ("Weak", "dh-down")}
     from src.engine.extra_universe import UNIVERSE_SHORT
     uni = e(UNIVERSE_SHORT.get(p.system, "750"))
     head = (f'<div class="pf-ihead"><span>Sector</span><span></span><span class="dh-num">Book</span><span class="dh-num">The {uni}</span>'
@@ -957,7 +957,7 @@ PF_CSS = """
 .pf-nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pf-nm small{font-weight:400;font-size:var(--fs-12);color:var(--c-muted);margin-left:6px}
 .pf-ibar{position:relative;height:14px;background:var(--c-rule_soft);border-radius:2px;display:block}
 .pf-ibar i{position:absolute;left:0;top:0;bottom:0;background:var(--c-ink);border-radius:2px}
-.pf-ibar b{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--c-caution)}
+.pf-ibar b{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--c-muted)}
 .pf-srow{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;margin-bottom:5px;font-size:var(--fs-13)}
 .pf-thin{height:20px}.pf-thin i{font-size:11px;padding-left:5px}.dh-sz-large,.dh-sz-mid{color:var(--c-white)}
 .pf-gap{margin-top:14px}
@@ -1014,7 +1014,10 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
     try:
         book, record = current_book(prices, benchmark_close, system)
     except (ValueError, KeyError) as exc:
-        st.error(f"Canonical Track Record book is invalid: {exc}")
+        from src.core.logger import logger
+        logger.error("Portfolio: the model book did not pass its check: %s", exc)
+        kit.note("The model book could not be read just now.",
+                 "The record itself is unchanged. Reload the page in a few minutes; the book shows again once its nightly check passes.")
         return
     if book.empty:
         kit.empty("No current model book", "for this system yet.")
@@ -1025,7 +1028,10 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
     try:
         ledger = load_ledger(ledger_path(system), inception(system))
     except (ValueError, OSError) as exc:
-        st.error(f"Portfolio Track Record could not be read: {exc}")
+        from src.core.logger import logger
+        logger.error("Portfolio: the track record's ledger could not be read: %s", exc)
+        kit.note("The track record could not be read just now.",
+                 "The model book is unchanged. Reload the page in a few minutes.")
         return
     series = book_series(book, record, ledger, rank_df, prices, benchmark_close, PORTFOLIO_STARTING_CAPITAL)
     if series is None:

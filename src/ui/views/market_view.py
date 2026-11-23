@@ -44,14 +44,15 @@ def _participation_chart(pct: pd.DataFrame, ma_type: str, pit: dict[str, pd.Seri
     when that history covers the window; the other averages count today's ranked stocks, said in the label."""
     from src.ui import dash_charts as dc
     order = sorted(pct.columns, key=lambda c: int(str(c).rstrip("D")))
-    colours = ["up", "ink", "caution", "teal", "violet"]
+    from src.ui.tokens import LINE_CYCLE
     series = []
     for i, c in enumerate(order):
         s, who = pct[c], "today’s stocks"
         if pit and ma_type == "EMA" and c in pit and pit[c].reindex(pct.index).notna().all():
             s, who = pit[c].reindex(pct.index), "members of each date"
         series.append({"name": f"{c} {ma_type}, {who}",
-                       "values": [None if pd.isna(v) else round(float(v), 1) for v in s.to_numpy()], "color": colours[i % 5]})
+                       "values": [None if pd.isna(v) else round(float(v), 1) for v in s.to_numpy()],
+                       "color": LINE_CYCLE[i % len(LINE_CYCLE)][0], "dash": LINE_CYCLE[i % len(LINE_CYCLE)][1]})
     dc.render("lines", {"dates": [f"{d:%Y-%m-%d}" for d in pct.index], "yfmt": "pct", "range": [0, 100],
                         "levels": [{"v": 60, "label": "60% broad", "color": "up"}, {"v": 40, "label": "40% narrow", "color": "down"}],
                         "series": series}, label="Share of stocks above each average")
@@ -194,5 +195,5 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     # Data date and counts, no sources (owner, 20-21 Nov 2026).
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
-    st.html(f'<p class="qp-note" style="margin-top:18px">{_fmt.data_to(adj_close.index[-1])}. {len(rank_df)} stocks ranked; '
+    st.html(f'<p class="qp-note" style="margin-top:18px">{_fmt.data_to(_fmt.session_of(adj_close))}. {len(rank_df)} stocks ranked; '
             f'{gap_count(rank_df)} with a price gap, {short_n} with a short history.</p>')

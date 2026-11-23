@@ -191,7 +191,7 @@ def _model(key: str, _rank_df: pd.DataFrame, _prices: pd.DataFrame, col: str, _t
             f = f.until(ld.when)
             smap = sp.sector_map()
             counts = groups.dropna().astype(str).value_counts().to_dict()
-            out["nse"] = {"as_of": f.as_of, "groups": sp.sector_indices(f, ld, smap, counts),
+            out["nse"] = {"as_of": ld.when, "groups": sp.sector_indices(f, ld, smap, counts),
                           "gaps": sp.broad_or_narrow(f, ld, smap), "pairs": sp.pair_series(f, ld, smap)}
     return out
 
@@ -311,6 +311,14 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
             would, table]
 
 
+def _late_headlines(nse: dict) -> str:
+    """" NSE's 20 Nov close for Nifty Bank is not in yet, so its sector is left out here." or "" (S148, S193 E)."""
+    late = [x.name for g in nse.get("groups") or [] for x in g.indices if x.headline and x.late is not None]
+    if not late:
+        return ""
+    return f" {_fmt.closes_not_in(late, nse['as_of'])} {'Its sector is' if len(late) == 1 else 'Their sectors are'} left out here."
+
+
 def section_broad(ld: sp.Leads, nse: dict, sh) -> list:
     gaps = nse["gaps"]
     if not gaps:
@@ -346,7 +354,7 @@ def section_broad(ld: sp.Leads, nse: dict, sh) -> list:
             'selection of the sector’s companies and weights them by free-float value: the two differ in stocks and in weights. '
             'The bar is the gap over three months, 0.5 pt a line. The dashed line is the 750’s own gap to Nifty Total Market: '
             'a bar left of it means the sector’s largest companies did more of the work than the largest companies did across the 750. '
-            f'{_fmt.PTS_NOTE}</p></div>',
+            f'{_fmt.PTS_NOTE}{e(_late_headlines(nse))}</p></div>',
             Chart("trows", spec, {"label": "Each sector against its NSE index", "note": "0.5 pt a line · dashed: the 750 against Nifty Total Market"}),
             '<div class="dh-sec dh-sec-cont"><h3 class="dh-h3">12 months, each line set to 100 at the start (or at the index’s launch)</h3></div>',
             Chart("pairs", {"pairs": pairs, "start": start, "text": {"gap": "gap", "latest": "Latest", "month_end": "Month end"}},
@@ -356,7 +364,7 @@ def section_broad(ld: sp.Leads, nse: dict, sh) -> list:
 def section_indices(ld: sp.Leads, nse: dict, sh) -> list:
     groups = nse["groups"]
     allix = [x for g in groups for x in g.indices]
-    full = sorted((x for x in allix if not x.young), key=lambda x: -x.returns[12])
+    full = sorted((x for x in allix if x.returns.get(12) is not None), key=lambda x: -x.returns[12])
     young = sum(x.young for x in allix)
     h2 = f"NSE’s {len(allix)} sector indices, each beside its sector."
     if full:
@@ -389,6 +397,9 @@ def section_indices(ld: sp.Leads, nse: dict, sh) -> list:
             f"Price returns; each window ends on {nse['as_of']:%-d %b %Y} and starts on the last session on or before the same date "
             "1, 3, 6, 9 and 12 months back. An index younger than 12 months shows its launch in NSE’s daily file. Themes, strategies "
             "and broad indices are on Indices.")
+    late = [x.name for x in allix if x.late is not None]
+    if late:
+        note += " " + _fmt.closes_not_in(late, nse["as_of"]) + " Their figures read –."
     return [f'<div class="dh-sec">{KICK.format("NSE’s sector indices")}<h2 id="s-indices" class="dh-h2">{h2}</h2>'
             f'<p class="dh-note">{e(note)}</p><div class="dh-scroll"><table class="dh-tab dh-tab-s sx-ix"><thead><tr>'
             '<th scope="col">Index</th>' + "".join(f'<th scope="col" class="dh-num">{w}</th>' for w in ("1M", "3M", "6M", "9M", "12M"))
@@ -634,6 +645,11 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                             format_func=lambda k: f"Grouping: {k}")
     col = choices.get(pick, "Industry")
     prices = history_prices if history_prices is not None else adj_close
+    # Every figure and the footer end on the session the header shows (S193 E): a newer session the
+    # ranking holds back while the vendor publishes it is left out here too.
+    session = _fmt.session_of(adj_close if adj_close is not None else prices)
+    if prices is not None and session is not None:
+        prices = prices.loc[:session]
     from src.ui.views.market_questions_view import total_market
     tm = total_market()
     if prices is None or prices.empty:

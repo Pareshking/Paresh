@@ -267,6 +267,8 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
     n = sum(len(v) for v in rows.values())
     tm = ip.ret(f.close["nifty_total_market"], 12, as_of) if "nifty_total_market" in f.close else None
     themes = [r for r in rows.get("Theme", []) if r.returns[12] is not None]
+    late = ip.late_names(x for v in rows.values() for x in v)
+    late_txt = f" {_fmt.closes_not_in(late, as_of)} Their figures read –." if late else ""
     h2 = f"NSE's {n} broad, theme and strategy indices over 12 months."
     if tm is not None and themes:
         h2 = (f"Over 12 months Nifty Total Market is {'up' if tm >= 0 else 'down'} {abs(tm):.1f}%; among themes, "
@@ -277,7 +279,7 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
              f'price return over 12 months. Each window ends on {_dy(as_of)} and starts on the last session on or before the same '
              'date 1, 3, 6, 9 and 12 months back. Indices younger than 12 months are listed last, with their launch date in the 12M column. '
              "NSE's sector indices are on Sectors, beside the sectors they match. Bond, rate, leveraged and inverse "
-             'indices, India VIX and the dollar Nifty are left out.</p></div>']
+             f'indices, India VIX and the dollar Nifty are left out.{e(late_txt)}</p></div>']
     for g in ip.PAGE_FAMILIES:
         xs = rows.get(g, [])
         full = [x for x in xs if x.returns[12] is not None]
@@ -290,7 +292,7 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
         for x in xs:
             hi = "–" if x.from_high is None else ("at high" if abs(x.from_high) < 0.05 else sg(x.from_high, 1, "%"))
             cells = "".join(_num(x.returns[m], 1, "%") for m in ip.WINDOWS[:-1])
-            cells += (_num(x.returns[12], 1, "%") if x.returns[12] is not None
+            cells += (_num(x.returns[12], 1, "%") if x.returns[12] is not None or x.late is not None
                       else f'<td class="dh-num dh-muted">since {x.live:%-d %b}</td>')
             body += (f'<tr><th scope="row">{e(_short(x.name))}</th>' + cells
                      + f'<td class="dh-num dh-muted ix-hide-s">{e(hi)}</td>'

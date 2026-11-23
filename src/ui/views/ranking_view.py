@@ -799,10 +799,21 @@ def qualified_trail(prices: pd.DataFrame | None, rank_df: pd.DataFrame) -> dict 
         return None
 
 
+def behind_phrase(item: dict) -> str:
+    """One clause per stale source, in words for each state (S193 E: the line read "Market caps are to date
+    unknown; All-time highs are to 2y window, not all-time")."""
+    label, as_of = str(item.get("label") or "The data"), str(item.get("as_of") or "")
+    if "2y window" in as_of:
+        return f"{label} are not in, so the highs shown are the last two years’"
+    if not as_of or as_of == "date unknown":
+        return f"{label} carry no date, so they may be old"
+    return f"{label} are to {as_of}"
+
+
 def data_line(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
     """The data date and the counts; no source named (owner, 20 Nov 2026). A
     dataset that is behind is said, in the caution colour, by what it is."""
-    when = "" if adj_close is None or not len(adj_close.index) else f"{_fmt.data_to(adj_close.index[-1])}. "
+    when = "" if adj_close is None or not len(adj_close.index) else f"{_fmt.data_to(_fmt.session_of(adj_close))}. "
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
     line = (f"{when}{len(rank_df)} stocks ranked; {gap_count(rank_df)} with a price gap, "
             f"{short_n} with a short history.")
@@ -811,7 +822,7 @@ def data_line(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
         for item in data_freshness() or []:
             label = str(item.get("label") or "")
             if item.get("stale") and "ranked from" not in label.lower():
-                behind.append(f"{html.escape(label)} are to {html.escape(str(item.get('as_of') or ''))}")
+                behind.append(html.escape(behind_phrase(item)))
     except Exception:  # noqa: BLE001
         behind = []
     extra = (' <span style="color:var(--c-caution)">' + "; ".join(behind) + ".</span>") if behind else ""

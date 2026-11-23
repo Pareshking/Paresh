@@ -282,14 +282,32 @@ class Flows:
     monthly: list[tuple[str, float]]   # last 12 months, ₹ thousand crore
     trail20: list[float | None]
     since: pd.Timestamp | None = None  # first session in the record
+    month_from: pd.Timestamp | None = None   # first session of the month so far
+
+    @property
+    def month_span(self) -> str:
+        """The month so far's days, as the domestic tile names them: "1 to 20 Nov"."""
+        a = self.month_from if self.month_from is not None else self.as_of
+        return f"{a:%-d %b}" if a == self.as_of else f"{a:%-d} to {self.as_of:%-d %b}"
 
 
-def flows_summary(nsdl: pd.DataFrame) -> Flows | None:
-    """NSDL FPI equity, ₹ crore (data/nsdl_fpi_daily.csv: date, equity_net)."""
+def cut_at(frame: pd.DataFrame | None, end: pd.Timestamp | None, col: str = "date") -> pd.DataFrame | None:
+    """Rows dated on or before `end`: a file that runs ahead of the page's session (NSDL's ended on 23 Nov
+    under a page of 20 Nov prices) is read to that session only (S193 E)."""
+    if frame is None or end is None or col not in getattr(frame, "columns", ()):
+        return frame
+    return frame[pd.to_datetime(frame[col], errors="coerce") <= pd.Timestamp(end)]
+
+
+def flows_summary(nsdl: pd.DataFrame, end: pd.Timestamp | None = None) -> Flows | None:
+    """NSDL FPI equity, ₹ crore (data/nsdl_fpi_daily.csv: date, equity_net), to `end` (the page's session)
+    when given."""
     if nsdl is None or nsdl.empty or "equity_net" not in nsdl:
         return None
     s = pd.Series(pd.to_numeric(nsdl["equity_net"], errors="coerce").values,
                   index=pd.to_datetime(nsdl["date"])).dropna().sort_index()
+    if end is not None:
+        s = s[s.index <= pd.Timestamp(end)]
     if s.empty:
         return None
     as_of = s.index[-1]
@@ -312,7 +330,7 @@ def flows_summary(nsdl: pd.DataFrame) -> Flows | None:
     return Flows(as_of, mtd, rank, len(mo), prior_record, float(r20.iloc[-1]),
                  bool(r20.iloc[-1] >= r20.max()), streak, float(prev11.sum()), int((prev11 < 0).sum()),
                  [(p.strftime("%b"), float(v) / 1000) for p, v in last12.items()],
-                 trail_of(r20, as_of), s.index[0])
+                 trail_of(r20, as_of), s.index[0], s.index[s.index.to_period("M") == cur][0])
 
 
 @dataclass

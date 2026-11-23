@@ -97,6 +97,6 @@ def test_since_start_market_starts_at_the_fill():
     g = pr.daily_gaps(book, market, pd.Timestamp("2026-10-01"))
     assert list(g.index) == list(idx[2:])                     # the fill session (cash until the close) is left out
     src = (ROOT / "src" / "ui" / "views" / "dashboard_home_view.py").read_text(encoding="utf-8")
-    assert "since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, idx_end)" in src
+    assert "since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, as_of)" in src   # the book's session; the index reads on or before it (S193 E)
     psrc = (ROOT / "src" / "ui" / "views" / "portfolio_page.py").read_text(encoding="utf-8")
     assert "rows = pr.periods(p.equity, p.market, p.mom, p.as_of, first_fill(p)[1])" in psrc

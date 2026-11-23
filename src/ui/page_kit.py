@@ -312,10 +312,10 @@ def equity_chart(
 
     if len(strategy) < 2:
         return
-    series = [{"name": names[0], "type": "line", "color": lw.INDIGO, "fmt": fmt,
+    series = [{"name": names[0], "type": "line", "color": lw.colour_for(names[0], lw.colour_for("The book")), "fmt": fmt,
                "data": lw.series_points(dates, strategy)}]
     if benchmark:
-        series.append({"name": names[1], "type": "line", "color": lw.GREY, "fmt": fmt,
+        series.append({"name": names[1], "type": "line", "color": lw.colour_for(names[1], lw.GREY), "fmt": fmt,
                        "data": lw.series_points(dates, benchmark)})
     panes = [{"height": 300, "series": series}]
     if drawdown:
