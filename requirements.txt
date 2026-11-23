@@ -66,7 +66,7 @@ pillow==13.0.0
     # via streamlit
 protobuf==7.36.2
     # via streamlit
-pyarrow==26.0.1
+pyarrow==24.0.0
     # via
     #   -r requirements.in
     #   streamlit

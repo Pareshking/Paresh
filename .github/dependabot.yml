@@ -30,3 +30,9 @@ updates:
     groups:
       pip:
         patterns: ["*"]
+    # Streamlit Cloud replaces any pyarrow from 25 with <25 at boot
+    # (apache/arrow#50471; boot logs 7 and 23 Nov 2026), so a bump is never
+    # what production runs. Lift when its boot log stops saying "Replacing".
+    ignore:
+      - dependency-name: pyarrow
+        versions: [">=25"]
