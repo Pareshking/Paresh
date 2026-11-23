@@ -39,7 +39,7 @@ def test_a_short_record_leaves_the_long_windows_empty_and_says_so():
     assert round(t[2][1], 2) == -0.72 and t[2][0] == "October"
     assert t[3] == ("Month so far", -3.3, "Top fifth, at the last month-end")
     assert "collected from October 2026: 1 month so far" in sm.record_note(rec, "nano")
-    assert "begins with December 2026" in sm.record_note(None, "1000")
+    assert "begins with its first finished month" in sm.record_note(None, "1000")   # not a typed "December 2026" (S193 B)
     long = pd.DataFrame({"month": [str(p) for p in pd.period_range("2025-01", periods=12, freq="M")],
                          "top": [1.0] * 12, "ew": [0.0] * 12})
     assert sm.record_note(long, "750") is None

@@ -57,6 +57,11 @@ def _body() -> str:
     warmup_from = pd.Timestamp(cfg["ema_warmup_from"]).strftime("%-d %b %Y")
     members_from = pd.Timestamp(cfg["members_only_scoring_from"]).strftime("%-d %b %Y")
     min_prints = int(EMA_MIN_PRINTS)
+    # A new listing's wait (S193 B, G1: the Guide said "about six weeks", the 30-close EMA; ranking
+    # needs 63 sessions and the 52-week high 126).
+    from src.core.config import HIGH_52W_MIN_OBSERVATIONS
+    from src.engine.momentum import MIN_OBSERVATIONS
+    min_ranked, min_high = int(MIN_OBSERVATIONS), int(HIGH_52W_MIN_OBSERVATIONS)
     # How the 52-week high was actually measured in this run, as the freshness
     # ribbon publishes it (app.py records PriceFrames.high_basis).
     from src.core import startup_metrics as _metrics
@@ -80,7 +85,8 @@ def _body() -> str:
 <h2 id="steps">The five steps</h2>
 <ol>
 <li><b>Universe.</b> About 750 stocks: the Nifty Total Market as NSE published it on each date,
-so a stock counts only while it was a member. Prices are daily closes, adjusted for splits and bonuses.
+so a stock counts only while it was a member. Prices are daily closes, adjusted for splits, bonuses,
+consolidations, rights issues and demergers; the history from 2010 also takes out dividends of 10% or more.
 The {others} follow the same steps on their own lists.</li>
 <li><b>Score.</b> Each stock's return over 1, 3, 6, 9 and 12 months, divided by its volatility over
 the same window; each window ranked against the other stocks; the five blended ({weights}).</li>
@@ -92,7 +98,7 @@ rebalance every holding goes back to 5% twice a year (March and September); in b
 <li><b>Trades.</b> Once a month: the ranking at the month's last close, the trades at the next
 session's close. Nothing is sold in between.</li>
 </ol>
-<p>The figures these steps produce are on Portfolio and Backtest; none is quoted here.</p>
+<p>The figures these steps produce are on Portfolio and Backtest; the one test quoted here, under Weighting, is dated.</p>
 
 <h2 id="score">The score</h2>
 <h3>Windows are calendar months</h3>
@@ -128,9 +134,12 @@ No liquidity filter is applied, in the record or by default in the Backtest.</p>
 <h3>A stock needs {min_prints} closes before it has a {ema_period}D EMA</h3>
 <p>From the {warmup_from} ranking a stock with fewer than {min_prints} daily closes has no
 {ema_period}D EMA at all, so it cannot be above one and cannot pass the trend filter. It is
-not ranked low; it is simply not among the stocks that qualify, and it cannot be bought. A recent
-listing therefore waits about six weeks of trading before the model will look at it. This is the
+not ranked low; it is simply not among the stocks that qualify, and it cannot be bought. This is the
 rule the Screener has always used, and the months already recorded replay as they were.</p>
+<h3>A new listing waits about six months</h3>
+<p>No stock is ranked before {min_ranked} sessions of prices, and the 52-week high needs {min_high} closes
+before the near-the-high filter can pass. A recent listing therefore waits about six months of trading
+before it can be bought.</p>
 <h3>The 52-week high is read from closes</h3>
 <p>The high the filter measures against is the highest <i>close</i> of the last year, not the highest
 price touched during a day. The price history the record is struck on carries closes only.{basis_note}
@@ -141,9 +150,11 @@ figure only lines up with another measured the same way.</p>
 
 <h2 id="book">The book</h2>
 <ul>
-<li><b>Size:</b> {top_n} stocks, each 1/{top_n} of the account at the rebalance, then held as they
-move until the next one.</li>
-<li><b>Caps:</b> a new buy is never above {stock_cap:.0%} of the account and no NSE sector is above
+<li><b>Size:</b> {top_n} stocks, each 1/{top_n} of the account at a reset (the March and September
+rebalances); in between, a holding that stays is held as it moves, and a new buy is 1/{top_n} of the
+account as it stood at the last reset (see Weighting).</li>
+<li><b>Caps:</b> a new buy is {stock_cap:.0%} of the account as it stood at the last reset (a little more
+than {stock_cap:.0%} of today's if the book has fallen since) and no NSE sector is above
 {sector_cap:.0%} of the book at a rebalance, so at most {per_industry} of the {top_n} from one sector; the
 next-ranked stock from another sector takes the place. From the 30 Nov 2026 rebalance a holding that
 is kept is trimmed only above 15%, not back to {stock_cap:.0%} (see Weighting), so a holding whose price
@@ -152,7 +163,8 @@ its cap until the next rebalance trims it.</li>
 <li><b>Buffer:</b> a holding is kept while its rank among stocks passing both filters stays within
 {buffer_n}, so a move from 18th to 24th does not trigger a sale and a repurchase.</li>
 <li><b>Costs:</b> {cost:.0f} basis points for a round trip (buying and later selling), charged on what
-is traded. Every return on the site is before tax; tax was estimated only in the one test named under Weighting.</li>
+is traded. Returns are before tax, except the after-tax rows in the Backtest's section 4 and the
+test quoted under Weighting.</li>
 <li><b>No stops:</b> a holding leaves only at a monthly rebalance.</li>
 </ul>
 
@@ -163,9 +175,10 @@ holding back to 1/{top_n}, selling some of a winner and topping up a laggard. Fr
 twice a year, at the March and September rebalances. In between, a holding that stays is left as its
 price moved it unless it is above 15%, when it is cut to 15%, and each new buy is 5% of the account
 as it stood at the last reset, paid from cash; when cash is short the new names get fewer shares, and
-no holding is sold to pay for them. No sector is above 40% after a rebalance. Tested on the
-Nifty 500 from 2010 with an estimate of tax: the monthly reset earned 15.4% a year after tax and the
-six-monthly 15.3%, with far fewer trades between resets; in 2026 the six-monthly reset did best.
+no holding is sold to pay for them. No sector is above 40% after a rebalance. In the test behind
+the decision (8 Nov 2026, the Nifty 500 from 2010, with an estimate of tax) the monthly reset earned
+15.4% a year after tax and the six-monthly 15.3%, with far fewer trades between resets. The Backtest
+re-runs the record's rules every week, so its after-tax figure can differ by a little.
 Against the alternative of simply holding the index, both price only, both sold at the end and taxed:
 the Backtest page shows the figures for the record's rules from 2010, re-run every week (section 4).
 Months before the change keep the old rule.</p>
@@ -173,13 +186,14 @@ Months before the change keep the old rule.</p>
 one over its volatility over the last 63 sessions.</p>
 <pre>w_i = (1 / σ_i) / Σ_j (1 / σ_j)</pre>
 <p>It gives calmer stocks more weight. Whether that lowers the book's volatility or drawdown depends
-on the period; the Backtest shows both side by side.</p>
+on the period; run the Backtest with each weighting to compare them.</p>
 
 <h2 id="acting">Acting on it</h2>
 <ol>
 <li>After the month's last close, open <b>Actions</b>: it lists what to sell and what to buy.</li>
-<li>Place the sells by hand, in full. Then download the Kite basket there (buy orders only, each at its
-target weight of the capital you enter) and import it in Zerodha Kite under Orders, Baskets, Import.</li>
+<li>Sell in full, then buy. The Kite basket there carries the buys, each at its target weight of the
+capital you enter, and, for the model book, its sells at the model book's share counts (check them
+against your own holdings). Import it in Zerodha Kite under Orders, Baskets, Import.</li>
 <li>Place the orders on the next session. The record fills at that session's close, so orders near
 the close follow it most closely.</li>
 <li>Hold until the next month-end. <b>Actions</b> shows during the month how close each holding is to
@@ -189,9 +203,9 @@ a rule; nothing is sold before the rebalance.</li>
 <h2 id="faq">Questions</h2>
 <dl>
 <dt>Are the returns after tax?</dt>
-<dd>No. "Net" means after the modelled trading costs only. A monthly rebalance realises most gains
-within twelve months, which in India are short-term capital gains, so after tax the outcome is lower
-than every figure shown.</dd>
+<dd>No, except the after-tax rows in the Backtest's section 4. "Net" means after the modelled trading
+costs only. A monthly rebalance realises most gains within twelve months, which in India are short-term
+capital gains, so after tax the outcome is lower than every before-tax figure shown.</dd>
 <dt>Why is a stock ranked 14th not in the book?</dt>
 <dd>Either it fails a filter (the rank counts every stock; the book takes only those passing both), or
 the book is full of holdings still inside the buffer of {buffer_n}. New stocks enter only as holdings

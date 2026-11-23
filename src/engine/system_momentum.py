@@ -167,7 +167,9 @@ def record_note(record: pd.DataFrame | None, system: str) -> str | None:
     if n >= MIN_RECORD_MONTHS:
         return None
     if n == 0:
-        first = {SYSTEM_1000: "December 2026, the first month after its 30 Nov month-end"}.get(system, "its first finished month")
+        # Not a typed date: the 1000's list starts 30 Oct 2026, so its first row is November, not the
+        # "December 2026" this said (S193 B).
+        first = "its first finished month"
         return (f"This system’s own record begins with {first}. Its deepest fall and recovery are shown "
                 f"from {MIN_RECORD_MONTHS} months.")
     since = pd.Period(record["month"].iloc[0], "M").strftime("%B %Y")

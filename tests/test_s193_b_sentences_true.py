@@ -81,3 +81,37 @@ def test_b7_a_system_with_no_frozen_month_has_a_daily_path_from_the_fill():
     assert eq.index[0] == pd.Timestamp("2026-10-30") and eq.iloc[0] == float(MODEL_BOOK_CAPITAL)   # the money put in
     assert eq.index[-1] == pd.Timestamp("2026-11-20") and eq.iloc[-1] == value                     # never 30 Nov
     assert round(bm.loc["2026-11-20"] / bm.loc["2026-11-02"], 6) == 1.2                            # rebased at the fill
+
+
+# ── Owner, 23 Nov 2026: "Fix, I am with your recommendation" (the Guide, wording per system, small wording) ──
+
+def test_guide_states_what_the_code_does():
+    import re
+    from src.ui.views import guide_view
+    body = re.sub(r"\s+", " ", guide_view._body())
+    assert "waits about six months" in body and "about six weeks" not in body          # 63 sessions to rank, 126 for the high
+    assert "buy orders only" not in body and "its sells at the model book's share counts" in body
+    assert "never above" not in body and "as it stood at the last reset" in body
+    assert "except the after-tax rows in the Backtest's section 4" in body
+    assert "none is quoted here" not in body and "side by side" not in body
+    assert "rights issues and demergers" in body
+
+
+def test_frozen_months_are_named_only_where_a_system_has_them():
+    from src.ui.views.dashboard_home_view import _frozen_span
+    assert _frozen_span({"months": {f"2026-{m:02d}": {} for m in range(1, 11)}}) == "January to October"
+    assert _frozen_span({"months": {"2026-10": {}}}) == "October"
+    assert _frozen_span({}) == ""                                    # the Nifty 1000, Nov 2026
+
+
+def test_backtest_heading_counts_the_checks_not_made():
+    from src.ui.views.backtest_view import _not_made
+    assert _not_made([("a", "", "Checked"), ("b", "", "Not checked"), ("c", "", "Not checked")]) == "; 2 checks are not made (below)"
+    assert _not_made([("a", "", "Checked")]) == ""
+
+
+def test_the_list_groups_by_tradingview_sector():
+    from src.ui.views import sector_view as sv
+    assert sv.tv_sectors("nano") and sv.tv_sectors("combined") and not sv.tv_sectors("750") and not sv.tv_sectors("1000")
+    assert list(sv.GROUPINGS_TV) == ["TradingView sector", "TradingView industry"]
+    assert sv.TV_ONLY in "".join(sv.section_only_nse(False))
