@@ -10,7 +10,7 @@ with the date and the PR or run that proves it; move it to
 
 _Last updated: 2026-11-23_
 
-**Taking an S-number** (22 Nov 2026, after four collisions in a day): check `main` **and every open pull request** first. Reserved on 22 Nov: S182 (#603, held for the owner's review), S185 (each frozen month's book and price basis kept on R2), S186 (Production QA passes with a note when a data-only commit is not deployed yet), S187 (#607, read-only R2 key for CI, parked by the owner), S199 (docs-only PRs skip the full validation), S200-S202 (resource savings: TODO trim, one handover, Production QA cadence). S203 (page sentence templates, 23 Nov). Next free: S204.
+**Taking an S-number** (22 Nov 2026, after four collisions in a day): check `main` **and every open pull request** first. Reserved on 22 Nov: S182 (#603, held for the owner's review), S185 (each frozen month's book and price basis kept on R2), S186 (Production QA passes with a note when a data-only commit is not deployed yet), S187 (#607, read-only R2 key for CI, parked by the owner), S199 (docs-only PRs skip the full validation), S200-S202 (resource savings: TODO trim, one handover, Production QA cadence). S203 (page sentence templates, 23 Nov). S204-S210 (speed and tooling audit, 23 Nov). S211-S213 (#635, 23 Nov). Next free: S214.
 
 ## Now
 
@@ -31,6 +31,24 @@ website's menu. Plan, Block 0 measurements and the revised order:
 |---|---|---|---|
 | A1 | Block 7 + 6: Portfolio takes 17.7 s cold and **8.2 s warm** (local); one reader's server memory grows 330 -> 695 MB over 22 page visits and is never released | Cause of each found; Portfolio warm under 2 s and memory flat across a second round of the bench, frozen outputs identical | [ ] 15 Nov (TODO check): Portfolio warm is now under 2 s: S115 measured 991 ms on a second view (10 Nov). Still not measured: memory flat across a second round of the bench.  |
 | A3 | Block 3: `r2_final_acceptance` times out at 20 min every week (0 of 4 succeeded); `r2_cost_observability` fails every run (4 of 4); `r2-historical-evidence-bootstrap` runs ~4 times a day | Each one fixed, rescheduled or deleted with the owner's yes; a week of runs green | [ ] 22 Nov: recovery audit bounded (#542), monthly (#551); runs 43873004995, 43971401674, 43991205591, 44027540793 green, 19.7-23.9 min. **Open only for:** the first monthly run (1 Dec) under 30 min, and closing alert #256 by hand. [notes](archive/TODO_NOTES_2026-11.md#a3) |
+
+## Speed and tooling audit (22 Nov 2026)
+
+Owner, 22-23 Nov: judge shortlisted tools against measured bottlenecks; order the work by measured return. Decided:
+**Skip** Polars, DuckDB, Firecrawl Local and Gemini news sentiment (no bottleneck they fix; S203 already dropped Gemini).
+**Numba closed** by S204's rule (the day loop is now under 0.13 s). Evidence: the default Backtest run took 17.7 s
+(36.3 s under cProfile: `_rolling_high_at` 11.7 s, `_calendar_period_sharpe` 8.2 s, day loop ~6 s); layout audit
+11 min 45 s of run 45068636707's 16 min (Playwright install 21 s of it), 15 min 37 s of run 45107993629's 18 min 51 s
+after the glossary audit (#631); Streamlit Cloud runs Python 3.14.10 and already installs with uv
+(owner's deploy log, 22 Nov).
+
+| # | What | How we know it is done | Status |
+|---|---|---|---|
+| S205 | Layout audit time (`v1-full-validation.yml` layout step): fixed sleeps (`layout_audit.mjs:71/74/87`) replaced by the idle check in `number_format_audit.mjs:47`; each page and width loaded once for layout, requirements and number checks; pages in parallel only if still over target | Layout step ≤ 6 min on a PR run (from 11 min 45 s; 15 min 37 s since the glossary audit, run 45107993629); every page and width still checked; a deliberately broken branch (heading off its column, a requirement removed) fails as the old audit does; **2-3 consecutive clean runs** (no flakes from a page judged idle before charts and tables fill in) | [ ] 23 Nov: approved |
+| S207 | Measure before moving work to Actions: (a) how often the ranking engine runs because the precomputed table was rejected (`app.py:891`); (b) `read_history` vs `build()` time in `scripts/build_nse_long_prices.py`; (c) profile of the Dashboard's `_history_inputs` and the breadth computations | Each number recorded with a move-or-leave decision | [ ] 23 Nov: (a) answered by the owner's 22-23 Nov logs: every boot rejected it, cause in S210. (b), (c) open |
+| S208 | App housekeeping: each `price_fingerprint` computed once per frame in its cached loader and passed on (whole-history hash kept, owner decision 3B); `_long_file`/`_long_value` (`src/ui/views/backtest_view.py:142/150`) to `st.cache_resource` (callers only read; the revision and memory-guard clears in `app.py:186` drop it); the float64 conversion in `frame_for` **kept** (owner, 23 Nov) | Tests pass; a test that the cached long file is unchanged after a page run; hash calls per Dashboard and Backtest rerun counted before/after; bench resident memory not higher | [ ] 23 Nov: approved |
+| S209 | Fully pinned `requirements.txt`, compiled with `uv pip compile --universal --python-version 3.14` from a hand-edited `requirements.in` that keeps the ranges and reasons (boto3 range, `pyarrow==24.0.0` while Streamlit Cloud forces <25); no `pyproject.toml`, no `uv.lock`. Follows S140 | `requirements.txt` generated, with the command in its header; Dependabot still opens bumps; V1 Production QA green after deploy; Streamlit's boot log shows no package replaced | [ ] 23 Nov: approved; Python 3.14.10 on Streamlit Cloud matches CI |
+| S210 | The precomputed ranking was rejected ("price_fingerprint differs") on every boot in the owner's 22 Nov Streamlit log (9 boots, 17:40-21:09 UTC, Screener as of 20 Nov), so production ranked live each time. S85 fixed this on 15 Oct and it was accepted on 7 Nov; the Nifty 1000 table also published 942 of 1,000 | Cause named from the daily-sync run and the published contract; the production log reads "Precomputed ranking accepted" after the next nightly run | [ ] 23 Nov: cause found (daily_sync 45081696293 ranked on a 14-hour-old cached copy of the NSE closes after backfill 45038280304 republished them; `DATA_CORRECTNESS.md` §5). Fix in #636: the copy is kept only while it is the published revision. Done when the production log reads "accepted" for all three systems after the first nightly run past #636 |
 
 ## Duplicated calls and wasted storage (10 Nov 2026)
 
