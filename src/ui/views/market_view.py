@@ -17,7 +17,7 @@ from src.engine.breadth import (
     get_recent_hl_events,
 )
 from src.core.config import SHORT_FORMS
-from src.engine.pipeline import price_fingerprint
+from src.engine.pipeline import known_fingerprint
 from src.ui import page_kit as kit
 from src.ui.page_kit import _series_of
 from src.ui.components import gap_count
@@ -118,7 +118,7 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     # Whole-history fingerprint, not last date + shape (an intraday refresh
     # or a restatement kept the old key and served stale breadth).
-    ph = price_fingerprint(adj_close)
+    ph = known_fingerprint(adj_close)  # computed once in app.py's loader (S208)
     breadth_df = compute_ma_breadth(
         ph, adj_close, tuple(sel_mas), lookback=history_days, ma_type=ma_type
     )

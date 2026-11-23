@@ -42,11 +42,11 @@ def page(monkeypatch):
         return real(df)
 
     monkeypatch.setattr(bv, "price_fingerprint", counted)
-    bv._long_file.clear()
-    bv._run_frame_shared.clear()
+    for cached in (bv._long_file, bv._long_value, bv._run_frame_shared, bv._traded_shared):
+        cached.clear()
     yield close, calls
-    bv._long_file.clear()
-    bv._run_frame_shared.clear()
+    for cached in (bv._long_file, bv._long_value, bv._run_frame_shared, bv._traded_shared):
+        cached.clear()
 
 
 def _rerun():
@@ -82,3 +82,30 @@ def test_the_run_fingerprint_is_hashed_once_not_per_rerun(page):
     h = runs[-1]
     assert h["close_fingerprint"] == pipeline.price_fingerprint(h["close"])  # still every row (3B)
     assert h["close"].dtypes.eq("float64").all()  # frame_for's float64 kept (owner)
+
+
+def test_traded_value_and_its_fingerprint_are_computed_once(page, monkeypatch):
+    close, calls = page
+    value = (close * 1e6).astype("float64")
+    monkeypatch.setattr(nse_long, "load_value", lambda: value)
+    averaged = {"n": 0}
+    real_average = nse_long.average_value
+
+    def counted_average(frame):
+        averaged["n"] += 1
+        return real_average(frame)
+
+    monkeypatch.setattr(nse_long, "average_value", counted_average)
+
+    def rerun_with_floor():
+        bounds = bv._history_bounds()
+        choice = {"index": "nifty_test", "start": bounds["months"][0], "end": bounds["months"][-1], "floor": 5.0}
+        return bv._history_inputs(pd.DataFrame(), choice, bounds)
+
+    runs = [rerun_with_floor() for _ in range(4)]
+    assert averaged["n"] == 1  # was once per rerun
+    assert calls["n"] == 2  # the run frame once, the traded value once
+    h = runs[-1]
+    assert h["traded_fingerprint"] == pipeline.price_fingerprint(h["traded_value"])
+    expected = real_average(value.reindex(columns=list(h["close"].columns)).loc[:h["close"].index[-1]])
+    pd.testing.assert_frame_equal(h["traded_value"], expected)

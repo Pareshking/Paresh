@@ -11,7 +11,7 @@ import streamlit as st
 from src.engine.backtester import run_backtest
 from src.engine.corporate_actions import load_events
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_1000
-from src.engine.pipeline import price_fingerprint
+from src.engine.pipeline import known_fingerprint, price_fingerprint
 from src.engine.rank_history import month_books
 from src.engine.systems import inception, membership_for, unpriced_members
 from src.engine.track_record import (TRACK_RECORD_CONFIG, months_to_cover,
@@ -186,7 +186,7 @@ def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | No
         return {}
 
     result = run_backtest(
-        f"trackrec_{system}_{price_fingerprint(prices)}_{actions_digest(events)}_{months}"
+        f"trackrec_{system}_{known_fingerprint(prices)}_{actions_digest(events)}_{months}"
         f"_{_benchmark_key(benchmark_close, start)}",
         prices,
         **run_backtest_kwargs(cfg),
@@ -239,7 +239,7 @@ def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | No
     tb = result.get("tradebook")
     if isinstance(tb, pd.DataFrame) and not tb.empty:
         result["month_books"] = _month_books(
-            f"{system}_{price_fingerprint(prices)}_{months}", prices, tb, membership)
+            f"{system}_{known_fingerprint(prices)}_{months}", prices, tb, membership)
     return result
 
 

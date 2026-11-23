@@ -7,13 +7,14 @@ what changed.
 """
 from __future__ import annotations
 
+import hashlib
 import html
 
 import pandas as pd
 import streamlit as st
 
 from src.engine import market_questions as mq
-from src.engine.pipeline import price_fingerprint
+from src.engine.pipeline import known_fingerprint
 from src.ui import formats as _fmt
 
 _VOTE_WORD = {
@@ -32,6 +33,13 @@ _CSS = """<style>
 .mq-key{font-size:12px;color:var(--c-muted);margin:0 0 10px}
 .mq-key b{font-weight:600;color:var(--c-ink)}
 </style>"""
+
+
+def _columns_key(prices: pd.DataFrame, syms: list) -> str:
+    """Names prices[syms] exactly: the whole frame's fingerprint, computed once in
+    app.py's loader (S208), and the columns taken, in order."""
+    cols = hashlib.md5(",".join(map(str, syms)).encode()).hexdigest()[:12]
+    return f"{known_fingerprint(prices)}_{len(syms)}c{cols}"
 
 
 def _num(v: float | None, unit: str) -> str:
@@ -461,7 +469,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
     size = {k: v for k, v in size.items() if len(v)}
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
-    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
+    key = "|".join([_columns_key(prices, syms), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
     breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size, pit)
     # The title answers both questions; the page's name is the kicker (PAGE_DESIGN 2a, 21 Nov 2026).
     title = ("Market breadth" if breadth is None or trend is None else
@@ -713,7 +721,7 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
     size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
     size = {k: v for k, v in size.items() if len(v)}
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
-    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp(), "full"])
+    key = "|".join([_columns_key(prices, syms), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp(), "full"])
     leaders, months = _leaders_full(key, px, industry, bench.dropna(), size, market_name)
     if leaders is None:
         return False

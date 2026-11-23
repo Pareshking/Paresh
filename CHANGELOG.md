@@ -2,7 +2,7 @@
 
 ## 2026-11-23 — Less work on every click (S208)
 
-- The ranking's whole-history price fingerprint is now computed once, when its prices are loaded, instead of on every click; so is the Backtest run's, once per index and window. Both still cover every row (owner decision 3B). Some pages still compute their own on each click (S208, open).
+- Each price history's whole-history fingerprint (it decides when a saved result is still valid) is now computed once, when the prices are loaded, instead of again on each click by the Dashboard, Market, Sectors, Screener and the market questions. The Backtest's run and its traded-value floor do the same, once per index and window. Every row is still covered (owner decision 3B).
 - The Backtest's long price file is now held once in memory for all sessions, not copied on each click. Nothing that reads it writes to it; a test checks this.
 
 ## 2026-11-23 — numpy 2.5.5; pyarrow stays at 24.0.0

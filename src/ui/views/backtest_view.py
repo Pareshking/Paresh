@@ -180,6 +180,31 @@ def _run_frame(close: pd.DataFrame, report: dict, key: str, columns, end: pd.Per
     return frame.copy(deep=False), fingerprint
 
 
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
+def _traded_shared(stamp: str, cols_key: str, last: str, _value: pd.DataFrame,
+                   _cols: tuple) -> tuple[pd.DataFrame, str]:
+    """The run's average traded value and its fingerprint, computed once (S208).
+
+    Both used to be recomputed on every rerun with a floor set. `stamp` names the
+    value file (the stored object and its shape), `cols_key` the run's columns and
+    `last` the frame's last session, so a different file, universe or window is a new key.
+    """
+    from src.loaders import nse_long
+
+    traded = nse_long.average_value(_value.reindex(columns=list(_cols)).loc[:pd.Timestamp(last)])
+    return traded, price_fingerprint(traded)
+
+
+def _traded(value: pd.DataFrame, cols: list, last) -> tuple[pd.DataFrame, str]:
+    """_traded_shared, as a private shallow copy for this rerun (copy-on-write)."""
+    import hashlib
+
+    stamp = f"{id(value)}|{value.shape}|{value.index[-1] if len(value.index) else '-'}"
+    cols_key = hashlib.md5(",".join(map(str, cols)).encode()).hexdigest()
+    traded, fingerprint = _traded_shared(stamp, cols_key, str(pd.Timestamp(last)), value, tuple(cols))
+    return traded.copy(deep=False), fingerprint
+
+
 def _reference() -> dict | None:
     try:
         return json.loads(REFERENCE.read_text(encoding="utf-8"))
@@ -212,7 +237,6 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
     membership each index's own point-in-time timeline (src/engine/index_universe.py).
     """
     from src.engine import index_universe as iu
-    from src.loaders import nse_long
 
     close, report = bounds["close"], bounds["report"]
     key = choice["index"]
@@ -241,17 +265,18 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
     # reference uses, so the stored tests re-run exactly this page's default.
     sec, unlabelled = bp.industry_map(cols, bp.index_file_industries())
 
-    traded = None
+    traded = traded_fingerprint = None
     if floor:
         value = _long_value()
         if value is None:
             kit.note("Traded value is not available right now, so the floor is off for this run.")
             floor = 0.0
         else:
-            traded = nse_long.average_value(value.reindex(columns=cols).loc[:frame.index[-1]])
+            traded, traded_fingerprint = _traded(value, cols, frame.index[-1])
 
     return {"key": key, "close": frame, "close_fingerprint": close_fingerprint, "membership": membership, "start": start, "end": end,
-            "months": (end - start).n + 1, "floor": floor, "traded_value": traded, "moved": moved,
+            "months": (end - start).n + 1, "floor": floor, "traded_value": traded,
+            "traded_fingerprint": traded_fingerprint, "moved": moved,
             "sector_map": sec, "unlabelled": unlabelled, "name": iu.INDICES[key],
             "built": report.get("built"), "last_session": report.get("last_session"),
             "priced": report.get("symbols_priced"), "to_latest": to_latest, "first": first,
@@ -867,7 +892,7 @@ def _run(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float
     # Computed once with the frame in its cached loader (S208), not on every rerun.
     ph = h.get("close_fingerprint") or price_fingerprint(h["close"])
     if h["traded_value"] is not None:
-        ph += f"_{price_fingerprint(h['traded_value'])}"
+        ph += f"_{h.get('traded_fingerprint') or price_fingerprint(h['traded_value'])}"
     queued = st.empty()
     # One backtest computes at a time across the whole server (compute_gate, TODO S65).
     if compute_gate.busy():

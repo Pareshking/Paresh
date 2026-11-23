@@ -790,9 +790,9 @@ def qualified_trail(prices: pd.DataFrame | None, rank_df: pd.DataFrame) -> dict 
     if prices is None or prices.empty or rank_df is None or rank_df.empty:
         return None
     try:
-        from src.engine.pipeline import price_fingerprint
+        from src.engine.pipeline import known_fingerprint
         syms = tuple(str(x) for x in rank_df["Symbol"])
-        return _qualified_trail(f"{price_fingerprint(prices)}_{hash(syms)}", prices, syms)
+        return _qualified_trail(f"{known_fingerprint(prices)}_{hash(syms)}", prices, syms)
     except Exception:  # noqa: BLE001 -- a failure costs the two columns, never the Screener
         return None
 

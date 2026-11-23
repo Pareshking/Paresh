@@ -151,7 +151,7 @@ def test_shared_frames_are_handed_out_as_copies():
     body = src[src.index("def _resolve_price_source("):src.index("def _load_tv_cached(")]
     assert 'for name in ("adj_close", "close", "high", "low", "volume"):' in body
     assert "setattr(src, name, _shared(getattr(src, name)))" in body
-    assert "return src, _shared(deep)" in body
+    assert "deep_view = _shared(deep)" in body and "return src, deep_view" in body
     wrapper = src[src.index("def _adjust_for_corporate_actions("):]
     assert "_shared(v) for k, v in adjusted.items()" in wrapper[:600]
 

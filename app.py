@@ -585,6 +585,9 @@ def _resolved_prices_shared(store_revision: str, symbols_key: str, inputs_key: s
     each rerun shallow copies. keep_and_fill rewrites the PriceFrames it is
     given, which is why from_screener is called here, on a private object,
     and never on one another session can see.
+
+    Also returns the deep history's whole-history price_fingerprint, computed
+    here once per data state instead of by every page on every click (S208).
     """
     from src.loaders import nse_prices as _nse
     from src.loaders import price_source as _ps
@@ -598,7 +601,7 @@ def _resolved_prices_shared(store_revision: str, symbols_key: str, inputs_key: s
     src = _ps.frames_from(chosen, _symbols, _nse.middle_close(_symbols))
     if src is not None and deep is None:
         deep = src.close
-    return chosen is not None, src, deep
+    return chosen is not None, src, deep, (_price_hash(deep) if deep is not None else None)
 
 
 def _resolve_price_source(symbols):
@@ -627,7 +630,7 @@ def _resolve_price_source(symbols):
     store, store_revision = store_result if store_result is not None else (None, "none")
     metrics.memory_checkpoint("resolve_price_source:after_screener_fetch")
     symbols = list(symbols)
-    usable, src, deep = _resolved_prices_shared(
+    usable, src, deep, deep_fingerprint = _resolved_prices_shared(
         store_revision, _symbols_hash(symbols), _price_inputs_key(), store, symbols,
     )
     metrics.memory_checkpoint("resolve_price_source:after_resolved_prices")
@@ -640,7 +643,9 @@ def _resolve_price_source(symbols):
         src.notes = list(src.notes)
         if src.weekly_fill is not None:
             src.weekly_fill = dict(src.weekly_fill)
-    return src, _shared(deep)
+    deep_view = _shared(deep)
+    pipeline.remember_fingerprint(deep_view, deep_fingerprint)  # read by the pages (S208)
+    return src, deep_view
 
 
 @st.cache_data(show_spinner=False, ttl=86400)
@@ -864,6 +869,7 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
             )
             _ca_key = actions_digest(_ca_applied)
             adj_close, close_p = _adj["adj_close"], _adj["close"]
+            pipeline.remember_fingerprint(adj_close, _adj_close_hash)  # read by the pages (S208)
             if _src.intraday:
                 high_p, low_p = _adj["high"], _adj["low"]
 
