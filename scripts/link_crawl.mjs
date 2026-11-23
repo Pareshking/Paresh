@@ -145,7 +145,11 @@ async function clickLink(p, l) {
     l.scrollAtClick = await p.evaluate(() => { const sc = document.querySelector('[data-testid="stMain"]');
       return Math.max(window.scrollY, sc ? sc.scrollTop : 0); }).catch(() => 0);
     try { await h.click({ timeout: 5000 }); }
-    catch { await h.evaluate(e => e.click()); }   // a menu link while the menu is shut: Streamlit's own handler
+    catch {   // a menu link while the menu is shut: Streamlit's own handler
+      // A slow click on CI can time out after it has started the navigation (run 45266330819): the page is
+      // then going away, which means the link worked, so the check that follows judges it.
+      await h.evaluate(e => e.click()).catch(err => { if (!/context was destroyed|navigat/i.test(String(err))) throw err; });
+    }
     return true;
   }
   return false;
