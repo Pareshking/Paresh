@@ -1,6 +1,11 @@
 # Changelog
 
 
+## 2026-11-24 — Dashboard on a month's first session
+
+- The Dashboard no longer fails when Nifty Total Market has no figure for the month yet (a month's first session): the headline says so.
+- A range of momentum indices crossing zero reads "between −1.2% and +3.4%" (it read "up −1.2 to 3.4%"); a selling month reads "Foreign investors have sold ₹…" (it read "have bought −₹…").
+
 ## 2026-11-24 — Sectors' 3M and 12M leads; Watchlist name search; Backtest settings first; Nifty 1000 P/E; page load times (S219 4-7, S193 L)
 
 - Sectors: "Which sectors lead" shows each sector's one-, three- and twelve-month leads over the 750 beside the six-month one. The groups are still decided on six months and one month.

@@ -308,8 +308,10 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
         title = f'{month}’s lag is <span class="dh-down">momentum’s</span>, not <span class="dh-up">this book’s</span>.'
     elif gap is not None and gap >= 0:
         title = f'The book is <span class="dh-up">{e(_fmt.fixed(abs(gap), 1))} points ahead</span> of Nifty Total Market so far in {month}.'
-    else:
+    elif gap is not None:
         title = f'The book is <span class="dh-down">{e(_fmt.fixed(abs(gap), 1))} points behind</span> Nifty Total Market so far in {month}.'
+    else:   # no Nifty Total Market figure for the month yet (a month's first session): abs(None) crashed the page
+        title = f'Nifty Total Market has no {month} figure yet, so the book is not set against it.'
     up = lambda v: f"{'up' if v >= 0 else 'down'} {abs(v):.1f}%"  # noqa: E731
     lede = ""
     if mom and bm.market_mtd is not None and bm.book_mtd is not None:
@@ -317,7 +319,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
         # A system's first month runs from its fill, not the month-end (the 1000: +8.1% from 2 Nov beside
         # +9.8% on the other systems from 30 Oct, unexplained; S193 B).
         since_fill = f"Since the {fill:%-d %b} fill, " if fill is not None else ""
-        lede = f"{since_fill}Nifty Total Market is {up(bm.market_mtd)}. {n} NSE momentum indices are up {lo:.1f} to {hi:.1f}%; the book, {up(bm.book_mtd)}, "
+        lede = f"{since_fill}Nifty Total Market is {up(bm.market_mtd)}. {n} NSE momentum indices are {_index_range(lo, hi)}; the book, {up(bm.book_mtd)}, "
         lede += _against_momentum(bm.book_mtd, lo, hi)
         if style_lag:
             lede += " What lagged is the style, not the stock picking."
@@ -664,13 +666,26 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
     return parts
 
 
+def _index_range(lo: float, hi: float) -> str:
+    """"up 1.2 to 3.4%", "down 0.5 to 2.1%", or "between −1.2% and +3.4%" when the range crosses zero (it read "up −1.2 to 3.4%")."""
+    if lo >= 0:
+        return f"up {lo:.1f} to {hi:.1f}%"
+    if hi < 0:
+        return f"down {abs(hi):.1f} to {abs(lo):.1f}%"
+    return f"between {_fmt.signed(lo, 1)}% and {_fmt.signed(hi, 1)}%"
+
+
 def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[float, float] | None = None,
                   bars: dict | None = None, compare: tuple[float, float, int] | None = None,
                   universe: str = "750") -> list:
     rec = f.month_rank == 1
-    head = (f'Foreign investors have bought <span class="dh-up">{e(cr(f.mtd).lstrip("+"))} so far in {f.as_of:%B}'
-            + (f', the most in any month since {f.months_in_record and e(_first_year(f))}</span>' if rec else '</span>')
-            + (f', after selling {e(cr(-f.before).lstrip("+"))} over the 11 months before.' if f.before < 0 else '.'))
+    if f.mtd < 0:   # a selling month read "have bought −₹5,000 Cr"
+        head = (f'Foreign investors have sold <span class="dh-down">{e(cr(-f.mtd).lstrip("+"))} so far in {f.as_of:%B}</span>'
+                + (f', after buying {e(cr(f.before).lstrip("+"))} over the 11 months before.' if f.before > 0 else '.'))
+    else:
+        head = (f'Foreign investors have bought <span class="dh-up">{e(cr(f.mtd).lstrip("+"))} so far in {f.as_of:%B}'
+                + (f', the most in any month since {f.months_in_record and e(_first_year(f))}</span>' if rec else '</span>')
+                + (f', after selling {e(cr(-f.before).lstrip("+"))} over the 11 months before.' if f.before < 0 else '.'))
     if dii and dii[2] < 0:
         head += ' <span class="dh-down">Domestic institutions are selling into it.</span>'
     kp = [(f"Foreign, {f.month_span}", cr(f.mtd), tone(f.mtd),
