@@ -279,8 +279,9 @@ def _against_momentum(book: float, lo: float, hi: float) -> str:
 
 def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None, as_of: pd.Timestamp,
                  prev: dict | None = None, begun: pd.Timestamp | None = None, frozen: str = "",
-                 fill: pd.Timestamp | None = None) -> list:
-    """`prev`: {"label", "market", "book", "momentum": {key: %}} for the last finished month."""
+                 fill: pd.Timestamp | None = None, late: str = "") -> list:
+    """`prev`: {"label", "market", "book", "momentum": {key: %}} for the last finished month.
+    `late`: the sentence saying the index figures end a session early (`index_late_note`), or ""."""
     gap = None if bm.book_mtd is None or bm.market_mtd is None else bm.book_mtd - bm.market_mtd
     mom = bm.momentum_mtd
     lo, hi = (min(mom.values()), max(mom.values())) if mom else (None, None)
@@ -346,10 +347,19 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "
             "style lagged; against the Nifty Total Market row, how far momentum is behind.",
             [""] + [p["label"] for p in periods], table_rows),
-        f'<p class="dh-note">{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. '
+        f'<p class="dh-note">{e(late + " ") if late else ""}{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. '
         + (f'{e(frozen)} {"stay" if " to " in frozen else "stays"} as recorded against the Nifty 500; the Nifty Total Market comparison is worked out beside them. '
            if frozen else '') + 'The book is after costs; indices are '
         'price returns. The book’s month-by-month record is on Portfolio.</p>' + END]
+
+
+def index_late_note(idx_end: pd.Timestamp, as_of: pd.Timestamp) -> str:
+    """One sentence when NSE's Nifty Total Market close for the page's session is not in yet, in Portfolio's
+    words (S193 E); "" when the indices are on the page's session."""
+    if idx_end is None or as_of is None or pd.Timestamp(idx_end) >= pd.Timestamp(as_of):
+        return ""
+    return (f"Nifty Total Market to {pd.Timestamp(idx_end):%-d %b}: NSE’s closes for {pd.Timestamp(as_of):%-d %b} are not in yet, "
+            f"so the index figures end a session early; the book’s are to {pd.Timestamp(as_of):%-d %b}.")
 
 
 def _r2(v):
@@ -636,7 +646,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
             + (f', after selling {e(cr(-f.before).lstrip("+"))} over the 11 months before.' if f.before < 0 else '.'))
     if dii and dii[2] < 0:
         head += ' <span class="dh-down">Domestic institutions are selling into it.</span>'
-    kp = [(f"Foreign, month so far · {f.as_of:%b}", cr(f.mtd), tone(f.mtd),
+    kp = [(f"Foreign, {f.month_span}", cr(f.mtd), tone(f.mtd),
            "Record: largest month since " + _first_year(f) if rec else f"Rank {f.month_rank} of {f.months_in_record} months",
            "dh-up" if rec else "dh-muted",
            f"Previous high {cr(f.prior_record[1]).lstrip('+')}, {f.prior_record[0]}" if f.prior_record and rec else ""),
@@ -903,7 +913,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
     cfg = TRACK_RECORD_CONFIG
     rules = Rules(buffer_n=int(cfg["buffer_n"]), high_pct=float(cfg["high_pct"]))
-    as_of = pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close) else pd.Timestamp(ist_now().date())
+    # The session the header shows, not the frame's last row (S193 E).
+    as_of = _fmt.session_of(adj_close) if adj_close is not None and len(adj_close) else pd.Timestamp(ist_now().date())
     st.html(f"<style>{HOME_CSS}</style>")
 
     with st.spinner("Loading the model book…"):
@@ -925,18 +936,20 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     closes = {k: bi.series(k, frame=frame) for k in bi.SERIES}
     closes["nifty100"] = _nse_close("nifty_100")      # Large = Nifty 100 (owner, 21 Nov 2026), from NSE's daily files
     market = closes[bi.TOTAL_MARKET]
-    # Index figures end on one session: the last both prices and indices have. An index
-    # without a close for that session reads "–", never the session before (S148).
+    # The book stays on the page's session (`as_of`). When NSE's Nifty Total Market close for it is not in
+    # yet, the index figures end on the index's last session (`idx_end`) and a sentence says so, as on
+    # Portfolio (S193 E, owner 23 Nov 2026). An index without a close for that session reads "–" (S148).
     idx_end = min(as_of, market.index[-1]) if len(market) else as_of
+    idx_late = index_late_note(idx_end, as_of)
     closes = {k: di.as_of(v, idx_end) for k, v in closes.items()}
     market = closes[bi.TOTAL_MARKET]
     momentum = {k: closes[k] for k in MOMENTUM_NAMES}
     first_month = pd.Period(str(ledger.get("inception", "2026-01")), freq="M")
-    bm = di.book_month(ledger.get("months", {}), book_mtd, market, momentum, idx_end, first_month=first_month)
+    bm = di.book_month(ledger.get("months", {}), book_mtd, market, momentum, as_of, first_month=first_month)
     inc = first_month.to_timestamp() - pd.Timedelta(days=1)
     # The market from the first fill's close, where the book starts (owner, 23 Nov 2026: "2: from the fill").
     fill0 = di.first_fill(market, first_month)
-    since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, idx_end)
+    since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, as_of)
 
     a = assess(rank_df, symbols, rules)
     check, fill = next_rebalance(as_of)
@@ -989,16 +1002,18 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     spreads = _read_csv(FILES["spreads"])
     from src.engine import system_momentum as sm
     own = sm.for_tiles(sm.read(system if system in sm.SYSTEMS else SYSTEM_750))
-    mtd = _month_so_far(key, adj_close, tuple(rank_df["Symbol"].drop_duplicates()), idx_end)
+    mtd = _month_so_far(key, adj_close, tuple(rank_df["Symbol"].drop_duplicates()), as_of)
     lead = sm.tiles(own, mtd)
     streak = di.losing_streak(own, mtd) if own is not None else 0
-    nsdl = _read_csv(FILES["nsdl"])
-    flows = di.flows_summary(nsdl)
+    # Flows are read to the page's session: NSDL's file can run ahead of the prices (S193 E).
+    nsdl = di.cut_at(_read_csv(FILES["nsdl"]), as_of)
+    flows = di.flows_summary(nsdl, as_of)
     ev = di.flow_evidence(nsdl, spreads, bench) if flows is not None else None
-    dii = _dii_now(_read_csv(FILES["nse_dii"], dtype={"period": str}))
+    nse_dii = _read_csv(FILES["nse_dii"], dtype={"period": str})
+    dii = _dii_now(nse_dii)
     tests = _load_tests()
     signals = _signals(spreads, n500, idx_end, flows, nifty500_breadth(adj_close, as_of), tests,
-                       qualify_now=_qualify_today(adj_close, idx_end))
+                       qualify_now=_qualify_today(adj_close, as_of))
     average = tests.get("average")
 
     # 4. flows against the 750's market value
@@ -1061,16 +1076,17 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                .sort_values("Weight", ascending=False).reset_index())
 
     # v8 chart inputs (S151)
-    prev = _last_month(ledger, market, momentum, idx_end, first_month=(inc + pd.Timedelta(days=1)).to_period("M"))
+    prev = _last_month(ledger, market, momentum, as_of, first_month=(inc + pd.Timedelta(days=1)).to_period("M"))
     lead_bars = _lead_bars(own, lead)
-    fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_dii"], dtype={"period": str}))
-    compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
+    fpi_bars = _fpi_bars(nsdl, ev, flows, nse_dii)
+    compare = _flow_compare(di.cut_at(_read_csv(FILES["nse_flows"]), as_of), nsdl)
     breadth = _breadth_spec(n500, hist.get("above_200"), idx_end, UNIVERSE_SHORT.get(system, "750"))
 
     uni = UNIVERSE_SHORT.get(system, "750")
-    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{idx_end:%B}", uni)]
-    parts += section_book(bm, since, since_mkt, idx_end, prev, inc + pd.Timedelta(days=1), frozen=_frozen_span(ledger),
-                          fill=fill0 if fill0 is not None and first_month == idx_end.to_period("M") else None)
+    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{as_of:%B}", uni)]
+    parts += section_book(bm, since, since_mkt, as_of, prev, inc + pd.Timedelta(days=1), frozen=_frozen_span(ledger),
+                          fill=fill0 if fill0 is not None and first_month == as_of.to_period("M") else None,
+                          late=idx_late)
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
                                results_line, turnover, hist.get("dates"))
     own_since = pd.Period(own["month"].iloc[0], "M").strftime("%B %Y") if own is not None else ""
@@ -1078,15 +1094,15 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_momentum(lead, streak, signals, average, lead_bars,
                               None if short or own is None else di.momentum_lag(own), uni, own_since,
                               long=_long_record(spreads), short=short,
-                              so_far=f"{idx_end:%B}" if mtd is not None and mtd < 0 else None)
+                              so_far=f"{as_of:%B}" if mtd is not None and mtd < 0 else None)
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
-    parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{idx_end:%B}")
+    parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}")
     parts += section_strong_weak(weights, sectors)
     parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(idx_end), breadth,
                             UNIVERSE_SHORT.get(system, "750"), system == SYSTEM_750)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
-    parts.append(f'<p class="dh-foot">{_fmt.data_to(idx_end)}.</p>')
+    parts.append(f'<p class="dh-foot">{_fmt.data_to(as_of)}.</p>')
     emit(parts)
 
 
@@ -1453,13 +1469,15 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         cut = float(q.quantile(0.25))
         me_on = None if me_tr[2] is None else me_tr[2] <= cut
         live = [v * 100 for _, v in sorted((qualify_now or {}).items())]
-        tr = live if len(live) == 3 else me_tr
+        # Without today's reading the row keeps the month-ends under 3M and 1M ago and reads "–" under Now:
+        # the last month-end is not today (S193 E; the list showed 30 Oct's 17% under "Now").
+        tr = live if len(live) == 3 else [me_tr[0], me_tr[1], None]
         me_at = q.index[q.index <= as_of][-1] if len(q.index[q.index <= as_of]) else None
         note = ("" if me_at is None or me_tr[2] is None else
                 f" · the test reads month-ends: {me_at:%-d %b} {me_tr[2]:.0f}%")
         on = tr[2] is not None and tr[2] <= cut
         row("qualify", "Stocks that qualify", f"Nifty 500 above 50D EMA, near the high · {cut:.0f}% or fewer: on"
-            + (note if len(live) == 3 else " · month-ends"),
+            + (note if len(live) == 3 else " · 3M and 1M ago are month-ends; today’s share is not worked out yet, so Now reads –" + note),
             [pct(v) for v in tr], None if tr[2] is None else on,
             f"Above {cut:.0f}% at the next month-end" if on else f"{cut:.0f}% or fewer at a month-end",
             where(q, tr[2], "month-ends"), me_on=me_on)
