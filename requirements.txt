@@ -48,7 +48,7 @@ markupsafe==3.0.4
     # via jinja2
 narwhals==2.29.0
     # via altair
-numpy==2.5.4
+numpy==2.5.5
     # via
     #   -r requirements.in
     #   pandas
@@ -105,15 +105,13 @@ typing-extensions==4.16.0
     #   altair
     #   anyio
     #   streamlit
-tzdata==2026.6 ; sys_platform == 'emscripten' or sys_platform == 'win32'
-    # via pandas
 urllib3==2.8.0
     # via
     #   botocore
     #   requests
 uvicorn==0.54.0
     # via streamlit
-watchdog==7.1.1 ; sys_platform != 'darwin'
+watchdog==7.1.1
     # via streamlit
 websockets==17.4
     # via streamlit

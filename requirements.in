@@ -36,7 +36,7 @@ streamlit==1.67.0
 # (monthly, increase-if-necessary) opens a PR for each new release; bump
 # deliberately and let CI plus V1 Production QA confirm it.
 pandas==3.1.1
-numpy==2.5.4
+numpy==2.5.5
 # scikit-learn was declared here and imported NOWHERE -- `grep -rn sklearn`
 # across the repository returns this line and nothing else. Carrying it cost
 # the cold start a ~30 MB wheel plus joblib and threadpoolctl on every container
