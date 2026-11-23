@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23 — numpy 2.5.5 and pyarrow 26.0.1
+
+- Two library updates Dependabot proposed, checked before they reach the site: every figure the audit baseline pins (the 750 ranking and the Backtest) is identical to the last version, and the record's parity checks pass.
+
 ## 2026-11-23 — The Backtest page picks up a republished price file at once (S214)
 
 - The long NSE price file behind the Backtest was kept for 24 hours whatever was published since; a weekly file rebuilt the same day stayed out for up to a day. It is now replaced as soon as the published revision changes, the same rule the NSE closes follow since S210.
