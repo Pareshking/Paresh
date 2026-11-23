@@ -56,10 +56,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests playwright
           python -m playwright install --with-deps chromium
+      # The previous run's page load times (S193 L): a page fails only when it is over its budget
+      # on two runs in a row. Kept in the Actions cache, not the repository: the next Production QA
+      # run is the only reader. A rotating key, since an Actions cache entry cannot be overwritten.
+      - name: Restore the previous run's page times
+        uses: actions/cache/restore@v6
+        with:
+          path: .qa_page_times
+          key: qa-page-times-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: qa-page-times-
       - name: Production QA
         env:
           UMIYA_EXPECTED_SHA: ${{ steps.production_ref.outputs.sha }}
         run: python scripts/production_qa.py
+      - name: Save this run's page times
+        if: always() && hashFiles('.qa_page_times/page_times.json') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: .qa_page_times
+          key: qa-page-times-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Portfolio visual QA
         if: always()
         env:

@@ -84,7 +84,26 @@ def head(vals: list[ip.Valuation], as_of: pd.Timestamp) -> list:
             'each size. Price returns; dividends are not added.</p></div>']
 
 
-def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, m3: pd.Timestamp) -> list:
+# The chosen system's own index, when it has no row of its own among the six (S219-7, owner 23 Nov 2026).
+SYSTEM_INDEX = {"1000": "nifty_1000"}
+_WORDS = {6: "six", 7: "seven"}
+
+
+def _young_row(y: ip.YoungValuation) -> tuple[dict, list, str]:
+    """A chart row, a table row and the one sentence for an index whose P/E record is too short."""
+    pb = "–" if y.pb_now is None else f"{y.pb_now:.2f}"
+    dy = "–" if y.dy_now is None else f"{y.dy_now:.1f}%"
+    row = {"name": y.name, "sub": f"P/E in NSE’s files from {_dy(y.first)}", "bar": None, "ago": None,
+           "vals": [mw.DASH, mw.DASH, f"{y.pe_now:.2f}", mw.DASH], "cls": ["muted", "muted", "b", "muted"],
+           "read": [[f"{y.pe_now:.2f}", "P/E now"], [pb, "P/B"], [dy, "dividend yield"]]}
+    table = [y.name, f"{y.pe_now:.2f}", pb, dy, mw.DASH, mw.DASH, mw.DASH]
+    note = (f" {mw.DASH} for the {y.name}: {mw.index_too_new()} for a percentile or a past reading (NSE’s daily files "
+            f"carry its P/E from {_dy(y.first)}).")
+    return row, table, note
+
+
+def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, m3: pd.Timestamp,
+                      young: ip.YoungValuation | None = None) -> list:
     by = {v.key: v for v in vals}
     n50, s250 = by.get("nifty_50"), by.get("nifty_smallcap_250")
     h2 = "Valuation against the index's own recent past."
@@ -97,6 +116,12 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
              "read": [[f"{v.pe_now:.2f}", "P/E now"], [_ord(v.pct_now), "percentile"],
                       [_ord(v.pct_1m), "a month ago"], [f"{v.pb_now:.2f}", "P/B"], [f"{v.dy_now:.1f}%", "dividend yield"]]}
             for v in vals]
+    young_table, young_note = None, ""
+    if young is not None and young.key not in by:
+        yrow, young_table, young_note = _young_row(young)
+        # After the broad market rows (Nifty 50, Nifty 500, Nifty Total Market), before the sizes.
+        at = next((i + 1 for i, v in enumerate(vals) if v.key == "nifty_total_market"), len(rows))
+        rows.insert(at, yrow)
     spec = {"label": "Index", "barHead": "Percentile of P/E since 2021", "head": [_d(m3), _d(m1), "Now", "Pctile"],
             "rows": rows, "lo": 0, "hi": 100, "step": 2, "lines": [25, 75], "rest": "Latest · the first row"}
     pe = ip.weekly(f.pe["nifty_500"]) if "nifty_500" in f.pe else pd.Series(dtype=float)
@@ -107,8 +132,9 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
              'NSE changed the earnings basis (the Nifty 50 went from 40.4 to 33.2 overnight with the price flat), so older '
              'readings are a different measure. Dashed lines mark the middle half; the triangle is a month ago. Each line is '
              '2 percentile points. Describing is not forecasting: this is not a forecast of returns. P/B gets no percentile: '
-             'its basis changed on 29 Sep 2023 and again on 23 Sep 2024.</p></div>',
-             Chart("trows", spec, {"label": "P/E of six broad indices", "note": "Each line is 2 percentile points"})]
+             f'its basis changed on 29 Sep 2023 and again on 23 Sep 2024.{e(young_note)}</p></div>',
+             Chart("trows", spec, {"label": f"P/E of {_WORDS.get(len(rows), len(rows))} broad indices",
+                                   "note": "Each line is 2 percentile points"})]
     if len(pe) and len(reg):
         dates = [f"{d:%Y-%m-%d}" for d in pe.index]
         old = [round(float(v), 2) if d < ip.PE_FROM else None for d, v in pe.items()]
@@ -127,7 +153,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
                       "colours are two definitions: do not read the 2021 drop as a fall in price.",
                       ["Index", "P/E", "P/B", "Div yield", "Percentile now", "A month ago", "3 months ago"],
                       [[v.name, f"{v.pe_now:.2f}", f"{v.pb_now:.2f}", f"{v.dy_now:.1f}%", f"{v.pct_now:.0f}",
-                        f"{v.pct_1m:.0f}", f"{v.pct_3m:.0f}"] for v in vals])]
+                        f"{v.pct_1m:.0f}", f"{v.pct_3m:.0f}"] for v in vals] + ([young_table] if young_table else []))]
     return parts
 
 
@@ -323,7 +349,7 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
     return parts
 
 
-def page_parts(f: ip.Frames) -> list:
+def page_parts(f: ip.Frames, system: str | None = None) -> list:
     as_of = f.as_of
     n50 = f.close["nifty_50"].dropna()
     m1 = ip.on_or_before(n50, ip.months_back(as_of, 1))
@@ -331,7 +357,8 @@ def page_parts(f: ip.Frames) -> list:
     vals, sts = ip.valuation(f), ip.styles(f)
     every = ip.every_index(f)
     n = sum(len(v) for v in every.values())
-    return (head(vals, as_of) + section_valuation(f, vals, m1, m3) + section_styles(sts, m1, m3) + section_lag(sts)
+    young = ip.young_valuation(f, SYSTEM_INDEX[system]) if system in SYSTEM_INDEX else None
+    return (head(vals, as_of) + section_valuation(f, vals, m1, m3, young) + section_styles(sts, m1, m3) + section_lag(sts)
             + section_years(sts, as_of) + section_size(ip.size_years(f), as_of) + section_every(f, every, as_of)
             + [f'<p class="dh-foot">{_fmt.data_to(as_of, "NSE")} · {n} broad, theme and strategy indices</p>'])
 
@@ -344,7 +371,8 @@ def render_indices_view() -> None:
                 '<p class="dh-lede">The copy of NSE\'s daily index files this page reads is not in yet; the page fills '
                 'once it is.</p></div></div>')
         return
-    emit(page_parts(f))
+    from src.ui import system_param
+    emit(page_parts(f, system_param.current()))
 
 
 __all__ = ["render_indices_view", "page_parts", "html_of"]

@@ -259,16 +259,18 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
         h2 += f", {e(sh(fell.name))} among them: its six-month lead read {sg(fell.lead6_3m)} pts on {_d(ld.d3)}"
     h2 += "."
 
-    def rd(r_name, l6, l1, ago):
-        return [[sg(l6) + " pts", "six-month lead now", _kt(l6)], [sg(ago) + " pts", "a month ago"], [sg(l1) + " pts", "one-month lead", _kt(l1)]]
+    def rd(r_name, l6, l1, ago, l3=None, l12=None):
+        return [[sg(l6) + " pts", "six-month lead now", _kt(l6)], [sg(ago) + " pts", "a month ago"],
+                [sg(l1) + " pts", "one-month lead", _kt(l1)], [sg(l3) + " pts", "three-month", _kt(l3)],
+                [sg(l12) + " pts", "twelve-month", _kt(l12)]]
     g = ld.gap
     rows = []
     if g.get("6") is not None:
         rows.append({"name": "The 750 vs Nifty Total Market", "sub": "equal-weighted vs cap-weighted", "ref": True,
                      "bar": _r(g["6"]), "ago": _r(g.get("6_1m")),
-                     "vals": [sg(g.get("6_3m")), sg(g.get("6_1m")), sg(g["6"]), sg(g.get("1"))],
-                     "cls": ["muted", "muted", _kt(g["6"]) + " b", _kt(g.get("1"))],
-                     "read": rd("The 750", g["6"], g.get("1"), g.get("6_1m"))})
+                     "vals": [sg(g.get("6_3m")), sg(g.get("6_1m")), sg(g["6"]), sg(g.get("1")), sg(g.get("3")), sg(g.get("12"))],
+                     "cls": ["muted", "muted", _kt(g["6"]) + " b", _kt(g.get("1")), _kt(g.get("3")), _kt(g.get("12"))],
+                     "read": rd("The 750", g["6"], g.get("1"), g.get("6_1m"), g.get("3"), g.get("12"))})
     for key, (label, what) in GROUP_WORDS.items():
         rs = [r for r in ld.rows if r.group == key]
         if not rs:
@@ -276,11 +278,11 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
         rows.append({"heading": f"{label} · {len(rs)}", "sub": what})
         for r in rs:
             rows.append({"name": sh(r.name), "sub": f"{r.stocks} stocks", "bar": _r(r.lead6), "ago": _r(r.lead6_1m),
-                         "vals": [sg(r.lead6_3m), sg(r.lead6_1m), sg(r.lead6), sg(r.lead1)],
-                         "cls": ["muted", "muted", _kt(r.lead6) + " b", _kt(r.lead1)],
-                         "read": rd(r.name, r.lead6, r.lead1, r.lead6_1m)})
+                         "vals": [sg(r.lead6_3m), sg(r.lead6_1m), sg(r.lead6), sg(r.lead1), sg(r.lead3), sg(r.lead12)],
+                         "cls": ["muted", "muted", _kt(r.lead6) + " b", _kt(r.lead1), _kt(r.lead3), _kt(r.lead12)],
+                         "read": rd(r.name, r.lead6, r.lead1, r.lead6_1m, r.lead3, r.lead12)})
     spec = {"label": f"{noun.capitalize()} · lead, pts", "barHead": "Six-month lead over the 750, pts",
-            "head": [_d(ld.d3), _d(ld.d1), "Now", "1M"], "rows": rows, "lo": -20, "hi": 20, "step": 1,
+            "head": [_d(ld.d3), _d(ld.d1), "Now", "1M", "3M", "12M"], "rows": rows, "lo": -20, "hi": 20, "step": 1,
             "rest": "Latest · the first row"}
     sw = sp.nearest_switches(ld)
     ent = "; ".join(f"<b>{e(sh(n))}</b> {sg(v)} pts" for n, v in sw["entrants"])
@@ -302,13 +304,20 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
                "regroups the page by TradingView sector (the default: this list’s stocks carry TradingView’s sectors) "
                "or TradingView industry."))
     read = ("Each line is 1 pt; the bar is the six-month lead now, the triangle the same reading a month ago, and the "
-            "numbers the reading three months ago, a month ago, now, and the one-month lead. Describing is not "
-            "forecasting: a lead on both windows has not been tested here as a signal for the next month.")
-    table = how(what, read, [noun.capitalize(), "Stocks", f"6M lead {_d(ld.d3)}", f"6M lead {_d(ld.d1)}", "6M lead now", "1M lead"],
-                [[sh(r.name), r.stocks, sg(r.lead6_3m), sg(r.lead6_1m), sg(r.lead6), sg(r.lead1)] for r in ld.rows])
+            "numbers the reading three months ago, a month ago, now, then the one-, three- and twelve-month leads now. "
+            "Describing is not forecasting: a lead on both windows has not been tested here as a signal for the next month.")
+    table = how(what, read, [noun.capitalize(), "Stocks", f"6M lead {_d(ld.d3)}", f"6M lead {_d(ld.d1)}", "6M lead now", "1M lead",
+                             "3M lead", "12M lead"],
+                [[sh(r.name), r.stocks, sg(r.lead6_3m), sg(r.lead6_1m), sg(r.lead6), sg(r.lead1), sg(r.lead3), sg(r.lead12)]
+                 for r in ld.rows])
+    # A twelve-month lead needs a year of the group's prices; a "–" says why, once for the column (S193 E).
+    short = [sh(r.name) for r in ld.rows if r.lead12 is None]
+    dash_note = (" " + mw.column_note("12M", f"{_list(short)} {'has' if len(short) == 1 else 'have'} under a year of prices")
+                 if short else "")
     return [f'<div class="dh-sec">{KICK.format(f"Which {nouns} lead")}<h2 id="s-lead" class="dh-h2">{h2}</h2>'
             f'<p class="dh-note">Lead: the {noun}’s return less the 750’s over the same sessions, both equal-weighted, in pts. '
-            'Groups: ahead or behind over six months and over the last month.</p></div>',
+            'Groups: ahead or behind over six months and over the last month; the three- and twelve-month leads '
+            f'are shown beside them and do not move a {noun} between groups.{e(dash_note)}</p></div>',
             Chart("trows", spec, {"label": f"Each {noun}'s lead over the 750", "note": "Each line is 1 pt · the triangle is a month ago"}),
             would, table]
 

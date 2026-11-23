@@ -81,8 +81,8 @@ The owner runs a monthly momentum book. He opens this page to ask:
 |---|---|---|---|---|
 | 1 | Kicker "Backtest"; a title answering question 1 with the two figures a year, the benchmark named and "before tax" | PAGE_DESIGN §2a; S173 | Top | Backtest + a year to the Nifty 500 |
 | 2 | One lede: what was replayed (the record's rules, the index as it stood each month), the window, the price source, the cost, and that both sides are **price returns** | Owner 21 Nov (price vs total return) | Top | Price returns on both sides |
-| 3 | A visible "What was tested" line listing every setting of the run shown, in words (no "ATH", "D EMA" abbreviations without the word) | Current `bt-sum` line, kept and reworded | Top | What was tested |
-| 4 | The settings form stays (nothing runs until Apply), folded under "Change the test"; universe, months, holdings, keep rank, EMA, 52-week high, all-time high, rebalance rule, costs, score, weights, traded-value floor, weighting | Owner 9 Oct 2026 (form) | Top | Change the test |
+| 3 | A visible "What was tested" line, **first on the page** (above the title), listing every setting of the run shown in short words joined by "·" (no "ATH", "D EMA" abbreviations without the word) | Current `bt-sum` line, kept and reworded; moved first (S219-6, owner 23 Nov 2026) | Top | What was tested |
+| 4 | The settings form stays (nothing runs until Apply), folded under "Change the test" right below the line, opening in place and staying open or shut for the session; universe, months, holdings, keep rank, EMA, 52-week high, all-time high, rebalance rule, holding cap, costs, score, days left out of the score, keep (exit) average and % below the high, weights, traded-value floor, weighting; each new one with a ? help line; their defaults are the record's run | Owner 9 Oct 2026 (form); S219-6 (owner 23 Nov 2026) | Top | Change the test |
 | 5 | Beside any run whose settings differ from the record's, one line: a setting chosen after seeing its result on this same history flatters the result. The in-sample "Recommendation: 30 holdings…" caption is removed (decision F) | Audit A10 | Top | flatters the result |
 | 6 | **Section 1.** Four tiles: a year, compounded (with the Nifty 500 beside); lead over the Nifty 500 in **pts a year**; what ₹100 became (both); months ahead of the Nifty 500 out of all months, and months up | PAGE_DESIGN §2a; S173 | §1 | A year, compounded + Lead over the Nifty 500 |
 | 7 | The lead is a difference of the two yearly figures, in pts a year. The cumulative "Ahead of the index +1,249 pts" is removed | Audit A3 | §1 | points a year |
@@ -112,7 +112,7 @@ The owner runs a monthly momentum book. He opens this page to ask:
 | 31 | Headings in the serif, each a sentence stating the finding; notes 13.5 px, about 80 characters a line; tables sentence case, Plex Mono right-aligned figures, row labels never wrap to three lines; minus is U+2212 | PAGE_DESIGN §2a, §3, §8 | Sections | Ahead of the Nifty 500 |
 | 32 | Layout audit clean at 412 and 1400 px; the page joins CI's layout and requirements step | PAGE_DESIGN §8 | Whole page | Backtest |
 
-Order: Backtest → What was tested → 1 · Ahead of the Nifty 500 → 2 · Falls from a peak → 3 · Year by year → 4 · What the result depends on → 5 · Can it be trusted → 6 · Trades → Data to
+Order: What was tested → Change the test → Backtest → 1 · Ahead of the Nifty 500 → 2 · Falls from a peak → 3 · Year by year → 4 · What the result depends on → 5 · Can it be trusted → 6 · Trades → Data to
 
 ## Naming (S173): every change on this page
 

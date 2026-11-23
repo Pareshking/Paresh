@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from src.engine import indices_page as ip
 from src.engine import sectors_page as sp
@@ -62,7 +63,27 @@ def test_a_strong_group_leads_and_a_weak_one_trails_with_the_same_construction()
     # Two equal halves: the leads mirror each other against the 750 of both.
     assert by["Strong"].lead6 > 0 > by["Weak"].lead6
     assert ld.rows[0].name == "Strong"
-    assert set(ld.gap) == {"1", "3", "6", "6_1m", "6_3m"}
+    assert set(ld.gap) == {"1", "3", "6", "12", "6_1m", "6_3m"}
+
+
+def test_three_and_twelve_month_leads_use_the_six_month_construction():
+    """S219-4: the 3M and 12M leads are the group's return less the 750's over the same sessions, both
+    equal-weighted, as the 6M lead is; the groups stay decided on 6M and 1M."""
+    from src.engine import peer_index as pi
+    px = _prices()
+    groups = pd.Series({c: ("Strong" if c.startswith("S") else "Weak") for c in px.columns})
+    ld = sp.leads(px, groups, px.mean(axis=1))
+    when = ld.when
+    for r in ld.rows:
+        lvl = ld.levels[r.name]
+        for months, got in ((3, r.lead3), (12, r.lead12), (6, r.lead6)):
+            want = pi.relative_points(lvl, ld.market, when - pd.DateOffset(months=months), when)
+            assert got == pytest.approx(want)
+        assert r.group == sp.group_of(r.lead6, r.lead1)
+    assert ld.gap["12"] is not None
+    # A record shorter than a year: no 12M lead (the page footnotes the "–"), the rest still read.
+    short = sp.leads(px.iloc[-200:], groups, None)
+    assert all(r.lead12 is None and r.lead3 is not None for r in short.rows)
 
 
 def test_a_group_under_five_is_left_out_and_named():

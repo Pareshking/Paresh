@@ -40,6 +40,33 @@ def _save_from_input() -> None:
     watchlist_store.save(watchlist_store.parse(st.session_state.get("wl_input_main", "")))
 
 
+def _add_picked() -> None:
+    """A stock chosen in the name search is added to the end of the list (S219-5)."""
+    sym = st.session_state.get("wl_add_pick")
+    st.session_state["wl_add_pick"] = None
+    cur = watchlist_store.symbols()
+    if sym and sym not in cur:
+        watchlist_store.save(cur + [sym])
+
+
+def search_options(rank_df: pd.DataFrame, listed=()) -> dict[str, str]:
+    """{symbol: "SYMBOL · Company name"} for the ranked stocks not yet listed, in rank order: the
+    Screener's search box (ranking_view, one selectbox, index None) with the company's name in the
+    label, so typing a name or a symbol finds the stock (S219-5, owner 23 Nov 2026)."""
+    if rank_df is None or rank_df.empty or "Symbol" not in rank_df:
+        return {}
+    df = rank_df.sort_values("Rank") if "Rank" in rank_df else rank_df
+    names = df["Company Name"] if "Company Name" in df else pd.Series("", index=df.index)
+    seen = set(listed)
+    out: dict[str, str] = {}
+    for sym, name in zip(df["Symbol"].astype(str), names):
+        if sym in seen or sym in out:
+            continue
+        nm = str(name).strip() if isinstance(name, str) else ""
+        out[sym] = f"{sym} · {nm}" if nm and nm != sym else sym
+    return out
+
+
 def _remove_picked() -> None:
     sym = st.session_state.pop("wl_remove_pick", None)
     if sym:
@@ -136,7 +163,7 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
         when += f" {ranked_note}"
     if not user_symbols:
         title = e("Your watchlist is empty.")
-        lede = ("Type symbols and save, or press “Add to watchlist” on any stock's page. "
+        lede = ("Search a stock by name, type symbols and save, or press “Add to watchlist” on any stock's page. "
                 "The list is kept in this browser only.")
     else:
         title = wl.title(matched, len(user_symbols), plan, ln)
@@ -151,7 +178,14 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
         st.session_state["wl_input_main"] = current
         st.session_state["_wl_input_shown"] = current
 
+    opts = search_options(rank_df, user_symbols)
     with st.container(horizontal=True, key="wl_editbar", vertical_alignment="bottom"):
+        # Add one stock by name or symbol, as the Screener's search; the box beside it still takes
+        # several symbols pasted at once.
+        st.selectbox("Add a stock", options=list(opts), index=None, format_func=lambda o: opts.get(o, o),
+                     placeholder="Add a stock by name or symbol", key="wl_add_pick",
+                     label_visibility="collapsed", on_change=_add_picked, width=280,
+                     help="Type part of a company’s name or its symbol, then pick it: it is added and saved.")
         st.text_input(
             "Symbols",
             placeholder="Comma-separated symbols, e.g. RELIANCE, TCS, CUPID, INFY, DIACABS",
@@ -172,7 +206,7 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
                                f"watchlist_momentum_{ist_now():%Y%m%d}.csv", "text/csv",
                                key="dl_wl_csv", icon=":material/download:")
     if user_symbols:
-        _emit(['<p class="wl-kept">Kept in this browser only. Press “Add to watchlist” on a stock\'s page to add it; '
+        _emit(['<p class="wl-kept">Kept in this browser only. Search a stock by name, or press “Add to watchlist” on its page, to add it; '
                'clear the box and save to empty the list.</p>'])
 
     # The empty list used to `return` here, which is why Watchlist was the only

@@ -1,6 +1,14 @@
 # Changelog
 
 
+## 2026-11-24 — Sectors' 3M and 12M leads; Watchlist name search; Backtest settings first; Nifty 1000 P/E; page load times (S219 4-7, S193 L)
+
+- Sectors: "Which sectors lead" shows each sector's one-, three- and twelve-month leads over the 750 beside the six-month one. The groups are still decided on six months and one month.
+- Watchlist: add a stock by typing part of its name or symbol; the box for pasting several symbols stays.
+- Backtest: the settings of the run shown are the first line on the page, with "Change the test" under it; the panel stays open while you move between pages. Two new settings: days left out of the score, and the weight at which a holding is cut back. The default run is unchanged.
+- Indices on the 1000: a Nifty 1000 row with its P/E (22.53 on 20 Nov); its percentile waits for a longer record.
+- Production QA times every page and fails when one is over its load budget on two runs in a row.
+
 ## 2026-11-24 — Charts open on one rule; warnings say so in words; one type scale (S193 H, I, J, K, E, S219)
 
 - Charts of recent movement open on 12M and record charts on their whole span: the Dashboard's and Market's breadth 3Y→12M; Market's highs and shares 6M→12M; momentum's lead each month from Dec 2021 (59 months). The 10-month average stays 3Y.

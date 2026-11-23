@@ -89,6 +89,8 @@ class RunSpec:
     exit_high_pct: float | None = None
     exit_ath_pct: float | None = None
     score_method: str = "sharpe"
+    score_skip: int = 0                  # sessions the score is read before the signal day (S219-6)
+    hold_cap: float | None = None        # a kept holding cut back only above this (the live rule)
     stats: dict[str, Any] = field(default_factory=dict)
     generated: str = ""          # IST time stamp, supplied by the caller
 
@@ -221,6 +223,9 @@ def rules_table(spec: RunSpec, trades: pd.DataFrame) -> pd.DataFrame:
     add("Entry rules", "5. Rank", "Composite momentum score, best first",
         ("Z-scored Sharpe ratios" if spec.score_method == "sharpe" else "Z-scored plain returns")
         + f" over {', '.join(str(m) + 'M' for m in horizons)} blended with weights {weights_txt}")
+    if spec.score_skip:
+        add("Entry rules", "Score read early", f"{spec.score_skip} sessions before T",
+            "The filters, the membership and the fill stay on T")
     add("Entry rules", "6. Select", f"Top {spec.top_n} by rank",
         "A stock already held keeps its place while it ranks inside the buffer (next row)")
     add("Entry rules", "Buffer zone", f"Top {spec.buffer_n} ({spec.buffer_n / spec.top_n:.1f}x holdings)",
@@ -250,6 +255,9 @@ def rules_table(spec: RunSpec, trades: pd.DataFrame) -> pd.DataFrame:
 
     add("Sizing", "Weighting", spec.weight_method)
     add("Sizing", "Stock cap", _pct(spec.stock_cap, 1), "A hard limit: never raised")
+    if spec.hold_cap is not None:
+        add("Sizing", "Holding cap", _pct(spec.hold_cap, 1),
+            "A kept holding keeps its drifted weight and is cut back only above this")
     add("Sizing", "Industry cap", _pct(spec.sector_cap, 1) if spec.has_industry_map else "Not applied",
         "A hard limit: never raised" if spec.has_industry_map else "No industry map for this run")
     cash = float(s.get("cap_cash_max", 0.0) or 0.0)
