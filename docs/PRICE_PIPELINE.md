@@ -385,6 +385,12 @@ Screener against +125% on NSE, enough to swap a stock in or out of the top 20.
 A 2026 Total Market backtest on each (same engine, settings and point-in-time
 list) differs by about one holding a month and 0.3 - 0.5 points a month.
 
+Readings a year or more back (owner, 23 Nov 2026, S193 B) read a daily frame:
+Market and Sectors `daily_history.frame` (the ranking frame, its weekly years
+filled from the long NSE file by `price_source.daily_history`), a stock's chart
+`daily_history.stock_close`, the all-time-high snapshot the same fill; new highs
+count a seven-day week, not five rows. The deep store stays for the record's pages.
+
 ### A new listing's first sessions (owner, 23 Nov 2026, S218)
 
 Screener can start a new listing a few sessions late (TRIVENIPT: listed 12 Oct

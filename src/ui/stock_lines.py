@@ -696,7 +696,8 @@ def data_checks(row, as_of: pd.Timestamp, actions: list[Action], actions_from: p
     if not actions:
         items.append((True, f"No split, bonus, rights issue or demerger in NSE’s lists{since}"))
     src = str(row.get("ATH Source") or "")
-    items.append((src == "snapshot", "All-time high from the long record, not a two-year window" if src == "snapshot"
+    items.append((src == "snapshot", "All-time closing high over Screener’s whole history, its weekly years filled with NSE’s daily closes"
+                  if src == "snapshot"
                   else "High from a two-year window, not all-time"))
     return DataChecks(items, actions)
 

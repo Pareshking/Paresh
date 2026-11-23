@@ -154,12 +154,15 @@ def _share_above_ema(prices: pd.DataFrame, span: int, members: pd.DataFrame | No
     return share.where(_enough(observed.sum(axis=1)))
 
 
-def _net_new_highs(prices: pd.DataFrame, days: int = 5, members: pd.DataFrame | None = None) -> pd.Series:
-    """Net new 52-week highs over the last `days` rows (a week): stocks that
+def _net_new_highs(prices: pd.DataFrame, window: str = "7D", members: pd.DataFrame | None = None) -> pd.Series:
+    """Net new 52-week highs over the last `window` of calendar days (a week): stocks that
     made a new high less those that made a new low, each counted once, as a
     share of the stocks that can make one. The 52 weeks are a calendar window, not
     252 rows: the deep price history holds fewer rows a year in its early
-    years, and a row count read those years as too short (no reading at all)."""
+    years, and a row count read those years as too short (no reading at all).
+    The week is a calendar window too (S193 B): five ROWS of a weekly stretch
+    are five weeks, and of a twice-a-week one two to three."""
+    prices = prices.sort_index()
     hi = prices.rolling("365D", min_periods=20).max()
     lo = prices.rolling("365D", min_periods=20).min()
     # a stock needs most of a year of prices before it can set a 52W extreme
@@ -170,11 +173,11 @@ def _net_new_highs(prices: pd.DataFrame, days: int = 5, members: pd.DataFrame | 
     can = prices.notna() & hi.notna() & lo.notna() & old_enough
     if members is not None:
         can &= members.reindex_like(prices).fillna(False).astype(bool)
-    # Each stock once a week: made a new high on any of the last `days` rows,
-    # less made a new low, over the stocks that could. Summing daily shares
+    # Each stock once a week: made a new high on any session of the last seven
+    # days, less made a new low, over the stocks that could. Summing daily shares
     # counted a stock that set highs on three days three times (+140%).
-    made_hi = ((prices >= hi - tol) & can).astype(float).rolling(days, min_periods=1).max()
-    made_lo = ((prices <= lo + tol) & can).astype(float).rolling(days, min_periods=1).max()
+    made_hi = ((prices >= hi - tol) & can).astype(float).rolling(window, min_periods=1).max()
+    made_lo = ((prices <= lo + tol) & can).astype(float).rolling(window, min_periods=1).max()
     counts = can.sum(axis=1)
     n = counts.replace(0, np.nan)
     return ((made_hi.sum(axis=1) - made_lo.sum(axis=1)) / n * 100).where(_enough(counts))

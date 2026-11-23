@@ -528,8 +528,14 @@ def render_stock_view(
     m12 = next((w.market for w in ws if w.months == 12), None)
 
     closes = adj_close[sym] if sym in adj_close.columns else None
-    chart_close = (history_prices[sym].dropna() if history_prices is not None and sym in history_prices.columns
-                   else closes.dropna() if closes is not None else pd.Series(dtype=float))
+    # The chart and its 50D EMA on daily closes over the whole range (S193 B): the ranking frame, its
+    # weekly years filled from NSE's long file. The deep store is weekly before mid-2025, which put the
+    # EMA a year back at Rs 1,448 for RELIANCE against Rs 1,454 on NSE's daily closes.
+    from src.ui import daily_history
+    chart_close = daily_history.stock_close(sym, adj_close)
+    if chart_close.empty:
+        chart_close = (history_prices[sym].dropna() if history_prices is not None and sym in history_prices.columns
+                       else closes.dropna() if closes is not None else pd.Series(dtype=float))
     chart_close = chart_close[chart_close.index <= as_of]
 
     _render_actions(sym, on_back)

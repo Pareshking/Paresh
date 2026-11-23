@@ -940,9 +940,11 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
         "calc": calc,
         "rank_df": rank_df,
         "adj_close": adj_close,
-        # The longest continuous history available, whatever the ranking is
-        # computed from. Only the backtest and the track record read this, and
-        # only because they need more history than a ranking does.
+        # Screener's whole store for these symbols, unfilled: weekly before mid-2025.
+        # The pages that must agree with the track record read it (Dashboard, Actions,
+        # Screener, Watchlist, Portfolio; S193 A4). Readings a year or more back do
+        # not: Market and Sectors read src/ui/daily_history.frame(adj_close), and a
+        # stock's chart daily_history.stock_close (S193 B, owner 23 Nov 2026).
         "deep_adj_close": _deep_adj_close,
         "deep_close_prices": _deep_close,
         "close_prices": close_p,
@@ -1157,8 +1159,15 @@ def _page_screener() -> None:
     )
 
 
+def _daily_history() -> pd.DataFrame:
+    """The ranking frame, daily over its whole span (S193 B): for readings a year or more back."""
+    from src.ui import daily_history
+
+    return daily_history.frame(adj_close)
+
+
 def _page_sectors() -> None:
-    render_sector_view(rank_df, adj_close, history_prices=deep_adj_close,
+    render_sector_view(rank_df, adj_close, history_prices=_daily_history(),
                        benchmark_close=fetch_benchmark_history(period="5y"))
 
 
@@ -1211,7 +1220,7 @@ def _page_indices() -> None:
 
 
 def _page_market() -> None:
-    render_market_view(rank_df, adj_close, history_prices=deep_adj_close,
+    render_market_view(rank_df, adj_close, history_prices=_daily_history(),
                         benchmark_close=fetch_benchmark_history(period="5y"))
 
 

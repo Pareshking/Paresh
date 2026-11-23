@@ -639,6 +639,29 @@ def splice_weekly(close: pd.DataFrame, screener: pd.DataFrame,
     return out.mask(mask, fill), report
 
 
+def daily_history(frame: pd.DataFrame, long_close: pd.DataFrame | None) -> tuple[pd.DataFrame, dict]:
+    """`frame` (the ranking frame, or Screener's store) daily over its whole span (S193 B).
+
+    The ranking frame is daily from NSE's committed file (30 Sep 2024) on; before
+    that it still has Screener's weekly closes, so a reading a year or more back
+    (a 200D EMA, a 52-week window, a percentile since 2017) counts rows that are
+    weeks apart. This fills that stretch from NSE's long daily file
+    (`src/loaders/nse_long.py`) exactly as `fill_weekly_from_nse` fills the
+    ranking's: by ratio between the frame's own closes, every one of which is
+    kept, refused where NSE's move differs by more than 2%. No coverage floor:
+    nothing here computes a row-to-row return across a session a stock lacks.
+    Returns (frame, the fill report); `frame` unchanged when there is no long file.
+    """
+    if long_close is None or long_close.empty or frame is None or frame.empty:
+        return frame, {"cells": 0, "skipped": "no long NSE file"}
+    index = pd.DatetimeIndex(frame.index)
+    cols = [c for c in frame.columns if c in long_close.columns]
+    nse = long_close.reindex(columns=cols)
+    nse.index = pd.DatetimeIndex(nse.index).as_unit(index.unit)
+    nse = nse[nse.index >= index[0]].astype("float64")
+    return fill_weekly_from_nse(frame, nse, min_coverage=0.0)
+
+
 def _middle_failed(chosen: PriceFrames, step: str, exc: Exception) -> None:
     """Record an NSE step keep_and_fill skipped: log, metric, note, gate."""
     what = f"{step}: {type(exc).__name__}: {exc}"

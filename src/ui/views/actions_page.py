@@ -265,7 +265,10 @@ def section_buy(p: Plan) -> list:
             + ("" if ev.buy_3m is None or ev.sold_3m is None else
                f'. Over three months: {sg(ev.buy_3m)} against {sg(ev.sold_3m)}')
             + f'. {ev.rebought} of the {ev.sold} sold were bought back within two months. '
-            f'<span class="dh-muted">{ev.first:%b %Y} to {ev.last:%b %Y}: a short record, measured on the record itself, before costs, '
+            + ("" if not getattr(ev, "unpriced", ()) else
+               f'{e(", ".join(ev.unpriced))} {"has" if len(ev.unpriced) == 1 else "have"} no price here and '
+               f'{"is" if len(ev.unpriced) == 1 else "are"} left out. ')
+            + f'<span class="dh-muted">{ev.first:%b %Y} to {ev.last:%b %Y}: a short record, measured on the record itself, before costs, '
             'with overlapping windows; evidence, not proof.</span></div>')
     return _sec([_head("ac-buy", "Buy", "best qualified, not held"), evid,
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab"><thead><tr><th scope="col">Stock</th>'
@@ -395,7 +398,10 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
             from src.loaders import benchmark_indices as bi
             from src.ui.views.portfolio_view import build_portfolio_history
             hist = build_portfolio_history(record, MODEL_BOOK_CAPITAL, ledger, (record or {}).get("live_meta") or {})
-            swaps = sw.from_record(hist, adj_close, bi.series(bi.TOTAL_MARKET))
+            from src.loaders import former_members
+            # A name that has since left the list is valued by the record from the former members' file:
+            # measured from it too, not dropped (JBCHEPHARM, S193 B).
+            swaps = sw.from_record(hist, adj_close, bi.series(bi.TOTAL_MARKET), former_members.load())
         except (KeyError, ValueError, OSError):
             swaps = None
         if plan.buys:

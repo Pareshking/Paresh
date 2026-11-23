@@ -378,9 +378,9 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
             a = mq._on_or_before(daily.index, end - pd.DateOffset(years=1))
             _chart_head(f"Net new 52W highs this week: {_fmt.signed(daily.iloc[-1], 1)}% of stocks"
                         + (f"; 12 months ago {_fmt.signed(daily.loc[a], 1)}%" if a is not None else ""),
-                        "Each week, the stocks that made a new 52-week high in the last five sessions less "
-                        "those that made a new low, each counted once, as a share of the stocks that could "
-                        "make one. Above zero, more stocks are making highs.")
+                        "Each week, the stocks that made a new 52-week high in the seven days to its last session "
+                        "less those that made a new low, each counted once, as a share of the stocks that could "
+                        "make one, on daily closes throughout. Above zero, more stocks are making highs.")
             allw = weekly.dropna()
             q1, q3 = float(allw.quantile(0.25)), float(allw.quantile(0.75))
             dc.render("bars", {"values": _vals(w, 1), "labels": [f"{d:%b ’%y}" for d in w.index],
