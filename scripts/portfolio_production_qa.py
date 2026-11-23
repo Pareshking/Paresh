@@ -56,6 +56,9 @@ def wait_ready(page):
 # the month tile ("Month so far · Nov") is in the header. Both: a read that
 # came before the page finished streaming (run 44116558226, 17 Nov 2026) must
 # not pass. Portfolio v3 (owner approved 20 Nov 2026).
+# The Equity card's gap line, as portfolio_page.py writes it ("4.0 pts ahead of Nifty Total Market").
+GAP_LINE = re.compile(r"pts (ahead of|behind) nifty total market")
+
 MONTH_TILE = re.compile(r"(?=.*month so far · [a-z]{3})(?=.*data to \d)", re.S)
 
 
@@ -221,7 +224,9 @@ def main() -> int:
                     mtd_checks = {
                         "equity_mtd_strategy_present": equity_month,
                         "equity_mtd_benchmark_present": "nifty total market" in body_folded,
-                        "equity_mtd_gap_present": bool(re.search(r"pts (ahead of|behind) the market", body_folded)),
+                        # Glossary 1 (S193 D, 23 Nov 2026): the tile names its index; it said
+                        # "the market" until #631, which this pattern pinned (run 45083394151).
+                        "equity_mtd_gap_present": bool(GAP_LINE.search(body_folded)),
                         "calendar_grid_present": "calendar returns" in body_folded,
                         "calendar_live_month_marked": bool(re.search(r"\b[a-z]{3} so far\b", body_folded)),
                         "cumulative_42pct_visible": "+42.4%" in body,
