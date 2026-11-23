@@ -110,12 +110,24 @@ def _long_notes(html_text: str) -> str:
                                 if len(re.sub(r"<[^>]+>", "", m.group(1))) > 380 else m.group(0)), html_text)
 
 
+_SCROLLER = re.compile(r'<div class="(dh-scroll|qp-scroll)">')
+_EMPTY_TH = re.compile(r'<th(?: scope="col")?></th>')
+
+
+def accessible(markup: str) -> str:
+    """Two axe-core findings fixed where every page's blocks pass (S193 J3, 23 Nov 2026):
+    a table that scrolls sideways can be reached by keyboard (scrollable-region-focusable),
+    and an empty header cell (a table's top-left corner) is a plain cell (empty-table-header)."""
+    markup = _SCROLLER.sub(r'<div class="\1" tabindex="0">', markup)
+    return _EMPTY_TH.sub("<td></td>", markup)
+
+
 def emit(parts) -> None:
     buf: list[str] = []
 
     def flush():
         if buf:
-            st.html(f'<div class="dh">{_long_notes("".join(buf))}</div>')
+            st.html(f'<div class="dh">{accessible(_long_notes("".join(buf)))}</div>')
             buf.clear()
     for p in parts:
         if isinstance(p, str):

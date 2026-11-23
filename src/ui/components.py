@@ -172,7 +172,7 @@ def render_header_kpi_bar(
         level_text = f"{regime.current_price:,.0f}"
     pill = _status_pill_html()
     market_html = f"""
-    <div role="status" aria-label="Market status dashboard" class="mkt-snapshot">
+    <div role="status" aria-label="Market status dashboard" class="mkt-snapshot" tabindex="0">
         <div class="mkt-item mkt-regime-item">
             <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>Nifty 500 {html.escape(dist_text)}{"" if unknown else " its 200D EMA"}</span>
         </div>

@@ -1741,7 +1741,8 @@ _PAGE_CSS = ("""
             .st-key-app_header_shell .hdr-pill-head { height: 30px; padding: 0 10px; }
         }
         @media (min-width: 1024px) and (max-width: 1279px) {
-            .st-key-app_quicklinks [data-testid="stPageLink"] a { padding: 6px 6px !important; }
+            .st-key-app_quicklinks [data-testid="stPageLink"] a { padding: 6px 5px !important; }
+            .st-key-app_header_shell [data-testid="stElementContainer"]:has(.hdr-pill-head) { margin-left: 0 !important; }
             /* The menu row is full here: the pill keeps the date and its colour, as on a phone (S219 1). */
             .st-key-app_header_shell .hdr-pill-lead { display: none; }
         }

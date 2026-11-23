@@ -34,6 +34,9 @@ WARNING_USES = (
     "C.caution if item[\"stale\"]",                  # components: a stale source
     "Amber for a stale source",
     '"var(--c-caution)" if gap_count',               # components: gap-filled closes
+    "background: var(--c-caution); color: var(--c-white)",   # theme: the warning icon itself (S193 J1)
+    'class="sig-chip{" cau" if s.color == C.caution',          # components: a caution chip, with its icon
+    '<span class="cau" style="color:var(--c-caution)">',       # ranking_view: a dataset that is behind, with its icon
 )
 
 WARNING_BLOCKS = (".pg-note {",)

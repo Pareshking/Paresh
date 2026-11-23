@@ -444,7 +444,7 @@ def head(f: dict) -> list:
     # The verdict phrase in up/down colour: the rule's figure against the index's (S219 2).
     if sm.a_year is not None:
         ahead = None if sm.bench_a_year is None else sm.a_year >= sm.bench_a_year
-        title = (e(f"Since {sm.first.year} this rule ") + kit.verdict(f"made {_pc(sm.a_year)} a year", ahead)
+        title = (e(f"Since {sm.first.year} this rule ") + kit.verdict(f"made {_pcs(sm.a_year)} a year", ahead)
                  + e(f" to the Nifty 500’s {_pc(sm.bench_a_year)}, before tax."))
     else:
         ahead = None if sm.total is None or sm.bench_total is None else sm.total >= sm.bench_total
@@ -472,7 +472,8 @@ def section_lead(f: dict) -> list:
         h2 = (f'Under a year, so no yearly figure: the rule is <span class="{_t(sm.total)}">{e(_pcs(sm.total))}</span>, '
               f'the Nifty 500 {e(_pcs(sm.bench_total))}.')
     tiles = _kpis([
-        ("A year, compounded", _pc(sm.a_year) if sm.a_year is not None else "–", _t(sm.a_year),
+        # A coloured change carries its sign (S193 J: never colour alone).
+        ("A year, compounded", _pcs(sm.a_year) if sm.a_year is not None else "–", _t(sm.a_year),
          f"Nifty 500 {_pc(sm.bench_a_year)}" if sm.a_year is not None else "needs 12 months"),
         ("Lead over the Nifty 500", _pts(sm.lead) if sm.lead is not None else _pts(sm.total - sm.bench_total),
          _t(sm.lead if sm.lead is not None else sm.total - sm.bench_total), "a year" if sm.lead is not None else "over the run"),
@@ -506,7 +507,7 @@ def section_lead(f: dict) -> list:
                      f"{_pts(sm.median_lead)}.")
     rows = [["Total return", _pcs(sm.total, 0), _pcs(sm.bench_total, 0)],
             ["A year, compounded", _pc(sm.a_year), _pc(sm.bench_a_year)],
-            # Costs and turnover do not apply to an index: a blank cell, not "–" (S193 E, R2).
+            # Costs and turnover do not apply to an index: a blank cell, not "–" (S193 E, rule 2).
             ["A year before costs", _pc(st_.get("cagr_gross")), mw.NOT_APPLICABLE],
             ["Volatility, a year (daily returns)", _pc(st_.get("volatility")), _pc(st_.get("bench_volatility"))],
             [f"Sharpe, over {RISK_FREE_RATE:.1%}, ± one standard error",
@@ -631,7 +632,7 @@ def section_years(f: dict) -> list:
 
 
 def _months_dash_note(m: pd.DataFrame) -> str:
-    """One footnote for the grid's "–" (S193 E, R1): months before the first fill, and months after the last month-end tested."""
+    """One footnote for the grid's "–" (S193 E, rule 1): months before the first fill, and months after the last month-end tested."""
     first, last = m.index.min(), m.index.max()
     bits = []
     if first.month > 1:
@@ -723,7 +724,7 @@ def section_depends(f: dict) -> list:
         trows += (f'<tr class="dh-grp-row"><th scope="rowgroup" colspan="3">{e(title)}'
                   f'<span class="dh-sub">{e(span)}</span></th></tr>')
         for name, a, dd in items:
-            trows += (f'<tr><th scope="row">{e(name)}</th><td class="dh-num {_t(a)}">{e(_pc(a))}</td>'
+            trows += (f'<tr><th scope="row">{e(name)}</th><td class="dh-num {_t(a)}">{e(_pcs(a))}</td>'
                       f'<td class="dh-num dh-down">{e(_pcs(dd))}</td></tr>')
     if trows:
         parts += ['<div class="dh-scroll"><table class="dh-tab bt-t"><thead><tr><th scope="col">Against what you could buy</th>'
@@ -1010,7 +1011,7 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
         return
     bench = fetch_benchmark_history(period="max", symbol=BENCHMARK_SYMBOL)
     if bench.empty:
-        # A failure is an amber note, not a red box (S193 E, R4).
+        # A failure is an amber note, not a red box (S193 E, rule 4).
         kit.note("The Nifty 500's closes are unavailable.", "Backtest stopped rather than compare against nothing.")
         return
     res = _run(s, h, bench, stock_cap, sector_cap)

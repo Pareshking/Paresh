@@ -124,26 +124,61 @@ are both met by naming the exchange only.
 ### 4.1 Every chart
 
 - **Values under the pointer.** A crosshair (or highlighted bar or row) and a
-  readout of the date and every series' value. On touch the readout sits
-  **above** the chart, not under the finger; vertical swipes still scroll
-  (`touch-action: pan-y`). Arrow keys move it. At rest it shows the latest
-  values, so a screenshot is complete. (Owner, 20 Nov: "Tipsheet website
-  charts you can touch / pointer and get values".)
+  readout of the date and every series' value, **above the plot**, for a mouse,
+  a finger and the arrow keys alike; no floating box under the pointer repeats it
+  (S193 H3). Vertical swipes still scroll (`touch-action: pan-y`). Line and bar
+  charts step with the arrow keys; row charts (month, breadth by size, line-bar
+  rows, the book by sector) take Tab row by row. At rest the readout shows the
+  latest values ("Latest · 20 Nov 2026"), so a screenshot is complete. Exempt:
+  sparklines and rank trails in a table, whose numbers sit beside them.
+  (Owner, 20 Nov: "Tipsheet website charts you can touch / pointer and get values".)
 - **A headline that says what it shows**, then the chart as evidence.
-- **Labels on the lines** at their right ends instead of a legend.
-- **Faint grid**, axis numbers small and muted, gradient area under the main
-  series, the latest point emphasised.
+- **No end labels.** A chart's values sit in the readout over each pane and follow
+  the pointer, so the lines use the whole width (owner, 20 Nov: "currently half of
+  it is just to show the number"). A bar chart may name its last bar on the mark
+  ("Oct", "Today"); that is a label on the bar, not a margin. A readout is one line
+  where it fits. A month is named once on a date axis.
+- **Faint grid**, axis numbers small and muted, the latest point emphasised. The
+  chart kit draws a gradient area under the main series; the stock price is a
+  line with no area.
+- **Chart text is 12 px at least** (axis numbers, labels, chips), and every size is
+  a step of `tokens.TYPE` (S193 I).
 - **Folded under it:** "What it is · how to read it", and "Show the table".
-- Light and dark themes both designed; colours from tokens only.
-- Time series stay on Lightweight Charts (`src/ui/lw_chart.py`), restyled;
-  small bar charts can be plain SVG in the same frame.
+- Light theme only (S193 G); colours from tokens only, one colour per series.
+- **Two kits.** `static/dash_charts.js` (SVG in a frame, `src/ui/dash_charts.py`)
+  draws every chart but one; Lightweight Charts (`src/ui/lw_chart.py`) draws the
+  stock chart, where dragging pans and pinching zooms.
+- Height: line charts follow their width (about a third) so a desktop chart is not
+  a thin strip; the breadth panes, the bar charts and the stock panes have fixed
+  heights; the sector leadership map is about half its width.
+- A chart frame clips sideways (`overflow-x: clip`) and its chip rows wrap: a chip
+  past the edge scrolled the whole frame sideways when tapped, leaving the table's
+  rows looking blank (owner, 20 Nov).
 
-- A chart's values sit in the heading over each pane and follow the pointer; no end labels in a
-  right margin, so the lines use the whole width (owner, 20 Nov: "currently half of it is just to show
-  the number"). A readout is one line where it fits. A chart's height follows its width (about a third)
-  so a desktop chart is not a thin strip. A month is named once on a date axis.
-- A chart frame clips sideways (`overflow-x: clip`) and its chip rows wrap: a chip past the edge
-  scrolled the whole frame sideways when tapped, leaving the table's rows looking blank (owner, 20 Nov).
+**The range a chart opens on (S193 H; owner, 23 Nov 2026: "Go with your
+recommendation on all", "12M").** The default follows the question, and each
+time-range chart states it in its spec, `range: {default, why, chips}`, never by
+the order of its chips:
+
+| Why | Opens on | Charts |
+|---|---|---|
+| `lately`: how it has moved recently | 12M (labelled "12M", glossary 6) | breadth and the 200D EMA share (Dashboard, Market; chips 6M · 12M · 3Y); net new 52W highs each week (12M · 3Y); share above each average and new highs against new lows (3M · 6M · 12M); size indices against the Nifty 500; a sector against its NSE index; the stock chart (6M · 12M · 3Y) |
+| `record`: a book's, a rule's or an index's whole history | all of it | Portfolio's ₹100 since start; Backtest; a style against its parent; momentum's lead every month (from Dec 2021) |
+| `fixed`: a stated exception, with its reason in `range.note` | as stated | **Market's Nifty 500 against its 10-month average opens on 3Y**: twelve monthly points against a ten-month average show almost no history of the line crossing it |
+
+- **One period picker, in the chart.** Range chips sit in the frame and redraw it in
+  place; the data for the longest chip is sent once (the stock chart: three years,
+  relative strength set to 100 again at the chosen range's start, and the heading's
+  relative-strength words follow the chip). No Streamlit control picks a period.
+- **Exception: Market's Chart settings** (average EMA or SMA, which averages, by
+  index, the new-high window, % or count) stay Streamlit controls and rerun the
+  page: each changes what is measured, not the dates shown, and sending every
+  combination (2 averages × 5 periods, 3 windows × 2 forms) on each load would
+  compute the breadth history some 16 times to save a rerun few readers make.
+- **Checked:** `tests/test_s193_h_chart_ranges.py` (every spec states its range;
+  lately is 12M, record is all, fixed says why) and `scripts/layout_audit.mjs`
+  (a chart opening off its stated range, a chart with no readout at rest, or a
+  Streamlit period picker fails the run).
 
 ### 4.2 Line bars (owner's "IIIIIIIII" chart, 20 Nov)
 
@@ -176,7 +211,7 @@ breadth by size):
 | Question | Chart |
 |---|---|
 | A few returns on one scale, this period | Line bars (4.2) |
-| How a value moved over months or years | Line with area, crosshair, 6M / 1Y / 3Y |
+| How a value moved over months or years | Line with area, crosshair, range chips in the chart; opens on 12M, or the full span for a record (4.1) |
 | Two related series (index and breadth) | Two panes, one crosshair |
 | Monthly flows or monthly leads | Bars from a zero line, up colour and down colour, the latest labelled, a threshold line where a test defines one |
 | Industries' relative strength | RRG scatter, held industries filled and sized by holdings, quadrant lists beside |
