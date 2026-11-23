@@ -24,7 +24,10 @@ last step for item D: `scripts/glossary_audit.mjs` (in CI), with `tests/test_rou
 
 - An ISO date on Actions (1000): "no close for on 2026-10-30" (rule 3).
 - "None announced for any holding" on Actions (rule 5).
-- Dashboard "Momentum's lead, every month": the last bar is a different pair (Nifty500 Momentum 50 less
-  Nifty Total Market) from the bars before it (top 100 less the Nifty 500); PAGE_DESIGN §6a. Item A/B.
+- Dashboard "Momentum's lead, every month": the last bar was a different pair (Nifty500 Momentum 50 less
+  Nifty Total Market) from the bars before it (top 100 less the Nifty 500); PAGE_DESIGN §6a. Owner 23 Nov:
+  one pair for every bar; the month-so-far bar is dropped (#634).
+- Rounding (entry 12): about 400 number formats still use Python's `round()`; owner 23 Nov: move each to
+  the half-up helper when its page is touched, not one sweep.
 - `/stock?stock=X` shows "Page not found" before it redirects to the Screener (app.py, existed before
   #628). Item K.

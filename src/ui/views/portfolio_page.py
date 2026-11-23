@@ -154,7 +154,10 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     mw = _market_weights(rank_df)
     corr = correlation(series.prices, syms)[1]
     systems = _systems(series.prices, benchmark_close, system, market, as_of)
-    return Page(as_of=as_of, capital=float(series.history["equity"].iloc[0]) if len(series.history["equity"]) else 0.0,
+    # The money put in, not the equity's first point: with no frozen month that point is today's
+    # value, so the Nifty 1000 read "Started with ₹1,05,50,323" and a gain of ₹0 (S193 A2).
+    from src.core.config import MODEL_BOOK_CAPITAL
+    return Page(as_of=as_of, capital=float(MODEL_BOOK_CAPITAL),
                 value=series.value, holdings=series.holdings, equity=series.equity, market=market, mom=mom,
                 table=table, history=series.history, meta=meta, record=record, ledger=ledger, rank_df=rank_df,
                 prices=series.prices, cfg=dict(TRACK_RECORD_CONFIG), trails=trails, industry_state=state,
@@ -295,8 +298,10 @@ def header(p: Page) -> list:
     # The book's own latest day; the market's only when its index has that session (S148: one date for both).
     eq = p.equity.dropna()
     mk = p.market.dropna()
+    # The live month's point can carry the month-end date (30 Nov on 20 Nov); the day is the price date.
+    last = min(pd.Timestamp(eq.index[-1]), pd.Timestamp(p.as_of)) if len(eq) else pd.Timestamp(p.as_of)
     day = {"book": float(eq.iloc[-1] / eq.iloc[-2] - 1) * 100 if len(eq) > 1 else None,
-           "market": float(mk.iloc[-1] / mk.iloc[-2] - 1) * 100 if len(mk) > 1 and mk.index[-1] >= eq.index[-1] else None}
+           "market": float(mk.iloc[-1] / mk.iloc[-2] - 1) * 100 if len(mk) > 1 and mk.index[-1] >= last else None}
     tab = p.table
     dayr = float(pd.to_numeric(tab["Day P&L (₹)"], errors="coerce").sum())
     m = months_of(p)
@@ -310,7 +315,7 @@ def header(p: Page) -> list:
               f"Nifty Total Market {pct(mkt_since)}"),
              ("Day P&L", pct(day["book"]), tone(day["book"]), inr(dayr, plus=True), tone(dayr),
               f"Nifty Total Market {pct(day['market'])}" if day["market"] is not None
-              else f"Nifty Total Market for {dshort(eq.index[-1])} not in yet"),
+              else f"Nifty Total Market for {dshort(last)} not in yet"),
              (f"Month so far · {this:%b}", pct(mtd), tone(mtd),
               "" if gap is None else f"{_fmt.fixed(abs(gap), 1)} pts {'ahead of' if gap >= 0 else 'behind'} Nifty Total Market", tone(gap),
               f"Nifty Total Market {pct(mmtd)}"),
@@ -381,7 +386,10 @@ def holdings_spec(p: Page) -> dict:
 def section_book(p: Page) -> list:
     spec = holdings_spec(p)
     hc, cut = spec["high_cut"], spec["rank_cut"]
-    dates = list(di.trail_dates(p.as_of).values())
+    # The sessions the ranks are read on (20 Oct 2026 was a holiday: the rank is the 19 Oct one), as
+    # Actions and the Dashboard print them (S193 A4).
+    px = p.prices.index if len(p.prices.index) else pd.DatetimeIndex([p.as_of])
+    dates = [di.on_or_before(px, d) or d for d in di.trail_dates(p.as_of).values()]
     note = (f"Entry price and since entry are from the day the stock was first bought. P&L in rupees starts at the {spec['fill']} "
             "fill, where today’s share counts were set: the record keeps returns and weights, so rupee figures are a mark, not "
             f"a cost. Holdings {inr(p.holdings)} + {inr(p.value - p.holdings)} not invested = portfolio value {inr(p.value)}. "
@@ -473,8 +481,13 @@ def section_returns(p: Page) -> list:
                   f'<td class="dh-num {tone(None if b is None or m is None else b - m)}">{sg(None if b is None or m is None else b - m)}</td>'
                   f'<td class="dh-num dh-muted">{pct(mo)}</td></tr>' for lab, b, m, mo in shown)
     start = p.equity.index[0]
-    ytd_start = pd.Timestamp(year=p.as_of.year - 1, month=12, day=31)
-    book_ytd = pr.ret(p.equity, max(start, ytd_start), p.as_of)
+    # One window for the book and the indices: a book begun after 31 Dec is set against the
+    # indices from its own start, and the table says so (S193 A3: the book since 1 Oct stood
+    # against indices since 31 Dec).
+    year_start = pd.Timestamp(year=p.as_of.year - 1, month=12, day=31)
+    ytd_start = max(pd.Timestamp(start), year_start)
+    young = ytd_start > year_start
+    book_ytd = pr.ret(p.equity, ytd_start, p.as_of)
     vals = {k: pr.ret(p.indices[k], ytd_start, p.as_of) for k, _ in YTD_ROWS if k in p.indices}
     ex_since = p.exposure[pd.to_datetime(p.exposure["date"]) > ytd_start] if len(p.exposure) else p.exposure
     vals["mix"] = pr.size_mix(ex_since, {k: p.indices[v] for k, v in SIZE_INDEX.items()}, p.as_of)
@@ -494,8 +507,9 @@ def section_returns(p: Page) -> list:
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Period</th><th scope="col" class="dh-num">The book</th>'
                  '<th scope="col" class="dh-num">Nifty Total Market</th><th scope="col" class="dh-num">Lead, pts</th><th scope="col" class="dh-num">Momentum 50</th>'
                  f'</tr></thead><tbody>{per}</tbody></table></div><p class="dh-note">{e(grows)}</p></div>'
-                 f'<div><div class="dh-cap"><b>This year against other indices</b><span>since {ytd_start:%-d %b %Y}</span></div>'
-                 '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Index</th><th scope="col" class="dh-num">This year</th>'
+                 f'<div><div class="dh-cap"><b>{_fmt.since(begun) if young else "This year"} against other indices</b><span>{"to " + f"{p.as_of:%-d %b}" if young else f"since {ytd_start:%-d %b %Y}"}</span></div>'
+                 '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Index</th>'
+                 f'<th scope="col" class="dh-num">{_fmt.since(begun) if young else "This year"}</th>'
                  f'<th scope="col" class="dh-num">The book’s lead, pts</th></tr></thead><tbody>{ytd}</tbody></table></div>'
                  f'<p class="dh-note">The book is mostly Small Cap and Micro Cap, so Nifty Total Market is not its only fair yardstick. The mix holds the four '
                  f'NSE size indices in the book’s own size split, reset at each rebalance (see Sector &amp; size). {_fmt.PTS_NOTE}</p></div></div>'])

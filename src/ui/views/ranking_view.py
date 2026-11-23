@@ -233,6 +233,8 @@ def render_ranking_view(
     footnote=None,
     book_symbols=None,
     history_prices: pd.DataFrame | None = None,
+    members=(),
+    other_rankings=None,
 ) -> None:
     """The Screener: market strip, search and presets, the ranking table, and
     this month's top-50 moves. ?stock=SYMBOL opens that stock's page instead.
@@ -283,6 +285,8 @@ def render_ranking_view(
             on_back=_back,
             book_symbols=book_symbols,
             history_prices=history_prices,
+            members=members,
+            other_rankings=other_rankings,
         )
         return
 
