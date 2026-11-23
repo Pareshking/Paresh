@@ -564,7 +564,8 @@ def rs_words(rs_end: float | None) -> str:
             return f"has grown {r:.1f} times"
         return f"has {'almost ' if r < n else 'more than ' if r > n + 0.05 else ''}{verb}"
     pct = (r - 1) * 100
-    return f"is {formats.pct(abs(pct), signed_=False, fraction=False)} {'ahead' if pct >= 0 else 'behind'}"
+    # A ratio, not a gap in points (glossary 4): "its relative strength fell 11.8%", not "11.8% behind" (S193 B).
+    return f"its relative strength {'rose' if pct >= 0 else 'fell'} {formats.pct(abs(pct), signed_=False, fraction=False)}"
 
 
 def price_heading(above: int, of: int, rs_end: float | None) -> tuple[str, str, str]:
@@ -573,7 +574,7 @@ def price_heading(above: int, of: int, rs_end: float | None) -> tuple[str, str, 
     words = rs_words(rs_end)
     if not words:
         return a + ".", "", ""
-    return a + "; ", f"against {MARKET} it {words}", " in 12 months."
+    return a + "; ", f"against {MARKET} it {words}" if words.startswith("has") else f"against {MARKET} {words}", " in 12 months."
 
 
 PRICE_NOTE = ("Three panes: price with its 50D EMA, the one the ranking reads (none before 30 sessions); volume, the "
@@ -662,6 +663,7 @@ def action_line(a: Action) -> str:
 class DataChecks:
     items: list = field(default_factory=list)   # (ok, text)
     actions: list = field(default_factory=list)
+    since: str = ""                              # " since October 2024": where NSE's lists start
 
     @property
     def to_read(self) -> int:
@@ -699,7 +701,7 @@ def data_checks(row, as_of: pd.Timestamp, actions: list[Action], actions_from: p
     items.append((src == "snapshot", "All-time closing high over Screener’s whole history, its weekly years filled with NSE’s daily closes"
                   if src == "snapshot"
                   else "High from a two-year window, not all-time"))
-    return DataChecks(items, actions)
+    return DataChecks(items, actions, since)
 
 
 def data_heading(dc: DataChecks) -> str:
@@ -710,7 +712,8 @@ def data_heading(dc: DataChecks) -> str:
     if dc.actions:
         last = dc.actions[-1]
         kind = {"rights": "rights issue"}.get(last.kind, last.kind)
-        parts.append(f"{wl.fmt_count(len(dc.actions), 'corporate action')} in NSE’s lists, the latest a {kind} "
+        # The lists start in Oct 2024; an older action (RELIANCE's 2023 demerger) is in the history but not counted here (S193 B).
+        parts.append(f"{wl.fmt_count(len(dc.actions), 'corporate action')} in NSE’s lists{dc.since}, the latest a {kind} "
                      f"ex {formats.date(last.ex)}; the prices before it are rescaled")
     if dc.to_read:
         parts.append(f"{wl.fmt_count(dc.to_read, 'check')} to read")

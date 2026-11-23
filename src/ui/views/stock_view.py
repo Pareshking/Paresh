@@ -128,6 +128,24 @@ def _emit(parts: list) -> None:
     emit(parts)
 
 
+def _peers_note(shown: pd.DataFrame, in_ind: pd.DataFrame, sym: str) -> str:
+    """"The eight best-ranked of the sector's 26, with this stock", or, when the stock is below them,
+    "The seven best-ranked of the sector's 26, and this stock (14th)" (S193 B: it read "eight" over seven)."""
+    words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight"}
+    order = [str(s) for s in in_ind["Symbol"]]
+    top = [str(s) for s in shown["Symbol"]]
+    if sym in order and sym in top and order.index(sym) >= len(top):   # shown after the best, below them in the sector
+        n = len(top) - 1
+        return (f"The {words.get(n, str(n))} best-ranked of the sector’s {len(in_ind)}, and this stock "
+                f"({_ordinal(order.index(sym) + 1)})")
+    n = len(top)
+    return f"The {words.get(n, str(n))} best-ranked of the sector’s {len(in_ind)}, with this stock"
+
+
+def _ordinal(n: int) -> str:
+    return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
 def _kick(text: str) -> str:
     # "kicker" is the class the requirements check reads (rows 22, 41).
     return f'<p class="dh-kick kicker">{e(text)}</p>'
@@ -388,8 +406,7 @@ def industry_html(row, shown: pd.DataFrame, in_ind: pd.DataFrame, as_of) -> list
             '<th scope="col" class="n">1M</th><th scope="col" class="n">3M</th><th scope="col" class="n">6M</th>'
             '<th scope="col" class="n">12M</th><th scope="col" class="n">From 52W high</th>'
             f'<th scope="col" class="n">vs 50D EMA</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>',
-            f'<p class="dh-note">The {"eight" if len(shown) == sl.PEERS_SHOWN else len(shown)} best-ranked of the '
-            f'sector’s {len(in_ind)}, with this stock; returns in %. '
+            f'<p class="dh-note">{e(_peers_note(shown, in_ind, str(row.get("Symbol"))))}; returns in %. '
             f'<a class="sp-go" href="{e(href)}" target="_self">All {len(in_ind)} {e(ind)} stocks on the Screener →</a></p>',
             "</section>"]
 

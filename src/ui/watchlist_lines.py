@@ -390,7 +390,13 @@ def not_ranked(symbols: list, rank_df: pd.DataFrame, *, universe: str, members=(
         hits = ranks_elsewhere(sym, others)
         if hits:
             name = hits[0][0]
-            out.append(Unranked(sym, ELSEWHERE, f"Not a member of {fmt_system(universe)}.",
+            # The list is every stock of ₹2,000 Cr or more OUTSIDE the 750 (docs/THREE_SYSTEMS.md): a ₹18 lakh Cr
+            # 750 stock read "Not a member of > ₹2,000 Cr list" with no reason (S193 B).
+            the = fmt_system(universe)
+            the = the if the.startswith("the ") else f"the {the}"
+            why = (" It leaves out the Nifty 750’s stocks." if str(universe).startswith(">")
+                   and any(str(h[0]) == "Nifty 750" for h in hits) else "")
+            out.append(Unranked(sym, ELSEWHERE, f"Not a member of {the}.{why}",
                                 f"Ranks {ranks_elsewhere_words(hits)}.", system=name,
                                 link_label=f"See it in {fmt_system(name)}"))
             continue

@@ -207,8 +207,13 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
     # The members-of-the-day history is the 750's (data/breadth_history.csv): joined only under
     # the 750's own live line, never under another system's universe (S194 L4, 23 Nov 2026).
     past = pit_breadth.load("total_market") if pit else None
+    # Breadth reaches years back: daily closes, Screener's weekly years filled from NSE's long file
+    # (owner, 23 Nov 2026, S193 B). The book and its ranks keep the deep frame.
+    from src.ui import daily_history
+    bx = daily_history.frame(px[ranked])
+    bx = px[ranked] if bx is None or bx.empty else bx.sort_index()
     for span in (50, 200):
-        out[f"above_{span}"] = pit_breadth.splice(mq._share_above_ema(px[ranked], span), past, f"above_{span}")
+        out[f"above_{span}"] = pit_breadth.splice(mq._share_above_ema(bx, span), past, f"above_{span}")
     snap = snapshots(px, [d for d in dates.values() if d is not None])
     key_of = {d: k for k, d in dates.items() if d is not None}
     from src.engine.exit_watch import qualified_ranks

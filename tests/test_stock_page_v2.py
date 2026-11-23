@@ -257,7 +257,9 @@ def test_the_readout_is_one_line_at_a_fixed_height():
 def test_the_price_heading():
     assert sl.price_heading(57, 60, 298.6) == ("Above its 50D EMA on 57 of the last 60 sessions; ",
                                                "against Nifty Total Market it has almost tripled", " in 12 months.")
-    assert sl.rs_words(110.0) == "is 10.0% ahead" and sl.rs_words(80.0) == "is 20.0% behind"
+    # A ratio, not a gap in points (S193 B, glossary 4).
+    assert sl.rs_words(110.0) == "its relative strength rose 10.0%" and sl.rs_words(80.0) == "its relative strength fell 20.0%"
+    assert sl.price_heading(18, 60, 88.2)[1] == "against Nifty Total Market its relative strength fell 11.8%"
     above, of = sl.sessions_above(pd.Series([1.0, 3.0, 2.0]), pd.Series([np.nan, 2.0, 2.5]))
     assert (above, of) == (1, 2)
 
@@ -288,7 +290,7 @@ def test_corporate_actions_come_from_nses_list_one_per_action():
     assert sl.action_line(a) == ("Split, ex 3 Jul 2026: Face Value Split (Sub-Division) - From Rs 10/- To Rs 2/-; "
                                  "prices before it are scaled by 0.2")
     dc = sl.data_checks(_row(), DAY, [a], pd.Timestamp("2024-10-04"))
-    assert sl.data_heading(dc).startswith("1 corporate action in NSE’s lists, the latest a split ex 3 Jul 2026")
+    assert sl.data_heading(dc).startswith("1 corporate action in NSE’s lists since October 2024, the latest a split ex 3 Jul 2026")
 
 
 def test_a_clean_stock_says_nothing_to_correct():
