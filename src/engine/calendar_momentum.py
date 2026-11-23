@@ -34,7 +34,13 @@ def calendar_start_positions(
     *,
     latest_as_of: pd.Timestamp | None = None,
 ) -> np.ndarray:
-    """Return first available observation on/after each calendar target date."""
+    """Each window's opening session: the last session ON OR BEFORE the same date `months` back.
+
+    One rule for every window on the site (S211, owner 23 Nov 2026: "on or before, everywhere, the
+    ranking engine included"; "Ensure we are doing what entire industry does"). A month-end price is
+    the month's last session, as index providers read it; the former first-session-on-or-after rule
+    opened a window from 30 Sep on 1 Jul when 30 Jun was a Sunday. Targets before the data clamp to 0,
+    as before; the callers' own guards report those windows unavailable."""
     idx = pd.DatetimeIndex(index)
     if idx.empty:
         return np.array([], dtype=int)
@@ -46,7 +52,19 @@ def calendar_start_positions(
         else latest_as_of_date(idx)
     )
     targets = pd.DatetimeIndex(as_of.to_numpy()) - pd.DateOffset(months=months)
-    return np.searchsorted(idx.values, targets.values, side="left")
+    return np.maximum(np.searchsorted(idx.values, targets.values, side="right") - 1, 0)
+
+
+def year_window_start(index: pd.DatetimeIndex, end_pos: int, months: int = 12) -> int:
+    """The position opening a `months` window that ends at `end_pos`: the last session on or before
+    the same date `months` back, 0 when the data starts later. The 52-week high reads this window on
+    every page and in the Backtest (S211: it was 252 rows in the ranking and 12 calendar months, with
+    only the sessions after the date, on Indices, Sectors and Market)."""
+    idx = pd.DatetimeIndex(index)
+    if idx.empty or end_pos < 0:
+        return 0
+    target = pd.Timestamp(idx[end_pos]).normalize() - pd.DateOffset(months=months)
+    return max(int(np.searchsorted(idx.values[: end_pos + 1], np.datetime64(target), side="right")) - 1, 0)
 
 
 def rank_history_position(
@@ -62,8 +80,8 @@ def rank_history_position(
     Dashboard, Portfolio and Actions rank trails read the session on or before
     (`dashboard_insights.on_or_before`); the ranking's own past ranks read the
     first session on or after, so the Screener said "a month ago" was 21 Oct
-    while the Dashboard said 19 Oct. Returns windows keep
-    `calendar_start_positions`: a window opens on its first session.
+    while the Dashboard said 19 Oct. Since S211 every return window opens on the
+    same session (`calendar_start_positions`).
     """
     idx = pd.DatetimeIndex(index)
     if idx.empty:
@@ -260,7 +278,7 @@ def period_sharpe_at(
     else:
         as_of = pd.Timestamp(dates[end_idx]).normalize()
     target = as_of - pd.DateOffset(months=months)
-    start_idx = int(dates.searchsorted(target, side="left"))
+    start_idx = max(int(dates.searchsorted(target, side="right")) - 1, 0)   # on or before (S211)
     if start_idx >= end_idx:
         return pd.Series(np.nan, index=prices.columns), start_idx
     if target < pd.Timestamp(dates[0]).normalize():

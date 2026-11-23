@@ -32,20 +32,24 @@ DEFAULT_BACKTEST_MONTHS: int = 6
 
 
 def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
-    """Return the canonical 252-session high at one row, matching pandas rolling.
+    """Return the canonical 52-week high at one row (the last 12 months, S211), matching pandas rolling.
 
     Keep the same rolling operation as the full-history reference rather than
     replacing it with DataFrame.max/count: pandas rolling has its own handling
     of missing/non-finite values, and signal parity matters more than saving a
     few operations on this small window. Only the 252-row slice is materialised.
     """
-    window = prices.iloc[max(0, idx - 251) : idx + 1]
+    # The last 12 months, opening on or before the date a year back (S211; was the last 252 rows).
+    from src.engine.calendar_momentum import year_window_start
+    window = prices.iloc[year_window_start(prices.index, idx) : idx + 1]
     # .copy(): a row of a one-dtype frame is a VIEW, and it kept the whole
     # 252-row rolled frame alive. run_backtest keeps one of these per signal
     # date (_high_at_cache), so the History-from-2010 run held ~200 of them,
     # ~580 MB, to keep ~3 MB of values -- the backtest that took production
     # down on 8 Oct 2026. Same values; tests/test_memory_guardrails.py.
-    return window.rolling(252, min_periods=HIGH_52W_MIN_OBSERVATIONS).max().iloc[-1].copy()
+    # Fewer rows than the minimum: no 52-week high yet (NaN), as the full-history reference gives.
+    rows = max(len(window), HIGH_52W_MIN_OBSERVATIONS)
+    return window.rolling(rows, min_periods=HIGH_52W_MIN_OBSERVATIONS).max().iloc[-1].copy()
 
 
 def ath_history(prices: pd.DataFrame) -> tuple[pd.Series, pd.Series]:

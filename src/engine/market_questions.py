@@ -362,8 +362,9 @@ def ema_gap(close: pd.Series, when: pd.Timestamp | None, span: int = 200) -> flo
 def from_high(close: pd.Series, when: pd.Timestamp | None) -> float | None:
     if when is None:
         return None
+    from src.engine.calendar_momentum import year_window_start
     s = close.dropna().loc[:when]
-    s = s.loc[s.index > s.index[-1] - pd.DateOffset(years=1)] if len(s) else s
+    s = s.iloc[year_window_start(s.index, len(s) - 1):] if len(s) else s   # on or before a year back (S211)
     if s.empty:
         return None
     return (float(s.iloc[-1]) / float(s.max()) - 1) * 100
@@ -382,8 +383,15 @@ def _ema_gap_series(close: pd.Series, span: int = 200) -> pd.Series:
 
 
 def _from_high_series(close: pd.Series) -> pd.Series:
+    """% below the 52-week high on each session: the last 12 months, opening on or before the date a
+    year back (S211; was 252 rows), and none before 200 sessions of history."""
+    from src.engine.calendar_momentum import year_window_start
     s = close.dropna()
-    return ((s / s.rolling(252, min_periods=200).max() - 1) * 100).dropna()
+    v = s.to_numpy(dtype=float)
+    out = np.full(len(v), np.nan)
+    for i in range(199, len(v)):
+        out[i] = (v[i] / np.nanmax(v[year_window_start(s.index, i):i + 1]) - 1) * 100
+    return pd.Series(out, index=s.index).dropna()
 
 
 def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,

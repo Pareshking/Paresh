@@ -24,7 +24,7 @@ import pandas as pd
 
 from src.engine.metrics import drawdown
 
-YEAR = 250  # sessions in a year, for annualising
+YEAR = 252  # sessions in a year, for annualising: the Backtest's and the Dashboard's (S211; was 250)
 
 
 def _clean(s: pd.Series | None) -> pd.Series:
@@ -55,7 +55,8 @@ def periods(book: pd.Series, market: pd.Series, mom: pd.Series, as_of: pd.Timest
     start, end = b.index[0], b.index[-1]
     days = b.index
     fy0 = pd.Timestamp(year=end.year if end.month >= 4 else end.year - 1, month=3, day=31)
-    rows = [("Today", days[-2]), ("1 week", days[max(0, len(days) - 6)]),
+    # "1 week" by the date, 7 days back, on or before, like every other window (S211; was 5 sessions).
+    rows = [("Today", days[-2]), ("1 week", end - pd.DateOffset(days=7)),
             ("Month so far", (end.to_period("M") - 1).to_timestamp(how="end").normalize()),
             ("1 month", end - pd.DateOffset(months=1)), ("3 months", end - pd.DateOffset(months=3)),
             ("6 months", end - pd.DateOffset(months=6)),
@@ -168,7 +169,8 @@ def risk(book: pd.Series, market: pd.Series) -> list[Risk]:
     start, end = b.index[0], b.index[-1]
     out = [_risk(b, m, f"Since {start + pd.Timedelta(days=1):%-d %b %Y}")]
     if end - pd.DateOffset(years=1) >= start:
-        t = end - pd.DateOffset(years=1)
+        # Opens on the last session on or before the date a year back, as the returns do (S211).
+        t = b.index[b.index <= end - pd.DateOffset(years=1)][-1]
         out.append(_risk(b.loc[t:], m.loc[t:], "Last 12 months"))
         for y in sorted(set(b.index.year)):
             yb = b.loc[pd.Timestamp(year=y - 1, month=12, day=31):pd.Timestamp(year=y, month=12, day=31)]

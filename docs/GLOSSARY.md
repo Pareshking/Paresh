@@ -19,6 +19,7 @@ last step for item D: `scripts/glossary_audit.mjs` (in CI), with `tests/test_rou
 | 10 | Trades | Actions **Buy**, **Sell**, **Hold**; the rule that forces a sale is a **sell rule**; a stock in the book is a **holding** | "exit rule", "a hold" (noun) | The rule's name says what it makes you do |
 | 11 | Moving averages | **50D EMA**, **200D EMA** in figures and sentences; the Guide explains EMA once; a simple average, where offered, is **SMA** | "200-day average", "50-day", "moving average" as a label | Rule 6; the breadth lines are exponential (`market_questions._share_above_ema`) |
 | 12 | Rounding of every displayed figure | **Half up** (away from zero): ₹892.50 → ₹893, −2.45% → −2.5%; Python and the charts' JavaScript agree | Python's `round()` (half to even) | SONACOMS ₹892.50 showed ₹892 in tables and ₹893 in charts. Display only; stored prices and calculations are untouched |
+| 13 | Where a window starts | The last session **on or before** the same date back (1M from 20 Nov with 20 Oct a holiday: from 19 Oct); the 52-week high over the last 12 months on the same rule; 252 sessions a year | the first session on or after; "252 days" for a year's high | One rule for every page and the ranking (owner, 23 Nov 2026, S211); a month-end price is the month's last session, as index providers read it |
 
 ## Also found while reading the pages (S173 rules already broken; fixed with item D)
 

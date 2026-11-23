@@ -178,11 +178,12 @@ def test_the_ladder_low_is_the_last_252_closes():
 # ── 3 · Returns and falls (rows 29-32; S182 d) ───────────────────────────────
 
 def test_the_market_window_starts_on_the_stocks_first_session():
-    """20 Oct 2026 was Dussehra: the stock's 1M window opens on 21 Oct, and so must the market's
-    (the live page started the market on 19 Oct)."""
+    """20 Oct 2026 was Dussehra: the stock's 1M window opens on 19 Oct, the last session on or before
+    (S211, owner 23 Nov 2026: one rule everywhere; it opened on 21 Oct before), and so does the market's."""
     idx = pd.DatetimeIndex(["2026-10-16", "2026-10-19", "2026-10-21", "2026-10-22", "2026-11-20"])
-    assert sl.window_start(idx, 1) == pd.Timestamp("2026-10-21")
+    assert sl.window_start(idx, 1) == pd.Timestamp("2026-10-19")
     market = pd.Series([90.0, 100.0, 110.0, 111.0, 121.0], index=idx)
+    assert sl.market_return(market, pd.Timestamp("2026-10-19"), DAY) == pytest.approx(0.21)
     assert sl.market_return(market, pd.Timestamp("2026-10-21"), DAY) == pytest.approx(0.1)
     # An index day missing: the last close on or before the stock's first session.
     assert sl.market_return(market.drop(pd.Timestamp("2026-10-21")), pd.Timestamp("2026-10-21"), DAY) == \
