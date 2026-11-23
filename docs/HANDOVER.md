@@ -43,7 +43,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 #644 (S214), #645 (numpy 2.5.5; Dependabot #641-#643 carried in and closed), #646 (S205 step 1).
 
 **Open pull requests**
-- Merged 23 Nov: #650 (S193 C), #651 (S216), #652 (S217), #653 (since-start market from the fill), #654 (S213).
+- Merged 23 Nov: #650 (S193 C), #651 (S216), #652 (S217), #653 (since-start market from the fill), #654 (S213), #655 (S218). **S193 B** PR #656 (bugs B1-B9, the Guide, history from daily closes, wording per system; owner approved 23 Nov): merge when CI is green.
 - **#638 (S211, one date rule):** draft. Merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
   published ranks move). It conflicts with main again: merge main into it once, just before merging. Reminder
   `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.

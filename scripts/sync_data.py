@@ -373,14 +373,22 @@ def run_daily_sync() -> None:
     # Production ranks on a shorter window because every calendar-momentum
     # pass walks that frame row by row. This job has no such constraint, so it
     # takes the high once a day from the store and commits one row per symbol.
+    # The store's weekly years are filled from NSE's long daily file first
+    # (S193 B): a high between two weekly closes was missed.
     print("\n--- 5b. Computing All-Time Highs ---")
     try:
         from src.core.config import REPO_ATH_FILE
         from src.loaders import screener_loader
         from src.loaders.ath_loader import build_ath_snapshot
 
+        from src.loaders import nse_long
+
         store = screener_loader.load_store()
-        snapshot = build_ath_snapshot(symbols, store if store is not None and not store.empty else None)
+        _long = nse_long.load(with_value=False)
+        if _long is None:
+            print("WARNING: the long NSE file is unreachable; all-time highs from Screener's closes alone.")
+        snapshot = build_ath_snapshot(symbols, store if store is not None and not store.empty else None,
+                                      _long[0] if _long is not None else None)
         if snapshot.empty:
             print("No long-history highs returned; leaving the ATH snapshot untouched.")
         else:
@@ -388,7 +396,7 @@ def run_daily_sync() -> None:
             snapshot.to_csv(REPO_ATH_FILE, index=False)
             print(
                 f"All-time-high snapshot written: {len(snapshot)} symbols "
-                f"(Screener closes) -> {REPO_ATH_FILE}"
+                f"(Screener closes{', weekly years filled from NSE' if _long is not None else ''}) -> {REPO_ATH_FILE}"
             )
     except Exception as exc:
         # A failure here must not cost the rest of the sync. Production falls

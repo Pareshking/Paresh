@@ -211,6 +211,40 @@ def load(base: str = NSE_LONG_BASE_URL, cache: Path | str = DATA_DIR, *,
     return close.astype("float32"), value, report
 
 
+def load_columns(columns, base: str = NSE_LONG_BASE_URL, cache: Path | str = DATA_DIR,
+                 start: str | pd.Timestamp | None = None) -> pd.DataFrame | None:
+    """The adjusted closes of `columns` only (those the file has), from `start`, or None.
+
+    For the pages that read history a year or more back (S193 B: Market, Sectors,
+    a stock's chart): reading the columns asked for keeps the whole file (~29 MB
+    in memory) out of a page that needs one stock or one universe. Same file and
+    revision rules as load(); never raises.
+    """
+    wanted = list(dict.fromkeys(str(c) for c in columns))
+    if not wanted:
+        return None
+    cache = Path(cache)
+    path, _ = _from_r2(CLOSE_FILE, cache)
+    path = path or _fetch(CLOSE_FILE, base, cache, try_r2=False)
+    if path is None:
+        return None
+    try:
+        import pyarrow.parquet as pq
+
+        names = set(pq.read_schema(path).names)
+        keep = [c for c in wanted if c in names]
+        if not keep:
+            return None
+        close = pd.read_parquet(path, columns=keep)
+    except Exception as exc:  # noqa: BLE001
+        logger.info("Long NSE file unreadable (%s).", type(exc).__name__)
+        return None
+    close.index = pd.DatetimeIndex(close.index)
+    if start is not None:
+        close = close[close.index >= pd.Timestamp(start)]
+    return None if close.empty else close.astype("float32")
+
+
 def load_value(base: str = NSE_LONG_BASE_URL, cache: Path | str = DATA_DIR) -> pd.DataFrame | None:
     """The traded-value file alone (Rs Cr), or None if unavailable."""
     path = _fetch(VALUE_FILE, base, Path(cache))

@@ -1,6 +1,15 @@
 # Changelog
 
 
+## 2026-11-23 — Sentences checked against the data (S193 B)
+
+- Market on the > ₹2,000 Cr list showed the Nifty 1000's chart headings and shaded range for up to an hour (a cache shared between systems). Each system now gets its own.
+- The Dashboard's book-against-momentum line says "ahead of them" and "behind all of them" when it is (the 1000 read "level with the best" while 0.9 points ahead).
+- "At the last month-end, which the tests read" now counts each signal's month-end reading: 0 and 5 on 30 Oct, not 3 and 2.
+- The Screener counts a stock with no rank a month ago among those new to the top 50 (22, not 19, on the list).
+- Portfolio: the Nifty 1000 draws its daily path from its 2 Nov fill (it read "1 session" and a 0.0% tracking error); the list's indices since 1 Oct start at the fill, as the header; "this book" marks the system shown; no stray "&gt;".
+- Readings a year or more back now come from daily closes, not Screener's weekly years (owner: "Fix, I am with your recommendation"). Market and Sectors read the ranking frame with its weekly years filled from NSE's long daily file: on the Nifty 1000 the share above the 200D EMA a year ago reads 47%, not 54% (NSE's daily closes: 47.2%), and today 44%, not 45%. Net new 52-week highs count each stock over the seven days to the week's last session instead of five rows (two to five weeks on the weekly years); the 1000's usual range reads −2.4 to +14.5, not −4.3 to +19.3. A stock's chart and 50D EMA read daily closes throughout (RELIANCE's EMA on 20 Nov 2025: ₹1,454, as NSE). The all-time-high snapshot fills the weekly years the same way from the next nightly sync: RELIANCE ₹1,601 on 8 Jul 2024, not ₹1,597 on 12 Jul (342 of the 1000 move by more than 1%). Actions' swap evidence measures a stock that has left the list from the former members' prices and names any it cannot price (JBCHEPHARM was dropped without a word): 91 buys +3.0 pts, 71 sold +0.2; the market is read on the stock's own window dates.
+
 ## 2026-11-23 — A new listing starts on its listing day (S218)
 
 - A new listing whose Screener prices start a few sessions late now takes its first closes from NSE, at Screener's level. TRIVENIPT starts on 12 Oct 2026 (₹684.00, its highest close so far), not 14 Oct. It applies to listings from 12 Oct 2026 on; earlier ones and every frozen month are unchanged.

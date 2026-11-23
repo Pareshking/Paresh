@@ -38,6 +38,16 @@ MIN_STOCKS = 2
 GROUPINGS = {"NSE sector": "Industry", "TradingView sector": "TV_Sector", "TradingView industry": "TV_Industry"}
 # Owner, 21 Nov 2026 (item 12): with a TradingView grouping the NSE index sections hide and the page says why, once.
 NSE_ONLY = "NSE’s indices match NSE’s sectors; switch to NSE sectors to see them."
+# The > ₹2,000 Cr list and Combined carry TradingView's sector in "Industry" (docs/THREE_SYSTEMS.md), so their
+# default grouping is TradingView's and NSE's indices are not set against it (S193 B: the list's page called
+# TradingView sectors "NSE sector" and compared them with NSE's indices where two names matched).
+TV_ONLY = "This list’s stocks carry TradingView’s sectors, so NSE’s sector indices, built on NSE’s sectors, are not set beside them."
+GROUPINGS_TV = {"TradingView sector": "Industry", "TradingView industry": "TV_Industry"}
+
+
+def tv_sectors(system: str | None) -> bool:
+    from src.engine.extra_universe import SYSTEM_COMBINED, SYSTEM_NANO
+    return system in (SYSTEM_NANO, SYSTEM_COMBINED)
 GROUP_WORDS = {"ahead on both": ("Ahead on both", "ahead over six months and over the last month"),
                "gaining": ("Gaining", "behind over six months, ahead over the last month"),
                "fading": ("Fading", "ahead over six months, behind over the last month"),
@@ -236,7 +246,7 @@ def head(ld: sp.Leads, sh, noun: str, nse: dict | None) -> list:
             f'<p class="dh-lede">{e(lede)}</p><nav class="sx-toc" aria-label="On this page">{nav}</nav></div>']
 
 
-def section_lead(ld: sp.Leads, sh, noun: str) -> list:
+def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
     nouns = noun + "s"
     n_both = sum(r.group == "ahead on both" for r in ld.rows)
     n_behind = sum(r.group == "behind on both" for r in ld.rows)
@@ -286,7 +296,9 @@ def section_lead(ld: sp.Leads, sh, noun: str) -> list:
             "companies from reading as every one lagging; that gap is the first row, the 750 against Nifty Total Market. "
             f"For example, {sh(ex.name)}: its {ex.stocks} stocks returned {sg(ex.returns.get(6), 1, '%')} over six months and "
             f"the 750 {sg(ld.market_ret.get(6), 1, '%')}, a lead of {sg(ex.lead6)} pts. The grouping switch at the top "
-            "regroups the page by NSE sector (the default), TradingView sector or TradingView industry.")
+            + ("regroups the page by NSE sector (the default), TradingView sector or TradingView industry." if nse_sectors else
+               "regroups the page by TradingView sector (the default: this list’s stocks carry TradingView’s sectors) "
+               "or TradingView industry."))
     read = ("Each line is 1 pt; the bar is the six-month lead now, the triangle the same reading a month ago, and the "
             "numbers the reading three months ago, a month ago, now, and the one-month lead. Describing is not "
             "forecasting: a lead on both windows has not been tested here as a signal for the next month.")
@@ -384,8 +396,9 @@ def section_indices(ld: sp.Leads, nse: dict, sh) -> list:
             f'<tbody>{body}</tbody></table></div></div>']
 
 
-def section_only_nse() -> list:
-    return [f'<div class="dh-sec">{KICK.format("NSE’s sector indices")}<p id="s-broad" class="sx-only">{e(NSE_ONLY)}</p></div>']
+def section_only_nse(nse_sectors: bool = True) -> list:
+    return [f'<div class="dh-sec">{KICK.format("NSE’s sector indices")}<p id="s-broad" class="sx-only">'
+            f'{e(NSE_ONLY if nse_sectors else TV_ONLY)}</p></div>']
 
 
 def section_months(months: pd.DataFrame, sh, noun: str) -> list:
@@ -408,7 +421,10 @@ def section_months(months: pd.DataFrame, sh, noun: str) -> list:
         ex = f"For example, {sh(name)}: {_list(parts)} pts, all {'ahead of' if n > 0 else 'behind'} the 750"
         before = done[: len(done) - abs(n)]
         if before and pd.notna(row[before[-1]]):
-            ex += f"; {before[-1].split()[0]} was {sg(row[before[-1]])}, so the count stops there and Run reads {abs(n)} {'ahead' if n > 0 else 'behind'}"
+            v = float(row[before[-1]])
+            # A hair on the other side prints "0.0" and gives no reason the run stops (S193 B: May was +0.0024).
+            was = (f"{'ahead' if v > 0 else 'behind'} by less than 0.05" if abs(v) < 0.05 and v != 0 else sg(v))
+            ex += f"; {before[-1].split()[0]} was {was}, so the count stops there and Run reads {abs(n)} {'ahead' if n > 0 else 'behind'}"
         ex += f". Its 12 months, {sg(row['total'])} pts, is the twelve completed months added up."
     body = ""
     for name, r in months.iterrows():
@@ -556,18 +572,20 @@ def _num(v, unit: str = "") -> str:
 # ── The page ─────────────────────────────────────────────────────────────────
 
 
-def page_parts(model: dict, rank_df: pd.DataFrame, col: str) -> list:
-    """Every part of the page above "Stocks in a sector", in the approved order."""
+def page_parts(model: dict, rank_df: pd.DataFrame, col: str, nse_sectors: bool = True) -> list:
+    """Every part of the page above "Stocks in a sector", in the approved order. `nse_sectors`: False
+    where "Industry" holds TradingView's sectors (the list, Combined)."""
     ld: sp.Leads = model["ld"]
-    nse = model["nse"]
+    nse_cols = col == "Industry" and nse_sectors
+    nse = model["nse"] if nse_cols else None
     noun = "industry" if col == "TV_Industry" else "sector"
-    sh = (lambda n: SHORT_NAMES.get(n, n)) if col == "Industry" else (lambda n: n)
+    sh = (lambda n: SHORT_NAMES.get(n, n)) if nse_cols else (lambda n: n)
     board, _ = industry_board(rank_df, col)
-    parts = head(ld, sh, noun, nse) + section_lead(ld, sh, noun)
-    if col == "Industry" and nse is not None:
+    parts = head(ld, sh, noun, nse) + section_lead(ld, sh, noun, nse_sectors)
+    if nse is not None:
         parts += section_broad(ld, nse, sh) + section_indices(ld, nse, sh)
     else:
-        parts += section_only_nse()
+        parts += section_only_nse(nse_sectors)
     parts += section_months(model["months"], sh, noun) + section_map(model["map"], sh, noun)
     parts += section_inside(ld, model["shares"], board, rank_df, sh, noun)
     return parts
@@ -609,7 +627,8 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         system = system_param.current()
     universe = UNIVERSE_SHORT.get(system, "750")
     st.html(f"<style>{HOME_CSS}{SX_CSS}</style>")
-    choices = {k: v for k, v in GROUPINGS.items() if v == "Industry" or v in rank_df.columns}
+    nse_sectors = not tv_sectors(system)
+    choices = {k: v for k, v in (GROUPINGS if nse_sectors else GROUPINGS_TV).items() if v == "Industry" or v in rank_df.columns}
     with st.container(horizontal=True, horizontal_alignment="right", key="sector_grouping_row"):
         pick = st.selectbox("Grouping", list(choices), key="sector_tax_choice", width=260, label_visibility="collapsed",
                             format_func=lambda k: f"Grouping: {k}")
@@ -626,11 +645,11 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         st.html('<div class="dh"><div class="dh-sec"><p class="dh-kick">Sectors</p>'
                 f'<h1 class="dh-h1">No group has {sp.MIN_STOCKS} or more ranked stocks to compare.</h1></div></div>')
         return
-    emit(for_universe(page_parts(model, rank_df, col), universe))
+    emit(for_universe(page_parts(model, rank_df, col, nse_sectors), universe))
 
     ld: sp.Leads = model["ld"]
     noun = "industry" if col == "TV_Industry" else "sector"
-    sh = (lambda n: SHORT_NAMES.get(n, n)) if col == "Industry" else (lambda n: n)
+    sh = (lambda n: SHORT_NAMES.get(n, n)) if col == "Industry" and nse_sectors else (lambda n: n)
     names = [r.name for r in ld.rows]
     top = next((r for r in ld.rows if r.group == "ahead on both"), ld.rows[0])
     emit([f'<div class="dh-sec">{KICK.format(f"Stocks in a {noun}")}<h2 id="s-stocks" class="dh-h2">The {noun}’s ranked stocks, '

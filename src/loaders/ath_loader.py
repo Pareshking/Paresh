@@ -7,7 +7,8 @@ row, so lengthening it multiplies the cold start rather than the storage.
 The daily sync job on GitHub Actions has neither constraint -- nobody is
 waiting on it -- so it computes the highs once a day from Screener's whole
 store (about ten years of closes, the basis the ranking uses; no Yahoo since
-2026-10-02) and commits one small row per symbol. Production reads that file
+2026-10-02), its weekly years filled with NSE's daily closes (S193 B), and
+commits one small row per symbol. Production reads that file
 in milliseconds.
 
 When the snapshot is missing the caller falls back to the high water mark of
@@ -133,7 +134,8 @@ def ath_date_series(path: str | None = None) -> pd.Series:
     return df.set_index("Symbol")["ATHDate"]
 
 
-def build_ath_snapshot(symbols: list[str], store: pd.DataFrame | None = None) -> pd.DataFrame:
+def build_ath_snapshot(symbols: list[str], store: pd.DataFrame | None = None,
+                       nse_daily: pd.DataFrame | None = None) -> pd.DataFrame:
     """Per-symbol all-time highs from Screener's whole close history.
 
     Run by the daily sync job on GitHub Actions, never by the app.
@@ -146,7 +148,12 @@ def build_ath_snapshot(symbols: list[str], store: pd.DataFrame | None = None) ->
     (about ten years; weekly through 2023-24).
 
     `store` is the Screener store (columns (symbol, field)); None fetches the
-    published one.
+    published one. `nse_daily` is NSE's long daily file (src/loaders/nse_long.py):
+    Screener's weekly years are filled from it by ratio between Screener's own
+    closes (price_source.daily_history, S193 B), so a high set between two
+    weekly closes is found. RELIANCE's read Rs 1,597 on 12 Jul 2024 from the
+    weekly closes; NSE's daily high is Rs 1,600.90 on 8 Jul 2024. Every
+    Screener close is kept, so the basis is still Screener's.
     """
     empty = pd.DataFrame(columns=["Symbol", "ATH", "ATHDate", "AsOf"])
     if store is None:  # pragma: no cover - exercised only against the network
@@ -163,6 +170,12 @@ def build_ath_snapshot(symbols: list[str], store: pd.DataFrame | None = None) ->
     closes = closes[wanted].apply(pd.to_numeric, errors="coerce")
     if closes.empty:
         return empty
+    if nse_daily is not None and not nse_daily.empty:
+        from src.loaders.price_source import daily_history
+
+        closes, report = daily_history(closes, nse_daily)
+        logger.info("All-time highs: %s weekly-stretch closes filled from NSE's daily file for %s stocks.",
+                    report.get("cells"), report.get("symbols"))
     ath = closes.max()
     ath = ath[ath > 0].dropna()
     if ath.empty:

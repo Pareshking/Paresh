@@ -491,7 +491,7 @@ def section_lead(f: dict) -> list:
         f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill. "
         f"<b>pts</b>: {_fmt.PTS_NOTE}",
         "<b>Why the Nifty 500 and not Nifty Total Market.</b> Nifty Total Market starts on 14 Oct 2021 and this history in "
-        "2010 (owner, 21 Nov 2026). Nifty Total Market is beside it from 2022 in section 3 and in section 4."
+        "2010 (owner, 21 Nov 2026). Nifty Total Market is beside it from 2022 in section 3 and from Nov 2021 in section 4."
         + (f" For this universe its own index, the {e(f['uidx_name'])}, is shown beside both." if f.get("uidx_name") else ""),
     ]
     if half is not None and sm.lead_first_half is not None:
@@ -564,6 +564,12 @@ def _span(r) -> str:
     return f"{MON[a - 1]}–{MON[b - 1]}" if n > 1 else MON[b - 1]
 
 
+def _not_made(checks: list) -> str:
+    """The heading names the checks the table marks "Not checked" (S193 B: it named only the soft spots)."""
+    n = sum(1 for c in checks if c[2] == "Not checked")
+    return "" if not n else f"; {n} check{'s are' if n != 1 else ' is'} not made (below)"
+
+
 def section_years(f: dict) -> list:
     yt: pd.DataFrame = f["years"]
     cols = [("n500", "Nifty 500")]
@@ -586,14 +592,20 @@ def section_years(f: dict) -> list:
                      "vals": vals, "cls": [_kt(r["rule"])] + ["muted"] * len(cols) + [_kt(ld) + " b"],
                      "read": [[_pts(ld), "lead over the Nifty 500", _kt(ld)], [_pcs(r["rule"]), "this rule"],
                               [_pcs(r["n500"]), "Nifty 500"]]})
-    ahead = sum(1 for v in lead if np.isfinite(v) and v > 0)
-    known = sum(1 for v in lead if np.isfinite(v))
-    worst = int(np.nanargmin(lead)) if known else None
+    # Whole years only: a first or last year of a few months is shown in the table, not counted as a year
+    # (S193 B: "13 of 17 years" counted Jan-Oct 2026). The worst is a whole year too; "behind" carries the sign.
+    whole = [i for i, (_, r) in enumerate(yt.iterrows()) if int(r["months"]) == 12 and np.isfinite(lead[i])]
+    ahead = sum(1 for i in whole if lead[i] > 0)
+    known = len(whole)
+    part = [(int(r["year"]), _span(r), lead[i]) for i, (_, r) in enumerate(yt.iterrows())
+            if int(r["months"]) != 12 and np.isfinite(lead[i])]
+    extra = "".join(f" ({y} {s}: {'ahead' if v > 0 else 'behind'})" for y, s, v in part)
+    worst = min(whole, key=lambda i: lead[i]) if whole else None
     if worst is not None and lead[worst] < 0:
-        h2 = (f'Ahead in <span class="dh-up">{ahead} of {known} years</span>; {int(yt.iloc[worst]["year"])} was the worst, '
-              f'<span class="dh-down">{e(_pts(lead[worst]))}</span> behind.')
+        h2 = (f'Ahead in <span class="dh-up">{ahead} of {known} whole years</span>{e(extra)}; {int(yt.iloc[worst]["year"])} was the '
+              f'worst, <span class="dh-down">{e(_pts(abs(lead[worst])).lstrip("+"))}</span> behind.')
     else:
-        h2 = f'Ahead in <span class="dh-up">every year</span> of {known}.'
+        h2 = f'Ahead in <span class="dh-up">every whole year</span> of {known}{e(extra)}.'
     spec = {"label": "Year", "barHead": "Lead over the Nifty 500", "head": ["This rule"] + [c for _, c in cols] + ["Lead, pts"],
             "rows": rows, "lo": float(lo), "hi": float(hi), "step": step, "rest": f"{rows[0]['name']}, the first year" if rows else ""}
     mtd = f.get("mtd")
@@ -743,7 +755,7 @@ def section_trust(f: dict) -> list:
     body = "".join(f'<tr><th scope="row">{e(a)}</th><td>{e(b)}</td><td class="bt-st {tone[c]}">{e(c)}</td></tr>' for a, b, c in checks)
     return ['<div class="dh-sec">', _kick("5", "Can it be trusted"),
             '<h2 id="s-trust" class="dh-h2">Survivorship and look-ahead are handled; <span class="dh-watch">costs, tax and the '
-            'choice of rules</span> are the soft spots.</h2>',
+            f'choice of rules</span> are the soft spots{_not_made(checks)}.</h2>',
             '<div class="dh-scroll"><table class="dh-tab bt-checks"><thead><tr><th scope="col">Check</th>'
             '<th scope="col">What this run shows</th><th scope="col">Status</th></tr></thead>'
             f'<tbody>{body}</tbody></table></div></div>', END]

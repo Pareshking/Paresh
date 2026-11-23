@@ -147,7 +147,8 @@ def header(p: Plan) -> list:
     when = f"{p.check:%a} {dshort(p.check)}"
     if p.sells or p.buys:
         answer = (f"{len(p.sells)} sell{'s' if len(p.sells) != 1 else ''} and {len(p.buys)} buy{'s' if len(p.buys) != 1 else ''} "
-                  f"on {when}" + (f": {_lakh(sell_amt)} out, {_lakh(buy_amt)} in." if sell_amt or buy_amt else "."))
+                  f"at the {when} close, filled {p.fill:%a} {dshort(p.fill)}"   # the signal day, then the fill (S193 B)
+                  + (f": {_lakh(sell_amt)} out, {_lakh(buy_amt)} in." if sell_amt or buy_amt else "."))
     else:
         answer = f"Nothing to trade on {when}: every holding is clear of the rules."
     return [f'<div class="pf-head"><p class="pf-kick">Actions</p><h1 class="pf-title">{e(answer)}</h1>'
@@ -264,7 +265,10 @@ def section_buy(p: Plan) -> list:
             + ("" if ev.buy_3m is None or ev.sold_3m is None else
                f'. Over three months: {sg(ev.buy_3m)} against {sg(ev.sold_3m)}')
             + f'. {ev.rebought} of the {ev.sold} sold were bought back within two months. '
-            f'<span class="dh-muted">{ev.first:%b %Y} to {ev.last:%b %Y}: a short record, measured on the record itself, before costs, '
+            + ("" if not getattr(ev, "unpriced", ()) else
+               f'{e(", ".join(ev.unpriced))} {"has" if len(ev.unpriced) == 1 else "have"} no price here and '
+               f'{"is" if len(ev.unpriced) == 1 else "are"} left out. ')
+            + f'<span class="dh-muted">{ev.first:%b %Y} to {ev.last:%b %Y}: a short record, measured on the record itself, before costs, '
             'with overlapping windows; evidence, not proof.</span></div>')
     return _sec([_head("ac-buy", "Buy", "best qualified, not held"), evid,
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab"><thead><tr><th scope="col">Stock</th>'
@@ -394,15 +398,19 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
             from src.loaders import benchmark_indices as bi
             from src.ui.views.portfolio_view import build_portfolio_history
             hist = build_portfolio_history(record, MODEL_BOOK_CAPITAL, ledger, (record or {}).get("live_meta") or {})
-            swaps = sw.from_record(hist, adj_close, bi.series(bi.TOTAL_MARKET))
+            from src.loaders import former_members
+            # A name that has since left the list is valued by the record from the former members' file:
+            # measured from it too, not dropped (JBCHEPHARM, S193 B).
+            swaps = sw.from_record(hist, adj_close, bi.series(bi.TOTAL_MARKET), former_members.load())
         except (KeyError, ValueError, OSError):
             swaps = None
         if plan.buys:
             w = float(plan.weights.get(plan.buys[0], 0.0))
             cash = w * len(plan.buys)
-            limit = (f"Each buy gets {w * 100:.1f}%: the record never trims a kept stock to make room, so the buys share the "
-                     f"{cash * 100:.1f}% the sells free up, which is less than the {cfg.get('buy_size', 0.05) * 100:.0f}% buy size "
-                     "(the rule since 8 Nov)." if w < float(cfg.get("buy_size") or 0.05) - 1e-9 else "")
+            # The comparison is each buy against the buy size, not the total (S193 B: "13.3% ... less than the 5%").
+            limit = (f"Each buy gets {w * 100:.1f}%, less than the {cfg.get('buy_size', 0.05) * 100:.0f}% buy size: the record never "
+                     f"trims a kept stock to make room, so the buys share the {cash * 100:.1f}% the sells free up (the six-monthly "
+                     "rule, from the 30 Nov rebalance)." if w < float(cfg.get("buy_size") or 0.05) - 1e-9 else "")
     else:
         symbols = list(my_symbols or [])
         if not symbols:

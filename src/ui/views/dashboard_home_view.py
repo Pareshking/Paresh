@@ -207,8 +207,13 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
     # The members-of-the-day history is the 750's (data/breadth_history.csv): joined only under
     # the 750's own live line, never under another system's universe (S194 L4, 23 Nov 2026).
     past = pit_breadth.load("total_market") if pit else None
+    # Breadth reaches years back: daily closes, Screener's weekly years filled from NSE's long file
+    # (owner, 23 Nov 2026, S193 B). The book and its ranks keep the deep frame.
+    from src.ui import daily_history
+    bx = daily_history.frame(px[ranked])
+    bx = px[ranked] if bx is None or bx.empty else bx.sort_index()
     for span in (50, 200):
-        out[f"above_{span}"] = pit_breadth.splice(mq._share_above_ema(px[ranked], span), past, f"above_{span}")
+        out[f"above_{span}"] = pit_breadth.splice(mq._share_above_ema(bx, span), past, f"above_{span}")
     snap = snapshots(px, [d for d in dates.values() if d is not None])
     key_of = {d: k for k, d in dates.items() if d is not None}
     from src.engine.exit_watch import qualified_ranks
@@ -256,8 +261,25 @@ def _kpis(items: list[tuple[str, str, str, str, str, str]]) -> str:
     return f'<div class="dh-kpis">{cells}</div>'
 
 
+def _against_momentum(book: float, lo: float, hi: float) -> str:
+    """Where the book stands against NSE's momentum indices this month (S193 B2, B3).
+
+    Level within 0.05 pts of the best (one decimal on the page), ahead above it, behind
+    below the worst, within the range otherwise. The level test used to come first and
+    caught every book above the best too, so "ahead" never printed (the 1000, 20 Nov:
+    +5.5% against a best of +4.6%, read "level")."""
+    if abs(book - hi) < 0.05:
+        return "is level with the best of them."
+    if book > hi:
+        return "is ahead of them."
+    if book < lo - 0.05:
+        return "is behind all of them."
+    return "is within their range."
+
+
 def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None, as_of: pd.Timestamp,
-                 prev: dict | None = None, begun: pd.Timestamp | None = None) -> list:
+                 prev: dict | None = None, begun: pd.Timestamp | None = None, frozen: str = "",
+                 fill: pd.Timestamp | None = None) -> list:
     """`prev`: {"label", "market", "book", "momentum": {key: %}} for the last finished month."""
     gap = None if bm.book_mtd is None or bm.market_mtd is None else bm.book_mtd - bm.market_mtd
     mom = bm.momentum_mtd
@@ -267,15 +289,18 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
     if style_lag:
         title = f'{month}’s lag is <span class="dh-down">momentum’s</span>, not <span class="dh-up">this book’s</span>.'
     elif gap is not None and gap >= 0:
-        title = f'The book is <span class="dh-up">{e(sg(gap))} points ahead</span> of Nifty Total Market so far in {month}.'
+        title = f'The book is <span class="dh-up">{e(_fmt.fixed(abs(gap), 1))} points ahead</span> of Nifty Total Market so far in {month}.'
     else:
-        title = f'The book is <span class="dh-down">{e(sg(gap))} points behind</span> Nifty Total Market so far in {month}.'
+        title = f'The book is <span class="dh-down">{e(_fmt.fixed(abs(gap), 1))} points behind</span> Nifty Total Market so far in {month}.'
     up = lambda v: f"{'up' if v >= 0 else 'down'} {abs(v):.1f}%"  # noqa: E731
     lede = ""
     if mom and bm.market_mtd is not None and bm.book_mtd is not None:
         n = {5: "All five", 4: "All four"}.get(len(mom), f"All {len(mom)}")
-        lede = f"Nifty Total Market is {up(bm.market_mtd)}. {n} NSE momentum indices are up {lo:.1f} to {hi:.1f}%; the book, {up(bm.book_mtd)}, "
-        lede += "is level with the best of them." if bm.book_mtd >= hi - 0.05 else ("is ahead of them." if bm.book_mtd > hi else "is within their range.")
+        # A system's first month runs from its fill, not the month-end (the 1000: +8.1% from 2 Nov beside
+        # +9.8% on the other systems from 30 Oct, unexplained; S193 B).
+        since_fill = f"Since the {fill:%-d %b} fill, " if fill is not None else ""
+        lede = f"{since_fill}Nifty Total Market is {up(bm.market_mtd)}. {n} NSE momentum indices are up {lo:.1f} to {hi:.1f}%; the book, {up(bm.book_mtd)}, "
+        lede += _against_momentum(bm.book_mtd, lo, hi)
         if style_lag:
             lede += " What lagged is the style, not the stock picking."
     level = bm.level_with_momentum
@@ -321,8 +346,9 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "
             "style lagged; against the Nifty Total Market row, how far momentum is behind.",
             [""] + [p["label"] for p in periods], table_rows),
-        f'<p class="dh-note">{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. January to October stay as recorded '
-        'against the Nifty 500; the Nifty Total Market comparison is worked out beside them. The book is after costs; indices are '
+        f'<p class="dh-note">{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. '
+        + (f'{e(frozen)} {"stay" if " to " in frozen else "stays"} as recorded against the Nifty 500; the Nifty Total Market comparison is worked out beside them. '
+           if frozen else '') + 'The book is after costs; indices are '
         'price returns. The book’s month-by-month record is on Portfolio.</p>' + END]
 
 
@@ -344,7 +370,8 @@ def _turnover_html(t: di.Turnover | None, industry: pd.Series) -> str:
     say = []
     up_ind = pd.Series([industry.get(s) for s, *_ in t.climbers]).value_counts()
     if len(up_ind) and up_ind.iloc[0] >= 2:
-        say.append(f"{SHORT.get(up_ind.index[0], up_ind.index[0])} are climbing in, {up_ind.iloc[0]} of the {len(t.climbers)}")
+        tied = [SHORT.get(k, k) for k, v in up_ind.items() if v == up_ind.iloc[0]]   # a tie named as a tie (S193 B)
+        say.append(f"{' and '.join(tied)} are climbing in, {up_ind.iloc[0]} {'each ' if len(tied) > 1 else ''}of the {len(t.climbers)}")
     dn_ind = pd.Series([industry.get(s) for s, *_ in t.fallers]).value_counts()
     if len(dn_ind) and dn_ind.iloc[0] >= 2:
         say.append(f"{dn_ind.iloc[0]} of the {len(t.fallers)} falling out are {SHORT.get(dn_ind.index[0], dn_ind.index[0])} names")
@@ -511,7 +538,7 @@ def _lag_note(lag, against: str = "the 750", since: str = "2021", short: str | N
 
 def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None,
                      lag: di.MomentumLag | None = None, uni: str = "750", since: str = "2021", long=None,
-                     short: str | None = None) -> list:
+                     short: str | None = None, so_far: str | None = None) -> list:
     tested = [x for x in signals if x["test"] is not None]
     passed = [x for x in tested if x["test"]["passed"]]
     better = sum(x["like"] is not None and average is not None and x["like"] >= average for x in passed)
@@ -519,8 +546,10 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
     # A record without a year says so; "behind" would be a claim the record cannot make (S217).
     head = ("No year of this system’s own record yet" if year is None else
             "Ahead over a year" if year > 0 else "Behind over a year")
-    head += (f'{"; it has" if year is None else ", but"} <span class="dh-down">{streak} losing month{"s" if streak != 1 else ""} in a row</span>.'
-             if streak >= 2 else ".")
+    # The streak counts the month in progress when it is behind so far; the words say so (S193 B).
+    run = (f"{streak - 1} losing month{'s' if streak - 1 != 1 else ''} in a row and {so_far} so far" if so_far and streak >= 2
+           else f"{streak} losing months in a row")
+    head += (f'{"; it has" if year is None else ", but"} <span class="dh-down">{run}</span>.' if streak >= 2 else ".")
     if tested:
         head += (f' We tested each signal on the Nifty 500’s record since 2010: <span class="dh-up">{len(passed)} pass</span>, '
                  f'<span class="dh-muted">{len(tested) - len(passed)} {"is" if len(tested) - len(passed) == 1 else "are"} not confirmed</span>'
@@ -590,7 +619,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
         '<th scope="col">Our test</th><th scope="col">What would flip it</th></tr></thead>'
         f'<tbody>{"".join(rows)}</tbody></table></div>'
         '<p class="dh-note"><b>The test, fixed before looking:</b> a signal passes if momentum’s next-month lead (the '
-        'top 100 of this ranking less the Nifty 500) differs by at least 1 point between months when it is on and off, '
+        'Nifty 500’s top 100 by this site’s score, less the Nifty 500) differs by at least 1 point between months when it is on and off, '
         'in the direction it claims, and in both halves of the record. Failures stay on the page. The signals overlap, '
         'so their bars are not added into one score. Breadth and participation count the Nifty 500’s members on each '
         'date, leavers included. In-sample: the thresholds were set on the record they are tested on. '
@@ -634,7 +663,8 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                 f'Nifty 500 the next month by {ev.after_heavy:.1f} points on average, against {ev.after_rest:.1f} after the rest; ahead '
                 f'{ev.hit_heavy:.0f}% of the time against {ev.hit_rest:.0f}%. '
                 + (f'It held in both halves ({halves}).' if held else f'It did not hold in both halves ({halves}).')
-                + f'<span class="dh-ev dh-ev-t">Tested here · {ev.months} months, {ev.heavy_months} heavy, in-sample</span></div>'
+                + f'<span class="dh-ev dh-ev-t">Tested here · {ev.months} months of flows, {ev.heavy_months} heavy, in-sample; '
+                  'the latest has no next month to test yet</span></div>'
                 f'<div class="dh-ev-box"><b>No forecast for the Nifty 500.</b> Flows move with the Nifty 500 in the same month '
                 f'(correlation {sg(ev.corr_same, 2)}) and say nothing about the next ({sg(ev.corr_next, 2)}).</div>'
                 f'<div class="dh-ev-box"><b>{"Not a large-cap story" if ev.large_minus_broad <= 0 else "A large-cap tilt"}.</b> '
@@ -750,8 +780,8 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None,
     ms = book_sizes.get("Mid", 0) + book_sizes.get("Small", 0)
     head = ""
     if fail_large:
-        head += (f'<span class="dh-down">Large Cap momentum is failing</span>: {min(-x for x in large):.0f} to '
-                 f'{max(-x for x in large):.0f} points behind the Nifty 200 over every window{phrase}. ')
+        head += (f'<span class="dh-down">Large Cap momentum is failing</span>: {_fmt.fixed(min(-x for x in large), 1)} to '
+                 f'{_fmt.fixed(max(-x for x in large), 1)} points behind the Nifty 200 over every window{phrase}. ')
     if level:
         head += f'<span class="dh-up">In Mid Cap and Small Cap it keeps level with its index</span>; that is {ms:.0f}% of this book.'
     head = head or "Momentum within each size, against its own index."
@@ -847,7 +877,7 @@ def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], br
              '<span class="dh-sub">Reference figures; the full readings are a page away</span></div></div>']
     if breadth:
         counted = ("counted over the members of each date, leavers included." if pit else
-                   "counted over today's members (no members-of-the-day history for this universe).")
+                   "counted over today's members (this list's members of each date are not kept far enough back for this chart).")
         parts += [Chart("breadth", breadth, {"note": "The index and how many stocks carry it",
                                              "label": f"Nifty 500 and the share of the {universe} above their 200D EMA"}),
                   how(f"Top: the Nifty 500. Bottom: the share of the {universe} above their own 200D EMA, {counted}", "When the top line rises while the bottom one falls, fewer stocks are carrying the index.",
@@ -937,10 +967,12 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     bought = [int((b["Action"] == "Bought").sum()) for k, b in sorted(books.items())[1:]
               if hasattr(b, "columns") and "Action" in b.columns]
     churn = f"{len(plan.buys)} of {len(symbols)} would change."
-    if bought:
+    if len(bought) >= 3:
         avg = sum(bought) / len(bought)
         churn = (("A light month. " if len(plan.buys) < avg * 0.75 else "")
                  + f"{len(plan.buys)} of {len(symbols)} would change; {avg:.0f} in an average month.")
+    elif bought:   # one or two rebalances are not an average (S193 B: the list's "10 in an average month" was one)
+        churn = f"{len(plan.buys)} of {len(symbols)} would change; {bought[-1]} at the last rebalance."
     bc = rc.for_book(rc.load(), symbols, list(plan.buys), pd.Timestamp(ist_now().date()), fetched=rc.fetched_on())
     results_line = ""
     if bc is not None:
@@ -1029,7 +1061,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                .sort_values("Weight", ascending=False).reset_index())
 
     # v8 chart inputs (S151)
-    prev = _last_month(ledger, market, momentum, idx_end)
+    prev = _last_month(ledger, market, momentum, idx_end, first_month=(inc + pd.Timedelta(days=1)).to_period("M"))
     lead_bars = _lead_bars(own, lead)
     fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_dii"], dtype={"period": str}))
     compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
@@ -1037,14 +1069,16 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
     uni = UNIVERSE_SHORT.get(system, "750")
     parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{idx_end:%B}", uni)]
-    parts += section_book(bm, since, since_mkt, idx_end, prev, inc + pd.Timedelta(days=1))
+    parts += section_book(bm, since, since_mkt, idx_end, prev, inc + pd.Timedelta(days=1), frozen=_frozen_span(ledger),
+                          fill=fill0 if fill0 is not None and first_month == idx_end.to_period("M") else None)
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
                                results_line, turnover, hist.get("dates"))
     own_since = pd.Period(own["month"].iloc[0], "M").strftime("%B %Y") if own is not None else ""
     short = sm.record_note(own, system)
     parts += section_momentum(lead, streak, signals, average, lead_bars,
                               None if short or own is None else di.momentum_lag(own), uni, own_since,
-                              long=_long_record(spreads), short=short)
+                              long=_long_record(spreads), short=short,
+                              so_far=f"{idx_end:%B}" if mtd is not None and mtd < 0 else None)
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{idx_end:%B}")
@@ -1059,10 +1093,27 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 # ── v8 chart inputs ─────────────────────────────────────────────────────────
 
 
-def _last_month(ledger: dict, market: pd.Series, momentum: dict, as_of: pd.Timestamp) -> dict | None:
-    """The last finished month: the market, the book (as recorded) and each momentum index."""
+def _frozen_span(ledger: dict) -> str:
+    """"January to October": the frozen months a ledger holds, or "" when it holds none (the 1000, Nov 2026)."""
+    months = sorted(pd.Period(k, "M") for k in (ledger or {}).get("months") or {})
+    if not months:
+        return ""
+    if len(months) == 1:
+        return f"{months[0]:%B}"
+    return f"{months[0]:%B} to {months[-1]:%B}" if months[0].year == months[-1].year else f"{months[0]:%b %Y} to {months[-1]:%b %Y}"
+
+
+def _last_month(ledger: dict, market: pd.Series, momentum: dict, as_of: pd.Timestamp,
+                first_month: pd.Period | None = None) -> dict | None:
+    """The last finished month: the market, the book (as recorded) and each momentum index.
+
+    A system's first month is measured from its first fill, as the book is (S193 A12; the list's
+    October read Nifty Total Market -1.2% from 30 Sep beside a book begun at the 1 Oct fill)."""
     p = as_of.to_period("M") - 1
     start, end = (p - 1).to_timestamp(how="end").normalize(), p.to_timestamp(how="end").normalize()
+    if first_month is not None and p == first_month:
+        fill = di.first_fill(market, p)
+        start = fill if fill is not None else start
     rec = (ledger.get("months") or {}).get(str(p)) or {}
     book = rec.get("strategy")
     out = {"label": f"{p:%B}", "market": di.window_return(market, start, end),
@@ -1312,6 +1363,21 @@ def _qualify_today(adj_close: pd.DataFrame | None, as_of: pd.Timestamp) -> dict:
         return {}
 
 
+def _last_month_end(series: pd.Series, as_of: pd.Timestamp) -> float | None:
+    """The reading on the last session of the month before `as_of`'s month."""
+    s = pd.to_numeric(series, errors="coerce").dropna().sort_index()
+    at = di.month_end_before(s.index, as_of)
+    return None if at is None else float(s.loc[at])
+
+
+def _month_end_change(series: pd.Series, as_of: pd.Timestamp, test) -> bool | None:
+    """test(reading, change) on the last month-end, its change taken from the month-end before it."""
+    s = pd.to_numeric(series, errors="coerce").dropna().sort_index()
+    at = di.month_end_before(s.index, as_of)
+    prev = None if at is None else di.month_end_before(s.index, at)
+    return None if prev is None else bool(test(float(s.loc[at]), float(s.loc[at]) - float(s.loc[prev])))
+
+
 def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth: dict, tests: dict,
              qualify_now: dict | None = None) -> list[dict]:
     """One row per signal: today's reading, its state, and its test (data/signal_tests.json).
@@ -1350,8 +1416,12 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         gs = mq._ema_gap_series(n500)
         g = di.trail_of(gs, as_of)
         on = g[2] is not None and g[2] > 0
+        # Every test reads month-ends (signal_tests.all_tests), so each row's month-end state is its
+        # last month-end reading, never today's (S193 B4: "at the last month-end 3 and 2" was 0 and 5).
+        me_g = _last_month_end(gs, as_of)
         row("trend_fast", "Nifty 500 vs its 200D EMA", "Above: on", [gap(v) for v in g], on,
-            "Back below the EMA" if on else "Back above the EMA", where(gs, g[2]))
+            "Back below the EMA" if on else "Back above the EMA", where(gs, g[2]),
+            me_on=None if me_g is None else me_g > 0)
     if flows is not None and "fpi" in t:
         fpi = t["fpi"]
         cut = fpi.get("threshold")
@@ -1359,7 +1429,8 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         row("fpi", "Heavy foreign buying", "FPI net, last 20 sessions, ₹ thousand Cr · top quarter of months: on",
             ["–" if v is None else sg(v / 1000, 0) for v in flows.trail20], on if cut is not None else None,
             "Settled for the month" if on else (f"₹{_fmt.fixed(cut / 1000, 0)} thousand Cr in a month" if cut else ""),
-            f"Highest 20-session total since {flows.since:%Y}" if flows.last20_is_record else "")
+            f"Highest 20-session total since {flows.since:%Y}" if flows.last20_is_record else "",
+            me_on=None if cut is None or len(flows.monthly) < 2 else flows.monthly[-2][1] * 1000 >= cut)   # last whole month
     if len(n500):
         tr = [mq.ten_month_today(n500, d) for d in di.trail_dates(as_of).values()]
         on = tr[2] is not None and tr[2] > 0
@@ -1396,20 +1467,24 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
     if a200 is not None and len(a200.dropna()):
         tr = di.trail_of(a200, as_of)
         on = tr[2] is not None and tr[2] <= 40
+        me_b = _last_month_end(a200, as_of)
         row("breadth_thin", "Breadth thin", "Nifty 500 above the 200D EMA · 40% or fewer: on", [pct(v) for v in tr],
-            None if tr[2] is None else on, "Above 40%" if on else "Back to 40% or below", where(a200, tr[2]))
+            None if tr[2] is None else on, "Above 40%" if on else "Back to 40% or below", where(a200, tr[2]),
+            me_on=None if me_b is None else me_b <= 40)
     if a50 is not None and len(a50.dropna()):
         tr = di.trail_of(a50, as_of)
         jump = _since_month_end(a50, as_of)
         row("participation_jump", "Participation jump", "Nifty 500 above the 50D EMA · up 15+ pts in a month: on",
-            [pct(v) for v in tr], None if jump is None else jump >= 15, "A month without a jump", where(a50, tr[2]))
+            [pct(v) for v in tr], None if jump is None else jump >= 15, "A month without a jump", where(a50, tr[2]),
+            me_on=_month_end_change(a50, as_of, lambda v, ch: ch >= 15))
     if len(n500):
         fh = mq._from_high_series(n500)
         tr = di.trail_of(fh, as_of)
         up = _since_month_end(fh, as_of)
         on = None if up is None or tr[2] is None else (up >= 5 and tr[2] >= -3)
         row("rebound", "Sharp rebound", "Nifty 500 from its 52W high · within 3% after a 5-pt jump: on",
-            [gap(v) for v in tr], on, "", where(fh, tr[2]))
+            [gap(v) for v in tr], on, "", where(fh, tr[2]),
+            me_on=_month_end_change(fh, as_of, lambda v, ch: ch >= 5 and v >= -3))
     return out
 
 

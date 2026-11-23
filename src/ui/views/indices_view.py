@@ -192,10 +192,14 @@ def section_lag(sts: list[ip.Style]) -> list:
 def section_years(sts: list[ip.Style], as_of: pd.Timestamp) -> list:
     if not sts:
         return []
-    led = {s.style: ip.years_led(s) for s in sts}
+    # Whole years only: the year in progress is in the table, not in the count (S193 B: "7 years of 9" counted 2026).
+    def whole(s):
+        ys = {y: v for y, v in s.years.items() if y < as_of.year or (as_of.month == 12 and as_of.day >= 31)}
+        return sum(v > 0 for v in ys.values()), len(ys)
+    led = {s.style: whole(s) for s in sts}
     always = [s for s, (a, b) in led.items() if a == b and b > 1]
     best = max(led.items(), key=lambda kv: (kv[1][0] / kv[1][1] if kv[1][1] else 0, kv[1][1]))
-    h2 = (f"No style led its parent every year; {best[0].lower()} came closest, {best[1][0]} years of {best[1][1]}."
+    h2 = (f"No style led its parent every whole year; {best[0].lower()} came closest, {best[1][0]} of {best[1][1]}."
           if not always else f"{always[0]} led its parent in every year since launch.")
     years = sorted({y for s in sts for y in s.years}, reverse=True)
     head = "".join(f'<th scope="col" class="dh-num">{e(s.style)}</th>' for s in sts)
@@ -220,7 +224,7 @@ def section_size(sizes: list[ip.SizeYears], as_of: pd.Timestamp) -> list:
     if large and small and large.median_fall < 0:
         ratio = small.median_fall / large.median_fall
         word = "twice" if 1.8 <= ratio <= 2.2 else f"{ratio:.1f} times"
-        h2 = (f"In a median year since {ip.SIZE_FROM_YEAR}, the Small Cap index fell {abs(small.median_fall):.0f}% at some point, "
+        h2 = (f"In a median year since {ip.SIZE_FROM_YEAR}, the Nifty Smallcap 250 fell {abs(small.median_fall):.0f}% at some point, "
               f"{word} the Large Cap index's {abs(large.median_fall):.0f}%.")
     allv = [x for z in sizes for v in z.years.values() for x in v]
     lo, hi = (min(allv) // 20) * 20, -((-max(allv)) // 20) * 20

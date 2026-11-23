@@ -443,6 +443,39 @@ def build_portfolio_history(
         "tradebook": tradebook.copy() if isinstance(tradebook, pd.DataFrame) else pd.DataFrame(),
     }
 
+def _from_the_fill(table: pd.DataFrame, prices: pd.DataFrame | None, fill, benchmark_close: pd.Series | None,
+                   value: float):
+    """A system with no frozen month yet: its holdings marked each session from the fill (S193 B7).
+
+    The month-end curve such a system falls back to is one point, dated at the end of the running
+    month (the Nifty 1000, 20 Nov 2026: "30 Nov", after the data date), so Portfolio read "the book
+    has 1 session", a tracking error of 0.0% and "from December 2027". The fill session's close is
+    the first point, the cash residual held throughout; the benchmark is rebased to it.
+    """
+    if pd.isna(fill) or prices is None or prices.empty or table is None or table.empty:
+        return None
+    px = prices.reindex(columns=table["Symbol"].tolist()).ffill().loc[fill:]
+    if len(px) < 2:
+        return None
+    shares = table.set_index("Symbol")["Shares"].reindex(px.columns).fillna(0.0)
+    held = (px * shares).sum(axis=1)
+    eq = held + (float(value) - float(held.iloc[-1]))
+    if px.index[-1] == prices.index[-1]:
+        eq.iloc[-1] = float(value)
+    # The money put in on the session before the fill, as a frozen record starts (₹1 Cr at the
+    # month-end before its first fill), so the book's return is after its buying costs.
+    from src.core.config import MODEL_BOOK_CAPITAL
+    before = prices.index[prices.index < px.index[0]]
+    if len(before):
+        eq = pd.concat([pd.Series([float(MODEL_BOOK_CAPITAL)], index=[before[-1]]), eq])
+    bm = pd.Series(dtype=float)
+    if benchmark_close is not None and len(benchmark_close):
+        bc = pd.to_numeric(benchmark_close, errors="coerce").dropna().reindex(eq.index, method="ffill")
+        if pd.notna(bc.iloc[0]) and bc.iloc[0]:
+            bm = (bc / float(bc.iloc[0]) * float(eq.iloc[0])).dropna()
+    return eq, bm
+
+
 def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | None, meta: dict,
                      benchmark_close: pd.Series | None, value: float, current: float):
     """The daily curves: frozen months, then the live month from today's holdings.
@@ -453,9 +486,10 @@ def _daily_with_live(history: dict, table: pd.DataFrame, prices: pd.DataFrame | 
     """
     eq = history["equity_daily"]
     bm = history["benchmark_daily"]
-    if len(eq) < 2:
-        return history["equity"], history["benchmark"]
     fill = pd.to_datetime(meta.get("fill_date"), errors="coerce")
+    if len(eq) < 2:
+        first = _from_the_fill(table, prices, fill, benchmark_close, value)
+        return first if first is not None else (history["equity"], history["benchmark"])
     if pd.notna(fill) and prices is not None and not prices.empty and not table.empty:
         px = prices.reindex(columns=table["Symbol"].tolist()).ffill().loc[fill:]
         px = px[px.index > eq.index[-1]]
