@@ -1,6 +1,7 @@
 // Glossary audit: the "Not" column of docs/GLOSSARY.md in every page's rendered text (S193 item D; owner, 23 Nov 2026).
 //
-//   node scripts/glossary_audit.mjs [--report] URL [URL ...]        pages at 412 and 1400 px, chart frames included
+//   node scripts/glossary_audit.mjs [--report] [--cache DIR] URL ... pages at 412 and 1400 px, chart frames included;
+//                                    a page number_format_audit.mjs --save DIR already read is not loaded again (S205)
 //   node scripts/glossary_audit.mjs [--report] --files a.txt b.txt   text already read off pages (a negative control)
 //
 // A page's text is read as number_format_audit.mjs reads it (every frame, collapsed sections opened). Cells of a table
@@ -12,12 +13,14 @@
 // Exit 1 on any finding, unless --report.
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
-import { settle } from './_settle.mjs';
+import { readPageText, cachedPageText } from './_page_text.mjs';
 
 const args = process.argv.slice(2);
 const report = args.includes('--report');
 const fromFiles = args.includes('--files');
-const targets = args.filter(a => !a.startsWith('--'));
+const cacheAt = args.indexOf('--cache');
+const cacheDir = cacheAt >= 0 ? args[cacheAt + 1] : null;
+const targets = args.filter((a, i) => !a.startsWith('--') && !(cacheAt >= 0 && i === cacheAt + 1));
 if (!targets.length) { console.error('usage: glossary_audit.mjs [--report] URL ... | --files FILE ...'); process.exit(2); }
 
 // Text taken out before the rules run. Each entry: what, where (a URL or file-name pattern, or null for every page), why.
@@ -94,35 +97,9 @@ if (fromFiles) {
   const b = await chromium.launch();
   for (const url of targets) {
     for (const width of [412, 1400]) {
-      const p = await b.newPage({ viewport: { width, height: 900 } });
-      await p.goto(url);
-      await p.waitForSelector('.site, .dh, [data-testid="stMainBlockContainer"] h1', { timeout: 180000 }).catch(() => {});
-      await settle(p);                 // Streamlit's run over, fonts in, frames still (S205)
-      let t = '';
-      for (const f of p.frames()) {
-        try {
-          t += await f.evaluate(() => {
-            document.querySelectorAll('details').forEach(d => { d.open = true; });
-            // Glossary 3: the short form of an NSE index is allowed in a column headed "NSE index".
-            // Columns are counted on the header's last row, colspans included (the Screener has a group row above it).
-            const at = (tr, col) => { let i = 0; for (const c of tr.children) { i += c.colSpan || 1; if (i > col) return c; } return null; };
-            for (const table of document.querySelectorAll('table')) {
-              const rows = table.querySelectorAll('thead tr');
-              if (!rows.length) continue;
-              let col = -1, i = 0;
-              for (const c of rows[rows.length - 1].children) {
-                if (c.innerText.replace(/[↕↑↓]/g, '').trim() === 'NSE index') { col = i; break; }
-                i += c.colSpan || 1;
-              }
-              if (col < 0) continue;
-              for (const tr of table.querySelectorAll('tbody tr')) { const c = at(tr, col); if (c) c.textContent = ''; }
-            }
-            return document.body.innerText;
-          }) + '\n';
-        } catch { /* a frame still loading */ }
-      }
+      const read = cachedPageText(cacheDir, url, width) || await readPageText(b, url, width);
+      const t = read.glossary;
       bad += audit(`${url} @${width}`, t);
-      await p.close();
     }
   }
   await b.close();

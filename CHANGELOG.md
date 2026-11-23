@@ -1,8 +1,9 @@
 # Changelog
 
-## 2026-11-23 — numpy 2.5.5 and pyarrow 26.0.1
+## 2026-11-23 — numpy 2.5.5; pyarrow stays at 24.0.0
 
-- Two library updates Dependabot proposed, checked before they reach the site: every figure the audit baseline pins (the 750 ranking and the Backtest) is identical to the last version, and the record's parity checks pass.
+- A numpy update Dependabot proposed, checked before it reached the site: every figure the audit baseline pins (the 750 ranking and the Backtest) is identical, and the record's parity checks pass.
+- pyarrow went to 26.0.1 with it and back to 24.0.0 the same day: Streamlit Cloud replaces any pyarrow from 25 at boot (a known crash in those versions), so the site never ran 26. Dependabot no longer proposes it.
 
 ## 2026-11-23 — The Backtest page picks up a republished price file at once (S214)
 

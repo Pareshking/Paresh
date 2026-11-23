@@ -96,6 +96,19 @@ def _normalize_ticker_cols(df: pd.DataFrame | None) -> pd.DataFrame | None:
 MIN_OBSERVATIONS: int = 63
 
 
+def too_new_to_rank(adj_close: pd.DataFrame, min_rows: int = MIN_OBSERVATIONS) -> list[str]:
+    """Symbols whose FIRST price is fewer than `min_rows` rows from the frame's end.
+
+    A new listing, not lost data: it is ranked once it has `min_rows` sessions
+    (S215). Counted from the first price, not by prices held, so a stock with an
+    old history and holes in it is not called new and stays a real gap.
+    """
+    if adj_close is None or adj_close.empty:
+        return []
+    rows_since_first = adj_close.notna().cummax().sum()
+    return sorted(str(s) for s in rows_since_first[(rows_since_first > 0) & (rows_since_first < min_rows)].index)
+
+
 # Every column that needs a real intraday high and low, named here because
 # this module is what produces them. A second copy elsewhere is a typo waiting
 # to happen, and it did: the drop list in pipeline.py said "Chandelier Exit"

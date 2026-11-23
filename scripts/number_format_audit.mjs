@@ -1,6 +1,7 @@
 // Page style audit: the 8-rule sheet in docs/PAGE_DESIGN.md "Numbers and words" (S173; owner, 22 Nov 2026).
 //
-//   node scripts/number_format_audit.mjs [--report] http://localhost:8501/ [more URLs]
+//   node scripts/number_format_audit.mjs [--report] [--save DIR] http://localhost:8501/ [more URLs]
+//   --save DIR keeps each page's text for glossary_audit.mjs --cache DIR, so the pages both read load once (S205).
 //
 // Reads each page's text at 412 and 1400 px, chart frames included and collapsed sections opened, and checks
 // what can be read off a page:
@@ -17,12 +18,14 @@
 // Exit 1 on any finding, unless --report.
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
-import { settle } from './_settle.mjs';
+import { readPageText, savePageText } from './_page_text.mjs';
 
 const args = process.argv.slice(2);
 const report = args.includes('--report');
-const urls = args.filter(a => a !== '--report');
-if (!urls.length) { console.error('usage: number_format_audit.mjs [--report] URL [URL ...]'); process.exit(2); }
+const saveAt = args.indexOf('--save');
+const saveDir = saveAt >= 0 ? args[saveAt + 1] : null;
+const urls = args.filter((a, i) => a !== '--report' && a !== '--save' && !(saveAt >= 0 && i === saveAt + 1));
+if (!urls.length) { console.error('usage: number_format_audit.mjs [--report] [--save DIR] URL [URL ...]'); process.exit(2); }
 
 // "pts = percentage points: …" is the glossary's own explainer (glossary 4), the one place the long form is right.
 const ALLOWED = [/Each line is [\d.]+%/g, /stamp duty \(?[\d.]+%/gi, /pts = percentage points/g];
@@ -41,21 +44,10 @@ const b = await chromium.launch();
 let bad = 0;
 for (const url of urls) {
   for (const width of SIZES) {
-    const p = await b.newPage({ viewport: { width, height: 900 } });
-    await p.goto(url);
-    await p.waitForSelector('.site, .dh, [data-testid="stMainBlockContainer"] h1', { timeout: 180000 }).catch(() => {});
-    await settle(p);                 // Streamlit's run over, fonts in, frames still (S205)
-    let t = '', emCells = 0;
-    for (const f of p.frames()) {
-      try {
-        const r = await f.evaluate(() => {
-          document.querySelectorAll('details').forEach(d => { d.open = true; });
-          const cells = [...document.querySelectorAll('td')].filter(td => td.innerText.trim() === '—').length;
-          return [document.body.innerText, cells];
-        });
-        t += r[0] + '\n'; emCells += r[1];
-      } catch { /* a frame still loading */ }
-    }
+    const read = await readPageText(b, url, width);
+    if (saveDir) savePageText(saveDir, url, width, read);
+    let t = read.raw;
+    const emCells = read.emCells;
     for (const re of ALLOWED) t = t.replace(re, '');
     const found = {};
     for (const [rule, fn] of Object.entries(RULES)) {
@@ -70,7 +62,6 @@ for (const url of urls) {
     bad += n;
     console.log(`${url} @${width}: ${n ? n + ' found' : 'clean'}`);
     for (const [rule, m] of Object.entries(found)) console.log(`  rule ${rule}: ${m.slice(0, 10).join(' | ')}${m.length > 10 ? ` (+${m.length - 10})` : ''}`);
-    await p.close();
   }
 }
 await b.close();
