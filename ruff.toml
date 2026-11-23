@@ -4,12 +4,6 @@
 # wider rule sets (B, UP, SIM) have been cleaned up.
 # Matches .python-version (3.14), which CI and production run.
 target-version = "py314"
-extend-exclude = [
-    # Stage-4B research is under active development on its own branches.
-    "agent",
-    "scripts/stage4b_*.py",
-    "tests/test_agent_*.py",
-]
 
 [lint]
 select = ["F", "E9"]

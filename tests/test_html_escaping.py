@@ -14,14 +14,6 @@ def test_safe_json_cannot_close_its_element_and_stays_valid_json():
     assert json.loads(out) == obj          # the startup-metrics readers parse it unchanged
 
 
-def test_safe_href_keeps_site_links_and_refuses_script_schemes():
-    for ok in ("?page=actions", "/?page=actions", "#top", "https://www.nseindia.com/x", "http://a.b"):
-        assert kit.safe_href(ok) == ok
-    for bad in ("javascript:alert(1)", " JavaScript:alert(1)", "java\tscript:alert(1)",
-                "data:text/html,<b>x</b>", "vbscript:x"):
-        assert kit.safe_href(bad) == "#"
-
-
 def test_the_startup_metrics_div_goes_through_safe_json():
     src = (ROOT / "app.py").read_text(encoding="utf-8")
     i = src.index('id="umiya-startup-metrics"')

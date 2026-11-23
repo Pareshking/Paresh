@@ -182,7 +182,7 @@ def test_the_cache_key_still_follows_run_backtests_own_code():
 
 def test_the_backtest_page_runs_no_parameter_sweep():
     """Removed from the web app: heavy on the shared server and easy to fit to
-    noise. The engine stays for deliberate offline research."""
+    noise. The engine itself was deleted in S212 (owner, 23 Nov 2026)."""
     src = open("src/ui/views/backtest_view.py", encoding="utf-8").read()
     assert "run_parameter_sweep" not in src and "parameter_sweep" not in src.split("\n# The parameter sweep was removed")[0]
 

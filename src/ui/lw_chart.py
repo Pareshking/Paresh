@@ -32,12 +32,14 @@ from __future__ import annotations
 
 import html as _html
 import json
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 from src.ui import formats as _fmt
 from src.ui.tokens import FONTS, resolve
 
+_STATIC = Path(__file__).resolve().parents[2] / "static"
 LW_VERSION = "5.2.1"
 _LW_FILE = "lightweight-charts.standalone.production.js"
 
@@ -52,10 +54,30 @@ LEGEND_PX = 20
 SPARE = ("var(--c-ink)", "var(--c-up)", "var(--c-caution)", "var(--c-teal)", "var(--c-violet)", "var(--c-faint)", "var(--c-down)")
 
 
+def _js_str(text: str) -> str:
+    # A JS string literal that cannot close the <script> block it sits in.
+    return json.dumps(text).replace("<", "\\u003c")
+
+
+def loader_js(files: list[tuple[str, str]], global_name: str) -> str:
+    """JavaScript that loads `files` [(static name, CDN url)] in order while the
+    frame is parsing, then the CDN copies if the static ones did not define
+    `global_name` (audit F60). The library was copied into every chart frame,
+    0.2-0.5 MB each and never cached; a script tag is fetched once and cached
+    for every frame. Relative "app/static/" resolves against the app page, as
+    the frame is a srcdoc document."""
+    out = []
+    for name, _cdn in files:
+        out.append("document.write(" + _js_str(f'<script src="app/static/{name}"></script>') + ");")
+    fallback = "".join("document.write(" + _js_str(f'<script src="{cdn}"></script>') + ");" for _n, cdn in files)
+    check = f"<script>if(!window.{global_name}){{{fallback}}}</script>"
+    out.append("document.write(" + _js_str(check) + ");")
+    return "".join(out)
+
+
 def _lib() -> str:
     """A loader for the library (static folder, then the pinned CDN copy):
     it was inlined into every frame (audit F60)."""
-    from src.ui.highcharts_lib import loader_js
     return loader_js([(_LW_FILE, f"https://cdn.jsdelivr.net/npm/lightweight-charts@{LW_VERSION}/dist/{_LW_FILE}")],
                      "LightweightCharts")
 

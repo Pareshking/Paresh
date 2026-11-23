@@ -219,17 +219,6 @@ def build_panes(
     return panes, bool(vol_rows)
 
 
-def render_stock_panes(symbol: str, close: pd.Series, *, one_line: bool = False, label: str = "", **kw) -> None:
-    """Draw the stock chart. Raises ChartUnavailable when the data cannot make one."""
-    panes, has_volume = build_panes(close, **kw)
-    try:
-        lw_chart.render(panes, key=f"lw_{symbol}", one_line=one_line, label=label)
-    except Exception as exc:
-        raise ChartUnavailable(f"render failed: {exc}") from exc
-    if not has_volume:
-        st.caption("Volume unavailable for this symbol.")
-
-
 # ── The stock page's chart (S182, mock-up v2 approved 23 Nov 2026) ──────────────
 # Today's chart kept and restyled (STOCK_REQUIREMENTS rows 33, 47-49): price with
 # the 50D EMA the ranking uses, Volume in its own pane, and the stock against

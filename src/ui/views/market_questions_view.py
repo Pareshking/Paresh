@@ -702,38 +702,6 @@ def _leaders_full(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench
             mq.industry_months(_prices, _industry, _bench))
 
 
-def leaders_for(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
-                size: dict[str, pd.Series], market_name: str = "the Nifty 500"):
-    """(Leaders, months) for the Sectors page, cached on the prices; None when it cannot be answered."""
-    if prices is None or prices.empty or bench is None or bench.dropna().empty:
-        return None, None
-    syms = [s for s in rank_df["Symbol"] if s in prices.columns]
-    px = prices[syms]
-    from src.engine import dashboard_insights as di
-    size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
-    size = {k: v for k, v in size.items() if len(v)}
-    industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
-    key = "|".join([price_fingerprint(px), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp(), "full", market_name])
-    return _leaders_full(key, px, industry, bench.dropna(), size, market_name)
-
-
-def leaders_title(ld) -> str:
-    """The Sectors page's title: what leads, in one line."""
-    if ld is None or ld.sectors is None or ld.sectors.empty:
-        return "Sectors"
-    both = ld.sectors[ld.sectors["group"] == "ahead on both"]["Industry"].head(3).tolist()
-    best = max((x for x in ld.size if x[1] is not None), key=lambda x: x[1], default=None)
-    from src.ui.views.sector_view import SHORT_NAMES
-    names = [SHORT_NAMES.get(n, n) for n in both]
-    lead = (", ".join(names[:-1]) + " and " + names[-1]) if len(names) > 1 else (names[0] if names else "")
-    parts = []
-    if lead:
-        parts.append(f"{lead} lead{'s' if len(names) == 1 else ''}")
-    if best is not None:
-        parts.append(f"{best[0]} leads the sizes")
-    return ("; ".join(parts) + ".") if parts else "No industry leads on both six months and one month."
-
-
 def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
                            size: dict[str, pd.Series], market_name: str = "the Nifty 500") -> bool:
     if prices is None or prices.empty or bench is None or bench.dropna().empty:
@@ -754,4 +722,3 @@ def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: p
 
 
 # ── The market strip: each index's day, its last three months, its month ────
-

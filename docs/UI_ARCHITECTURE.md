@@ -340,7 +340,7 @@ navigation contract changed.
 ## 7. October 2026 overhaul: where things lived then (charts and pages superseded, see §11)
 
 - **Tables.** `src/ui/screener_table.py` draws every stock table in the Screener from one column registry; Full Quant is the master and Executive/Core are its columns hidden. `render_saas_table` (theme.py) is the generic table for everything else and shares its type scale.
-- **Charts.** Two libraries, each where it is best. Time series use TradingView Lightweight Charts (`src/ui/lw_chart.py`, vendored under `src/ui/vendor/`, no CDN): stacked synced panes, crosshair, legend with every value, candlesticks and volume; Breadth, Portfolio, Backtest and the stock page (`src/ui/stock_chart.py`) all use it. Everything that is not a time series uses Highcharts (`src/ui/highcharts_lib.py`, vendored, Highsoft EULA, non-commercial personal use, see `HIGHCHARTS_LICENSE.txt`): the Relative Rotation Graph in `src/ui/charts.py` and the holdings correlation heatmap on Portfolio.
+- **Charts.** Time series use TradingView Lightweight Charts (`src/ui/lw_chart.py`; the library is served from `static/lightweight-charts.standalone.production.js` with a pinned CDN copy as fallback): stacked synced panes, crosshair, legend with every value, candlesticks and volume; Breadth, Portfolio, Backtest and the stock page (`src/ui/stock_chart.py`) all used it then. The rest (the Relative Rotation Graph, the holdings correlation heatmap, Sectors' leadership map) used Highcharts; all three are gone, and Highcharts with them (S212, 23 Nov 2026).
 - **Type.** One UI family (Geist) and Geist Mono for numbers; no per-view font stacks.
 - **Pages.** Portfolio owns the model portfolio's live book and its record (the Track Record page is gone; `/track-record` redirects). `record_run` lives in `src/engine/model_record.py`.
 - **Method.** Every UI change is checked on the running app, before and after, at desktop and phone width (Playwright against `streamlit run app.py`), not only by tests.
@@ -615,9 +615,9 @@ Still `st.navigation(..., position="hidden")`, drawn by
   chart no longer moves as the pointer does (#589).
 - **Lightweight Charts** remain on the stock page (`stock_chart.py`) and
   Backtest (`page_kit.growth_chart`). Portfolio and Market no longer use them.
-- **Highcharts** draws Sectors' leadership map (`charts.render_leadership_map`).
-  The RRG chart is gone; `charts.render_correlation_heatmap` is still in the
-  file but no page calls it (Portfolio shows the correlation as a figure).
+- **Highcharts** is gone (S212, 23 Nov 2026): the RRG, the correlation heatmap
+  and Sectors' leadership map it drew were all removed earlier, and
+  `src/ui/charts.py`, `highcharts_lib.py` and the library files went with them.
 
 ### Checks on the built pages, in CI
 

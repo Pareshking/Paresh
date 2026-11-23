@@ -59,7 +59,7 @@ def test_streamlit_config_repeats_the_tokens_exactly():
     assert theme["orangeColor"] == C.caution
 
 
-@pytest.mark.parametrize("module", ["screener_table", "lw_chart", "charts"])
+@pytest.mark.parametrize("module", ["screener_table", "lw_chart"])
 def test_framed_documents_are_sent_resolved(module):
     src = (ROOT / "src" / "ui" / f"{module}.py").read_text(encoding="utf-8")
     calls = re.findall(r"st\.iframe\((.*)", src)
@@ -86,14 +86,13 @@ def test_every_text_grey_is_readable_on_white_and_the_subtle_fill():
 
 
 def test_no_colour_literals_outside_the_tokens():
-    """Audit F77: every colour is a token, so one file changes the theme. The
-    sector palette in charts.py is its own named list and is exempt."""
+    """Audit F77: every colour is a token, so one file changes the theme."""
     import re
     from pathlib import Path
     ui = Path(__file__).resolve().parent.parent / "src" / "ui"
     offenders = []
     for f in ui.rglob("*.py"):
-        if f.name in ("tokens.py", "charts.py"):
+        if f.name == "tokens.py":
             continue
         for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
             if re.search(r"#[0-9A-Fa-f]{6}\b", line) and "noqa: colour" not in line:

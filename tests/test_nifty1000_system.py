@@ -177,11 +177,3 @@ def test_f7_the_new_tags_have_display_names():
     for names in (table_names, stock_names):
         # Owner, 23 Nov 2026: the Nifty 1000's other 250 are "Nano Cap" (was "Nanocap 250").
         assert names["NANO250"] == "Nano Cap" and names["NANO"] == "> ₹2,000 Cr"
-
-
-def test_l6_the_comparison_heading_counts_the_systems():
-    from src.engine.extra_universe import SYSTEMS
-    from src.ui.views.track_record_view import systems_heading
-    assert len(SYSTEMS) == 4
-    assert systems_heading(len(SYSTEMS)) == "Four systems, side by side"
-    assert systems_heading(7) == "7 systems, side by side"

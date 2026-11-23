@@ -66,7 +66,7 @@ def _cummax_lines(path: Path) -> list[str]:
 
 def test_no_module_still_computes_it_itself():
     offenders = []
-    for folder in ("src", "scripts", "research", "agent"):
+    for folder in ("src", "scripts", "research"):
         for path in sorted((ROOT / folder).rglob("*.py")):
             if path == Path(metrics.__file__):
                 continue

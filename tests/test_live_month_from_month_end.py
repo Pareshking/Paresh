@@ -49,22 +49,6 @@ def test_the_live_month_equals_its_frozen_month_over_the_same_days():
     assert live["benchmark_mtd"] == pytest.approx(bench[o9] / bench[s30] - 1.0, rel=1e-9)
 
 
-def test_portfolio_counts_the_index_from_the_first_fill():
-    """Portfolio's top row: since inception from the first fill, MTD from the month-end."""
-    from src.ui.views.portfolio_view import _benchmark_returns_from_daily
-
-    idx = pd.to_datetime(["2025-12-31", "2026-01-01", "2026-01-02",
-                          "2026-09-30", "2026-10-01", "2026-10-09"])
-    s = pd.Series([100.0, 101.0, 102.0, 90.0, 89.0, 91.0], index=idx)
-    as_of = pd.Timestamp("2026-10-09")
-    _, mtd, total = _benchmark_returns_from_daily(s, as_of, pd.Period("2026-01", "M"))
-    assert total == pytest.approx(91 / 101 - 1), "from the 01 Jan fill, not the 31 Dec close"
-    assert mtd == pytest.approx(91 / 90 - 1), "from the 30 Sep close"
-    # A system that started this month: both from its first fill.
-    _, mtd_new, total_new = _benchmark_returns_from_daily(s, as_of, pd.Period("2026-10", "M"))
-    assert mtd_new == pytest.approx(91 / 89 - 1) and total_new == pytest.approx(91 / 89 - 1)
-
-
 def test_a_systems_first_month_starts_at_its_first_fill():
     """No old book before the first fill: the strategy and the index both start there."""
     px, bench = _market(seed=5)

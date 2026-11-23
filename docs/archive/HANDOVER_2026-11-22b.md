@@ -69,7 +69,7 @@ No work is in progress in any session.
    formatter (`src/ui/formats.py`), then pass the requirements check, the layout
    audit and `number_format_audit.mjs`.
 3. **Done 22 Nov: merged as #620** (the owner's yes/no clean-up list: see the report). **S195 resources report, due 25 Nov.** Branch `claude/laughing-cray-ynqt45`
-   (`c44e055`): draft `docs/RESOURCES_2026-11-25.md` plus catalogue fixes.
+   (`c44e055`): draft `docs/RESOURCES.md` plus catalogue fixes.
    It predates #615–#617: add the Nifty 1000 datasets (R2
    `snapshots/rankings_1000`, `nse/closes_2y` now 1,000 wide, the notices
    ledger). Bring the yes/no clean-up list to the owner. **Delete nothing.**

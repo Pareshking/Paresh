@@ -348,21 +348,6 @@ def flow_evidence(nsdl: pd.DataFrame, spreads: pd.DataFrame, bench: pd.DataFrame
         f"{d.index[0]:%b %Y}", f"{d.index[-1]:%b %Y}", int(len(heavy_all)))
 
 
-def dii_window(nse: pd.DataFrame | None) -> tuple[pd.Timestamp, pd.Timestamp, float, int, int] | None:
-    """(from, to, net ₹ crore, sessions, selling sessions) for DII in the NSE
-    provisional file (data/fii_dii_flows.csv), the current month only."""
-    if nse is None or nse.empty:
-        return None
-    x = nse[nse["category"] == "DII"].copy()
-    if x.empty:
-        return None
-    x["date"] = pd.to_datetime(x["date"])
-    cur = x["date"].max().to_period("M")
-    x = x[x["date"].dt.to_period("M") == cur].sort_values("date")
-    net = pd.to_numeric(x["net"], errors="coerce")
-    return x["date"].iloc[0], x["date"].iloc[-1], float(net.sum()), len(x), int((net < 0).sum())
-
-
 # ── 5. Size, and momentum within each size ──────────────────────────────────
 
 # (size, its size index, its momentum index, the index that momentum index picks from).

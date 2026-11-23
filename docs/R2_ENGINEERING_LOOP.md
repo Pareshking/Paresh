@@ -19,9 +19,9 @@ V1 is the application/quantitative-research validation track. Stage-4B live arch
 ### CI rule
 
 - R2-only changes must be validated by R2-specific tests/workflows and must **not** trigger the expensive V1 Full Validation suite merely because the repository contains both systems.
-- V1 Full Validation remains responsible for application + System-1 regression. Stage-4B live archetype execution is temporarily isolated in its own workflow so R2/V1 progress does not wait on the expensive research loop.
+- V1 Full Validation remains responsible for application + System-1 regression. (Stage-4B, the research agent in `agent/`, was deleted in S212 on the owner's word, 23 Nov 2026; the Stage-4B lines below are history.)
 - An R2 gate is green only from R2 evidence; a Stage-4B result is neither a substitute for nor a prerequisite for an R2 storage gate.
-- A V1/Stage-4B failure must not block independent R2 engineering unless the changed R2 code is demonstrably on the failing execution path. Stage-4B remains intact and independently executable; this is CI decoupling, not removal or weakening of Stage-4B tests.
+- A V1/Stage-4B failure must not block independent R2 engineering unless the changed R2 code is demonstrably on the failing execution path. This was CI decoupling at the time; Stage-4B itself was later deleted (S212).
 - R2 consumer integration is now split by purpose: research/backtest remains explicitly pinned; Streamlit production is a separate daily-current consumer behind its feature flag.
 
 This separation is intentional: the combined V1 suite currently executes multiple real Stage-4B archetypes and Streamlit checks, so attaching it to every R2 storage/documentation change creates unnecessary latency and makes unrelated failures harder to diagnose.
@@ -150,8 +150,7 @@ R2 and V1/Stage-4B are now separate CI tracks.
 - V1 Full Validation and V1 Production QA ignore R2-only paths.
 - R2 Focused Validation remains the canonical gate for R2 changes.
 - V1 Full Validation now excludes R2 paths and no longer executes Stage-4B live archetypes.
-- Stage-4B live archetypes are retained in `.github/workflows/stage4b-independent-validation.yml` and run only on dedicated Stage-4B branches or manual dispatch.
-- This removes Stage-4B latency/failure coupling from the V1/R2 engineering loop without deleting or weakening any Stage-4B executable checks.
+- Stage-4B was deleted in S212 (owner, 23 Nov 2026): `agent/`, the `scripts/stage3_*` and `scripts/stage4b_*` files, their tests and the never-run `stage4b-independent-validation.yml`.
 
 This is intentional: R2 acceptance is based on R2 evidence. SANSERA, ANANDRATHI, PAYTM, YATHARTH, and LENSKART are V1/Stage-4B research workloads and are not R2 acceptance tests.
 

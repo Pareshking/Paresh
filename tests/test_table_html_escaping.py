@@ -144,30 +144,3 @@ def test_ampersand_industry_survives_as_text(captured):
     """An escaped "&" is still the right character once the browser parses it."""
     html = screener_table.table_html(_screener_row(Industry="Oil & Gas"), None, "Full Quant (35)")
     assert "Oil &amp; Gas" in html
-
-
-# ── Chart pages: JSON inside a <script> block ────────────────────────────────
-#
-# The chart components take the same route -- a full HTML page handed to
-# st.iframe -- but reach it through json.dumps into a <script> body. json.dumps
-# escapes quotes and backslashes and NOT "<", and the HTML parser looks for the
-# literal "</script" before JavaScript ever sees the string, so an Industry
-# name or ticker carrying "</script>" closes the block and everything after it
-# is markup.
-
-BREAKOUT = "</script><img src=x onerror=alert(1)>"
-
-
-def _script_tags_balance(html: str) -> bool:
-    return len(re.findall(r"<script\b", html)) == len(re.findall(r"</script\s*>", html))
-
-
-def test_script_json_preserves_the_value_it_escapes():
-    """The escape must be invisible to JavaScript -- "<\\/" is just "/"."""
-    import json
-
-    from src.ui.charts import _script_json
-
-    encoded = _script_json({"industry": BREAKOUT})
-    assert "</script" not in encoded
-    assert json.loads(encoded.replace("<\\/", "</"))["industry"] == BREAKOUT

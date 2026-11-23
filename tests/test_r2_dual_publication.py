@@ -332,26 +332,6 @@ def test_r2_publisher_fails_on_pointer_mismatch(monkeypatch, tmp_path):
         )
 
 
-def test_screener_10y_bootstrap_audits_r2_after_publication():
-    steps = _steps("screener_10y_bootstrap.yml")
-    names = [str(step.get("name", "")) for step in steps]
-    publish = names.index("Publish deep Screener history to R2")
-    audit = names.index("Audit published R2 Screener revision")
-    release = names.index("Publish deep Screener history to release")
-    assert publish < audit < release
-    step = steps[audit]
-    run = str(step["run"])
-    assert "scripts/r2_audit.py" in run
-    assert "--dataset prices/screener" in run
-
-
-def test_r2_live_archive_audit_workflow_is_read_only_and_targets_screener():
-    steps = _steps("r2_archive_audit.yml")
-    step = next(s for s in steps if s.get("name") == "Audit latest Screener R2 publication")
-    assert "scripts/r2_audit.py --dataset prices/screener" in str(step["run"])
-    assert "R2_SECRET_ACCESS_KEY" in step["env"]
-
-
 def test_historical_evidence_membership_intervals_are_point_in_time():
     from scripts.r2_historical_evidence_bootstrap import _membership_intervals
 

@@ -104,7 +104,6 @@ def test_a_closed_month_awaiting_freeze_is_not_called_mtd():
     import pandas as pd
 
     from src.ui.views.portfolio_view import (
-        _calendar_note,
         _month_labels,
         build_portfolio_history,
         live_month_state,
@@ -119,8 +118,6 @@ def test_a_closed_month_awaiting_freeze_is_not_called_mtd():
     labels = _month_labels("2026-09", "closed", oct1)
     assert labels == {"prefix": "Sep (closed)", "badge": "CLOSED", "next": "Oct MTD"}
     assert _month_labels("2026-09", "mtd", sep15)["prefix"] == "Sep MTD"
-    assert "closed, not yet frozen" in _calendar_note(labels, "2026-09", "closed")
-    assert _calendar_note(_month_labels("2026-09", "mtd", sep15), "2026-09", "mtd") == ""   # owner: not needed
 
     ledger = {"months": {"2026-08": {"strategy": 0.03, "benchmark": 0.0}}}
     meta = {"strategy_mtd": 0.027, "benchmark_mtd": -0.054, "mtd_period": "2026-09", "as_of": "2026-09-30"}
@@ -145,12 +142,8 @@ def test_actions_explains_a_fill_due_on_the_first_of_the_month():
     assert fill_due_note(oct1, oct2, oct2) == ""            # same month: nothing odd
 
 
-def test_record_caption_and_correlation_card_wording():
-    # Owner, 7 Oct 2026: no annualised figure for a record under a year, the
-    # drawdown named for what it is; the correlation reading kept (20 Nov).
-    record = (PORTFOLIO_VIEW.parent / "track_record_view.py").read_text(encoding="utf-8")
-    assert "not a CAGR)" not in record and "worst month-to-month fall" not in record
-    assert "largest fall from a peak" in record and "if elapsed >= 1:" in record
+def test_correlation_card_wording():
+    # The correlation reading kept (owner, 20 Nov 2026).
     source = PAGE.read_text(encoding="utf-8")
     assert "1.00 = move exactly together" not in source
     assert '"How they move together, 90 sessions"' in source
@@ -173,20 +166,6 @@ def test_desktop_bar_links_every_page_and_the_menu_serves_smaller_screens():
     assert theme.count('[class*="st-key-app_nav_menu_"] { display: none !important; }') == 1
     # No group headings in the menu (owner, 21 Nov 2026).
     assert "_MENU_GROUPS" not in components and 'st.markdown(f"**{_group}**")' not in components
-
-
-def test_track_record_copy_uses_points_alpha_and_its_own_start():
-    source = (ROOT / "src/ui/views/track_record_view.py").read_text(encoding="utf-8")
-    # Owner, 12 Oct 2026: "since <start>", not "YTD", which is wrong for a system
-    # that started mid-year and for any record longer than one calendar year.
-    assert "f\"after costs · since {start.strftime('%b %Y')}\"" in source
-    assert '"after costs · YTD"' not in source
-    # Alpha in points (owner, 8 Nov 2026, S97 d; replaces 12 Oct's %), through
-    # the formatter, never by rewriting a % string.
-    assert 'kit.Reading("Ahead of the index", _fmt.pts(stats["alpha"]),' in source
-    assert 'replace("%", " pts")' not in source
-    assert "Each system starts on its own date" not in source
-    assert "A dash means the system had not started yet" not in source
 
 
 def test_one_word_for_one_thing_across_pages():

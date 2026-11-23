@@ -22,7 +22,6 @@ from src.engine.track_record import (
     config_fingerprint,
     overlay_month,
 )
-from src.ui.views.track_record_view import comparison_frame
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -99,7 +98,7 @@ def test_the_overlay_month_is_kept_daily_at_its_exposure_and_pays_the_switch():
     assert 0 < half < full
 
 
-def test_the_overlay_sits_beside_the_engines_month_and_the_table_shows_it():
+def test_the_overlay_sits_beside_the_engines_month():
     mod = _updater()
     idx = pd.bdate_range("2026-01-01", "2026-12-31")
     px = pd.DataFrame({f"S{i}": np.linspace(100, 90 + i, len(idx)) for i in range(150)}, index=idx)
@@ -114,10 +113,6 @@ def test_the_overlay_sits_beside_the_engines_month_and_the_table_shows_it():
     assert ov["signal"] == "2026-11-30" and ov["exposure"] in (0.5, 1.0) and ov["strategy"] is not None
     assert lines and "overlay 2026-12" in lines[0]
     assert mod.add_overlay(ledger, ["2026-12"], SHADOWS["high90"], curve, px, members) == []
-    table = comparison_frame({}, {}, None, {"breadth_long": ledger, "high90": {"months": {"2026-12": {"strategy": 0.02}}}})
-    by = {r["SYSTEM"]: r["DEC"] for _, r in table.iterrows()}
-    assert by[SHADOWS["breadth_long"].name] == ov["strategy"]
-    assert by[SHADOWS["high90"].name] == 0.02
 
 
 def test_the_monthly_job_freezes_both_books_after_the_live_records():
@@ -140,12 +135,6 @@ def test_at_full_exposure_the_overlay_is_the_engines_own_month_first_month_inclu
     for period in engine.index:
         got = overlay_month(curve, period, 1.0, 1.0, cash_yield=0.0, switch_cost=0.0)
         assert got == pytest.approx(float(engine.loc[period]))
-
-
-def test_a_book_with_no_frozen_month_adds_no_row():
-    live_like = {"750": {"months": {"2026-11": {"strategy": 0.01}}}}
-    table = comparison_frame(live_like, {}, None, {"high90": {"months": {}}, "breadth_long": None})
-    assert not ({SHADOWS["high90"].name, SHADOWS["breadth_long"].name} & set(table["SYSTEM"]))
 
 
 # ── Skip 5 (owner, 20 Nov 2026: "Record skip 5 as a shadow book"; TODO S160) ──

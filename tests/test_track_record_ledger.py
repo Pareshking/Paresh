@@ -6,7 +6,6 @@ The ledger exists to stop that: a closed month is written once and frozen. These
 tests are the guarantee.
 """
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -15,7 +14,6 @@ import src.engine.track_record as track_record
 from src.engine.track_record import (
     INCEPTION,
     TRACK_RECORD_CONFIG,
-    build_grid,
     calendar_month_returns,
     compound,
     config_fingerprint,
@@ -196,64 +194,6 @@ def test_drift_is_reported_but_never_applied():
 
 # ── Aggregation, against the reference tracker's conventions ─────────────────
 
-def _grid_ledger(vals: dict[int, float]) -> dict:
-    led = empty_ledger()
-    led["months"] = {
-        f"2026-{m:02d}": {"strategy": v, "benchmark": 0.0, "alpha": v}
-        for m, v in vals.items()
-    }
-    return led
-
-
-def test_quarters_are_calendar_quarters():
-    led = _grid_ledger({1: 0.10, 2: 0.10, 3: 0.10, 4: 0.05})
-    row = build_grid(led).iloc[0]
-    assert row["Q1"] == pytest.approx(1.1 ** 3 - 1, abs=1e-9)
-    assert row["Q2"] == pytest.approx(0.05, abs=1e-9)
-
-
-def test_cy_compounds_january_through_december():
-    led = _grid_ledger({1: 0.10, 2: -0.05, 12: 0.20})
-    row = build_grid(led).iloc[0]
-    assert row["CY RETURN"] == pytest.approx(1.10 * 0.95 * 1.20 - 1, abs=1e-9)
-
-
-def test_fy_runs_april_to_march_across_the_year_boundary():
-    led = empty_ledger()
-    led["months"] = {
-        "2026-04": {"strategy": 0.10, "benchmark": 0.0, "alpha": 0.10},
-        "2027-02": {"strategy": 0.20, "benchmark": 0.0, "alpha": 0.20},
-        "2027-05": {"strategy": 0.50, "benchmark": 0.0, "alpha": 0.50},
-    }
-    grid = build_grid(led).set_index("YEAR")
-    # FY2026 = Apr 2026 .. Mar 2027: picks up Apr-26 and Feb-27, not May-27.
-    assert grid.loc[2026, "FY RETURN"] == pytest.approx(1.10 * 1.20 - 1, abs=1e-9)
-    assert grid.loc[2027, "FY RETURN"] == pytest.approx(0.50, abs=1e-9)
-
-
-def test_reference_tracker_conventions_reproduce():
-    """The user's sheet: Q1 2%, Q2 39%, Q3 12%, FY 56% off its monthly row."""
-    led = _grid_ledger(
-        {1: -0.036, 2: 0.174, 3: -0.096, 4: 0.25, 5: 0.06,
-         6: 0.05, 7: 0.04, 8: 0.08, 9: 0.0}
-    )
-    row = build_grid(led).iloc[0]
-    assert round(row["Q1"] * 100) == 2
-    assert round(row["Q2"] * 100) == 39
-    assert round(row["Q3"] * 100) == 12
-    assert round(row["FY RETURN"] * 100) == 56
-
-
-def test_mtd_enters_the_grid_without_entering_the_ledger():
-    led = _grid_ledger({1: 0.10})
-    period = pd.Period("2026-02", freq="M")
-    grid = build_grid(led, mtd=(period, 0.03))
-    row = grid.iloc[0]
-    assert row["FEB"] == pytest.approx(0.03, abs=1e-9)
-    assert row["Q1"] == pytest.approx(1.10 * 1.03 - 1, abs=1e-9)
-    assert "2026-02" not in led["months"], "the ledger itself stays frozen"
-
-
 def test_compound_of_nothing_is_none():
     assert compound([]) is None
     assert compound([float("nan")]) is None
@@ -394,99 +334,6 @@ def test_universe_basis_is_frozen_with_the_month():
     assert led["months"]["2026-01"]["universe"] == "current"
 
 
-# ── The combined grid ────────────────────────────────────────────────────────
-
-def _three_series_ledger() -> dict:
-    led = empty_ledger()
-    led["months"] = {
-        "2026-01": {"strategy": 0.10, "benchmark": 0.04, "alpha": 0.06},
-        "2026-02": {"strategy": -0.05, "benchmark": -0.02, "alpha": -0.03},
-    }
-    return led
-
-
-def test_combined_grid_puts_all_three_series_in_one_table():
-    """One glance down a column, rather than three tabs and a memory test."""
-    from src.engine.track_record import build_combined_grid
-
-    grid = build_combined_grid(_three_series_ledger())
-    assert list(grid["SERIES"]) == ["Strategy", "Nifty 500", "Alpha"]
-    assert list(grid.columns[:2]) == ["SERIES", "YEAR"]
-    assert (grid["YEAR"] == 2026).all()
-
-    by = grid.set_index("SERIES")
-    assert by.loc["Strategy", "JAN"] == pytest.approx(0.10)
-    assert by.loc["Nifty 500", "JAN"] == pytest.approx(0.04)
-    assert by.loc["Alpha", "JAN"] == pytest.approx(0.06)
-
-
-def test_combined_grid_matches_the_per_series_grids():
-    """The two views must not be able to disagree about any number."""
-    from src.engine.track_record import build_combined_grid
-
-    led = _three_series_ledger()
-    combined = build_combined_grid(led).set_index("SERIES")
-    for field, label in (
-        ("strategy", "Strategy"), ("benchmark", "Nifty 500"), ("alpha", "Alpha"),
-    ):
-        single = build_grid(led, field=field).iloc[0]
-        # S40 (owner, 7 Oct): the Alpha row's year / quarter cells are strategy
-        # minus index, not the per-series grid's compounded monthly alphas.
-        cols = ("JAN", "FEB") if field == "alpha" else ("JAN", "FEB", "CY RETURN", "FY RETURN", "Q1")
-        for col in cols:
-            a, b = combined.loc[label, col], single[col]
-            if a is None or (isinstance(a, float) and np.isnan(a)):
-                assert b is None or np.isnan(b)
-            else:
-                assert a == pytest.approx(b)
-
-
-def test_combined_grid_routes_mtd_to_the_right_series():
-    from src.engine.track_record import build_combined_grid
-
-    grid = build_combined_grid(
-        _three_series_ledger(),
-        mtd_period=pd.Period("2026-03", freq="M"),
-        mtd_values={"strategy": 0.03, "benchmark": 0.01, "alpha": 0.02},
-    ).set_index("SERIES")
-    assert grid.loc["Strategy", "MAR"] == pytest.approx(0.03)
-    assert grid.loc["Nifty 500", "MAR"] == pytest.approx(0.01)
-    assert grid.loc["Alpha", "MAR"] == pytest.approx(0.02)
-
-
-def test_combined_grid_groups_rows_by_year():
-    from src.engine.track_record import build_combined_grid
-
-    led = empty_ledger()
-    led["months"] = {
-        "2026-01": {"strategy": 0.10, "benchmark": 0.04, "alpha": 0.06},
-        "2027-01": {"strategy": 0.20, "benchmark": 0.05, "alpha": 0.15},
-    }
-    grid = build_combined_grid(led)
-    assert list(grid["YEAR"]) == [2026, 2026, 2026, 2027, 2027, 2027]
-    assert list(grid["SERIES"][:3]) == ["Strategy", "Nifty 500", "Alpha"]
-
-
-def test_a_series_with_nothing_recorded_still_gets_a_row():
-    """A vanishing row would silently misalign the year block."""
-    from src.engine.track_record import build_combined_grid
-
-    led = empty_ledger()
-    led["months"] = {"2026-01": {"strategy": 0.10, "benchmark": None, "alpha": None}}
-    grid = build_combined_grid(led)
-    assert list(grid["SERIES"]) == ["Strategy", "Nifty 500", "Alpha"]
-    # pandas coerces None to NaN in a float column; the renderer treats both as
-    # "no value", so assert emptiness rather than a particular null.
-    assert pd.isna(grid.set_index("SERIES").loc["Nifty 500", "JAN"])
-    assert grid.set_index("SERIES").loc["Strategy", "JAN"] == pytest.approx(0.10)
-
-
-def test_combined_grid_of_an_empty_ledger_is_empty():
-    from src.engine.track_record import build_combined_grid
-
-    assert build_combined_grid(empty_ledger()).empty
-
-
 # ── The running month counts, everywhere ─────────────────────────────────────
 
 def _mtd(period="2026-03", strategy=0.02, benchmark=0.01, as_of="2026-03-03"):
@@ -511,23 +358,6 @@ def test_the_headline_includes_the_running_month():
     assert live["includes_mtd"] is True
     assert live["frozen_months"] == 2
     assert live["months"] == 3
-
-
-def test_headline_and_grid_agree_on_the_same_period():
-    """The bug this fixes: "+38.7% since inception" beside "CY +37.2%"."""
-    from src.engine.track_record import build_combined_grid
-
-    led, _, _ = finalize_months(
-        empty_ledger(), _curve({"2026-01": 0.10, "2026-02": 0.05}), _flat(),
-        "cfg1", as_of=pd.Timestamp("2026-03-03"),
-    )
-    mtd = _mtd(strategy=0.02)
-    headline = summary_stats(led, mtd=mtd)["total_return"]
-    grid = build_combined_grid(
-        led, mtd_period=mtd["period"], mtd_values={"strategy": mtd["strategy"]}
-    )
-    cy = grid[grid["SERIES"] == "Strategy"].iloc[0]["CY RETURN"]
-    assert headline == pytest.approx(cy)
 
 
 def test_a_partial_month_annualises_on_the_time_actually_elapsed():
@@ -592,17 +422,6 @@ def test_missing_future_ledger_is_expected_and_not_a_warning(tmp_path, monkeypat
     assert led["inception"] == "2026-10"
     assert led["months"] == {}
     assert warnings == []
-
-
-def test_combined_grid_alpha_is_strategy_minus_index_for_the_year_and_quarters():
-    """S40 (owner, 7 Oct 2026): the plain difference on every page."""
-    from src.engine.track_record import build_combined_grid
-
-    by = build_combined_grid(_three_series_ledger()).set_index("SERIES")
-    for col in ("CY RETURN", "FY RETURN", "Q1"):
-        s, b, a = by.loc["Strategy", col], by.loc["Nifty 500", col], by.loc["Alpha", col]
-        if pd.notna(s) and pd.notna(b):
-            assert a == pytest.approx(s - b)
 
 
 def test_no_warning_during_a_systems_first_month_but_one_after(tmp_path, monkeypatch):

@@ -38,37 +38,42 @@ _Last updated: 23 Nov 2026 (early, IST), coordinating session of 22-23 Nov._
 
 ## State at handover
 
-**23 Nov, stock page (S182 f):** built on local branch `stock-v2` from 81cb4b7 (owner: "Stock v2 approved"); not pushed yet. Checks run locally: requirements 53/53, layout and number audits clean, chart hover audit steady at 412/1400, full tests pass. Next: push, draft PR, CI on its head, then seen live.
+**23 Nov ~06:30 UTC (coordinator, session_016X4g5aV4BforqdG6bYB6KH):** merged today: #628 (stock page v2), #634
+(S193 item A fixes), #635 (A6, `qualified_now.json`), #630 (S204, another session), #636 (S210), #637, #639 (S209, pinned
+dependencies; edit `requirements.in`, regenerate `requirements.txt`). Open:
+- **#638 (S211, one date rule):** draft; merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
+  published ranks move). The record's replay keeps the old rule for signals before 31 Dec (`window_rule_from`). Reminder
+  `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
+- **S212 clean-up PR** (dead code, ~13,700 lines, owner-approved incl. `agent/` and `parameter_sweep`). Branches: this
+  session cannot push tags or delete branches (proxy 403, permission check); the owner runs the script recorded in TODO S212.
+- **#607** parked by the owner (read-only R2 key).
 
-**23 Nov (this session):** #625 merged (fd6de89): S185 replay step (queue item 2), S199
-(Markdown-only PRs, owner's correction), S201 (this file). #626 merged (df3dbb5): S200,
-TODO.md 158 KB → 35 KB; its `validate` ran the Markdown tests only (34 s), so S199 is done.
-Then one code PR: S194 L3/L4 (owner, 23 Nov: the Nifty 1000's other 250
-are **Nano Cap**, outside the 1000 is **Ultra Nano Cap**, NSE indices keep their names; the
-750's breadth history only under the 750) and S202 (owner: "S202 ok": a keep-awake visit
-every 4 h, full Production QA on push and daily), merged as #627 (f809e9b). Queue item 1 waits on
-the night's runs; the stock page v2 build is in progress.
+The owner, 23 Nov: "take over other sessions work ... I will not communicate anything between you two now". The
+speed-and-tooling session handed over and stopped:
+- S204 done (#630): Backtest default run 17.7 → 6.9 s, five reference runs and audit_baseline identical. S206 (Numba) closed: day loop < 0.13 s.
+- S205 open: layout step 15 min 37 s of 18 min 51 s (run 45107993629), fixed sleeps at layout_audit.mjs:71/74/87. Order: idle check (number_format_audit.mjs:47), load each page/width once, measure on CI, `run_page_audits.sh` only if still > 6 min. Done: ≤ 6 min, every page and width checked, a broken branch still fails, 2–3 clean runs.
+- S207 open: (b) read_history vs build() in build_nse_long_prices.py and (c) Dashboard `_history_inputs`/breadth profile not measured; (a) answered by S210.
+- S208 approved, not started: price_fingerprint once per frame in its cached loader; backtest_view `_long_file`/`_long_value` to st.cache_resource; float64 kept.
+- S209 merged (#639, fb2f6ff): edit requirements.in, regenerate requirements.txt (`uv pip compile requirements.in --universal --python-version 3.14 --exclude-newer 2026-11-22T17:37:00Z -o requirements.txt`). Open: Dependabot on a uv file unverified; Streamlit boot log should show no package replaced.
+- S210 merged (#636); open until the Streamlit log after the first nightly daily_sync since #636 reads "Precomputed ranking accepted" for all three systems.
+- S214 open: nse_long.py:44 CACHE_TTL_S 24 h, same flaw as S210; fix like `_published_closes` (R2 revision_sha256 or release ETag by ranged GET, .revision sidecar) with a test for a revision change inside 24 h.
+- S215 open, folded into S213: the > ₹2,000 Cr table published 377 of 411; name the 34 with reasons from the nightly counts, fix or record in §5.
+- Branch ccr-92ffad7f-s210 (5ba5e39) merged in #636: delete with the S212 branch clean-up.
 
-**Before (22 Nov night):** `main` = 4f3425c (#624). Merged in this session: #619 (Watchlist,
-S182), #620 (S195 report), #622 (S195 clean-up answers), #621 (another session's TODO rows S197,
-S198, S182 (f); owner: "It's just to do list items added"), #623 (another session's S198 rewrite and
-queue items; owner: "Merge"), and this handover's PR. #613 closed
-(superseded).
+From the **January 2027** book: three systems, **Nifty 750 · Nifty 1000 · Ultra Nano Cap** (replaces "> ₹2,000 Cr", key
+`nano` kept: ₹1,000 Cr or more outside the Nifty 1000; tracked down to ₹500 Cr, prices from ₹800 Cr, a holding below
+₹1,000 Cr sold at the rebalance); **Combined retired**, its ledger read-only as frozen to Dec 2026. Read TODO S198 before
+any work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
-Open PRs: **#607** parked by the owner (read-only R2 key). Nothing else. From the **January 2027** book: three systems, **Nifty 750 ·
-Nifty 1000 · Ultra Nano Cap** (replaces "> ₹2,000 Cr", key `nano` kept: ₹1,000 Cr or more outside the
-Nifty 1000; tracked down to ₹500 Cr, prices from ₹800 Cr, a holding below ₹1,000 Cr sold at the
-rebalance); **Combined retired**, its ledger read-only as frozen to Dec 2026. Read TODO S198 before any
-work on the systems; the 1-5 Dec freeze runs on today's four systems.
-
-In progress: S193 (queue item 2), in this session. Item A's report is `docs/archive/S193_ITEM_A_2026-11-23.md` (14 mismatches); the owner decided A1-A4, A6-A9 on 23 Nov; the fixes are in #634 (see TODO S193). Next: A6 (nightly Nifty 500 signals file), A9's engine impact measured for the owner, then A5 and A10-A14.
+Next, in order: S214 (Backtest long file kept 24 h unchecked), S205 (layout audit time), S213 with S215 (price pipeline
+end to end; 377 of 411 published), S208/S207; S193 A5 and A10-A14 after.
 
 ### What was done 22 Nov evening (where to read it)
 
 | Item | Result | Read |
 |---|---|---|
 | Watchlist (S182) | built on the S173 formatter; foot date printed once (was twice); requirements 29/29, layout clean 412/1400, number audit clean; plan agrees with Actions in all four systems; live on e385c13 (Production QA 45045534145) | TODO S182, CHANGELOG |
-| S195 resources report | `docs/RESOURCES_2026-11-25.md`, due 25 Nov, **done**: Nifty 1000 datasets added, evidence set is 17 datasets (16 unread), memory flat (487-491 MB; no change from #610-#619, bisected); owner answered every clean-up item | the report §1, §4 |
+| S195 resources report | `docs/RESOURCES.md`, due 25 Nov, **done**: Nifty 1000 datasets added, evidence set is 17 datasets (16 unread), memory flat (487-491 MB; no change from #610-#619, bisected); owner answered every clean-up item | the report §1, §4 |
 | S195 clean-up | owner: "go with your recommendations", "delete both branches". 4.1/4.6 R2 retirements, 4.4 `reconcile_*`, 4.7 narrower download, two merged branches; 4.3 changed to keep (premise wrong) | TODO S195, `PENDING_DELETIONS.md` |
 | Deletions carried out | `owner_cleanup.yml` run 45051454256 (dry run 45051299136 first): the six `reconcile_*` release files and the two branches, 8 deleted, 0 failed. R2: dry run 45051288448 planned 514 keys / 195 MB (446 for the two retired datasets, 68 routine weekly pruning under the existing rules); applied by dispatch 45051716173: `RETENTION_APPLIED deleted=514`, then the recovery audit PASS (143 current pointers, 151 immutable revisions read back) | TODO S195 |
 | #611 (S185) | was already merged 12:54 UTC (a relayed message said otherwise) | TODO S185 |

@@ -3,12 +3,11 @@ and Python and the charts' JavaScript agree. SONACOMS at ₹892.50 read ₹892 i
 half to even) and ₹893 in a chart; JavaScript's Math.round(-24.5) is -24, and 2.45 is not exact in binary.
 
 The same values go through formats.py and through the JavaScript formatters in static/dash_charts.js,
-lw_chart.py and charts.py (run in node), and must read the same. Display only: nothing here rounds data.
+and lw_chart.py (run in node), and must read the same. Display only: nothing here rounds data.
 """
 from __future__ import annotations
 
 import json
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -54,21 +53,14 @@ def _lw_source() -> str:
     return s[start:s.index("};\n", s.index("const fmts=")) + 2]
 
 
-def _hc_source() -> str:
-    s = (ROOT / "src" / "ui" / "charts.py").read_text(encoding="utf-8")
-    m = re.search(r"const rnd=.*?\nconst pct=.*?\n", s, re.S)
-    return m.group(0)
-
-
 @pytest.mark.skipif(node is None, reason="node is not installed")
 def test_javascript_matches_python():
     script = (
         _kit_source() + "\n"
         + "const lw = (function(){" + _lw_source() + "\nreturn fmts;})();\n"
-        + "const hc = (function(){" + _hc_source() + "\nreturn pct;})();\n"
         + f"const V = {json.dumps(VALUES)};\n"
         + "console.log(JSON.stringify(V.map(v => ({kit: ['₹' + pxf(v), sg(v, 1), sg(v, 0), fx(v, 1), fx(v, 2), sg(v, 1) + '%'],"
-        + " lw: [lw.price(v), lw.pct(v), lw.num(v)], hc: hc(v)}))));\n"
+        + " lw: [lw.price(v), lw.pct(v), lw.num(v)]}))));\n"
     )
     out = json.loads(subprocess.run([node, "-e", script], capture_output=True, text=True, check=True).stdout)
     for v, js in zip(VALUES, out):
@@ -77,4 +69,3 @@ def test_javascript_matches_python():
         kit = [("−₹" + js["kit"][0][2:]) if js["kit"][0].startswith("₹−") else js["kit"][0]] + js["kit"][1:]
         assert kit == py, (v, kit, py)
         assert js["lw"] == [formats.price(v), formats.pct(v, fraction=False), formats.fixed(v, 2)], (v, js["lw"])
-        assert js["hc"] == formats.pct(v, fraction=False), (v, js["hc"])
