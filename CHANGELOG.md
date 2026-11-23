@@ -1,6 +1,15 @@
 # Changelog
 
 
+## 2026-11-23 — Colours mean one thing; every figure says its date (S193 G, E part 1)
+
+- Orange now means caution only (warnings, stale data, watch states). Momentum 50, the 200-day average, "Turning", the size groups and large size shares no longer use it (owner approved the screenshots).
+- Each series has one colour on every chart, set in `tokens.py`: the book ink, Nifty Total Market grey dashed, Nifty 500 violet, Momentum 50 olive, the 50-day average teal.
+- An index without NSE's close for the page's session reads "–" with a note, on Indices, Sectors and Market, instead of a figure a session old. The Dashboard keeps the book on the page's session and says when the index figures end a session early.
+- Every page's "Data to" footer names the session the header shows. Foreign flows are cut at that session and dated ("Foreign, 2 to 20 Nov"); the flows chart writes "₹1.34 lakh Cr", not "+₹1,34,230".
+- A stock too new for a 52-week high is told so ("66 of 126 sessions"), not that it is 20% below one.
+- No exception text, emoji or the non-existent "Force Refresh" button reaches readers; a missing date reads "–", not "None".
+
 ## 2026-11-23 — Sentences checked against the data (S193 B)
 
 - Market on the > ₹2,000 Cr list showed the Nifty 1000's chart headings and shaded range for up to an hour (a cache shared between systems). Each system now gets its own.
