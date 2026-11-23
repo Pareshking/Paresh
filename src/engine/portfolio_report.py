@@ -67,14 +67,18 @@ def periods(book: pd.Series, market: pd.Series, mom: pd.Series, as_of: pd.Timest
         t = end - pd.DateOffset(years=n)
         if t >= start:
             rows.append((f"{n} year{'s' if n > 1 else ''}", t))
-    if start < pd.Timestamp(year=end.year - 1, month=12, day=31):
-        rows.append(("Since start", start))
+    # A window that starts before the record is not that window: "3 months" on a book begun
+    # 1 Oct showed its since-start figures beside indices measured over 3 months (S193 A3,
+    # owner 23 Nov 2026: drop the row and keep the dated since-start row).
+    kept = [(label, t) for label, t in rows if t >= start]
+    if start < pd.Timestamp(year=end.year - 1, month=12, day=31) or len(kept) < len(rows):
+        kept.append(("Since start", start))
+    rows = kept
     out = []
     # An index not yet published for the book's latest session has no "today": None, not a 0.0% from a stale close.
     m_today = _clean(market).index.max() >= end if len(_clean(market)) else False
     o_today = _clean(mom).index.max() >= end if len(_clean(mom)) else False
     for label, t in rows:
-        t = max(t, start)
         today = label == "Today"
         out.append((label, ret(b, t, end), None if today and not m_today else ret(market, t, end),
                     None if today and not o_today else ret(mom, t, end)))

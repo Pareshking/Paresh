@@ -1167,6 +1167,8 @@ def _page_screener() -> None:
         footnote=_system_line,
         book_symbols=_screener_book(),
         history_prices=deep_adj_close,
+        members=data["idx_info"]["Symbol"].astype(str).tolist() if data.get("idx_info") is not None else [],
+        other_rankings=_other_rankings,
     )
 
 
@@ -1177,8 +1179,11 @@ def _page_sectors() -> None:
 
 def _page_portfolio() -> None:
     # The pinned model book: no Configuration limits reach it, and no engine is
-    # built for it -- it reads the ranking's price frame, nothing else (S115).
-    render_portfolio_view(prices=get_ranked_prices(), rank_df=rank_df)
+    # built for it. It reads the same deep closes as Dashboard, Actions, Screener and
+    # Watchlist, so the book's values and its rank trail agree on every page (S193 A4,
+    # owner 23 Nov 2026: "rank must come from same engine for all"; the ranking's own
+    # frame fills gaps only for its last 400 days, which moved the 3M-ago rank by 1-5).
+    render_portfolio_view(prices=deep_adj_close, rank_df=rank_df)
 
 
 def _ranked_list() -> tuple[str | None, str]:

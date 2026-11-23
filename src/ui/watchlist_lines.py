@@ -317,6 +317,27 @@ def _ranked_words(sym: str, rank_df: pd.DataFrame, universe: str, ln: Lines) -> 
     return f"{sym} ranks {fmt_ordinal(int(row['Rank']))} of the {len(rank_df):,} and {tail}."
 
 
+def ranks_elsewhere(symbol: str, others: dict | None) -> list[tuple[str, int, int]]:
+    """[(system name, rank, ranked count)] for every other system that ranks `symbol`, in
+    `others`' order (owner, 23 Nov 2026: the chosen system's rank first, then the others')."""
+    out = []
+    for name, frame in (others or {}).items():
+        if frame is None or "Symbol" not in frame or "Rank" not in frame:
+            continue
+        hit = frame.loc[frame["Symbol"].astype(str) == str(symbol), "Rank"]
+        if len(hit):
+            out.append((str(name), int(hit.iloc[0]), len(frame)))
+    return out
+
+
+def ranks_elsewhere_words(hits: list[tuple[str, int, int]]) -> str:
+    """'12th of 750 in the Nifty 750 and 17th of 1,000 in the Nifty 1000'."""
+    parts = [f"{fmt_ordinal(r)} of {n:,} in {fmt_system(name)}" for name, r, n in hits]
+    if len(parts) < 2:
+        return "".join(parts)
+    return ", ".join(parts[:-1]) + " and " + parts[-1]
+
+
 def not_ranked(symbols: list, rank_df: pd.DataFrame, *, universe: str, members=(),
                changes: pd.DataFrame | None = None, listed=(), others: dict | None = None,
                ln: Lines | None = None) -> list[Unranked]:
@@ -366,13 +387,11 @@ def not_ranked(symbols: list, rank_df: pd.DataFrame, *, universe: str, members=(
                 where = f"{new} is not ranked in {fmt_system(universe)} either."
             out.append(Unranked(sym, RENAMED, why, where, replace_with=new if new in ranked else ""))
             continue
-        hit = next(((name, frame) for name, frame in (others or {}).items()
-                    if frame is not None and sym in set(frame["Symbol"].astype(str))), None)
-        if hit is not None:
-            name, frame = hit
-            r = int(frame.loc[frame["Symbol"].astype(str) == sym, "Rank"].iloc[0])
+        hits = ranks_elsewhere(sym, others)
+        if hits:
+            name = hits[0][0]
             out.append(Unranked(sym, ELSEWHERE, f"Not a member of {fmt_system(universe)}.",
-                                f"Ranks {fmt_ordinal(r)} of {len(frame):,} in {fmt_system(name)}.", system=name,
+                                f"Ranks {ranks_elsewhere_words(hits)}.", system=name,
                                 link_label=f"See it in {fmt_system(name)}"))
             continue
         if sym in members:

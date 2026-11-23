@@ -564,7 +564,8 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
 
 
 def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[float, float] | None = None,
-                  bars: dict | None = None, compare: tuple[float, float, int] | None = None) -> list:
+                  bars: dict | None = None, compare: tuple[float, float, int] | None = None,
+                  universe: str = "750") -> list:
     rec = f.month_rank == 1
     head = (f'Foreign investors have bought <span class="dh-up">{e(cr(f.mtd).lstrip("+"))} so far in {f.as_of:%B}'
             + (f', the most in any month since {f.months_in_record and e(_first_year(f))}</span>' if rec else '</span>')
@@ -582,7 +583,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
            f"Net sellers in {f.before_selling_months} of 11 months", "dh-down" if f.before_selling_months > 5 else "dh-muted",
            f"{f.as_of:%B} so far has bought back {_fmt.fixed(f.mtd / -f.before * 100, 0)}%" if f.before < 0 and f.mtd > 0 else "")]
     if share is not None:
-        kp.insert(1, ("Against the 750’s market value", sg(share[0], 1, "%"), tone(share[0]),
+        kp.insert(1, (f"Against the {universe}’s market value", sg(share[0], 1, "%"), tone(share[0]),
                       f"Bought so far in {f.as_of:%B}" if share[0] > 0 else f"Sold so far in {f.as_of:%B}", tone(share[0]),
                       f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {abs(share[1]):.1f}% of it"))
     if dii:
@@ -664,8 +665,8 @@ def _shared_html(by_size, typical, book_sizes: dict[str, float] | None = None, u
         b1, ew12, mk12, med12 = (typical["beat_share"][0], typical["equal_weight"][-1], typical["market"][-1], typical["median"][-1])
         say = ""
         if b1 is not None:
-            say = (f"Only {b1:.0f}% of the {universe} beat Nifty Total Market so far in {month}." if b1 < 40
-                   else f"{b1:.0f}% of the {universe} beat Nifty Total Market so far in {month}.")
+            say = (f"Only {b1:.0f}% of the {universe} beat Nifty Total Market over the past month." if b1 < 40
+                   else f"{b1:.0f}% of the {universe} beat Nifty Total Market over the past month.")
         if None not in (ew12, mk12, med12) and ew12 > mk12 and med12 < 0:
             say += (f" Over 12 months the equal-weighted {universe} beat it by {ew12 - mk12:.1f} points while <b>the median stock fell "
                     f"{abs(med12):.1f}%</b>: a few big winners lift the average, the field a momentum book picks from.")
@@ -993,13 +994,14 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
     breadth = _breadth_spec(n500, hist.get("above_200"), idx_end)
 
-    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{idx_end:%B}")]
+    uni = UNIVERSE_SHORT.get(system, "750")
+    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{idx_end:%B}", uni)]
     parts += section_book(bm, since, since_mkt, idx_end, prev, inc + pd.Timedelta(days=1))
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
                                results_line, turnover, hist.get("dates"))
     parts += section_momentum(lead, streak, signals, average, lead_bars, di.momentum_lag(spreads) if spreads is not None else None)
     if flows is not None:
-        parts += section_flows(flows, ev, dii, share, fpi_bars, compare)
+        parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{idx_end:%B}")
     parts += section_strong_weak(weights, sectors)
     parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(idx_end), breadth,
@@ -1025,15 +1027,14 @@ def _last_month(ledger: dict, market: pd.Series, momentum: dict, as_of: pd.Times
 
 
 def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
-    """Momentum's lead each month since January 2024, the month so far last."""
+    """Momentum's lead each completed month since January 2024: the top 100 of the ranking less
+    the Nifty 500, one pair for every bar. The month so far was a different pair (Nifty500 Momentum 50
+    less Nifty Total Market) and is left to the table above (S193, owner 23 Nov 2026)."""
     if spreads is None or not {"month", "top", "nifty500"} <= set(spreads.columns):
         return None
     sp = spreads[spreads["month"] >= "2024-01"]
     months = [pd.Period(m, "M") for m in sp["month"]]
     vals = [round(float(t) - float(n), 2) for t, n in zip(sp["top"], sp["nifty500"])]
-    if lead and lead[-1][1] is not None and months:
-        months.append(months[-1] + 1)
-        vals.append(round(float(lead[-1][1]), 2))
     if len(vals) < 6:
         return None
     allv = (pd.to_numeric(spreads["top"], errors="coerce") - pd.to_numeric(spreads["nifty500"], errors="coerce")).dropna()
@@ -1042,7 +1043,7 @@ def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
     band = [q1, q3, ""]
     band_note = f"shaded: the usual range since {str(spreads['month'].iloc[0])[:4]}, {sg(q1)} to {sg(q3)} pts (the middle half of all months)"
     return {"values": vals, "labels": [f"{m:%b} ’{m:%y}" for m in months], "full": [f"{m:%b %Y}" for m in months],
-            "unit": "pts, momentum’s lead", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": ", so far", "xn": 6, "height": 200,
+            "unit": "pts, momentum’s lead", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": "", "xn": 6, "height": 200,
             "band": band, "band_note": band_note}
 
 
@@ -1154,7 +1155,7 @@ def _breadth_spec(n500: pd.Series, above_200: pd.Series | None, as_of: pd.Timest
 
 
 def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, typical, flows=None,
-           month: str = "the month") -> str:
+           month: str = "the month", universe: str = "750") -> str:
     bits = []
     if bm.market_mtd is not None and bm.book_mtd is not None and bm.momentum_mtd:
         if bm.book_mtd < bm.market_mtd and bm.book_mtd >= max(bm.momentum_mtd.values()) - 0.05:
@@ -1178,7 +1179,8 @@ def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, 
                     + _month_end_count(passed, average) + '.')
     b1 = typical["beat_share"][0] if typical else None
     if b1 is not None and b1 < 40:
-        bits.append(f'<span class="dh-watch">The rally is narrow: only {b1:.0f}% of the 750 beat Nifty Total Market so far in {month}.</span>')
+        # The 1M window (from the same date a month back), not the month so far (S193 A8).
+        bits.append(f'<span class="dh-watch">The rally is narrow: only {b1:.0f}% of the {universe} beat Nifty Total Market over the past month.</span>')
     nav = "".join(f'<a href="#{a}" class="dh-pill">{e(t)}</a>' for a, t in (
         ("s-month", "1 The book"), ("s-next", "2 Next rebalance"), ("s-mom", "3 Momentum"), ("s-flow", "4 Money flows"),
         ("s-size", "5 Size"), ("s-book", "6 Strong and weak"), ("s-glance", "At a glance")))
