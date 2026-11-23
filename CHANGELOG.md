@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-23 — Less work on every click (S208)
+
+- The ranking's whole-history price fingerprint is now computed once, when its prices are loaded, instead of on every click; so is the Backtest run's, once per index and window. Both still cover every row (owner decision 3B). Some pages still compute their own on each click (S208, open).
+- The Backtest's long price file is now held once in memory for all sessions, not copied on each click. Nothing that reads it writes to it; a test checks this.
+
 ## 2026-11-23 — numpy 2.5.5 and pyarrow 26.0.1
 
 - Two library updates Dependabot proposed, checked before they reach the site: every figure the audit baseline pins (the 750 ranking and the Backtest) is identical to the last version, and the record's parity checks pass.

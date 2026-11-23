@@ -82,6 +82,8 @@ def _decorator_of(src: str, name: str) -> str:
     ("app.py", "_run_engine_base"),
     ("app.py", "_ranked_shared"),
     ("src/ui/views/track_record_view.py", "_system_prices"),
+    ("src/ui/views/backtest_view.py", "_long_file"),
+    ("src/ui/views/backtest_view.py", "_long_value"),
 ])
 def test_the_price_frames_are_one_shared_object(path, name):
     deco = _decorator_of(open(path, encoding="utf-8").read(), name)

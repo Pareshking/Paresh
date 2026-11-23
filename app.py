@@ -297,7 +297,7 @@ def _shared(frame):
 @st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
 def _adjusted_frames_shared(
     price_hash: str, events_key: str, _frames: dict, _events: list
-) -> tuple[dict, list]:
+) -> tuple[dict, list, str]:
     """Neutralise flagged splits and demergers before the engine reads a price.
 
     run_backtest has done this since the guard was written; the SCREENER never
@@ -315,6 +315,10 @@ def _adjusted_frames_shared(
     column multiplies, but it must not re-run on every slider tick -- and a
     log that gains an event over unchanged prices must not be served the old
     adjustment for up to an hour.
+
+    Also returns the whole-history price_fingerprint of the adjusted adj_close
+    (owner decision 3B), computed here once per frame instead of on every
+    rerun (S208).
     """
     metrics.incr("memo_miss_corporate_actions")
     adjusted, applied = adjust_ohlc(_frames, _events)
@@ -325,16 +329,17 @@ def _adjusted_frames_shared(
             len(applied),
             ", ".join(sorted({str(e.get("symbol")) for e in applied})),
         )
-    return adjusted, applied
+    return adjusted, applied, _price_hash(adjusted.get("adj_close"))
 
 
 def _adjust_for_corporate_actions(
     price_hash: str, events_key: str, _frames: dict, _events: list
-) -> tuple[dict, list]:
-    """_adjusted_frames_shared, as private copies for this rerun."""
-    adjusted, applied = _adjusted_frames_shared(price_hash, events_key, _frames, _events)
+) -> tuple[dict, list, str]:
+    """_adjusted_frames_shared, as private copies for this rerun, and the
+    adjusted adj_close's fingerprint."""
+    adjusted, applied, fingerprint = _adjusted_frames_shared(price_hash, events_key, _frames, _events)
     return ({k: _shared(v) for k, v in adjusted.items()},
-            [dict(e) for e in applied])
+            [dict(e) for e in applied], fingerprint)
 
 
 # Ten minutes, not an hour, and the reason is NEGATIVE caching.
@@ -843,7 +848,7 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
             from src.loaders.ranking_store import actions_digest
 
             _ca_events = load_events()
-            _adj, _ca_applied = _adjust_for_corporate_actions(
+            _adj, _ca_applied, _adj_close_hash = _adjust_for_corporate_actions(
                 p_hash_raw,
                 actions_digest(_ca_events),
                 {"adj_close": adj_close, "close": close_p,
@@ -863,7 +868,7 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
         with metrics.stage("ranking_snapshot_fetch"):
             _fetched_ranking = _fut_ranking.result()
 
-    p_hash = _price_hash(adj_close)
+    p_hash = _adj_close_hash  # computed once in the cached adjustment (S208)
     i_hash = f"{len(idx_info)}_{sym_key}"
     base_hash = f"{p_hash}_{i_hash}_{pipeline.PIPELINE_VERSION}_{_ca_key}"
 

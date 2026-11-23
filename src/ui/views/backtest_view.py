@@ -138,7 +138,12 @@ def _step(lo: float, hi: float) -> float:
 # ── Inputs ────────────────────────────────────────────────────────────────────
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
+# st.cache_resource, not st.cache_data (S208): cache_data unpickled a fresh copy of the
+# long file (~2,500 symbols x 16 years) on every rerun of every session. The callers
+# only read it (frame_for reindexes and converts into a new frame);
+# tests/test_backtest_long_cache.py holds them to that. app.py drops this cache with
+# st.cache_resource.clear() on a new revision and under the memory guard.
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=1)
 def _long_file():
     """Closes and report only: traded value is fetched when a floor is set."""
     from src.loaders import nse_long
@@ -146,11 +151,33 @@ def _long_file():
     return nse_long.load(with_value=False)
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=1)
 def _long_value():
     from src.loaders import nse_long
 
     return nse_long.load_value()
+
+
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=4)
+def _run_frame_shared(stamp: str, key: str, end: str, to_latest: bool,
+                      _close: pd.DataFrame, _columns: frozenset) -> tuple[pd.DataFrame, str]:
+    """The run's price frame and its whole-history fingerprint, computed once (S208).
+
+    The fingerprint (owner decision 3B: every row, not a partial hash) used to be
+    recomputed in `_run` on every rerun. `stamp` names the long file the frame was cut
+    from (its build, last session and the stored object), so a refreshed file is a new key.
+    """
+    frame = bp.frame_for(_close, _columns, pd.Period(end, freq="M"), to_latest)
+    return frame, price_fingerprint(frame)
+
+
+def _run_frame(close: pd.DataFrame, report: dict, key: str, columns, end: pd.Period,
+               to_latest: bool) -> tuple[pd.DataFrame, str]:
+    """_run_frame_shared, as a private shallow copy for this rerun (copy-on-write)."""
+    stamp = f"{report.get('built')}|{report.get('last_session')}|{id(close)}|{close.shape}"
+    frame, fingerprint = _run_frame_shared(stamp, key, str(end), bool(to_latest), close,
+                                           frozenset(columns))
+    return frame.copy(deep=False), fingerprint
 
 
 def _reference() -> dict | None:
@@ -207,7 +234,7 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
         return None
     floor = float(choice["floor"] or 0.0)
     to_latest = end == bounds["months"][-1]
-    frame = bp.frame_for(close, iu.ever_members(membership), end, to_latest)
+    frame, close_fingerprint = _run_frame(close, report, key, iu.ever_members(membership), end, to_latest)
     cols = list(frame.columns)
 
     # Today's list's industries, then the leavers' (bp.industry_map): the same map the weekly
@@ -223,7 +250,7 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
         else:
             traded = nse_long.average_value(value.reindex(columns=cols).loc[:frame.index[-1]])
 
-    return {"key": key, "close": frame, "membership": membership, "start": start, "end": end,
+    return {"key": key, "close": frame, "close_fingerprint": close_fingerprint, "membership": membership, "start": start, "end": end,
             "months": (end - start).n + 1, "floor": floor, "traded_value": traded, "moved": moved,
             "sector_map": sec, "unlabelled": unlabelled, "name": iu.INDICES[key],
             "built": report.get("built"), "last_session": report.get("last_session"),
@@ -837,7 +864,8 @@ def page_parts(f: dict) -> list:
 
 
 def _run(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float) -> dict | None:
-    ph = price_fingerprint(h["close"])
+    # Computed once with the frame in its cached loader (S208), not on every rerun.
+    ph = h.get("close_fingerprint") or price_fingerprint(h["close"])
     if h["traded_value"] is not None:
         ph += f"_{price_fingerprint(h['traded_value'])}"
     queued = st.empty()
