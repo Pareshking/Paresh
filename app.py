@@ -131,6 +131,7 @@ with app_import_guard():
         SYSTEM_750, SYSTEM_1000, SYSTEM_COMBINED, SYSTEM_INCEPTION, SYSTEM_NAMES, SYSTEM_NANO,
     )
     from src.core.universe_reconciliation import reconcile_symbols
+    from src.engine.momentum import MIN_OBSERVATIONS, too_new_to_rank
     from src.loaders.mcap_loader import fetch_market_caps
     from src.loaders.price_loader import (
         fetch_benchmark_history,
@@ -401,6 +402,7 @@ def _precomputed_ranking(
     applied_actions: list | None = None,
     price_source: str | None = None,
     price_as_of: str | None = None,
+    too_new=None,
 ) -> pd.DataFrame | None:
     """The nightly job's ranking, but only if it describes exactly this state.
 
@@ -497,14 +499,18 @@ def _precomputed_ranking(
             reconciliation = reconcile_symbols(
                 expected=universe,
                 actual=frame["Symbol"].dropna().tolist(),
+                # Called only here, on a rejection: a hit never pays for it.
+                too_new=too_new() if callable(too_new) else (too_new or ()),
             )
             if log_rejection:
                 logger.info(
                     "Precomputed universe reconciliation: expected=%d published=%d "
-                    "missing=%s extra=%s duplicates=%s",
+                    "missing=%s new_listings=%d (under %d sessions) extra=%s duplicates=%s",
                     reconciliation["expected_count"],
                     reconciliation["published_count"],
                     ",".join(reconciliation["missing"][:20]) or "-",
+                    len(reconciliation["new_listings"]),
+                    MIN_OBSERVATIONS,
                     ",".join(reconciliation["extra"][:20]) or "-",
                     ",".join(reconciliation["duplicates"][:20]) or "-",
                 )
@@ -915,6 +921,7 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
             # Same frame the fingerprint above is taken from, and the same call
             # scripts/sync_data.py makes, so the two sides are comparable.
             price_as_of=pipeline.ranking_as_of(adj_close),
+            too_new=lambda: too_new_to_rank(adj_close),
         )
 
     if rank_df is None:
