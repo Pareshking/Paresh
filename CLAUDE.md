@@ -42,6 +42,19 @@ offline, approved once, filled by code, S203). Mark each as a suggestion, give i
 gives up, and say which you recommend. Skip it when nothing better exists; never pad with options.
 Improve wording on pages and in docs whenever you touch them.
 
+## Decisions when the owner is away (owner, 23 Nov 2026)
+
+"Don't stop work ... If you want to continue working and make things ready, and I am not available, you can always benchmark with
+good websites and move ahead, in most cases I will support you. There might be few where some decisions may get reverse but I am ok
+with it. You can take other agents support for your decisions if needed."
+
+- A choice that would wait for the owner (a wording, a rule, a number, a layout) is taken by benchmark instead: what established sites
+  and design systems do, dated, linked and quoted (as `docs/archive/S193_BENCHMARK_HJ_2026-11-23.md`). A second agent may review the
+  choice when it is close. Where the benchmark goes against a decision the owner already took, keep the owner's decision.
+- Record each such choice in `docs/TODO.md` as "decided by benchmark, owner to confirm" and list it in `docs/HANDOVER.md`'s
+  pending-approvals list with the evidence, so a reversal is cheap. Then build it and move to the next item; do not stop.
+- Still not taken alone: anything that moves published ranks, the frozen track record, or money in the model book (for example #638).
+
 ## Working on a change
 
 - Branch, commit and push to the branch you are given; open the pull request as a
