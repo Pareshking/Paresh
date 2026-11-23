@@ -199,7 +199,7 @@ filters. The book and the buffer use the qualified rank.</dd>
 The model holds {top_n} stocks whatever the index does and keeps no cash target.</dd>
 <dt>What does "pts" mean?</dt>
 <dd>pts = percentage points: 12% − 8% = 4 pts. A gap between two returns is written in points, by subtraction:
-+46.3% against +1.3% is 45.0 pts. Written as a percentage it could be read as a relative return (44.4%).
++20.0% against +5.0% is 15.0 pts. Written as a percentage it could be read as a relative return (14.3%).
 "bps" (basis points, hundredths of a point) is kept for costs.</dd>
 <dt>What is a max drawdown?</dt>
 <dd>The worst fall from a peak to a later low over a window: "6M max drawdown" is the deepest such fall in the

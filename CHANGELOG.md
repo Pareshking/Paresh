@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-23 — A system's first month is measured from its first fill on every line (S193 A12, A10)
+
+- In a system's first month the book and the recorded Nifty 500 start at the first fill (nano: 1 Oct), but Nifty Total Market, Momentum 50 and the lead beside them started at the month-end before. They now start at the fill too, on Portfolio and the Dashboard, and the calendar marks that month "from the fill". Nano's October lead reads −5.5 pts (was −4.6); the 750's January +3.4 (was +3.2). The frozen records are unchanged.
+- Sectors' headline now says its share above the 200D EMA a month ago counts today's members (the Dashboard counts the members of that day, so the two can differ by a point).
+
+## 2026-11-23 — One rounding on Portfolio; a neutral Guide example (S193 A13, A14)
+
+- Portfolio's holdings and trade history rounded prices, weights and returns twice, so a stock could read +188.6% since entry on Portfolio and +188.5% on Actions. They are now rounded once, half up, as on every other page.
+- The Guide's example of "pts" used the live book's own figures, which read as a third copy of them. It now uses neutral numbers: +20.0% against +5.0% is 15.0 pts.
+
 ## 2026-11-23 — Less work on every click (S208)
 
 - Each price history's whole-history fingerprint (it decides when a saved result is still valid) is now computed once, when the prices are loaded, instead of again on each click by the Dashboard, Market, Sectors, Screener and the market questions. The Backtest's run and its traded-value floor do the same, once per index and window. Every row is still covered (owner decision 3B).

@@ -488,7 +488,7 @@ def section_inside(ld: sp.Leads, shares: list[sp.Share], board: pd.DataFrame, ra
         return []
     top, bot = rest[0], rest[-1]
     h2 = (f"{allr.now:.0f}% of the 750 are above their 200D EMA, {'up' if (allr.now or 0) >= (allr.b1 or 0) else 'down'} from "
-          f'{allr.b1:.0f}% a month ago; <span class="dh-up">{e(sh(top.name))} has the most at {top.now:.0f}%</span>, '
+          f'{allr.b1:.0f}% a month ago, today’s members; <span class="dh-up">{e(sh(top.name))} has the most at {top.now:.0f}%</span>, '
           f'<span class="dh-down">{e(sh(bot.name))} the fewest at {bot.now:.0f}%</span>.')
     b = board.set_index("Industry") if not board.empty else pd.DataFrame()
     ema_all = to_bool_mask(rank_df.get("Above 50 EMA", pd.Series(False, index=rank_df.index)))
