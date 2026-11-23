@@ -38,3 +38,25 @@ def test_a_failing_lookup_of_other_systems_does_not_break_the_page(monkeypatch):
         raise RuntimeError("R2 down")
     text = _render(monkeypatch, other_rankings=boom)
     assert "none of the systems" in text
+
+
+def test_every_other_system_is_named_not_only_the_first(monkeypatch):
+    from src.engine.extra_universe import SYSTEM_1000
+    r750 = pd.DataFrame({"Symbol": [f"S{i}" for i in range(11)] + ["SANSERA"], "Rank": range(1, 13)})
+    r1000 = pd.DataFrame({"Symbol": [f"T{i}" for i in range(16)] + ["SANSERA"], "Rank": range(1, 18)})
+    text = _render(monkeypatch, other_rankings={SYSTEM_NAMES[SYSTEM_750]: r750, SYSTEM_NAMES[SYSTEM_1000]: r1000})
+    assert "12th of 12" in text and "17th of 17" in text
+    assert text.count("screener?stock=SANSERA") == 2
+
+
+def test_the_ranked_page_shows_its_own_rank_first_then_the_others():
+    from src.engine.extra_universe import SYSTEM_1000
+    from src.ui import watchlist_lines as wl
+    row = pd.Series({"Symbol": "SANSERA", "Company Name": "Sansera Engineering Ltd", "Rank": 12,
+                     "Above 50 EMA": True, "Near 52W High": True, "CMP": 4798.0})
+    r1000 = pd.DataFrame({"Symbol": [f"T{i}" for i in range(16)] + ["SANSERA"], "Rank": range(1, 18)})
+    hits = wl.ranks_elsewhere("SANSERA", {SYSTEM_NAMES[SYSTEM_1000]: r1000})
+    parts = stock_view.head_html(row, sl.universe(SYSTEM_750, 750), False, pd.Timestamp("2026-11-20"),
+                                 None, 12, 290, wl.lines(), None, hits)
+    html = " ".join(parts)
+    assert html.index("12th of 750") < html.index("Also 17th of 17")

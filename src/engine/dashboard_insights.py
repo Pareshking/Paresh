@@ -515,7 +515,7 @@ def size_breadth(prices: pd.DataFrame, lists: dict[str, list[str]], as_of: pd.Ti
 
 
 def fpi_share_of_value(flows: Flows, market_value_cr: float | None) -> tuple[float, float] | None:
-    """(this month, the 11 months before) as % of the 750's market value."""
+    """(this month, the 11 months before) as % of the ranked list's market value (the chosen system's)."""
     if flows is None or not market_value_cr:
         return None
     return flows.mtd / market_value_cr * 100, flows.before / market_value_cr * 100

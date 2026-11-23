@@ -239,13 +239,15 @@ def _render_actions(sym: str, on_back=None) -> None:
 
 # ── Sections ─────────────────────────────────────────────────────────────────
 
-def head_html(row, uni: sl.Universe, held: bool, as_of, market12, q, n_q, ln, holding) -> list:
+def head_html(row, uni: sl.Universe, held: bool, as_of, market12, q, n_q, ln, holding, hits=()) -> list:
     kick = " · ".join(sl.kicker(row, INDEX_NAMES))
     ts = sl.tiles(row, uni, q, n_q, as_of, ln, holding if held else None)
     tiles = "".join(f'<div class="sp-tile"><span class="k">{e(t.label)}</span><span class="v">{e(t.value)}</span>'
                     f'<span class="s">{e(t.sub)}</span></div>' for t in ts)
     return ['<div class="sp-head">', _kick(kick), f'<h1 class="dh-h1">{e(sl.title(row, uni, held))}</h1>',
             f'<p class="dh-lede">{e(sl.lede(row, as_of, market12))}</p>',
+            *([f'<p class="dh-lede">Also {e(wl.ranks_elsewhere_words(list(hits)))}. '
+               f'{_elsewhere_links(str(row["Symbol"]), list(hits))}</p>'] if hits else []),
             f'<div class="sp-tiles{" n3" if len(ts) == 3 else ""}">{tiles}</div></div>']
 
 
@@ -413,20 +415,14 @@ def _render_not_ranked(symbol: str, rank_df: pd.DataFrame, uni: sl.Universe, as_
         changes, listed = None, set()
     # The same pointers as the Watchlist (S193 item A #1): without the other systems'
     # rankings a stock ranked in the 750 read "in none of the systems' lists" under Nano.
-    try:
-        others = other_rankings() if callable(other_rankings) else (other_rankings or {})
-    except Exception:  # noqa: BLE001 -- another system's ranking is a pointer, never a reason to fail
-        others = {}
+    others = _other_ranks(other_rankings)
     rows = wl.not_ranked([symbol], rank_df, universe=uni.short, members=members or (),
                          changes=changes, listed=listed, others=others)
     why = f"{rows[0].why} {rows[0].where if rows[0].where != wl.MISSING else ''}".strip() if rows else ""
     new = rows[0].replace_with if rows else ""
-    elsewhere = rows[0].system if rows and rows[0].kind == wl.ELSEWHERE else ""
-    sys_key = {v: k for k, v in _system_names().items()}.get(elsewhere) if elsewhere else None
-    if sys_key:
-        from src.ui.system_param import suffix
-        href = f"screener?stock={quote(symbol, safe='')}{suffix(sys_key)}"
-        go = f' <a class="sp-go" href="{e(href)}" target="_self">{e(rows[0].link_label)} →</a>'
+    hits = wl.ranks_elsewhere(symbol, others) if rows and rows[0].kind == wl.ELSEWHERE else []
+    if hits:
+        go = " " + _elsewhere_links(symbol, hits)
     elif new:
         from src.ui.system_param import stock_href
         go = f' <a class="sp-go" href="{e(stock_href(new))}" target="_self">{e(new)}’s page →</a>'
@@ -437,6 +433,26 @@ def _render_not_ranked(symbol: str, rank_df: pd.DataFrame, uni: sl.Universe, as_
            f'<h1 class="dh-h1">{e(symbol)} is not in the current ranking of {e(uni.the)}.</h1>',
            f'<p class="dh-lede">{e(why)}{go}</p></div>',
            f'<p class="dh-foot">{e(sl.foot(as_of))}</p>'])
+
+
+def _elsewhere_links(symbol: str, hits: list) -> str:
+    """' See it in the Nifty 750 → · See it in the Nifty 1000 →' for each other system ranking it."""
+    from src.ui.system_param import suffix
+    keys = {v: k for k, v in _system_names().items()}
+    links = []
+    for name, _r, _n in hits:
+        key = keys.get(name)
+        if key:
+            href = f"screener?stock={quote(symbol, safe='')}{suffix(key)}"
+            links.append(f'<a class="sp-go" href="{e(href)}" target="_self">See it in {e(wl.fmt_system(name))} →</a>')
+    return " · ".join(links)
+
+
+def _other_ranks(other_rankings) -> dict:
+    try:
+        return other_rankings() if callable(other_rankings) else (other_rankings or {})
+    except Exception:  # noqa: BLE001 -- another system's ranking is a pointer, never a reason to fail
+        return {}
 
 
 def _system_names() -> dict:
@@ -517,7 +533,8 @@ def render_stock_view(
     chart_close = chart_close[chart_close.index <= as_of]
 
     _render_actions(sym, on_back)
-    _emit(head_html(row, uni, held, as_of, m12, q, n_q, ln, holding)
+    hits = wl.ranks_elsewhere(sym, _other_ranks(other_rankings))
+    _emit(head_html(row, uni, held, as_of, m12, q, n_q, ln, holding, hits)
           + rank_html(row, uni, q, n_q, ln, tr)
           + rules_html(row, a_row, q, ln, high_pct, sl.ladder(row, closes, high_pct), held, holding, check,
                        events, last_res)
