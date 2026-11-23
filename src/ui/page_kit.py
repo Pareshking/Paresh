@@ -186,7 +186,7 @@ def note(lead: str, text: str = "", *, kind: Literal["warning", "late", "info"])
       icon (CSS) and a leading word, "Warning:" or "Late:" (never colour alone; GOV.UK warning text,
       USWDS alert).
     * "info": the note only explains (scope, method, which system applies). Muted text, no icon, no
-      leading word and no caution colour: amber is kept for a fault, so it keeps its meaning."""
+      leading word and no amber: amber is kept for a fault, so it keeps its meaning."""
     if kind == "info":
         st.html(f'<div class="pg-info" role="note"><b>{html.escape(lead)}</b>'
                 + (f" {html.escape(text)}" if text else "") + "</div>")
