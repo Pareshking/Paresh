@@ -37,21 +37,30 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 from src.ui import formats as _fmt
-from src.ui.tokens import FONTS, resolve
+from src.ui.tokens import FONTS, resolve, series_var
 
 _STATIC = Path(__file__).resolve().parents[2] / "static"
 LW_VERSION = "5.2.1"
 _LW_FILE = "lightweight-charts.standalone.production.js"
 
-INDIGO, GREY, INK, AMBER, GREEN, RED = "var(--c-ink)", "var(--c-faint)", "var(--c-ink)", "var(--c-caution)", "var(--c-up)", "var(--c-down)"
+INDIGO, GREY, INK, GREEN, RED = "var(--c-ink)", "var(--c-faint)", "var(--c-ink)", "var(--c-up)", "var(--c-down)"
 GAP_PX = 6
 # The legend sits above each plot on one line (a coloured dash, the name, the
 # value), not over the data; this is the room it takes. A legend that wraps on
 # a phone takes its second line from the plot, so the frame never grows.
 LEGEND_PX = 20
 # A pane never draws two series in one colour: a later repeat takes the next
-# of these that the pane has not used.
-SPARE = ("var(--c-ink)", "var(--c-up)", "var(--c-caution)", "var(--c-teal)", "var(--c-violet)", "var(--c-faint)", "var(--c-down)")
+# of these that the pane has not used. Never caution (it means a warning) and
+# never a SERIES colour (each means one series, S193 G): ink, blue and greys.
+SPARE = ("var(--c-ink)", "var(--c-up)", "var(--c-muted)", "var(--c-faint)", "var(--c-quiet)", "var(--c-down)")
+
+
+def colour_for(name: str, default: str = INK) -> str:
+    """A named series' colour (tokens.SERIES), else `default`."""
+    try:
+        return series_var(name)
+    except KeyError:
+        return default
 
 
 def _js_str(text: str) -> str:

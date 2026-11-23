@@ -35,12 +35,13 @@ CSS = """
 :root{--bg:var(--c-white);--ink:var(--c-ink);--text2:var(--c-text_2);--muted:var(--c-muted);--faint:var(--c-faint);
 --rule:var(--c-rule_strong);--rule-soft:var(--c-rule_soft);--fill:var(--c-fill);--up:var(--c-up);--up-soft:var(--c-up_tint);
 --down:var(--c-down);--down-soft:var(--c-down_tint);--caution:var(--c-caution);--caution-soft:var(--c-caution_tint);
---teal:var(--c-teal);--tip-bg:var(--c-ink);--tip-fg:var(--c-white);--tip-muted:var(--c-quiet)}
+--mid:var(--c-mid);--s-book:var(--c-s_book);--s-market:var(--c-s_market);--s-n500:var(--c-s_n500);
+--s-mom50:var(--c-s_mom50);--s-dii:var(--c-s_dii);--tip-bg:var(--c-ink);--tip-fg:var(--c-white);--tip-muted:var(--c-quiet)}
 *{box-sizing:border-box}html,body{margin:0;overflow-x:hidden;overflow-x:clip;background:transparent;color:var(--ink);
 font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13.5px;line-height:1.45}
 .card{display:flex;flex-direction:column;gap:8px;padding:2px 10px 6px}
 .cap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 14px;font-size:12px;color:var(--muted)}
-.up{color:var(--up)}.down{color:var(--down)}.watch{color:var(--caution)}.muted{color:var(--muted)}.b{font-weight:600}
+.up{color:var(--up)}.down{color:var(--down)}.watch{color:var(--caution)}.turning{color:var(--muted)}.muted{color:var(--muted)}.b{font-weight:600}
 .readout{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;align-items:baseline;min-height:22px}
 .readout .d{color:var(--muted);font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px}
 .ph{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;font-size:12px;color:var(--muted)}.ph>b{color:var(--ink);font-size:13px}
@@ -93,7 +94,7 @@ details summary{cursor:pointer;font-size:13px;color:var(--text2)}.ptab,.mtab{max
 .key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}.key span{display:flex;align-items:center;gap:6px}
 .key .k-now{width:2px;height:14px;background:var(--ink)}.key .k-ago{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:6px solid var(--muted)}
 .key .k-line{width:0;height:14px;border-left:1px dashed var(--muted)}
-.key .dot{width:10px;height:10px;border-radius:50%;background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--muted)}.key .dot.held{background:var(--caution);box-shadow:none}
+.key .dot{width:10px;height:10px;border-radius:50%;background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--muted)}.key .dot.held{background:var(--ink);box-shadow:none}
 .segbar{display:flex;gap:2px;height:44px;border-radius:4px;overflow:hidden}
 .segbar i{display:flex;align-items:center;padding-left:8px;font-style:normal;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:pointer;color:var(--bg)}
 .segbar i.dim{opacity:.3}
@@ -101,7 +102,7 @@ details summary{cursor:pointer;font-size:13px;color:var(--text2)}.ptab,.mtab{max
 @media (min-width:601px){.segbar{height:64px}}
 .seg-key i{width:12px;height:12px;border-radius:3px;display:inline-block}.seg-key b{font-family:'IBM Plex Mono',monospace;color:var(--ink)}
 .seg-strong{background:var(--up)}.seg-strong.alt{background:color-mix(in srgb,var(--up) 70%,var(--bg))}
-.seg-turning{background:color-mix(in srgb,var(--caution) 45%,var(--bg))}.seg-turning.alt{background:color-mix(in srgb,var(--caution) 30%,var(--bg))}
+.segbar i.seg-turning{color:var(--ink)}.seg-turning{background:var(--mid)}.seg-turning.alt{background:color-mix(in srgb,var(--mid) 70%,var(--bg))}
 .seg-weak{background:var(--down)}.seg-weak.alt{background:color-mix(in srgb,var(--down) 75%,var(--bg))}
 .hold{overflow-x:auto}
 .ht{width:100%;min-width:1120px;border-collapse:collapse;font-size:13.5px}
@@ -160,12 +161,12 @@ BODY = {
                 '<div class="readout" aria-live="polite"></div>'
                 '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div><div class="chart" data-pane="bottom" role="img"></div>'),
     "growth": ('<div class="ph" aria-live="polite"><span class="d"></span>'
-               '<span><i style="color:var(--ink)"></i>The book <b data-v="book"></b></span>'
-               '<span><i style="color:var(--caution)"></i>Momentum 50 <b data-v="mom"></b></span>'
-               '<span><i class="dash" style="color:var(--muted)"></i>Market <b data-v="market"></b></span></div>'
+               '<span><i style="color:var(--s-book)"></i>The book <b data-v="book"></b></span>'
+               '<span><i style="color:var(--s-mom50)"></i>Momentum 50 <b data-v="mom"></b></span>'
+               '<span><i class="dash" style="color:var(--s-market)"></i>Market <b data-v="market"></b></span></div>'
                '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div>'
                '<div class="ph"><b>Below the peak</b><span><i style="color:var(--down)"></i>book below peak <b data-v="dd"></b></span>'
-               '<span><i class="dash" style="color:var(--muted)"></i>market below peak <b data-v="ddm"></b></span></div>'
+               '<span><i class="dash" style="color:var(--s-market)"></i>market below peak <b data-v="ddm"></b></span></div>'
                '<div class="chart" data-pane="bottom" role="img" aria-label="The book\'s and the market\'s fall from their peaks"></div>'),
     "lines": ('<div class="cap"><span class="ph" aria-live="polite"></span><span class="chips" role="group" aria-label="Period"></span></div>'
               '<div class="chart" tabindex="0" role="img" aria-label="{label}"></div>'),

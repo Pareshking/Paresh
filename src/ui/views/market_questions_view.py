@@ -414,7 +414,7 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
                         "price only.")
         mm, aa = m.loc[since:], avg.loc[since:]
         dc.render("lines", {"dates": _dates(mm.index), "yfmt": "num", "series": [
-            {"name": f"Nifty 500, monthly close ({b.index[-1]:%b}: today)", "values": _vals(mm, 1), "color": "ink"},
+            {"name": f"Nifty 500, monthly close ({b.index[-1]:%b}: today)", "values": _vals(mm, 1), "color": "s-n500"},
             {"name": "10-month average", "values": _vals(aa.reindex(mm.index), 1), "color": "muted", "dash": True}]},
             label="The Nifty 500's monthly closes and its 10-month average")
     with right:
@@ -436,10 +436,11 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
                         "Each size index divided by the Nifty 500, set to 100 at the start 12 months ago (the dashed line); above 100 it has "
                         f"done better. Price only. {_fmt.PTS_NOTE}")
             idx = sorted(set().union(*[set(v.dropna().index) for v in rel.values()]))
-            colours = ["ink", "up", "caution", "teal", "violet"]
+            from src.ui.tokens import LINE_CYCLE
             dc.render("lines", {"dates": _dates(idx), "yfmt": "num",
                                 "levels": [{"v": 100, "label": "", "color": "muted"}],
-                                "series": [{"name": k, "values": _vals(v.reindex(idx).ffill(), 2), "color": colours[i % 5]}
+                                "series": [{"name": k, "values": _vals(v.reindex(idx).ffill(), 2), "color": LINE_CYCLE[i % len(LINE_CYCLE)][0],
+                                            "dash": LINE_CYCLE[i % len(LINE_CYCLE)][1]}
                                            for i, (k, v) in enumerate(rel.items())]},
                       label="Each size index against the Nifty 500 over the year")
 

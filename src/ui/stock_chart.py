@@ -19,7 +19,7 @@ app always drew for a close-only source.
 
 from __future__ import annotations
 
-from src.ui.tokens import C
+from src.ui.tokens import C, SERIES, series_colour
 
 import pandas as pd
 
@@ -33,8 +33,9 @@ DOWN = C.down
 INK = C.ink
 GRID = C.grid
 MUTED = C.muted
-MA_COLOURS = {"20 EMA": C.teal, "50 EMA": C.muted_2, "200 SMA": C.caution, "Nifty 500": C.violet,
-              "50D EMA": C.teal}
+# Each overlay in its series colour (tokens.SERIES): one colour per series on every page (S193 G).
+MA_COLOURS = {name: series_colour(name) for name in ("20 EMA", "50 EMA", "50D EMA", "200 SMA", "Nifty 500")}
+assert all(name in SERIES for name in MA_COLOURS)
 # Volume is context, not a signal: pale tints of the up and down colours.
 VOL_UP, VOL_DOWN = C.up_line, C.down_line_2
 

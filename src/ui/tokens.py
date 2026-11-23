@@ -41,12 +41,61 @@ PALETTE: dict[str, str] = {
     # down (rust)
     "down": "#A4441A", "down_dark": "#7F3414", "down_tint": "#F8ECE5", "down_tint_2": "#FBF3EF",
     "down_line": "#F5E2D8", "down_line_2": "#EED6C9", "down_line_3": "#EAC9B8", "down_line_4": "#E4BBA6",
-    # caution (stale data, warnings)
+    # caution: stale data, warnings and "watch" states ONLY (owner, 23 Nov 2026,
+    # S193 G). Never a series, a fill for a category or a marker; a chart that
+    # needs another colour takes one from SERIES below or a grey.
     "caution": "#B54708", "caution_ink": "#7A2E0E", "caution_tint": "#FEF6EA", "caution_line": "#F5D7A8",
-    # charts: two series hues that are neither up, down nor caution (the
-    # 20-day EMA, the Nifty 500 overlay, a third breadth line); the faint grid
-    "quiet": "#A9A9A4", "teal": "#3E8A83", "violet": "#6E5A9E", "grid": "#F0F0ED",
+    # charts: the faint grid, and a quiet grey for a tooltip's date
+    "quiet": "#A9A9A4", "grid": "#F0F0ED",
+    # teal and violet each mean one series now (SERIES); the names stay for old callers
+    "teal": "#3E8A83", "violet": "#6E5A9E",
+    # One colour per series, the same on every chart (S193 G). None is the up
+    # blue, the down rust or caution, each is at least 3:1 on white, and the
+    # series drawn together stay apart under protanopia and deuteranopia
+    # (CIEDE2000, Machado 2009 matrices; the numbers are in the S193 G PR).
+    "s_book": "#1C1B19",      # the book (model book, portfolio, a backtest's rule): ink, solid
+    "s_market": "#5F5F5B",    # Nifty Total Market: grey, dashed
+    "s_n500": "#6E5A9E",      # Nifty 500: violet
+    "s_mom50": "#6A7F14",     # Nifty500 Momentum 50: olive
+    "s_ema20": "#8F3A84",     # 20 EMA on the stock chart: plum
+    "s_ema50": "#3E8A83",     # 50 EMA / 50D EMA on the stock chart: teal
+    "s_sma200": "#833F51",    # 200 SMA on the stock chart: wine
+    "s_dii": "#968670",       # domestic institutions' flows (Dashboard flows bars): warm grey
+    # Turning (Strong / Turning / Weak): the neutral middle of a diverging scale
+    "mid": "#A9A9A4",
+    # size groups, Large to Ultra Nano: one grey ramp, dark to light
+    "size_1": "#1C1B19", "size_2": "#4A4A46", "size_3": "#77776F",
+    "size_4": "#A3A39D", "size_5": "#C8C8C3", "size_6": "#E3E3DF",
 }
+
+# Series name -> PALETTE key. Every chart reads a named series' colour from
+# here (series_colour / series_var), so one series is one colour on every page.
+SERIES: dict[str, str] = {
+    "The book": "s_book", "Model book": "s_book", "This rule": "s_book",
+    "Nifty Total Market": "s_market",
+    "Nifty 500": "s_n500",
+    "Nifty500 Momentum 50": "s_mom50", "Momentum 50": "s_mom50",
+    "20 EMA": "s_ema20",
+    "50 EMA": "s_ema50", "50D EMA": "s_ema50",
+    "200 SMA": "s_sma200",
+    "Domestic flows": "s_dii",
+}
+
+# Lines for an unnamed set (each size index, each average's share): ink, blue
+# and grey with dashes, never caution and never a SERIES hue. [(token, dashed)]
+LINE_CYCLE: tuple[tuple[str, bool], ...] = (
+    ("ink", False), ("up", False), ("muted", False), ("ink", True), ("up", True), ("muted", True))
+
+
+def series_colour(name: str) -> str:
+    """The hex of a named series (KeyError for a name SERIES does not hold)."""
+    return PALETTE[SERIES[name]]
+
+
+def series_var(name: str) -> str:
+    """`var(--c-…)` for a named series, for CSS and frames that `resolve()`."""
+    return f"var(--c-{SERIES[name]})"
+
 
 # ── Type: eight steps, each with one job (design audit, 8 Nov 2026) ──────
 # The stylesheet had 39 distinct sizes, four of them inside a 1.5 px range

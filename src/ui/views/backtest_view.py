@@ -475,8 +475,8 @@ def section_lead(f: dict) -> list:
          f"{sm.ahead / max(sm.months, 1):.0%} · up in {sm.up}"),
     ])
     ch = f["chart"]
-    series = [{"name": "This rule", "short": "This rule", "color": "ink", "values": ch["series"]["rule"], "dd": ch["dd"]["rule"]},
-              {"name": "Nifty 500", "short": "Nifty 500", "color": "muted", "values": ch["series"]["n500"],
+    series = [{"name": "This rule", "short": "This rule", "color": "s-book", "values": ch["series"]["rule"], "dd": ch["dd"]["rule"]},
+              {"name": "Nifty 500", "short": "Nifty 500", "color": "s-n500", "values": ch["series"]["n500"],
                "dd": ch["dd"]["n500"], "dash": True}]
     top = max(v for v in ch["series"]["rule"] + ch["series"]["n500"] if v is not None)
     ticks = [t for t in (50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000) if t <= top * 1.2]
