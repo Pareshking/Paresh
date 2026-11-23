@@ -634,6 +634,11 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
                             format_func=lambda k: f"Grouping: {k}")
     col = choices.get(pick, "Industry")
     prices = history_prices if history_prices is not None else adj_close
+    # Every figure and the footer end on the session the header shows (S193 E): a newer session the
+    # ranking holds back while the vendor publishes it is left out here too.
+    session = _fmt.session_of(adj_close if adj_close is not None else prices)
+    if prices is not None and session is not None:
+        prices = prices.loc[:session]
     from src.ui.views.market_questions_view import total_market
     tm = total_market()
     if prices is None or prices.empty:

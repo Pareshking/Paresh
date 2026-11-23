@@ -195,5 +195,5 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     # Data date and counts, no sources (owner, 20-21 Nov 2026).
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
-    st.html(f'<p class="qp-note" style="margin-top:18px">{_fmt.data_to(adj_close.index[-1])}. {len(rank_df)} stocks ranked; '
+    st.html(f'<p class="qp-note" style="margin-top:18px">{_fmt.data_to(_fmt.session_of(adj_close))}. {len(rank_df)} stocks ranked; '
             f'{gap_count(rank_df)} with a price gap, {short_n} with a short history.</p>')

@@ -506,7 +506,8 @@ def render_stock_view(
 
     system = system or system_param.current()
     uni = sl.universe(system, len(rank_df))
-    as_of = (pd.Timestamp(adj_close.index[-1]) if adj_close is not None and len(adj_close.index)
+    # The session the header shows, not the frame's last row (S193 E).
+    as_of = (formats.session_of(adj_close) if adj_close is not None and len(adj_close.index)
              else pd.Timestamp.today().normalize())
     st.html(f"<style>{HOME_CSS}{SP_CSS}</style>")
 

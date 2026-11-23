@@ -118,8 +118,9 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
     # Screener; from the bare ranking every row read "Out" (S184, 22 Nov 2026).
     full = with_book_columns(rank_df, book_symbols, prices)
     matched = full[full["Symbol"].isin(user_symbols)].sort_values("Rank").copy()
-    as_of = (pd.Timestamp(prices.index[-1]) if prices is not None and len(prices.index)
-             else pd.Timestamp(ist_now().date()))
+    # The session the header shows, not the frame's last row (S193 E).
+    as_of = (formats.session_of(adj_close if adj_close is not None and len(adj_close.index) else prices)
+             if prices is not None and len(prices.index) else pd.Timestamp(ist_now().date()))
 
     plan = None
     if user_symbols and not matched.empty:
