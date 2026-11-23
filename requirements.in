@@ -1,0 +1,81 @@
+# The dependencies this repository asks for, edited by hand (TODO S209, owner 23 Nov 2026).
+#
+# requirements.txt is GENERATED from this file and pins every package, the
+# dependencies of these included, so Streamlit Cloud, CI and a Windows machine
+# install the same set. Never edit requirements.txt by hand. After changing this
+# file, regenerate it and commit both:
+#
+#     uv pip compile requirements.in --universal --python-version 3.14 -o requirements.txt
+#
+# Python 3.14 is what Streamlit Cloud runs (deploy log, 22 Nov 2026: 3.14.10) and
+# what .python-version gives CI. --universal writes one file for Linux, macOS and
+# Windows, with markers where they differ. The first compile added
+# --exclude-newer 2026-11-22T17:37:00Z, the moment of production's last full
+# install, so its 39 pins equal what production already ran; drop that flag, or
+# move the date, to take newer releases.
+#
+# Ranges below stay ranges here on purpose (boto3); requirements.txt pins
+# the version they resolve to.
+
+# Pinned, not floated. `streamlit>=1.35.0` let Streamlit Cloud install a
+# different FRONTEND on any reboot with no commit in this repository, and the
+# frontend is where the Configuration sliders rendered at their minimum.
+# Production confirmed 1.63.0 is what this deployment already resolves to, so
+# this pin changes nothing today and stops the next silent swap. To upgrade:
+# bump here, let V1 Production QA verify against the live app, then keep it.
+# 15 Nov 2026: 1.66.1 -> 1.67.0 (owner: "we should be using latest"). Checked
+# locally on both versions: 56 screens of six pages at 1400 and 390 px, page text
+# identical, 0 exceptions, one table's columns a few pixels apart; suite passed.
+streamlit==1.67.0
+# The numeric stack and the data clients are pinned for the same reason as
+# streamlit: a floor like `pandas>=2.0.0` let every container boot pick up
+# whatever was newest that day, while CI had only ever tested one version.
+# These are the versions the full suite passed on (2026-09-25). pandas 3 and
+# numpy 2 change dtype and copy semantics the engine depends on, and a floor
+# of 2.0.0 / 1.24.0 claimed support for versions nothing ever ran. Dependabot
+# (monthly, increase-if-necessary) opens a PR for each new release; bump
+# deliberately and let CI plus V1 Production QA confirm it.
+pandas==3.1.1
+numpy==2.5.4
+# scikit-learn was declared here and imported NOWHERE -- `grep -rn sklearn`
+# across the repository returns this line and nothing else. Carrying it cost
+# the cold start a ~30 MB wheel plus joblib and threadpoolctl on every container
+# boot, for nothing. scipy went the same way on
+# 2026-09-25: its only user was an Equal Risk Contribution optimiser nothing
+# in the app could reach.
+requests==2.34.2
+# Pinned to the exact version, not capped below a range.
+#
+# pyarrow 25.0.1 segfaults (apache/arrow#50471) and Streamlit Cloud knows it:
+# every boot it detected 25.0.1, uninstalled it and installed 24.0.0 itself,
+# so the float was buying no newer version anyway -- only an uninstall and a
+# reinstall on the critical path of every cold start.
+#
+# `pyarrow<25` would have been a permanent ceiling for a temporary bug, and
+# nothing would ever have prompted a re-look. An exact pin is a line with a
+# reason and a way out: when arrow#50471 closes, bump this deliberately and
+# let the QA run confirm it.
+#
+# 7 Nov 2026: bumped to 26.0.0 and back the same evening. Streamlit Cloud's
+# boot log: "Detected pyarrow 26.0.0 (known segfault, apache/arrow#50471).
+# Replacing with pyarrow<25." It treats every version from 25 as bad, so
+# production ran 24 anyway; the pin says what production runs. Checked with
+# streamlit 1.66.1, pandas 3.1.0, numpy 2.5.4: suite, audit baseline and
+# parity unchanged.
+pyarrow==24.0.0
+# S3-compatible Cloudflare R2 archive adapter. Left as a range on purpose:
+# boto3 releases almost daily, its S3 API is stable within a major, and the
+# R2 read-path gate re-runs on main whenever this file changes.
+boto3>=1.35.0,<2
+
+# Eight test files parse workflow YAML and have always imported this, while
+# requirements.txt never declared it: it was present only as an optional extra
+# of conan, uvicorn, watchdog, pytest and starlette. The r2-focused job
+# installs requirements.txt alone, so PR #506 went red with
+# "ModuleNotFoundError: No module named 'yaml'" while every other job and the
+# full local suite passed (owner, 11 Nov 2026, S121). Declared, not removed:
+# it is already installed in every environment this runs in, so saying so
+# costs nothing and makes true what the tests assume. Pinned to what this
+# container resolves to today, as with the rest of the file.
+PyYAML==6.0.3
+
