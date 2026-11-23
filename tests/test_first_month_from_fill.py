@@ -13,11 +13,14 @@ Dashboard the members of the day (38%). Both rules stay; Sectors' headline names
 from __future__ import annotations
 
 import dataclasses
+from pathlib import Path
 
 import pandas as pd
 
 from src.engine import dashboard_insights as di
 from src.ui.views import portfolio_page as pp
+
+ROOT = Path(__file__).resolve().parents[1]
 
 # Month-end before the first month 100; the first fill (1 Oct) 110; 30 Oct 121; 20 Nov 133.1.
 IDX = pd.to_datetime(["2026-09-30", "2026-10-01", "2026-10-30", "2026-11-02", "2026-11-20"])
@@ -77,3 +80,23 @@ def test_sectors_headline_names_its_members_rule():
               sp.Share("Metals", 20, 50.0, 45.0, 20.0)]
     out = sv.section_inside(None, shares, pd.DataFrame(), pd.DataFrame({"Symbol": ["A"], "3M Return": [1.0], "Industry": ["Auto"]}), lambda s: s, "sector")
     assert "37% a month ago, today’s members;" in out[0]
+
+
+def test_since_start_market_starts_at_the_fill():
+    # Owner, 23 Nov 2026: "2: from the fill". The book starts at the first fill's close; the market beside
+    # it started the day before (nano: +8.5% from 30 Sep against +9.6% from 1 Oct, a 1.1 pt gap in the lead).
+    from src.engine import portfolio_report as pr
+
+    idx = pd.to_datetime(["2026-09-30", "2026-10-01", "2026-10-05", "2026-11-20"])
+    book = pd.Series([100.0, 99.9, 101.0, 110.0], index=idx)
+    market = pd.Series([100.0, 110.0, 111.0, 121.0], index=idx)
+    rows = {r[0]: r for r in pr.periods(book, market, market, pd.Timestamp("2026-11-20"), pd.Timestamp("2026-10-01"))}
+    assert round(rows["Since start"][2], 6) == 10.0           # 110 -> 121, not 100 -> 121
+    old = {r[0]: r for r in pr.periods(book, market, market, pd.Timestamp("2026-11-20"))}
+    assert round(old["Since start"][2], 6) == 21.0
+    g = pr.daily_gaps(book, market, pd.Timestamp("2026-10-01"))
+    assert list(g.index) == list(idx[2:])                     # the fill session (cash until the close) is left out
+    src = (ROOT / "src" / "ui" / "views" / "dashboard_home_view.py").read_text(encoding="utf-8")
+    assert "since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, idx_end)" in src
+    psrc = (ROOT / "src" / "ui" / "views" / "portfolio_page.py").read_text(encoding="utf-8")
+    assert "rows = pr.periods(p.equity, p.market, p.mom, p.as_of, first_fill(p)[1])" in psrc

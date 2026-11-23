@@ -311,7 +311,9 @@ def header(p: Page) -> list:
     from src.engine.extra_universe import SYSTEM_NAMES
     from src.engine.systems import inception
     begun = inception(p.system).start_time
-    mkt_since = pr.ret(p.market, begun - pd.Timedelta(days=1), p.as_of)
+    # The market from the first fill's close, where the book starts (owner, 23 Nov 2026: "2: from the fill").
+    fill = first_fill(p)[1]
+    mkt_since = pr.ret(p.market, fill if fill is not None else begun - pd.Timedelta(days=1), p.as_of)
     # The book's own latest day; the market's only when its index has that session (S148: one date for both).
     eq = p.equity.dropna()
     mk = p.market.dropna()
@@ -492,7 +494,7 @@ def section_exposure(p: Page) -> list:
 
 
 def section_returns(p: Page) -> list:
-    rows = pr.periods(p.equity, p.market, p.mom, p.as_of)
+    rows = pr.periods(p.equity, p.market, p.mom, p.as_of, first_fill(p)[1])
     begun = _start(p)
     label = {"1 year": "12 months", "Since start": _fmt.since(begun), "Month so far": f"Month so far · {p.as_of:%b}"}
     shown = [(label.get(lab, lab.replace(", since start", f", since {_fmt.date(begun)}")), *v) for lab, *v in rows]
@@ -581,7 +583,7 @@ def section_equity(p: Page) -> list:
     risks = pr.risk(p.equity, p.market)
     cap = pr.capture(p.equity, p.market)
     rk = risks[0] if risks else None
-    mday = pr.daily_gaps(p.equity, p.market)
+    mday = pr.daily_gaps(p.equity, p.market, first_fill(p)[1])
     mkt_on = float(mday["market"].get(f.worst_day_on, np.nan)) if f else np.nan
     falls = [("Below its peak today", pct(f.now), "dh-watch" if f.now < 0 else "", f"Peak {dshort(f.peak_now)}", "",
               ("" if not fm else f"Nifty Total Market is at a new high ({dshort(fm.peak_now)})" if fm.now > -0.05
@@ -730,7 +732,7 @@ def month_bars_spec(p: Page) -> dict:
 
 
 def day_section(p: Page) -> list:
-    g = pr.daily_gaps(p.equity, p.market)
+    g = pr.daily_gaps(p.equity, p.market, first_fill(p)[1])
     if len(g) < 6:
         # A system's first week (Nifty 1000 from Nov 2026, S175): five sessions back is not there yet.
         return _sec([_head("pf-day", "Day by day against Nifty Total Market", "Day P&L in context"),
@@ -743,7 +745,7 @@ def day_section(p: Page) -> list:
              ("Last 5 sessions", sg(five[0] - five[1], 1, " pts") if None not in five else "–", tone(None if None in five else five[0] - five[1]),
               f"Book {pct(five[0])}, Nifty Total Market {pct(five[1])}", "", ""),
              ("Last 20 sessions", f"{beat20} of {len(last)}", "dh-up" if beat20 > len(last) / 2 else "dh-watch", "Sessions the book beat Nifty Total Market", "", ""),
-             (f"Since {dshort(p.equity.index[1])}", f"{beat} of {len(g)}", "dh-up" if beat > len(g) / 2 else "dh-watch",
+             (f"Since {dshort(g.index[0])}", f"{beat} of {len(g)}", "dh-up" if beat > len(g) / 2 else "dh-watch",
               f"Sessions the book beat Nifty Total Market, {_fmt.fixed(beat / len(g) * 100, 0)}%", "", "")]
     spec = {"values": [round(float(v), 2) for v in last["gap"]], "labels": [dshort(d) for d in last.index],
             "full": [f"{d:%-d %b %Y}" for d in last.index], "unit": "pts against Nifty Total Market", "dp": 1, "xn": 5,

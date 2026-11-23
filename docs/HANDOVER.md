@@ -64,7 +64,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 **Benches:** run `audit_page_bench.py` in a worktree nobody commits to. A commit in the served checkout makes the app
 log "New revision pulled ... caches dropped" and the run reads seconds slower (seen 23 Nov).
 
-**S193 item A:** A10, A12, A13, A14 merged (#649). Item C merged (#650). Open question for the owner (item 2 of the one-at-a-time list): the "since start" market figure starts the day before inception while the book starts at the fill (as A12, one level up). A5 and A11 need a `record_run` on the R2 store first
+**S193 item A:** A10, A12, A13, A14 merged (#649). Item C merged (#650). Since-start market: owner chose "2: from the fill" (23 Nov); done. A5 and A11 need a `record_run` on the R2 store first
 (a CI job with R2 secrets). Then items B, C, E-L, one at a time with the owner.
 
 **Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S207 closed 23 Nov (measured: leave both). These were taken over from the speed session.

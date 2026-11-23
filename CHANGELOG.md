@@ -1,6 +1,11 @@
 # Changelog
 
 
+## 2026-11-23 — Since start, the market starts where the book does
+
+- The book's return since it started is measured from its first fill; Nifty Total Market beside it was measured from the close the day before, a session the book did not hold. Both now start at the fill, on the Dashboard and on Portfolio. The lead moves: > ₹2,000 Cr list −16.9 → −17.9 pts, the 750 +44.9 → +45.1, the Nifty 1000 −4.3 → −2.6.
+- Portfolio's "sessions the book beat Nifty Total Market" starts with the first session after the fill (the book held cash until that close).
+
 ## 2026-11-23 — Each system's momentum tiles from its own record (S217)
 
 - The Dashboard's "Is momentum still working?" tiles showed the Nifty 500's top 100 against the Nifty 500 under every system. Each system now shows its own record: the top fifth of its own members, ranked at each month-end, against all of them at equal weight.
