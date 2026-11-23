@@ -14,12 +14,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 UI = ROOT / "src" / "ui"
 
-# Files another agent was editing while this was built (charts, S193 H). They are held to the
-# same rules once that work lands; until then they are listed, not silently skipped.
-OTHER_AGENT = {
-    "dash_charts.py", "lw_chart.py", "stock_chart.py", "stock_view.py", "market_view.py",
-    "market_questions_view.py", "sector_view.py",
-}
+# Files another agent was editing while this was built (charts, S193 H). That work has landed, so
+# every file in src/ui is held to these rules; the set stays empty.
+OTHER_AGENT: set = set()
 
 
 def _mine():
@@ -122,12 +119,76 @@ def test_notes_and_warning_boxes_lead_with_a_word(monkeypatch):
     from src.ui import page_kit as kit
     out = []
     monkeypatch.setattr(kit.st, "html", lambda t, **k: out.append(t))
-    kit.note("Prices are late.", "detail")
+    kit.note("Check this.", "detail", kind="warning")
     kit.callout("Check this.", "body", tone="warn")
     kit.callout("Fine.", "body", tone="up")
+    kit.note("Prices are behind.", "detail", kind="late")
+    kit.note("Each run picks its own index.", "detail", kind="info")
     assert 'class="warn-word">Warning:</span>' in out[0] and "pg-note" in out[0]
     assert 'class="warn-word">Warning:</span>' in out[1]
     assert "warn-word" not in out[2]
+    assert 'class="warn-word">Late:</span>' in out[3]
+    # An explaining note: muted, no icon (pg-info has no ::before), no leading word, no caution colour.
+    assert "pg-info" in out[4] and "warn-word" not in out[4] and "pg-note" not in out[4]
+    from src.ui import theme
+    assert ".pg-info" not in theme.WARN_ICON_CSS
+    with pytest.raises(TypeError):
+        kit.note("No kind chosen.")            # the choice is explicit at every call site
+
+
+# Every caution note (kit.note kind "warning" or "late"), by file and its lead's source, with why it is a
+# warning: something wrong, late, missing or risky. A note that only explains is kind="info" (owner's
+# coordinator, 23 Nov 2026: Backtest's "does not change these runs" read "Warning:" and was information).
+CAUTION_NOTES = {
+    ("app.py", "*system_note(system_name, rank_df"): "the Nifty 1000's members not ranked yet: missing",
+    ("actions_page.py", "*note"): "unpriced_note: members the book was formed without a close for: missing",
+    ("actions_view.py", '"That file could not be read as Kite'): "the upload failed: wrong",
+    ("backtest_view.py", 'f"No membership history for'): "the index's list is missing",
+    ("backtest_view.py", 'f"{iu.INDICES[key]} has no completed month'): "the window chosen holds nothing: wrong",
+    ("backtest_view.py", '"The Nifty 500\'s closes are unavailable."'): "the benchmark is missing",
+    ("backtest_view.py", '"Not enough price history for this window."'): "history missing for the window",
+    ("backtest_view.py", '"Traded value is not available right now'): "traded value missing; the floor is off",
+    ("config_view.py", 'f"The last sync ('): "the sync failed",
+    ("config_view.py", '"All five lookback weights are zero'): "a setting that cannot rank: wrong",
+    ("config_view.py", 'f"The stock cap ({new_stc}%) is above'): "two caps no book can meet: wrong",
+    ("config_view.py", 'f"At {new_stc}% per stock and {n_hold}'): "the weighting setting has no effect: risky",
+    ("portfolio_page.py", "*note"): "unpriced_note: missing closes",
+    ("portfolio_page.py", '"The model book could not be read just now."'): "the book failed its check",
+    ("portfolio_page.py", '"The track record could not be read just now."'): "the ledger could not be read",
+}
+
+
+def _kit_notes():
+    import ast
+    for f in [ROOT / "app.py", *sorted((ROOT / "src").rglob("*.py"))]:
+        src = f.read_text(encoding="utf-8")
+        for n in ast.walk(ast.parse(src)):
+            if (isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "note"
+                    and getattr(getattr(n.func, "value", None), "id", None) == "kit"):
+                kind = next((k.value for k in n.keywords if k.arg == "kind"), None)
+                yield f.name, ast.get_source_segment(src, n.args[0]), getattr(kind, "value", None)
+
+
+def test_every_caution_note_is_a_listed_warning():
+    notes = list(_kit_notes())
+    assert notes
+    bad, used = [], set()
+    for name, lead, kind in notes:
+        assert kind in ("warning", "late", "info"), (name, lead, kind)
+        if kind == "info":
+            continue
+        hit = next((k for k in CAUTION_NOTES if k[0] == name and lead.startswith(k[1])), None)
+        if hit is None:
+            bad.append(f"{name}: {lead[:50]}")
+        used.add(hit)
+    assert not bad, ("a caution note not in CAUTION_NOTES: add it with why it is a warning, or make it "
+                     f"kind='info' if it only explains: {bad}")
+    assert used >= set(CAUTION_NOTES), f"listed but no longer a caution note: {set(CAUTION_NOTES) - used}"
+
+
+def test_backtest_system_note_is_information():
+    src = (UI / "views" / "backtest_view.py").read_text(encoding="utf-8")
+    assert '"index in the settings below.", kind="info")' in src
 
 
 def test_the_late_banner_and_pill_say_late(monkeypatch):

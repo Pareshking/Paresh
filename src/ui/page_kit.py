@@ -176,12 +176,23 @@ def page_empty(title: str, lede: str, footer: str = "", kicker: str = "") -> Non
         st.html(f'<p class="pg-cap pg-foot">{html.escape(footer)}</p>')
 
 
-def note(lead: str, text: str = "", word: str = "Warning") -> None:
-    """The page's one amber note: a "!" icon (CSS), a leading word, a bold first
-    line, then the detail. Never colour alone (S193 J1; GOV.UK warning text,
-    USWDS alert): the word says what the amber means. `word` is "Warning" or
-    "Late" (data behind its session)."""
-    st.html(f'<div class="pg-note" role="note"><b><span class="warn-word">{html.escape(word)}:</span> '
+NOTE_WORD = {"warning": "Warning", "late": "Late"}
+
+
+def note(lead: str, text: str = "", *, kind: Literal["warning", "late", "info"]) -> None:
+    """A note under a heading, its kind chosen at the call site (S193 J1).
+
+    * "warning" and "late": something is wrong, missing, risky or behind its session. Amber, a "!"
+      icon (CSS) and a leading word, "Warning:" or "Late:" (never colour alone; GOV.UK warning text,
+      USWDS alert).
+    * "info": the note only explains (scope, method, which system applies). Muted text, no icon, no
+      leading word and no caution colour: amber is kept for a fault, so it keeps its meaning."""
+    if kind == "info":
+        st.html(f'<div class="pg-info" role="note"><b>{html.escape(lead)}</b>'
+                + (f" {html.escape(text)}" if text else "") + "</div>")
+        return
+    word = NOTE_WORD[kind]
+    st.html(f'<div class="pg-note" role="note"><b><span class="warn-word">{word}:</span> '
             f'{html.escape(lead)}</b>' + (f" {html.escape(text)}" if text else "") + "</div>")
 
 

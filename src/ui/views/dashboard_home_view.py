@@ -62,6 +62,10 @@ SIZE_LABELS = {"nifty100": "Nifty 100", "nifty200": "Nifty 200", "midcap150": "N
                "microcap250": "Nifty Microcap 250", "nifty200_mom30": "Nifty200 Momentum 30",
                "midcap150_mom50": "Nifty Midcap150 Momentum 50", "smallcap250_mq100": "Nifty Smallcap250 Momentum Quality 100"}
 AT_RISK_ROWS = 8
+# The ranges the Dashboard's dated bar charts open on (S193 H, docs/PAGE_DESIGN.md 4.1): momentum's lead is a
+# record, all of it (owner, 23 Nov 2026); foreign flows ask how money has moved lately, the last 12 months.
+LEAD_RANGE = {"default": "all", "why": "record"}
+FLOWS_RANGE = {"default": "12M", "why": "lately"}
 from src.ui.industry_names import INDUSTRY_SHORT as SHORT  # noqa: E402  one map for every page
 from src.ui import missing_words as mw  # noqa: E402  the fixed words for "–" and empty states (S193 E)
 TONE = {"up": "dh-up", "down": "dh-down", "watch": "dh-watch", "flat": "dh-muted", "for": "dh-up",
@@ -636,7 +640,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
              + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '')
              + _lag_note(lag, f"the {uni}", since, short, long) + '</div>']
     if lead_bars:
-        parts += [Chart("bars", lead_bars, {"label": f"Momentum’s lead over the {uni}, equal weight, by month"}),
+        parts += [Chart("bars", {**lead_bars, "range": LEAD_RANGE}, {"label": f"Momentum’s lead over the {uni}, equal weight, by month"}),
                   how(f"Each finished month, the return of the best-ranked fifth of the {uni} less all its members’, equal "
                       "weight, in points.",
                       "Bars above the line are months momentum led. A run below it is momentum out of favour; whether the "
@@ -709,7 +713,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
         thr = f", dashed line: a heavy-buying month, ₹{ev.threshold:,.0f} Cr or more" if ev is not None else ""
         left = [f'<div class="dh-cap"><b>Foreign investors, net, each month</b><span>₹ thousand Cr{e(thr)}; teal: domestic institutions on NSE, '
                 f'stacked on the same bar (a sale runs down from zero)</span></div>',
-                Chart("bars", bars, {"label": "Foreign portfolio investors’ net equity flows by month"}),
+                Chart("bars", {**bars, "range": FLOWS_RANGE}, {"label": "Foreign portfolio investors’ net equity flows by month"}),
                 f'<p class="dh-note dh-band-note">{e(bars["band_note"])}</p>' if bars.get("band_note") else "",
                 how("Foreign portfolio investors’ net purchases of Indian equity each month, exchange and primary market; in teal, "
                     "domestic institutions’ net purchases on NSE (banks, insurers, mutual funds, pension funds).",
@@ -1164,12 +1168,13 @@ def _last_month(ledger: dict, market: pd.Series, momentum: dict, as_of: pd.Times
 
 
 def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
-    """Momentum's lead each completed month since January 2024: the top 100 of the ranking less
-    the Nifty 500, one pair for every bar. The month so far was a different pair (Nifty500 Momentum 50
-    less Nifty Total Market) and is left to the table above (S193, owner 23 Nov 2026)."""
+    """Momentum's lead each completed month over the system's whole record (the 750's from December 2021):
+    its top fifth less all its members, equal weight, one pair for every bar. A record, so the chart opens
+    on all of it (S193 H; owner, 23 Nov 2026: its full record). The month so far was a different pair
+    (Nifty500 Momentum 50 less Nifty Total Market) and is left to the table above (S193, owner 23 Nov 2026)."""
     if spreads is None or not {"month", "top", "nifty500"} <= set(spreads.columns):
         return None
-    sp = spreads[spreads["month"] >= "2024-01"]
+    sp = spreads
     months = [pd.Period(m, "M") for m in sp["month"]]
     vals = [round(float(t) - float(n), 2) for t, n in zip(sp["top"], sp["nifty500"])]
     if len(vals) < 6:
@@ -1180,6 +1185,7 @@ def _lead_bars(spreads: pd.DataFrame | None, lead) -> dict | None:
     band = [q1, q3, ""]
     band_note = f"shaded: the usual range since {str(spreads['month'].iloc[0])[:4]}, {sg(q1)} to {sg(q3)} pts (the middle half of all months)"
     return {"values": vals, "labels": [f"{m:%b} ’{m:%y}" for m in months], "full": [f"{m:%b %Y}" for m in months],
+            "dates": [f"{m.end_time:%Y-%m-%d}" for m in months],
             "unit": "pts, momentum’s lead", "dp": 1, "lastLabel": f"{months[-1]:%b}", "lastNote": "", "xn": 6, "height": 200,
             "band": band, "band_note": band_note}
 
@@ -1250,7 +1256,7 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
     q1, q3 = float(done.quantile(0.25)), float(done.quantile(0.75))
     mo = allm.iloc[-12:]
     out = {"values": [round(float(v)) for v in mo.values], "labels": [f"{p:%b}" for p in mo.index],
-           "full": [f"{p:%b %Y}" for p in mo.index], "unit": "foreign", "money": True, "axisDiv": 1000,
+           "full": [f"{p:%b %Y}" for p in mo.index], "dates": [f"{p.end_time:%Y-%m-%d}" for p in mo.index], "unit": "foreign", "money": True, "axisDiv": 1000,
            "valueLabels": True, "xn": 12, "height": 240, "lastNote": f", to {flows.as_of:%-d %b}",
            "above": "a heavy-buying month", "between": "net buying, below the heavy line", "belowZero": "net selling"}
     if ev is not None:

@@ -24,6 +24,8 @@ from src.engine import market_questions as mq
 from src.engine import sectors_page as sp
 from src.engine.pipeline import known_fingerprint
 from src.ui import formats as _fmt
+from src.ui import missing_words as mw
+from src.ui import page_kit as kit
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.industry_names import INDUSTRY_SHORT as SHORT_NAMES
 from src.ui.screener_table import render_screener_table
@@ -372,18 +374,20 @@ def section_indices(ld: sp.Leads, nse: dict, sh) -> list:
               f'and <span class="dh-down">{e(full[-1].name)} trails at {sg(full[-1].returns[12], 1, "%")}</span>; '
               f"{_words(young)} of the {len(allix)} are younger than 12 months.")
 
-    def cells(ret, hi, pe, young_since=None):
+    def cells(ret, hi, pe, young_since=None, has_pe=True):
         out = "".join(_num(ret.get(m), "%") for m in (1, 3, 6, 9))
         out += (f'<td class="dh-num dh-muted">since {young_since}</td>' if young_since else _num(ret.get(12), "%"))
         hi_t = "–" if hi is None else ("at high" if abs(hi) < 0.05 else sg(hi, 1, "%"))
-        return out + f'<td class="dh-num dh-muted">{e(hi_t)}</td><td class="dh-num dh-muted">{"–" if pe is None else f"{pe:.1f}"}</td>'
+        # An equal-weighted group of our stocks has no P/E: the figure does not apply, a blank cell (R2).
+        pe_t = mw.NOT_APPLICABLE if not has_pe else (mw.DASH if pe is None else f"{pe:.1f}")
+        return out + f'<td class="dh-num dh-muted">{e(hi_t)}</td><td class="dh-num dh-muted">{pe_t}</td>'
     body = ""
     for g in groups:
         body += (f'<tr class="sx-grp"><th scope="colgroup" colspan="8">{e(sh(g.sector))}<span>{g.stocks} ranked stocks'
                  f'{"" if g.indices else " · no NSE sector index"}</span></th></tr>')
         if g.ours is not None:
             body += (f'<tr class="sx-ours"><th scope="row">The 750’s {g.ours.stocks} stocks<span class="dh-sub">equal-weighted</span></th>'
-                     + cells(g.ours.returns, g.ours.from_high, None) + "</tr>")
+                     + cells(g.ours.returns, g.ours.from_high, None, has_pe=False) + "</tr>")
         for x in g.indices:
             short = x.name.removeprefix("Nifty ")
             short = {"Small Finance Banks & Microfinance Institutions": "Small Fin. Banks & MFIs",
@@ -538,7 +542,8 @@ def section_inside(ld: sp.Leads, shares: list[sp.Share], board: pd.DataFrame, ra
                 "pass": v["pass"], "top50": v["top50"], "med3": _r(v["med3"]), "leaders": leaders}
         txt = {k: ("–" if vals[k] is None else f"{vals[k]:.0f}%") for k in ("b3", "b1", "now", "ema50", "near")}
         txt["med3"] = sg(vals["med3"], 1, "%")
-        txt["leaders"] = leaders or "–"
+        # The reference row has no leaders of its own (blank); a group too small today reads "–", footnoted below.
+        txt["leaders"] = leaders or (mw.NOT_APPLICABLE if ref else mw.DASH)
         return {"name": "All ranked stocks" if ref else sh(s.name), "sub": f"{s.stocks} stocks", "ref": ref, "v": vals, "t": txt,
                 "c": {"med3": _kt(vals["med3"]), "b3": "muted", "b1": "muted"}}
     cols = [{"k": "name", "label": noun.capitalize()},
@@ -547,6 +552,9 @@ def section_inside(ld: sp.Leads, shares: list[sp.Share], board: pd.DataFrame, ra
             {"k": "ema50", "label": "Above 50D EMA", "num": True}, {"k": "near", "label": "Near 52W high", "num": True},
             {"k": "pass", "label": "Pass both filters", "num": True}, {"k": "top50", "label": "In top 50", "num": True},
             {"k": "med3", "label": "Typical stock, 3M", "num": True}, {"k": "leaders", "label": "Leaders"}]
+    small = [s for s in rest if s.name not in b.index]
+    dash_note = (" " + mw.column_note("the filter columns and Leaders", f"{mw.too_few_stocks(sp.MIN_STOCKS)} "
+                                      f"({', '.join(sh(s.name) for s in small)})")) if small else ""
     spec = {"cols": cols, "rows": [row(allr, True)] + [row(s, False) for s in rest], "sort": "now",
             "bar": {"lo": 0, "hi": 100, "step": 2, "lines": [40, 60], "ago": "b1"}}
     return [f'<div class="dh-sec">{KICK.format(f"Inside each {noun}")}<h2 id="s-inside" class="dh-h2">{h2}</h2>'
@@ -554,7 +562,8 @@ def section_inside(ld: sp.Leads, shares: list[sp.Share], board: pd.DataFrame, ra
             '2% a line; the dashed lines are 40% and 60%, below which a rise is narrow and above which it is broad; the triangle '
             'marks a month ago. Then the ranking table’s own flags: above the 50D EMA, within 20% of the 52W high, passing both '
             '(the Screener’s filters), in the top 50, and the typical (median) stock’s 3M return. Today’s members throughout, so '
-            'older readings leave out stocks that have since left the 750. Sort by any heading.</p></div>',
+            'older readings leave out stocks that have since left the 750. Sort by any heading.'
+            f'{e(dash_note)}</p></div>',
             Chart("stable", spec, {"label": f"Inside each {noun}", "note": "2% a line · dashed: 40% and 60% · the triangle is a month ago"})]
 
 
@@ -653,13 +662,12 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     from src.ui.views.market_questions_view import total_market
     tm = total_market()
     if prices is None or prices.empty:
-        st.html('<div class="dh"><div class="dh-sec"><p class="dh-kick">Sectors</p><h1 class="dh-h1">No prices yet.</h1></div></div>')
+        kit.page_empty(mw.NO_PRICES, mw.NO_PRICES_WHY, kicker="Sectors")
         return
     key = "|".join([known_fingerprint(prices), col, str(len(rank_df)), str(tm.index[-1]) if len(tm) else "-"])
     model = _model(key, rank_df, prices, col, tm)
     if model is None:
-        st.html('<div class="dh"><div class="dh-sec"><p class="dh-kick">Sectors</p>'
-                f'<h1 class="dh-h1">No group has {sp.MIN_STOCKS} or more ranked stocks to compare.</h1></div></div>')
+        kit.page_empty(*mw.no_groups(sp.MIN_STOCKS), kicker="Sectors")
         return
     emit(for_universe(page_parts(model, rank_df, col, nse_sectors), universe))
 

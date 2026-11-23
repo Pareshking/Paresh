@@ -89,6 +89,11 @@ def no_pe() -> str:
     return f"{NOT_PUBLISHED}: NSE publishes no P/E for it"
 
 
+def too_few_stocks(n: int) -> str:
+    """Why a group's own figures read "–": too few of its stocks are ranked today to make a median."""
+    return f"fewer than {n} of its stocks are ranked today"
+
+
 def column_note(column: str, reason: str) -> str:
     """One footnote per table column: "– in 12M: the system is too young (…)." """
     return f"{DASH} in {column}: {reason}."
@@ -115,3 +120,11 @@ NO_MATCH = "No stock matches these filters."
 NO_MATCH_WAY_OUT = "Clear the search or pick another preset."
 NO_ROWS = "Nothing to show for this choice."
 NO_ROWS_WAY_OUT = "Pick another filter above."
+NO_PRICES = "No prices yet."
+NO_PRICES_WHY = "This page is drawn from the ranked stocks’ daily closes, and none are loaded."
+
+
+def no_groups(n: int) -> tuple[str, str]:
+    """A page of groups with none big enough to compare: its h1 and its lede (R4)."""
+    return (f"No group has {n} or more ranked stocks to compare.",
+            f"A group needs {n} ranked stocks for its typical stock to mean something; pick another grouping above.")

@@ -180,7 +180,7 @@ def _edit_holdings() -> None:
                     logger.warning("Holdings CSV not read: %s", exc)
                     # A failure is an amber note (S193 E, R4).
                     kit.note("That file could not be read as Kite’s holdings CSV.",
-                             "It needs an Instrument or Symbol column. Your saved holdings are unchanged.")
+                             "It needs an Instrument or Symbol column. Your saved holdings are unchanged.", kind="warning")
                 else:
                     if st.button(f"Use these {len(got)} holdings", key="xw_csv_use"):
                         holdings_store.save(got)

@@ -165,6 +165,7 @@ def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> Non
             f"It fetched {attempt_fetched if attempt_fetched is not None else '?'} index "
             f"file(s) and {len(attempt_errors)} failed; the figures above are from the "
             "last complete sync.",
+            kind="warning",
         )
 
     # Owner, 2026-09-27: three systems in one app; every page follows this.
@@ -373,7 +374,8 @@ def _section_momentum_signal() -> None:
             "All five lookback weights are zero, which cannot rank anything.",
             "Ranking is using the documented defaults "
             f"({' · '.join(f'{w:.0%}' for w in DEFAULT_LOOKBACK_WEIGHTS)}) "
-            "until you set one: press Reset to defaults above."
+            "until you set one: press Reset to defaults above.",
+            kind="warning",
         )
 
     kit.caption("Weights are normalised to 100%.")
@@ -423,7 +425,7 @@ def _section_portfolio_risk() -> None:
     remember("cfg_stc", int(new_stc))
     if new_stc > new_sc:
         kit.note(f"The stock cap ({new_stc}%) is above the sector cap ({new_sc}%).",
-                 "No book can satisfy both; lower the stock cap.")
+                 "No book can satisfy both; lower the stock cap.", kind="warning")
     else:
         # The Backtest's holdings count (20 unless the reader changed it): the
         # caps act there. A cap at or below 1/n admits one fully invested book.
@@ -433,6 +435,7 @@ def _section_portfolio_risk() -> None:
                 f"At {new_stc}% per stock and {n_hold} backtest holdings, every stock sits at the cap.",
                 "Equal weight and inverse volatility then give the same book. Raise it to "
                 f"{100 // n_hold + 2}% or more for the weighting to matter.",
+                kind="warning",
             )
 
     # Owner, 2026-09-27: off by default; every system; the track record's

@@ -236,7 +236,7 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
     key = choice["index"]
     membership = iu.index_history(key)
     if membership is None:
-        kit.note(f"No membership history for {iu.INDICES[key]}.")
+        kit.note(f"No membership history for {iu.INDICES[key]}.", kind="warning")
         return None
     first = max(iu.first_month(membership), bounds["months"][0])
     start, end = choice["start"], choice["end"]
@@ -248,7 +248,7 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
         start = first
     if start > end:
         kit.note(f"{iu.INDICES[key]} has no completed month in the window chosen.",
-                 f"Its list begins {first.strftime('%b %Y')}; move the start or end month.")
+                 f"Its list begins {first.strftime('%b %Y')}; move the start or end month.", kind="warning")
         return None
     floor = float(choice["floor"] or 0.0)
     to_latest = end == bounds["months"][-1]
@@ -263,7 +263,7 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
     if floor:
         value = _long_value()
         if value is None:
-            kit.note("Traded value is not available right now, so the floor is off for this run.")
+            kit.note("Traded value is not available right now, so the floor is off for this run.", kind="warning")
             floor = 0.0
         else:
             traded, traded_fingerprint = _traded(value, cols, frame.index[-1])
@@ -993,7 +993,7 @@ def _system_note() -> None:
     system = system_param.current()
     if system != SYSTEM_750:
         kit.note(f"The {SYSTEM_NAMES.get(system, system)} system does not change these runs: each run picks its own "
-                 "index in the settings below.")
+                 "index in the settings below.", kind="info")
 
 
 def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: float, weights: tuple[float, ...],
@@ -1012,12 +1012,12 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
     bench = fetch_benchmark_history(period="max", symbol=BENCHMARK_SYMBOL)
     if bench.empty:
         # A failure is an amber note, not a red box (S193 E, rule 4).
-        kit.note("The Nifty 500's closes are unavailable.", "Backtest stopped rather than compare against nothing.")
+        kit.note("The Nifty 500's closes are unavailable.", "Backtest stopped rather than compare against nothing.", kind="warning")
         return
     res = _run(s, h, bench, stock_cap, sector_cap)
     if res is None:
         kit.note("Not enough price history for this window.", "The rules need a 12M lookback before the first "
-                 "month tested; pick a later start above.")
+                 "month tested; pick a later start above.", kind="warning")
         return
     eq = pd.Series(res.get("equity_curve")).dropna()
     if eq.empty or len(eq) < 2:

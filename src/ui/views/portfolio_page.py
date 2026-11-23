@@ -42,6 +42,12 @@ YTD_ROWS = (("microcap250", "Nifty Microcap 250"), ("mix", "Mix in the book’s 
 EXIT_NAMES = (("Trend Breakdown", "Trend breakdown", "closed below its 50D EMA"),
               ("Rank Dropped", "Rank dropped", "fell out of the top {cut}"),
               ("52W", "Off its high", "more than {hc}% below the 52W high"))
+# The ranges Portfolio's dated bar charts open on (S193 H, docs/PAGE_DESIGN.md 4.1). The months are the book's
+# record, all of them. The days are a stated exception: the last 20 sessions, the window the "Last 20 sessions"
+# tile counts; a year of daily bars would be too thin to read, and the Since tile and the ₹100 chart carry the record.
+MONTH_RANGE = {"default": "all", "why": "record"}
+DAY_RANGE = {"default": "all", "why": "fixed",
+             "note": "the last 20 sessions, the window the Last 20 sessions tile counts; the record is in the Since tile and the ₹100 chart"}
 MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 
@@ -786,10 +792,11 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
 
 def month_bars_spec(p: Page) -> dict:
     m = months_of(p)
-    ps = sorted(m["book"])[-12:]
+    ps = sorted(m["book"])      # the book's whole record (S193 H: a record opens on all of it)
     this = pd.Period(p.as_of, "M")
     return {"values": [round(m["lead"][k], 1) if m["lead"][k] is not None else 0.0 for k in ps],
             "labels": [f"{k:%b}" for k in ps], "full": [f"{k:%B %Y}" + (", so far" if k == this else "") for k in ps],
+            "dates": [f"{min(p.as_of, k.end_time):%Y-%m-%d}" for k in ps],
             "unit": "pts against Nifty Total Market", "xn": 12, "valueLabels": True, "vdp": 1, "height": 170}
 
 
@@ -810,11 +817,12 @@ def day_section(p: Page) -> list:
              (f"Since {dshort(g.index[0])}", f"{beat} of {len(g)}", "dh-up" if beat > len(g) / 2 else "dh-watch",
               f"Sessions the book beat Nifty Total Market, {_fmt.fixed(beat / len(g) * 100, 0)}%", "", "")]
     spec = {"values": [round(float(v), 2) for v in last["gap"]], "labels": [dshort(d) for d in last.index],
-            "full": [f"{d:%-d %b %Y}" for d in last.index], "unit": "pts against Nifty Total Market", "dp": 1, "xn": 5,
+            "full": [f"{d:%-d %b %Y}" for d in last.index], "dates": [f"{d:%Y-%m-%d}" for d in last.index],
+            "unit": "pts against Nifty Total Market", "dp": 1, "xn": 5,
             "lastLabel": "Today", "height": 170}
     return _sec([_head("pf-day", "Day by day against Nifty Total Market", "Day P&L in context"), _kpis(cells, "pf-four"),
                  '<div class="dh-cap"><b>The book against Nifty Total Market, last 20 sessions</b><span>points</span></div>',
-                 Chart("bars", spec, {"label": "The book's daily lead over Nifty Total Market, last 20 sessions"}),
+                 Chart("bars", {**spec, "range": DAY_RANGE}, {"label": "The book's daily lead over Nifty Total Market, last 20 sessions"}),
                  how("Each session, the book’s day less Nifty Total Market’s day, in points.",
                      f"One day is mostly noise; a run of bars on one side is not. The book beat Nifty Total Market on {beat} of {len(g)} sessions.",
                      ["Session", "Book", "Nifty Total Market", "Lead, pts"],
@@ -1011,7 +1019,7 @@ def page_parts(p: Page) -> list:
     parts = header(p) + section_book(p) + section_exposure(p) + section_returns(p) + section_equity(p)
     parts += ['<section class="dh-sec pf-sec">', _head("pf-cal", "Calendar returns", "every month, quarter and year; each new year adds a row"),
               '<div class="dh-cap"><b>Month by month</b><span>the book’s lead over Nifty Total Market, points</span></div>',
-              Chart("bars", month_bars_spec(p), {"label": "The book's lead over Nifty Total Market by month"}),
+              Chart("bars", {**month_bars_spec(p), "range": MONTH_RANGE}, {"label": "The book's lead over Nifty Total Market by month"}),
               '<div class="dh-cap"><b>Months and quarters</b></div>', grid,
               f'<div class="dh-pair"><div><div class="dh-cap"><b>Calendar years</b><span>January to December</span></div>{years}</div>'
               f'<div><div class="dh-cap"><b>Financial years</b><span>April to March</span></div>{fys}</div></div>',
@@ -1042,7 +1050,7 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
         from src.core.logger import logger
         logger.error("Portfolio: the model book did not pass its check: %s", exc)
         kit.note("The model book could not be read just now.",
-                 "The record itself is unchanged. Reload the page in a few minutes; the book shows again once its nightly check passes.")
+                 "The record itself is unchanged. Reload the page in a few minutes; the book shows again once its nightly check passes.", kind="warning")
         return
     if book.empty:
         # The page with no data, in the sentence Dashboard and Actions use (S193 E, R4, R5).
@@ -1050,14 +1058,14 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
         return
     from src.ui.canonical_book import unpriced_note
     if (note := unpriced_note(record)) is not None:
-        kit.note(*note)
+        kit.note(*note, kind="warning")
     try:
         ledger = load_ledger(ledger_path(system), inception(system))
     except (ValueError, OSError) as exc:
         from src.core.logger import logger
         logger.error("Portfolio: the track record's ledger could not be read: %s", exc)
         kit.note("The track record could not be read just now.",
-                 "The model book is unchanged. Reload the page in a few minutes.")
+                 "The model book is unchanged. Reload the page in a few minutes.", kind="warning")
         return
     series = book_series(book, record, ledger, rank_df, prices, benchmark_close, PORTFOLIO_STARTING_CAPITAL)
     if series is None:
@@ -1072,7 +1080,7 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
     # Calendar returns: the series switch is a widget, so the section is drawn in pieces.
     emit(['<section class="dh-sec pf-sec">', _head("pf-cal", "Calendar returns", "every month, quarter and year; each new year adds a row"),
           '<div class="dh-cap"><b>Month by month</b><span>the book’s lead over Nifty Total Market, points</span></div>',
-          Chart("bars", month_bars_spec(p), {"label": "The book's lead over Nifty Total Market by month"})])
+          Chart("bars", {**month_bars_spec(p), "range": MONTH_RANGE}, {"label": "The book's lead over Nifty Total Market by month"})])
     show = st.pills("Show", ["All", "The book", "Nifty Total Market", "Lead", "Momentum 50"], default="All", key="pf_cal_show",
                     label_visibility="collapsed") or "All"
     grid, years, fys = calendar_html(p, show)

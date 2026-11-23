@@ -68,7 +68,7 @@ def test_chart_text_is_12px_or_more_and_on_the_type_scale():
         sizes = [float(x) for x in re.findall(r"font-size:\s*([\d.]+)px", resolve(css))]
         assert sizes and min(sizes) >= 12, (name, sorted(set(sizes)))
         assert set(sizes) <= steps, (name, sorted(set(sizes) - steps))
-    assert "fontSize:12" in lw_chart._JS and "fontSize:11" not in lw_chart._JS
+    assert "fontSize:parseFloat('12px')" in resolve(lw_chart._JS) and "fontSize:11" not in lw_chart._JS
 
 
 def test_market_questions_font_sizes_are_type_steps():
@@ -82,15 +82,7 @@ def test_market_questions_font_sizes_are_type_steps():
 
 # Date charts whose spec is built outside this change's files: each must state `range` in its own PR
 # (S193 H; listed for the owner of those files). The list may only shrink.
-PENDING = {
-    ("dashboard_home_view.py", "section_momentum"),   # D2: the full record from Dec 2021 (needs _lead_bars)
-    ("dashboard_home_view.py", "section_flows"),      # D3: 12 months of flows
-    ("indices_view.py", "section_valuation"),         # I2: All, by being the last chip today
-    ("indices_view.py", "section_size"),              # I5: calendar years, the record
-    ("portfolio_page.py", "day_section"),             # P3: 20 sessions, fixed
-    ("portfolio_page.py", "page_parts"),              # P2: the book's months, the record
-    ("portfolio_page.py", "render"),                  # P2 again
-}
+PENDING: set = set()   # emptied in PR 2 (S193 H): every date chart states its range
 
 
 def _calls():

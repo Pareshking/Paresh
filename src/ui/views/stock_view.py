@@ -284,7 +284,7 @@ def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
                    f'stroke="var(--c-ink)" stroke-width="2"/>' for i, (x, y) in enumerate(zip(xs, ys)))
     label = ("Place among the qualified: " + ", ".join(sl.place_text(p) for p in tr.places)
              + f"; buy line {wl.fmt_ordinal(ln.buy)}, keep line {wl.fmt_ordinal(ln.keep)}")
-    t = 'style="fill:var(--c-muted);font-family:IBM Plex Sans,system-ui,sans-serif;font-size:12px"'
+    t = 'style="fill:var(--c-muted);font-family:IBM Plex Sans,system-ui,sans-serif;font-size:var(--fs-12)"'
     svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="220" height="170" viewBox="0 0 220 170">'
            '<line x1="20" x2="210" y1="52" y2="52" stroke="var(--c-muted)" stroke-dasharray="4 4"/>'
            '<line x1="20" x2="210" y1="110" y2="110" stroke="var(--c-muted)" stroke-dasharray="2 4"/>'

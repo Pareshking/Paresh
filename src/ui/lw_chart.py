@@ -349,7 +349,7 @@ SPEC.forEach((p,pi)=>{
   const ph=Math.max(60,p.height+LEGEND_PX-lg.offsetHeight);plot.style.height=ph+'px';
   const chart=LightweightCharts.createChart(plot,{
     width:plot.clientWidth,height:ph,
-    layout:{background:{type:'solid',color:'transparent'},textColor:'var(--c-muted_2)',fontFamily:"IBM Plex Sans,system-ui,sans-serif",fontSize:12,attributionLogo:false},
+    layout:{background:{type:'solid',color:'transparent'},textColor:'var(--c-muted_2)',fontFamily:"IBM Plex Sans,system-ui,sans-serif",fontSize:parseFloat('var(--fs-12)'),attributionLogo:false},
     grid:{vertLines:{visible:false},horzLines:{color:'var(--c-grid)',style:0}},
     rightPriceScale:{borderVisible:false,ticksVisible:false,scaleMargins:{top:(p.top!==null&&p.top!==undefined)?p.top:0.08,bottom:p.series.some(x=>x.volume)?0.24:0.06}},
     timeScale:{visible:pi===SPEC.length-1,borderVisible:false,ticksVisible:false,timeVisible:false,allowBoldLabels:false,fixLeftEdge:true,fixRightEdge:true,rightOffset:0,

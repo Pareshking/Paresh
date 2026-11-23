@@ -495,7 +495,7 @@ def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, syst
         source = st.segmented_control("Holdings", sources, default=sources[0], key="xw_source",
                                       label_visibility="collapsed") or sources[0]
     if model_book_note is not None:
-        kit.note(mw.NO_MODEL_BOOK, model_book_note)
+        kit.note(mw.NO_MODEL_BOOK, model_book_note, kind="info")   # when the record starts: explains, not a fault
     my_syms, my_since, capital = None, None, None
     if source == "My holdings":
         av._edit_holdings()
@@ -512,7 +512,7 @@ def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, syst
     if source != "My holdings":
         from src.ui.canonical_book import current_book, unpriced_note
         if (note := unpriced_note(current_book(adj_close, benchmark_close, system)[1])) is not None:
-            kit.note(*note)
+            kit.note(*note, kind="warning")
     with bar, st.popover("Kite basket", icon=":material/download:", type="primary"):
         if source == "My holdings":
             cap = float(st.number_input("Capital (₹)", min_value=av.KITE_MIN_CAPITAL, max_value=av.KITE_MAX_CAPITAL,

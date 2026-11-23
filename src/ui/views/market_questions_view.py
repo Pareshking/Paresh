@@ -522,7 +522,8 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
             # In its own scroller, as the heat table is: a seven-column table
             # was 472 px wide inside a 390 px column (design audit, 8 Nov 2026).
             sec = sec.replace("</section>", "<h3 style='margin-top:14px'>By size</h3>"
-                              + f'<div class="qp-scroll">{table}</div>' + "</section>")
+                              + '<div class="qp-scroll" tabindex="0" role="region" aria-label="By size: the Nifty 500 and each size index against its averages and 52W high">'
+                              + f'{table}</div>' + "</section>")
         st.html(sec + '<p class="qp-behind">Behind the answer</p>')
         _trend_charts(bench.dropna(), size)
     st.html('<p class="qp-note" style="margin:10px 0 18px">Today counts the stocks ranked today. Every earlier '

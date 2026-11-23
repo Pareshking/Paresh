@@ -26,6 +26,7 @@ import pandas as pd
 import streamlit as st
 
 from src.ui import lw_chart
+from src.ui import page_kit as kit
 
 # Palette shared with the rest of the app.
 UP = C.up
@@ -309,8 +310,8 @@ def render_price_chart(symbol: str, close_full: pd.Series, volume: pd.Series | N
                               "Nifty Total Market. Arrow keys move the reading; the range buttons above redraw it.")
     except ChartUnavailable as exc:
         from src.core.logger import logger
-        logger.warning("No chart for %s: %s", symbol, exc)
-        st.warning(f"No chart for {symbol}: there are no closes to draw. The figures on the page still hold.")
+        logger.warning("No chart for %s: %s", symbol, exc)   # the cause goes to the log, not the page
+        kit.empty(f"No chart for {symbol}.", "There are no closes to draw; the figures on the page still hold.")
         return
     if not has_volume:
         st.caption("Volume unavailable for this symbol.")

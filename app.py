@@ -1085,9 +1085,10 @@ def _system_line() -> None:
     if system == SYSTEM_1000:
         kit.note(*system_note(system_name, rank_df["Symbol"], members, nano=False,
                               reason="not ranked yet (under three months of prices with us; "
-                                     "their history is being collected)"))
+                                     "their history is being collected)"), kind="warning")   # members missing from the list
         return
-    kit.note(*system_note(system_name, rank_df["Symbol"], members, nano=system == SYSTEM_NANO))
+    # What this system ranks, and its rule for a stock too new: scope and method, so a neutral note.
+    kit.note(*system_note(system_name, rank_df["Symbol"], members, nano=system == SYSTEM_NANO), kind="info")
 
 
 def _before_inception() -> bool:

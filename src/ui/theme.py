@@ -798,6 +798,8 @@ _PAGE_CSS = ("""
             font-size: var(--fs-13); line-height: 1.5; color: var(--c-caution_ink);
         }
         .pg-note b { font-weight: 700; }
+        .pg-info { padding: 0 0 0 var(--sp-3); border-left: 2px solid var(--c-rule); font-size: var(--fs-13); line-height: 1.5; color: var(--c-text_2); max-width: 80ch; }
+        .pg-info b { font-weight: 600; color: var(--c-ink); }
         [class*="st-key-pgcard_"] {
             background: var(--c-white); border: 1px solid var(--c-rule); border-radius: 4px;
             padding: 18px 22px !important; gap: 12px !important;

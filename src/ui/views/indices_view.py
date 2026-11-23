@@ -19,6 +19,10 @@ from src.ui.views.dashboard_home_view import HOME_CSS, Chart, Cols, emit, how, h
 
 e = __import__("html").escape
 KICK = '<p class="dh-kick">{}</p>'
+# The ranges Indices' date charts open on (S193 H, docs/PAGE_DESIGN.md 4.1): both are an index's record, so all
+# of it. The P/E keeps its 3Y and 5Y chips; the calendar years have none.
+PE_RANGE = {"default": "all", "why": "record", "chips": ["3Y", "5Y", "all"]}
+SIZE_RANGE = {"default": "all", "why": "record"}
 
 IX_CSS = """
 .ix-yr .dh-num{min-width:58px}
@@ -114,7 +118,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
                         {"name": "Nifty 500 P/E, old basis", "color": "faint", "values": old, "width": 1.6},
                         {"name": "Nifty 500 P/E since 31 Mar 2021", "color": "ink", "values": new, "width": 2}],
                         "bands": [{"from": round(q25, 2), "to": round(q75, 2), "color": "up-soft"}],
-                        "levels": [], "chips": [["3Y", 156], ["5Y", 261], ["All", 0]]},
+                        "levels": [], "range": PE_RANGE},
                         {"label": "Nifty 500 P/E, weekly, since 2012"}),
                   how("The Nifty 500's trailing P/E each week since 2012. Grey is the old earnings basis, ink the basis "
                       "since 31 Mar 2021; the shaded band is the middle half of days since then "
@@ -238,10 +242,11 @@ def section_size(sizes: list[ip.SizeYears], as_of: pd.Timestamp) -> list:
         ys = sorted(z.years)
         spec = {"values": [round(z.years[y][0], 1) for y in ys], "dots": [round(z.years[y][1], 1) for y in ys],
                 "labels": ["'" + str(y)[2:] for y in ys], "full": [str(y) + (" (year to date)" if y == as_of.year else "") for y in ys],
-                "unit": "Year's return", "dotName": "max drawdown within the year", "range": [lo, hi], "height": 200, "xn": 10}
+                "dates": [f"{min(as_of, pd.Timestamp(y, 12, 31)):%Y-%m-%d}" for y in ys],
+                "unit": "Year's return", "dotName": "max drawdown within the year", "yrange": [lo, hi], "height": 200, "xn": 10}
         charts.append([f'<p class="dh-h3" style="margin:12px 0 0">{e(_fmt.size(z.size))} <span class="dh-muted" style="font-weight:400">'
                        f'{e(z.name)} · median max drawdown {e(sg(z.median_fall, 1, "%"))}</span></p>',
-                       Chart("bars", spec, {"label": f"{z.name} by calendar year"})])
+                       Chart("bars", {**spec, "range": SIZE_RANGE}, {"label": f"{z.name} by calendar year"})])
     grid = []
     for i in range(0, len(charts), 2):
         pair = charts[i:i + 2]
