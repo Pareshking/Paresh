@@ -968,6 +968,31 @@ def page_parts(f: dict) -> list:
 # ── The page ──────────────────────────────────────────────────────────────────
 
 
+def _derived_key(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float, default: bool) -> str:
+    """Everything the page's figures are cut from, as one string: the run's own inputs and the benchmark."""
+    ph = h.get("close_fingerprint") or ""
+    if h["traded_value"] is not None:
+        ph += f"_{h.get('traded_fingerprint') or ''}"
+    last = bench.index[-1] if len(bench) else "-"
+    parts = (ph, repr(sorted(s.items(), key=lambda kv: kv[0])), stock_cap, sector_cap, default, h.get("name"),
+             h.get("months"), str(h.get("start")), h.get("floor"), len(bench), str(last), len(h["close"].index))
+    return hashlib.md5(repr(parts).encode()).hexdigest()
+
+
+# S220: on a warm session the run itself is a cache hit (0.03 s), but the figures, the trade table and the
+# trade log were rebuilt from it for every reader: 4.6 of 6 s locally, ~3x that live. They are pure functions
+# of the run, so they are kept once per run, like the run. cache_data (a copy per reader), not cache_resource,
+# so no reader's page can change another's.
+@st.cache_data(show_spinner=False, ttl=3600, max_entries=8)
+def _derived(key: str, _res: dict, _s: dict, _h: dict, _bench: pd.Series, default: bool) -> tuple[dict, dict]:
+    f = gather(_res, _s, _h, _bench, default)
+    trades = pr.trades_table(_res.get("closed_trades"), _res.get("tradebook"), _h["close"].index, _h["sector_map"])
+    spec = history_spec(trades, _res.get("tradebook"), [])
+    for line in spec["lines"]:
+        line[5] = _reason(line[5])
+    return f, spec
+
+
 def _run(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float) -> dict | None:
     # Computed once with the frame in its cached loader (S208), not on every rerun.
     ph = h.get("close_fingerprint") or price_fingerprint(h["close"])
@@ -1078,18 +1103,13 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
         kit.empty("No completed month in this window yet.")
         return
     default = is_default(s, h, stock_cap, sector_cap)
-    f = gather(res, s, h, bench, default)
+    f, spec = _derived(_derived_key(s, h, bench, stock_cap, sector_cap, default), res, s, h, bench, default)
     with top:
         emit(head(f))
     emit(section_lead(f) + section_falls(f) + section_years(f) + section_depends(f) + section_trust(f)
          + section_trades_head(f))
     _download(res, s, h, stock_cap, sector_cap, eq)
-    tb = res.get("tradebook")
-    trades = pr.trades_table(res.get("closed_trades"), tb, h["close"].index, h["sector_map"])
     with st.expander("Show the table · every trade and the rebalance log", expanded=False):
-        spec = history_spec(trades, tb, [])
-        for line in spec["lines"]:
-            line[5] = _reason(line[5])
         emit([Chart("history", spec,
                     {"label": "Every trade and every rebalance line",
                      "note": "A trade is one stock from the fill that bought it to the fill that sold it. A rebalance line is "
