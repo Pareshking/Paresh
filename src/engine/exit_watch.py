@@ -57,8 +57,22 @@ def qualified_ranks(rank_df: pd.DataFrame) -> pd.Series:
     return pd.Series(range(1, len(passing) + 1), index=passing["Symbol"].to_numpy())
 
 
-def assess(rank_df: pd.DataFrame, symbols: list[str], rules: Rules = Rules()) -> pd.DataFrame:
-    """One row per holding with its room on each rule and a status.
+HIGH_SESSIONS = 126   # closes the 52W high needs (config.HIGH_52W_MIN_OBSERVATIONS)
+
+
+def no_high_reason(short_history, sessions: int | None = None) -> str:
+    """Why a stock has no 52W high to be within 20% of: a missing value is not a failed rule (S193 E;
+    MILKYMIST, listed 70 sessions before, was told it was "more than 20% below its 52-week high")."""
+    if str(short_history or "") == "Yes":
+        n = f": {int(sessions)} of {HIGH_SESSIONS} sessions" if sessions is not None else ""
+        return f"too new to have a 52-week high{n}"
+    return "without a 52-week high to read today"
+
+
+def assess(rank_df: pd.DataFrame, symbols: list[str], rules: Rules = Rules(),
+           sessions: dict[str, int] | None = None) -> pd.DataFrame:
+    """One row per holding with its room on each rule and a status. `sessions`: closes in each
+    stock's 52-week window, to say how far a recent listing is from having a 52W high.
 
     Cushions are fractions of today's price: how far it can fall before it
     crosses that line, with the line held where it is today. A negative
@@ -92,7 +106,8 @@ def assess(rank_df: pd.DataFrame, symbols: list[str], rules: Rules = Rules()) ->
             broken.append(f"{abs(ema_pct):.1f}% below its 50D EMA" if pd.notna(ema_pct)
                           else "below its 50D EMA")
         if not n_ok:
-            broken.append(f"more than {(1 - rules.high_pct):.0%} below its 52-week high")
+            broken.append(f"more than {(1 - rules.high_pct):.0%} below its 52-week high" if pd.notna(hi_pct)
+                          else no_high_reason(r.get("Short History"), (sessions or {}).get(sym)))
         if e_ok and n_ok and room is not None and room < 0:
             broken.append(f"ranks #{q} of the qualified, past the top {rules.buffer_n}")
         if broken:

@@ -19,7 +19,12 @@ const grp = (v, dp=0) => { const r = rnd(v, dp); return (r < 0 ? '−' : '') + M
 /* A price for display (S173, owner 22 Nov 2026): whole rupees at any level, Indian grouping. */
 const pxf = v => v==null ? '–' : grp(v, 0);
 const sg = (v,dp=1) => { if (v==null) return '–'; const r = rnd(v, dp); return (r>0?'+':r<0?'−':'') + Math.abs(r).toFixed(dp); };
-const inr = v => (v<0?'−':'+') + '₹' + Math.abs(v).toLocaleString('en-IN');
+// ₹ crore in Indian words, as dashboard_home_view.cr writes them (PAGE_DESIGN 3a rule 2; S193 E): ₹1.34 lakh Cr,
+// ₹38,000 Cr, ₹954 Cr; the readout printed "+₹1,34,230" with no unit.
+const inr = v => { if (v==null) return '–'; const a = Math.abs(v), s = v>0?'+':v<0?'−':'';
+  if (a >= 100000) return s + '₹' + rnd(a/100000, 2).toFixed(2) + ' lakh Cr';
+  if (a >= 1000) return s + '₹' + (rnd(a/1000)*1000).toLocaleString('en-IN') + ' Cr';
+  return s + '₹' + rnd(a).toLocaleString('en-IN') + ' Cr'; };
 const NS = 'http://www.w3.org/2000/svg';
 const mk = (tag, attrs={}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
 

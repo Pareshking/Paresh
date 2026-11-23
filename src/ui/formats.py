@@ -178,6 +178,18 @@ def data_to(as_of, source: str = PRICES_SOURCE) -> str:
     return f"Data from {source}" if _missing(as_of) else f"Data to {date(as_of)} · {source}"
 
 
+def closes_not_in(names, day) -> str:
+    """The one sentence for indices without a close for the page's session (S148, S193 E):
+    "NSE's 20 Nov closes for Nifty 50 and Nifty Bank are not in yet." "" when none."""
+    names = [str(n) for n in names if n]
+    if not names:
+        return ""
+    if len(names) > 4:      # a list that long is not read: the count, the rows say which
+        return f"NSE’s {date(day, short=True)} closes for {len(names)} of these indices are not in yet."
+    who = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    return f"NSE’s {date(day, short=True)} {'close' if len(names) == 1 else 'closes'} for {who} {'is' if len(names) == 1 else 'are'} not in yet."
+
+
 def session_of(prices) -> object:
     """The session a page's figures and footer end on: the ranking's session, the date the header pill
     shows (S193 E). A newer session the vendor is still publishing is held back by the ranking, so the

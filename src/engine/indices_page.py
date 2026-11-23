@@ -78,12 +78,14 @@ def months_back(day: pd.Timestamp, months: int) -> pd.Timestamp:
     return pd.Timestamp(day) - pd.DateOffset(months=months)
 
 
-def ret(s: pd.Series, months: int, end: pd.Timestamp) -> float | None:
+def ret(s: pd.Series, months: int, end: pd.Timestamp, *, on_end: bool = True) -> float | None:
     """Price return in %, from the session on or before `months` back to `end`;
-    None when the index is younger than the window."""
+    None when the index is younger than the window, and None when it has no close for
+    `end`, the page's session: never the session before (S148, S193 E). `on_end=False`
+    for an `end` that is a calendar date N months back, read on or before it."""
     s = s.dropna()
     s = s[s.index <= end]
-    if s.empty:
+    if s.empty or (on_end and s.index[-1] != pd.Timestamp(end)):
         return None
     a = on_or_before(s, months_back(s.index[-1], months))
     if a is None:
@@ -160,8 +162,8 @@ class Style:
     recovered: pd.Timestamp | None
 
 
-def lead_12m(f: Frames, key: str, parent: str, day: pd.Timestamp) -> float | None:
-    a, b = ret(f.close[key], 12, day), ret(f.close[parent], 12, day)
+def lead_12m(f: Frames, key: str, parent: str, day: pd.Timestamp, on_end: bool = True) -> float | None:
+    a, b = ret(f.close[key], 12, day, on_end=on_end), ret(f.close[parent], 12, day, on_end=on_end)
     return None if a is None or b is None else a - b
 
 
@@ -170,6 +172,8 @@ def calendar_lead(fs: pd.Series, ps: pd.Series, year: int, as_of: pd.Timestamp) 
     fa, fb, pa, pb = on_or_before(fs, a0), on_or_before(fs, b0), on_or_before(ps, a0), on_or_before(ps, b0)
     if None in (fa, fb, pa, pb):
         return None
+    if b0 == as_of and (fb != as_of or pb != as_of):
+        return None                       # the year to date needs both closes for the page's session (S148)
     return float(fs[fb] / fs[fa] - ps[pb] / ps[pa]) * 100
 
 
@@ -195,7 +199,8 @@ def styles(f: Frames, pairs=STYLES) -> list[Style]:
             if v is not None:
                 years[y] = v
         out.append(Style(lab, k, p, f.names.get(k, k), f.names.get(p, p), live,
-                         lead_12m(f, k, p, months_back(now, 3)), lead_12m(f, k, p, months_back(now, 1)),
+                         lead_12m(f, k, p, months_back(now, 3), on_end=False),
+                         lead_12m(f, k, p, months_back(now, 1), on_end=False),
                          lead_12m(f, k, p, now),
                          float(f.dy[k].dropna().iloc[-1] - f.dy[p].dropna().iloc[-1]),
                          years, rel, from_peak, float(from_peak.min()), peak, low,
@@ -251,20 +256,33 @@ class IndexRow:
     returns: dict[int, float | None]     # months: %
     from_high: float | None              # % below the 1-year high of closes; None if younger than a year
     pe: float | None
+    late: pd.Timestamp | None = None     # its last close, when NSE's close for the page's session is not in yet
 
 
-def every_index(f: Frames, families=PAGE_FAMILIES) -> dict[str, list[IndexRow]]:
-    """{family: rows}, each sorted by 1-year return, indices younger than a year last
-    (oldest launch first)."""
-    now = f.as_of
+LATE_SESSIONS = 5   # an index whose last close is within this many sessions of the page's is late, not discontinued
+
+
+def every_index(f: Frames, families=PAGE_FAMILIES, now: pd.Timestamp | None = None) -> dict[str, list[IndexRow]]:
+    """{family: rows}, each sorted by 1-year return, indices younger than a year next (oldest launch first),
+    and last the indices without a close for `now` (the page's session, `f.as_of` by default): every figure
+    of theirs reads "–" rather than the session before (S148, S193 E). An index with no close in the last
+    LATE_SESSIONS sessions is discontinued and left out."""
+    now = pd.Timestamp(now) if now is not None else f.as_of
+    cal = f.close.index[f.close.index <= now]
+    recent = pd.Timestamp(cal[-LATE_SESSIONS]) if len(cal) >= LATE_SESSIONS else (pd.Timestamp(cal[0]) if len(cal) else now)
     out: dict[str, list[IndexRow]] = {g: [] for g in families}
     for k in f.close.columns:
         g = f.groups.get(k)
         if g not in out:
             continue
         s = f.close[k].dropna()
-        if s.empty or s.index[-1] != now:
-            continue                      # discontinued, or not published today
+        s = s[s.index <= now]
+        if s.empty or s.index[-1] < recent:
+            continue                      # discontinued
+        if s.index[-1] != now:
+            out[g].append(IndexRow(k, f.names.get(k, k), g, pd.Timestamp(s.index[0]), {m: None for m in WINDOWS},
+                                   None, None, late=pd.Timestamp(s.index[-1])))
+            continue
         r = {m: ret(s, m, now) for m in WINDOWS}
         year = s[s.index > months_back(now, 12)]
         hi = None if r[12] is None else float(s.iloc[-1] / year.max() - 1) * 100
@@ -273,6 +291,12 @@ def every_index(f: Frames, families=PAGE_FAMILIES) -> dict[str, list[IndexRow]]:
                                float(pe.iloc[-1]) if len(pe) and pe.index[-1] == now else None))
     for g in out:
         full = sorted((x for x in out[g] if x.returns[12] is not None), key=lambda x: -x.returns[12])
-        young = sorted((x for x in out[g] if x.returns[12] is None), key=lambda x: x.live)
-        out[g] = full + young
+        young = sorted((x for x in out[g] if x.returns[12] is None and x.late is None), key=lambda x: x.live)
+        late = sorted((x for x in out[g] if x.late is not None), key=lambda x: x.name)
+        out[g] = full + young + late
     return out
+
+
+def late_names(rows) -> list[str]:
+    """The names of the rows whose close for the page's session is not in yet."""
+    return [x.name for x in rows if getattr(x, "late", None) is not None]

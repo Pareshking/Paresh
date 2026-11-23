@@ -257,13 +257,20 @@ def sentence_case(text: str) -> str:
     return text[:1].upper() + text[1:] if text else text
 
 
-def size_trend_html(bench: pd.Series, size: dict[str, pd.Series]) -> str:
+def size_trend_html(bench: pd.Series, size: dict[str, pd.Series], late=(), day=None) -> str:
     """The Nifty 500 and each size index against its 10-month average and 200D
-    EMA, and its distance from the 52W high: now and a month ago."""
+    EMA, and its distance from the 52W high: now and a month ago. `late`: size indices
+    without a close for `day`, the page's session; their row reads "–" (S148, S193 E)."""
     series = {"Nifty 500": bench.dropna(), **{k: v.dropna() for k, v in size.items()}}
     d = mq.anchor_dates(series["Nifty 500"].index)
+    late = [k for k in late if k not in size]
     rows = []
+    for name in late:
+        series[name] = None
     for name, s in series.items():
+        if s is None:
+            rows.append(f"<tr><td>{html.escape(name)}</td>" + "<td>–</td>" * 6 + "</tr>")
+            continue
         if len(s) < 60:
             continue
         cells = []
@@ -285,7 +292,8 @@ def size_trend_html(bench: pd.Series, size: dict[str, pd.Series]) -> str:
             f'<tbody>{"".join(rows)}</tbody></table>'
             '<p class="qp-note">The 10-month columns read the close on each day against the average of the last '
             'ten monthly closes, the month in progress counted at that close, as a monthly chart draws it; at a '
-            'month-end it is the classic month-end reading. Points are per cent.</p>')
+            'month-end it is the classic month-end reading. Points are per cent.'
+            + (f' {html.escape(_fmt.closes_not_in(late, day))}' if late and day is not None else '') + '</p>')
 
 
 def bucket_by_last_session(s: pd.Series, freq: str) -> pd.Series:
@@ -472,9 +480,12 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     bench = bench[bench.index <= prices.index.max()]
     if bench.dropna().empty:
         return False
-    # One session for every index (S148): a size index without the Nifty 500's last close reads "–".
+    # One session for every index (S148): a size index without the Nifty 500's last close reads "–". Its row
+    # stays in the table, with a sentence naming it (S193 E); the answers and charts leave it out.
     from src.engine import dashboard_insights as di
-    size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
+    end = bench.dropna().index[-1]
+    late = [k for k, v in size.items() if v is not None and len(v.dropna()) and not len(di.as_of(v, end))]
+    size = {k: di.as_of(v, end) for k, v in size.items()}
     size = {k: v for k, v in size.items() if len(v)}
     industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
     key = "|".join([_columns_key(prices, syms), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
@@ -497,7 +508,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
         _breadth_charts(bench.dropna(), share200, weekly, nnh, pit, universe)
     if trend is not None:
         sec = question_section_html(trend, "trend", "q-trend")
-        table = size_trend_html(bench, size)
+        table = size_trend_html(bench, size, late=late, day=end)
         if table:
             # In its own scroller, as the heat table is: a seven-column table
             # was 472 px wide inside a 390 px column (design audit, 8 Nov 2026).

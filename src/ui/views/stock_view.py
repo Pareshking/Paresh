@@ -532,7 +532,9 @@ def render_stock_view(
             if not me.empty and "Qualified (-3M)" in me.columns else [None, None])
     tr = sl.trail(row, [_month_ago(adj_close, 3), _month_ago(adj_close, 1), as_of], past, q)
 
-    a = assess(rank_df, [sym])
+    # Closes in the 52-week window, for a recent listing's "too new to have a 52-week high: 70 of 126 sessions".
+    n_win = int(adj_close[sym].loc[:as_of].iloc[-252:].notna().sum()) if sym in adj_close.columns else None
+    a = assess(rank_df, [sym], sessions=None if n_win is None else {sym: n_win})
     a_row = a.iloc[0].to_dict() if not a.empty else None
     from src.ui.views.actions_view import next_rebalance
     check, _fill = next_rebalance(as_of)

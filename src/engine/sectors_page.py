@@ -154,10 +154,11 @@ class IndexLine:
     returns: dict[int, float | None]
     from_high: float | None
     pe: float | None
+    late: pd.Timestamp | None = None     # its last close, when NSE's close for the page's session is not in yet
 
     @property
     def young(self) -> bool:
-        return self.returns.get(12) is None
+        return self.late is None and self.returns.get(12) is None
 
 
 @dataclass
@@ -171,19 +172,20 @@ class SectorGroup:
 def sector_indices(f: ip.Frames, ld: Leads, smap: pd.DataFrame, all_counts: dict[str, int]) -> list[SectorGroup]:
     """Every "Sector" index under the sector the map places it in, in the order of the lead table;
     the headline index first, then the rest by 1-year return, those younger than a year last."""
-    rows = {x.key: x for x in ip.every_index(f, families=("Sector",))["Sector"]}
+    # Read on the page's session, the ranking's (S193 E): an index without its close reads "–".
+    rows = {x.key: x for x in ip.every_index(f, families=("Sector",), now=ld.when)["Sector"]}
     by_sector: dict[str, list[IndexLine]] = {}
     for r in smap.itertuples():
         x = rows.get(r.index_key)
         if x is None:
             continue
         by_sector.setdefault(r.sector, []).append(
-            IndexLine(x.key, x.name, r.role == "headline", x.live, x.returns, x.from_high, x.pe))
+            IndexLine(x.key, x.name, r.role == "headline", x.live, x.returns, x.from_high, x.pe, x.late))
     ours = {r.name: r for r in ld.rows}
     order = [r.name for r in ld.rows] + sorted(s for s in by_sector if s not in ours)
     out = []
     for name in order:
-        ix = sorted(by_sector.get(name, []), key=lambda x: (not x.headline, x.young,
+        ix = sorted(by_sector.get(name, []), key=lambda x: (not x.headline, x.late is not None, x.young,
                                                             -(x.returns.get(12) or -1e9) if not x.young else x.live.value))
         out.append(SectorGroup(name, int(all_counts.get(name, 0)), ours.get(name), ix))
     return out
