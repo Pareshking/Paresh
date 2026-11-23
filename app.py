@@ -1017,6 +1017,13 @@ high_prices = data["high_prices"]
 low_prices = data["low_prices"]
 volume_data = data["volume_data"]
 regime_data = data["regime_data"]
+# One session for the header and the page under it (S216): the regime was computed before the prices
+# were known, so read it again up to their last session when the index has a later close.
+if adj_close is not None and not adj_close.empty:
+    _last_px = adj_close.index.max()
+    _n500 = fetch_benchmark_history(period="5y")
+    if _n500 is not None and len(_n500) and _n500.index.max() > _last_px:
+        regime_data = get_market_regime(end=f"{_last_px:%Y-%m-%d}")
 
 
 # An empty ranking is a pipeline failure, not a view to render. Twelve tabs of

@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-23 — The header and the page show the same session (S216)
+
+- Between NSE's close and the nightly sync, the header showed today's Nifty 500 beside the previous session's prices ("Nifty 500 23,764" beside "closes of 20 Nov"). It now reads the index up to the prices' last session, so its level and 200D EMA gap match the page below it.
+
 ## 2026-11-23 — Every page names the system it shows (S193 C)
 
 - Labels that said "750" on every system now name the chosen one: the breadth chart's readout on the Dashboard and Market, Sectors' first row ("All ranked stocks"), and Configuration's universe under the > ₹2,000 Cr list.
