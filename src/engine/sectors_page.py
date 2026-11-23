@@ -76,10 +76,11 @@ class Lead:
     lead6_1m: float | None      # ... a month ago
     lead6: float                # ... now
     lead1: float                # the one-month lead now
-    lead3: float | None
+    lead3: float | None         # the three-month lead now (S219-4)
     group: str
     returns: dict[int, float | None] = field(default_factory=dict)
     from_high: float | None = None
+    lead12: float | None = None  # the twelve-month lead now (S219-4); None when the record is shorter
 
 
 @dataclass
@@ -92,7 +93,7 @@ class Leads:
     market: pd.Series
     counts: dict[str, int]
     market_ret: dict[int, float | None]
-    gap: dict[str, float | None]          # the 750 less Nifty Total Market, pts: "1", "3", "6", "6_1m", "6_3m"
+    gap: dict[str, float | None]          # the 750 less Nifty Total Market, pts: "1", "3", "6", "12", "6_1m", "6_3m"
     left_out: dict[str, int]               # groups with fewer than MIN_STOCKS, and their counts
 
 
@@ -123,13 +124,14 @@ def leads(prices: pd.DataFrame, groups: pd.Series, total_market: pd.Series | Non
         if l6 is None or l1 is None:
             continue
         rows.append(Lead(name, counts[name], lead(level, 6, d3), lead(level, 6, d1), l6, l1, lead(level, 3, when),
-                         group_of(l6, l1), {m: ew_return(level, m, when) for m in WINDOWS}, from_high(level, when)))
+                         group_of(l6, l1), {m: ew_return(level, m, when) for m in WINDOWS}, from_high(level, when),
+                         lead(level, 12, when)))
     rows.sort(key=lambda r: -r.lead6)
     gap: dict[str, float | None] = {}
     tm = None if total_market is None else pd.to_numeric(total_market, errors="coerce").dropna().sort_index()
     if tm is not None and len(tm):
         tm = tm[tm.index <= when]
-        for m in (1, 3, 6):
+        for m in (1, 3, 6, 12):
             gap[str(m)] = pi.size_gap(market, tm, when - pd.DateOffset(months=m), when)
         gap["6_3m"] = pi.size_gap(market, tm, d3 - pd.DateOffset(months=6), d3)
         gap["6_1m"] = pi.size_gap(market, tm, d1 - pd.DateOffset(months=6), d1)
