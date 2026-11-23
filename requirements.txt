@@ -66,7 +66,7 @@ pillow==13.0.0
     # via streamlit
 protobuf==7.36.2
     # via streamlit
-pyarrow==24.0.0
+pyarrow==26.0.1
     # via
     #   -r requirements.in
     #   streamlit
@@ -105,15 +105,13 @@ typing-extensions==4.16.0
     #   altair
     #   anyio
     #   streamlit
-tzdata==2026.6 ; sys_platform == 'emscripten' or sys_platform == 'win32'
-    # via pandas
 urllib3==2.8.0
     # via
     #   botocore
     #   requests
 uvicorn==0.54.0
     # via streamlit
-watchdog==7.1.1 ; sys_platform != 'darwin'
+watchdog==7.1.1
     # via streamlit
 websockets==17.4
     # via streamlit
