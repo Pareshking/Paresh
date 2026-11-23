@@ -72,3 +72,18 @@ def test_dashboard_tiles_read_the_systems_record():
     assert "This ranking’s top 100 against the Nifty 500" not in src
     wf = (ROOT / ".github" / "workflows" / "momentum_health.yml").read_text(encoding="utf-8")
     assert "data/momentum_health_*.csv" in wf             # the month-end job collects each system's record
+
+
+def test_the_nifty_500s_longer_record_is_one_line_beside_every_system():
+    # Owner, 23 Nov 2026: "How about we keep N500 for also additionally?" One sentence by B2's rule (top fifth
+    # against its members, equal weight), not a second set of tiles; on systems with a short record too.
+    from src.ui.views import dashboard_home_view as dv
+
+    sp = pd.read_csv(ROOT / "data" / "momentum_health.csv")
+    long = dv._long_record(sp)
+    line = dv._long_record_line(long)
+    assert line.startswith(" Over the longer record, the Nifty 500’s members since 2010 by the same rule")
+    assert "of 5% or more took" in line and "to recover" in line
+    short = dv._lag_note(None, short="This system’s own record is being collected.", long=long)
+    assert "Over the longer record" in short
+    assert dv._long_record(sp.drop(columns=["ew"])) is None

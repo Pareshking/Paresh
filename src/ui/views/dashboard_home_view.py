@@ -222,6 +222,13 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
     return out
 
 
+def _long_record(spreads: pd.DataFrame | None):
+    """The Nifty 500's 2010 record, top fifth against its members at equal weight (B2's rule), falls of 5% or more."""
+    if spreads is None or "ew" not in spreads.columns:
+        return None
+    return di.momentum_lag(spreads.assign(nifty500=spreads["ew"]), min_depth=5.0)
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def _month_so_far(key: str, _adj_close: pd.DataFrame, symbols: tuple, as_of: pd.Timestamp) -> float | None:
     """The system's top fifth at the last month-end less all its members, this month to `as_of` (S217)."""
@@ -460,13 +467,31 @@ def _trail_cell(vals: list[float | None], fmt) -> list[str]:
     return ["–" if v is None else fmt(v) for v in vals]
 
 
-def _lag_note(lag, against: str = "the 750", since: str = "2021", short: str | None = None) -> str:
+def _long_record_line(long) -> str:
+    """The Nifty 500's record since 2010 by the same rule (top fifth against its members, equal weight), beside a
+    system's own (owner, 23 Nov 2026: "keep N500 also additionally"): the only record with earlier falls and their
+    recovery times. One sentence, not a second set of tiles."""
+    if long is None or not long.episodes:
+        return ""
+    deepest = long.episodes[0]
+    done = [x for x in long.episodes if x.months_to_recover is not None]
+    txt = (f" Over the longer record, the Nifty 500’s members since 2010 by the same rule: the deepest fall, "
+           f"{abs(deepest.depth):.1f}% from {deepest.peak:%B %Y}, "
+           + ("is not yet made back" if deepest.recovered is None else f"was made back by {deepest.recovered:%B %Y}"))
+    if done:
+        lo, hi = min(x.months_to_recover for x in done), max(x.months_to_recover for x in done)
+        txt += (f"; the {len(done)} other fall{'s' if len(done) != 1 else ''} of 5% or more took "
+                + (f"{lo} months" if lo == hi else f"{lo} to {hi} months") + " to recover")
+    return txt + "."
+
+
+def _lag_note(lag, against: str = "the 750", since: str = "2021", short: str | None = None, long=None) -> str:
     """How long this system's momentum can lag, from its own record (owner, 21 Nov 2026, from the Indices review;
     each system's own record, 23 Nov 2026, S217). `short`: what a record too short to name a fall says instead."""
     link = (f'<a class="dh-link" href="{e(page_href("indices"))}" target="_self">'
             "NSE’s momentum indices, style by style, on Indices →</a>")
     if short:
-        return f'<p class="dh-note">{e(short)} {link}</p>'
+        return f'<p class="dh-note">{e(short + _long_record_line(long))} {link}</p>'
     if lag is None:
         return ""
     txt = (f"Against {against}, equal weight, the top fifth is {abs(lag.now):.1f}% below its {lag.best:%B %Y} best "
@@ -480,12 +505,12 @@ def _lag_note(lag, against: str = "the 750", since: str = "2021", short: str | N
             txt += (f"; the one before, {abs(prev.depth):.1f}% in {prev.peak.year + (prev.peak.month == 12)}–{str(prev.low.year)[2:]}, "
                     f"took {prev.months_to_recover} months from its peak to recover")
         txt += "."
-    txt += " A description, not a forecast: the recovery time rests on one earlier fall. "
+    txt += _long_record_line(long) + " A description, not a forecast. "
     return f'<p class="dh-note">{e(txt)}{link}</p>'
 
 
 def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None,
-                     lag: di.MomentumLag | None = None, uni: str = "750", since: str = "2021",
+                     lag: di.MomentumLag | None = None, uni: str = "750", since: str = "2021", long=None,
                      short: str | None = None) -> list:
     tested = [x for x in signals if x["test"] is not None]
     passed = [x for x in tested if x["test"]["passed"]]
@@ -547,7 +572,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
              + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top fifth less all members, equal weight, points</span></div>'
                 if lead_bars else '')
              + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '')
-             + _lag_note(lag, f"the {uni}", since, short) + '</div>']
+             + _lag_note(lag, f"the {uni}", since, short, long) + '</div>']
     if lead_bars:
         parts += [Chart("bars", lead_bars, {"label": f"Momentum’s lead over the {uni}, equal weight, by month"}),
                   how(f"Each finished month, the return of the best-ranked fifth of the {uni} less all its members’, equal "
@@ -1016,7 +1041,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     own_since = pd.Period(own["month"].iloc[0], "M").strftime("%B %Y") if own is not None else ""
     short = sm.record_note(own, system)
     parts += section_momentum(lead, streak, signals, average, lead_bars,
-                              None if short or own is None else di.momentum_lag(own), uni, own_since, short)
+                              None if short or own is None else di.momentum_lag(own), uni, own_since,
+                              long=_long_record(spreads), short=short)
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{idx_end:%B}")
