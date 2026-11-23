@@ -134,7 +134,7 @@ def test_screener_table_opens_stocks_through_the_host_like_the_wide_table():
     html = screener_table.table_html(rank_df, px, "Executive (11)")
     assert "host.document.createElement('script')" in html
     assert "host.document.body.appendChild(s)" in html
-    assert "window.location.search='+JSON.stringify(search)" in html
+    assert "window.location.assign(new URL('+JSON.stringify('screener'+search)" in html   # S193 K F1: the Screener's own address
     assert "window.open(search,'_blank')" in html
     assert 'target="_parent"' not in html
 
@@ -186,7 +186,7 @@ def test_table_symbol_opens_the_stock_page_by_injecting_into_the_host():
     assert "window.parent" in html
     assert "host.document.createElement('script')" in html
     assert "host.document.body.appendChild(s)" in html
-    assert "window.location.search='+JSON.stringify(search)" in html
+    assert "window.location.assign(new URL('+JSON.stringify('screener'+search)" in html   # S193 K F1: the Screener's own address
     # A cross-origin parent would throw; allow-popups still gets the user there.
     assert "window.open(search,'_blank')" in html
     # Every mechanism a browser refused must stay gone.
