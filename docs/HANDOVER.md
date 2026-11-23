@@ -71,8 +71,14 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 2-3 clean runs (record the run IDs). If not, the parallel runner (`run_page_audits.sh`; the patch is in the old
 session's scratchpad, so rebuild it) is the next and last step.
 
-**Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S208 (price_fingerprint once per frame;
-the Backtest long file in `st.cache_resource`); S207 closed 23 Nov (measured: leave both). These were taken over from the speed session.
+**S208, part done, no PR yet:** branch `ccr-b633a7d9-s208` (0f7597b, from an agent at handover). Done: the ranking
+fingerprint is computed once in the cached `_adjusted_frames_shared`; the Backtest run frame and its fingerprint are
+built once (`_run_frame_shared`; 5 reruns → 1 hash, by test); `_long_file` and `_long_value` use `st.cache_resource`;
+a test shows the cached long file is unchanged after page runs. Open: the page-level hashes in five views (Dashboard
+868/1247, Market 121, Sector 623, Ranking 795, Market questions 464/716), the traded-value hash, bench memory, a real-app
+check. Its local suite: 2,924 passed; 6 errors in `test_nse_prices.py` need the fetched closes. Review it before opening the PR.
+
+**Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S207 closed 23 Nov (measured: leave both). These were taken over from the speed session.
 
 **Scheduled tasks** (each wakes the session named, not the new one; re-create in the new session what it should own):
 - This session's two half-hourly work loops, `trig_01CFi7nxJC5Gti62ywnEwomh` (:07) and `trig_01S36K78BdCHt1Fm7AZnNgVb`
