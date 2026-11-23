@@ -20,6 +20,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from src.core.logger import logger
 import streamlit as st
 
 from src.ui import formats as _fmt
@@ -218,6 +220,17 @@ def _history_inputs(key: str, _adj_close: pd.DataFrame, _rank_df: pd.DataFrame, 
     # The same trail Portfolio and Actions show: one function, one definition (S151, S154).
     out["ranks"] = di.rank_trails(px, symbols, snap, now=qnow)[1]
     return out
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _month_so_far(key: str, _adj_close: pd.DataFrame, symbols: tuple, as_of: pd.Timestamp) -> float | None:
+    """The system's top fifth at the last month-end less all its members, this month to `as_of` (S217)."""
+    from src.engine import system_momentum as sm
+    try:
+        return sm.month_so_far(_adj_close, list(symbols), as_of)
+    except Exception as exc:  # noqa: BLE001 - a tile reads "–" rather than the page failing
+        logger.warning("month so far not computed: %s", exc)
+        return None
 
 
 # ── Sections ────────────────────────────────────────────────────────────────
@@ -447,15 +460,20 @@ def _trail_cell(vals: list[float | None], fmt) -> list[str]:
     return ["–" if v is None else fmt(v) for v in vals]
 
 
-def _lag_note(lag) -> str:
-    """How long this ranking's momentum can lag, from its own record (owner, 21 Nov 2026, from the Indices review):
-    NSE's momentum indices are large and mid caps, the book mostly small and micro."""
+def _lag_note(lag, against: str = "the 750", since: str = "2021", short: str | None = None) -> str:
+    """How long this system's momentum can lag, from its own record (owner, 21 Nov 2026, from the Indices review;
+    each system's own record, 23 Nov 2026, S217). `short`: what a record too short to name a fall says instead."""
+    link = (f'<a class="dh-link" href="{e(page_href("indices"))}" target="_self">'
+            "NSE’s momentum indices, style by style, on Indices →</a>")
+    if short:
+        return f'<p class="dh-note">{e(short)} {link}</p>'
     if lag is None:
         return ""
-    txt = f"Against the Nifty 500 the top 100 is {abs(lag.now):.1f}% below its {lag.best:%B %Y} best (month-ends to {lag.as_of:%B %Y})."
+    txt = (f"Against {against}, equal weight, the top fifth is {abs(lag.now):.1f}% below its {lag.best:%B %Y} best "
+           f"(month-ends to {lag.as_of:%B %Y}).")
     if lag.episodes:
         d = lag.episodes[0]
-        txt += (f" Its deepest fall since 2010 was {abs(d.depth):.1f}%, {d.peak:%B %Y} to {d.low:%B %Y}, "
+        txt += (f" Its deepest fall since {since} was {abs(d.depth):.1f}%, {d.peak:%B %Y} to {d.low:%B %Y}, "
                 + ("not yet made back" if d.recovered is None else f"made back by {d.recovered:%B %Y}"))
         prev = next((x for x in lag.episodes[1:] if x.months_to_recover is not None), None)
         if prev is not None:
@@ -463,21 +481,23 @@ def _lag_note(lag) -> str:
                     f"took {prev.months_to_recover} months from its peak to recover")
         txt += "."
     txt += " A description, not a forecast: the recovery time rests on one earlier fall. "
-    return (f'<p class="dh-note">{e(txt)}<a class="dh-link" href="{e(page_href("indices"))}" target="_self">'
-            "NSE’s momentum indices, style by style, on Indices →</a></p>")
+    return f'<p class="dh-note">{e(txt)}{link}</p>'
 
 
 def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None,
-                     lag: di.MomentumLag | None = None) -> list:
+                     lag: di.MomentumLag | None = None, uni: str = "750", since: str = "2021",
+                     short: str | None = None) -> list:
     tested = [x for x in signals if x["test"] is not None]
     passed = [x for x in tested if x["test"]["passed"]]
     better = sum(x["like"] is not None and average is not None and x["like"] >= average for x in passed)
-    long_ok = lead and lead[0][1] is not None and lead[0][1] > 0
-    head = ("Ahead over a year" if long_ok else "Behind over a year")
-    head += (f', but <span class="dh-down">{streak} losing month{"s" if streak != 1 else ""} in a row</span>.'
+    year = lead[0][1] if lead else None
+    # A record without a year says so; "behind" would be a claim the record cannot make (S217).
+    head = ("No year of this system’s own record yet" if year is None else
+            "Ahead over a year" if year > 0 else "Behind over a year")
+    head += (f'{"; it has" if year is None else ", but"} <span class="dh-down">{streak} losing month{"s" if streak != 1 else ""} in a row</span>.'
              if streak >= 2 else ".")
     if tested:
-        head += (f' We tested each signal on our own record since 2010: <span class="dh-up">{len(passed)} pass</span>, '
+        head += (f' We tested each signal on the Nifty 500’s record since 2010: <span class="dh-up">{len(passed)} pass</span>, '
                  f'<span class="dh-muted">{len(tested) - len(passed)} {"is" if len(tested) - len(passed) == 1 else "are"} not confirmed</span>'
                  + (', one of them a reading the page used to count for momentum. ' if any(
                      x["key"] == "participation_jump" and x["test"] and not x["test"]["passed"] for x in signals) else '. ')
@@ -518,19 +538,20 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
             f'<td>{badge}<span class="dh-sub">{e(why)}</span></td><td>{e(x["flip"]) if d is not None else ""}</td></tr>')
     avg = "–" if average is None else sg(average)
     parts = [f'<div class="dh-sec">{_kicker("3", "Is momentum still working?")}<h2 id="s-mom" class="dh-h2">{head}</h2>'
-             '<div class="dh-sub">This ranking’s top 100 against the Nifty 500, points, longest window first</div>'
+             f'<div class="dh-sub">This system’s top fifth against the {e(uni)}, equal weight, points, longest window first</div>'
              f'<div class="dh-tiles">{"".join(tiles)}</div>'
-             '<p class="dh-note">Tiles: the top 100 of this site’s ranking against the Nifty 500, the history’s benchmark, '
-             'over 12 months, the last 3 months and the last finished month; the month so far is NSE’s Nifty500 Momentum 50 '
-             'against Nifty Total Market.</p>'
-             + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top 100 less the Nifty 500, points</span></div>'
+             f'<p class="dh-note">Tiles: each month-end, the top fifth of the {e(uni)} by this site’s score, its members of that '
+             f'day, against all of them, equal weight (this system’s own record{", from " + e(since) if since else ", not yet begun"}): over 12 months, the last 3 '
+             'months and the last finished month; the month so far ranks at the last month-end. A window the record does not '
+             'yet cover reads –.</p>'
+             + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top fifth less all members, equal weight, points</span></div>'
                 if lead_bars else '')
              + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '')
-             + _lag_note(lag) + '</div>']
+             + _lag_note(lag, f"the {uni}", since, short) + '</div>']
     if lead_bars:
-        parts += [Chart("bars", lead_bars, {"label": "Momentum’s lead over the Nifty 500 by month"}),
-                  how("Each month, the return of the 100 best-ranked stocks less the Nifty 500’s, in points. The last bar is the "
-                      "month so far, from Nifty500 Momentum 50 against Nifty Total Market.",
+        parts += [Chart("bars", lead_bars, {"label": f"Momentum’s lead over the {uni}, equal weight, by month"}),
+                  how(f"Each finished month, the return of the best-ranked fifth of the {uni} less all its members’, equal "
+                      "weight, in points.",
                       "Bars above the line are months momentum led. A run below it is momentum out of favour; whether the "
                       "year-long lead holds matters more than one month.",
                       ["Month", "Lead, pts"], [[m, sg(v)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])])]
@@ -903,9 +924,15 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     turnover = _turnover_html(di.leadership_turnover(hist.get("rank_table")), industry)
 
     # 3. signals, each with its test (S150)
+    # The signal tests and the flow evidence keep the Nifty 500's record since 2010, the history they were
+    # tested on; the tiles, bars, streak and fall read the system's own record (S217; owner, 23 Nov 2026:
+    # "Build the tiles for each system", the 750's own stocks from 2021, against its own members, B2).
     spreads = _read_csv(FILES["spreads"])
-    lead = di.momentum_lead(spreads, closes["nifty500_mom50"], market, idx_end) if spreads is not None else []
-    streak = di.losing_streak(spreads, lead[-1][1] if lead else None) if spreads is not None else 0
+    from src.engine import system_momentum as sm
+    own = sm.for_tiles(sm.read(system if system in sm.SYSTEMS else SYSTEM_750))
+    mtd = _month_so_far(key, adj_close, tuple(rank_df["Symbol"].drop_duplicates()), idx_end)
+    lead = sm.tiles(own, mtd)
+    streak = di.losing_streak(own, mtd) if own is not None else 0
     nsdl = _read_csv(FILES["nsdl"])
     flows = di.flows_summary(nsdl)
     ev = di.flow_evidence(nsdl, spreads, bench) if flows is not None else None
@@ -976,7 +1003,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
     # v8 chart inputs (S151)
     prev = _last_month(ledger, market, momentum, idx_end)
-    lead_bars = _lead_bars(spreads, lead)
+    lead_bars = _lead_bars(own, lead)
     fpi_bars = _fpi_bars(nsdl, ev, flows, _read_csv(FILES["nse_dii"], dtype={"period": str}))
     compare = _flow_compare(_read_csv(FILES["nse_flows"]), nsdl)
     breadth = _breadth_spec(n500, hist.get("above_200"), idx_end, UNIVERSE_SHORT.get(system, "750"))
@@ -986,7 +1013,10 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_book(bm, since, since_mkt, idx_end, prev, inc + pd.Timedelta(days=1))
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
                                results_line, turnover, hist.get("dates"))
-    parts += section_momentum(lead, streak, signals, average, lead_bars, di.momentum_lag(spreads) if spreads is not None else None)
+    own_since = pd.Period(own["month"].iloc[0], "M").strftime("%B %Y") if own is not None else ""
+    short = sm.record_note(own, system)
+    parts += section_momentum(lead, streak, signals, average, lead_bars,
+                              None if short or own is None else di.momentum_lag(own), uni, own_since, short)
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{idx_end:%B}")

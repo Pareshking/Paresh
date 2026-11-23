@@ -43,7 +43,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 #644 (S214), #645 (numpy 2.5.5; Dependabot #641-#643 carried in and closed), #646 (S205 step 1).
 
 **Open pull requests**
-- **S193 item C PR** (branch `claude/handover-session-setup-7bd5zk`): merge when CI is green on its current head (CLAUDE.md, owner 23 Nov: no need to ask).
+- **S193 item C merged (#650), S216 merged (#650, #651).** **S217 PR #652** (K3, owner chose per system, A2 B2): each system's momentum tiles from its own record; merge when CI is green on its current head (CLAUDE.md). After 2 Dec's `momentum_health` run, check the 750 and list files gained November's row.
 - **#638 (S211, one date rule):** draft. Merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
   published ranks move). It conflicts with main again: merge main into it once, just before merging. Reminder
   `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
@@ -64,7 +64,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 **Benches:** run `audit_page_bench.py` in a worktree nobody commits to. A commit in the served checkout makes the app
 log "New revision pulled ... caches dropped" and the run reads seconds slower (seen 23 Nov).
 
-**S193 item A:** A10, A12, A13, A14 merged (#649). Item C in the open PR. Open question for the owner: the "since start" market figure starts the day before inception while the book starts at the fill (as A12, one level up). A5 and A11 need a `record_run` on the R2 store first
+**S193 item A:** A10, A12, A13, A14 merged (#649). Item C merged (#650). Open question for the owner (item 2 of the one-at-a-time list): the "since start" market figure starts the day before inception while the book starts at the fill (as A12, one level up). A5 and A11 need a `record_run` on the R2 store first
 (a CI job with R2 secrets). Then items B, C, E-L, one at a time with the owner.
 
 **Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S207 closed 23 Nov (measured: leave both). These were taken over from the speed session.

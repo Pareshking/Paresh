@@ -74,6 +74,34 @@ def build() -> pd.DataFrame:
     return sp
 
 
+def build_systems(close: pd.DataFrame | None = None) -> dict[str, int]:
+    """data/momentum_health_{750,1000,nano}.csv from each system's own members; {system: months}."""
+    from src.engine import system_momentum as sm
+    from src.loaders import nse_long
+
+    if close is None:
+        loaded = nse_long.load(with_value=False)
+        if loaded is None:
+            raise SystemExit("::error::NSE's long file could not be read")
+        close = loaded[0]
+    out = {}
+    for system in sm.SYSTEMS:
+        sp = sm.build(system, close)
+        out[system] = len(sp)
+        if not len(sp):
+            print(f"{system}: no finished month yet; nothing written")
+            continue
+        if not np.isfinite(sp[["top", "ew"]].to_numpy(dtype=float)).all():
+            print(f"::error::{system}: a month's return is not a number; not written")
+            continue
+        sp = sp.copy()
+        sp["date"] = pd.to_datetime(sp["date"]).dt.strftime("%Y-%m-%d")
+        cols = [c for c in ["month", "date", "top", "bottom", "spread", "n", "qualified", "ew"] if c in sp.columns]
+        sp[cols].round({"top": 4, "bottom": 4, "spread": 4, "qualified": 4, "ew": 4}).to_csv(sm.path(system), index=False)
+        print(f"{system}: {len(sp)} months {sp['month'].iloc[0]}..{sp['month'].iloc[-1]} -> {sm.path(system)}")
+    return out
+
+
 def problems(sp: pd.DataFrame, today: pd.Timestamp) -> list[str]:
     out = []
     if len(sp) < 24:
@@ -110,6 +138,13 @@ def main() -> int:
     out["date"] = pd.to_datetime(out["date"]).dt.strftime("%Y-%m-%d")
     out.round({"top": 4, "bottom": 4, "spread": 4, "qualified": 4, "portfolio": 4, "nifty500": 4, "ew": 4}).to_csv(OUT, index=False)
     print(f"{len(out)} months {out['month'].iloc[0]}..{out['month'].iloc[-1]} -> {OUT}")
+    # Each system's own record (S217; owner, 23 Nov 2026), written separately so a failure here cannot
+    # cost the Nifty 500's. A system without a month yet (the 1000 until its first month closes) writes
+    # no file, and its tiles say the record is being collected.
+    try:
+        build_systems()
+    except Exception as exc:  # noqa: BLE001
+        print(f"::warning::system records not written: {type(exc).__name__}: {exc}")
     # Written separately, so a failure here cannot cost the spreads.
     try:
         latest = build_latest()
