@@ -13,6 +13,12 @@
 - **Dashboard on the 1000 and Nano:** "Against the 750's market value" and "only N% of the 750" name the system shown. The share beating Nifty Total Market says "over the past month", the window it is measured over; it said "so far in November".
 - **Momentum's lead, every month:** every bar is the top 100 less the Nifty 500. The month so far, a different pair, is no longer drawn as the last bar; it stays in the table above.
 
+## 2026-11-23 — The Backtest page computes twice as fast
+
+- The Backtest page's first open went from 25 s to 13 s on the same machine (S204). Two steps that ran once per rebalance or once per day now use plain NumPy: the 52-week high on each signal date, and each day's value of the holdings. The 12-month Sharpe score does less pandas work around the same arithmetic. With all three, a full run from 2010 takes 6.9 s instead of 17.7 s.
+- Every figure is unchanged. The default run and the four stored tests were compared field by field and match exactly, as does `scripts/audit_baseline.py check`. A new test pins how a ±infinite price counts towards the 52-week high, the same way pandas counts it.
+- Memory is unchanged: the page's peak is about 830 MB, as before.
+
 ## 2026-11-23 — One name and one unit per thing on every page (the glossary)
 
 - Every page now follows `docs/GLOSSARY.md`, the 12 names and units the owner chose on 23 Nov. Only the words changed: each figure is measured against the same index as before.

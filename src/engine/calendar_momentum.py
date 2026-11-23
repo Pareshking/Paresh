@@ -276,32 +276,35 @@ def period_sharpe_at(
     # with no print for a trading week still scores NaN.
     if prices_anchor is None:
         prices_anchor = anchor_frame(prices)
-    p0 = prices_anchor.iloc[start_idx]
-    p1 = prices.iloc[end_idx]
+    # The arithmetic below is on arrays aligned to prices.columns. Boolean-mask
+    # assignment into a pandas Series cost ~3 s of a 36 s default Backtest run,
+    # five calls per rebalance (S204, 23 Nov 2026); the same operations on the
+    # same float64 values give the same bits. The volatility stays pandas'
+    # own std(ddof=0).
+    p0 = prices_anchor.iloc[start_idx].to_numpy(dtype=float)
+    p1 = prices.iloc[end_idx].to_numpy(dtype=float)
     valid_price = np.isfinite(p0) & np.isfinite(p1) & (p0 != 0)
-    ratio = pd.Series(np.nan, index=prices.columns, dtype=float)
-    ratio[valid_price] = np.maximum(
-        p1[valid_price].to_numpy(dtype=float) / p0[valid_price].to_numpy(dtype=float),
-        0.001,
-    )
+    ratio = np.full(len(prices.columns), np.nan)
+    ratio[valid_price] = np.maximum(p1[valid_price] / p0[valid_price], 0.001)
     log_return = np.log(ratio)
 
     window_lr = log_returns.iloc[start_idx + 1 : end_idx + 1]
-    n = window_lr.notna().sum()
+    n = window_lr.notna().sum().to_numpy()
     # Population SD (ddof=0), matching the matrix path. Sample SD would rescale
     # each stock by sqrt(n/(n-1)), and because n differs per stock that is not
     # a uniform rescaling.
-    daily_sd = window_lr.std(ddof=0)
+    daily_sd = window_lr.std(ddof=0).to_numpy(dtype=float)
     period_vol = daily_sd * np.sqrt(n.astype(float))
     if metric == "return":
-        plain = pd.Series(log_return, index=prices.columns, dtype=float)
+        plain = log_return.copy()
         plain[n <= 1] = np.nan
-        return plain, start_idx
+        return pd.Series(plain, index=prices.columns, dtype=float), start_idx
     if metric != "sharpe":
         raise ValueError(f"metric must be 'sharpe' or 'return', not {metric!r}")
-    sharpe = log_return / period_vol.replace(0, np.nan)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        sharpe = log_return / np.where(period_vol == 0, np.nan, period_vol)
     sharpe[n <= 1] = np.nan
-    return sharpe, start_idx
+    return pd.Series(sharpe, index=prices.columns, dtype=float), start_idx
 
 
 def _winsorise_z_matrix(A: np.ndarray) -> np.ndarray:

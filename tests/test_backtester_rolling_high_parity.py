@@ -77,3 +77,41 @@ def test_production_scale_signal_dates_match_full_history_reference() -> None:
         pd.testing.assert_series_equal(
             _rolling_high_at(prices, idx), reference.iloc[idx], check_exact=True
         )
+
+
+def test_non_finite_values_count_as_missing_as_pandas_rolling_treats_them() -> None:
+    """pandas rolling turns +-inf into NaN before it aggregates (S204, 23 Nov 2026).
+
+    So an inf is neither the high nor an observation towards min_periods. These
+    columns sit exactly on the 126-observation boundary, where counting an inf
+    as an observation would turn NaN into a number.
+    """
+    rows = 252
+    prices = pd.DataFrame(
+        np.nan, index=pd.bdate_range("2024-01-01", periods=rows), columns=list("ABCDEF")
+    )
+    tail = slice(rows - 126, rows)
+    prices.iloc[tail, 0] = 50.0                    # exactly 126 finite: a high
+    prices.iloc[tail, 1] = 50.0
+    prices.iloc[rows - 126, 1] = np.inf            # 125 finite + inf: NaN in pandas
+    prices.iloc[tail, 2] = 50.0
+    prices.iloc[rows - 126, 2] = -np.inf           # 125 finite + -inf: NaN in pandas
+    prices.iloc[:, 3] = 40.0
+    prices.iloc[100, 3] = np.inf                   # inf is not the high: 40.0
+    prices.iloc[:, 4] = -np.inf                    # nothing finite: NaN
+    prices.iloc[:, 5] = 10.0
+    prices.iloc[7, 5] = 99.0                       # an ordinary high inside the window
+
+    expected = prices.rolling(252, min_periods=126).max().iloc[rows - 1]
+    actual = _rolling_high_at(prices, rows - 1)
+    pd.testing.assert_series_equal(actual, expected, check_exact=True)
+    assert np.isnan(actual["B"]) and np.isnan(actual["C"]) and actual["D"] == 40.0
+
+
+def test_float32_input_gives_the_float64_high_pandas_gives() -> None:
+    prices = pd.DataFrame(
+        np.random.default_rng(5).uniform(1, 9, size=(300, 4)).astype("float32"),
+        index=pd.bdate_range("2023-01-02", periods=300),
+    )
+    expected = prices.rolling(252, min_periods=126).max().iloc[299]
+    pd.testing.assert_series_equal(_rolling_high_at(prices, 299), expected, check_exact=True)
