@@ -135,6 +135,33 @@ def valuation(f: Frames, keys=VALUATION_KEYS) -> list[Valuation]:
     return out
 
 
+@dataclass
+class YoungValuation:
+    """An index with a P/E in our files but too short a record for a percentile (the Nifty 1000, S219-7)."""
+    key: str
+    name: str
+    first: pd.Timestamp
+    pe_now: float
+    pb_now: float | None
+    dy_now: float | None
+
+
+def young_valuation(f: Frames, key: str) -> YoungValuation | None:
+    """The index's latest P/E, P/B and yield and the first day our files carry its P/E; None without a P/E."""
+    if key not in f.pe:
+        return None
+    pe = f.pe[key].dropna()
+    pe = pe[pe.index <= f.as_of]
+    if pe.empty:
+        return None
+
+    def last(frame):
+        x = frame.get(key)
+        x = None if x is None else x.dropna()
+        return None if x is None or x.empty else float(x.iloc[-1])
+    return YoungValuation(key, f.names.get(key, key), pd.Timestamp(pe.index[0]), float(pe.iloc[-1]), last(f.pb), last(f.dy))
+
+
 def weekly(s: pd.Series) -> pd.Series:
     return s.dropna().resample("W-FRI").last().dropna()
 

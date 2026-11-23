@@ -127,6 +127,22 @@ def test_the_page_draws_every_section_in_the_agreed_order(real):
     assert "nan" not in text.split() and "none" not in text.split()
 
 
+def test_the_1000_shows_the_nifty_1000s_pe_and_says_why_the_rest_is_dashed(real):
+    """S219-7: NSE publishes the Nifty 1000's P/E and our files carry it (from 16 Nov 2026), so ?sys=1000 adds its
+    row: P/E now, and "–" for the percentile and the past readings with one reason; the 750 has no such row."""
+
+    from src.ui.views.indices_view import html_of, page_parts
+    y = ip.young_valuation(real, "nifty_1000")
+    if y is None:
+        pytest.skip("the committed copy has no Nifty 1000 P/E")
+    on_1000, on_750 = html_of(page_parts(real, "1000")), html_of(page_parts(real, "750"))
+    assert "Nifty 1000" in on_1000 and f"{y.pe_now:.2f}" in on_1000
+    assert "the index is too new for a percentile" in on_1000 and "the index is too new for a percentile" not in on_750
+    spec = next(p for p in page_parts(real, "1000") if getattr(p, "kind", "") == "trows")
+    rows = [r["name"] for r in spec.spec["rows"]]
+    assert rows.index("Nifty 1000") == rows.index("Nifty Total Market") + 1
+
+
 def test_sector_indices_are_not_on_this_page(real):
     rows = ip.every_index(real)
     assert set(rows) == {"Broad market", "Theme", "Strategy"}
