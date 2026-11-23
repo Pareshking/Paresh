@@ -385,6 +385,16 @@ Screener against +125% on NSE, enough to swap a stock in or out of the top 20.
 A 2026 Total Market backtest on each (same engine, settings and point-in-time
 list) differs by about one holding a month and 0.3 - 0.5 points a month.
 
+### A new listing's first sessions (owner, 23 Nov 2026, S218)
+
+Screener can start a new listing a few sessions late (TRIVENIPT: listed 12 Oct
+2026, Screener from 14 Oct). For a stock whose first NSE close is on or after
+12 Oct 2026 and whose Screener history starts within 5 NSE sessions of it, the
+ranking frame chains NSE's first closes backwards from Screener's first close
+(`price_source.extend_new_listings`), provided the first 10 common closes keep
+one ratio within 1%. Earlier listings are left alone, so no frozen month's
+replay moves (owner: "From now on ... No frozen month changes").
+
 ### The weekly stretch is filled with NSE's daily closes (7 Oct 2026, S23)
 
 Owner, 7 Oct 2026: "fill Screener's weekly stretch of history with NSE's daily
