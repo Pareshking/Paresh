@@ -167,7 +167,7 @@ def read_actions(reader, archive, since: date, until: date, *,
     acts = nb.repair_swapped_dates(acts).drop_duplicates(["symbol", "ex_date", "purpose"])
     parsed = pd.DataFrame([nb.classify_purpose(p) for p in acts["purpose"]], index=acts.index)
     acts[["kind", "price_factor"]] = parsed[["kind", "price_factor"]]
-    return nb.drop_swapped_twins(acts)
+    return nb.drop_swapped_twins(nb.fill_ex_dates(acts))
 
 
 def audit(prices: pd.DataFrame, actions: pd.DataFrame, held: set[date], closed: set[date],

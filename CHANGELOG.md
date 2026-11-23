@@ -1,6 +1,12 @@
 # Changelog
 
 
+## 2026-11-23 — Price pipeline checked end to end (S213)
+
+- Eleven stocks followed from NSE's and BSE's own files to the page: splits, bonuses, a rights issue and a rename agree to the paisa at every step.
+- Fixed by rule: the long price file (Backtest "History from 2010" and the momentum records) read CCAVENUE +840% on 19 Oct 2026. NSE had listed its 10:1 consolidation in abbreviated words and without an ex-date. Both are now read, and a nightly check fails the build when the long file and Screener disagree on a move of 50% or more. The live pages read Screener and were not affected.
+- Found for a decision (S218): a new listing's first sessions before Screener's first price are missing (TRIVENIPT from 14 Oct, not 12 Oct).
+
 ## 2026-11-23 — Since start, the market starts where the book does
 
 - The book's return since it started is measured from its first fill; Nifty Total Market beside it was measured from the close the day before, a session the book did not hold. Both now start at the fill, on the Dashboard and on Portfolio. The lead moves: > ₹2,000 Cr list −16.9 → −17.9 pts, the 750 +44.9 → +45.1, the Nifty 1000 −4.3 → −2.6.
