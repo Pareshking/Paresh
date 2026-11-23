@@ -63,6 +63,7 @@ SIZE_LABELS = {"nifty100": "Nifty 100", "nifty200": "Nifty 200", "midcap150": "N
                "midcap150_mom50": "Nifty Midcap150 Momentum 50", "smallcap250_mq100": "Nifty Smallcap250 Momentum Quality 100"}
 AT_RISK_ROWS = 8
 from src.ui.industry_names import INDUSTRY_SHORT as SHORT  # noqa: E402  one map for every page
+from src.ui import missing_words as mw  # noqa: E402  the fixed words for "–" and empty states (S193 E)
 TONE = {"up": "dh-up", "down": "dh-down", "watch": "dh-watch", "flat": "dh-muted", "for": "dh-up",
         "against": "dh-down", "neutral": "dh-muted"}
 
@@ -336,8 +337,17 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
     axis = [t for t in range(int(np.ceil(lo_s)), int(np.floor(hi_s)) + 1) if t % 2 == 0]
     spec = {"periods": periods, "values": values, "rows": rows, "lo": float(lo_s), "hi": float(hi_s), "step": step,
             "axis": axis, "market": 0, "book": 1}
-    table_rows = [[r["name"]] + [("–" if values[p["key"]][i] is None else f'{sg(values[p["key"]][i])}%') for p in periods]
+    table_rows = [[r["name"]] + [(mw.DASH if values[p["key"]][i] is None else f'{sg(values[p["key"]][i])}%') for p in periods]
                   for i, r in enumerate(rows)]
+    # One footnote per column for its "–" (S193 E, R1): the book before the system's first month; an index NSE has not published.
+    dash_notes = {}
+    for p_ in periods:
+        vs = values[p_["key"]]
+        if vs[1] is None:
+            dash_notes[p_["label"]] = mw.system_too_young(fill)
+        elif any(v is None for v in vs):
+            dash_notes[p_["label"]] = mw.not_published()
+    dash_line = (mw.column_notes(dash_notes) + " ") if dash_notes else ""
     return [
         f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h1 id="s-month" class="dh-h1">{title}</h1>'
         f'<p class="dh-lede">{e(lede)}</p>{kp}<div class="dh-cap"><b>The month</b><span>to {as_of:%-d %b}, price return</span></div></div>',
@@ -347,7 +357,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "
             "style lagged; against the Nifty Total Market row, how far momentum is behind.",
             [""] + [p["label"] for p in periods], table_rows),
-        f'<p class="dh-note">{e(late + " ") if late else ""}{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. '
+        f'<p class="dh-note">{e(late + " ") if late else ""}{e(dash_line)}{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. '
         + (f'{e(frozen)} {"stay" if " to " in frozen else "stays"} as recorded against the Nifty 500; the Nifty Total Market comparison is worked out beside them. '
            if frozen else '') + 'The book is after costs; indices are '
         'price returns. The book’s month-by-month record is on Portfolio.</p>' + END]
@@ -370,13 +380,14 @@ def _turnover_html(t: di.Turnover | None, industry: pd.Series) -> str:
     if t is None or not t.climbers:
         return ""
     ind = lambda s: e(SHORT.get(str(industry.get(s, "")), str(industry.get(s, ""))))  # noqa: E731
-    rk = lambda v, cls="dh-muted": f'<td class="dh-num {cls}">{"–" if v is None else f"#{v}"}</td>'  # noqa: E731
+    # A stock that failed the filters on that day reads "Out", as in "Fell out" below (S193 E, R1).
+    rk = lambda v, cls="dh-muted": f'<td class="dh-num {cls}">{mw.OUT if v is None else f"#{v}"}</td>'  # noqa: E731
     rows = "".join(f'<tr><th scope="row">{e(s)}<span class="dh-sub">{ind(s)}</span></th>{rk(a)}{rk(b)}{rk(c, "dh-b dh-up")}</tr>'
                    for s, a, b, c in t.climbers)
     if t.fallers:
         rows += '<tr><th scope="row" colspan="4" class="dh-sub dh-tr-g">Fell out</th></tr>'
         rows += "".join(f'<tr><th scope="row">{e(s)}<span class="dh-sub">{ind(s)}</span></th><td></td>{rk(b)}'
-                        f'<td class="dh-num dh-b dh-down">{"Out" if c is None else f"#{c}"}</td></tr>' for s, b, c in t.fallers)
+                        f'<td class="dh-num dh-b dh-down">{mw.OUT if c is None else f"#{c}"}</td></tr>' for s, b, c in t.fallers)
     say = []
     up_ind = pd.Series([industry.get(s) for s, *_ in t.climbers]).value_counts()
     if len(up_ind) and up_ind.iloc[0] >= 2:
@@ -606,8 +617,8 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
              f'<div class="dh-tiles">{"".join(tiles)}</div>'
              f'<p class="dh-note">Tiles: each month-end, the top fifth of the {e(uni)} by this site’s score, its members of that '
              f'day, against all of them, equal weight (this system’s own record{", from " + e(since) if since else ", not yet begun"}): over 12 months, the last 3 '
-             'months and the last finished month; the month so far ranks at the last month-end. A window the record does not '
-             'yet cover reads –.</p>'
+             'months and the last finished month; the month so far ranks at the last month-end. '
+             f'{e(mw.column_note("a tile", mw.SYSTEM_TOO_YOUNG + " for that window"))}</p>'
              + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top fifth less all members, equal weight, points</span></div>'
                 if lead_bars else '')
              + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '')
@@ -921,8 +932,9 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
         book, record = current_book(adj_close, benchmark_close, system)
     symbols = [] if book is None or book.empty else book["Symbol"].tolist()
     if not symbols:
-        kit.page_head("Dashboard", f"{_fmt.data_to(as_of)}.")
-        kit.note("No model book yet.", "The book forms once the strategy has its price history.")
+        # The page with no data: h1, one lede, the footer (S193 E, R4); the sentence Actions and Portfolio use (R5).
+        kit.page_head(mw.NO_MODEL_BOOK, mw.NO_MODEL_BOOK_WHY, kicker="Dashboard")
+        st.html(f'<p class="dh-foot">{e(_fmt.data_to(as_of))}.</p>')
         return
     meta = (record or {}).get("live_meta") or {}
     ledger = load_ledger(ledger_path(system), inception(system))
@@ -1064,6 +1076,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     # while Portfolio showed 22.7% and 1.0 under the same label, found 21 Nov 2026).
     from src.engine import portfolio_report as pr
     record_risk = (pr.risk(eq, market) or [None])[0] if eq is not None else None
+    book_sessions = 0 if eq is None else int(pd.Series(eq).dropna().shape[0])
     book_sizes = _book_sizes(risk)
 
     # 6, 7. industries
@@ -1099,7 +1112,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}")
     parts += section_strong_weak(weights, sectors)
-    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk) + _indices_glance(idx_end), breadth,
+    parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk, book_sessions) + _indices_glance(idx_end), breadth,
                             UNIVERSE_SHORT.get(system, "750"), system == SYSTEM_750)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
     parts.append(f'<p class="dh-foot">{_fmt.data_to(as_of)}.</p>')
@@ -1575,7 +1588,7 @@ def _indices_glance(as_of: pd.Timestamp) -> list:
     return [(f"Valuation and styles, {f.as_of:%-d %b}", (page_href("indices"), "Indices"), rows)] if rows else []
 
 
-def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:
+def _glance(closes, as_of, hist, risk, n500, record_risk=None, book_sessions: int = 0) -> list:
     def day(key):
         s = closes[key].dropna()
         s = s[s.index <= as_of]
@@ -1591,6 +1604,9 @@ def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:
     rows_r = [(f"Beta, {rr.label[0].lower()}{rr.label[1:]}" if rr else "Beta", f"{rr.beta:.1f}" if rr else "–", ""),
               ("Volatility, a year", f"{rr.vol:.1f}% vs {rr.market_vol:.1f}%" if rr else "–",
                "dh-watch" if rr and rr.vol > rr.market_vol else "")]
+    if rr is None:   # the reason beside the "–" (S193 E, R1)
+        from src.engine.portfolio_report import RISK_MIN_SESSIONS
+        rows_r.append((mw.column_note("Beta and volatility", mw.book_too_short(RISK_MIN_SESSIONS, book_sessions)), "", "dh-muted"))
     if risk.exit_days is not None and len(risk.exit_days):
         rows_r.append((f"Slowest exit, {risk.exit_days.index[0]}", f"{float(risk.exit_days.iloc[0]):.2f} days",
                        "dh-up" if float(risk.exit_days.iloc[0]) < 1 else "dh-watch"))
@@ -1606,10 +1622,10 @@ def _glance(closes, as_of, hist, risk, n500, record_risk=None) -> list:
 HOME_CSS = """
 .dh{font-family:var(--font-ui);color:var(--c-ink);line-height:1.5}
 .dh-brief{padding:20px 0 18px;border-bottom:1px solid var(--c-rule)}
-.dh-verdict{margin:0 0 12px;font-family:var(--font-serif);font-size:var(--fs-24);line-height:1.35;max-width:980px}
+.dh-verdict{margin:0 0 var(--sp-3);font-family:var(--font-serif);font-size:var(--fs-24);line-height:1.35;max-width:980px}
 .dh-pills{display:flex;flex-wrap:wrap;gap:6px 8px}
 .dh-pill{font-size:var(--fs-13);text-decoration:none;color:var(--c-ink);border:1px solid var(--c-rule);border-radius:999px;padding:6px 12px;min-height:32px;display:inline-flex;align-items:center}
-.dh-sec{padding:32px 0 0;display:flex;flex-direction:column;gap:20px}
+.dh-sec{padding:var(--sp-6) 0 0;display:flex;flex-direction:column;gap:var(--sp-5)}
 .dh-sec-cont{padding-top:8px}
 .dh-end{border-bottom:1px solid var(--c-rule);padding-bottom:8px}
 .dh-sec-last{border-bottom:0}
@@ -1619,9 +1635,9 @@ HOME_CSS = """
 .dh .dh-h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;font-weight:700!important}
 .dh-lede{margin:0;font-size:var(--fs-17);color:var(--c-text_2);max-width:80ch}
 .dh-note{margin:0;font-size:var(--fs-13);color:var(--c-muted);max-width:80ch}
-.dh-band-note{margin-bottom:10px}
+.dh-band-note{margin-bottom:var(--sp-3)}
 @media (min-width:901px){.dh-note.dh-note-long{max-width:none;columns:2 380px;column-gap:40px}}
-.dh-foot{margin:24px 0 0;font-size:var(--fs-12);color:var(--c-muted)}
+.dh-foot{margin:var(--sp-5) 0 0;font-size:var(--fs-12);color:var(--c-muted)}
 .dh-sub{display:block;font-size:var(--fs-12);color:var(--c-muted);font-weight:400}
 .dh-mono{font-family:var(--font-mono)}
 .dh-b{font-weight:700}
@@ -1633,7 +1649,7 @@ HOME_CSS = """
 .dh-k-v{font-family:var(--font-serif)!important;font-size:var(--fs-30);font-weight:400;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.15}
 .dh-k-s{font-size:var(--fs-12);font-weight:600}
 .dh-k-sub{font-size:var(--fs-12);color:var(--c-muted)}
-.dh-fig{margin:0;display:flex;flex-direction:column;gap:6px}
+.dh-fig{margin:0;display:flex;flex-direction:column;gap:var(--sp-2)}
 .dh-cap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-size:var(--fs-13);color:var(--c-muted)}
 .dh-cap b{color:var(--c-ink)}
 .dh-key{display:inline-block;width:10px;height:10px;margin:0 4px 0 10px;vertical-align:middle}
@@ -1644,8 +1660,8 @@ HOME_CSS = """
 .dh-bar-v{font-family:var(--font-mono);text-align:right}
 .dh-f-mkt{background:var(--c-muted_2)}.dh-f-book{background:var(--c-ink)}.dh-f-mom{background:var(--c-up_line)}
 .dh-f-pos{background:var(--c-up)}.dh-f-neg{background:var(--c-down)}
-.dh-cols{display:flex;flex-wrap:wrap;gap:28px}
-.dh-col2{flex:2 1 460px;min-width:0}.dh-col1{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.dh-cols{display:flex;flex-wrap:wrap;gap:var(--sp-5)}
+.dh-col2{flex:2 1 460px;min-width:0}.dh-col1{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:var(--sp-4)}
 .dh-hold{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.5fr) 84px 56px 56px 92px 84px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
 .dh-hold-h{font-size:var(--fs-12);color:var(--c-muted);border-bottom:1px solid var(--c-ink);padding:0 0 6px}
 .dh-sym{color:var(--c-ink);text-decoration:none}
@@ -1690,28 +1706,28 @@ HOME_CSS = """
 .dh-how-b p{margin:0}.dh-how-b b{display:block;color:var(--c-ink)}
 .dh-how-t{max-height:280px;overflow:auto;border:1px solid var(--c-rule_soft);border-radius:var(--r-sm)}
 .dh-how-t .dh-tab td:not(:first-child),.dh-how-t .dh-tab th:not(:first-child){text-align:right;font-family:var(--font-mono)}
-.dh-gcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px;align-items:start}
+.dh-gcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:var(--sp-5);align-items:start}
 .dh-gcard{border:1px solid var(--c-rule_soft);border-top:3px solid var(--c-rule);border-radius:var(--r-sm);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .dh-g-up{border-top-color:var(--c-up)}.dh-g-turning{border-top-color:var(--c-mid)}.dh-g-down{border-top-color:var(--c-down)}
 .dh-gc-h{display:flex;justify-content:space-between;align-items:baseline}
 .dh .dh-gc-h h3{margin:0!important;padding:0!important;font-family:var(--font-ui)!important;font-size:var(--fs-17)!important}
 .dh-gc-h b{font-size:var(--fs-24)}
-.dh-gcard>p{margin:0 0 4px;font-size:var(--fs-13);color:var(--c-muted)}
+.dh-gcard>p{margin:0 0 var(--sp-1);font-size:var(--fs-13);color:var(--c-muted)}
 .dh-gc-r{border-top:1px solid var(--c-rule_soft);padding:9px 0;display:flex;flex-direction:column;gap:3px;font-size:var(--fs-13)}
 .dh-gc-1,.dh-gc-2{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .dh-gc-3{font-size:var(--fs-12);color:var(--c-muted)}.dh-gc-3 b{color:var(--c-text_2);font-weight:600}
 .dh-qb{font-size:var(--fs-12);font-weight:600;border-radius:var(--r-sm);padding:2px 8px;white-space:nowrap}
 .dh-qb-up{color:var(--c-up);background:var(--c-up_tint)}.dh-qb-imp{color:var(--c-up);background:var(--c-fill)}
 .dh-qb-watch{color:var(--c-caution);background:var(--c-caution_tint)}.dh-qb-down{color:var(--c-down);background:var(--c-down_tint)}
-.dh-groups.dh-groups-1{grid-template-columns:1fr;gap:20px}
-.dh-groups.dh-groups-2{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px 40px;margin-top:8px}
+.dh-groups.dh-groups-1{grid-template-columns:1fr;gap:var(--sp-5)}
+.dh-groups.dh-groups-2{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:var(--sp-5) var(--sp-6);margin-top:var(--sp-2)}
 .dh-tab.dh-tab-s{min-width:0}
 .dh-tab-s th,.dh-tab-s td{padding:6px 10px 6px 0}
 .dh-tr-g{padding-top:12px!important;font-weight:500!important}
 .dh-faint{opacity:.72}
 .dh-w-bar{width:170px}
-.dh-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:32px}
-.dh-lede-s{margin:6px 0 0;font-size:var(--fs-13)}
+.dh-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--sp-6)}
+.dh-lede-s{margin:var(--sp-2) 0 0;font-size:var(--fs-13)}
 .dh-ev{font-size:var(--fs-12);font-weight:600;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block}
 .dh-ev-t{color:var(--c-up);background:var(--c-up_tint)}.dh-ev-c{color:var(--c-muted);background:var(--c-fill_soft)}
 .dh-ev-box{border-left:3px solid var(--c-rule);padding:2px 0 2px 12px;font-size:var(--fs-13)}
@@ -1729,7 +1745,7 @@ HOME_CSS = """
 .dh-segbar{display:flex;height:40px;border-radius:4px;overflow:hidden;gap:2px}
 .dh-segbar i{display:flex;align-items:center;padding-left:6px;font-style:normal;font-size:var(--fs-12);font-weight:600;white-space:nowrap;overflow:hidden;color:var(--c-white)}
 .dh-seg-strong{background:var(--c-up)}.dh-seg-slow{background:var(--c-up_line);color:var(--c-ink)!important}.dh-seg-turning{background:var(--c-mid);color:var(--c-ink)!important}.dh-seg-weak{background:var(--c-down)}
-.dh-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.dh-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--sp-5)}
 .dh-card{border:1px solid var(--c-rule_soft);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .dh-card-strong{border-top:3px solid var(--c-up)}.dh-card-turning{border-top:3px solid var(--c-mid)}.dh-card-weak{border-top:3px solid var(--c-down)}
 .dh-card-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -1737,7 +1753,7 @@ HOME_CSS = """
 .dh-ind{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:8px 0;border-top:1px solid var(--c-rule_soft);font-size:var(--fs-13)}
 .dh-span{grid-column:1/-1}
 .dh-tag{font-size:var(--fs-12);font-weight:600;justify-self:end}
-.dh-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px}
+.dh-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--sp-5)}
 .dh-grp-h{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;border-bottom:2px solid currentColor}
 .dh .dh-grp-h h3{margin:0!important;padding:0!important;font-size:var(--fs-15)!important;color:inherit!important}
 .dh-gl-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}

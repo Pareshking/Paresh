@@ -27,6 +27,7 @@ from src.engine.exit_watch import (
 )
 from src.core.config import MODEL_BOOK_CAPITAL
 from src.ui import holdings_store
+from src.ui import page_kit as kit
 from src.ui.widget_state import resolve
 from src.ui import formats as _fmt
 
@@ -177,8 +178,9 @@ def _edit_holdings() -> None:
                 except Exception as exc:  # a wrong file is reported, not raised
                     from src.core.logger import logger
                     logger.warning("Holdings CSV not read: %s", exc)
-                    st.error("That file could not be read as Kite’s holdings CSV: it needs an Instrument or Symbol "
-                             "column. Your saved holdings are unchanged.")
+                    # A failure is an amber note (S193 E, R4).
+                    kit.note("That file could not be read as Kite’s holdings CSV.",
+                             "It needs an Instrument or Symbol column. Your saved holdings are unchanged.")
                 else:
                     if st.button(f"Use these {len(got)} holdings", key="xw_csv_use"):
                         holdings_store.save(got)

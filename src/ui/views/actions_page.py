@@ -20,6 +20,8 @@ from src.engine.exit_watch import CLEAR, SELL, STATUS_LABEL, UNKNOWN, WATCH, Rul
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.ui.system_param import stock_href
 from src.ui import formats as _fmt
+from src.ui import missing_words as mw
+from src.ui import page_kit as kit
 from src.ui.formats import price as _fmt_price
 from src.ui.views.dashboard_home_view import HOME_CSS, emit, html_of, sg
 from src.ui.views.portfolio_page import PF_CSS, _head, _kpis, _sec, dshort, inr, pct, short, tone
@@ -146,12 +148,14 @@ def header(p: Plan) -> list:
            if p.source == "Model book" else "Your holdings, under the same rules.")
     when = f"{p.check:%a} {dshort(p.check)}"
     if p.sells or p.buys:
-        answer = (f"{len(p.sells)} sell{'s' if len(p.sells) != 1 else ''} and {len(p.buys)} buy{'s' if len(p.buys) != 1 else ''} "
-                  f"at the {when} close, filled {p.fill:%a} {dshort(p.fill)}"   # the signal day, then the fill (S193 B)
-                  + (f": {_lakh(sell_amt)} out, {_lakh(buy_amt)} in." if sell_amt or buy_amt else "."))
+        # Sells in rust, buys in blue: the two verdict phrases (S219 2).
+        answer = (kit.verdict(f"{len(p.sells)} sell{'s' if len(p.sells) != 1 else ''}", False if p.sells else None) + " and "
+                  + kit.verdict(f"{len(p.buys)} buy{'s' if len(p.buys) != 1 else ''}", True if p.buys else None)
+                  + e(f" at the {when} close, filled {p.fill:%a} {dshort(p.fill)}"   # the signal day, then the fill (S193 B)
+                      + (f": {_lakh(sell_amt)} out, {_lakh(buy_amt)} in." if sell_amt or buy_amt else ".")))
     else:
-        answer = f"Nothing to trade on {when}: every holding is clear of the rules."
-    return [f'<div class="pf-head"><p class="pf-kick">Actions</p><h1 class="pf-title">{e(answer)}</h1>'
+        answer = e(f"Nothing to trade on {when}: ") + kit.verdict("every holding is clear of the rules", True) + "."
+    return [f'<div class="pf-head"><p class="pf-kick">Actions</p><h1 class="pf-title">{answer}</h1>'
             f'<p class="pf-sub">If today\'s prices hold. {e(who)}</p>',
             _kpis(cells, "pf-four"), "</div>"]
 
@@ -163,11 +167,11 @@ def section_change(p: Plan) -> list:
     items = "".join(f'<li><b>{e(s)}</b> {e(str(w))}</li>' for s, w in close) or "<li>No holding is within reach of a line.</li>"
     nxt = " · ".join(e(s) for s in p.next_in_line[:4]) or "–"
     return _sec([_head("ac-change", "What could still change", f"before the {dshort(p.check)} close"),
-                 f'<div class="dh-pair"><div><div class="dh-cap"><b>Holdings close to a line</b><span>could still change to a sale</span></div>'
+                 f'<div class="dh-pair"><div><div class="dh-cap ac-cap"><b>Holdings close to a line</b><span>could still change to a sale</span></div>'
                  f'<ul class="ac-list">{items}</ul></div>'
-                 f'<div><div class="dh-cap"><b>Next in line</b><span>would come in if a buy drops out or another holding breaks a rule</span></div>'
+                 f'<div><div class="dh-cap ac-cap"><b>Next in line</b><span>would come in if a buy drops out or another holding breaks a rule</span></div>'
                  f'<p class="ac-next">{nxt}</p></div></div>',
-                 f'<div class="dh-cap"><b>Results and corporate actions before the fill</b><span>to {dshort(p.fill)}</span></div>',
+                 f'<div class="dh-cap ac-cap"><b>Results and corporate actions before the fill</b><span>to {dshort(p.fill)}</span></div>',
                  _events_html(p), f'<p class="dh-note">{e(p.events_note)}</p>'])
 
 
@@ -175,7 +179,7 @@ def _events_html(p: Plan) -> str:
     if p.events:
         rows = "".join(f'<li><b>{e(sym)}</b> ({e(role)}) {e(what)}, {dshort(d)}</li>' for d, sym, role, what in p.events)
         return f'<ul class="ac-list">{rows}</ul>'
-    return '<p class="ac-none">No board meeting or ex-date is announced for any holding, sell or buy.</p>'
+    return f'<p class="ac-none">{e(mw.no_events("any holding, sell or buy", p.fill))}</p>'
 
 
 def section_after(p: Plan) -> list:
@@ -345,6 +349,7 @@ AC_CSS = """
 .ac-phone{display:none}
 .ac-ev{border-left:3px solid var(--c-up);padding:6px 0 6px 12px;font-size:var(--fs-13);max-width:80ch}
 .ac-none{margin:0;font-size:var(--fs-13);color:var(--c-text_2)}
+.dh-cap.ac-cap{justify-content:flex-start;column-gap:var(--sp-2)}
 @media (max-width:640px){.ac-wide{display:none}.ac-phone{display:inline}}
 """
 
@@ -490,7 +495,7 @@ def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, syst
         source = st.segmented_control("Holdings", sources, default=sources[0], key="xw_source",
                                       label_visibility="collapsed") or sources[0]
     if model_book_note is not None:
-        kit.note("No model book yet.", model_book_note)
+        kit.note(mw.NO_MODEL_BOOK, model_book_note)
     my_syms, my_since, capital = None, None, None
     if source == "My holdings":
         av._edit_holdings()
@@ -502,7 +507,7 @@ def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, syst
         if source == "My holdings":
             kit.empty("Add your holdings above,", "or upload the holdings CSV from Kite, to see what to do with them.")
         else:
-            kit.empty("The model book is not available:", "the strategy needs about 18 months of price history to form one.")
+            kit.empty(mw.NO_MODEL_BOOK, mw.NO_MODEL_BOOK_WHY)   # the sentence Dashboard and Portfolio use (S193 E, R5)
         return
     if source != "My holdings":
         from src.ui.canonical_book import current_book, unpriced_note

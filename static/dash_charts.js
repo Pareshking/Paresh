@@ -46,7 +46,8 @@ function smooth(pts){
 }
 let uid=0;
 
-/* A line/area pane. opts: dates, series[{name,color,values,area,fmt,end}], height, yfmt, bands, levels, xlabels */
+/* A line/area pane. opts: dates, series[{name,color,values,area,fmt}], height, yfmt, bands, levels, xlabels.
+   No end labels: the values sit in the readout above the plot (PAGE_DESIGN 4.1; S193 H3). */
 function linePane(el, o){
   const W = Math.max(280, el.clientWidth), H = o.height, padL = o.padL ?? 46, padR = o.padR ?? 12, padT = 10, padB = o.noX ? 6 : 24;
   el.querySelector('svg')?.remove(); const svg = mk('svg',{viewBox:`0 0 ${W} ${H}`,height:H,'aria-hidden':'true'}); el.prepend(svg);
@@ -72,7 +73,6 @@ function linePane(el, o){
       const base=Y(o.areaBase??lo); mk('path',{d:smooth(pts)+`L${pts.at(-1)[0]},${base}L${pts[0][0]},${base}Z`,fill:`url(#${id})`},svg); }
     mk('path',{d:smooth(pts),fill:'none',stroke:s.color,'stroke-width':s.width||2,'stroke-linejoin':'round','stroke-linecap':'round','stroke-dasharray':s.dash||''},svg);
     const last=pts.at(-1); mk('circle',{cx:last[0],cy:last[1],r:4,fill:s.color,stroke:css('--bg'),'stroke-width':2},svg);
-    if(s.end){ const t=mk('text',{x:last[0]+8,y:last[1]+4+(s.endDy||0),class:'lbl-end'},svg); t.textContent=s.end; t.setAttribute('style',`fill:${s.color}`); }
   }
   const cross=mk('line',{y1:padT,y2:H-padB,stroke:css('--muted'),'stroke-width':1,opacity:0},svg);
   const dots=o.series.map(s=>mk('circle',{r:5,fill:s.color,stroke:css('--bg'),'stroke-width':2,opacity:0},svg));
@@ -125,21 +125,17 @@ function barPane(el,o){
     index(px){ return Math.max(0,Math.min(n-1,Math.floor((px-padL)/bw))); } };
 }
 
-/* Pointer, touch and keyboard: one handler for every chart. On touch the tooltip is replaced by the readout above. */
+/* Pointer, touch and keyboard: one handler for every chart. The reading sits in the readout above the plot,
+   for a mouse, a finger and the arrow keys alike; the floating box that repeated it on a mouse is gone (S193 H3). */
 function interact(card, panes, readout, rows, restIndex){
-  const charts=[...card.querySelectorAll('.chart')], tip=document.createElement('div'); tip.className='tip'; charts[0].appendChild(tip);
+  const charts=[...card.querySelectorAll('.chart')];
   let cur=null;
-  const render=(i,touch)=>{ cur=i; panes().forEach(p=>p.show(i)); const k=i??restIndex(); const r=rows(k);
-    if(typeof readout==='function') readout(r,i); else readout.innerHTML=roHtml(r,i);
-    if(i==null||touch){ tip.classList.remove('on'); return; }
-    tip.innerHTML=`<div class="t-d">${r.date}</div>`+r.items.map(x=>`<div class="t-r"><span class="t-k"><i style="background:${x.color}"></i>${x.name}</span><b>${x.v}</b></div>`).join('');
-    const p=panes()[0], x=p.X?p.X(i):(p.index&&null), cw=charts[0].clientWidth;
-    const px = p.X ? p.X(i)/p.W*cw : (i+0.5)/p.n*(cw-52);
-    tip.classList.add('on'); const tw=tip.offsetWidth; tip.style.left=Math.max(0,Math.min(cw-tw, px+14>cw-tw?px-tw-14:px+14))+'px'; tip.style.top='6px'; };
+  const render=(i)=>{ cur=i; panes().forEach(p=>p.show(i)); const k=i??restIndex(); const r=rows(k);
+    if(typeof readout==='function') readout(r,i); else readout.innerHTML=roHtml(r,i); };
   for(const c of charts){
     const at=(e)=>{ const box=c.getBoundingClientRect(); const p=panes()[charts.indexOf(c)]||panes()[0]; const W=p.W||box.width; return p.index((e.clientX-box.left)/box.width*W); };
-    c.addEventListener('pointermove',e=>render(at(e),e.pointerType==='touch'));
-    c.addEventListener('pointerdown',e=>render(at(e),e.pointerType==='touch'));
+    c.addEventListener('pointermove',e=>render(at(e)));
+    c.addEventListener('pointerdown',e=>render(at(e)));
     c.addEventListener('pointerleave',e=>{ if(e.pointerType!=='touch') render(null); });  // a lifted finger keeps its reading
   }
   charts[0].addEventListener('keydown',e=>{ const n=panes()[0].n; if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ e.preventDefault(); render(Math.max(0,Math.min(n-1,(cur??n-1)+(e.key==='ArrowLeft'?-1:1)))); } if(e.key==='Escape') render(null); });
@@ -164,6 +160,29 @@ function _unusedTable(card, head, rows){
     box.hidden=!box.hidden; btn.textContent=box.hidden?'Show the table':'Hide the table'; });
 }
 function chips(card, onPick){ card.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{ card.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===b)); onPick(+b.dataset.range); })); }
+/* The range a chart opens on (S193 H): spec.range {default, why, chips}, written by dash_charts.with_range.
+   A label is "3M", "12M", "3Y" or "all"; its first session is the first on or after the date that many months
+   before the last (pandas' DateOffset: 31 Aug less 6 months is 28 Feb), as stock_chart.window. The frame is
+   marked with what it drew, which scripts/layout_audit.mjs checks against the stated default. */
+const monthsOf = l => { const m = /^(\d+)([MY])$/i.exec(String(l)); return m ? (+m[1]) * (m[2].toUpperCase() === 'Y' ? 12 : 1) : 0; };
+const monthsBack = (iso, n) => { const [y, m, d] = iso.split('-').map(Number); let k = (m - 1) - n, yy = y + Math.floor(k / 12); k = ((k % 12) + 12) % 12;
+  const dim = new Date(Date.UTC(yy, k + 1, 0)).getUTCDate(); return `${yy}-${String(k + 1).padStart(2, '0')}-${String(Math.min(d, dim)).padStart(2, '0')}`; };
+const startAt = (dates, label) => { const n = monthsOf(label); if (!n || !dates.length) return 0; const from = monthsBack(dates[dates.length - 1], n);
+  const i = dates.findIndex(d => d >= from); return i < 0 ? 0 : i; };
+function markRange(card, s, dates, from, shown){
+  const r = s.range; if (!r || Array.isArray(r) || !dates || !dates.length) return;
+  Object.assign(card.dataset, {rangeDefault: r.default, rangeWhy: r.why, rangeFirst: dates[0], rangeTo: dates[dates.length - 1],
+    rangeFrom: dates[from] || dates[0], rangeShown: shown ?? r.default}); }
+/* Range chips in the frame: they redraw in place (no page rerun). onPick(first index, label). Returns the default's first index. */
+function rangeChips(card, s, dates, onPick){
+  const r = s.range, box = $('.chips', card);
+  if (box && r.chips && r.chips.length) {
+    box.innerHTML = r.chips.map(c => `<button class="chip" type="button" data-label="${esc(c)}" aria-pressed="${String(c).toLowerCase() === String(r.default).toLowerCase()}">${esc(c === 'all' ? 'All' : c)}</button>`).join('');
+    box.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return;
+      box.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b));
+      const i = startAt(dates(), b.dataset.label); onPick(i, b.dataset.label); markRange(card, s, dates(), i, b.dataset.label); }); }
+  const i = startAt(dates(), r.default); markRange(card, s, dates(), i, r.default); return i;
+}
 const mlabel = s => { const [y,m]=s.split('-'); return `${MON[+m-1]} ${y}`; };
 
 function track(v, o){
@@ -236,16 +255,24 @@ R.month = (card, s) => {
 /* Monthly bars from a zero line: momentum's lead, foreign flows. */
 R.bars = (card, s) => {
   const el = $('.chart', card); let pane;
-  const draw = () => { pane = barPane(el, {values: s.values, values2: s.also ? s.also.map(a => a && a[1]) : null, color2: s.color2, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => s.labels[i], xn: s.xn || 6,
+  /* A dated bar chart (spec `dates` and `range`) opens on its stated range and may carry chips; the band, the
+     usual range, is worked out on every bar the spec sends, whatever is shown. */
+  const timed = Array.isArray(s.dates) && s.range && !Array.isArray(s.range);
+  let from = 0;
+  const cut = a => a == null ? a : a.slice(from);
+  if (timed) from = rangeChips(card, s, () => s.dates, i => { from = i; draw(); el.dispatchEvent(new Event('blur')); });
+  if (!$('.chips', card)?.children.length) $('.cap', card)?.remove();
+  const draw = () => { const V = cut(s.values), A = cut(s.also), L = cut(s.labels);
+    pane = barPane(el, {values: V, values2: A ? A.map(a => a && a[1]) : null, color2: s.color2, height: s.height || 220, yfmt: v => sg(v / (s.axisDiv || 1), 0).replace('+', ''), xlab: i => L[i], xn: s.xn || 6,
     markLast: !!s.lastLabel, lastLabel: s.lastLabel, padR: 38, valueLabels: s.valueLabels ? v => sg(v / (s.axisDiv || 1), s.vdp ?? 0) : null,
-    levels: (s.levels || []).map(l => ({v: l, color: css('--up')})), band: s.band, dots: s.dots, range: s.range}); };
+    levels: (s.levels || []).map(l => ({v: l, color: css('--up')})), band: s.band, dots: cut(s.dots), range: Array.isArray(s.range) ? s.range : s.yrange}); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
-  interact(card, () => [pane], $('.readout', card), k => { const v = s.values[k], c = v >= 0 ? css('--up') : css('--down');
+  interact(card, () => [pane], $('.readout', card), j => { const k = from + j, v = s.values[k], c = v >= 0 ? css('--up') : css('--down');
     const lvl = s.levels && s.levels.length ? ' · ' + (v >= s.levels[0] ? s.above : v < 0 ? s.belowZero : s.between) : '';
     const items = [{name: s.unit + lvl, color: c, v: s.money ? inr(v) : sg(v, s.dp ?? 1), vcolor: c}];
     if (s.dots && s.dots[k] != null) items.push({name: s.dotName || '', color: css('--ink'), v: sg(s.dots[k], s.dp ?? 1), vcolor: css('--down')});
     const a = s.also && s.also[k]; if (a) items.push({name: a[0], color: css(s.color2 || '--s-dii'), v: s.money ? inr(a[1]) : sg(a[1], s.dp ?? 1), vcolor: a[1] >= 0 ? css('--up') : css('--down')});
-    return {date: s.full[k] + (k === s.values.length - 1 && s.lastNote ? s.lastNote : ''), items}; }, () => s.values.length - 1);
+    return {date: s.full[k] + (k === s.values.length - 1 && s.lastNote ? s.lastNote : ''), items}; }, () => s.values.length - 1 - from);
 };
 
 /* Breadth by size list: bars plus the three readings. */
@@ -272,7 +299,7 @@ R.segbar = (card, s) => {
   show(null); fit(); new ResizeObserver(fit).observe(bar);
 };
 
-/* The index and how many stocks carry it: two panes, one crosshair, 6M / 12M / 3Y. */
+/* The index and how many stocks carry it: two panes, one crosshair; 6M · 12M · 3Y, opening on 12M (S193 H). */
 R.breadth = (card, s) => {
   const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
   let from = 0, panes = [];
@@ -281,8 +308,8 @@ R.breadth = (card, s) => {
              linePane(bot, {dates, series: [{name: 'Above their 200D EMA', color: css('--up'), values: a, area: true, width: 1.8}], height: 130, range: [0, 100], ticks: 4, yfmt: v => v + '%', areaBase: 0,
                bands: [{from: 60, to: 100, fill: css('--up-soft')}, {from: 0, to: 40, fill: css('--down-soft')}],
                levels: [{v: 60, label: 'Broad', color: css('--up')}, {v: 40, label: 'Narrow', color: css('--down')}]})]; };
+  from = rangeChips(card, s, () => s.dates, i => { from = i; draw(); });
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
-  chips(card, r => { from = r ? Math.max(0, s.dates.length - r) : 0; draw(); });
   interact(card, () => panes, $('.readout', card), k => { const i = from + k; return {date: dlong(s.dates[i]), items: [
     {name: 'Nifty 500', color: css('--s-n500'), v: grp(s.n500[i], 1)},
     {name: `of the ${esc(s.uni || '750')} above their 200D EMA`, color: css('--up'), v: s.a200[i] == null ? '–' : fx(s.a200[i], 0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
@@ -302,6 +329,7 @@ R.growth = (card, s) => {
       linePane(bot, {dates: s.dates, series: [{name: 'The book', color: css('--down'), values: s.dd, area: true, width: 1.6},
         {name: 'Nifty Total Market', color: css('--s-market'), values: s.ddm, dash: '4 3', width: 1.4}],
         height: Math.round(h * 0.5), padL: 34, padR: 8, yfmt: v => fx(v, 0) + '%', areaBase: 0, ticks: 3})]; };
+  markRange(card, s, s.dates, 0);
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); b.textContent = v; b.className = c || ''; };
   interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
@@ -385,13 +413,16 @@ R.lines = (card, s) => {
   const show = {num: v => grp(v, 1), pct: v => fx(v, 0) + '%', pts: v => sg(v, 1)}[s.yfmt || 'num'];
   head.innerHTML = '<span class="d"></span>' + s.series.map((x, i) => `<span><i class="${x.dash ? 'dash' : ''}" style="color:${css('--' + x.color)}"></i>${esc(x.name)} <b data-v="${i}"></b></span>`).join('');
   let from = 0, pane;
+  const yr = Array.isArray(s.range) ? s.range : s.yrange;
   const draw = () => { const W = el.clientWidth, h = s.height || Math.round(Math.max(200, Math.min(320, W * 0.3)));
     pane = linePane(el, {dates: s.dates.slice(from), series: s.series.map(x => ({name: x.name, color: css('--' + x.color), values: x.values.slice(from), dash: x.dash ? '5 4' : '', width: x.width || 2})),
-      height: h, padL: 44, padR: 8, yfmt: fmt, range: s.range, ticks: 4,
+      height: h, padL: 44, padR: 8, yfmt: fmt, range: yr, ticks: 4,
       levels: (s.levels || []).map(l => ({v: l.v, label: l.label, color: css('--' + (l.color || 'muted'))})),
       bands: (s.bands || []).map(b => ({from: b.from, to: b.to, fill: css('--' + (b.color || 'up-soft'))}))}); };
+  // A stated range (S193 H) sets the chips and the default; the older chips [[label, sessions]] open on the last.
+  if (s.range && !Array.isArray(s.range)) from = rangeChips(card, s, () => s.dates, i => { from = i; draw(); el.dispatchEvent(new Event('blur')); });
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
-  if (s.chips) { const sw = $('.chips', card);
+  if (s.chips && !(s.range && !Array.isArray(s.range))) { const sw = $('.chips', card);
     sw.innerHTML = s.chips.map(([t, n], i) => `<button class="chip" type="button" data-range="${n}" aria-pressed="${i === s.chips.length - 1}">${esc(t)}</button>`).join('');
     chips(card, r => { from = r ? Math.max(0, s.dates.length - r) : 0; draw(); }); }
   interact(card, () => [pane], (r, i) => { const k = from + (i ?? (s.dates.length - 1 - from));
@@ -429,7 +460,8 @@ R.rel = (card, s) => {
     panes = [linePane(top, {dates: x.dates, series: [{name: x.label, color: css('--ink'), values: x.rel, area: true, width: 1.8}],
                height: h, padL: 44, padR: 8, noX: true, yfmt: v => fx(v, 0), levels: [{v: 100, label: '', color: css('--muted')}]}),
              linePane(bot, {dates: x.dates, series: [{name: 'Below its best', color: css('--down'), values: x.dd, area: true, width: 1.4}],
-               height: Math.round(h * 0.5), padL: 44, padR: 8, yfmt: v => fx(v, 0) + '%', areaBase: 0, ticks: 3})]; };
+               height: Math.round(h * 0.5), padL: 44, padR: 8, yfmt: v => fx(v, 0) + '%', areaBase: 0, ticks: 3})];
+    markRange(card, s, x.dates, 0); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   chips(card, i => { k = i; draw(); });
   interact(card, () => panes, $('.readout', card), i => { const x = s.styles[k]; return {date: dlong(x.dates[i]), items: [
@@ -450,7 +482,7 @@ R.pairs = (card, s) => {
   const draw = () => { const x = s.pairs[k], W = el.clientWidth, h = Math.round(Math.max(200, Math.min(320, W * 0.3)));
     pane = linePane(el, {dates: x.dates, series: [{name: x.ours_name, color: css('--ink'), values: x.ours, area: true, width: 1.8},
       {name: x.index, color: css('--up'), values: x.nse, width: 1.6}], height: h, padL: 44, padR: 8, yfmt: v => fx(v, 0),
-      levels: [{v: 100, label: '', color: css('--muted')}]}); table(x); };
+      levels: [{v: 100, label: '', color: css('--muted')}]}); table(x); markRange(card, s, x.dates, startAt(x.dates, s.range && s.range.default)); };
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);
   sw.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return;
     sw.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b)); k = +b.dataset.range; draw(); el.dispatchEvent(new Event('blur')); });
@@ -588,6 +620,7 @@ R.btgrowth = (card, s) => {
         area: i === 0, width: i === 0 ? 1.6 : 1.3, dash: x.dash ? '4 3' : ''})),
         height: Math.round(h * 0.45), padL: 48, padR: 8, yfmt: v => fx(v, 0) + '%', areaBase: 0, ticks: 3,
         xfmt: d => d.slice(0, 4)})]; };
+  markRange(card, s, s.dates, 0);
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   const put = (k, v, c) => { const b = $(`[data-v="${k}"]`, card); if (b) { b.textContent = v; b.className = c || ''; } };
   interact(card, () => panes, (r, i) => { const k = i ?? s.dates.length - 1;
@@ -597,6 +630,20 @@ R.btgrowth = (card, s) => {
       put('d' + j, d == null ? '–' : sg(d) + '%', d != null && d < 0 && j === 0 ? 'down' : ''); }); },
     k => ({date: dlong(s.dates[k]), items: []}), () => s.dates.length - 1);
 };
+
+/* A link from another page to a section of this one (Sectors' "Size, and where momentum works →" to the
+   Dashboard's #s-size; S193 K, F2). Streamlit draws a page after the browser has tried the #, so the page
+   opened at the top. The first chart frame on the page scrolls the host to the section once it exists, and
+   keeps it there while the blocks above it are still sizing, until the reader scrolls, taps or types. */
+(function(){ try { const host = window.parent; if (host === window || host.__dcHash) return;
+  const id = decodeURIComponent((host.location.hash || '').slice(1)); host.__dcHash = true; if (!id) return;
+  let moved = false; ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(t => host.addEventListener(t, () => { moved = true; }, {once: true, passive: true}));
+  const t0 = Date.now(); let found = 0;
+  const go = () => { if (moved) return; const el = host.document.getElementById(id);
+    if (el) { if (!el.style.scrollMarginTop) el.style.scrollMarginTop = '88px';   // the kicker over the heading stays in view
+      el.scrollIntoView({block: 'start'}); found = found || Date.now(); }
+    if (Date.now() - t0 < 60000 && (!found || Date.now() - found < 4000)) setTimeout(go, 250); };
+  go(); } catch (e) { /* a frame of another origin: nothing to do */ } })();
 
 window.DashCharts = {render(kind, spec) { R[kind](document.getElementById('c'), spec); }};
 

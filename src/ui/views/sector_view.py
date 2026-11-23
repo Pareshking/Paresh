@@ -287,7 +287,7 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
              + (f"<li>Nearest to moving ahead over six months: {ent}.</li>" if ent else "")
              + (f"<li>Nearest to falling behind: {ext}.</li>" if ext else "")
              + "</ul><p class=\"dh-note\">Which sizes lead, against Nifty Total Market at 1M, 3M and 6M: on the Dashboard, "
-             f'<a href="{page_href("dashboard")}#s-size" target="_self">Size, and where momentum works →</a></p></div>')
+             f'<a href="{page_href("./")}#s-size" target="_self">Size, and where momentum works →</a></p></div>')
     ex = next((r for r in ld.rows if r.name == "Healthcare"), ld.rows[0])
     left = ", ".join(f"{k} ({v})" for k, v in sorted(ld.left_out.items(), key=lambda kv: -kv[1]))
     what = (f"A {noun} here is the equal-weighted index of its ranked stocks, rebalanced daily, and so is the 750. "

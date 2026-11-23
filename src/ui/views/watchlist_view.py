@@ -135,14 +135,14 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
     if ranked_note:
         when += f" {ranked_note}"
     if not user_symbols:
-        title = "Your watchlist is empty."
+        title = e("Your watchlist is empty.")
         lede = ("Type symbols and save, or press “Add to watchlist” on any stock's page. "
                 "The list is kept in this browser only.")
     else:
         title = wl.title(matched, len(user_symbols), plan, ln)
         lede = f"{when} {wl.plan_sentence(matched, plan)}"
     _emit([f'<div class="wl-head"><p class="qp-kick">Watchlist</p>'
-           f'<h1 class="dh-h1 wl-title">{e(title)}</h1><p class="dh-lede">{e(lede)}</p></div>'])
+           f'<h1 class="dh-h1 wl-title">{title}</h1><p class="dh-lede">{e(lede)}</p></div>'])
 
     current = ", ".join(user_symbols)
     if st.session_state.get("_wl_input_shown") != current:

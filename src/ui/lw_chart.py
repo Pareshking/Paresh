@@ -27,6 +27,14 @@ drawn below zero but read as positive counts).
 readout is one line at a fixed height that never wraps, the date first in the
 top pane only, so moving the pointer can never move a plot (the #589 rule for
 these charts); arrow keys step the reading a session at a time.
+
+`ranges` (the stock page, S193 H2; owner, 23 Nov 2026: one period picker, in the chart): the panes carry
+the longest range once, and chips in the frame redraw them in place, with no page rerun:
+    {"default": "12M", "why": "lately", "chips": [["6M", "2026-05-20"], ["12M", ...], ["3Y", ...]],
+     "follow": {"sel": "h2.sp-price-h", "html": {"6M": "...", ...}}}
+Each chip names the first session of its range. A series with "rebase": True (relative strength) is set to
+100 again at that session. `follow` rewrites one element of the host page (the stock heading's
+relative-strength words) so it reads the range the chart shows.
 """
 from __future__ import annotations
 
@@ -185,7 +193,32 @@ def summary(panes: list[dict]) -> str:
     return " ".join(parts)
 
 
-def chart_html(panes: list[dict], one_line: bool = False, label: str = "") -> str:
+RANGE_PX = 40   # the chips row over the first pane, when the chart carries ranges
+
+
+def slice_panes(panes: list[dict], start: str) -> list[dict]:
+    """The panes from `start` (YYYY-MM-DD) on, a "rebase" series set to 100 at its first point there:
+    what the frame draws for a range chip (and the words a screen reader is given for it)."""
+    out = []
+    for p in panes:
+        ser = []
+        for s in p["series"]:
+            keep = [(i, r) for i, r in enumerate(s.get("data") or []) if str(r[0]) >= start]
+            data = [r for _, r in keep]
+            if s.get("rebase") and data:
+                base = data[0][-1]
+                data = [(r[0], r[-1] / base * 100) for r in data] if base else data
+            s2 = {**s, "data": data}
+            if s.get("colors"):
+                s2["colors"] = [s["colors"][i] for i, _ in keep]
+            ser.append(s2)
+        out.append({**p, "series": ser})
+    return out
+
+
+def chart_html(panes: list[dict], one_line: bool = False, label: str = "", ranges: dict | None = None) -> str:
+    ranges = _check_ranges(ranges)
+    summaries = ({lab: summary(slice_panes(panes, start)) for lab, start in ranges["chips"]} if ranges else {})
     spec = [
         {
             "height": int(p.get("height", 240)),
@@ -198,6 +231,7 @@ def chart_html(panes: list[dict], one_line: bool = False, label: str = "") -> st
         }
         for p in panes
     ]
+    first = summaries.get(ranges["default"]) if ranges else None
     names = [s.get("name") for p in panes for s in p["series"] if s.get("name")]
     title = "Chart: " + ", ".join(dict.fromkeys(names)) if names else "Chart"
     return (
@@ -208,8 +242,8 @@ def chart_html(panes: list[dict], one_line: bool = False, label: str = "") -> st
         "font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--c-ink)}"
         ".pane{position:relative;width:100%;margin-bottom:" + str(GAP_PX) + "px}"
         ".lg{display:flex;flex-wrap:wrap;align-items:center;gap:0 16px;min-height:" + str(LEGEND_PX) + "px;"
-        "padding:0 2px 4px;font-size:12px;line-height:18px;color:var(--c-muted);pointer-events:none}"
-        ".lg .d{color:var(--c-faint);font-variant-numeric:tabular-nums;font-size:12px}"
+        "padding:0 2px 4px;font-size:var(--fs-12);line-height:18px;color:var(--c-muted);pointer-events:none}"
+        ".lg .d{color:var(--c-faint);font-variant-numeric:tabular-nums;font-size:var(--fs-12)}"
         ".lg i{display:inline-block;width:12px;height:2px;border-radius:1px;margin-right:6px;vertical-align:middle;position:relative;top:-1px}"
         ".lg i.sq{width:8px;height:8px;border-radius:1px;top:-1px}"
         ".lg b{font-variant-numeric:tabular-nums;font-weight:500;color:var(--c-ink);margin-left:4px}"
@@ -217,8 +251,16 @@ def chart_html(panes: list[dict], one_line: bool = False, label: str = "") -> st
         ".dot{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;"
         "pointer-events:none;z-index:4;display:none}"
         ".sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}"
+        # The range chips, as the chart kit's (dash_charts.py .chips): the one period picker (S193 H2).
+        ".rg{display:flex;justify-content:flex-end;height:" + str(RANGE_PX - 6) + "px;margin-bottom:6px}"
+        ".rg:empty{display:none}.rg span{display:flex;gap:4px;background:var(--c-fill);border-radius:8px;padding:3px}"
+        ".rg button{font:600 var(--fs-12) 'IBM Plex Sans',system-ui,sans-serif;color:var(--c-muted);background:none;border:0;"
+        "border-radius:6px;padding:4px 10px;min-height:28px;cursor:pointer}"
+        ".rg button[aria-pressed='true']{background:var(--c-white);color:var(--c-ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}"
+        ".rg button:focus-visible{outline:2px solid var(--c-up);outline-offset:2px}"
         + (_ONE_LINE_CSS if one_line else "") +
-        "</style></head><body><p class='sr'>" + _html.escape(summary(panes)) + "</p>"
+        "</style></head><body><p class='sr'>" + _html.escape(first if first is not None else summary(panes)) + "</p>"
+        + ("<div class='rg' role='group' aria-label='Range'></div>" if ranges else "")
         + ("<div id='root' role='img' tabindex='0' aria-label='" + _html.escape(label or "Chart. Arrow keys move the reading.", quote=True) + "'></div>"
            if one_line else "<div id='root' aria-hidden='true'></div>") + "<script>"
         + _lib()
@@ -226,6 +268,7 @@ def chart_html(panes: list[dict], one_line: bool = False, label: str = "") -> st
         "const SPEC=" + _json(spec) + ";"
         "const LEGEND_PX=" + str(LEGEND_PX) + ";"
         "const ONE_LINE=" + ("true" if one_line else "false") + ";"
+        "const RANGES=" + _json(ranges) + ";const SUMMARY=" + _json(summaries) + ";"
         + _JS
         + "})();</script></body></html>"
     )
@@ -243,6 +286,15 @@ _ONE_LINE_CSS = (
 
 _JS = r"""
 const root=document.getElementById('root');
+/* Ranges (S193 H2): every series keeps its full data in FULL; SPEC holds what is drawn. */
+const FULL=SPEC.map(p=>p.series.map(s=>s.data.slice()));
+function cut(label){
+  const c=RANGES&&RANGES.chips.find(x=>x[0]===label);const from=c?c[1]:'';
+  SPEC.forEach((p,pi)=>p.series.forEach((s,si)=>{let d=FULL[pi][si].filter(r=>r.time>=from);
+    if(s.rebase&&d.length){const b=d[0].value;if(b)d=d.map(r=>Object.assign({},r,{value:r.value/b*100}));}
+    s.data=d;}));
+}
+if(RANGES)cut(RANGES.default);
 /* Half away from zero on the decimal value (glossary 12), as formats.half_up and dash_charts.js's rnd. */
 const rnd=(v,dp=0)=>{const a=Math.abs(v),t=String(a);const r=/e/.test(t)?+a.toFixed(dp):+(Math.round(+(t+'e'+dp))+'e-'+dp);return v<0&&r?-r:r;};
 const grp=(v,dp)=>Math.abs(rnd(v,dp)).toLocaleString('en-IN',{minimumFractionDigits:dp,maximumFractionDigits:dp});
@@ -267,12 +319,14 @@ function asDate(t){
 // Sparse, plain date ticks: "Jan 26 · May · Sep". Day ticks ("11 Jun") only
 // on a chart shorter than about two and a half months; on a longer one they
 // sat between the month names as a second kind of tick (audit F47/V13).
-const SPAN_DAYS=(function(){
+let SPAN_DAYS=0;
+function spanDays(){
   let lo=Infinity,hi=-Infinity;
   SPEC.forEach(p=>p.series.forEach(s=>{const d=s.data;if(!d.length)return;
     const a=asDate(d[0].time),b=asDate(d[d.length-1].time);
     if(!isNaN(a))lo=Math.min(lo,+a);if(!isNaN(b))hi=Math.max(hi,+b);}));
-  return isFinite(lo)&&isFinite(hi)?(hi-lo)/864e5:0;})();
+  return isFinite(lo)&&isFinite(hi)?(hi-lo)/864e5:0;}
+SPAN_DAYS=spanDays();
 function tick(t,type){
   const d=asDate(t);if(isNaN(d))return null;
   if(type===0)return MON[d.getMonth()]+' '+String(d.getFullYear()).slice(2);
@@ -285,6 +339,7 @@ let syncing=false;
 function colorOf(s){return s.color||'var(--c-ink)';}
 function tint(c,a){return /^#[0-9a-fA-F]{6}$/.test(c)?c+a:c;}
 function marked(s){return s.type!=='histogram'&&s.type!=='candlestick';}
+function pointOf(d){return d.open!==undefined?{time:d.time,open:d.open,high:d.high,low:d.low,close:d.close}:(d.color?{time:d.time,value:d.value,color:d.color}:{time:d.time,value:d.value});}
 SPEC.forEach((p,pi)=>{
   const wrap=document.createElement('div');wrap.className='pane';wrap.style.height=(p.height+LEGEND_PX)+'px';
   const lg=document.createElement('div');lg.className='lg';wrap.appendChild(lg);
@@ -294,7 +349,7 @@ SPEC.forEach((p,pi)=>{
   const ph=Math.max(60,p.height+LEGEND_PX-lg.offsetHeight);plot.style.height=ph+'px';
   const chart=LightweightCharts.createChart(plot,{
     width:plot.clientWidth,height:ph,
-    layout:{background:{type:'solid',color:'transparent'},textColor:'var(--c-muted_2)',fontFamily:"IBM Plex Sans,system-ui,sans-serif",fontSize:11,attributionLogo:false},
+    layout:{background:{type:'solid',color:'transparent'},textColor:'var(--c-muted_2)',fontFamily:"IBM Plex Sans,system-ui,sans-serif",fontSize:12,attributionLogo:false},
     grid:{vertLines:{visible:false},horzLines:{color:'var(--c-grid)',style:0}},
     rightPriceScale:{borderVisible:false,ticksVisible:false,scaleMargins:{top:(p.top!==null&&p.top!==undefined)?p.top:0.08,bottom:p.series.some(x=>x.volume)?0.24:0.06}},
     timeScale:{visible:pi===SPEC.length-1,borderVisible:false,ticksVisible:false,timeVisible:false,allowBoldLabels:false,fixLeftEdge:true,fixRightEdge:true,rightOffset:0,
@@ -337,12 +392,12 @@ SPEC.forEach((p,pi)=>{
       ser=chart.addSeries(LightweightCharts.LineSeries,Object.assign({color:c,lineWidth:lw,priceFormat:pf,priceLineVisible:false,lastValueVisible:false},mk));
     }
     if(s.range){ser.applyOptions({autoscaleInfoProvider:()=>({priceRange:{minValue:s.range[0],maxValue:s.range[1]}})});}
-    ser.setData(s.data.map(d=>d.open!==undefined?{time:d.time,open:d.open,high:d.high,low:d.low,close:d.close}:(d.color?{time:d.time,value:d.value,color:d.color}:{time:d.time,value:d.value})));
+    ser.setData(s.data.map(pointOf));
     ss.push(ser);
     // the latest point marked with a small dot in the line's colour
     if(marked(s)&&s.data.length){
       const dot=document.createElement('div');dot.className='dot';dot.style.background=(s.type==='baseline'?(s.negColor||c):c);
-      plot.appendChild(dot);ds.push({dot:dot,ser:ser,pt:s.data[s.data.length-1]});
+      plot.appendChild(dot);ds.push({dot:dot,ser:ser,s:s});
     }
   });
   (p.levels||[]).forEach(l=>{
@@ -356,7 +411,8 @@ function placeDots(){
   dots.forEach((ds,pi)=>{
     const w=plots[pi].clientWidth-charts[pi].priceScale('right').width();
     ds.forEach(o=>{
-      const x=charts[pi].timeScale().timeToCoordinate(o.pt.time), y=o.ser.priceToCoordinate(o.pt.value);
+      const pt=o.s.data[o.s.data.length-1];if(!pt){o.dot.style.display='none';return;}
+      const x=charts[pi].timeScale().timeToCoordinate(pt.time), y=o.ser.priceToCoordinate(pt.value);
       if(x===null||y===null||x<0||x>w){o.dot.style.display='none';return;}
       o.dot.style.display='block';o.dot.style.left=x+'px';o.dot.style.top=y+'px';
     });
@@ -444,14 +500,50 @@ if(ONE_LINE){
   root.addEventListener('blur',()=>{ki=-1;charts.forEach(c=>c.clearCrosshairPosition());SPEC.forEach((p,pi)=>paint(pi,null));});
 }
 if(window.ResizeObserver)new ResizeObserver(resize).observe(root);
+/* The chips: one press redraws every pane from the data already here (no page rerun), sets relative strength
+   to 100 at the range's first session, and rewrites the host heading that names the range (S193 H2). */
+function mark(label){
+  const d=SPEC[0].series[0].data, f=FULL[0][0];
+  Object.assign(root.dataset,{rangeDefault:RANGES.default,rangeWhy:RANGES.why,rangeShown:label,
+    rangeFrom:d.length?d[0].time:'',rangeTo:d.length?d[d.length-1].time:'',rangeFirst:f.length?f[0].time:''});
+  const sr=document.querySelector('.sr');if(sr&&SUMMARY[label]!=null)sr.textContent=SUMMARY[label];
+  const fw=RANGES.follow;
+  if(fw&&fw.html&&fw.html[label]!=null){try{const h=window.parent.document.querySelector(fw.sel);if(h)h.innerHTML=fw.html[label];}catch(e){}}
+}
+function pick(label){
+  cut(label);SPAN_DAYS=spanDays();
+  SPEC.forEach((p,pi)=>p.series.forEach((s,si)=>seriesByPane[pi][si].setData(s.data.map(pointOf))));
+  charts.forEach(c=>{c.clearCrosshairPosition();c.timeScale().fitContent();});
+  SPEC.forEach((p,pi)=>paint(pi,null));mark(label);later();
+}
+if(RANGES){
+  const rg=document.querySelector('.rg'), box=document.createElement('span');rg.appendChild(box);
+  RANGES.chips.forEach(([label])=>{const b=document.createElement('button');b.type='button';b.textContent=label;
+    b.setAttribute('aria-pressed',String(label===RANGES.default));
+    b.addEventListener('click',()=>{box.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));pick(label);});
+    box.appendChild(b);});
+  mark(RANGES.default);
+}
 later();
 """
 
 
-def render(panes: list[dict], key: str | None = None, one_line: bool = False, label: str = "") -> None:
+def _check_ranges(ranges: dict | None) -> dict | None:
+    """A range set states its default and why (S193 H, as dash_charts.check_range), and the default is a chip."""
+    if ranges is None:
+        return None
+    from src.ui.dash_charts import check_range
+    check_range({**ranges, "chips": [c[0] for c in ranges.get("chips", [])]})
+    if not ranges.get("chips"):
+        raise ValueError("a chart with ranges has chips")
+    return ranges
+
+
+def render(panes: list[dict], key: str | None = None, one_line: bool = False, label: str = "",
+           ranges: dict | None = None) -> None:
     """Draw the panes in one iframe. Does nothing if no pane has two points."""
     live = [p for p in panes if any(len(s["data"]) >= 2 for s in p["series"])]
     if not live:
         return
-    height = sum(int(p.get("height", 240)) + LEGEND_PX + GAP_PX for p in live) + 4
-    st.iframe(resolve(chart_html(live, one_line=one_line, label=label)), height=height)
+    height = sum(int(p.get("height", 240)) + LEGEND_PX + GAP_PX for p in live) + 4 + (RANGE_PX if ranges else 0)
+    st.iframe(resolve(chart_html(live, one_line=one_line, label=label, ranges=ranges)), height=height)

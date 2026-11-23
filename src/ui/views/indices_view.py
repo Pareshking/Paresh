@@ -10,6 +10,8 @@ import pandas as pd
 import streamlit as st
 
 from src.ui import formats as _fmt
+from src.ui import missing_words as mw
+from src.ui import page_kit as kit
 
 from src.engine import indices_page as ip
 from src.ui import indices_data
@@ -66,8 +68,10 @@ def head(vals: list[ip.Valuation], as_of: pd.Timestamp) -> list:
         title = ('The Nifty 50 trades <span class="dh-up">below its usual P/E</span>; '
                  'the Nifty Smallcap 250 <span class="dh-down">above it</span>.')
     elif big and small:
-        title = (f"The Nifty 50 sits at the {big.pct_now:.0f}th percentile of its P/E since 2021; "
-                 f"the Nifty Smallcap 250 at the {small.pct_now:.0f}th.")
+        # Cheaper than its usual reads blue, dearer rust (S219 2).
+        title = ("The Nifty 50 sits " + kit.verdict(f"at the {_ord(big.pct_now)} percentile", big.pct_now < 50)
+                 + " of its P/E since 2021; the Nifty Smallcap 250 "
+                 + kit.verdict(f"at the {_ord(small.pct_now)}", small.pct_now < 50) + ".")
     else:
         title = "NSE's indices: what each costs, and which styles pay."
     return [f'<div class="dh-sec">{KICK.format("Indices")}<h1 id="s-top" class="dh-h1">{title}</h1>'
@@ -289,11 +293,16 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
                 f"{_short(full[0].name)} leads at {sg(full[0].returns[12], 1, '%')}, "
                 f"{_short(full[-1].name)} trails at {sg(full[-1].returns[12], 1, '%')}.") if full else g
         body = ""
+        dash = {}   # one footnote per column for its "–" (S193 E, R1)
         for x in xs:
+            if x.from_high is None:
+                dash["From 12M high"] = (mw.not_published() if x.late is not None else mw.index_too_new())
+            if x.pe is None:
+                dash["P/E"] = mw.no_pe()
             hi = "–" if x.from_high is None else ("at high" if abs(x.from_high) < 0.05 else sg(x.from_high, 1, "%"))
             cells = "".join(_num(x.returns[m], 1, "%") for m in ip.WINDOWS[:-1])
             cells += (_num(x.returns[12], 1, "%") if x.returns[12] is not None or x.late is not None
-                      else f'<td class="dh-num dh-muted">since {x.live:%-d %b}</td>')
+                      else f'<td class="dh-num dh-muted">{e(mw.since(x.live))}</td>')
             body += (f'<tr><th scope="row">{e(_short(x.name))}</th>' + cells
                      + f'<td class="dh-num dh-muted ix-hide-s">{e(hi)}</td>'
                      f'<td class="dh-num dh-muted ix-hide-s">{"–" if x.pe is None else f"{x.pe:.1f}"}</td></tr>')
@@ -301,7 +310,8 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
                      '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
                      + "".join(f'<th scope="col" class="dh-num">{m}M</th>' for m in ip.WINDOWS)
                      + '<th scope="col" class="dh-num ix-hide-s">From 12M high</th><th scope="col" class="dh-num ix-hide-s">P/E</th>'
-                     f'</tr></thead><tbody>{body}</tbody></table></div></div>')
+                     f'</tr></thead><tbody>{body}</tbody></table></div>'
+                     + (f'<p class="dh-note">{e(mw.column_notes(dash))}</p>' if dash else "") + '</div>')
     return parts
 
 
@@ -323,8 +333,8 @@ def render_indices_view() -> None:
     f = indices_data.frames()
     if f is None:
         st.html('<div class="dh"><div class="dh-sec"><p class="dh-kick">Indices</p><h1 class="dh-h1">No index data yet.</h1>'
-                '<p class="dh-lede">The copy of NSE\'s daily index files this page reads is missing. It is written by the '
-                '"NSE indices" job.</p></div></div>')
+                '<p class="dh-lede">The copy of NSE\'s daily index files this page reads is not in yet; the page fills '
+                'once it is.</p></div></div>')
         return
     emit(page_parts(f))
 

@@ -369,11 +369,11 @@ def _section_momentum_signal() -> None:
     # five to zero. `app.py` ranks on the documented defaults meanwhile, and
     # says so there too.
     if sum(current.values()) <= 0:
-        st.warning(
-            "All five lookback weights are zero, which cannot rank anything. "
+        kit.note(
+            "All five lookback weights are zero, which cannot rank anything.",
             "Ranking is using the documented defaults "
             f"({' · '.join(f'{w:.0%}' for w in DEFAULT_LOOKBACK_WEIGHTS)}) "
-            "until you set one — press **Reset to defaults** above."
+            "until you set one: press Reset to defaults above."
         )
 
     kit.caption("Weights are normalised to 100%.")

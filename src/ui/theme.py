@@ -120,6 +120,35 @@ _SERIF_FACES = serif_face_css(
     (Path(__file__).resolve().parents[2] / "static" / "fonts.css").read_text(encoding="utf-8"))
 
 
+# Never colour alone (S193 J1, owner 23 Nov 2026; GOV.UK warning text, USWDS
+# alert): every caution-coloured text or box carries a "!" in a circle. The
+# glyph is CSS generated content with empty alternative text ("!" / ""), so a
+# screen reader does not read it; notices and boxes also start with a word
+# ("Warning:", "Late:"), written by the code that draws them. Framed
+# documents (the sortable tables) take the same rule from WARN_ICON_CSS.
+WARN_ICON_SELECTORS = (
+    ".stale-notice:not(.stale-notice-info)", ".pg-note", ".pg-callout.warn > b", ".bt-warn",
+    ".badge-yellow", ".hdr-pill-warn .hdr-dot", ".dh-watch", ".xw-pill.watch", ".dh-qb-watch",
+    ".cau", ".mkt-strip .ms-v.warn",
+)
+WARN_ICON_CSS = (
+    ", ".join(f"{sel}::before" for sel in WARN_ICON_SELECTORS)
+    + ' { content: "!"; content: "!" / ""; display: inline-flex; align-items: center; justify-content: center;'
+    " width: 1.2em; height: 1.2em; margin-right: 0.35em; border-radius: 50%; flex: none;"
+    " background: var(--c-caution); color: var(--c-white); font-family: var(--font-ui);"
+    " font-size: 0.78em; font-weight: 700; line-height: 1; font-style: normal; vertical-align: 0.12em; }"
+    # the pill's dot becomes the icon itself
+    " .hdr-pill-warn .hdr-dot { width: auto !important; height: auto !important; background: none !important; }"
+    " .hdr-pill-warn .hdr-dot::before { margin-right: 0; font-size: 0.9em; }"
+    " .warn-word { font-weight: 700; }"
+)
+
+
+def warn_word(word: str = "Warning") -> str:
+    """The leading word of a notice or box in the caution colour ("Warning:")."""
+    return f'<span class="warn-word">{_esc(word)}:</span> '
+
+
 def inject_custom_css() -> None:
     """The page's CSS. Colours and fonts come from src/ui/tokens.py."""
     # st.html, not st.markdown (19 Nov 2026): a markdown element waits for
@@ -129,7 +158,7 @@ def inject_custom_css() -> None:
     # style-only st.html goes to Streamlit's event container, so it adds no
     # block at the top of the page either. The theme's variables come first so
     # every rule below can read them, then the serif's @font-face rules.
-    st.html(f"<style>{css_root()}\n{_SERIF_FACES}</style>" + _PAGE_CSS)
+    st.html(f"<style>{css_root()}\n{_SERIF_FACES}\n{WARN_ICON_CSS}</style>" + _PAGE_CSS)
     # The skip link (audit F27) is the one visible-on-focus element; it keeps
     # the markdown block it always had.
     st.markdown('<a class="skip-link" href="#content">Skip to content</a>', unsafe_allow_html=True)
@@ -387,7 +416,7 @@ _PAGE_CSS = ("""
         .hdr-pill .hdr-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-up); }
         .hdr-pill-warn { background: var(--c-caution_tint); color: var(--c-caution_ink); }
         .hdr-pill-warn .hdr-dot { background: var(--c-caution); }
-        .stale-notice { margin: 6px 0 2px; padding: 9px 14px; border-radius: 4px; background: var(--c-caution_tint); border: 1px solid var(--c-caution_line); color: var(--c-caution_ink); font-size: var(--fs-13); font-weight: 600; line-height: 1.4; }
+        .stale-notice { margin: var(--sp-2) 0 var(--sp-1); padding: 9px 14px; border-radius: 4px; background: var(--c-caution_tint); border: 1px solid var(--c-caution_line); color: var(--c-caution_ink); font-size: var(--fs-13); font-weight: 600; line-height: 1.4; }
         .stale-notice-info { background: var(--c-subtle); border-color: var(--c-rule); color: var(--c-text_2); font-weight: 500; }
 
         /* Compact market snapshot: same footprint as the legacy market line,
@@ -396,7 +425,7 @@ _PAGE_CSS = ("""
            compact rows without adding vertical bulk. */
         .mkt-snapshot {
             display: flex; align-items: stretch; flex-wrap: nowrap;
-            min-height: 40px; margin: 4px 0 8px; overflow: hidden;
+            min-height: 40px; margin: var(--sp-1) 0 var(--sp-2); overflow: hidden;
             border: 1px solid var(--c-rule); border-radius: 4px;
             background: var(--c-white);
         }
@@ -610,10 +639,10 @@ _PAGE_CSS = ("""
         /* ── Screener page (redesign phase 2) ─────────────────────────── */
         .scr-head h1 {
             margin: 0 !important; padding: 0 !important;
-            font-family: var(--font-ui) !important; font-size: 34px !important;
+            font-family: var(--font-ui) !important; font-size: var(--fs-36) !important;
             font-weight: 700 !important; letter-spacing: -0.6px !important; color: var(--c-ink) !important;
         }
-        .scr-head p { margin: 4px 0 0; font-size: var(--fs-13); color: var(--c-text_2); }
+        .scr-head p { margin: var(--sp-1) 0 0; font-size: var(--fs-13); color: var(--c-text_2); }
         .mkt-strip {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
             background: var(--c-white); border: 1px solid var(--c-rule); border-radius: 4px; overflow: hidden;
@@ -621,17 +650,17 @@ _PAGE_CSS = ("""
         .ms-tile { display: flex; flex-direction: column; gap: 6px; padding: 16px 20px; border-right: 1px solid var(--c-rule_soft); }
         .ms-tile:last-child { border-right: 0; }
         .ms-k { font-size: var(--fs-12); font-weight: 600; color: var(--c-muted); }
-        .ms-v { font-family: var(--font-ui); font-size: 26px; font-weight: 700; line-height: 1.1; color: var(--c-ink); }
+        .ms-v { font-family: var(--font-ui); font-size: var(--fs-24); font-weight: 700; line-height: 1.1; color: var(--c-ink); }
         .ms-s { font-size: var(--fs-13); color: var(--c-text_2); line-height: 1.4; }
         .ms-s b { font-weight: 600; }
         .mkt-strip .up { color: var(--c-up); } .mkt-strip .down { color: var(--c-down); }
         .t50 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
-        .t50-grid { display:flex; flex-direction:column; gap:14px; width:100%; margin-top:4px; }
+        .t50-grid { display:flex; flex-direction:column; gap:var(--sp-4); width:100%; margin-top:var(--sp-1); }
         .t50-card { width:100%; overflow:hidden; background:var(--c-white); border:1px solid var(--c-rule); border-radius:16px; box-shadow:0 1px 3px rgba(14,23,38,0.04); }
         .t50-card-head { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:82px; padding:16px 20px; background:var(--c-up_tint_2); border-bottom:1px solid var(--c-up_line); }
         .t50-card-heading { display:flex; align-items:center; gap:14px; min-width:0; }
-        .t50-icon { flex:0 0 52px; width:52px; height:52px; display:grid; place-items:center; border-radius:10px; background:var(--c-up); color:var(--c-white); font-size:29px; font-weight:700; line-height:1; }
-        .t50-card h2 { margin:0 !important; padding:0 !important; color:var(--c-ink) !important; font-family:var(--font-ui) !important; font-size:23px !important; font-weight: 700 !important; letter-spacing:-0.02em !important; }
+        .t50-icon { flex:0 0 52px; width:52px; height:52px; display:grid; place-items:center; border-radius:10px; background:var(--c-up); color:var(--c-white); font-size:var(--fs-30); font-weight:700; line-height:1; }
+        .t50-card h2 { margin:0 !important; padding:0 !important; color:var(--c-ink) !important; font-family:var(--font-ui) !important; font-size:var(--fs-24) !important; font-weight: 700 !important; letter-spacing:-0.02em !important; }
         .t50-card p { margin:4px 0 0 !important; color:var(--c-muted) !important; font-size: var(--fs-13) !important; line-height:1.35 !important; }
         .t50-table-wrap { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
         .t50-table { width:100%; min-width:0; display:grid; font-family:var(--font-ui); }
@@ -660,7 +689,7 @@ _PAGE_CSS = ("""
         .t50-note { margin:6px 2px 0; color:var(--c-muted); font-size: var(--fs-12); line-height:1.4; }
         @media (max-width:640px) {
             .t50-grid { gap:10px; } .t50-card { border-radius:14px; } .t50-card-head { min-height:78px; padding:14px; gap:10px; }
-            .t50-card-heading { gap:10px; } .t50-icon { flex-basis:44px; width:44px; height:44px; border-radius:9px; font-size:24px; }
+            .t50-card-heading { gap:10px; } .t50-icon { flex-basis:44px; width:44px; height:44px; border-radius:9px; font-size:var(--fs-24); }
             .t50-card h2 { font-size: var(--fs-17) !important; } .t50-card p { font-size: var(--fs-12) !important; }
             .t50-col-head,.t50-row { padding:0 10px; column-gap:6px; grid-template-columns:28px minmax(120px,1.7fr) 72px 62px 58px; }
             .t50-col-head { min-height:38px; font-size: var(--fs-12); } .t50-row { min-height:50px; font-size: var(--fs-12); } .t50-table { min-width:0; } .t50-change,.t50-rank,.t50-return { font-size: var(--fs-12); } .t50-num { font-size: var(--fs-12); }
@@ -688,7 +717,7 @@ _PAGE_CSS = ("""
         }
         .st-key-scr_head { row-gap: 8px !important; }
         @media (max-width: 640px) {
-            .scr-head h1 { font-size: 28px !important; }
+            .scr-head h1 { font-size: var(--fs-30) !important; }
             .scr-head p { font-size: var(--fs-13); }
             .sig-chip { height: 28px; font-size: var(--fs-12); white-space: normal; }
             /* One sideways-scrolling row of cards, so the list starts sooner. */
@@ -709,7 +738,7 @@ _PAGE_CSS = ("""
                 box-shadow: 0 -8px 30px rgba(14, 23, 38, 0.18) !important;
                 padding: 18px 16px 24px !important;
             }
-            .ms-v { font-size: 20px; }
+            .ms-v { font-size: var(--fs-17); }
             .ms-s { font-size: var(--fs-12); }
             .st-key-scr_toolbar [data-testid="stSelectbox"] { width: 100% !important; }
             /* The preset chips scroll sideways too (stPills below): same fade. */
@@ -744,7 +773,7 @@ _PAGE_CSS = ("""
             width: 100%;
         }
         .mkt-strip.pg-strip .ms-k { font-size: var(--fs-13); }
-        .mkt-strip.pg-strip .ms-v { font-size: 26px; }
+        .mkt-strip.pg-strip .ms-v { font-size: var(--fs-24); }
         /* A name, not a figure (an industry): smaller, at most two lines. */
         .mkt-strip.pg-strip .ms-v.ms-name {
             font-size: var(--fs-17); line-height: 1.2;
@@ -759,7 +788,7 @@ _PAGE_CSS = ("""
             }
             .mkt-strip.pg-strip .ms-tile { padding: 12px 10px; }
             .mkt-strip.pg-strip .ms-k { font-size: var(--fs-12); }
-            .mkt-strip.pg-strip .ms-v { font-size: 21px; }
+            .mkt-strip.pg-strip .ms-v { font-size: var(--fs-24); }
             .mkt-strip.pg-strip .ms-v.ms-name { font-size: var(--fs-15); }
             .mkt-strip.pg-strip .ms-s { font-size: var(--fs-12); }
         }
@@ -773,7 +802,7 @@ _PAGE_CSS = ("""
             background: var(--c-white); border: 1px solid var(--c-rule); border-radius: 4px;
             padding: 18px 22px !important; gap: 12px !important;
         }
-        .pg-card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .pg-card-h { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
         .pg-card-h h2 {
             margin: 0 !important; padding: 0 !important; font-family: var(--font-ui) !important;
             font-size: var(--fs-17) !important; font-weight: 600 !important; letter-spacing: 0 !important; color: var(--c-ink) !important;
@@ -894,18 +923,18 @@ _PAGE_CSS = ("""
         [class*="st-key-cfgsec_"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child {
             padding: 16px 0 24px;
         }
-        .cfg-intro { display: flex; flex-direction: column; gap: 8px; scroll-margin-top: 80px; }
+        .cfg-intro { display: flex; flex-direction: column; gap: var(--sp-2); scroll-margin-top: 80px; }
         .cfg-intro span { font-size: var(--fs-12); font-weight: 500; color: var(--c-muted); font-variant-numeric: tabular-nums; }
         .cfg-intro h2 { margin: 0 !important; padding: 0 !important; font-family: var(--font-ui) !important;
             font-size: var(--fs-17) !important; font-weight: 600 !important; letter-spacing: 0 !important; color: var(--c-ink) !important; }
         .cfg-intro p { margin: 0; font-size: var(--fs-13); line-height: 1.55; color: var(--c-text_2); }
-        .cfg-wbar-h { font-size: var(--fs-13); color: var(--c-ink); margin-bottom: 8px; }
+        .cfg-wbar-h { font-size: var(--fs-13); color: var(--c-ink); margin-bottom: var(--sp-2); }
         .cfg-wbar { display: flex; height: 26px; border-radius: 2px; overflow: hidden; gap: 2px; }
         .cfg-wbar span { display: flex; align-items: center; justify-content: center; font-size: var(--fs-12);
             font-weight: 500; white-space: nowrap; overflow: hidden; font-variant-numeric: tabular-nums; }
         [class*="st-key-cfgsec_"] .mkt-strip.pg-strip { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
         [class*="st-key-cfgsec_"] .mkt-strip.pg-strip .ms-tile { min-height: 0; padding: 14px 12px; }
-        [class*="st-key-cfgsec_"] .mkt-strip.pg-strip .ms-v { font-size: 20px; }
+        [class*="st-key-cfgsec_"] .mkt-strip.pg-strip .ms-v { font-size: var(--fs-17); }
         [class*="st-key-cfgsec_"] .mkt-strip.pg-strip .ms-s { font-size: var(--fs-13); }
         .pg-kv {
             display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; padding: 10px 0; margin: 0 0 14px;
@@ -915,7 +944,7 @@ _PAGE_CSS = ("""
         .pg-kv > b { font-size: var(--fs-13); font-weight: 600; color: var(--c-muted); }
         .pg-kv span b { color: var(--c-ink); font-weight: 600; }
         .cfg-rule { height: 1px; background: var(--c-rule_soft); margin: 4px 0; }
-        .cfg-sub { font-size: var(--fs-13); font-weight: 600; color: var(--c-ink); margin-top: 6px; }
+        .cfg-sub { font-size: var(--fs-13); font-weight: 600; color: var(--c-ink); margin-top: var(--sp-2); }
         .st-key-cfg_sync_row { gap: 10px !important; flex-wrap: wrap; }
         @media (max-width: 760px) {
             [class*="st-key-cfgsec_"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child {
@@ -1054,7 +1083,7 @@ _PAGE_CSS = ("""
         [data-testid="stSegmentedControl"] button {
             height: 30px !important;
             border-radius: 4px !important;
-            font-size: 0.78rem !important;
+            font-size: var(--fs-12) !important;
             font-weight: 600 !important;
             padding: 0 10px !important;
             color: var(--c-muted) !important;
@@ -1073,7 +1102,7 @@ _PAGE_CSS = ("""
             min-height: 36px !important;
             border-radius: 4px !important;
             border-color: var(--c-rule) !important;
-            font-size: 0.82rem !important;
+            font-size: var(--fs-13) !important;
         }
 
 
@@ -1088,11 +1117,11 @@ _PAGE_CSS = ("""
 
         p, [data-testid="stMarkdownContainer"] p {
             color: var(--c-text_2) !important;
-            font-size: 0.88rem;
+            font-size: var(--fs-13);
         }
 
         [data-testid="stCaptionContainer"] {
-            font-size: 0.78rem !important;
+            font-size: var(--fs-12) !important;
             color: var(--c-muted) !important;
         }
 
@@ -1119,7 +1148,7 @@ _PAGE_CSS = ("""
             border: 1px solid transparent !important;
             background-color: transparent !important;
             font-weight: 600 !important;
-            font-size: 0.85rem !important;
+            font-size: var(--fs-13) !important;
             color: var(--c-text_2) !important;
             transition: all 0.15s ease !important;
             cursor: pointer !important;
@@ -1173,7 +1202,7 @@ _PAGE_CSS = ("""
         /* Figures in a card: as tall as their text, not a 90px box (owner, 13 Oct). */
         [class*="st-key-mrow_"] [data-testid="stMetric"] { padding: 10px 14px !important; }
         [class*="st-key-mrow_"] [data-testid="stMetric"] > div { padding: 0 !important; }
-        [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: 20px !important; line-height: 1.2 !important; }
+        [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: var(--fs-17) !important; line-height: 1.2 !important; }
 
         .sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden;
             clip: rect(0 0 0 0); white-space: nowrap; padding: 0 !important; border: 0 !important; }
@@ -1183,8 +1212,8 @@ _PAGE_CSS = ("""
         .pg-onward:hover { text-decoration-color: var(--c-ink) !important; }
         .pg-empty { padding: 18px 0; border-top: 1px solid var(--c-rule); font-size: var(--fs-15); color: var(--c-text_2); }
         .pg-empty b { color: var(--c-ink); font-weight: 600; }
-        .st-key-br_chart_head { border-top: 1px solid var(--c-ink); padding-top: 12px !important; margin-top: 4px; }
-        .br-charts-h { font-size: 20px !important; font-weight: 600 !important; color: var(--c-ink) !important;
+        .st-key-br_chart_head { border-top: 1px solid var(--c-ink); padding-top: var(--sp-3) !important; margin-top: var(--sp-1); }
+        .br-charts-h { font-size: var(--fs-17) !important; font-weight: 600 !important; color: var(--c-ink) !important;
             margin: 0 !important; padding: 0 !important; letter-spacing: 0 !important; scroll-margin-top: 72px; }
         .skip-link { position: absolute; left: 16px; top: -60px; z-index: 1000; padding: 8px 14px;
             background: var(--c-ink); color: var(--c-white) !important; font-size: var(--fs-13); text-decoration: none !important; }
@@ -1335,7 +1364,7 @@ _PAGE_CSS = ("""
         }
         .mkt-strip.pg-strip .ms-v,
         [class*="st-key-mrow_"] [data-testid="stMetricValue"] {
-            font-family: var(--font-ui) !important; font-size: 24px !important; font-weight: 600 !important;
+            font-family: var(--font-ui) !important; font-size: var(--fs-24) !important; font-weight: 600 !important;
             line-height: 1.15 !important; letter-spacing: 0 !important; font-variant-numeric: tabular-nums;
         }
         .mkt-strip.pg-strip .ms-v.ms-name { font-size: var(--fs-17) !important; }
@@ -1350,7 +1379,7 @@ _PAGE_CSS = ("""
             }
             .mkt-strip.pg-strip .ms-tile:nth-child(2n),
             [class*="st-key-mrow_"] > :nth-child(2n) [data-testid="stMetric"] { border-right: 0 !important; }
-            .mkt-strip.pg-strip .ms-v, [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: 20px !important; }
+            .mkt-strip.pg-strip .ms-v, [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: var(--fs-17) !important; }
             .mkt-strip.pg-strip .ms-v.ms-name { font-size: var(--fs-15) !important; }
         }
 
@@ -1365,7 +1394,7 @@ _PAGE_CSS = ("""
             color: var(--c-text_2);
         }
         .pg-callout b { display: block; font-size: var(--fs-13); color: var(--c-ink); }
-        .pg-callout span { display: block; margin-top: 4px; }
+        .pg-callout span { display: block; margin-top: var(--sp-1); }
         .pg-callout.up { border-left-color: var(--c-up); background: var(--c-up_tint); }
         .pg-callout.up b { color: var(--c-up); }
         .pg-callout.down { border-left-color: var(--c-down); background: var(--c-down_tint); }
@@ -1404,7 +1433,7 @@ _PAGE_CSS = ("""
 
         [data-testid="stMetricLabel"] {
             font-family: var(--font-mono) !important;
-            font-size: 0.72rem !important;
+            font-size: var(--fs-12) !important;
             font-weight: 600 !important;
             text-transform: uppercase !important;
             letter-spacing: 0.08em !important;
@@ -1413,7 +1442,7 @@ _PAGE_CSS = ("""
 
         [data-testid="stMetricValue"] {
             font-family: var(--font-mono) !important;
-            font-size: 1.6rem !important;
+            font-size: var(--fs-24) !important;
             font-weight: 700 !important;
             color: var(--c-ink) !important;
         }
@@ -1428,7 +1457,7 @@ _PAGE_CSS = ("""
 
         [data-testid="stMetricDelta"] {
             font-family: var(--font-mono) !important;
-            font-size: 0.78rem !important;
+            font-size: var(--fs-12) !important;
             font-weight: 600 !important;
         }
 
@@ -1446,7 +1475,7 @@ _PAGE_CSS = ("""
             border-radius: 4px !important;
             padding: 0.45rem 1rem !important;
             font-family: var(--font-mono) !important;
-            font-size: 0.8rem !important;
+            font-size: var(--fs-13) !important;
             font-weight: 600 !important;
             color: var(--c-muted) !important;
             border: none !important;
@@ -1485,7 +1514,7 @@ _PAGE_CSS = ("""
             border: 1px solid var(--c-rule_strong) !important;
             border-radius: 4px !important;
             color: var(--c-text_2) !important;
-            font-size: 0.84rem !important;
+            font-size: var(--fs-13) !important;
             font-weight: 600 !important;
             padding: 0.4rem 0.9rem !important;
             box-shadow: none !important;
@@ -1569,7 +1598,7 @@ _PAGE_CSS = ("""
             border: 1px solid var(--c-rule_strong) !important;
             color: var(--c-ink) !important;
             border-radius: 4px !important;
-            font-size: 0.85rem !important;
+            font-size: var(--fs-13) !important;
         }
 
         [data-baseweb="input"] input:focus, [data-baseweb="textarea"] textarea:focus {
@@ -1586,7 +1615,7 @@ _PAGE_CSS = ("""
         }
 
         [data-testid="stExpander"] summary {
-            font-size: 0.86rem !important;
+            font-size: var(--fs-13) !important;
             font-weight: 600 !important;
             color: var(--c-ink_2) !important;
         }
@@ -1643,8 +1672,8 @@ _PAGE_CSS = ("""
            page: the 16px block gap, the previous card's 6px padding and 6px
            here. Measured before: 11px to 44px (question sections kept a 22px
            bottom margin; a block's last paragraph kept its 16px margin). */
-        [class*="st-key-pgcard_"] { margin-top: 6px !important; }
-        .qp { margin-bottom: 0 !important; margin-top: 6px !important; }
+        [class*="st-key-pgcard_"] { margin-top: var(--sp-2) !important; }
+        .qp { margin-bottom: 0 !important; margin-top: var(--sp-2) !important; }
         [data-testid="stExpander"] { margin-bottom: 0 !important; }  /* Streamlit's 12.8px */
         /* A small trend line under a headline figure (S99): kit.spark_img. */
         .ms-spark { display: block; line-height: 0; margin: 6px auto 2px; }
@@ -1673,7 +1702,7 @@ _PAGE_CSS = ("""
             .rb-row .rb-t { grid-column: 1; }
             .rb-row .rb-v { grid-column: 2; }
         }
-        .qp-nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--fs-13); margin: 0 0 14px; }
+        .qp-nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--fs-13); margin: 0 0 var(--sp-4); }
         .qp-nav a { color: var(--c-ink) !important; text-decoration: underline;
             text-decoration-color: var(--c-rule_strong); text-underline-offset: 3px; }
         .mq h2, .pg-card-h h2 { scroll-margin-top: 72px; }
@@ -1706,14 +1735,16 @@ _PAGE_CSS = ("""
         @media (min-width: 1024px) {
             .st-key-app_header_shell [class*="st-key-app_nav_menu_"] { display: none !important; }
             .st-key-app_header_shell { padding-right: 0 !important; }
-            .st-key-app_header_shell [data-testid="stElementContainer"]:has(.hdr-pill-head) { display: none !important; }
+            /* The prices pill sits at the right end of the menu row (S219 1, owner 23 Nov 2026), so the
+               market line's copy and the Dashboard's own row for it go. */
+            .st-key-app_header_shell [data-testid="stElementContainer"]:has(.hdr-pill-head) { margin-left: var(--sp-3) !important; }
+            .st-key-app_header_shell .hdr-pill-head { height: 30px; padding: 0 10px; }
         }
         @media (min-width: 1024px) and (max-width: 1279px) {
             .st-key-app_quicklinks [data-testid="stPageLink"] a { padding: 6px 6px !important; }
+            /* The menu row is full here: the pill keeps the date and its colour, as on a phone (S219 1). */
+            .st-key-app_header_shell .hdr-pill-lead { display: none; }
         }
-        @media (max-width: 1023px) { .mkt-status, .mkt-status-row { display: none !important; } }
-        .mkt-status { margin-left: auto; padding: 4px 0 4px 12px; border-right: 0; }
-        .mkt-status-row { display: flex; justify-content: flex-end; margin: 6px 0 4px; }
 
         </style>
         """)
@@ -1833,7 +1864,10 @@ def render_saas_table(
 ) -> None:
     """Render a borderless SaaS table with optional page-specific presentation variants."""
     if df.empty:
-        st.info("No data available to display.")
+        # A filter with no match reads as a plain line with the way out, never st.info (S193 E, R4).
+        from src.ui import page_kit as kit
+        from src.ui import missing_words as mw
+        kit.empty(mw.NO_ROWS, mw.NO_ROWS_WAY_OUT)
         return
 
     n_rows = len(df)
@@ -2313,6 +2347,7 @@ body::-webkit-scrollbar,
 .stock-ticker {{ font-weight: 600; }}
 .badge-pill {{ font-family: 'IBM Plex Sans', sans-serif; padding: 0; border: 0 !important; background: transparent !important; font-weight: 600; }}
 .badge-yellow {{ color: var(--c-caution); }}
+{WARN_ICON_CSS}
 .ret-pos, .ret-neg {{ font-weight: 600; }}
 </style>
 </head>

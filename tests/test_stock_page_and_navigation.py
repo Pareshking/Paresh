@@ -214,9 +214,10 @@ def test_the_table_view_has_no_redundant_stock_picker():
 # ── Card grid reaches every stock ───────────────────────────────────────────
 
 def test_empty_result_says_so(monkeypatch):
-    from src.ui import screener_table
+    from src.ui import page_kit, screener_table
 
+    # A plain line naming the way out, not a blue st.info box (S193 E, R4).
     infos = []
-    monkeypatch.setattr(screener_table.st, "info", lambda t, **k: infos.append(t))
+    monkeypatch.setattr(page_kit.st, "html", lambda t, **k: infos.append(t))
     screener_table.render_screener_table(pd.DataFrame(columns=["Symbol", "Rank"]), None, "Core (17)")
-    assert infos and "No stocks match" in infos[0]
+    assert infos and "No stock matches" in infos[0] and "pg-empty" in infos[0]

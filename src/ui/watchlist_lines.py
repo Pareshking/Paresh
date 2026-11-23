@@ -228,12 +228,23 @@ def grouped(view: pd.DataFrame, plan: BookPlan | None, ln: Lines) -> tuple[pd.Da
 # ── The words at the top ─────────────────────────────────────────────────────
 
 def title(table: pd.DataFrame, n_saved: int, plan: BookPlan | None, ln: Lines) -> str:
-    """The page's answer: how many of my names the book would buy from, and what it sells."""
+    """The page's answer: how many of my names the book would buy from, and what it sells.
+
+    Returns HTML: the verdict phrases in up/down colour, at most two (S219 2, owner 23 Nov
+    2026). "None of your 1 stock is in …" read wrong; one stock reads "Your 1 stock is not in …"."""
+    from src.ui.page_kit import verdict
     q = table.get("Qualified Rank", pd.Series(dtype=float))
     top = int(sum(group_of(x, ln) == TOP for x in q))
-    stocks = "stock" if n_saved == 1 else "stocks"
-    head = (f"None of your {n_saved} {stocks} is in the book's top {ln.buy}" if top == 0 else
-            f"{top} of your {n_saved} {stocks} {'is' if top == 1 else 'are'} in the book's top {ln.buy}")
+    line = f"the book's top {ln.buy}"
+    if top == 0:
+        head = ("Your 1 stock is " + verdict(f"not in {line}", False) if n_saved == 1 else
+                "Both of your stocks are " + verdict(f"outside {line}", False) if n_saved == 2 else
+                f"All {n_saved} of your stocks are " + verdict(f"outside {line}", False))
+    elif top == n_saved:
+        head = ("Your 1 stock is " if n_saved == 1 else "Both of your stocks are " if n_saved == 2
+                else f"All {n_saved} of your stocks are ") + verdict(f"in {line}", True)
+    else:
+        head = f"{top} of your {n_saved} stocks {'is' if top == 1 else 'are'} " + verdict(f"in {line}", True)
     if plan is None:
         return head + "."
     syms = set(table["Symbol"].astype(str))
@@ -245,7 +256,7 @@ def title(table: pd.DataFrame, n_saved: int, plan: BookPlan | None, ln: Lines) -
     if not sold:
         return (f"{head}; the one it holds is kept on {when}." if len(held) == 1 else
                 f"{head}; none of the {len(held)} it holds is sold on {when}.")
-    return f"{head}; {len(sold)} that it holds {'is' if len(sold) == 1 else 'are'} sold on {when}."
+    return f"{head}; " + verdict(f"{len(sold)} that it holds {'is' if len(sold) == 1 else 'are'} sold", False) + f" on {when}."
 
 
 def plan_sentence(table: pd.DataFrame, plan: BookPlan | None) -> str:
@@ -435,7 +446,8 @@ def not_ranked_heading(rows: list[Unranked], universe: str) -> str:
 def fill_heading(events: list, fill: pd.Timestamp) -> str:
     when = f"the {fmt_day(fill)} fill"
     if not events:
-        return f"No results meeting or ex-date is announced for your stocks before {when}."
+        from src.ui.missing_words import no_events
+        return no_events("your stocks", fill)   # Actions' sentence (S193 E, R5)
     names = list(dict.fromkeys(str(e[1]) for e in events))
     return (f"{fmt_count(len(events), 'meeting or ex-date', 'meetings or ex-dates')} "
             f"before {when}: {fmt_names(names)}.")

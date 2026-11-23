@@ -748,7 +748,10 @@ def render_screener_table(view: pd.DataFrame, prices_df: pd.DataFrame | None,
                           sort_desc: bool = False, page_rows: int | None = None,
                           groups: list | None = None, plan_label: str = "Plan") -> None:
     if view.empty:
-        st.info("No stocks match these filters. Clear the search or pick another preset.")
+        # A filter with no match: a plain line naming the way out, never st.info (S193 E, R4).
+        from src.ui import page_kit as kit
+        from src.ui import missing_words as mw
+        kit.empty(mw.NO_MATCH, mw.NO_MATCH_WAY_OUT)
         return
     head_px = 44 + 28 + 6
     if page_rows:

@@ -29,8 +29,8 @@ _CSS = """<style>
 .mq-scale i.now{background:var(--c-ink);border:2px solid var(--c-white);z-index:3}
 .mq-scale i.m{background:var(--c-white);border:2px solid var(--c-ink);z-index:2}
 .mq-scale i.y{background:var(--c-white);border:2px dashed var(--c-muted);z-index:1}
-.mq-ends{display:flex;justify-content:space-between;font-size:12px;color:var(--c-muted);margin-bottom:6px}
-.mq-key{font-size:12px;color:var(--c-muted);margin:0 0 10px}
+.mq-ends{display:flex;justify-content:space-between;font-size:var(--fs-12);color:var(--c-muted);margin-bottom:6px}
+.mq-key{font-size:var(--fs-12);color:var(--c-muted);margin:0 0 10px}
 .mq-key b{font-weight:600;color:var(--c-ink)}
 </style>"""
 
@@ -129,23 +129,23 @@ def size_closes(levels: pd.DataFrame | None = None, ok: bool = True) -> dict[str
 
 _PAGE_CSS = """<style>
 .qp{border-top:1px solid var(--c-ink);padding:14px 0 6px;margin:0 0 22px}
-.qp h2{font-size:20px!important;font-weight:600!important;color:var(--c-ink)!important;margin:0 0 10px!important;padding:0!important;letter-spacing:0!important;scroll-margin-top:72px}
+.qp h2{font-size:var(--fs-17)!important;font-weight:600!important;color:var(--c-ink)!important;margin:0 0 10px!important;padding:0!important;letter-spacing:0!important;scroll-margin-top:72px}
 .qp-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 40px;margin-bottom:14px}
-.qp-v{font-size:30px;font-weight:600;line-height:1.1;margin:0 0 6px;color:var(--c-ink)}
+.qp-v{font-size:var(--fs-30);font-weight:600;line-height:1.1;margin:0 0 6px;color:var(--c-ink)}
 .qp-v.up{color:var(--c-up)}.qp-v.down{color:var(--c-down)}
-.qp-s{font-size:15px;line-height:1.55;color:var(--c-text_2);margin:0 0 12px}
-.qp h3{font-size:14px!important;font-weight:600!important;color:var(--c-ink)!important;margin:0 0 6px!important;padding:0!important}
-.qp ul{margin:0 0 12px;padding-left:18px}.qp li{font-size:14px;line-height:1.55;color:var(--c-text_2);margin:2px 0}
+.qp-s{font-size:var(--fs-15);line-height:1.55;color:var(--c-text_2);margin:0 0 12px}
+.qp h3{font-size:var(--fs-13)!important;font-weight:600!important;color:var(--c-ink)!important;margin:0 0 6px!important;padding:0!important}
+.qp ul{margin:0 0 12px;padding-left:18px}.qp li{font-size:var(--fs-13);line-height:1.55;color:var(--c-text_2);margin:2px 0}
 .qp li b{color:var(--c-ink);font-weight:600}
-.qp table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums;margin:4px 0 6px}
-.qp th{font-size:12px;font-weight:500;color:var(--c-muted);text-align:right;padding:6px 0 6px 12px;border-bottom:1px solid var(--c-rule_strong);white-space:nowrap}
+.qp table{width:100%;border-collapse:collapse;font-size:var(--fs-13);font-variant-numeric:tabular-nums;margin:4px 0 6px}
+.qp th{font-size:var(--fs-12);font-weight:500;color:var(--c-muted);text-align:right;padding:6px 0 6px 12px;border-bottom:1px solid var(--c-rule_strong);white-space:nowrap}
 .qp th:first-child,.qp th.l{text-align:left;padding-left:0}
 .qp td{padding:8px 0 8px 12px;border-bottom:1px solid var(--c-rule);text-align:right;vertical-align:top;color:var(--c-ink)}
 .qp td:first-child{text-align:left;padding-left:0}
-.qp td.rule{text-align:left;color:var(--c-muted);font-size:12.5px}
+.qp td.rule{text-align:left;color:var(--c-muted);font-size:var(--fs-12)}
 .qp td.up{color:var(--c-up);font-weight:600}.qp td.down{color:var(--c-down);font-weight:600}.qp td.mid{color:var(--c-muted)}
-.qp-tag{font-size:12px;color:var(--c-muted);margin-left:6px}
-.qp-note{font-size:12.5px;color:var(--c-muted);margin:6px 0 0}
+.qp-tag{font-size:var(--fs-12);color:var(--c-muted);margin-left:6px}
+.qp-note{font-size:var(--fs-12);color:var(--c-muted);margin:6px 0 0}
 @media (max-width:900px){.qp-top{grid-template-columns:1fr}.qp td.rule,.qp th.rule{display:none}}
 /* Phone: each evidence row stacks, the measure on a line of its own, then
    the bar, the figure and the vote (the four columns did not fit 375px). */
@@ -377,6 +377,7 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
                                                "Today\u2019s members throughout."))
         spec = _breadth_spec(bench.dropna(), share200, end, universe)
         if spec:
+            spec = {**spec, "range": dc.RANGE_BY_KIND["breadth"]}   # 12M of three years, as on the Dashboard (S193 H)
             dc.render("breadth", spec, label="The Nifty 500 and the share of stocks above their 200D EMA",
                       note="Tap or drag for a date")
     with right:
@@ -391,12 +392,20 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
                         "make one, on daily closes throughout. Above zero, more stocks are making highs.")
             allw = weekly.dropna()
             q1, q3 = float(allw.quantile(0.25)), float(allw.quantile(0.75))
+            # Three years sent, 12M shown (S193 H: recent movement opens on 12M), 3Y a chip away.
             dc.render("bars", {"values": _vals(w, 1), "labels": [f"{d:%b ’%y}" for d in w.index],
+                               "dates": _dates(w.index), "range": {"default": "12M", "why": "lately", "chips": ["12M", "3Y"]},
                                "full": [f"week to {d:%-d %b %Y}" for d in w.index], "unit": "% of stocks, net new highs",
                                "dp": 1, "xn": 6, "height": 260, "band": [q1, q3, ""]},
                       label="Net new 52-week highs each week")
             st.html(f'<p class="qp-note">Shaded: the usual range since {allw.index[0]:%b %Y}, '
                     f'{_fmt.signed(q1, 1)} to {_fmt.signed(q3, 1)} (the middle half of all weeks).</p>')
+
+
+# The one time-range chart that does not open on 12M (S193 H, owner 23 Nov 2026: "Go with your recommendation").
+TEN_MONTH_RANGE = {"default": "3Y", "why": "fixed",
+                   "note": "Monthly closes against a 10-month average: twelve points would show almost no history "
+                           "of the line crossing the average, so it opens on three years"}
 
 
 def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
@@ -421,7 +430,7 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
                         "the average the 10-month rule reads up; the classic rule reads only month-ends. Three years; "
                         "price only.")
         mm, aa = m.loc[since:], avg.loc[since:]
-        dc.render("lines", {"dates": _dates(mm.index), "yfmt": "num", "series": [
+        dc.render("lines", {"dates": _dates(mm.index), "yfmt": "num", "range": TEN_MONTH_RANGE, "series": [
             {"name": f"Nifty 500, monthly close ({b.index[-1]:%b}: today)", "values": _vals(mm, 1), "color": "s-n500"},
             {"name": "10-month average", "values": _vals(aa.reindex(mm.index), 1), "color": "muted", "dash": True}]},
             label="The Nifty 500's monthly closes and its 10-month average")
@@ -445,7 +454,7 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
                         f"done better. Price only. {_fmt.PTS_NOTE}")
             idx = sorted(set().union(*[set(v.dropna().index) for v in rel.values()]))
             from src.ui.tokens import LINE_CYCLE
-            dc.render("lines", {"dates": _dates(idx), "yfmt": "num",
+            dc.render("lines", {"dates": _dates(idx), "yfmt": "num", "range": {"default": "12M", "why": "lately"},
                                 "levels": [{"v": 100, "label": "", "color": "muted"}],
                                 "series": [{"name": k, "values": _vals(v.reindex(idx).ffill(), 2), "color": LINE_CYCLE[i % len(LINE_CYCLE)][0],
                                             "dash": LINE_CYCLE[i % len(LINE_CYCLE)][1]}
@@ -454,9 +463,9 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series]) -> None:
 
 
 _CHART_CSS = """<style>
-.qp-ch-h{font-family:var(--font-serif,serif)!important;font-weight:500!important;font-size:19px!important;
+.qp-ch-h{font-family:var(--font-serif,serif)!important;font-weight:500!important;font-size:var(--fs-17)!important;
   line-height:1.3!important;color:var(--c-ink)!important;margin:6px 0 4px!important;padding:0!important;max-width:30em}
-.qp-behind{font-family:var(--font-serif,serif);font-weight:400;font-size:26px;color:var(--c-ink);margin:8px 0 0}
+.qp-behind{font-family:var(--font-serif,serif);font-weight:400;font-size:var(--fs-24);color:var(--c-ink);margin:8px 0 0}
 .qp-kick{margin:6px 0 0;font-size:var(--fs-12);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--c-muted)}
 .qp-title{margin:4px 0 6px!important;padding:0!important;font-family:var(--font-serif,serif)!important;font-weight:400!important;
   font-size:var(--fs-44)!important;line-height:1.1!important;max-width:36ch;color:var(--c-ink)}
@@ -531,14 +540,14 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
 _SECTOR_CSS = """<style>
 .qp-quad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 24px;margin:4px 0 14px}
 .qp-quad div{border-top:1px solid var(--c-rule_strong);padding-top:8px}
-.qp-quad b{display:block;font-size:13.5px;font-weight:600;color:var(--c-ink);margin-bottom:4px}
+.qp-quad b{display:block;font-size:var(--fs-13);font-weight:600;color:var(--c-ink);margin-bottom:4px}
 .qp-quad b.up{color:var(--c-up)}.qp-quad b.down{color:var(--c-down)}
-.qp-quad p{font-size:13px;line-height:1.5;color:var(--c-text_2);margin:0 0 3px;display:flex;justify-content:space-between;gap:8px}
+.qp-quad p{font-size:var(--fs-13);line-height:1.5;color:var(--c-text_2);margin:0 0 3px;display:flex;justify-content:space-between;gap:8px}
 .qp-quad p span:last-child{font-variant-numeric:tabular-nums;color:var(--c-muted);white-space:nowrap}
-.qp-quad p.qh{font-size:12px;color:var(--c-muted);border-bottom:1px solid var(--c-rule);padding-bottom:3px;margin-bottom:5px}
+.qp-quad p.qh{font-size:var(--fs-12);color:var(--c-muted);border-bottom:1px solid var(--c-rule);padding-bottom:3px;margin-bottom:5px}
 .qp-heat{overflow-x:auto}
 .qp-heat table{min-width:900px}
-.qp-heat td{font-size:12.5px;padding:6px 4px;text-align:center}
+.qp-heat td{font-size:var(--fs-12);padding:6px 4px;text-align:center}
 .qp-heat th{text-align:center;padding:6px 4px}
 .qp-heat td:first-child,.qp-heat th:first-child{text-align:left;white-space:nowrap;padding-right:10px}
 .qp-heat td.u2{background:var(--c-up_line_2);color:var(--c-ink)}.qp-heat td.u1{background:var(--c-up_tint)}
@@ -625,14 +634,14 @@ def _rel_bars_html(sec: pd.DataFrame) -> str:
             '<p class="qp-note" style="margin:0 0 8px">Bars: the industry\'s six-month return less all ranked '
             'stocks\', each equal-weighted. Rings: the last month. Right of the line is ahead of all ranked stocks.</p>'
             '<style>.rb-row{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr) 120px;gap:12px;'
-            'align-items:center;padding:3px 0;font-size:13.5px}.rb-n{color:var(--c-text_2);white-space:nowrap;'
+            'align-items:center;padding:3px 0;font-size:var(--fs-13)}.rb-n{color:var(--c-text_2);white-space:nowrap;'
             'overflow:hidden;text-overflow:ellipsis}.rb-t{position:relative;height:14px}'
             '.rb-z{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--c-rule_strong)}'
             '.rb-b{position:absolute;top:3px;height:8px;border-radius:1px}.rb-b.up{background:var(--c-up)}'
             '.rb-b.down{background:var(--c-down)}.rb-d{position:absolute;top:1px;width:12px;height:12px;'
             'margin-left:-6px;border-radius:50%;border:2px solid var(--c-ink);background:var(--c-white);box-sizing:border-box}'
             '.rb-v{text-align:right;font-variant-numeric:tabular-nums;color:var(--c-ink)}'
-            '.rb-v small{color:var(--c-muted);font-size:12px}'
+            '.rb-v small{color:var(--c-muted);font-size:var(--fs-12)}'
             '@media (max-width:700px){.rb-row{grid-template-columns:110px minmax(0,1fr) 84px}}</style>'
             f'<div role="img" aria-label="Industries by six months against all ranked stocks, with the last month" '
             f'style="margin-bottom:24px">{"".join(rows)}</div>')

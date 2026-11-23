@@ -7,7 +7,10 @@
 //      more than a quarter of the frame's height;
 //   4. a bar track wider than 520 px (a bar across a whole desktop screen is hard to compare);
 //   5. a frame taller than what it draws, an empty band of 48 px or more between blocks, and anything
-//      wider than the screen.
+//      wider than the screen;
+//   6. (S193 H5) a time-range chart that opens off the range its spec states (the pressed chip, or the first
+//      date drawn), a chart with no readout at rest, and a Streamlit period picker (3M / 12M / 3Y / All
+//      buttons on the page: one period picker, and it is in the chart).
 // Usage: node scripts/layout_audit.mjs <url> [widths=412,1400] [--open]   exit 1 when anything is found.
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
@@ -66,6 +69,36 @@ function probe() {
   return out;
 }
 
+// 6. In a chart frame, before any pointer or key: the range it opened on, and its readout.
+function chartProbe(kind) {
+  const out = [];
+  const el = document.getElementById('c') || document.getElementById('root'); if (!el) return out;
+  const d = el.dataset;
+  if (d.rangeDefault) {
+    const want = String(d.rangeDefault).toLowerCase();
+    const pressed = [...document.querySelectorAll('[aria-label="Period"] .chip[aria-pressed="true"], .rg button[aria-pressed="true"]')].map(b => b.textContent.trim().toLowerCase());
+    if (pressed.length && !pressed.includes(want)) out.push(['chart opens off its stated range', `${kind}: the pressed chip is ${pressed.join(',')}, the spec says ${d.rangeDefault}`]);
+    const m = /^(\d+)([MY])$/i.exec(d.rangeDefault), n = m ? (+m[1]) * (m[2].toUpperCase() === 'Y' ? 12 : 1) : 0;
+    let ok = true, why = '';
+    if (!n) { ok = d.rangeFrom === d.rangeFirst; why = `draws from ${d.rangeFrom}, its data from ${d.rangeFirst}`; }
+    else { const [y, mo, dd] = d.rangeTo.split('-').map(Number); let k = (mo - 1) - n, yy = y + Math.floor(k / 12); k = ((k % 12) + 12) % 12;
+      const target = Date.UTC(yy, k, Math.min(dd, new Date(Date.UTC(yy, k + 1, 0)).getUTCDate()));
+      const from = Date.parse(d.rangeFrom + 'T00:00:00Z'), first = Date.parse(d.rangeFirst + 'T00:00:00Z');
+      ok = Math.abs(from - target) <= 7 * 864e5 || (first > target && d.rangeFrom === d.rangeFirst);
+      why = `draws from ${d.rangeFrom}, ${d.rangeDefault} before ${d.rangeTo} is ${new Date(target).toISOString().slice(0, 10)}`; }
+    if (!ok) out.push(['chart opens off its stated range', `${kind}: ${why}`]);
+  }
+  if (['holdings', 'history', 'stable'].includes(kind)) return out;
+  const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !e.closest('[hidden]'); };
+  const reads = kind === 'lw' ? [...document.querySelectorAll('.lg')].slice(0, 1) : [...el.querySelectorAll('.readout, .ph')].filter(vis);
+  for (const r of reads) { const t = (r.innerText || '').trim();
+    if (!/\d/.test(t) || (kind === 'lw' && !/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/.test(t)))
+      out.push(['chart has no readout at rest', `${kind}: "${t.slice(0, 40)}"`]); }
+  return out;
+}
+const pickers = () => [...document.querySelectorAll('[data-testid="stButtonGroup"]')].map(g => [...g.querySelectorAll('button')].map(b => b.innerText.trim()))
+  .filter(t => t.length > 1 && t.every(x => /^(\d+[MY]|All)$/.test(x))).map(t => ['period picker outside the chart', t.join(' · ')]);
+
 const b = await chromium.launch(); let bad = 0;
 for (const w of widths) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });
@@ -75,9 +108,12 @@ for (const w of widths) {
   await p.setViewportSize({ width: w, height: Math.min(H + 50, 16000) }); await framesStill(p);
   const found = [];
   for (const f of p.frames()) {
-    const where = f === p.mainFrame() ? 'page' : (((await f.content().catch(() => '')).match(/render\("(\w+)"/) || [])[1] || null);
+    const html = f === p.mainFrame() ? '' : await f.content().catch(() => '');
+    const where = f === p.mainFrame() ? 'page' : ((html.match(/render\("(\w+)"/) || [])[1] || (/const ONE_LINE=/.test(html) ? 'lw' : null));
     if (!where) continue;
-    for (const [k, d] of await f.evaluate(probe).catch(() => [])) found.push([where, k, d]);
+    if (where !== 'lw') for (const [k, d] of await f.evaluate(probe).catch(() => [])) found.push([where, k, d]);
+    for (const [k, d] of await f.evaluate(where === 'page' ? pickers : chartProbe, where).catch(() => [])) found.push([where, k, d]);
+    if (where === 'lw') continue;
     if (f !== p.mainFrame()) { const fe = await f.frameElement();
       // A frame is sized by Streamlit from its first drawing, which can be in the fallback font; it shrinks
       // once the web font has loaded. Measure again after a pause before calling it too tall.

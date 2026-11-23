@@ -895,6 +895,17 @@ def _calculate_backtest_metrics(
         downside_vol = float("nan")
         strat_sortino = float("nan")
 
+    # The index's own volatility, Sharpe and Sortino, by the same formulas, so
+    # the Backtest's Nifty 500 column shows them instead of "–" (S193 E, item 1.10).
+    bench_daily_s = pd.Series(eq_bench).astype(float).pct_change().dropna()
+    bench_vol = float(bench_daily_s.std(ddof=0) * np.sqrt(252)) if len(bench_daily_s) > 1 else float("nan")
+    _b_excess = float(bench_daily_s.mean() * 252) - RISK_FREE_RATE if len(bench_daily_s) else float("nan")
+    bench_sharpe = float(_b_excess / bench_vol) if bench_vol and np.isfinite(bench_vol) and bench_vol > 0 else float("nan")
+    _b_down = np.minimum(bench_daily_s - _rf_daily, 0.0)
+    _b_msd = float((_b_down**2).mean()) if len(bench_daily_s) else 0.0
+    bench_sortino = (float(_b_excess / (np.sqrt(_b_msd) * np.sqrt(252)))
+                     if int((bench_daily_s < _rf_daily).sum()) >= _MIN_DOWNSIDE_OBS and _b_msd > 0.0 else float("nan"))
+
     # Numerator annualised, denominator observed over `window_years`. Over a
     # six-month window that is not a Calmar ratio in the sense anyone quotes,
     # because a half-year cannot contain a year's worth of drawdown. Reported
@@ -927,6 +938,9 @@ def _calculate_backtest_metrics(
         "sortino": strat_sortino,
         "calmar": calmar_ratio,
         "volatility": strat_vol,
+        "bench_volatility": bench_vol,
+        "bench_sharpe": bench_sharpe,
+        "bench_sortino": bench_sortino,
         "avg_turnover": avg_turnover,
         "cost_drag_total": tot_cost_drag,
         "n_periods": n_periods,

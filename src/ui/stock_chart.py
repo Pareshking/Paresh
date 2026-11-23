@@ -223,10 +223,13 @@ def build_panes(
 # ── The stock page's chart (S182, mock-up v2 approved 23 Nov 2026) ──────────────
 # Today's chart kept and restyled (STOCK_REQUIREMENTS rows 33, 47-49): price with
 # the 50D EMA the ranking uses, Volume in its own pane, and the stock against
-# Nifty Total Market beneath, set to 100 at the start of the range; 6M, 12M, 3Y.
+# Nifty Total Market beneath, set to 100 at the start of the range; 6M, 12M, 3Y as chips in the chart
+# (S193 H2; owner, 23 Nov 2026: one period picker): three years are sent once and a chip redraws in place.
 
 RANGES = {"6M": 6, "12M": 12, "3Y": 36}   # 12M, not 1Y (glossary 6)
 DEFAULT_RANGE = "12M"
+RANGE_WHY = "lately"   # recent movement opens on 12M (S193 H1)
+RANGE_WORDS = {"6M": "6 months", "12M": "12 months", "3Y": "3 years"}
 RS_NAME = "RS against Nifty Total Market"
 
 
@@ -270,21 +273,44 @@ def price_chart_panes(close_full: pd.Series, volume: pd.Series | None, market: p
                        height=320, volume_pane=90, rs_height=130)
 
 
+def range_starts(close_full: pd.Series) -> list[list[str]]:
+    """[[label, first session YYYY-MM-DD], ...] for each range, by `window`'s rule."""
+    out = []
+    for lab, months in RANGES.items():
+        w = window(close_full, months)
+        if len(w):
+            out.append([lab, f"{w.index[0]:%Y-%m-%d}"])
+    return out
+
+
+def chart_panes_all(close_full: pd.Series, volume: pd.Series | None, market: pd.Series | None
+                    ) -> tuple[list[dict], bool, dict]:
+    """The longest range's panes, sent once, and the chips that cut them (S193 H2). Relative strength is
+    marked to be set to 100 again at each range's first session, so 6M and 12M read as they did."""
+    panes, has_volume = price_chart_panes(close_full, volume, market, max(RANGES.values()))
+    for p in panes:
+        for s in p["series"]:
+            if s.get("name") == RS_NAME:
+                s["rebase"] = True
+    ranges = {"default": DEFAULT_RANGE, "why": RANGE_WHY, "chips": range_starts(close_full)}
+    return panes, has_volume, ranges
+
+
 def render_price_chart(symbol: str, close_full: pd.Series, volume: pd.Series | None,
-                       market: pd.Series | None) -> None:
-    """The range control and the chart, one line of readout per pane."""
-    rng = st.segmented_control("Range", list(RANGES), default=DEFAULT_RANGE,
-                               key=f"sp_range_{symbol}", label_visibility="collapsed") or DEFAULT_RANGE
+                       market: pd.Series | None, follow: dict | None = None) -> None:
+    """The chart with its range chips, one line of readout per pane. `follow` ({"sel", "html": {range: ...}})
+    is the host heading the chips rewrite."""
     try:
-        panes, has_volume = price_chart_panes(close_full, volume, market, RANGES[rng])
-        lw_chart.render(panes, key=f"lw_{symbol}", one_line=True,
+        panes, has_volume, ranges = chart_panes_all(close_full, volume, market)
+        if follow:
+            ranges["follow"] = follow
+        lw_chart.render(panes, key=f"lw_{symbol}", one_line=True, ranges=ranges,
                         label=f"{symbol}: price and 50D EMA, volume, and relative strength against "
-                              "Nifty Total Market. Arrow keys move the reading.")
+                              "Nifty Total Market. Arrow keys move the reading; the range buttons above redraw it.")
     except ChartUnavailable as exc:
         from src.core.logger import logger
         logger.warning("No chart for %s: %s", symbol, exc)
-        st.warning(f"No chart for {symbol} in this range: there are no closes to draw. "
-                   "The figures on the page still hold; pick a longer range to try again.")
+        st.warning(f"No chart for {symbol}: there are no closes to draw. The figures on the page still hold.")
         return
     if not has_volume:
         st.caption("Volume unavailable for this symbol.")

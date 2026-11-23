@@ -25,6 +25,7 @@ import pandas as pd
 import streamlit as st
 
 from src.ui import formats as _fmt
+from src.ui import missing_words as mw
 
 from src.engine import book_exposure as bx
 from src.engine import dashboard_insights as di
@@ -371,11 +372,15 @@ def header(p: Page) -> list:
     sub = (f"The model book: ₹1 Cr put in on {begun:%-d %B %Y}, run by the "
            f"{SYSTEM_NAMES.get(p.system, 'Nifty 750')} rules, {len(tab)} stocks. Returns are after costs.{_provenance(p)}")
     lead = None if since is None or mkt_since is None else since - mkt_since
+    # The verdict phrases in up/down colour, at most two (S219 2).
+    from src.ui.page_kit import verdict
     answer = ("The model book" if since is None else
-              f"The book is {'up' if since >= 0 else 'down'} {abs(since):.1f}% since {begun:%-d %B}" + ("" if lead is None else
-              f", {_fmt.fixed(abs(lead), 1)} points {'ahead of' if lead >= 0 else 'behind'} Nifty Total Market") + ".")
+              "The book is " + verdict(f"{'up' if since >= 0 else 'down'} {abs(since):.1f}%", since >= 0) + f" since {begun:%-d %B}"
+              + ("" if lead is None else
+                 ", " + verdict(f"{_fmt.fixed(abs(lead), 1)} points {'ahead of' if lead >= 0 else 'behind'}", lead >= 0)
+                 + " Nifty Total Market") + ".")
     # The title answers the reader's first question; the page's name is the kicker (tipsheet benchmark, 21 Nov 2026).
-    return [f'<div class="pf-head"><p class="pf-kick">Portfolio</p><h1 class="pf-title">{e(answer)}</h1><p class="pf-sub">{e(sub)}</p>',
+    return [f'<div class="pf-head"><p class="pf-kick">Portfolio</p><h1 class="pf-title">{answer}</h1><p class="pf-sub">{e(sub)}</p>',
             _kpis(cells, "pf-five"), f'<div class="dh-pills pf-nav" role="navigation" aria-label="On this page">{nav}</div></div>']
 
 
@@ -549,7 +554,11 @@ def section_returns(p: Page) -> list:
     ex_since = p.exposure[pd.to_datetime(p.exposure["date"]) > ytd_start] if len(p.exposure) else p.exposure
     vals["mix"] = pr.size_mix(ex_since, {k: p.indices[v] for k, v in SIZE_INDEX.items()}, p.as_of)
     ytd = (f'<tr class="pf-hl"><th scope="row">The book, after costs</th><td class="dh-num dh-b {tone(book_ytd)}">{pct(book_ytd)}</td><td></td></tr>'
-           + "".join(f'<tr{" class=pf-hl" if k == "mix" else ""}><th scope="row">{e(n)}</th><td class="dh-num dh-b {tone(vals.get(k))}">{pct(vals.get(k))}</td>'
+           + "".join(f'<tr{" class=pf-hl" if k == "mix" else ""}><th scope="row">{e(n)}'
+                     # the reason for its "–" in the row label (S193 E, R1)
+                     + (f'<span class="dh-sub">{e(mw.no_such_index("Nano Cap and Ultra Nano Cap"))}</span>'
+                        if k == "mix" and vals.get(k) is None else "")
+                     + f'</th><td class="dh-num dh-b {tone(vals.get(k))}">{pct(vals.get(k))}</td>'
                      f'<td class="dh-num {tone(None if vals.get(k) is None or book_ytd is None else book_ytd - vals[k])}">'
                      f'{sg(None if vals.get(k) is None or book_ytd is None else book_ytd - vals[k])}</td></tr>' for k, n in YTD_ROWS))
     grows = (f"From the record’s second year the table adds 12 months, 3 years, 5 years and a yearly rate since {_fmt.date(begun)} "
@@ -687,10 +696,10 @@ def section_equity(p: Page) -> list:
                      f"typical day the book and Nifty Total Market differ by about {te / np.sqrt(pr.YEAR):.1f} point (tracking error ÷ √250). An "
                      "index fund aims for well under 1%; a 20-stock small-company momentum book cannot be close to Nifty Total Market, and that "
                      "distance is where its lead comes from.")
-                     if rk else "No risk figures yet: they need more sessions of the book than it has.",   # S193 B7: read 0.0%
+                     if rk else f"No risk figures yet: {mw.book_too_short(pr.RISK_MIN_SESSIONS, len(pr._clean(p.equity)))}.",   # S193 B7: read 0.0%
                      ["Measure", "The book", "Nifty Total Market"],
                      [["Volatility, a year", f"{rk.vol:.1f}%", f"{rk.market_vol:.1f}%"], ["Beta", f"{rk.beta:.2f}", "1.00"],
-                      ["Tracking error", f"{rk.tracking:.1f}%", "–"], ["Sessions", str(rk.sessions), str(rk.sessions)]] if rk else [])])
+                      ["Tracking error", f"{rk.tracking:.1f}%", mw.NOT_APPLICABLE], ["Sessions", str(rk.sessions), str(rk.sessions)]] if rk else [])])
 
 
 def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
@@ -702,10 +711,11 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
     first, fill = first_fill(p)
     mark_month = first.month - 1 if fill is not None and first in m["book"] else None
 
-    def cell(v, b=False, q=False, mark=False):
+    def cell(v, b=False, q=False, mark=False, na=False):
         cls = "dh-num" + (" pf-q" if q else "") + (f" dh-b {tone(v)}" if b else "")
         sup = '<sup class="dh-muted">*</sup>' if mark and v is not None else ""
-        return f'<td class="{cls}">{"–" if v is None else sg(v)}{sup}</td>'
+        # Not applicable is a blank cell, not "–" (S193 E, R2): the Nifty 500 was recorded by month only.
+        return f'<td class="{cls}">{(mw.NOT_APPLICABLE if na else mw.DASH) if v is None else sg(v)}{sup}</td>'
     head = ('<thead><tr><th scope="col">%</th>' + "".join(f'<th scope="col" class="dh-num">{x}</th>' for x in MON)
             + "".join(f'<th scope="col" class="dh-num{" pf-q" if i == 0 else ""}">{q}</th>' for i, (q, _) in enumerate(pr.QUARTERS))
             + '<th scope="col" class="dh-num pf-q">Year</th></tr></thead>')
@@ -726,11 +736,20 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
                 qs = [None if a is None or c is None else a - c for a, c in zip(bk["quarters"], mk["quarters"])]
                 yr = None if bk["year"] is None or mk["year"] is None else bk["year"] - mk["year"]
             body += (f'<tr class="{"dh-muted" if k == "n500" else ""}"><th scope="row">{names[k]}</th>'
-                     + "".join(cell(v, b, mark=(y == first.year and i == mark_month)) for i, v in enumerate(r["months"])) + "".join(cell(v, b, i == 0) for i, v in enumerate(qs)) + cell(yr, b, True) + "</tr>")
+                     + "".join(cell(v, b, mark=(y == first.year and i == mark_month)) for i, v in enumerate(r["months"]))
+                     + "".join(cell(v, b, i == 0, na=(k == "n500")) for i, v in enumerate(qs)) + cell(yr, b, True, na=(k == "n500")) + "</tr>")
     body += (f'<tr class="pf-yr pf-ghost"><th scope="rowgroup" colspan="18">{this.year + 1}<span class="dh-muted"> · from January, a row group '
              'like the one above; each year adds its own</span></th></tr>') if len(cal) == 1 else ""
     foot = (f'<p class="dh-note">* {first:%b %Y}, the first month: from the fill, {fill:%-d %b}. A system\u2019s first month has '
             'no book before it, so the book and every index start at its first fill.</p>' if mark_month is not None else "")
+    # One footnote for the grid's "–" (S193 E, R1): months before the system's record, months not yet published.
+    dash = []
+    if first.month > 1:
+        dash.append(f"before {first:%b %Y}, {mw.system_too_young()}")
+    if this.month < 12:
+        dash.append(f"after {this:%b %Y}, {mw.NOT_PUBLISHED}")
+    if dash:
+        foot += f'<p class="dh-note">{e(mw.column_note("a month", "; ".join(dash)))}</p>'
     grid = f'<div class="dh-scroll"><table class="dh-tab pf-grid pf-nw">{head}<tbody>{body}</tbody></table></div>{foot}'
     # Calendar and financial years
     ys = ""
@@ -923,8 +942,13 @@ def section_systems(p: Page) -> list:
     word = _NUMBER_WORDS.get(k, str(k))
     rows = "".join(
         f'<tr class="{"dh-muted" if not started else ""}"><th scope="row">{e(n)}{f"<span class=dh-sub>{e(sub)}</span>" if sub else ""}</th>'
-        f'<td class="dh-num {tone(m)}">{pct(m)}</td><td class="dh-num {tone(c)}">{pct(c)}</td><td class="dh-num {tone(o)}">{pct(o)}</td><td>{e(started)}</td></tr>'
+        f'<td class="dh-num {tone(m)}">{pct(m)}</td><td class="dh-num {tone(c)}">{pct(c)}</td>'
+        # The market has no start of its own: a blank cell, not "–" (S193 E, R2).
+        f'<td class="dh-num {tone(o)}">{mw.NOT_APPLICABLE if n == "Nifty Total Market" and o is None else pct(o)}</td><td>{e(started)}</td></tr>'
         for n, sub, m, c, o, started in p.systems[1:])
+    young = [n for n, _sub, _m, c, _o, _st in p.systems[1:-1] if c is None]
+    dash = (mw.column_note(f"Since {common}", f"{mw.SYSTEM_TOO_YOUNG} ({_and(young)}: a system joins after its first full month)")
+            if young else "")
     from src.engine.track_record import SHADOWS
     shadows = ", ".join(f"{b.name.replace(' (shadow)', '')} (from {b.inception.strftime('%b %Y')})" for b in SHADOWS.values())
     return _sec([_head("pf-sys", f"{_NUMBER_WORDS.get(total, str(total)).capitalize()} systems, side by side",
@@ -935,6 +959,7 @@ def section_systems(p: Page) -> list:
                  f'<p class="dh-note">“Since {e(common)}” is the window {e(_and([r[0] for r in p.systems[1:-1] if r[3] is not None]))} have all traded, '
                  'so it is the fair comparison; it grows as the systems age. '
                  'A new system joins it after its first full month. '
+                 + (f'{e(dash)} ' if dash else '') +
                  f'<b>Shadow systems</b>, recorded but not traded: {e(shadows)}.</p>'])
 
 
@@ -959,7 +984,7 @@ PF_CSS = """
 .pf-ibar i{position:absolute;left:0;top:0;bottom:0;background:var(--c-ink);border-radius:2px}
 .pf-ibar b{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--c-muted)}
 .pf-srow{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;margin-bottom:5px;font-size:var(--fs-13)}
-.pf-thin{height:20px}.pf-thin i{font-size:11px;padding-left:5px}.dh-sz-large,.dh-sz-mid{color:var(--c-white)}
+.pf-thin{height:20px}.pf-thin i{font-size:var(--fs-12);padding-left:5px}.dh-sz-large,.dh-sz-mid{color:var(--c-white)}
 .pf-gap{margin-top:14px}
 .pf-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:var(--fs-12);color:var(--c-muted);margin-top:6px}
 .pf-key span{display:flex;align-items:center;gap:6px}.pf-key i{width:12px;height:12px;border-radius:3px;display:inline-block}
@@ -1020,7 +1045,8 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
                  "The record itself is unchanged. Reload the page in a few minutes; the book shows again once its nightly check passes.")
         return
     if book.empty:
-        kit.empty("No current model book", "for this system yet.")
+        # The page with no data, in the sentence Dashboard and Actions use (S193 E, R4, R5).
+        kit.page_empty(mw.NO_MODEL_BOOK, mw.NO_MODEL_BOOK_WHY, kicker="Portfolio")
         return
     from src.ui.canonical_book import unpriced_note
     if (note := unpriced_note(record)) is not None:
