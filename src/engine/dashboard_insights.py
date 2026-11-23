@@ -348,6 +348,8 @@ class FlowEvidence:
     first: str
     last: str
     heavy_months: int = 0              # months in the top quarter
+    tested: int = 0                    # months with a next month to test (S193 B row 24)
+    tested_heavy: int = 0              # top-quarter months among them: the after_heavy sample
 
 
 def flow_evidence(nsdl: pd.DataFrame, spreads: pd.DataFrame, bench: pd.DataFrame) -> FlowEvidence | None:
@@ -388,7 +390,7 @@ def flow_evidence(nsdl: pd.DataFrame, spreads: pd.DataFrame, bench: pd.DataFrame
         float((hi["lead_next"] > 0).mean() * 100), float((lo["lead_next"] > 0).mean() * 100),
         halves, float(d["fpi"].corr(d["nifty500"])), float(d["fpi"].corr(d["nifty500"].shift(-1))),
         float((heavy_all["nifty50"] - heavy_all["nifty500"]).mean()),
-        f"{d.index[0]:%b %Y}", f"{d.index[-1]:%b %Y}", int(len(heavy_all)))
+        f"{d.index[0]:%b %Y}", f"{d.index[-1]:%b %Y}", int(len(heavy_all)), int(len(nxt)), int(len(hi)))
 
 
 # ── 5. Size, and momentum within each size ──────────────────────────────────

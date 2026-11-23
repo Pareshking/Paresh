@@ -1,6 +1,11 @@
 # Changelog
 
 
+## 2026-11-24 — Backtest opens faster
+
+- A second reader of the same run no longer waits for its figures, trade table and trade log to be rebuilt: 6 s to about 1.5 s locally; the page reads the same.
+- The Dashboard's foreign-flows test counts the 129 months that have a next month, and the heavy ones among them (it said 130).
+
 ## 2026-11-24 — Dashboard on a month's first session
 
 - The Dashboard no longer fails when Nifty Total Market has no figure for the month yet (a month's first session): the headline says so.
