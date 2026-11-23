@@ -1,6 +1,16 @@
 # Changelog
 
 
+## 2026-11-24 — Charts open on one rule; warnings say so in words; one type scale (S193 H, I, J, K, E, S219)
+
+- Charts of recent movement open on 12M and record charts on their whole span: the Dashboard's and Market's breadth 3Y→12M; Market's highs and shares 6M→12M; momentum's lead each month from Dec 2021 (59 months). The 10-month average stays 3Y.
+- The stock chart's and Market's 3M/6M/12M/3Y buttons redraw inside the chart (a click took 1.6 s, now 0.1 s); the stock heading's relative strength follows the chosen range.
+- Every warning carries a "!" and a word ("Warning:", "Late:"); notes that only explain are plain grey. The faintest grey text is darker (5.3:1 on white).
+- One type scale and one spacing ladder on every page; chart labels are at least 12 px.
+- A "–" says why, in one footnote per column; a stock that failed the filters reads "Out"; the Backtest's Nifty 500 column shows its own volatility, Sharpe and Sortino.
+- The prices date sits in the menu row on a computer; headlines colour their verdict on every page; Actions' "What could still change" captions sit beside their labels; Watchlist reads "Your 1 stock is not in the book's top 20."
+- Sectors' link to the Dashboard's size section lands on it; a link crawl over every page and system runs in CI.
+
 ## 2026-11-23 — Colours mean one thing; every figure says its date (S193 G, E part 1)
 
 - Orange now means caution only (warnings, stale data, watch states). Momentum 50, the 200-day average, "Turning", the size groups and large size shares no longer use it (owner approved the screenshots).
