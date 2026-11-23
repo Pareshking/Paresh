@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-23 — A new listing starts on its listing day (S218)
+
+- A new listing whose Screener prices start a few sessions late now takes its first closes from NSE, at Screener's level. TRIVENIPT starts on 12 Oct 2026 (₹684.00, its highest close so far), not 14 Oct. It applies to listings from 12 Oct 2026 on; earlier ones and every frozen month are unchanged.
+
 ## 2026-11-23 — Price pipeline checked end to end (S213)
 
 - Eleven stocks followed from NSE's and BSE's own files to the page: splits, bonuses, a rights issue and a rename agree to the paisa at every step.

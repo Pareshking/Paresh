@@ -359,6 +359,64 @@ def fill_from_backup(primary: pd.DataFrame, backup: pd.DataFrame | None,
     return filled, int(filled.notna().sum().sum()) - before, newer
 
 
+# ── A new listing's first sessions, before Screener's first price (S218) ─────
+#
+# fill_from_backup fills only after a stock's first Screener price. For a new
+# listing NSE often has the first sessions Screener lacks: TRIVENIPT listed on
+# 12 Oct 2026 (NSE 684.00, BSE 683.85) and Screener starts on 14 Oct, so the
+# ranking frame lost its highest close so far. Before a listing's first close
+# there is no action to change the basis, so NSE's closes chain backwards from
+# Screener's first close by ratio: Screener's level, NSE's path.
+#
+# Owner, 23 Nov 2026: "From now on: TRIVENIPT and every new listing after it.
+# No frozen month changes." Earlier listings (eleven in Jun - Sep 2025, Screener
+# weekly then) are left as they are, so no replay of a frozen month moves.
+NEW_LISTING_FILL_FROM = pd.Timestamp("2026-10-12")
+# Screener must start within this many NSE sessions of the listing; a longer
+# lead is not a late start but a different history, left alone.
+NEW_LISTING_MAX_SESSIONS = 5
+# NSE's and Screener's first common closes must keep one ratio within this, or
+# one side has a different basis and nothing is chained.
+NEW_LISTING_CHECK_SESSIONS = 10
+
+
+def extend_new_listings(close: pd.DataFrame, middle: pd.DataFrame | None
+                        ) -> tuple[pd.DataFrame, dict]:
+    """Close with each recent listing's pre-Screener NSE sessions chained in.
+
+    Only a stock whose first NSE close is on or after NEW_LISTING_FILL_FROM and
+    whose first Screener close follows it within NEW_LISTING_MAX_SESSIONS NSE
+    sessions; only sessions already in the frame. Returns (frame, {symbol: cells}).
+    """
+    done: dict = {}
+    if middle is None or middle.empty or close is None or close.empty:
+        return close, done
+    out = close
+    for sym in close.columns.intersection(middle.columns):
+        nse = middle[sym].dropna()
+        scr = close[sym].dropna()
+        if nse.empty or scr.empty:
+            continue
+        listed, first = nse.index[0], scr.index[0]
+        if listed < NEW_LISTING_FILL_FROM or listed >= first or first not in nse.index:
+            continue
+        lead = nse[nse.index < first]
+        if len(lead) > NEW_LISTING_MAX_SESSIONS:
+            continue
+        common = scr.index.intersection(nse.index)[:NEW_LISTING_CHECK_SESSIONS]
+        ratio = scr.reindex(common) / nse.reindex(common)
+        if len(ratio) < 2 or float(ratio.max() / ratio.min()) - 1 > MIDDLE_MAX_DRIFT:
+            continue
+        cells = lead[lead.index.isin(close.index)]
+        if cells.empty:
+            continue
+        if out is close:
+            out = close.copy()
+        out.loc[cells.index, sym] = cells * float(scr.loc[first] / nse.loc[first])
+        done[sym] = len(cells)
+    return out, done
+
+
 # ── Screener's weekly stretch, filled with NSE's daily path (TODO S23) ───────
 #
 # Screener's store is daily for about its latest year and weekly before it.
@@ -621,6 +679,16 @@ def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | Non
     except Exception as exc:  # noqa: BLE001
         _middle_failed(chosen, "NSE gap fill", exc)
         close, mid_cells, mid_added = screener_only, 0, []
+    listed = {}
+    try:
+        close, listed = extend_new_listings(close, middle_close)
+    except Exception as exc:  # noqa: BLE001
+        _middle_failed(chosen, "NSE new-listing start", exc)
+    if listed:
+        metrics.note("price_new_listing_cells", sum(listed.values()))
+        chosen.notes = list(chosen.notes) + [
+            "First sessions before Screener's first price chained from NSE: "
+            + ", ".join(f"{s} {n}" for s, n in sorted(listed.items()))]
     weekly = None
     if weekly_fill and middle_close is not None and not middle_close.empty:
         try:
