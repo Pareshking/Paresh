@@ -825,7 +825,7 @@ def data_line(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
                 behind.append(html.escape(behind_phrase(item)))
     except Exception:  # noqa: BLE001
         behind = []
-    extra = (' <span style="color:var(--c-caution)">' + "; ".join(behind) + ".</span>") if behind else ""
+    extra = (' <span class="cau" style="color:var(--c-caution)"><span class="warn-word">Late:</span> ' + "; ".join(behind) + ".</span>") if behind else ""
     return f'<p class="qp-note" style="margin-top:28px">{html.escape(line)}{extra}</p>'
 
 
@@ -916,6 +916,13 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
                     f"from #{int(j['Rank_last_month'])} to #{int(j['Rank'])}")
     when = (f"Ranks among the ranked stocks on {_day(d1)}, the last session on or before the same date a month "
             "back, against today. Every row shown.") if d1 is not None else "Every row shown."
+    # One footnote for the "–" in the rank-a-month-ago and places columns (S193 E, R1).
+    import itertools
+    from src.ui import missing_words as mw
+    unranked = any(pd.isna(pd.to_numeric(pd.Series([r.get("Rank (-1M)")]), errors="coerce").iloc[0])
+                   for r in itertools.chain(jr, entered.to_dict("records"), left.to_dict("records")))
+    if unranked:
+        when += " " + mw.column_note(f"{was_head} and Places", mw.stock_too_new() + ", not ranked on that date")
     jumps_html = (table("Biggest jumps", "The ten that climbed most places, 1 to 5.", jr[:5], len(jr))
                   + (table("Biggest jumps, 6 to 10", "\u00a0", jr[5:], -1) if len(jr) > 5 else ""))
     st.html(

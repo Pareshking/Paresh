@@ -43,7 +43,7 @@ def page_head(title: str, sub: str, *, actions: bool = False, kicker: str = ""):
     """Title and one plain sentence. With actions=True, returns a container on
     the right for the page's main buttons (a download, a picker). `kicker`: the page's
     name above a title that answers its question (PAGE_DESIGN 2a, 21 Nov 2026)."""
-    kick = (f'<p style="margin:0 0 4px;font-size:var(--fs-12);font-weight:600;letter-spacing:.06em;'
+    kick = (f'<p style="margin:0 0 var(--sp-1);font-size:var(--fs-12);font-weight:600;letter-spacing:.06em;'
             f'text-transform:uppercase;color:var(--c-muted)">{html.escape(kicker)}</p>') if kicker else ""
     head = (f'<div class="scr-head">{kick}<h1>{html.escape(title)}</h1>'
             f'<p>{html.escape(sentence(sub))}</p></div>')
@@ -160,10 +160,40 @@ def empty(lead: str, text: str = "") -> None:
             + (f" {html.escape(text)}" if text else "") + "</div>")
 
 
-def note(lead: str, text: str = "") -> None:
-    """The page's one amber note: a bold first line, then the detail."""
-    st.html(f'<div class="pg-note" role="note"><b>{html.escape(lead)}</b>'
-            + (f" {html.escape(text)}" if text else "") + "</div>")
+def verdict(text: str, good: bool | None) -> str:
+    """One headline phrase that carries the verdict, escaped, in the up or down colour
+    (S219 2, owner 23 Nov 2026: one headline colour rule, at most two phrases a headline,
+    as the Dashboard). `good` None leaves the phrase in ink."""
+    cls = "" if good is None else ("dh-up" if good else "dh-down")
+    return f'<span class="{cls}">{html.escape(text)}</span>' if cls else html.escape(text)
+
+
+def page_empty(title: str, lede: str, footer: str = "", kicker: str = "") -> None:
+    """A page with no data, in one form (S193 E, R4): the h1 in the page's voice, one
+    lede naming what is missing (no job or workflow names), and the page's footer."""
+    page_head(title, lede, kicker=kicker)
+    if footer:
+        st.html(f'<p class="pg-cap pg-foot">{html.escape(footer)}</p>')
+
+
+NOTE_WORD = {"warning": "Warning", "late": "Late"}
+
+
+def note(lead: str, text: str = "", *, kind: Literal["warning", "late", "info"]) -> None:
+    """A note under a heading, its kind chosen at the call site (S193 J1).
+
+    * "warning" and "late": something is wrong, missing, risky or behind its session. Amber, a "!"
+      icon (CSS) and a leading word, "Warning:" or "Late:" (never colour alone; GOV.UK warning text,
+      USWDS alert).
+    * "info": the note only explains (scope, method, which system applies). Muted text, no icon, no
+      leading word and no amber: amber is kept for a fault, so it keeps its meaning."""
+    if kind == "info":
+        st.html(f'<div class="pg-info" role="note"><b>{html.escape(lead)}</b>'
+                + (f" {html.escape(text)}" if text else "") + "</div>")
+        return
+    word = NOTE_WORD[kind]
+    st.html(f'<div class="pg-note" role="note"><b><span class="warn-word">{word}:</span> '
+            f'{html.escape(lead)}</b>' + (f" {html.escape(text)}" if text else "") + "</div>")
 
 
 @contextmanager
@@ -182,7 +212,7 @@ def bar_list(rows: list[tuple[str, float, str, bool]], scale: float) -> str:
     for label, value, shown, flagged in rows:
         w = 0.0 if scale <= 0 else max(0.0, min(100.0, value / scale * 100))
         out.append(
-            f'<div class="pg-bar"><span class="pg-bar-l">{html.escape(label)}</span>'
+            f'<div class="pg-bar"><span class="pg-bar-l{" cau" if flagged else ""}">{html.escape(label)}</span>'
             f'<span class="pg-bar-t"><i class="{"warn" if flagged else ""}" style="width:{w:.1f}%"></i></span>'
             f'<span class="pg-bar-v">{html.escape(shown)}</span></div>'
         )
@@ -253,7 +283,9 @@ def callout(title: str, body: str = "", tone: str = "muted") -> None:
     """A bordered, tinted block for a result that needs a word of explanation.
     Tones: "up", "down", "warn" or "muted". Text is escaped."""
     tone = tone if tone in ("up", "down", "warn", "muted") else "muted"
-    st.html(f'<div class="pg-callout {tone}" role="note"><b>{html.escape(title)}</b>'
+    # A warning box starts with its word and the "!" icon (S193 J1).
+    word = '<span class="warn-word">Warning:</span> ' if tone == "warn" else ""
+    st.html(f'<div class="pg-callout {tone}" role="note"><b>{word}{html.escape(title)}</b>'
             + (f"<span>{html.escape(body)}</span>" if body else "") + "</div>")
 
 
@@ -262,7 +294,9 @@ _BADGE_COLOURS = {"up": "green", "down": "red", "warn": "orange", "info": "blue"
 
 def badge(label: str, tone: str = "") -> None:
     """A small status pill, drawn by Streamlit so it follows the theme."""
-    st.badge(label, color=_BADGE_COLOURS.get(tone, "gray"))
+    # An orange badge carries the warning icon too (S193 J1: never colour alone).
+    st.badge(label, color=_BADGE_COLOURS.get(tone, "gray"),
+             icon=":material/warning:" if tone == "warn" else None)
 
 
 def tradingview_url(symbol: str) -> str:
@@ -353,9 +387,9 @@ _EDITORIAL_CSS = """<style>
 .scr-head h1{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-52)!important;
   line-height:1.06!important;letter-spacing:-0.6px!important;max-width:16em}
 .scr-head p{font-size: var(--fs-17)!important;line-height:1.55!important;max-width:42em;color:var(--c-text_2)!important}
-.scr-kicker{font-size: var(--fs-13);color:var(--c-muted);margin:0 0 8px}
+.scr-kicker{font-size: var(--fs-13);color:var(--c-muted);margin:0 0 var(--sp-2)}
 body .qp h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-36)!important;
-  line-height:1.1!important;letter-spacing:-0.4px!important;margin-bottom:6px!important}
+  line-height:1.1!important;letter-spacing:-0.4px!important;margin-bottom:var(--sp-2)!important}
 body .qp-v{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-36);letter-spacing:-0.3px}
 body .qp-s{font-size: var(--fs-17);max-width:38em}
 body .qp h3{font-size: var(--fs-15)!important}

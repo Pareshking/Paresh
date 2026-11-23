@@ -100,28 +100,32 @@ def _status_pill_html() -> str:
         items = []
     stale = [i for i in items if i.get("stale")]
     prices = next((i for i in items if i.get("label") == "Prices"), None)
+    word = ""
     if stale:
         lead, tail = f"{stale[0]['label']} · ", str(stale[0]["as_of"])
         cls = "hdr-pill hdr-pill-warn"
+        # Never colour alone (S193 J1): the "!" icon replaces the dot, and the
+        # word stays on a phone, where the lead words drop.
+        word = '<span class="warn-word">Late:</span> '
     elif prices is not None:
         lead, tail = "Prices · closes of ", str(prices["as_of"])
         cls = "hdr-pill"
     else:
         return ""
     # The lead words drop on a phone; the date and the colour carry it there.
-    return (f'<span class="{cls}" title="{html.escape(lead + tail)}"><span class="hdr-dot"></span>'
-            f'<span><span class="hdr-pill-lead">{html.escape(lead)}</span>{html.escape(tail)}</span></span>')
+    return (f'<span class="{cls}" title="{html.escape(lead + tail)}"><span class="hdr-dot" aria-hidden="true"></span>'
+            f'<span>{word}<span class="hdr-pill-lead">{html.escape(lead)}</span>{html.escape(tail)}</span></span>')
 
 
 # One flat list, no group headings (owner, 21 Nov 2026: "do we need such sections in
 # the menu? remove them"). The menu lists every page in this order.
 _MENU_ORDER = ("Dashboard", "Actions", "Screener", "Portfolio", "Market", "Indices", "Sectors",
                "Watchlist", "Backtest", "Configuration", "Guide")
-# On a desktop the top bar links every page and the menu button is hidden; the
-# prices date moves from the bar to the end of the market line to make room
+# On a desktop the top bar links every page and the menu button is hidden
 # (owner, 21 Nov 2026: "entire menu will be there on desktop site, mobile site
-# will continue to serve hamburger menu"). Below 1024 px the menu is the only
-# navigation and the date stays in the bar, as before.
+# will continue to serve hamburger menu"); the prices date sits at the right end
+# of that row (S219 1, owner 23 Nov 2026: "to save space"). Below 1024 px the
+# menu is the only navigation and the date stays beside it.
 _QUICK_PAGES = _MENU_ORDER
 
 
@@ -168,7 +172,7 @@ def render_header_kpi_bar(
         level_text = f"{regime.current_price:,.0f}"
     pill = _status_pill_html()
     market_html = f"""
-    <div role="status" aria-label="Market status dashboard" class="mkt-snapshot">
+    <div role="status" aria-label="Market status dashboard" class="mkt-snapshot" tabindex="0">
         <div class="mkt-item mkt-regime-item">
             <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>Nifty 500 {html.escape(dist_text)}{"" if unknown else " its 200D EMA"}</span>
         </div>
@@ -185,12 +189,11 @@ def render_header_kpi_bar(
             <strong>{above_ema} <em>({pct_above_ema:.0f}%)</em></strong>
         </div>
         {"" if near_high is None else f'<div class="mkt-item"><span class="mkt-label" title="Within 20% of the 52-week high">Near 52W high</span><strong>{near_high} <em>({near_high / total_stocks * 100 if total_stocks else 0:.0f}%)</em></strong></div>'}
-        {f'<div class="mkt-item mkt-status">{pill}</div>' if pill else ""}
     </div>
     """
-    # The Dashboard has no market line, but its date must still show on a
-    # desktop, where the bar no longer carries it.
-    status_row = f'<div class="mkt-status-row">{pill}</div>' if pill else ""
+    # The prices pill is in the menu row on every width (S219 1), so the
+    # Dashboard, which has no market line, needs no row of its own for it.
+    status_row = ""
 
     # One menu key per page. Streamlit keeps a keyed popover open across the
     # rerun its own contents trigger, and choosing a page IS such a rerun: on
@@ -224,7 +227,8 @@ def render_header_kpi_bar(
                     with st.container(key=f"{_state}_quick_{_title.lower()}", width="content"):
                         st.page_link(_p)
         if pill:
-            # Below 1024 px only; on a desktop the date is in the market line.
+            # The right end of the menu row on a computer (S219 1, owner 23 Nov 2026), beside
+            # the menu button on a phone.
             st.html(pill.replace('class="hdr-pill', 'class="hdr-pill-head hdr-pill', 1), width="content")
         if nav_pages:
             # The only navigation, on every screen (owner, 7 Nov: "a hamburger
@@ -257,7 +261,7 @@ def render_header_kpi_bar(
     # of them, phone included (the pill above shrinks to a date there).
     notice = stale_prices_notice()
     if notice:
-        st.html(f'<div class="stale-notice" role="alert">{html.escape(notice)}</div>')
+        st.html(f'<div class="stale-notice" role="alert"><span class="warn-word">Late:</span> {html.escape(notice)}</div>')
     pending = pending_history_notice()
     if pending:
         st.html(f'<div class="stale-notice stale-notice-info" role="status">{html.escape(pending)}</div>')
@@ -268,8 +272,8 @@ def render_header_kpi_bar(
 def signal_chips_html(signals: list[SignalAlert]) -> str:
     """The Screener's signal chips, for its title row ("" when there are none)."""
     chips = "".join(
-        f'<span class="sig-chip" style="color:{s.color};background:{s.color}14;'
-        f'border-color:{s.color}2E;font-size:0.9rem">{html.escape(str(s.text))}</span>'
+        f'<span class="sig-chip{" cau" if s.color == C.caution else ""}" style="color:{s.color};background:{s.color}14;'
+        f'border-color:{s.color}2E;font-size:var(--fs-15)">{html.escape(str(s.text))}</span>'
         for s in signals
     )
     return (f'<div class="sig-row" role="status" aria-label="Signals today">{chips}</div>'
@@ -564,13 +568,14 @@ def render_freshness_ribbon() -> None:
         # Amber for a stale source, Ledger blue for a current one (owner, 7 Nov).
         color = C.caution if item["stale"] else C.up
         weight = 600 if item["stale"] else 500
-        parts.append(f'<span style="color: {color}; font-weight: {weight};">{label}: {as_of}{age}</span>')
+        cau = ' class="cau"' if item["stale"] else ""
+        parts.append(f'<span{cau} style="color: {color}; font-weight: {weight};">{label}: {as_of}{age}</span>')
 
     sep = '<span aria-hidden="true" style="color: var(--c-faint);">·</span>'
     st.markdown(
         '<div role="status" aria-label="Data freshness" style="display: flex; flex-wrap: wrap; '
         "align-items: baseline; gap: 4px 10px; padding: 14px 0 4px; border-top: 1px solid var(--c-rule); "
-        'margin-top: 22px; margin-bottom: 2px; font-family: var(--font-ui); font-size: var(--fs-12);">'
+        'margin-top: var(--sp-5); margin-bottom: var(--sp-1); font-family: var(--font-ui); font-size: var(--fs-12);">'
         f"{sep.join(parts)}</div>",
         unsafe_allow_html=True,
     )
@@ -646,7 +651,7 @@ def render_data_quality_footer(
     )
     footer_html = f"""
     <div style="display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 0 24px; font-family: var(--font-ui); font-size: var(--fs-12); color: var(--c-muted);">
-        <span>Gap-filled over 10% (12 months): <strong style="color: {"var(--c-caution)" if gap_count else "var(--c-ink)"};">{gap_count}</strong></span>
+        <span>Gap-filled over 10% (12 months): <strong class="{"cau" if gap_count else ""}" style="color: {"var(--c-caution)" if gap_count else "var(--c-ink)"};">{gap_count}</strong></span>
         <span style="color: var(--c-faint);">·</span>
         <span>Short history (under 126 sessions): <strong style="color: var(--c-ink);">{short_count}</strong></span>
         {source_note}

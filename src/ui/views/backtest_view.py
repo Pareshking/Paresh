@@ -25,6 +25,7 @@ import pandas as pd
 import streamlit as st
 
 from src.ui import formats as _fmt
+from src.ui import missing_words as mw
 
 from src.core.config import BENCHMARK_SYMBOL, BENCHMARK_SYMBOL_N50, DEFAULT_TRANSACTION_COST_BPS, RISK_FREE_RATE
 from src.core.market_time import ist_now
@@ -208,15 +209,16 @@ def _history_bounds() -> dict | None:
     """The long file and the months it can test, before any choice is made."""
     loaded = _long_file()
     if loaded is None:
-        kit.note("The long price file is not available yet.",
-                 "It is built weekly from NSE's bhavcopy by the 'NSE long price file' workflow.")
+        kit.page_empty("No long price file yet.",
+                       "It is built each week from NSE's daily files; the Backtest runs once it is in.", kicker="Backtest")
         return None
     close, _value, report = loaded
     # A year of prices before the first month, for the 12-month lookback and the EMA.
     first = pd.Period(close.index[0], freq="M") + 13
     last = pd.Period(close.index[-1], freq="M") - 1
     if first > last:
-        kit.note("The long price file has no completed month to test yet.")
+        kit.page_empty("No completed month to test yet.",
+                       "The long price file needs a year of prices before its first month.", kicker="Backtest")
         return None
     return {"close": close, "report": report, "months": list(pd.period_range(first, last, freq="M"))}
 
@@ -234,7 +236,7 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
     key = choice["index"]
     membership = iu.index_history(key)
     if membership is None:
-        kit.note(f"No membership history for {iu.INDICES[key]}.")
+        kit.note(f"No membership history for {iu.INDICES[key]}.", kind="warning")
         return None
     first = max(iu.first_month(membership), bounds["months"][0])
     start, end = choice["start"], choice["end"]
@@ -246,7 +248,7 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
         start = first
     if start > end:
         kit.note(f"{iu.INDICES[key]} has no completed month in the window chosen.",
-                 f"Its list begins {first.strftime('%b %Y')}; move the start or end month.")
+                 f"Its list begins {first.strftime('%b %Y')}; move the start or end month.", kind="warning")
         return None
     floor = float(choice["floor"] or 0.0)
     to_latest = end == bounds["months"][-1]
@@ -261,7 +263,7 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
     if floor:
         value = _long_value()
         if value is None:
-            kit.note("Traded value is not available right now, so the floor is off for this run.")
+            kit.note("Traded value is not available right now, so the floor is off for this run.", kind="warning")
             floor = 0.0
         else:
             traded, traded_fingerprint = _traded(value, cols, frame.index[-1])
@@ -439,20 +441,24 @@ def tested_line(s: dict, h: dict) -> str:
 
 def head(f: dict) -> list:
     sm, h = f["summary"], f["h"]
+    # The verdict phrase in up/down colour: the rule's figure against the index's (S219 2).
     if sm.a_year is not None:
-        title = (f"Since {sm.first.year} this rule made {_pc(sm.a_year)} a year to the Nifty 500’s "
-                 f"{_pc(sm.bench_a_year)}, before tax.")
+        ahead = None if sm.bench_a_year is None else sm.a_year >= sm.bench_a_year
+        title = (e(f"Since {sm.first.year} this rule ") + kit.verdict(f"made {_pcs(sm.a_year)} a year", ahead)
+                 + e(f" to the Nifty 500’s {_pc(sm.bench_a_year)}, before tax."))
     else:
-        title = f"Over {sm.months} months this rule returned {_pcs(sm.total)}, the Nifty 500 {_pcs(sm.bench_total)}."
+        ahead = None if sm.total is None or sm.bench_total is None else sm.total >= sm.bench_total
+        title = (e(f"Over {sm.months} months this rule ") + kit.verdict(f"returned {_pcs(sm.total)}", ahead)
+                 + e(f", the Nifty 500 {_pcs(sm.bench_total)}."))
     lede = (f"{'The record’s rules' if f['default'] else 'These rules'} replayed on the {h['name']} as it stood each "
             f"month, {_d(sm.first)} to {_d(sm.last)}, on NSE’s closes, after {f['s']['cost_bps']:g} bps a round trip. "
             "Price returns on both sides. A replay of the past, not a forecast.")
-    out = [f'<div class="dh-sec"><p class="dh-kick">Backtest</p><h1 id="s-top" class="dh-h1">{e(title)}</h1>'
+    out = [f'<div class="dh-sec"><p class="dh-kick">Backtest</p><h1 id="s-top" class="dh-h1">{title}</h1>'
            f'<p class="dh-lede">{e(lede)}</p></div>', tested_line(f["s"], h)]
     if h.get("moved"):
         out.append(f'<p class="dh-note">{e(h["moved"])}</p>')
     if not f["default"]:
-        out.append('<p class="bt-warn">These settings differ from the record’s. A setting chosen after seeing its result '
+        out.append('<p class="bt-warn"><span class="warn-word">Warning:</span> These settings differ from the record’s. A setting chosen after seeing its result '
                    'on this same history flatters the result; only months after a rule was fixed test it.</p>')
     return out
 
@@ -466,7 +472,8 @@ def section_lead(f: dict) -> list:
         h2 = (f'Under a year, so no yearly figure: the rule is <span class="{_t(sm.total)}">{e(_pcs(sm.total))}</span>, '
               f'the Nifty 500 {e(_pcs(sm.bench_total))}.')
     tiles = _kpis([
-        ("A year, compounded", _pc(sm.a_year) if sm.a_year is not None else "–", _t(sm.a_year),
+        # A coloured change carries its sign (S193 J: never colour alone).
+        ("A year, compounded", _pcs(sm.a_year) if sm.a_year is not None else "–", _t(sm.a_year),
          f"Nifty 500 {_pc(sm.bench_a_year)}" if sm.a_year is not None else "needs 12 months"),
         ("Lead over the Nifty 500", _pts(sm.lead) if sm.lead is not None else _pts(sm.total - sm.bench_total),
          _t(sm.lead if sm.lead is not None else sm.total - sm.bench_total), "a year" if sm.lead is not None else "over the run"),
@@ -500,13 +507,14 @@ def section_lead(f: dict) -> list:
                      f"{_pts(sm.median_lead)}.")
     rows = [["Total return", _pcs(sm.total, 0), _pcs(sm.bench_total, 0)],
             ["A year, compounded", _pc(sm.a_year), _pc(sm.bench_a_year)],
-            ["A year before costs", _pc(st_.get("cagr_gross")), "–"],
-            ["Volatility, a year (daily returns)", _pc(st_.get("volatility")), "–"],
+            # Costs and turnover do not apply to an index: a blank cell, not "–" (S193 E, rule 2).
+            ["A year before costs", _pc(st_.get("cagr_gross")), mw.NOT_APPLICABLE],
+            ["Volatility, a year (daily returns)", _pc(st_.get("volatility")), _pc(st_.get("bench_volatility"))],
             [f"Sharpe, over {RISK_FREE_RATE:.1%}, ± one standard error",
-             f"{st_.get('sharpe', float('nan')):.2f} ± {st_.get('sharpe_stderr_iid', float('nan')):.2f}", "–"],
+             f"{st_.get('sharpe', float('nan')):.2f} ± {st_.get('sharpe_stderr_iid', float('nan')):.2f}", _ratio(st_.get("bench_sharpe"))],
             [f"Sortino, over {RISK_FREE_RATE:.1%}",
-             f"{st_['sortino']:.2f}" if np.isfinite(st_.get("sortino", float("nan"))) else "–", "–"],
-            ["Turnover, one way, a month", f"{st_.get('avg_turnover', 0):.0f}%", "–"]]
+             f"{st_['sortino']:.2f}" if np.isfinite(st_.get("sortino", float("nan"))) else "–", _ratio(st_.get("bench_sortino"))],
+            ["Turnover, one way, a month", f"{st_.get('avg_turnover', 0):.0f}%", mw.NOT_APPLICABLE]]
     return ['<div class="dh-sec">', _kick("1", "Ahead of the Nifty 500"), f'<h2 id="s-lead" class="dh-h2">{h2}</h2>', tiles, "</div>",
             Chart("btgrowth", spec, {"label": "Growth of ₹100 on a log scale, this rule and the Nifty 500, and how far each "
                                               "sits below its peak"}),
@@ -623,6 +631,21 @@ def section_years(f: dict) -> list:
             f'<details><summary>Show the table · month by month</summary><div class="dh-scroll">{grid}</div></details></div>', END]
 
 
+def _months_dash_note(m: pd.DataFrame) -> str:
+    """One footnote for the grid's "–" (S193 E, rule 1): months before the first fill, and months after the last month-end tested."""
+    first, last = m.index.min(), m.index.max()
+    bits = []
+    if first.month > 1:
+        bits.append(f"before {first:%b %Y}, the replay's first month")
+    if last.month < 12:
+        bits.append(f"after {last:%b %Y}, the replay's last completed month ({mw.NOT_PUBLISHED})")
+    return mw.column_note("a month", "; ".join(bits)) if bits else ""
+
+
+def _ratio(v) -> str:
+    return "–" if v is None or (isinstance(v, float) and not np.isfinite(v)) else f"{v:.2f}"
+
+
 def months_grid(m: pd.DataFrame) -> str:
     """Month by month, Portfolio's layout: this rule, the Nifty 500 and the lead in pts, a block a year."""
     if m.empty:
@@ -641,7 +664,7 @@ def months_grid(m: pd.DataFrame) -> str:
                             for k in range(1, 13))
             body += f'<tr><th scope="row">{label}</th>{cells}<td class="dh-num"><b>{e(yv)}</b></td></tr>'
     return (f'<table class="dh-tab bt-months"><thead><tr><th scope="col"></th>{head}</tr></thead><tbody>{body}</tbody></table>'
-            '<p class="dh-note">Lead in pts. A year compounds its months; the first year from the first fill.</p>')
+            f'<p class="dh-note">Lead in pts. A year compounds its months; the first year from the first fill. {e(_months_dash_note(m))}</p>')
 
 
 def section_depends(f: dict) -> list:
@@ -701,7 +724,7 @@ def section_depends(f: dict) -> list:
         trows += (f'<tr class="dh-grp-row"><th scope="rowgroup" colspan="3">{e(title)}'
                   f'<span class="dh-sub">{e(span)}</span></th></tr>')
         for name, a, dd in items:
-            trows += (f'<tr><th scope="row">{e(name)}</th><td class="dh-num {_t(a)}">{e(_pc(a))}</td>'
+            trows += (f'<tr><th scope="row">{e(name)}</th><td class="dh-num {_t(a)}">{e(_pcs(a))}</td>'
                       f'<td class="dh-num dh-down">{e(_pcs(dd))}</td></tr>')
     if trows:
         parts += ['<div class="dh-scroll"><table class="dh-tab bt-t"><thead><tr><th scope="col">Against what you could buy</th>'
@@ -970,7 +993,7 @@ def _system_note() -> None:
     system = system_param.current()
     if system != SYSTEM_750:
         kit.note(f"The {SYSTEM_NAMES.get(system, system)} system does not change these runs: each run picks its own "
-                 "index in the settings below.")
+                 "index in the settings below.", kind="info")
 
 
 def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: float, weights: tuple[float, ...],
@@ -988,12 +1011,13 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
         return
     bench = fetch_benchmark_history(period="max", symbol=BENCHMARK_SYMBOL)
     if bench.empty:
-        st.error("The Nifty 500's closes are unavailable. Backtest stopped rather than compare against nothing.")
+        # A failure is an amber note, not a red box (S193 E, rule 4).
+        kit.note("The Nifty 500's closes are unavailable.", "Backtest stopped rather than compare against nothing.", kind="warning")
         return
     res = _run(s, h, bench, stock_cap, sector_cap)
     if res is None:
-        st.warning("Not enough price history for this window: the rules need a 12M lookback before the first "
-                   "month tested.")
+        kit.note("Not enough price history for this window.", "The rules need a 12M lookback before the first "
+                 "month tested; pick a later start above.", kind="warning")
         return
     eq = pd.Series(res.get("equity_curve")).dropna()
     if eq.empty or len(eq) < 2:

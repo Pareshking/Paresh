@@ -9,7 +9,8 @@ It answers what a reader comes with (docs/STOCK_REQUIREMENTS.md):
             the model book's holding (Portfolio's own function), the calendar before the check
   3 Returns and falls: line bars on one scale against Nifty Total Market over the same sessions
   4 Price   today's Lightweight Charts chart, restyled: price and the ranking's 50D EMA,
-            Volume, RS against Nifty Total Market; 6M · 12M · 3Y; one-line readout
+            Volume, RS against Nifty Total Market; 6M · 12M · 3Y as chips in the chart, opening on 12M,
+            the heading's relative-strength words following the chip (S193 H2); one-line readout
   5 Sector    the eight best-ranked, qualified places filled; the rest on the Screener
   6 Data    the checks in plain sight; corporate actions from NSE's own list
   Foot      Data to <date> · NSE
@@ -70,7 +71,7 @@ table.sp-t{border-collapse:collapse;width:100%;font-size:var(--fs-13)}
 .sp-t a:hover{text-decoration:underline}
 .sp-trail{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:24px;align-items:start}
 .sp-trail svg{width:220px;height:170px;display:block}
-.sp-trail text{fill:var(--c-muted);font-family:var(--font-ui);font-size:12px}
+.sp-trail text{fill:var(--c-muted);font-family:var(--font-ui);font-size:var(--fs-12)}
 .sp-trail .cap{font-size:var(--fs-12);color:var(--c-muted);margin-top:4px}
 .sp-ladder{max-width:640px}
 .sp-ladder .track{position:relative;height:22px;margin:0 8px}
@@ -283,7 +284,7 @@ def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
                    f'stroke="var(--c-ink)" stroke-width="2"/>' for i, (x, y) in enumerate(zip(xs, ys)))
     label = ("Place among the qualified: " + ", ".join(sl.place_text(p) for p in tr.places)
              + f"; buy line {wl.fmt_ordinal(ln.buy)}, keep line {wl.fmt_ordinal(ln.keep)}")
-    t = 'style="fill:var(--c-muted);font-family:IBM Plex Sans,system-ui,sans-serif;font-size:12px"'
+    t = 'style="fill:var(--c-muted);font-family:IBM Plex Sans,system-ui,sans-serif;font-size:var(--fs-12)"'
     svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="220" height="170" viewBox="0 0 220 170">'
            '<line x1="20" x2="210" y1="52" y2="52" stroke="var(--c-muted)" stroke-dasharray="4 4"/>'
            '<line x1="20" x2="210" y1="110" y2="110" stroke="var(--c-muted)" stroke-dasharray="2 4"/>'
@@ -500,7 +501,8 @@ def render_stock_view(
     from src.engine.exit_watch import assess, qualified_ranks
     from src.engine.track_record import TRACK_RECORD_CONFIG
     from src.ui import system_param
-    from src.ui.stock_chart import RANGES, relative_strength, render_price_chart, ranking_ema, window
+    from src.ui.stock_chart import (DEFAULT_RANGE, RANGE_WORDS, RANGES, ranking_ema, relative_strength,
+                                    render_price_chart, window)
     from src.ui.views.dashboard_home_view import HOME_CSS
     from src.ui.views.ranking_view import _month_ago, with_book_columns
 
@@ -569,13 +571,20 @@ def render_stock_view(
     # 4 · Price: the chart is a widget (the range control), so the section is drawn in pieces.
     ema = ranking_ema(chart_close) if not chart_close.empty else pd.Series(dtype=float)
     above, of = sl.sessions_above(chart_close, ema)
-    rs = relative_strength(window(chart_close, RANGES["12M"]), market)
-    pa, pb, pc = sl.price_heading(above, of, float(rs.iloc[-1]) if len(rs) else None)
-    _emit(['<section class="dh-sec sp-sec" style="padding-bottom:0;border-bottom:0">', _kick("4 · Price"), _h2(pa, pb, pc),
+    # The heading's relative strength over the range the chart shows: each chip rewrites it (S193 H2; at 3Y the
+    # pane read 85.4 while the heading read the 12M figure, item H C16).
+    heads = {}
+    for lab, months in RANGES.items():
+        rs = relative_strength(window(chart_close, months), market)
+        pa, pb, pc = sl.price_heading(above, of, float(rs.iloc[-1]) if len(rs) else None)
+        heads[lab] = _h2(pa, pb, pc.replace(RANGE_WORDS[DEFAULT_RANGE], RANGE_WORDS[lab]))
+    head = heads[DEFAULT_RANGE].replace('<h2 class="dh-h2">', '<h2 class="dh-h2 sp-price-h">', 1)
+    follow = {"sel": "h2.sp-price-h", "html": {k: v[len('<h2 class="dh-h2">'):-len("</h2>")] for k, v in heads.items()}}
+    _emit(['<section class="dh-sec sp-sec" style="padding-bottom:0;border-bottom:0">', _kick("4 · Price"), head,
            f'<div class="sp-cap"><b>Price and relative strength</b><span>against {sl.MARKET}</span></div>', "</section>"])
     vol = volume_data[sym] if volume_data is not None and sym in volume_data.columns else None
     if not chart_close.empty:
-        render_price_chart(sym, chart_close, vol, market)
+        render_price_chart(sym, chart_close, vol, market, follow=follow)
     _emit([f'<div class="sp-sec"><p class="dh-note">{e(sl.PRICE_NOTE)}</p></div>'])
 
     shown, in_ind = sl.peers(full, row)

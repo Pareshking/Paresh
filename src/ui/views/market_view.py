@@ -38,6 +38,14 @@ def index_members(rank_df: pd.DataFrame, index_name: str) -> list[str]:
     return rank_df.loc[tags.map(lambda ts: tag in ts), "Symbol"].tolist()
 
 
+# Today's charts open on 12M (S193 H; owner, 23 Nov 2026: "12M"), with 3M and 6M as chips in each frame: a
+# period is a cut of one 12-month series, so a click redraws the chart in place instead of rerunning the
+# page. The Chart settings (average, periods, by index, the high/low window, % or count) still rerun it:
+# each changes what is measured, not the dates shown (PAGE_DESIGN 4.1, the exception stated there).
+PERIOD = {"default": "12M", "why": "lately", "chips": ["3M", "6M", "12M"]}
+LOOKBACK = 252   # sessions sent: the longest chip
+
+
 def _participation_chart(pct: pd.DataFrame, ma_type: str, pit: dict[str, pd.Series] | None = None) -> None:
     """Share of stocks above each average, over time, with the 40% and 60% lines (the site's chart kit).
     The 50D and 200D EMA lines count the members of each date, leavers included (point-in-time history),
@@ -53,7 +61,7 @@ def _participation_chart(pct: pd.DataFrame, ma_type: str, pit: dict[str, pd.Seri
         series.append({"name": f"{c} {ma_type}, {who}",
                        "values": [None if pd.isna(v) else round(float(v), 1) for v in s.to_numpy()],
                        "color": LINE_CYCLE[i % len(LINE_CYCLE)][0], "dash": LINE_CYCLE[i % len(LINE_CYCLE)][1]})
-    dc.render("lines", {"dates": [f"{d:%Y-%m-%d}" for d in pct.index], "yfmt": "pct", "range": [0, 100],
+    dc.render("lines", {"dates": [f"{d:%Y-%m-%d}" for d in pct.index], "yfmt": "pct", "yrange": [0, 100], "range": PERIOD,
                         "levels": [{"v": 60, "label": "60% broad", "color": "up"}, {"v": 40, "label": "40% narrow", "color": "down"}],
                         "series": series}, label="Share of stocks above each average")
 
@@ -65,6 +73,7 @@ def _highs_lows_chart(hl_df: pd.DataFrame, is_pct: bool) -> None:
     highs = pd.to_numeric(hl_df[h_col], errors="coerce").fillna(0)
     lows = pd.to_numeric(hl_df[l_col], errors="coerce").fillna(0)
     dc.render("bars", {"values": [round(float(v), 1) for v in highs], "labels": [f"{d:%-d %b}" for d in hl_df.index],
+                       "dates": [f"{d:%Y-%m-%d}" for d in hl_df.index], "range": PERIOD,
                        "full": [f"{d:%-d %b %Y}" for d in hl_df.index], "unit": "new highs" + (" (% of stocks)" if is_pct else ""),
                        "dp": 1 if is_pct else 0, "xn": 6, "height": 260, "color2": "--down",
                        "also": [["new lows" + (" (% of stocks)" if is_pct else ""), -round(float(v), 1)] for v in lows]},
@@ -94,11 +103,6 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
 
     with st.container(key="br_chart_head", horizontal=True, vertical_alignment="center", gap="small"):
         st.html('<h2 id="q-charts" class="br-charts-h">Today\'s charts</h2>', width="stretch")
-        history_days = st.segmented_control(
-            "Period", [63, 126, 252], default=126, required=True,
-            format_func=lambda x: {63: "3M", 126: "6M", 252: "12M"}[x],
-            key="br_lb_days", label_visibility="collapsed",
-        ) or 126
         with st.popover("Chart settings", icon=":material/tune:"):
             ma_type = st.segmented_control("Average", ["EMA", "SMA"], default="EMA",
                                            key="br_ma_type") or "EMA"
@@ -122,9 +126,9 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # or a restatement kept the old key and served stale breadth).
     ph = known_fingerprint(adj_close)  # computed once in app.py's loader (S208)
     breadth_df = compute_ma_breadth(
-        ph, adj_close, tuple(sel_mas), lookback=history_days, ma_type=ma_type
+        ph, adj_close, tuple(sel_mas), lookback=LOOKBACK, ma_type=ma_type
     )
-    hl_df = compute_hl_timeseries(ph, adj_close, window=hl_window, lookback=history_days)
+    hl_df = compute_hl_timeseries(ph, adj_close, window=hl_window, lookback=LOOKBACK)
 
     # The figure tiles that sat here repeated the evidence table above.
 

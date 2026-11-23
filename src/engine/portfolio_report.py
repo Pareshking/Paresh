@@ -165,10 +165,14 @@ def _risk(b: pd.Series, m: pd.Series, label: str) -> Risk | None:
                 beta, float((x.b - x.m).std(ddof=0) * np.sqrt(YEAR) * 100))
 
 
+# The fewest sessions of the book a risk figure is worked out from (the pages say so beside a "–").
+RISK_MIN_SESSIONS = 21
+
+
 def risk(book: pd.Series, market: pd.Series) -> list[Risk]:
     """Since start; from the record's second year also the last 12 months and each calendar year."""
     b, m = _clean(book), _clean(market).reindex(_clean(book).index).ffill()
-    if len(b) < 21:
+    if len(b) < RISK_MIN_SESSIONS:
         return []
     start, end = b.index[0], b.index[-1]
     out = [_risk(b, m, f"Since {start + pd.Timedelta(days=1):%-d %b %Y}")]
