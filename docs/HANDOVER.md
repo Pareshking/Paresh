@@ -43,7 +43,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 #644 (S214), #645 (numpy 2.5.5; Dependabot #641-#643 carried in and closed), #646 (S205 step 1).
 
 **Open pull requests**
-- **S213 batch PR** (branch `ccr-b633a7d9-s213`, draft, opened at this handover). Merge when CI is green on its
+- **#647, S213 batch PR** (branch `ccr-b633a7d9-s213`, draft). Merge when CI is green on its
   current head. It carries:
   - S215 explained: the 34 stocks missing from the > ₹2,000 Cr ranking are new listings under 63 sessions (NSE
     `EQUITY_L.csv`; DATA_CORRECTNESS §5). The reconciliation log now prints `new_listings=N` apart from `missing=`
@@ -94,7 +94,7 @@ any work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
 ## Queue: one at a time, in this order
 
-0. **Finish what is open**: merge the S213 PR on green; the owner's 24 Nov items (a)-(c) above; then S205's
+0. **Finish what is open**: merge #647 on green; the owner's 24 Nov items (a)-(c) above; then S205's
    CI figure and, only if needed, the runner. Then S213, S208, S207, and the S193 items (one at a time with the owner).
 
 1. **23 Nov first-run checks** (record each in TODO S188 with its run ID). The
@@ -209,5 +209,5 @@ on the current head, squash, expectedHeadSha), check open PRs before taking an
 S-number (next free S216), verify every claim, delete nothing without the
 owner's yes, finish whatever you start before handing over, and follow
 CLAUDE.md's "Saving resources" (finish locally, push once, batch follow-ups). Then work the
-queue in order, starting with item 0 (merge the S213 PR when green).
+queue in order, starting with item 0 (merge #647 when green).
 ```
