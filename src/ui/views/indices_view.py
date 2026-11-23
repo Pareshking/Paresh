@@ -295,6 +295,9 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
         body = ""
         dash = {}   # one footnote per column for its "–" (S193 E, R1)
         for x in xs:
+            for m in ip.WINDOWS[:-1]:
+                if x.returns[m] is None:
+                    dash[f"{m}M"] = mw.not_published() if x.late is not None else mw.index_too_new()
             if x.from_high is None:
                 dash["From 12M high"] = (mw.not_published() if x.late is not None else mw.index_too_new())
             if x.pe is None:
