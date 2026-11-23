@@ -22,7 +22,7 @@ import streamlit as st
 
 from src.engine import market_questions as mq
 from src.engine import sectors_page as sp
-from src.engine.pipeline import price_fingerprint
+from src.engine.pipeline import known_fingerprint
 from src.ui import formats as _fmt
 from src.ui.components import gap_count, render_data_quality_footer, to_bool_mask
 from src.ui.industry_names import INDUSTRY_SHORT as SHORT_NAMES
@@ -620,7 +620,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     if prices is None or prices.empty:
         st.html('<div class="dh"><div class="dh-sec"><p class="dh-kick">Sectors</p><h1 class="dh-h1">No prices yet.</h1></div></div>')
         return
-    key = "|".join([price_fingerprint(prices), col, str(len(rank_df)), str(tm.index[-1]) if len(tm) else "-"])
+    key = "|".join([known_fingerprint(prices), col, str(len(rank_df)), str(tm.index[-1]) if len(tm) else "-"])
     model = _model(key, rank_df, prices, col, tm)
     if model is None:
         st.html('<div class="dh"><div class="dh-sec"><p class="dh-kick">Sectors</p>'

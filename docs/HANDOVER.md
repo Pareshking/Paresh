@@ -5,7 +5,7 @@ state, queue and dates sections); do not write a dated copy. Earlier dated
 handovers are in `docs/archive/HANDOVER_*.md`. Paste the prompt at the end as
 the first message of a fresh session.
 
-_Last updated: 23 Nov 2026 ~14:00 IST (08:30 UTC), coordinating session of 22-23 Nov (session_016X4g5aV4BforqdG6bYB6KH)._
+_Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsnhgFzzKddp8Wc (took over 14:00 IST)._
 
 ## The owner's standing rules (unchanged)
 
@@ -15,7 +15,7 @@ _Last updated: 23 Nov 2026 ~14:00 IST (08:30 UTC), coordinating session of 22-23
   **current head** and it merges cleanly with `main`. Squash-merge with
   `expectedHeadSha`. After a squash merge, restart your branch from `main`.
 - **Before taking an S-number,** check open PRs as well as `main`. Next free:
-  **S204** (S203 page sentence templates; S197, S198 by #621/#623; S199-S202 reserved for queue items 6-9).
+  **S216** (TODO's header lists what is reserved).
 - **Verify every claim yourself.** Nothing is deleted without the owner's yes on
   each item; the `ref_*` release files always stay.
 - **Tests:** `python scripts/fetch_nse_closes.py` first, then
@@ -38,22 +38,12 @@ _Last updated: 23 Nov 2026 ~14:00 IST (08:30 UTC), coordinating session of 22-23
 
 ## State at handover
 
-**23 Nov ~08:30 UTC.** The owner asked for a fresh session from 14:00 IST; this session stopped new work and finished
+**23 Nov ~09:30 UTC.** #647 merged (938121e). Earlier: the owner asked for a fresh session from 14:00 IST; this session stopped new work and finished
 what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640 (S212 clean-up, ~13,700 lines),
 #644 (S214), #645 (numpy 2.5.5; Dependabot #641-#643 carried in and closed), #646 (S205 step 1).
 
 **Open pull requests**
-- **#647, S213 batch PR** (branch `ccr-b633a7d9-s213`, draft). Merge when CI is green on its
-  current head. It carries:
-  - S215 explained: the 34 stocks missing from the > ₹2,000 Cr ranking are new listings under 63 sessions (NSE
-    `EQUITY_L.csv`; DATA_CORRECTNESS §5). The reconciliation log now prints `new_listings=N` apart from `missing=`
-    (owner, 23 Nov: "Let log shows"; `momentum.too_new_to_rank`, counted from the first price).
-  - S205 step 2: the number-format audit saves each page's text (`--save`), and the glossary audit reuses it
-    (`--cache`) for the nine pages both read. Shared reader: `scripts/_page_text.mjs`. A planted glossary fault in
-    saved text is still reported.
-  - pyarrow back to 24.0.0, and Dependabot ignores 25+. The owner's 23 Nov 07:58 boot log showed Streamlit Cloud
-    replacing #645's 26.0.1 ("known segfault, apache/arrow#50471"), as on 7 Nov.
-  - The S205 CI figure after #646: the layout step went from 15 min 37 s to 7 min 40 s.
+- **S208 PR** (see below): merge when CI is green on its current head.
 - **#638 (S211, one date rule):** draft. Merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
   published ranks move). It conflicts with main again: merge main into it once, just before merging. Reminder
   `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
@@ -67,34 +57,24 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
   deployed, the same log should no longer say "Replacing with pyarrow<25".
 - (c) Optional: set the Dependabot secrets (TODO S209). Until then every Dependabot PR fails validate at the R2 step.
 
-**After the S213 PR merges:** read the layout step's time on its CI run. If it is 6 min or less, S205 is done after
-2-3 clean runs (record the run IDs). If not, the parallel runner (`run_page_audits.sh`; the patch is in the old
-session's scratchpad, so rebuild it) is the next and last step.
+**S205:** #647's CI (run 45136691708) took 6 min 33 s on the layout step. Recommended: no parallel runner for 33 s;
+read the S208 PR's runs, and if they stay at 6-7 min ask the owner to set the target at 7 min and close S205.
 
-**S208, part done, no PR yet:** branch `ccr-b633a7d9-s208` (0f7597b, from an agent at handover). Done: the ranking
-fingerprint is computed once in the cached `_adjusted_frames_shared`; the Backtest run frame and its fingerprint are
-built once (`_run_frame_shared`; 5 reruns → 1 hash, by test); `_long_file` and `_long_value` use `st.cache_resource`;
-a test shows the cached long file is unchanged after page runs. Open: the page-level hashes in five views (Dashboard
-868/1247, Market 121, Sector 623, Ranking 795, Market questions 464/716), the traded-value hash, bench memory, a real-app
-check. Its local suite: 2,924 passed; 6 errors in `test_nse_prices.py` need the fetched closes. Review it before opening the PR.
+**S208 PR** (branch `ccr-b633a7d9-s208`, draft): the five pages, the Backtest's traded value and the track record
+read each price frame's fingerprint computed once in app.py's cached loaders (`pipeline.known_fingerprint`). Merge
+when CI is green on its current head; bench memory still to measure (TODO S208).
 
 **Not started, in the queue:** S213 beyond S215 (price pipeline end to end); S207 closed 23 Nov (measured: leave both). These were taken over from the speed session.
 
-**Scheduled tasks** (each wakes the session named, not the new one; re-create in the new session what it should own):
-- This session's two half-hourly work loops, `trig_01CFi7nxJC5Gti62ywnEwomh` (:07) and `trig_01S36K78BdCHt1Fm7AZnNgVb`
-  (:37): **paused** at handover (enabled=false, not deleted). Re-point them with `persistent_session_id` set to the new
-  session, or make new ones, then re-enable.
-- `trig_01MGhPjDNkLj9QptrreSjzZh` (1 Dec 13:30 UTC, S211 #638) wakes this old session: make the same reminder in the new one.
-- Dated checks bound to older sessions, which report to a coordinator that no longer runs: 24 Nov 02:30 breadth and
-  nse_indices watch (`trig_0194vQthfEA6jXUT7spGoRF7`); 27 Nov Actions minutes, S142 (`trig_01QTwto7k1BWzPFFnaissSje`);
-  29 Nov backtest_reference (`trig_01QfSuxiNviZAhv1nfPusyKP`); 2 Dec Nifty 1000 freeze, S175
-  (`trig_01AjSMwKNXfYVdewJdcpCLRS`), rebalance checks S95/S111/S154 (`trig_01QXFw7kaDiQbDDuQADzDpW3`) and shadow-book
-  freeze (`trig_01W1hDhfdR1Jq9EUNACgpocp`); 5 Dec S185 bundle replay (`trig_01UybbZV8wWHwaCEgqHqw6MH`); 2 Jan shadow-book
-  first month (`trig_012BpE6DUZxvNPHTzzmmeXmb`). Re-create those the new session should answer for.
-- #647's PR events also come to this session: subscribe the new session to #647.
+**Scheduled tasks** (moved to session_016X4g5Y1bsnhgFzzKddp8Wc on 23 Nov; the old copies are disabled, not deleted):
+work loops `trig_01KG5jvzmWy7SdBisDHRCQAK` (:07) and `trig_01T3tgnXxsesBznuVJpMLaZD` (:37); S211 #638 1 Dec 13:30 UTC
+`trig_01RRuhPGXZ3Xo6XQ23KqhE78` (asks the owner before merging); dated checks 24 Nov watch `trig_01YMp7cDMoQ7p18hkkUPxMxQ`,
+27 Nov S142 `trig_01BMkMc7CRLhjqo2BHmFDXCG`, 29 Nov backtest_reference + r2_retention `trig_01PWh1QomzgnMSfsLn2Yh7Es`,
+2 Dec shadow freeze `trig_01JH4bPnsALWMcP1LA6GuDBz`, S175 `trig_01T13UvPhM7bXnjivKoNudi6`, S95/S111/S154
+`trig_01NJgbbcXR4NpaYQ3pttbQFk`, 5 Dec S185 `trig_01Ui6ohXqWkJFQgYrdEGXwS8`, 2 Jan shadow first month
+`trig_01VkbjLtSj5n5MJknR5MUaiC`. A new session re-creates them (update_trigger cannot re-point a task) and disables these.
 
-**Local state:** nothing uncommitted. The worktree `.claude/worktrees/agent-aa31e63eff604b062` (branch s205, merged)
-and the s213 worktree are scratch; the main checkout is on `ccr-b633a7d9-f1fqfl` (#638's branch).
+**Local state:** the checkout is on the S208 branch; nothing else uncommitted.
 
 From the **January 2027** book: three systems, **Nifty 750 · Nifty 1000 · Ultra Nano Cap** (replaces "> ₹2,000 Cr", key
 `nano` kept: ₹1,000 Cr or more outside the Nifty 1000; tracked down to ₹500 Cr, prices from ₹800 Cr, a holding below
@@ -113,8 +93,8 @@ any work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
 ## Queue: one at a time, in this order
 
-0. **Finish what is open**: merge #647 on green; the owner's 24 Nov items (a)-(c) above; then S205's
-   CI figure and, only if needed, the runner. Then S213, S208, S207, and the S193 items (one at a time with the owner).
+0. **Finish what is open**: merge the S208 PR on green; the owner's 24 Nov items (a)-(c) above; S205 closed or
+   re-targeted from the next runs. Then S213 and the S193 items (one at a time with the owner).
 
 1. **23 Nov first-run checks** (record each in TODO S188 with its run ID). The
    Screener sync is scheduled 17:07 UTC but GitHub starts it 5-7 h late (22:09,
@@ -228,5 +208,5 @@ on the current head, squash, expectedHeadSha), check open PRs before taking an
 S-number (next free S216), verify every claim, delete nothing without the
 owner's yes, finish whatever you start before handing over, and follow
 CLAUDE.md's "Saving resources" (finish locally, push once, batch follow-ups). Then work the
-queue in order, starting with item 0 (merge #647 when green).
+queue in order, starting with item 0.
 ```

@@ -817,7 +817,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                      system: str = "750", volume: pd.DataFrame | None = None) -> None:
     from src.core.config import MODEL_BOOK_CAPITAL
     from src.engine import market_questions as mq
-    from src.engine.pipeline import price_fingerprint
+    from src.engine.pipeline import known_fingerprint
     from src.engine.systems import inception, ledger_path
     from src.engine.track_record import load_ledger
     from src.ui import page_kit as kit
@@ -865,7 +865,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     plan = model_plan(book, record, rank_df, adj_close, benchmark_close, system, check)   # the same plan as Actions (S154)
     n_sess = _sessions_between(as_of, check)
 
-    key = f"{price_fingerprint(adj_close)}"
+    key = known_fingerprint(adj_close)  # computed once in app.py's loader (S208)
     with st.spinner("Reading the trails…"):
         hist = _history_inputs(key, adj_close, rank_df, tuple(symbols), system == SYSTEM_750)
     bench = _read_csv(FILES["bench"], parse_dates=["date"])
@@ -1240,11 +1240,12 @@ def _qualify_today(adj_close: pd.DataFrame | None, as_of: pd.Timestamp) -> dict:
     if saved:
         return saved
     try:
-        from src.engine.pipeline import price_fingerprint
+        from src.engine.pipeline import known_fingerprint
         px = adj_close.loc[:as_of]
         dates = tuple(str(di.on_or_before(px.index, d).date()) for d in di.trail_dates(px.index[-1]).values()
                       if di.on_or_before(px.index, d) is not None)
-        return _qualify_cached(f"{price_fingerprint(px)}_{dates}", px, dates)
+        # px is adj_close cut at as_of, so the whole frame's fingerprint and the cut name it (S208).
+        return _qualify_cached(f"{known_fingerprint(adj_close)}_to{px.index[-1]}_{dates}", px, dates)
     except Exception:  # noqa: BLE001 -- the row falls back to month-ends, said on the page
         return {}
 

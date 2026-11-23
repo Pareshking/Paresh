@@ -14,6 +14,7 @@ src/ui/dash_charts.py).
 """
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import re
@@ -138,7 +139,12 @@ def _step(lo: float, hi: float) -> float:
 # ── Inputs ────────────────────────────────────────────────────────────────────
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
+# st.cache_resource, not st.cache_data (S208): cache_data unpickled a fresh copy of the
+# long file (~2,500 symbols x 16 years) on every rerun of every session. The callers
+# only read it (frame_for reindexes and converts into a new frame);
+# tests/test_backtest_long_cache.py holds them to that. app.py drops this cache with
+# st.cache_resource.clear() on a new revision and under the memory guard.
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=1)
 def _long_file():
     """Closes and report only: traded value is fetched when a floor is set."""
     from src.loaders import nse_long
@@ -146,11 +152,49 @@ def _long_file():
     return nse_long.load(with_value=False)
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
+@st.cache_resource(show_spinner=False, ttl=3600, max_entries=1)
 def _long_value():
     from src.loaders import nse_long
 
     return nse_long.load_value()
+
+
+@st.cache_data(show_spinner=False, ttl=3600, max_entries=16)
+def _fingerprint_once(kind: str, stamp: str, inputs: str, _frame: pd.DataFrame) -> str:
+    """A run frame's whole-history fingerprint, once per input (S208).
+
+    Only the string is kept, not the frame: holding the run frame and the traded-value
+    frame in st.cache_resource cost ~45 MB resident on the page bench, for less than the
+    hash it saved. `stamp` names the stored file (its build, last session, object and
+    shape) and `inputs` everything the frame is cut by, so a new file or window is a new
+    key. The fingerprint still covers every row (owner decision 3B).
+    """
+    return price_fingerprint(_frame)
+
+
+def _file_stamp(frame: pd.DataFrame, report: dict | None = None) -> str:
+    report = report or {}
+    last = frame.index[-1] if len(frame.index) else "-"
+    return f"{report.get('built')}|{report.get('last_session')}|{id(frame)}|{frame.shape}|{last}"
+
+
+def _run_frame(close: pd.DataFrame, report: dict, key: str, columns, end: pd.Period,
+               to_latest: bool) -> tuple[pd.DataFrame, str]:
+    """The run's price frame, built per rerun as before, and its fingerprint, hashed once."""
+    frame = bp.frame_for(close, columns, end, to_latest)
+    cols = hashlib.md5(",".join(map(str, sorted(map(str, columns)))).encode()).hexdigest()
+    fingerprint = _fingerprint_once("run", _file_stamp(close, report), f"{key}|{end}|{bool(to_latest)}|{cols}", frame)
+    return frame, fingerprint
+
+
+def _traded(value: pd.DataFrame, cols: list, last) -> tuple[pd.DataFrame, str]:
+    """The run's average traded value, per rerun as before, and its fingerprint, hashed once."""
+    from src.loaders import nse_long
+
+    traded = nse_long.average_value(value.reindex(columns=cols).loc[:last])
+    cols_key = hashlib.md5(",".join(map(str, cols)).encode()).hexdigest()
+    fingerprint = _fingerprint_once("traded", _file_stamp(value), f"{cols_key}|{pd.Timestamp(last)}", traded)
+    return traded, fingerprint
 
 
 def _reference() -> dict | None:
@@ -185,7 +229,6 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
     membership each index's own point-in-time timeline (src/engine/index_universe.py).
     """
     from src.engine import index_universe as iu
-    from src.loaders import nse_long
 
     close, report = bounds["close"], bounds["report"]
     key = choice["index"]
@@ -207,24 +250,25 @@ def _history_inputs(rank_df: pd.DataFrame, choice: dict, bounds: dict) -> dict |
         return None
     floor = float(choice["floor"] or 0.0)
     to_latest = end == bounds["months"][-1]
-    frame = bp.frame_for(close, iu.ever_members(membership), end, to_latest)
+    frame, close_fingerprint = _run_frame(close, report, key, iu.ever_members(membership), end, to_latest)
     cols = list(frame.columns)
 
     # Today's list's industries, then the leavers' (bp.industry_map): the same map the weekly
     # reference uses, so the stored tests re-run exactly this page's default.
     sec, unlabelled = bp.industry_map(cols, bp.index_file_industries())
 
-    traded = None
+    traded = traded_fingerprint = None
     if floor:
         value = _long_value()
         if value is None:
             kit.note("Traded value is not available right now, so the floor is off for this run.")
             floor = 0.0
         else:
-            traded = nse_long.average_value(value.reindex(columns=cols).loc[:frame.index[-1]])
+            traded, traded_fingerprint = _traded(value, cols, frame.index[-1])
 
-    return {"key": key, "close": frame, "membership": membership, "start": start, "end": end,
-            "months": (end - start).n + 1, "floor": floor, "traded_value": traded, "moved": moved,
+    return {"key": key, "close": frame, "close_fingerprint": close_fingerprint, "membership": membership, "start": start, "end": end,
+            "months": (end - start).n + 1, "floor": floor, "traded_value": traded,
+            "traded_fingerprint": traded_fingerprint, "moved": moved,
             "sector_map": sec, "unlabelled": unlabelled, "name": iu.INDICES[key],
             "built": report.get("built"), "last_session": report.get("last_session"),
             "priced": report.get("symbols_priced"), "to_latest": to_latest, "first": first,
@@ -837,9 +881,10 @@ def page_parts(f: dict) -> list:
 
 
 def _run(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float) -> dict | None:
-    ph = price_fingerprint(h["close"])
+    # Computed once with the frame in its cached loader (S208), not on every rerun.
+    ph = h.get("close_fingerprint") or price_fingerprint(h["close"])
     if h["traded_value"] is not None:
-        ph += f"_{price_fingerprint(h['traded_value'])}"
+        ph += f"_{h.get('traded_fingerprint') or price_fingerprint(h['traded_value'])}"
     queued = st.empty()
     # One backtest computes at a time across the whole server (compute_gate, TODO S65).
     if compute_gate.busy():

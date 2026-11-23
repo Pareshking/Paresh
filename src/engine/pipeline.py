@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import threading
+import weakref
 
 import numpy as np
 import pandas as pd
@@ -164,6 +166,46 @@ def price_fingerprint(df: pd.DataFrame | None) -> str:
         return f"{df.index[-1]}_{df.shape[0]}x{df.shape[1]}_{digest.hexdigest()[:12]}"
     except Exception:
         return "unknown"
+
+
+# Fingerprints already computed for a frame object (S208). app.py computes each price
+# frame's whole-history fingerprint once, in the cached loader that builds the frame, and
+# records it here against the rerun's copy; the pages then read it instead of hashing
+# ~10 years of closes again on every click. Keyed on the object itself (id plus a weak
+# reference, so a recycled id never matches): a slice, a column subset or any other new
+# frame is not the same object and is hashed in full, exactly as before.
+_KNOWN_FINGERPRINTS: dict[int, tuple[weakref.ref, str]] = {}
+_KNOWN_LOCK = threading.Lock()
+
+
+def remember_fingerprint(df: pd.DataFrame | None, fingerprint: str | None) -> None:
+    """Record `fingerprint` as price_fingerprint(df) for as long as `df` lives.
+
+    Only for a fingerprint computed from this frame's own data (the caller's
+    contract); pages must not write into a frame they were handed.
+    """
+    if df is None or not fingerprint:
+        return
+    key = id(df)
+
+    def _forget(_ref, key=key):
+        with _KNOWN_LOCK:
+            entry = _KNOWN_FINGERPRINTS.get(key)
+            if entry is not None and entry[0] is _ref:
+                del _KNOWN_FINGERPRINTS[key]
+
+    with _KNOWN_LOCK:
+        _KNOWN_FINGERPRINTS[key] = (weakref.ref(df, _forget), fingerprint)
+
+
+def known_fingerprint(df: pd.DataFrame | None) -> str:
+    """price_fingerprint(df), read from remember_fingerprint when this very frame was recorded."""
+    if df is not None:
+        with _KNOWN_LOCK:
+            entry = _KNOWN_FINGERPRINTS.get(id(df))
+        if entry is not None and entry[0]() is df:
+            return entry[1]
+    return price_fingerprint(df)
 
 
 def symbols_fingerprint(symbols) -> str:
