@@ -438,7 +438,7 @@ R.trows = (card, s) => {
   const nv = s.head.length;
   card.style.setProperty('--nv', nv);
   /* Six readings (Sectors' 1M, 3M and 12M leads, S219-4) fit a 412 px phone only in narrower columns. */
-  if (nv >= 6) { card.style.setProperty('--vw', '44px'); card.style.setProperty('--vg', '6px'); }
+  card.style.setProperty('--vw', nv >= 6 ? '44px' : '52px'); card.style.setProperty('--vg', nv >= 6 ? '6px' : '12px');
   card.style.setProperty('--tn', Math.round((s.hi - s.lo) / s.step));
   $('.tr-head', card).innerHTML = '<span>' + esc(s.label || '') + '</span><span>' + esc(s.barHead || '') + '</span>' + s.head.map(h => `<span class="num">${esc(h)}</span>`).join('');
   /* A row with `heading` is a group heading (Sectors, 21 Nov 2026: groups as heading rows, not colour alone);

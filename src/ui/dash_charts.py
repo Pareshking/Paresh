@@ -135,7 +135,7 @@ details summary{cursor:pointer;font-size:var(--fs-13);color:var(--text2)}.ptab,.
 @media (max-width:760px){
 .tt{--pitch:min(8px, calc((100vw - 24px) / var(--n)))}
 .sh-head,.shrow{grid-template-columns:minmax(0,1fr) 44px 44px 48px}.shrow .tt{grid-column:1/-1;grid-row:2}.sh-head span:nth-child(2){display:none}
-.tr-head,.trrow{grid-template-columns:minmax(0,1fr) repeat(var(--nv,3),var(--vw,52px));column-gap:var(--vg,12px)}.trrow .tt{grid-column:1/-1;grid-row:2}.tr-head span:nth-child(2){display:none}
+.tr-head,.trrow{grid-template-columns:minmax(0,1fr) repeat(var(--nv,3),var(--vw,52px));column-gap:var(--vg)}.trrow .tt{grid-column:1/-1;grid-row:2}.tr-head span:nth-child(2){display:none}
 }
 """
 
