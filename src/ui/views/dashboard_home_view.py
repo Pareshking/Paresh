@@ -799,7 +799,7 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None,
         f'<tr><th scope="row">{e(_fmt.size(s))}<span class="dh-sub">{e(SIZE_LABELS[parents[s]])} · '
         f'{e(SIZE_LABELS[moms[s]]) if moms[s] else "no momentum index"}'
         f'{" against the " + e(SIZE_LABELS[mom_parents[s]]) if moms[s] and mom_parents[s] != parents[s] else ""}</span></th>'
-        f'<td class="dh-num{" dh-b dh-watch" if book_sizes.get(s, 0) >= 20 else " dh-muted"}">{book_sizes.get(s, 0):.0f}%</td>'
+        f'<td class="dh-num{" dh-b" if book_sizes.get(s, 0) >= 20 else " dh-muted"}">{book_sizes.get(s, 0):.0f}%</td>'
         + "".join(cell(v) for v in vs) + '<td></td>' + "".join(cell(v) for v in prem) + "</tr>" for s, vs, prem in rows)
     strip = "".join(f'<i class="{size_class(k)}" style="width:{v:.0f}%">{e(_fmt.size(k)) + " " + f"{v:.0f}%" if v >= 20 else ""}</i>'
                     for k, v in book_sizes.items())

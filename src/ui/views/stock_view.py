@@ -78,7 +78,7 @@ table.sp-t{border-collapse:collapse;width:100%;font-size:var(--fs-13)}
 .sp-ladder .seg{position:absolute;top:9px;height:4px;background:var(--c-ink);border-radius:2px}
 .sp-ladder .dot{position:absolute;top:5px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--c-white);border:2px solid var(--c-ink)}
 .sp-ladder .dot.now{background:var(--c-ink)}
-.sp-ladder .dot.line{border-color:var(--c-caution);border-style:dashed}
+.sp-ladder .dot.line{border-color:var(--c-muted);border-style:dashed}
 .sp-ladder .labels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px;font-size:var(--fs-12);color:var(--c-muted)}
 .sp-ladder .labels div:nth-child(n+2){text-align:center}.sp-ladder .labels div:last-child{text-align:right}
 .sp-ladder .labels b{display:block;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--fs-13);font-weight:500;color:var(--c-ink)}

@@ -27,7 +27,6 @@ WARNING_USES = (
     '<span style="color:var(--c-caution)">',        # ranking_view: a dataset that is behind
     ".dh .dh-h2 .watch", ".sp-t td.watch", ".sp-checks li.bad", ".dh-watch{", "h3.dh-watch",
     ".dh-qb-watch",                                  # RRG Weakening badge (unused rule; listed in the S193 G report)
-    ".sp-ladder .dot.line",                          # the -20% filter line (listed in the S193 G report)
     'else "var(--c-caution)")',                      # rank trail: in but not rising (listed in the S193 G report)
     "--caution:var(--c-caution);--caution-soft",     # the chart frame's variables, read only by .watch
     ".watch{color:var(--caution)}",
