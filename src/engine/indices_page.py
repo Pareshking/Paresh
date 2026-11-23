@@ -266,7 +266,9 @@ def every_index(f: Frames, families=PAGE_FAMILIES) -> dict[str, list[IndexRow]]:
         if s.empty or s.index[-1] != now:
             continue                      # discontinued, or not published today
         r = {m: ret(s, m, now) for m in WINDOWS}
-        year = s[s.index > months_back(now, 12)]
+        # From the 12M return's own opening session, on or before the date a year back (S211: it
+        # counted only the sessions after it, so the high and the 12M return had different windows).
+        year = s[s.index >= s.index[s.index <= months_back(now, 12)][-1]] if (s.index <= months_back(now, 12)).any() else s
         hi = None if r[12] is None else float(s.iloc[-1] / year.max() - 1) * 100
         pe = f.pe[k].dropna()
         out[g].append(IndexRow(k, f.names.get(k, k), g, pd.Timestamp(s.index[0]), r, hi,

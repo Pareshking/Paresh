@@ -185,6 +185,10 @@ jobs:
         id: breadth
         continue-on-error: true
         run: python scripts/build_breadth_history.py
+      # December 2026 only: the new window rule against the old, one line a night (S211). Removed in January.
+      - name: S211 monitor, old and new window rules
+        continue-on-error: true
+        run: python scripts/s211_december_monitor.py
       - name: Commit breadth
         if: steps.breadth.outcome == 'success'
         run: |
@@ -193,6 +197,7 @@ jobs:
           git add data/breadth_history.csv data/signal_tests.json
           # Read by every system's Dashboard (S193 A6); absent until its first good run.
           if [ -f data/qualified_now.json ]; then git add data/qualified_now.json; fi
+          if [ -f data/s211_monitor.jsonl ]; then git add data/s211_monitor.jsonl; fi
           if git diff --staged --quiet; then
             echo "Breadth unchanged."
             exit 0

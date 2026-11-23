@@ -19,9 +19,9 @@ def test_backtester_6m_uses_calendar_start():
     log_returns = np.log(prices / prices.shift(1))
     _, start = _calendar_period_sharpe(prices, log_returns, len(prices) - 1, 6)
     target = pd.Timestamp("2026-08-14") - pd.DateOffset(months=6)   # a Saturday
-    # The first session on or after the target -- not merely any later one.
-    assert prices.index[start] == prices.index[prices.index >= target][0]
-    assert prices.index[start] == pd.Timestamp("2026-02-16")
+    # The last session on or before the target (S211, owner 23 Nov 2026: one rule everywhere).
+    assert prices.index[start] == prices.index[prices.index <= target][-1]
+    assert prices.index[start] == pd.Timestamp("2026-02-13")
 
 def test_backtester_missing_return_observation_not_zero_filled():
     dates = pd.bdate_range("2026-01-01", "2026-04-30")

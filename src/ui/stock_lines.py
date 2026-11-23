@@ -435,8 +435,8 @@ class Window:
 
 
 def window_start(index: pd.DatetimeIndex, months: int) -> pd.Timestamp | None:
-    """The first session on or after the same date `months` back (`calendar_start_positions`,
-    the rule every return on the site uses)."""
+    """The last session on or before the same date `months` back (`calendar_start_positions`,
+    the rule every return on the site uses since S211)."""
     from src.engine.calendar_momentum import calendar_start_positions
     idx = pd.DatetimeIndex(index)
     if idx.empty:

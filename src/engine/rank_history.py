@@ -20,7 +20,7 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 
-from src.core.config import HIGH_52W_MIN_OBSERVATIONS, MOMENTUM_WINDOWS
+from src.core.config import MOMENTUM_WINDOWS
 from src.engine.backtester import EMA_MIN_PRINTS, EMA_WARMUP_FROM, _warmup_cutoff_rows
 from src.engine.backtester import _composite_z_score, _index_mask
 from src.engine.calendar_momentum import anchor_frame
@@ -47,18 +47,17 @@ def snapshots(prices: pd.DataFrame, dates: Sequence[pd.Timestamp], *, membership
     # names as above their EMA that the Screener would not quote one for.
     warm_rows = _warmup_cutoff_rows(prices, EMA_MIN_PRINTS)
     warm_from = pd.Timestamp(EMA_WARMUP_FROM).normalize() if EMA_WARMUP_FROM else None
-    # The same minimum the screener's gate reads (duplicate audit, 10 Nov
-    # 2026): it was hardcoded here and in the backtester while
-    # config.HIGH_52W_MIN_OBSERVATIONS held the number, so a test that
-    # moved the constant proved nothing about either.
-    high = prices.rolling(252, min_periods=HIGH_52W_MIN_OBSERVATIONS).max()
+    # The same minimum the screener's gate reads (config.HIGH_52W_MIN_OBSERVATIONS,
+    # duplicate audit, 10 Nov 2026), applied inside _rolling_high_at.
+    # The 52-week high by the calendar, read per date as the backtester reads it (S211; was 252 rows).
+    from src.engine.backtester import _rolling_high_at
     out = []
     for d in dict.fromkeys(pd.Timestamp(x) for x in dates):
         pos = prices.index.searchsorted(d, side="right") - 1
         if pos < 0:
             continue
         day = prices.index[pos]
-        p, e, h = prices.iloc[pos], ema.iloc[pos], high.iloc[pos]
+        p, e, h = prices.iloc[pos], ema.iloc[pos], _rolling_high_at(prices, pos)
         if warm_from is not None and pd.Timestamp(day).normalize() >= warm_from:
             e = e.where(warm_rows <= pos)
         above = p > e
