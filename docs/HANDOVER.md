@@ -52,7 +52,7 @@ Production QA green on af15327. Open:
 **23 Nov ~17:15 UTC (S193 E-L decided).** The owner decided S193 E-L and S219 one at a time (TODO S193, S219). Three PRs: PR 1 = G + E date rules (open); PR 2 = H, I, J, K, L, E "–" wording, S219 (1)-(3); PR 3 = S219 (4)-(7). Overnight loops :05 :20 :35 :50 IST from 00:05 to 09:00 24 Nov (start `trig_01NW6p8NqsVkvDvVeAzvzUbi`, end `trig_01UabbtWyKHZgvhPhbBK6uwr`). Owner's away rule: CLAUDE.md "Decisions when the owner is away". Reports: `docs/archive/S193_ITEM_{E,H}_2026-11-23.md`, `S193_BENCHMARK_HJ_2026-11-23.md`; the K crawl and the L bench are running or due.
 
 **Pending approvals (decided by benchmark or by rule, owner to confirm):**
-- Month bars on the Dashboard: the step is 0.25% unless a row would pass 65 lines, then 0.5/1/2% (the list showed a 544 px track, over the 520 px rule); PAGE_DESIGN 4.2 updated.
+- **Approved (owner, 24 Nov):** month bars on the Dashboard: the step is 0.25% unless a row would pass 65 lines, then 0.5/1/2% (the list showed a 544 px track, over the 520 px rule); PAGE_DESIGN 4.2 updated.
 - Amber notes split into warnings and info notes (`kit.note(kind=...)`): now info, the Backtest system note, Actions' "No model book yet", the Nano/Combined Screener footnote; kept as warnings, Backtest's empty window and Config's "every stock at the cap" (borderline).
 - Backtest's Nifty 500 column shows its own volatility, Sharpe and Sortino (were "–").
 - Portfolio's lead-by-month chart opens on all months of the book (was the last 12; the same today).
