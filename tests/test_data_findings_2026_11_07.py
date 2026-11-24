@@ -32,7 +32,8 @@ def test_holds_are_ordered_by_least_room_on_one_scale_and_say_which_rule():
 
 
 def test_the_actions_page_no_longer_says_clear_of_all_three():
-    src = (VIEWS / "actions_view.py").read_text(encoding="utf-8")
+    # The live page is actions_page.py (actions_view's tables had no caller and were removed, S203).
+    src = (VIEWS / "actions_page.py").read_text(encoding="utf-8") + (VIEWS / "actions_view.py").read_text(encoding="utf-8")
     assert "clear of all three" not in src and "nearest_rule(" in src
 
 

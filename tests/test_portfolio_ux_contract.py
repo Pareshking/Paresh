@@ -126,16 +126,6 @@ def test_a_closed_month_awaiting_freeze_is_not_called_mtd():
     assert closed["equity"].iat[-1] == live["equity"].iat[-1]
 
 
-def test_actions_explains_a_fill_due_on_the_first_of_the_month():
-    import pandas as pd
-
-    from src.ui.views.actions_view import fill_due_note
-
-    sep30, oct1, oct2 = pd.Timestamp("2026-09-30"), pd.Timestamp("2026-10-01"), pd.Timestamp("2026-10-02")
-    note = fill_due_note(sep30, oct1, oct1)
-    assert "Oct 2026" in note and "30 Sep" in note and "today's closing price" in note
-    assert fill_due_note(sep30, oct1, sep30) == ""          # before the fill day
-    assert fill_due_note(oct1, oct2, oct2) == ""            # same month: nothing odd
 
 
 def test_correlation_card_wording():

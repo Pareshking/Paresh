@@ -16,24 +16,5 @@ def _live_months():
     return out
 
 
-def test_the_run_example_reads_the_live_rows_back():
-    """Owner, 18 Nov 2026: one live example on the page explains Run and 12 months."""
-    from src.ui.views.market_questions_view import run_example
-
-    text = run_example(_live_months())
-    assert text.startswith("For example, Financial Services: Oct ")
-    for month in ("Oct", "Sep", "Aug", "Jul"):
-        assert month in text
-    assert "Jun was +3.1, ahead, so the count stops there and Run reads 4 behind" in text
-    assert "all behind all ranked stocks" in text   # S147: the market, equal-weighted
-    assert "Its 12 months, \u22124.0, is the twelve completed months added up." in text
-    assert "Nov" not in text.split("Its 12 months")[0].replace("Nov MTD", ""), "the month so far is not in the run"
-    print(text)
 
 
-def test_the_run_example_is_empty_without_a_run():
-    from src.ui.views.market_questions_view import run_example
-
-    m = _live_months()
-    m["run"] = 0
-    assert run_example(m) == ""

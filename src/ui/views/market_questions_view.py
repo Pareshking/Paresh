@@ -601,47 +601,4 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     return breadth is not None or trend is not None
 
 
-# ── Sectors: "What is leading?" in full ─────────────────────────────────────
-
-def run_example(months: pd.DataFrame) -> str:
-    """A worked example of Run and 12 months, from the table's own numbers.
-
-    Owner, 18 Nov 2026: "We should add one live example to explain it in
-    page". The industry with the longest current run (the one the sentence
-    above the table names), its completed months read back to the one that
-    broke the run. Empty when no industry has a run.
-    """
-    if months is None or months.empty or "run" not in months:
-        return ""
-    longest = months["run"].abs().max()
-    if not longest:
-        return ""
-    row = months[months["run"].abs() == longest].iloc[0]
-    name = months[months["run"].abs() == longest].index[0]
-    n = int(row["run"])
-    side = "ahead" if n > 0 else "behind"
-    completed = [c for c in months.columns if c not in ("run", "total") and not c.endswith("so far")]
-    inside = completed[len(completed) - abs(n):][::-1]          # newest first
-
-    def short(col: str) -> str:
-        return col.split()[0]
-
-    parts = [f"{short(c)} {_fmt.signed(row[c], 1)}" for c in inside]
-    listed = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
-    text = (f"For example, {name}: {listed} points, "
-            f"{'all ' if len(parts) > 1 else ''}{'ahead of' if n > 0 else 'behind'} all ranked stocks")
-    before = completed[: len(completed) - abs(n)]
-    if before and pd.notna(row[before[-1]]):
-        other = "behind" if n > 0 else "ahead"
-        text += (f"; {short(before[-1])} was {_fmt.signed(row[before[-1]], 1)}, {other}, "
-                 f"so the count stops there and Run reads {abs(n)} {side}")
-    else:
-        text += f", so Run reads {abs(n)} {side}"
-    if pd.notna(row.get("total")):
-        text += (f". Its 12 months, {_fmt.signed(row['total'], 1)}, is the twelve completed "
-                 f"months added up")
-    return text + "."
-
-
-
 # ── The market strip: each index's day, its last three months, its month ────

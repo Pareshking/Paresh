@@ -143,33 +143,6 @@ def _reading(dx: float, dy: float) -> str:
     return "it did worse against the 750 and fewer of its stocks are in an uptrend: weak and weakening."
 
 
-def leadership_explainer(r: pd.Series, name: str, span: int) -> str:
-    """The method behind one sector's two dots on the map, with its own numbers (the frame draws the same text)."""
-    then, now = pd.Timestamp(r["Then"]), pd.Timestamp(r["Now"])
-    m = int(r.get("Months", 1) or 1)
-    period = "month" if m == 1 else f"{m} months"
-    ret, bench, x1, x0 = r["ret_now"] * 100, r["bench_now"] * 100, r["x_now"] * 100, r["x_then"] * 100
-    y1, y0 = r["y_now"] * 100, r["y_then"] * 100
-    dx, dy = x1 - x0, y1 - y0
-    side = "right of" if x1 >= 0 else "left of"
-    half = "above" if y1 >= 50 else "below"
-    n = int(r["Stocks"])
-    lifts = "; ".join(
-        f"{html.escape(sym)} {_fmt.pct(rv * 100, fraction=False)}, which adds about {_fmt.signed(rv * 100 / n, 2)} pts to the sector's {_fmt.pct(ret, fraction=False)}"
-        for sym, rv in (r.get("Leaders") or [])[:2])
-    moved = "neither up nor down" if abs(dy) < 0.5 else f"{abs(dy):.0f} pts {'up' if dy >= 0 else 'down'}"
-    return f"""**Across: did the sector beat the 750 over the {period}?**
-The {n} {html.escape(name)} stocks as an equal-weighted index, from the {then:%-d %b} close to the {now:%-d %b} close: **{_fmt.pct(ret, fraction=False)}**. The 750, built the same way over the same closes: **{_fmt.pct(bench, fraction=False)}**. The difference, **{_fmt.signed(x1, 2)} pts**, places the filled dot {side} the 0 line. The hollow dot is the same for the {period} before: {_fmt.signed(x0, 2)} pts.
-
-**Up: how many of its stocks are in an uptrend?**
-A stock counts when its close is above its own {span}D EMA. Today {int(r['above_now'])} of {int(r['obs_now'])} = **{y1:.0f}%**; before, {int(r['above_then'])} of {int(r['obs_then'])} = {y0:.0f}%. An EMA needs {int(span * 0.8)} sessions of prices, so a recent listing can be missing.
-
-**Heavy lifting**
-With equal weight each stock adds roughly its own return ÷ {n} to the sector's. The two largest over the {period}: {lifts or "none"}.
-
-**The line, hollow dot to filled dot**
-It moved {abs(dx):.1f} pts {'right' if dx >= 0 else 'left'} and {moved}: {_reading(dx, dy)} Today it sits {side} 0 and {half} the 50% line.
-"""
 
 
 # ── The page's figures, cached on the prices and the grouping ───────────────
@@ -721,4 +694,4 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     render_data_quality_footer(total_stocks=len(rank_df), gap_count=gap_count(rank_df), short_count=short_n)
 
 
-__all__ = ["render_sector_view", "page_parts", "industry_board", "leadership_explainer", "SHORT_NAMES", "NSE_ONLY"]
+__all__ = ["render_sector_view", "page_parts", "industry_board", "SHORT_NAMES", "NSE_ONLY"]

@@ -10,26 +10,19 @@ before then. For the model book or for the reader's own holdings.
 """
 from __future__ import annotations
 
-import html
 
 import pandas as pd
 import streamlit as st
 
-from src.ui.system_param import stock_href
 from src.loaders.nse_calendar import published_holidays
 from src.engine.exit_watch import (
-    STATUS_LABEL,
-    UNKNOWN,
-    Rules,
     holdings_from_kite_csv,
-    nearest_rule,
     parse_holdings,
 )
 from src.core.config import MODEL_BOOK_CAPITAL
 from src.ui import holdings_store
 from src.ui import page_kit as kit
 from src.ui.widget_state import resolve
-from src.ui import formats as _fmt
 
 SOURCES = ["Model book", "My holdings"]
 
@@ -48,17 +41,6 @@ def kite_capital() -> int:
     return resolve(KITE_CAPITAL_KEY, int(MODEL_BOOK_CAPITAL), lo=KITE_MIN_CAPITAL, hi=KITE_MAX_CAPITAL)
 
 
-def fill_due_note(as_of: pd.Timestamp, fill: pd.Timestamp, today: pd.Timestamp) -> str:
-    """Why the page still talks about a rebalance that is due today.
-
-    On the first day of a month the latest close is the previous month's last
-    one, and the fill the page names is today's: said once, so the dates read
-    as consistent rather than stale. Empty on every other day.
-    """
-    if fill.normalize() == today.normalize() and as_of.to_period("M") < today.to_period("M"):
-        return (f" The calendar is now {today:%b %Y}; the latest close is {as_of:%-d %b}. "
-                "Today's fill awaits today's closing price.")
-    return ""
 
 
 def _session() -> pd.offsets.CustomBusinessDay:
@@ -88,61 +70,8 @@ def _sessions_between(a: pd.Timestamp, b: pd.Timestamp) -> int:
     return max(0, len(pd.date_range(a.normalize() + pd.Timedelta(days=1), b.normalize(), freq=_session())))
 
 
-def _bar(room: float | None, ok: bool, scale: float, label: str) -> str:
-    """A cushion bar: full = lots of room, short = close to the line, red = broken."""
-    if not ok:
-        return (f'<span class="xw-g broken" role="cell"><b>{html.escape(label)}</b>'
-                '<i aria-hidden="true"><i style="width:100%"></i></i></span>')
-    w = 0.0 if room is None or pd.isna(room) else max(4.0, min(100.0, float(room) / scale * 100))
-    tone = "tight" if w < 30 else "ok"
-    return (f'<span class="xw-g {tone}" role="cell"><b>{html.escape(label)}</b>'
-            f'<i aria-hidden="true"><i style="width:{w:.0f}%"></i></i></span>')
 
 
-def rows_html(a: pd.DataFrame, since: dict[str, float], rules: Rules) -> str:
-    out = []
-    for _, r in a.iterrows():
-        sym = str(r["Symbol"])
-        status = r["status"]
-        link = f'<a href="{stock_href(sym)}" target="_self">{html.escape(sym)}</a>'
-        if status == UNKNOWN:
-            out.append(
-                f'<div class="xw-row unknown" role="row"><span class="xw-s" role="rowheader">{link}</span>'
-                f'<span class="xw-pill unknown" role="cell">{STATUS_LABEL[UNKNOWN]}</span>'
-                '<span class="xw-why" role="cell" aria-colspan="5" style="grid-column: 3 / -1">No rule can be checked.</span></div>')
-            continue
-        q = r["Qualified rank"]
-        room = r["Rank room"]
-        if pd.isna(q):
-            rank_cell = _bar(None, False, 1, "off the list")
-        elif room < 0:
-            rank_cell = _bar(None, False, 1, f"#{int(q)} · past {rules.buffer_n}")
-        else:
-            rank_cell = _bar(room, True, rules.buffer_n, f"#{int(q)} · {int(room)} to go")
-        ema_c, hi_c = r["EMA cushion"], r["High cushion"]
-        ema_cell = _bar(ema_c, bool(r["EMA ok"]), 0.20,
-                        f"{ema_c * 100:.1f}% cushion" if r["EMA ok"] and pd.notna(ema_c)
-                        else f"{abs(r['vs 50 EMA %']):.1f}% below" if pd.notna(r["vs 50 EMA %"]) else "below")
-        hi_cell = _bar(hi_c, bool(r["High ok"]), 0.20,
-                       f"{hi_c * 100:.1f}% cushion" if r["High ok"] and pd.notna(hi_c) else "past the line")
-        ret = since.get(sym)
-        ret_txt = "–" if ret is None or pd.isna(ret) else f"{'+' if ret >= 0 else '−'}{abs(ret) * 100:.1f}%"
-        ret_cls = "" if ret is None or pd.isna(ret) else ("up" if ret >= 0 else "down")
-        out.append(
-            f'<div class="xw-row {status}" role="row"><span class="xw-s" role="rowheader">{link}'
-            f'<small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
-            f'<span class="xw-pill {status}" role="cell">{STATUS_LABEL[status]}</span>'
-            f"{rank_cell}{ema_cell}{hi_cell}"
-            f'<span class="xw-why" role="cell">{html.escape(r["why"] or "clear; nearest: " + nearest_rule(r, rules))}</span>'
-            f'<span class="xw-ret {ret_cls}" role="cell">{ret_txt}</span></div>'
-        )
-    head = ('<div class="xw-row xw-head" role="row"><span role="columnheader">Holding</span>'
-            '<span role="columnheader">At the next rebalance</span>'
-            f'<span role="columnheader" title="{BUFFER_HELP}">Rank buffer (top {rules.buffer_n} qualified)</span>'
-            f'<span role="columnheader" title="{CUSHION_HELP}">50D EMA</span>'
-            f'<span role="columnheader" title="{CUSHION_HELP}">−{(1 - rules.high_pct):.0%} from 52W high</span>'
-            '<span role="columnheader">Closest to</span><span class="xw-ret" role="columnheader">Since entry</span></div>')
-    return f'<div class="xw" role="table" aria-label="Exit watch">{head}{"".join(out)}</div>'
 
 
 def _my_holdings(rank_df: pd.DataFrame) -> tuple[list[str], dict[str, float], str]:
@@ -187,50 +116,8 @@ def _edit_holdings() -> None:
                         st.rerun()
 
 
-def sells_html(a: pd.DataFrame, sells: list[str], since: dict[str, float], entries) -> str:
-    by = a.set_index("Symbol")
-    # Column names for a screen reader only: the list reads as rows by eye.
-    rows = ['<div class="ac-row sell sr-only" role="row"><span role="columnheader">Holding</span>'
-            '<span role="columnheader">Reason</span><span role="columnheader">Held</span>'
-            '<span role="columnheader">Since entry</span></div>']
-    for s in sells:
-        why = by.loc[s, "why"] if s in by.index else ""
-        ret = since.get(s)
-        cls = "" if ret is None or pd.isna(ret) else ("up" if ret >= 0 else "down")
-        rows.append(
-            f'<div class="ac-row sell" role="row"><span class="xw-s" role="rowheader"><a href="{stock_href(s)}" target="_self">'
-            f'{html.escape(s)}</a><small>{html.escape(str(by.loc[s, "Industry"]) if s in by.index else "")}</small></span>'
-            f'<span class="ac-why" role="cell"><b>Sell</b> · {html.escape(why)}</span>'
-            f'<span class="ac-when" role="cell">{html.escape(entries(s))}</span>'
-            f'<span class="xw-ret {cls}" role="cell">{_fmt.pct(ret)}</span></div>')
-    return f'<div class="xw" role="table" aria-label="Sell">{"".join(rows)}</div>'
 
 
-def buys_html(rank_df: pd.DataFrame, buys: list[str], qrank: pd.Series) -> str:
-    by = rank_df.drop_duplicates("Symbol").set_index("Symbol")
-
-    def ret_cell(v) -> str:
-        v = pd.to_numeric(v, errors="coerce")
-        tone = "" if pd.isna(v) else ("up" if v >= 0 else "down")
-        return f'<span class="n {tone}" role="cell">{_fmt.pct(v)}</span>'
-
-    rows = ['<div class="ac-row buy ac-head" role="row"><span role="columnheader">Stock</span>'
-            '<span role="columnheader">Qualified</span>'
-            '<span class="n" role="columnheader">Price</span><span class="n" role="columnheader">3M</span>'
-            '<span class="n" role="columnheader">6M</span>'
-            '<span class="n" role="columnheader">From 52W high</span></div>']
-    for s in buys:
-        r = by.loc[s]
-        hi = pd.to_numeric(r.get("% High"), errors="coerce")
-        hi_txt = "–" if pd.isna(hi) else ("At high" if hi > -0.05 else _fmt.pct(hi, fraction=False))
-        rows.append(
-            f'<div class="ac-row buy" role="row"><span class="xw-s" role="rowheader"><a href="{stock_href(s)}" target="_self">'
-            f'{html.escape(s)}</a><small>{html.escape(str(r.get("Industry") or ""))}</small></span>'
-            f'<span class="n" role="cell">#{int(qrank.get(s, 0))}</span>'
-            f'<span class="n" role="cell">{_fmt.price(r.get("CMP"))}</span>'
-            f'{ret_cell(r.get("3M Return"))}{ret_cell(r.get("6M Return"))}'
-            f'<span class="n" role="cell">{hi_txt}</span></div>')
-    return f'<div class="xw" role="table" aria-label="Buy">{"".join(rows)}</div>'
 
 
 def _book_equity(book, record, rank_df, adj_close, benchmark_close, system) -> pd.Series | None:

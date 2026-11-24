@@ -9,7 +9,6 @@ from html.parser import HTMLParser
 import pandas as pd
 
 from src.engine.exit_watch import Rules, assess
-from src.ui.views import actions_view
 
 CELL_ROLES = {"cell", "rowheader", "columnheader"}
 VOID = {"br", "img", "input", "hr", "meta", "link"}
@@ -69,10 +68,6 @@ def _assessed():
 
 
 
-def test_exit_watch_is_a_table_including_an_unknown_holding():
-    a = _assessed()
-    rows = _check(actions_view.rows_html(a, {"S1": 0.05}, Rules()))
-    assert len(rows) == 1 + len(a)
 
 
 # The Sectors leaderboard (board_html) merged into "Inside each sector", a sortable <table> drawn by the chart
@@ -87,12 +82,3 @@ def test_a_watched_holding_reads_one_number_for_its_ema_room():
     assert a.iloc[0]["why"] == "can fall 2.8% to its 50D EMA"
 
 
-def test_actions_sell_and_buy_lists_are_tables():
-    a = _assessed()
-    _check(actions_view.sells_html(a, ["S1"], {"S1": -0.05}, lambda s: "held since 1 Oct"))
-    rank_df = pd.DataFrame({"Symbol": ["B1"], "Industry": ["X"], "CMP": [100.0],
-                            "3M Return": [-0.02], "6M Return": [0.10], "% High": [-3.0]})
-    out = _check(actions_view.buys_html(rank_df, ["B1"], pd.Series({"B1": 6})))
-    assert out
-    html_out = actions_view.buys_html(rank_df, ["B1"], pd.Series({"B1": 6}))
-    assert 'class="n down" role="cell">−2.0%' in html_out    # a fall is not drawn as a rise
