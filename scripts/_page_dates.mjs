@@ -45,7 +45,7 @@ export const ALLOW = [
       'chart’s note) and the "Month so far" tile beside them reads to the session; the chart itself does not say it' },
   { where: null, re: /What heavy foreign buying has meant · \w+ 20\d\d to \w+ 20\d\d/, todo: 'S164',
     why: 'rule shown: a study of finished months (audit: RULE, SHOWN); the month so far is in the tiles above it' },
-  { where: /\/portfolio/, re: /were worked out from the rules on \d{1,2} \w+ 20\d\d; later months were recorded/, todo: 'S164',
+  { where: /\/portfolio/, re: /were worked out from the rules on \d{1,2} \w+ 20\d\d/, todo: 'S164',
     why: 'not a figure: which months of the record were replayed and which recorded live' },
 ];
 
