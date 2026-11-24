@@ -452,3 +452,26 @@ Reader counts come from a grep of each `data/` file's base name across `src`, `a
    ("fetched 2026-10-03"); every "sessions away" figure on the Dashboard and Actions depends on it. A check day or
    fill in 2027 relies on the caveat (`actions_page.py:434`). 24 Nov 2026 is in the file as a holiday (Guru Nanak),
    which is why the committed data end on 23 Nov.
+
+## 5. Every outside address (section 3 of the plan; read from the code 24 Nov 2026)
+
+Hosts named in `src/`, `scripts/`, `app.py` and the workflows. When each last answered is in the pipelines review (2 (c)), from the jobs' run history; this container reaches none of them directly except through its proxy.
+
+| Host | Called by | What it gives | If it stops |
+|---|---|---|---|
+| `www.nseindia.com`, `www.nseindia.in` | `src/core/nse_web.py`; `scripts/collect_fii_dii.py`, `sync_nse_holidays.py`, `collect_results_calendar.py`, `fetch_nse_bhavcopy.py`, `sync_nse_reference.py`; `src/loaders/nse_backfill.py` | FII/DII flows, holidays, results calendar, bhavcopy, reference lists | Flows, holidays and results go stale; the committed files stay (the jobs keep the last file) |
+| `nsearchives.nseindia.com`, `archives.nseindia.com` | `src/loaders/nse_indices.py`, `nse_backfill.py`, `nse_bundle.py`, `mcap_loader.py`; `scripts/collect_nse_dii.py`, `collect_nse_total_market.py`, `sync_fo_symbols.py`, `check_index_anchor.py` | Index closes, daily bhavcopy and corporate actions, market caps (PR zip), DII | Prices and indices stop at the last stored session; market caps fall back to the committed snapshot (the app's normal path: NSE refuses the cloud host) |
+| `niftyindices.com` | `src/core/config.py` | Index constituent lists | Membership stops at the committed lists |
+| `www.screener.in` | `src/loaders/screener_loader.py`; `scripts/classify_missing.py` | The deep weekly price history and gap fill | No new deep history; NSE fills gaps (S167) |
+| `www.bseindia.com` | `scripts/bse_bhavcopy.py` | BSE's bhavcopy, the second source for halts and gaps | Gaps cannot be told from halts (CLAUDE.md rule) |
+| `www.fpi.nsdl.co.in` | `scripts/nsdl_fpi.py`, `fii_dii.yml` | NSDL's FPI flows | Dashboard flows go stale |
+| `scanner.tradingview.com` | `scripts/classify_missing.py` | Sector labels for stocks outside NSE's files (Nano, the 1000) | New stocks stay unlabelled |
+| `github.com` (releases) | `src/loaders/ranking_store.py`, `src/core/config.py`; `scripts/build_isin_history.py`; `nse_history_import.yml` | The published ranking and the long price file (`data-latest`) | The app ranks live instead of reading the published ranking (slower; S210) |
+| `cdn.jsdelivr.net` | `src/ui/lw_chart.py` | The chart library, **fallback only**: `static/` is served first | Nothing while `static/` holds the file |
+| `fonts.googleapis.com` | `scripts/build_fonts.py` (build time) | IBM Plex, then self-hosted in `static/fonts` | Nothing at run time |
+| `huggingface.co` | `scripts/build_tejhq_actions.py` (one-off build) | A corporate-actions dataset | Nothing at run time |
+| `web.archive.org` | `scripts/check_nifty500_against_wayback.py` (a check) | Dated copies of NSE pages | One check cannot run |
+| `faculty.iima.ac.in` | `scripts/research/residual_momentum.py` (research) | IIMA's factor data | Research only |
+| R2 (Cloudflare; endpoint from secrets) | the app and most jobs (`src/storage`) | The stores | See section 0 |
+
+Not checked: the date each host last answered (the pipelines review reads the runs), and hosts built from variables rather than written out.
