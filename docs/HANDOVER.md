@@ -15,7 +15,7 @@ _Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsn
   **current head** and it merges cleanly with `main`. Squash-merge with
   `expectedHeadSha`. After a squash merge, restart your branch from `main`.
 - **Before taking an S-number,** check open PRs as well as `main`. Next free:
-  **S221** (TODO's header lists what is reserved).
+  **S222** (TODO's header lists what is reserved).
 - **Verify every claim yourself.** Nothing is deleted without the owner's yes on
   each item; the `ref_*` release files always stay.
 - **Tests:** `python scripts/fetch_nse_closes.py` first, then
@@ -38,6 +38,17 @@ _Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsn
 
 ## State at handover
 
+**24 Nov ~03:10 UTC (overnight, owner away).** S193 E-L and S219 are all merged: #657, #658, #659. Overnight merges:
+- #660: the Dashboard no longer crashes on a month's first session; three wording faults fixed; the crawler race fixed.
+- #661: Backtest budget 17 → 31 s by rule; S220 opened.
+- #662: Backtest's figures, trade table and trade log cached once per run (warm 6 → 1.5 s locally); flows "Tested here" counts 129 months.
+
+Production QA green on af15327. Open:
+- S220: live Backtest is about 11 s, with 40-44 s spikes; cause not found.
+- 24 Nov checks (B10, the all-time-high move, long-vs-Screener, breadth, the S186 note): moved to 26 Nov 11:41 IST (owner, 24 Nov; a reminder is set).
+- S186 deploy note not yet seen.
+- Reminder set for the 1-5 Dec monthly run (2 Dec 04:41 UTC).
+
 **23 Nov ~17:15 UTC (S193 E-L decided).** The owner decided S193 E-L and S219 one at a time (TODO S193, S219). Three PRs: PR 1 = G + E date rules (open); PR 2 = H, I, J, K, L, E "–" wording, S219 (1)-(3); PR 3 = S219 (4)-(7). Overnight loops :05 :20 :35 :50 IST from 00:05 to 09:00 24 Nov (start `trig_01NW6p8NqsVkvDvVeAzvzUbi`, end `trig_01UabbtWyKHZgvhPhbBK6uwr`). Owner's away rule: CLAUDE.md "Decisions when the owner is away". Reports: `docs/archive/S193_ITEM_{E,H}_2026-11-23.md`, `S193_BENCHMARK_HJ_2026-11-23.md`; the K crawl and the L bench are running or due.
 
 **Pending approvals (decided by benchmark or by rule, owner to confirm):**
@@ -45,6 +56,7 @@ _Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsn
 - Amber notes split into warnings and info notes (`kit.note(kind=...)`): now info, the Backtest system note, Actions' "No model book yet", the Nano/Combined Screener footnote; kept as warnings, Backtest's empty window and Config's "every stock at the cap" (borderline).
 - Backtest's Nifty 500 column shows its own volatility, Sharpe and Sortino (were "–").
 - Portfolio's lead-by-month chart opens on all months of the book (was the last 12; the same today).
+- Production QA's Backtest load budget 31 s (was 17; rule: the slowest live reading x 1.5); back down once S220 is fixed.
 - PR 3 (S219 4-7, S193 L), see TODO S219 and S193: Watchlist search labels show the company name (the Screener's show the sector); Backtest's line says "rebalanced monthly, at the month’s last close" for 21; Sectors' 3M and 12M sit after the 1M lead and Broad or narrow keeps 3M and 1M; the Nifty 1000 row follows Nifty Total Market.
 - **S193 L budgets vs live:** the first live readings were over the local budgets on 9 of 10 pages; budgets reset by the same rule on the larger of local and live (Dashboard 8 ... Backtest 17 s, `scripts/production_qa.py`). One live reading is thin: revisit after a week of runs. Backtest raised to 31 s on 24 Nov (live 18-20.5 s on every new reader; Production QA 45271454528 failed on it twice in a row); why it never warms is S220.
 
