@@ -156,7 +156,7 @@ def test_screener_copy_shows_nse_sector_and_falls_back(tmp_path):
                          "Industry": ["Health Technology", "Process Industries", "Energy Minerals"]})
     before = rank.copy()
     out = reader.with_nse_sectors(rank, xu.SYSTEM_NANO, m, min_coverage=0.5)
-    assert out["Industry"].tolist() == ["Healthcare", "Process Industries", "Oil Gas & Consumable Fuels"]
+    assert out["Industry"].tolist() == ["Healthcare", "Unclassified", "Oil Gas & Consumable Fuels"]   # not in the file: "Unclassified" (S226)
     # The ranking's own frame (the model plan's sector cap) is not touched.
     pd.testing.assert_frame_equal(rank, before)
     assert reader.with_nse_sectors(rank, xu.SYSTEM_750, m) is rank

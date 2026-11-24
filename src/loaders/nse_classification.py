@@ -94,8 +94,9 @@ def with_nse_sectors(frame: pd.DataFrame, system: str, sectors: dict[str, str] |
                      min_coverage: float = MIN_COVERAGE) -> pd.DataFrame:
     """A copy of `frame` whose Industry is NSE's sector where one is known; the 750 unchanged.
 
-    A symbol with no NSE sector keeps the value it has (TradingView's sector on Nano). When
-    fewer than `min_coverage` of the rows have one, the frame is returned as it is.
+    A symbol with no NSE sector reads "Unclassified", so NSE's names are never mixed with
+    TradingView's (S226; 24 Nov 2026, SHUKRAPHAR, 1 of 411 on Nano). When fewer than `min_coverage`
+    of the rows have one, the frame is returned as it is.
     """
     if system == xu.SYSTEM_750 or frame is None or frame.empty or "Symbol" not in frame:
         return frame
@@ -108,8 +109,7 @@ def with_nse_sectors(frame: pd.DataFrame, system: str, sectors: dict[str, str] |
             int(nse.notna().sum()), len(frame))
         return frame
     out = frame.copy()
-    current = out["Industry"] if "Industry" in out else pd.Series("", index=out.index)
-    out["Industry"] = nse.fillna(current)
+    out["Industry"] = nse.fillna(xu.UNCLASSIFIED)
     return out
 
 

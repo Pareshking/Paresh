@@ -38,7 +38,7 @@ def test_levels_added_with_the_sector_and_the_missing_counted():
     syms = list(rank["Symbol"][:9])                     # 9 of 10: 90%, at the guard
     out = nc.with_nse_levels(rank, xu.SYSTEM_NANO, {s: "Financial Services" for s in syms}, _levels(syms))
     assert out is not rank and out.attrs["nse_sectors"] is True
-    assert out["Industry"].tolist() == ["Financial Services"] * 9 + ["Finance"]   # today's label kept for S9
+    assert out["Industry"].tolist() == ["Financial Services"] * 9 + ["Unclassified"]   # S9 not in the file: "Unclassified", never TradingView's
     assert out["NSE_Industry"].tolist() == ["Banks"] * 9 + [nc.UNCLASSIFIED]      # never TradingView's
     assert out.attrs["nse_unclassified"] == {"NSE_Macro": 1, "NSE_Industry": 1, "NSE_Basic_Industry": 1}
     # The ranking itself, whose Industry is the plan's sector cap, is unchanged.
