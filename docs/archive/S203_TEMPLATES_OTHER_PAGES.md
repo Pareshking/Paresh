@@ -382,6 +382,8 @@ where `:.1f` and `:.0f` sit today (Market chart heads, Sectors, Indices, the Act
 
 ## 12. Questions for the owner
 
+Answers (owner, 24 Nov 2026, one at a time): 1, the question title (recommended); 2, the subject named (recommended).
+
 1. **The Guide's title (gd.head.1).** Every other page's h1 now answers a question (§2a); the Guide's is its name.
    I recommend "How the ranking picks the book, and how to act on it.", with "Guide" as the kicker. The alternative
    is to keep "Guide" as the one stated exception: a reference page has no finding.
