@@ -63,7 +63,7 @@ another workflow, so the cron alone is not the number.
 | `bse_daily` | `30 20 * * 5` | 0.14 | **0.14** | bseindia bhavcopy per new session; release `bse_daily.parquet`; R2 |
 | `r2_retention` | `17 3 * * 0` | 0.14 | **0.14** | R2 only |
 | `r2_recovery_audit` | `47 3 * * 1` | 0.14 | **0.14** | R2 only (whole bucket; 31–38 min, TODO A3) |
-| `weekly_full_sync` | `30 18 * * 5` | 0.14 | **0.14** | as `daily_sync` step 1–2: niftyindices ×11 |
+| `weekly_full_sync` | manual only (schedule dropped 24 Nov 2026, S225 (2)) | 0.14 | **0.14** | as `daily_sync` step 1–2: niftyindices ×11 |
 | `nse_history_import` | `13 21 2 * *` | 0.03 | 0.07 | NSE corporate-action list (one request a year per board); R2 |
 | `nse_history_audit` | `37 22 3 * *` | 0.03 | 0.07 | R2 |
 | `momentum_health` | `23 6 2-6 * *` | 0.16 | 0 scheduled | release assets |
