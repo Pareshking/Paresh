@@ -1,26 +1,4 @@
 symbol,date,purpose,results,detail,source
-AERONEU,2026-09-23,Other business matters,0,"Aeroflex Neu Ltd has informed NSE that the meeting of the Board of Directors of the Company is scheduled on 23/09/2026 ,inter alia, to consi",held
-ANNU,2026-09-23,Financial Results,1,"To consider and approve the financial results for the period ended Jun 30, 2026",held
-BCPL,2026-09-23,Other business matters,0,To consider other business matters,held
-CALSOFT,2026-09-23,Fund Raising,0,To consider Fund Raising,held
-CONCORDBIO,2026-09-23,Bonus,0,To consider bonus,held
-CONSOFINVT,2026-09-23,Voluntary Delisting,0,To consider voluntary delisting,held
-ESAFSFB,2026-09-23,Fund Raising,0,Intimation of Board meeting to consider and approve the proposal to raise funds by way of issuance of Non-Convertible Debentures (Tier II Bo,held
-KELLTONTEC,2026-09-23,Fund Raising,0,To consider and approve the Proposal for raising of fund by way of issuance of equity shares and/or other eligible securities,held
-NAVKARCORP,2026-09-23,Financial Results,1,NAVKAR CORPORATION LIMITED has informed the Exchange about Board Meeting to be held on 23-Sep-2026 to inter-alia consider and approve the Un,held
-NEUEON,2026-09-23,Fund Raising/Other business matters,0,1. To consider and recommend the raising of funds by way of issuance of equity shares or any other eligible securities through permissible m,held
-NOIDATOLL,2026-09-23,Other business matters,0,To consider other business matters,held
-QPOWER,2026-09-23,Fund Raising/Other business matters,0,"To consider the issue of Shares through Preferential Issue/Allotment, for cash and/or for consideration other than cash; and/or Qualified In",held
-WINSOME,2026-09-23,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended Jun 30, 2026 and other business matters",held
-AIFL,2026-09-24,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
-ESDS,2026-09-24,Financial Results,1,"To consider and approve the financial results for the period ended Jun 30, 2026",held
-GATECH,2026-09-24,Other business matters,0,"To consider other business matters in Meeting scheduled to be held on Thursday, September 24,2026",held
-GATECHDVR,2026-09-24,Other business matters,0,"To consider other business matters in meeting scheduled to be held on Thursday, September 24,2026",held
-GLOBAL,2026-09-24,Buyback/Other business matters,0,To consider buyback for equity shares and other business matters,held
-MINDACORP,2026-09-24,Fund Raising,0,"To consider Fund Raising through issuance of Non Convertible Debenture, if any",held
-PERNIASPOP,2026-09-24,Financial Results,1,"To consider and approve the unaudited standalone and consolidated financial results of the Company for the quarter ending on June 30, 2026.",held
-SSDL,2026-09-24,Dividend,0,To consider dividend,held
-TALWALKARS,2026-09-24,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
 AEQUS,2026-09-25,Fund Raising,0,"Prior Intimation of Board Meeting scheduled to be held on September 25, 2026, Inter alia 1. To consider and evaluate the proposal of prefere",held
 AGIIL,2026-09-25,Fund Raising,0,To consider Fund Raising,held
 FORCEMOT,2026-09-25,Other business matters,0,Board Meeting intimation to consider other business matter related to consideration and approval of the proposal of removal of restriction o,held
@@ -2641,22 +2619,27 @@ VALECHAENG,2026-11-20,Financial Results,1,"VALECHAENG : 20-Nov-2026 : The Compan
 EMBDL,2026-11-21,Fund Raising,0,Consideration And Approval Of The Raising Of Funds By Way Of Issuance Of Non-Convertible Debentures By Duly Constituted Committee Of Board O,held
 LAXMICOT,2026-11-21,Other business matters,0,To consider other business matters,held
 VIVIANA,2026-11-21,Fund Raising,0,To consider Fund Raising,held
-BCSSL,2026-11-23,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-DALBHARAT,2026-11-23,Buyback/Other business matters,0,To consider buyback for equity shares and other business matters,calendar
-SFCTECH,2026-11-23,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-VCL,2026-11-23,Fund Raising,0,To consider and approve the proposal for raising funds by the Company through the issuance of equity shares and/or other eligible securities,calendar
-HEADSUP,2026-11-24,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-LEXUS,2026-11-24,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
-MKJEWELS,2026-11-24,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
-SETCO,2026-11-24,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",calendar
+BCSSL,2026-11-23,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+DALBHARAT,2026-11-23,Buyback/Other business matters,0,To consider buyback for equity shares and other business matters,held
+HDBFS,2026-11-23,Board meeting,0,HDB FINANCIAL SERVICES LTD has informed the Exchange about Board Meeting to be held on 23-Nov-2026 to consider Fund raising.,held
+SFCTECH,2026-11-23,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+VCL,2026-11-23,Fund Raising,0,To consider and approve the proposal for raising funds by the Company through the issuance of equity shares and/or other eligible securities,held
+HEADSUP,2026-11-24,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+LEXUS,2026-11-24,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
+MKJEWELS,2026-11-24,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+SETCO,2026-11-24,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
 ENRIN,2026-11-25,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and dividend, if any.",calendar
 RAJRATAN,2026-11-25,Other business matters,0,To consider other business matters,calendar
 SATIN,2026-11-25,Fund Raising,0,"Working Committee Meeting is scheduled on 25/11/2026 ,inter alia, to consider and approve for Issuance Of Listed, Secured/Unsecured, Non-Con",calendar
 SIMBHALS,2026-11-25,Financial Results,1,Simbhaoli Sugars Limited has informed the Exchange about IRP Convened Meeting scheduled to be held on 25 November 2026 inter-alia to conside,calendar
 COMSYN,2026-11-26,Other business matters,0,"To consider related to allotment of upto 3,25,000 warrants.",calendar
 DAVANGERE,2026-11-26,Other business matters,0,To consider and discuss the revision in the conversion price of the outstanding Foreign Currency Convertible Bonds (FCCBs).,calendar
+MINDACORP,2026-11-26,Fund Raising,0,To consider Fund Raising,calendar
 PATANJALI,2026-11-26,Dividend,0,"To consider, approve and declare 2nd Interim Dividend for the financial year 2026-27 to the shareholders of the Company.",calendar
+SGMART,2026-11-26,Fund Raising,0,To consider Fund Raising,calendar
 TEAMGTY,2026-11-26,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,calendar
+INDIANB,2026-11-27,Fund Raising,0,Prior Intimation of Meeting of Committee of Directors (Capital Raising) -Updates on Capital Raising Plan of the Bank,calendar
+SETCO,2026-11-27,Financial Results/Other business matters,1,"SETCO : 27-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 24, 2026 has been re-scheduled. Furt",calendar
 BRNL,2026-11-28,Financial Results,1,"BRNL : 28-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 14, 2026 has been re-scheduled. Furth",calendar
 ORTINGLOBE,2026-11-28,Fund Raising/Other business matters,0,1. The approval of increase in authorised share capital of the company subject to the approval of the members.2. To consider the proposal to,calendar
 SUKHJITS,2026-12-02,Buyback,0,"SUKHJITS : 02-Dec-2026 : The Company has informed the Exchange that a Board meeting to be held on November 20, 2026 has been re-scheduled. F",calendar
