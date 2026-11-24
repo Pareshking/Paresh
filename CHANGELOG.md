@@ -10,6 +10,10 @@
 - Dashboard: when neither of the size section's findings holds, its heading names the size furthest from its index over 12M, as approved (it used 6M, the table's longest window).
 - R2: four copies nothing read are retired and their writers stopped (market-cap history and snapshot, the SS store copy, NSE-vs-Screener check flags).
 
+## 2026-11-24 — NSE's sectors for every stock (S189 item 6 (a))
+
+- The Screener on Nano (> ₹2,000 Cr) and Combined will show NSE's sector ("Healthcare", "Capital Goods") under "Sector" in place of TradingView's ("Health Technology", "Producer Manufacturing"), as the 750 and the Nifty 1000 do. The names come from NSE's own lists and, for stocks outside them, from NSE's four-level classification as Screener.in shows it, read once a month. Until that file covers the list, the column stays as it is. Ranks, the model book and the record do not change.
+
 ## 2026-11-24 — "Max DD" in tables (owner)
 
 - Table headings and tiles write the worst fall from a peak as "Max DD" ("6M max DD"): the Screener's five window columns, Backtest, Portfolio, Indices and the stock page. Sentences keep "max drawdown", as tables write "52W" and sentences "52-week". The Guide says so where it defines the term.
