@@ -470,6 +470,11 @@ jobs:
             git fetch origin main
             git rebase origin/main || {
               echo "Rebase hit a conflict in generated data; keeping this run's copy."
+              # Named as a warning (S225 (3)), so the green scan puts each file on the
+              # warning issue: this run's copy replaced a newer one on main.
+              for f in $(git diff --name-only --diff-filter=U); do
+                echo "::warning::Push conflict on ${f}: this run's copy replaced the one on main (attempt $attempt)."
+              done
               # In a REBASE the sides are swapped: --ours is origin/main and
               # --theirs is the commit being replayed, i.e. this run's data.
               # --ours here silently dropped the whole sync commit, and the
