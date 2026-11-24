@@ -349,7 +349,7 @@ def _settings_form(weights: tuple[float, ...], liquidity_floor_cr: float, bounds
             hold_cap = st.number_input(
                 "Cut a holding back when it grows past (% of the book)", min_value=5.0, max_value=100.0,
                 value=float(TRACK_RECORD_CONFIG["hold_cap"]) * 100, step=1.0, key="bt_hold_cap",
-                help="Under the six-monthly reset a holding keeps the weight the market gave it and is cut back "
+                help="Under the six-monthly reset a holding keeps the weight its price moves gave it and is cut back "
                      "to this only when it grows past it. 15% is the live rule. The monthly reset puts every "
                      "holding back to its target each month, so this setting does not apply to it.")
             cost = st.number_input(

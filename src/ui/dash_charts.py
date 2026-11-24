@@ -156,12 +156,12 @@ BODY = {
                 '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div><div class="chart" data-pane="bottom" role="img"></div>'),
     "growth": ('<div class="ph" aria-live="polite"><span class="d"></span>'
                '<span><i style="color:var(--s-book)"></i>The book <b data-v="book"></b></span>'
-               '<span><i style="color:var(--s-mom50)"></i>Momentum 50 <b data-v="mom"></b></span>'
-               '<span><i class="dash" style="color:var(--s-market)"></i>Market <b data-v="market"></b></span></div>'
+               '<span><i style="color:var(--s-mom50)"></i>Nifty500 Momentum 50 <b data-v="mom"></b></span>'
+               '<span><i class="dash" style="color:var(--s-market)"></i>Nifty Total Market <b data-v="market"></b></span></div>'
                '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div>'
-               '<div class="ph"><b>Below the peak</b><span><i style="color:var(--down)"></i>book below peak <b data-v="dd"></b></span>'
-               '<span><i class="dash" style="color:var(--s-market)"></i>market below peak <b data-v="ddm"></b></span></div>'
-               '<div class="chart" data-pane="bottom" role="img" aria-label="The book\'s and the market\'s fall from their peaks"></div>'),
+               '<div class="ph"><b>Below its peak</b><span><i style="color:var(--down)"></i>The book <b data-v="dd"></b></span>'
+               '<span><i class="dash" style="color:var(--s-market)"></i>Nifty Total Market <b data-v="ddm"></b></span></div>'
+               '<div class="chart" data-pane="bottom" role="img" aria-label="The book\'s and Nifty Total Market\'s distance below their peaks"></div>'),
     "lines": ('<div class="cap"><span class="ph" aria-live="polite"></span><span class="chips" role="group" aria-label="Period"></span></div>'
               '<div class="chart" tabindex="0" role="img" aria-label="{label}"></div>'),
     "holdings": '<div class="hold" role="region" aria-label="{label}" tabindex="0"></div>',
@@ -170,7 +170,7 @@ BODY = {
     "rel": ('<div class="cap"><span class="chips" role="group" aria-label="Style"></span></div>'
             '<div class="readout" aria-live="polite"></div>'
             '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div>'
-            '<div class="chart" data-pane="bottom" role="img" aria-label="How far the line sits below its best"></div>'),
+            '<div class="chart" data-pane="bottom" role="img" aria-label="How far the line sits below its peak"></div>'),
     "btgrowth": ('<div class="ph p1" aria-live="polite"></div>'
                  '<div class="chart" data-pane="top" tabindex="0" role="img" aria-label="{label}"></div>'
                  '<div class="ph p2"></div>'

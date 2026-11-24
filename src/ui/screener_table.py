@@ -41,8 +41,8 @@ from src.ui.industry_names import short_industry
 
 # Readable names for the index tags the ranking stores.
 INDEX_NAMES = {
-    "N50": "Nifty 50", "NN50": "Next 50", "MID150": "Midcap 150",
-    "SMALL250": "Smallcap 250", "MICRO250": "Microcap 250",
+    "N50": "Nifty 50", "NN50": "Nifty Next 50", "MID150": "Nifty Midcap 150",          # NSE's full names (S173 SC-1)
+    "SMALL250": "Nifty Smallcap 250", "MICRO250": "Nifty Microcap 250",
     "NANO250": "Nano Cap", "NANO": "> ₹2,000 Cr",      # S175: the Nifty 1000's other 250; the ₹2,000 Cr list
 }
 

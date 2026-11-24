@@ -817,7 +817,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
            f"{f.as_of:%B} so far has bought back {_fmt.fixed(f.mtd / -f.before * 100, 0)}% of that selling"
            if f.before < 0 and f.mtd > 0 else "")]
     if share is not None:
-        kp.insert(1, (f"Against the {universe}’s market value", sg(share[0], 1, "%"), tone(share[0]),
+        kp.insert(1, (f"Against the {universe}’s market cap", sg(share[0], 1, "%"), tone(share[0]),
                       f"Bought so far in {f.as_of:%B}" if share[0] > 0 else f"Sold so far in {f.as_of:%B}", tone(share[0]),
                       f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {_fmt.fixed(abs(share[1]), 1)}% of it"))
     if dii:

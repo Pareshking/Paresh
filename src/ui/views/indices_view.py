@@ -192,8 +192,9 @@ def section_lag(sts: list[ip.Style]) -> list:
         return []
     mom = next((s for s in sts if s.style == "Momentum"), sts[0])
     worst_now = abs(mom.from_peak.iloc[-1]) >= abs(mom.worst) - 0.05
-    h2 = (f'{e(mom.style)} is <span class="dh-down">{abs(mom.from_peak.iloc[-1]):.1f}% behind the {e(mom.parent_name)}</span> '
-          f'from its {mom.worst_peak:%B %Y} peak' + (f", its deepest gap since launch in {mom.live.year}." if worst_now else "."))
+    # S173 IX-2: the figure is the fall of a ratio (the relative line below its peak), not a gap of two returns.
+    h2 = (f'{e(mom.style)}’s line against the {e(mom.parent_name)} is <span class="dh-down">{_fmt.fixed(abs(mom.from_peak.iloc[-1]), 1)}% '
+          f'below its {mom.worst_peak:%B %Y} peak</span>' + (f", its deepest since launch in {mom.live.year}." if worst_now else "."))
     others = [s for s in sts if s is not mom and abs(s.from_peak.iloc[-1]) >= abs(s.worst) - 0.05 and s.worst < -5]
     rec = [s for s in sts if s.recovered is not None and s.worst <= -20]
     extra = ""
@@ -215,7 +216,7 @@ def section_lag(sts: list[ip.Style]) -> list:
         f'<td class="dh-num dh-muted">{s.worst_peak:%-d %b %Y} → {s.worst_low:%-d %b %Y}</td>'
         f'<td class="dh-num dh-muted">{e(_dy(s.recovered)) if s.recovered is not None else "not yet"}</td></tr>' for s in sts)
     table = ('<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Style</th>'
-             '<th scope="col" class="dh-num">Now</th><th scope="col" class="dh-num">Worst relative fall</th>'
+             '<th scope="col" class="dh-num">Now</th><th scope="col" class="dh-num">Max drawdown, relative</th>'
              '<th scope="col" class="dh-num">Worst, peak → low</th><th scope="col" class="dh-num">Recovered</th></tr></thead>'
              f'<tbody>{body}</tbody></table></div>')
     return [f'<div class="dh-sec">{KICK.format("How long a style can lag")}<h2 id="s-lag" class="dh-h2">{h2}</h2>'

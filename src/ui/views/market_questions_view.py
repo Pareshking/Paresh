@@ -1,9 +1,8 @@
 """The market questions, drawn for the pages that own them (engine: src/engine/market_questions.py).
 
-The Market page's breadth and trend sections (`render_breadth_questions`) and the
-Sectors page's leaders section (`render_leaders_section`): each answer, a five-band
-scale with today, a month ago and a year ago marked, the measures that vote, and
-what changed.
+The Market page's breadth and trend sections (`render_breadth_questions`): each answer, a five-band
+scale with today, a month ago and a year ago marked, the measures that vote, and what changed.
+(The Sectors leaders section, which had no caller, was removed 24 Nov 2026, S173 K-7.)
 """
 from __future__ import annotations
 
@@ -580,43 +579,6 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
 
 # ── Sectors: "What is leading?" in full ─────────────────────────────────────
 
-_SECTOR_CSS = """<style>
-.qp-quad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 24px;margin:4px 0 14px}
-.qp-quad div{border-top:1px solid var(--c-rule_strong);padding-top:8px}
-.qp-quad b{display:block;font-size:var(--fs-13);font-weight:600;color:var(--c-ink);margin-bottom:4px}
-.qp-quad b.up{color:var(--c-up)}.qp-quad b.down{color:var(--c-down)}
-.qp-quad p{font-size:var(--fs-13);line-height:1.5;color:var(--c-text_2);margin:0 0 3px;display:flex;justify-content:space-between;gap:8px}
-.qp-quad p span:last-child{font-variant-numeric:tabular-nums;color:var(--c-muted);white-space:nowrap}
-.qp-quad p.qh{font-size:var(--fs-12);color:var(--c-muted);border-bottom:1px solid var(--c-rule);padding-bottom:3px;margin-bottom:5px}
-.qp-heat{overflow-x:auto}
-.qp-heat table{min-width:900px}
-.qp-heat td{font-size:var(--fs-12);padding:6px 4px;text-align:center}
-.qp-heat th{text-align:center;padding:6px 4px}
-.qp-heat td:first-child,.qp-heat th:first-child{text-align:left;white-space:nowrap;padding-right:10px}
-.qp-heat td.u2{background:var(--c-up_line_2);color:var(--c-ink)}.qp-heat td.u1{background:var(--c-up_tint)}
-.qp-heat td.d1{background:var(--c-down_tint)}.qp-heat td.d2{background:var(--c-down_line_3);color:var(--c-ink)}
-.qp-heat td.mtd{border-left:1px dashed var(--c-rule_strong)}
-.qp-heat td.run,.qp-heat td.tot{text-align:right;font-weight:600}
-.qp-heat th:nth-last-child(-n+2){text-align:right}
-@media (max-width:900px){.qp-quad{grid-template-columns:1fr 1fr;gap:12px 16px}}
-</style>"""
-
-_QUADS = (("ahead on both", "Ahead on both", "up"), ("gaining", "Gaining: ahead over the month", "up"),
-          ("fading", "Fading: ahead over six months only", "down"), ("behind on both", "Behind on both", "down"))
-
-
-def _heat_cls(v: float) -> str:
-    if not pd.notna(v):
-        return ""
-    return "u2" if v >= 4 else "u1" if v > 0 else "d2" if v <= -4 else "d1" if v < 0 else ""
-
-
-def _run_text(n: int) -> str:
-    if not n:
-        return "–"
-    return f"{abs(n)} {'ahead' if n > 0 else 'behind'}"
-
-
 def run_example(months: pd.DataFrame) -> str:
     """A worked example of Run and 12 months, from the table's own numbers.
 
@@ -656,154 +618,6 @@ def run_example(months: pd.DataFrame) -> str:
                  f"months added up")
     return text + "."
 
-
-def _rel_bars_html(sec: pd.DataFrame) -> str:
-    """Each industry's six months against all ranked stocks as a bar from zero,
-    with a dot for the last month: the quadrants as a picture."""
-    if sec is None or sec.empty:
-        return ""
-    lim = max(5.0, float(sec[["rel_6m", "rel_1m"]].abs().max().max()))
-    x = lambda v: 50 + max(-50.0, min(50.0, v / lim * 50))  # noqa: E731
-    rows = []
-    for r in sec.sort_values("rel_6m", ascending=False).itertuples():
-        left, width = (50, x(r.rel_6m) - 50) if r.rel_6m >= 0 else (x(r.rel_6m), 50 - x(r.rel_6m))
-        tone = "up" if r.rel_6m >= 0 else "down"
-        rows.append(
-            f'<div class="rb-row"><span class="rb-n">{html.escape(r.Industry)}</span>'
-            f'<span class="rb-t"><i class="rb-z"></i><i class="rb-b {tone}" style="left:{left:.1f}%;width:{width:.1f}%"></i>'
-            f'<i class="rb-d" style="left:{x(r.rel_1m):.1f}%" title="Last month {_num(r.rel_1m, "pts")}"></i></span>'
-            f'<span class="rb-v">{_num(r.rel_6m, "pts")}<small> · {_num(r.rel_1m, "pts")}</small></span></div>')
-    return ('<h3 style="margin-top:6px">Six months against all ranked stocks, and the last month</h3>'
-            '<p class="qp-note" style="margin:0 0 8px">Bars: the industry\'s six-month return less all ranked '
-            'stocks\', each equal-weighted. Rings: the last month. Right of the line is ahead of all ranked stocks.</p>'
-            '<style>.rb-row{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr) 120px;gap:12px;'
-            'align-items:center;padding:3px 0;font-size:var(--fs-13)}.rb-n{color:var(--c-text_2);white-space:nowrap;'
-            'overflow:hidden;text-overflow:ellipsis}.rb-t{position:relative;height:14px}'
-            '.rb-z{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--c-rule_strong)}'
-            '.rb-b{position:absolute;top:3px;height:8px;border-radius:1px}.rb-b.up{background:var(--c-up)}'
-            '.rb-b.down{background:var(--c-down)}.rb-d{position:absolute;top:1px;width:12px;height:12px;'
-            'margin-left:-6px;border-radius:50%;border:2px solid var(--c-ink);background:var(--c-white);box-sizing:border-box}'
-            '.rb-v{text-align:right;font-variant-numeric:tabular-nums;color:var(--c-ink)}'
-            '.rb-v small{color:var(--c-muted);font-size:var(--fs-12)}'
-            '@media (max-width:700px){.rb-row{grid-template-columns:110px minmax(0,1fr) 84px}}</style>'
-            f'<div role="img" aria-label="Industries by six months against all ranked stocks, with the last month" '
-            f'style="margin-bottom:24px">{"".join(rows)}</div>')
-
-
-def leaders_section_html(ld: mq.Leaders, months: pd.DataFrame, market_name: str = mq.MARKET) -> str:
-    sec = ld.sectors
-    both = sec[sec["group"] == "ahead on both"]["Industry"].head(3).tolist()
-    best = max((x for x in ld.size if x[1] is not None), key=lambda x: x[1], default=None)
-    verdict = "; ".join([x for x in [best[0] if best else "", ", ".join(both)] if x]) or "No clear leader"
-
-    # Size leadership first (S147): the equal-weighted ranked market against
-    # the market index (`market_name`). Below zero, large companies led; the industries above are
-    # read against that market, so this gap is not in them.
-    gap6, gap1 = getattr(ld, "market_vs_index", (None, None))
-    size_rows = (f'<tr><td>All ranked stocks, equal weight</td><td class="{_t(gap6)}">{_num(gap6, "pts")}</td>'
-                 f'<td class="{_t(gap1)}">{_num(gap1, "pts")}</td></tr>' if gap6 is not None or gap1 is not None else "")
-    size_rows += "".join(
-        f'<tr><td>{html.escape(n)}</td><td class="{_t(r6)}">{_num(r6, "pts")}</td>'
-        f'<td class="{_t(r1)}">{_num(r1, "pts")}</td></tr>' for n, r6, r1 in ld.size)
-    size_html = (f'<h3>By size, against {html.escape(market_name)}</h3><table><thead><tr><th scope="col">Index</th>'
-                 '<th scope="col">6 months</th><th scope="col">1 month</th></tr></thead>'
-                 f'<tbody>{size_rows}</tbody></table>') if size_rows else ""
-
-    quads = []
-    for key, title, tone in _QUADS:
-        g = sec[sec["group"] == key]
-        items = "".join(f'<p><span>{html.escape(r.Industry)}</span><span>{_num(r.rel_6m, "pts")} · '
-                        f'{_num(r.rel_1m, "pts")}</span></p>' for r in g.itertuples()) or "<p><span>None</span></p>"
-        quads.append(f'<div><b class="{tone}">{html.escape(title)} ({len(g)})</b>'
-                     '<p class="qh"><span>Industry</span><span>6M · 1M, pts</span></p>'
-                     f'{items}</div>')
-    bars_html = _rel_bars_html(sec)
-    quad_html = ('<h3>Industries by six months and one month</h3>'
-                 '<p class="qp-note" style="margin:0 0 6px">Each figure is the industry\'s return less all '
-                 'ranked stocks\', each equal-weighted, in points: over six months, then over one month.</p>'
-                 f'<div class="qp-quad">{"".join(quads)}</div>' + bars_html)
-
-    heat_html = ""
-    if months is not None and not months.empty:
-        cols = [c for c in months.columns if c not in ("run", "total")]
-        longest = months["run"].abs().max()
-        lead_run = months[months["run"].abs() == longest]
-        run_line = ""
-        if longest and len(lead_run):
-            n = int(lead_run["run"].iloc[0])
-            run_line = (f'<p class="qp-s">{html.escape(lead_run.index[0])} has {"beaten" if n > 0 else "trailed"} '
-                        f'all ranked stocks in each of the last {abs(n)} completed months, the longest current run.</p>')
-        head = "".join(f'<th scope="col">{html.escape(c.replace(" 20", " ’"))}</th>' for c in cols)
-        body = []
-        for name, r in months.iterrows():
-            cells = "".join(
-                f'<td class="{_heat_cls(r[c])}{" mtd" if c.endswith("so far") else ""}">'
-                f'{"–" if not pd.notna(r[c]) else _fmt.signed(r[c], 1)}</td>' for c in cols)
-            body.append(f'<tr><td>{html.escape(name)}</td>{cells}<td class="run">{_run_text(int(r["run"]))}</td>'
-                        f'<td class="tot {_t(r["total"])}">{_num(r["total"], "pts")}</td></tr>')
-        example = run_example(months)
-        heat_html = ('<h3>Month by month against all ranked stocks</h3>' + run_line +
-                     '<div class="qp-heat"><table><thead><tr><th scope="col">Industry</th>' + head +
-                     '<th scope="col">Run</th><th scope="col">12 months</th></tr></thead>'
-                     f'<tbody>{"".join(body)}</tbody></table></div>'
-                     '<p class="qp-note">Each cell is the industry\'s return in that month less all ranked '
-                     'stocks\', each equal-weighted, in points; deeper shades are 4 points or more. The last column before Run '
-                     'is the month so far. Run counts completed months in a row on the same side.</p>'
-                     + (f'<p class="qp-note">{html.escape(example)}</p>' if example else ""))
-
-    sw = mq.nearest_switches(sec)
-    sw_items = []
-    if sw["entrants"]:
-        sw_items.append("<li>Nearest to moving ahead over six months: " + "; ".join(
-            f"<b>{html.escape(n)}</b> {_num(v, 'pts')}" for n, v in sw["entrants"]) + ".</li>")
-    if sw["exits"]:
-        sw_items.append("<li>Nearest to falling behind: " + "; ".join(
-            f"<b>{html.escape(n)}</b> {_num(v, 'pts')}" for n, v in sw["exits"]) + ".</li>")
-    would = f'<h3>What would change the answer</h3><ul>{"".join(sw_items)}</ul>' if sw_items else ""
-
-    return (_CSS + _PAGE_CSS + _SECTOR_CSS +
-            '<section class="qp" aria-labelledby="q-lead"><h2 id="q-lead">What is leading?</h2>'
-            f'<div class="qp-top"><div><p class="qp-v">{html.escape(verdict)}</p>'
-            f'<p class="qp-s">{html.escape(ld.sentence)}</p>{size_html}</div>'
-            f'<div>{would}</div></div>{quad_html}{heat_html}'
-            '<p class="qp-note">Industries are NSE\'s, five or more ranked stocks each, counted over the stocks '
-            'ranked today. Each industry is an equal-weighted index of its stocks and is compared with the '
-            'same index of every ranked stock, so a rally led by large companies does not read as every '
-            f'industry lagging; that gap is the first row of By size. The size indices are read against {html.escape(market_name)}, '
-            'company size against company size. The leaderboard below ranks by the typical (median) stock; '
-            'everything else here uses the equal-weighted average.</p></section>')
-
-
-@st.cache_data(show_spinner=False, ttl=3600)
-def _leaders_full(key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.Series,
-                  _size: dict[str, pd.Series], market_name: str = mq.MARKET):
-    return (mq.leaders_answer(_prices, _industry, _bench, _size, market_name=market_name),
-            mq.industry_months(_prices, _industry, _bench))
-
-
-def render_leaders_section(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
-                           size: dict[str, pd.Series], market_name: str = mq.MARKET) -> bool:
-    if prices is None or prices.empty or bench is None or bench.dropna().empty:
-        return False
-    syms = [s for s in rank_df["Symbol"] if s in prices.columns]
-    px = prices[syms]
-    # The prices' session bounds the index, as on the Dashboard: after the close the live index has
-    # today while the stocks and the size indices end on the last nightly sync, and the rule below then
-    # emptied every size row (23 Nov 2026: 23 Nov against 20 Nov; CI failed Market requirements 7 and 12).
-    bench = bench[bench.index <= prices.index.max()]
-    if bench.dropna().empty:
-        return False
-    # One session for every index (S148): a size index without the market's last close reads "–".
-    from src.engine import dashboard_insights as di
-    size = {k: di.as_of(v, bench.dropna().index[-1]) for k, v in size.items()}
-    size = {k: v for k, v in size.items() if len(v)}
-    industry = rank_df.drop_duplicates("Symbol").set_index("Symbol").get("Industry", pd.Series(dtype=str))
-    key = "|".join([_columns_key(prices, syms), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp(), "full"])
-    leaders, months = _leaders_full(key, px, industry, bench.dropna(), size, market_name)
-    if leaders is None:
-        return False
-    st.html(leaders_section_html(leaders, months, market_name))
-    return True
 
 
 # ── The market strip: each index's day, its last three months, its month ────
