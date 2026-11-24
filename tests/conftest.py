@@ -1,6 +1,30 @@
 """pytest session-wide fixtures."""
 
+import os as _os
+import tempfile as _tempfile
+
 import pytest
+
+# ── Cache isolation (S138 I7) ────────────────────────────────────────────────
+# src/core/config.py's DATA_DIR is the download cache (the long NSE file, NSE's
+# closes, market caps). Left at its default it is the working tree's data_cache/,
+# so a test could pass only because a developer's machine had downloaded a file
+# CI never has, and the suite wrote into the tree. Set before any src import; a
+# value already in the environment is kept, so a run can still point it somewhere.
+# One exception, named: NSE's published two-year closes, which tests on the real
+# prices read (test_nse_prices.py's `committed`, test_nse_closes_published.py).
+# They are not in git (S178); scripts/fetch_nse_closes.py puts them in the default
+# cache (CI runs it before pytest), and only those files are copied in.
+if "UMIYA_DATA_DIR" not in _os.environ:
+    import shutil as _shutil
+    from pathlib import Path as _Path
+
+    _tmp_cache = _tempfile.mkdtemp(prefix="umiya_test_cache_")
+    _default_cache = _Path(__file__).resolve().parents[1] / "data_cache"
+    for _name in ("nse_prices_closes.parquet", "nse_prices_closes.parquet.revision"):
+        if (_default_cache / _name).exists():
+            _shutil.copy2(_default_cache / _name, _tmp_cache)
+    _os.environ["UMIYA_DATA_DIR"] = _tmp_cache
 
 # ── Network isolation ────────────────────────────────────────────────────────
 # The suite used to reach the internet. A full run fetched the constituent CSVs
