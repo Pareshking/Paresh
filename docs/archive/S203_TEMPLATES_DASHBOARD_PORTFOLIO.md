@@ -265,3 +265,4 @@ month for dash.flow.1).
 ## 6. Owner's answers (24 Nov 2026)
 
 1. Losing months (dash.mom.1): **(a)**, name the months for a 2-month run ("has trailed in October and so far in November"), count them from 3 ("has trailed for 3 months and so far in November").
+2. The brief's repeated figures: **(a)**, the brief keeps the signal count and the 1M beat share, as the page's verdict and the one stated exception to §2; section 3's h2 drops the count (its table shows it); section 5 keeps the beat share with its table.
