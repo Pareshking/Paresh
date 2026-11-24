@@ -260,6 +260,7 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
     #     prior day's sync, which this top-up supplies.
     if os.path.exists(REPO_MCAP_FILE):
         gap = [s for s in symbols if s not in master]
+        repo_is_source = not master
         if not master or gap:
             try:
                 repo_caps = pd.read_csv(REPO_MCAP_FILE)
@@ -286,7 +287,11 @@ def fetch_market_caps(symbols: Sequence[str], force_refresh: bool = False) -> pd
                                 "Repo snapshot gap-fill: %d symbol(s) not in today's bhavcopy: %s",
                                 len(filled), ", ".join(sorted(filled)),
                             )
-                    if "AsOf" in repo_caps.columns:
+                    # The snapshot's date only when the snapshot is the source. A top-up of a few
+                    # symbols kept the live day's date off the header: the older file's AsOf overwrote
+                    # it, so every cap read as a day older than NSE's file it came from (S224 (g)).
+                    # The topped-up symbols are named in mcap_repo_gap_fill_list.
+                    if "AsOf" in repo_caps.columns and repo_is_source:
                         stamped = [v for v in repo_caps["AsOf"].dropna().astype(str) if v.strip()]
                         if stamped:
                             metrics.note("mcap_as_of", stamped[0])
