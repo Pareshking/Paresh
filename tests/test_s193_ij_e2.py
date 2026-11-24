@@ -155,6 +155,7 @@ CAUTION_NOTES = {
     ("portfolio_page.py", "*note"): "unpriced_note: missing closes",
     ("portfolio_page.py", '"The model book could not be read just now."'): "the book failed its check",
     ("portfolio_page.py", '"The track record could not be read just now."'): "the ledger could not be read",
+    ("portfolio_page.py", '"The model book’s holdings could not be valued just now."'): "the book could not be valued",
 }
 
 

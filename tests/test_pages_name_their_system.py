@@ -53,7 +53,7 @@ def test_portfolio_names_the_books_own_size_groups():
     blank.update(exposure=exposure)
     assert pp.book_size_words(pp.Page(**blank)) == "Ultra Nano Cap and Nano Cap"
     blank.update(exposure=pd.DataFrame())
-    assert pp.book_size_words(pp.Page(**blank)) == "Small Cap and Micro Cap"
+    assert pp.book_size_words(pp.Page(**blank)) == ""      # no size split: no claim (S203 pf.ret.4)
     assert "The book is mostly Small Cap and Micro Cap" not in _src("src/ui/views/portfolio_page.py")
 
 

@@ -16,7 +16,7 @@ def test_capital_is_the_money_put_in_not_the_first_equity_point():
 
 def test_the_heading_names_the_same_money():
     assert MODEL_BOOK_CAPITAL == 10_000_000.0
-    assert "₹1 Cr put in" in SRC.read_text()
+    assert "₹1 Cr was put in" in SRC.read_text()
 
 
 def test_the_index_line_never_names_a_date_after_the_prices():
