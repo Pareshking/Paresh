@@ -44,7 +44,7 @@
     {"file": "src/ui/screener_table.py", "rule": "G8-max-drawdown", "context": "Max DD", "count": 1, "audit": "K-1"},
     {"file": "src/ui/screener_table.py", "rule": "G11-ema-without-d", "context": "% 50 EMA", "count": 1, "audit": "K-1"},
     {"file": "src/ui/screener_table.py", "rule": "G11-moving-average", "context": "volume 1.5x or more its 20-day average\">Spike</span>", "count": 1, "audit": "A-3"},
-    {"file": "src/ui/screener_table.py", "rule": "G11-ema-without-d", "context": "Above 50 EMA", "count": 1, "audit": "K-1"},
+    {"file": "src/ui/screener_table.py", "rule": "G11-ema-without-d", "context": "Above 50 EMA", "count": 2, "audit": "K-1"},
     {"file": "src/ui/stock_chart.py", "rule": "G11-ema-without-d", "context": "20 EMA", "count": 1, "audit": "K-3"},
     {"file": "src/ui/stock_chart.py", "rule": "G11-ema-without-d", "context": "50 EMA", "count": 1, "audit": "K-3"},
     {"file": "src/ui/stock_chart.py", "rule": "G11-ema-without-d", "context": "200 SMA", "count": 1, "audit": "K-3"},
