@@ -166,7 +166,7 @@ def test_the_page_parts_carry_the_requirements_markers(monkeypatch):
                    "Why the Nifty 500 and not Nifty Total Market", "The two halves", "Show the table",
                    "Below its peak now", "Max drawdown", "Days below its peak", "Back at the peak",
                    "Month by month", "Survivorship", "Look-ahead", "Not checked", "Rules chosen after looking",
-                   "found only 10 stocks", "Trades closed", "Median trade", "Portfolio", "Data to", "prices to"):
+                   "only 10 stocks passed the rules", "Trades closed", "Median trade", "Portfolio", "Data to", "prices to"):
         assert marker.lower() in text.lower(), marker
     kinds = [p.kind for p in bv.page_parts(f) if hasattr(p, "kind")]
     assert kinds[:2] == ["btgrowth", "trows"]

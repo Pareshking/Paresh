@@ -261,7 +261,8 @@ def test_backtest_months_grid_footnotes_its_dash():
     from src.ui.views.backtest_view import _months_dash_note
     m = pd.DataFrame({"rule": [0.01] * 3}, index=pd.to_datetime(["2026-08-31", "2026-09-30", "2026-10-31"]))
     note = _months_dash_note(m)
-    assert note.startswith("– in a month:") and "Aug 2026" in note and "Oct 2026" in note
+    # S203 bt.yr.3: the months after the last one tested are blank cells, so the note names only the start.
+    assert note.startswith("– in a month:") and "Aug 2026" in note and "Oct 2026" not in note
 
 
 def test_watchlist_headline_for_one_stock():
