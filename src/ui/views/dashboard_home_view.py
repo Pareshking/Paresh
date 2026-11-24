@@ -1229,6 +1229,10 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     own = sm.for_tiles(sm.read(system if system in sm.SYSTEMS else SYSTEM_750))
     mtd = _month_so_far(key, adj_close, tuple(rank_df["Symbol"].drop_duplicates()), as_of)
     lead = sm.tiles(own, mtd)
+    if system not in sm.SYSTEMS and lead:
+        # Combined has no record of its own; the tiles read the 750's and say so (S224 (e), data audit 24 Nov).
+        label, value, note = lead[0]
+        lead[0] = (label, value, (note + "; " if note else "") + "the Nifty 750's record (Combined keeps none)")
     streak = di.losing_streak(own, mtd) if own is not None else 0
     # Flows are read to the page's session: NSDL's file can run ahead of the prices (S193 E).
     nsdl = di.cut_at(_read_csv(FILES["nsdl"]), as_of)

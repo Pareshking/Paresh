@@ -213,7 +213,13 @@ def file_dates(session, root: str | None = None) -> list[dict]:
     session = pd.Timestamp(session).normalize()
     rows = []
     for name, file, readers, how, kind, lag, why in FILE_RULES:
-        last = _file_date(os.path.join(root or _DATA, file), how)
+        path = os.path.join(root or _DATA, file)
+        if file == os.path.join("nse_prices", "closes.parquet") and root is None and not os.path.exists(path):
+            # Not in git (.gitignore): the app reads the published copy, so that copy is dated (S224 (f)).
+            from src.loaders.nse_prices import closes_path
+            found = closes_path()
+            path = str(found) if found is not None else path
+        last = _file_date(path, how)
         if last is None or pd.isna(last):
             latest, status = "Not on this server", "Not checked"
         elif kind == MONTHLY:
