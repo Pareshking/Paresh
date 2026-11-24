@@ -235,7 +235,7 @@ def title(table: pd.DataFrame, n_saved: int, plan: BookPlan | None, ln: Lines) -
     from src.ui.page_kit import verdict
     q = table.get("Qualified Rank", pd.Series(dtype=float))
     top = int(sum(group_of(x, ln) == TOP for x in q))
-    line = f"the book's top {ln.buy}"
+    line = f"the top {ln.buy} qualified"
     if top == 0:
         head = ("Your 1 stock is " + verdict(f"not in {line}", False) if n_saved == 1 else
                 "Both of your stocks are " + verdict(f"outside {line}", False) if n_saved == 2 else
@@ -253,10 +253,17 @@ def title(table: pd.DataFrame, n_saved: int, plan: BookPlan | None, ln: Lines) -
     when = fmt_day(plan.check)
     if not held:
         return head + "."
-    if not sold:
-        return (f"{head}; the one it holds is kept on {when}." if len(held) == 1 else
-                f"{head}; none of the {len(held)} it holds is sold on {when}.")
-    return f"{head}; " + verdict(f"{len(sold)} that it holds {'is' if len(sold) == 1 else 'are'} sold", False) + f" on {when}."
+    # The book's side as its own sentence, at the check, not "sold on 30 Nov": sales fill the next session
+    # (S203 wl.head.1, dash.brief.2's form).
+    at = f"at the {when} check"
+    if len(held) == 1:
+        it = "it" if n_saved == 1 else f"one of them, {held[0]},"
+        tail = (f"The book holds {it} and would keep it {at}." if not sold else
+                f"The book holds {it} and " + verdict("would sell it", False) + f" {at}.")
+    else:
+        tail = (f"The book holds {len(held)} of them; none would be sold {at}." if not sold else
+                f"The book holds {len(held)} of them; " + verdict(f"{len(sold)} would be sold", False) + f" {at}.")
+    return f"{head}. {tail}"
 
 
 def plan_sentence(table: pd.DataFrame, plan: BookPlan | None) -> str:

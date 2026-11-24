@@ -309,7 +309,7 @@ def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
 def rules_html(row, a: dict | None, q, ln, high_pct, ladder: sl.Ladder, held, holding, check, events, last_res) -> list:
     from src.ui.system_param import page_href
     from src.engine.exit_watch import SELL, WATCH
-    ca, cb = sl.rules_heading(a, check, high_pct)
+    ca, cb = sl.rules_heading(a, check, high_pct, bool(held))
     status = (a or {}).get("status")
     tone = "down" if status == SELL else "watch" if status == WATCH else "up"
     at_high = ladder.close is not None and ladder.high is not None and round(ladder.close) >= round(ladder.high)
@@ -365,7 +365,7 @@ def returns_html(ws: list[sl.Window], as_of, uni) -> list:
             f'<td class="n sp-wide">{formats.pct(w.typical_fall, fraction=False)}</td>'
             f'<td class="n sp-wide">{formats.signed(w.sharpe, 2, plus=False) if w.sharpe is not None else formats.DASH}</td>'
             f'<td class="n sp-wide">{wl.fmt_ordinal(w.place) if w.place is not None else formats.DASH}</td></tr>')
-    return ['<section class="dh-sec sp-sec">', _kick("3 · Returns and falls"), _h2(a, b, c),
+    return ['<section class="dh-sec sp-sec">', _kick("3 · Returns and falls"), _h2(a, b, c, sl.returns_tone(ws)),
             f'<div class="sp-key"><span><i class="ln"></i>One line is {step}% of return, one scale for every row</span>'
             f'<span><i class="tri"></i>{sl.MARKET}, same sessions</span></div>',
             '<div class="sp-tbox sp-ret"><table class="sp-t"><thead><tr><th scope="col">Window</th><th scope="col">Return</th>'

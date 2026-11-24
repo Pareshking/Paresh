@@ -575,11 +575,13 @@
             .ms-v { font-size: var(--fs-17); }
             .ms-s { font-size: var(--fs-12); }
             .st-key-scr_toolbar [data-testid="stSelectbox"] { width: 100% !important; }
-            /* The preset chips scroll sideways too (stPills below): same fade. */
-            .st-key-scr_toolbar [data-testid="stPills"] {
-                -webkit-mask-image: linear-gradient(to right, #000 86%, transparent);
-                mask-image: linear-gradient(to right, #000 86%, transparent);
-                padding-right: 36px !important;
+            /* The six preset chips wrap to two rows on a phone, so every count shows (S189 item 4, 24 Nov 2026:
+               the row was 788 px in a 358 px box, 4 of 6 out of sight). Streamlit 1.65 draws st.pills in
+               stButtonGroup; its first child is the scroller. */
+            .st-key-scr_toolbar [data-testid="stButtonGroup"] > div {
+                flex-wrap: wrap !important;
+                overflow-x: visible !important;
+                row-gap: 6px !important;
             }
         }
 

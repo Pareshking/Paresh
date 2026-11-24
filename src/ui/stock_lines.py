@@ -330,16 +330,19 @@ def rules(row, a: dict | None, q: int | None, ln: wl.Lines, high_pct: float) -> 
     ]
 
 
-def rules_heading(a: dict | None, check: pd.Timestamp | None, high_pct: float) -> tuple[str, str]:
+def rules_heading(a: dict | None, check: pd.Timestamp | None, high_pct: float,
+                  held: bool = True) -> tuple[str, str]:
     """(coloured, plain) halves: 'Clear of all three sell rules' + '; a 10.7% fall would reach the nearest, its 50D EMA.'"""
     from src.engine.exit_watch import CLEAR, SELL, WATCH
     a = a or {}
     status = a.get("status")
     when = f"the {wl.fmt_day(check)} check" if check is not None else "the next check"
     if status == SELL:
-        return "A holding would be sold", f" if this holds at {when}: it is {a.get('why') or 'past a rule'}."
+        # S203 st.rule.1: "A holding would be sold" was said of stocks the book does not hold.
+        return ("It would be sold" if held else "It would fail a sell rule",
+                f" at {when} if today's price holds: it is {a.get('why') or 'past a rule'}.")
     if status == WATCH:
-        return "Close to a sell rule", f": it {a.get('why')}."
+        return "It is close to a sell rule", f": it {a.get('why')}."
     if status == CLEAR:
         options = [(num(a.get("EMA cushion")), "its 50D EMA"),
                    (num(a.get("High cushion")), f"the −{round((1 - high_pct) * 100)}% line")]
@@ -531,17 +534,25 @@ def bars(ws: list[Window], step: int) -> list[Bar]:
 
 
 def returns_heading(ws: list[Window]) -> tuple[str, str, str]:
-    """('Up 200.9% in 12 months against ', '+0.8% for Nifty Total Market', '; its max drawdown was 17.0%.')"""
-    w = next((x for x in ws if x.months == 12 and x.ret is not None), None) or next(
-        (x for x in reversed(ws) if x.ret is not None), None)
-    if w is None:
-        return "No return to show for this stock yet.", "", ""
-    span = f"{w.months} months"
-    word = "Up" if round(w.ret * 100, 1) >= 0 else "Down"
-    a = f"{word} {formats.pct(abs(w.ret), signed_=False)} in {span}"
-    b = f"{formats.pct(w.market)} for {MARKET}" if w.market is not None else ""
-    c = f"; its max drawdown was {formats.pct(abs(w.fall), signed_=False, fraction=False)}." if w.fall is not None else "."
-    return (a + (" against " if b else ""), b, c)
+    """('', 'Ahead of Nifty Total Market on 3 of 5 windows', '; its max drawdown over 12 months was 17.0%.').
+
+    The lede states the 12-month return; the heading leads with what the table shows beside it (S203 Q5,
+    owner 24 Nov 2026: no figure twice, the lede keeps the 12M return)."""
+    both = [x for x in ws if x.ret is not None and x.market is not None]
+    w = next((x for x in ws if x.months == 12 and x.fall is not None), None) or next(
+        (x for x in reversed(ws) if x.fall is not None), None)
+    dd = (f"its max drawdown over {w.months} months was {formats.pct(abs(w.fall), signed_=False, fraction=False)}."
+          if w is not None else "")
+    if not both:
+        return ((dd[0].upper() + dd[1:]) if dd else "No return to show for this stock yet."), "", ""
+    k = sum(x.ret > x.market for x in both)
+    return "", f"Ahead of {MARKET} on {k} of {len(both)} window{'s' if len(both) != 1 else ''}", ("; " + dd if dd else ".")
+
+
+def returns_tone(ws: list[Window]) -> str:
+    """Up when the stock is ahead on most windows it can be compared on."""
+    both = [x for x in ws if x.ret is not None and x.market is not None]
+    return "up" if both and 2 * sum(x.ret > x.market for x in both) > len(both) else "down"
 
 
 def returns_note(as_of: pd.Timestamp, uni: Universe) -> str:
@@ -693,7 +704,7 @@ def data_checks(row, as_of: pd.Timestamp, actions: list[Action], actions_from: p
                                        "sessions carry the previous close"))
         if "🔴" in gap:
             items.append((False, "A data gap in the last 12 months"))
-    items.append((not short, f"More than {HIGH_SESSIONS} sessions of prices, so the 52W high counts" if not short else
+    items.append((not short, f"More than {HIGH_SESSIONS} sessions of prices, so the 52-week high counts" if not short else
                   f"Fewer than {HIGH_SESSIONS} sessions of prices, so the 52W-high filter cannot pass yet"))
     if hz is not None and hz >= 5:
         items.append((True, "Ranked on all five horizons (1, 3, 6, 9 and 12 months)"))
@@ -706,7 +717,7 @@ def data_checks(row, as_of: pd.Timestamp, actions: list[Action], actions_from: p
     if not actions:
         items.append((True, f"No split, bonus, rights issue or demerger in NSE’s lists{since}"))
     src = str(row.get("ATH Source") or "")
-    items.append((src == "snapshot", "All-time closing high over Screener’s whole history, its weekly years filled with NSE’s daily closes"
+    items.append((src == "snapshot", "All-time closing high over the full price history we hold, its weekly years filled with NSE’s daily closes"
                   if src == "snapshot"
                   else "High from a two-year window, not all-time"))
     return DataChecks(items, actions, since)

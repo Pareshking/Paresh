@@ -161,7 +161,7 @@ def test_the_page_parts_carry_the_requirements_markers(monkeypatch):
     f = bv.gather(res, s, h, bench, True)
     # Inline spans (the headline's verdict colour, S219 2) join their text; other tags break it.
     text = re.sub(r"<[^>]+>", " ", re.sub(r"</?span[^>]*>", "", html_of(bv.page_parts(f))))
-    for marker in ("Backtest", "a year to the Nifty 500", "Price returns on both sides", "What was tested",
+    for marker in ("Backtest", "for the Nifty 500, before tax", "Price returns on both sides", "What was tested",
                    "A year, compounded", "Lead over the Nifty 500", "points a year", "calendar time",
                    "Why the Nifty 500 and not Nifty Total Market", "The two halves", "Show the table",
                    "Below its peak now", "Max drawdown", "Days below its peak", "Back at the peak",

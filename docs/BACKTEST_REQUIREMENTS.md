@@ -79,7 +79,7 @@ The owner runs a monthly momentum book. He opens this page to ask:
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 1 | Kicker "Backtest"; a title answering question 1 with the two figures a year, the benchmark named and "before tax" | PAGE_DESIGN §2a; S173 | Top | Backtest + a year to the Nifty 500 |
+| 1 | Kicker "Backtest"; a title answering question 1 with the two figures a year, the benchmark named and "before tax" | PAGE_DESIGN §2a; S173 | Top | Backtest + for the Nifty 500, before tax |
 | 2 | One lede: what was replayed (the record's rules, the index as it stood each month), the window, the price source, the cost, and that both sides are **price returns** | Owner 21 Nov (price vs total return) | Top | Price returns on both sides |
 | 3 | A visible "What was tested" line, **first on the page** (above the title), listing every setting of the run shown in short words joined by "·" (no "ATH", "D EMA" abbreviations without the word) | Current `bt-sum` line, kept and reworded; moved first (S219-6, owner 23 Nov 2026) | Top | What was tested |
 | 4 | The settings form stays (nothing runs until Apply), folded under "Change the test" right below the line, opening in place and staying open or shut for the session; universe, months, holdings, keep rank, EMA, 52-week high, all-time high, rebalance rule, holding cap, costs, score, days left out of the score, keep (exit) average and % below the high, weights, traded-value floor, weighting; each new one with a ? help line; their defaults are the record's run | Owner 9 Oct 2026 (form); S219-6 (owner 23 Nov 2026) | Top | Change the test |

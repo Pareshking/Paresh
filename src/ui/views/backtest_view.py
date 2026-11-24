@@ -493,17 +493,32 @@ def tested_line(s: dict, h: dict) -> str:
             + e(" · ".join(tested_items(s, h))) + "</span></div>")
 
 
+def _against(b) -> str:
+    """", against a gain of 12.1% for the Nifty 500"; nothing when the index figure is missing (S203 bt.head.1)."""
+    if b is None or (isinstance(b, float) and not np.isfinite(b)):
+        return ""
+    return f", against a {'gain' if b >= 0 else 'loss'} of {_pc(abs(b))} for the Nifty 500"
+
+
+def _updown(v) -> str:
+    return "–" if v is None else f"{'up' if v >= 0 else 'down'} {_pc(abs(v))}"
+
+
 def head(f: dict) -> list:
     sm, h = f["summary"], f["h"]
     # The verdict phrase in up/down colour: the rule's figure against the index's (S219 2).
     if sm.a_year is not None:
         ahead = None if sm.bench_a_year is None else sm.a_year >= sm.bench_a_year
-        title = (e(f"Since {sm.first.year} this rule ") + kit.verdict(f"made {_pcs(sm.a_year)} a year", ahead)
-                 + e(f" to the Nifty 500’s {_pc(sm.bench_a_year)}, before tax."))
+        # The verb carries the sign, never a signed figure after "made" (S203 bt.head.1).
+        title = (e(f"Since {sm.first:%b %Y}, this rule ")
+                 + kit.verdict(f"{'made' if sm.a_year >= 0 else 'lost'} {_pc(abs(sm.a_year))} a year", ahead)
+                 + e(_against(sm.bench_a_year) + ", before tax."))
     else:
         ahead = None if sm.total is None or sm.bench_total is None else sm.total >= sm.bench_total
-        title = (e(f"Over {sm.months} months this rule ") + kit.verdict(f"returned {_pcs(sm.total)}", ahead)
-                 + e(f", the Nifty 500 {_pcs(sm.bench_total)}."))
+        verb = "returned" if sm.total is None or sm.total >= 0 else "lost"
+        title = (e(f"Over {sm.months} months, this rule ")
+                 + kit.verdict(f"{verb} {_pc(None if sm.total is None else abs(sm.total))}", ahead)
+                 + e(_against(sm.bench_total) + "."))
     lede = (f"{'The record’s rules' if f['default'] else 'These rules'} replayed on the {h['name']} as it stood each "
             f"month, {_d(sm.first)} to {_d(sm.last)}, on NSE’s closes, after {f['s']['cost_bps']:g} bps a round trip. "
             "Price returns on both sides. A replay of the past, not a forecast.")
@@ -519,12 +534,15 @@ def head(f: dict) -> list:
 
 def section_lead(f: dict) -> list:
     sm, st_ = f["summary"], f["stats"]
-    if sm.lead is not None:
-        h2 = (f'The lead over the Nifty 500 is <span class="{_t(sm.lead)}">{abs(sm.lead) * 100:.1f} points a year</span>; '
-              f'the rule was ahead in {sm.ahead} of {sm.months} months.')
+    # The words carry the sign; the colour only repeats it (S203 bt.lead.1, S193 J).
+    if sm.lead is not None and round(sm.lead * 100, 1) == 0:
+        h2 = "The rule is level with the Nifty 500 over the run."
+    elif sm.lead is not None:
+        h2 = (f'The rule is <span class="{_t(sm.lead)}">{"ahead of" if sm.lead > 0 else "behind"} the Nifty 500 by '
+              f'{abs(sm.lead) * 100:.1f} points a year</span>; it was ahead in {sm.ahead} of {sm.months} months.')
     else:
-        h2 = (f'Under a year, so no yearly figure: the rule is <span class="{_t(sm.total)}">{e(_pcs(sm.total))}</span>, '
-              f'the Nifty 500 {e(_pcs(sm.bench_total))}.')
+        h2 = (f'Under 12 months, so no yearly figure: the rule is <span class="{_t(sm.total)}">{e(_updown(sm.total))}</span>, '
+              f'the Nifty 500 {e(_updown(sm.bench_total))}.')
     tiles = _kpis([
         # A coloured change carries its sign (S193 J: never colour alone).
         ("A year, compounded", _pcs(sm.a_year) if sm.a_year is not None else "–", _t(sm.a_year),
@@ -548,7 +566,7 @@ def section_lead(f: dict) -> list:
         "more (the long file takes those out as an adjustment); the Nifty 500 figure is NSE’s price index, which takes "
         "out only special dividends, 2% of the price or more (NSE’s index methodology, Nov 2022), not ordinary ones"
         + (f". NSE’s own file puts the Nifty 500’s dividend yield at {dy:.1f}% a year on average since Feb 2012, "
-           "against about 0.5% for the book (measured 2020–25 only, S125), so against the index with every dividend "
+           "against about 0.5% a year for the book in a test of 11 Nov 2026 (2020–25 only), so against the index with every dividend "
            f"(its total-return version) the lead is about {dy - 0.5:.1f} points a year smaller than shown."
            if dy is not None else "."),
         f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill. "
@@ -628,10 +646,31 @@ def _span(r) -> str:
     return f"{MON[a - 1]}–{MON[b - 1]}" if n > 1 else MON[b - 1]
 
 
-def _not_made(checks: list) -> str:
-    """The heading names the checks the table marks "Not checked" (S193 B: it named only the soft spots)."""
+_SHORT = {"Survivorship": "survivorship", "Look-ahead": "look-ahead", "Costs": "costs", "Tax": "tax",
+          "Rules chosen after looking": "the choice of rules"}
+
+
+def _and(words: list[str]) -> str:
+    return words[0] if len(words) == 1 else ", ".join(words[:-1]) + " and " + words[-1]
+
+
+def trust_headline(checks: list) -> str:
+    """Built from the table's own statuses (S203 bt.tr.4): it said "handled" over a "Soft spot" row."""
+    done = [_SHORT[a] for a, _, c in checks if c == "Checked" and a in _SHORT]
+    soft = [_SHORT[a] for a, _, c in checks if c == "Soft spot" and a in _SHORT]
+    parts = []
+    if done:
+        w = _and(done)
+        parts.append(f"{w[0].upper() + w[1:]} {'is' if len(done) == 1 else 'are'} handled")
+    if soft:
+        w = _and(soft)
+        if not parts:
+            w = w[0].upper() + w[1:]
+        parts.append(f'<span class="dh-watch">{e(w)}</span> {"is the soft spot" if len(soft) == 1 else "are the soft spots"}')
     n = sum(1 for c in checks if c[2] == "Not checked")
-    return "" if not n else f"; {n} check{'s are' if n != 1 else ' is'} not made (below)"
+    if n:
+        parts.append(f"{n} check{'s are' if n != 1 else ' is'} not made (below)")
+    return "; ".join(parts) + "."
 
 
 def section_years(f: dict) -> list:
@@ -826,15 +865,14 @@ def section_trust(f: dict) -> list:
          "Not checked"),
     ]
     if sm.first < pd.Timestamp("2012-02-21"):
-        checks.append(("The index before Feb 2012", "Nifty 500 closes before 21 Feb 2012 come from the Kaggle dataset, not yet "
+        checks.append(("The index before Feb 2012", "Nifty 500 closes before 21 Feb 2012 come from an outside dataset, not yet "
                                                     "checked against NSE’s own file (S167).", "Not checked"))
     checks.append(("A second source for the result", "None: the replay is our own engine. Prices pass the long file’s audits "
                                                      "(other price histories, BSE, Screener).", "Not checked"))
     tone = {"Checked": "dh-up", "Soft spot": "dh-watch", "Not checked": "dh-watch"}
     body = "".join(f'<tr><th scope="row">{e(a)}</th><td>{e(b)}</td><td class="bt-st {tone[c]}">{e(c)}</td></tr>' for a, b, c in checks)
     return ['<div class="dh-sec">', _kick("5", "Can it be trusted"),
-            '<h2 id="s-trust" class="dh-h2">Survivorship and look-ahead are handled; <span class="dh-watch">costs, tax and the '
-            f'choice of rules</span> are the soft spots{_not_made(checks)}.</h2>',
+            f'<h2 id="s-trust" class="dh-h2">{trust_headline(checks)}</h2>',
             '<div class="dh-scroll"><table class="dh-tab bt-checks"><thead><tr><th scope="col">Check</th>'
             '<th scope="col">What this run shows</th><th scope="col">Status</th></tr></thead>'
             f'<tbody>{body}</tbody></table></div></div>', END]
@@ -845,8 +883,12 @@ def section_trades_head(f: dict) -> list:
     if not ts or not ts.get("closed"):
         return ['<div class="dh-sec">', _kick("6", "Trades"), '<h2 id="s-trades" class="dh-h2">No trade closed in this run.</h2></div>']
     won = ts["won"]
-    h2 = (f'{ts["closed"]:,} trades closed; ' + ('<span class="dh-down">fewer than half won</span>, and the winners paid for the rest.'
+    pf = ts.get("profit_factor")
+    h2 = (f'{ts["closed"]:,} trades closed; ' + (f'<span class="dh-down">fewer than half won ({won:.0%})</span>.'
                                                 if won < 0.5 else f'<span class="dh-up">{won:.0%} won</span>.'))
+    # Only when it is true (S203 bt.trd.2): it was printed whatever the profit factor.
+    if pf is not None and np.isfinite(pf) and pf > 1:
+        h2 += f" The winners paid for the losers: gains were {pf:.2f} times the losses."
     pf = ts.get("profit_factor")
     tiles = _kpis([
         ("Trades closed", f"{ts['closed']:,}", "", f"{ts['open']} still held"),

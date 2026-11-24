@@ -101,8 +101,15 @@ def offline_market_data(monkeypatch):
     """
     import numpy as np
     import pandas as pd
+    import streamlit as st
 
     from src.core.types import MarketRegime, RegimeData
+
+    # app.py's loaders are st.cache_data: a result another test left in this worker's cache (an empty load
+    # under other patches) was read instead of this synthetic market, and the import failed at
+    # `data["calc"]` on None, only under xdist's work stealing (24 Nov 2026). Start from empty caches.
+    st.cache_data.clear()
+    st.cache_resource.clear()
     from src.loaders import (
         indices_loader, mcap_loader, nse_prices, price_loader, price_source, ranking_store,
         tv_loader,

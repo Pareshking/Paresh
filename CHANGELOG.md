@@ -1,6 +1,22 @@
 # Changelog
 
 
+## 2026-11-24 — Sentences that were wrong on some days now read right on every day (S203)
+
+- Indices: the P/E title and heading say "cheaper" or "dearer" from each index's own percentile; they had called the Nifty 50 cheaper and the Smallcap 250 dearer whatever the figures. The style lag gives months ("from Nov 2018 to Oct 2020, and was back by Jul 2023").
+- Backtest: a losing run reads "lost 3.0% a year" and "behind the Nifty 500 by 2.3 points a year", not a minus sign after "made" or a sign carried by colour alone. The trust heading follows the table's own statuses, and "the winners paid for the losers" appears only when gains exceed losses.
+- Stock page and Actions: "It is close to a sell rule: it is 38th among the qualified, 2 places inside the top 40" (it read "it #38 · 2 places from the buffer"); a stock the book does not hold reads "It would fail a sell rule".
+- Watchlist: "The book holds 2 of them; 1 would be sold at the 30 Nov check", not "sold on 30 Nov" (a sale fills the next session).
+- Owner's answers (S203): the Guide's title is "How the ranking picks the book, and how to act on it."; the Market title names its index ("Participation is narrow; Nifty Total Market is in a strong uptrend."); the Screener's warning shows when fewer stocks qualify than the book buys (20), as its text says; the stock page's Returns heading counts the windows ahead of Nifty Total Market instead of repeating the lede's 12-month return; figures from past tests carry their test's date.
+- Sectors: "One sector leads", "none of the 30 is", and the Broad-or-narrow colour on the verdict only. Market: a missing score is said, not "Not enough data participation".
+
+## 2026-11-24 — Screener: why a stock is out, and a phone that shows every preset (S189)
+
+- A stock that fails a filter says why beside "Out" in the qualified column ("7.5% under 50D EMA · 30% under 52W high", or "too new for a 52W high"), instead of only in the filter columns far to the right.
+- What moved: the heading names the biggest climb into the top 50; Biggest jumps says its ten can land anywhere in the ranking.
+- On a phone the key folds under "How to read the table", so the first stocks show on the first screen; the six presets wrap onto rows with their counts, and the sector stays under each symbol in every column set.
+- A window longer than a stock's history shows "–" for its drawdown as well as its return.
+
 ## 2026-11-24 — Nifty Total Market keeps NSE's special sessions (S163)
 
 - Market and Sectors read Nifty Total Market with NSE's seven weekend sessions since 2023 (the Muhurat sessions of 12 Nov 2023 and 8 Nov 2026, budget-day and drill Saturdays). They were missing from the file those pages read, so a window opening near one started a session off from the Dashboard, Indices and Portfolio.

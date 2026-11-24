@@ -5,7 +5,7 @@ state, queue and dates sections); do not write a dated copy. Earlier dated
 handovers are in `docs/archive/HANDOVER_*.md`. Paste the prompt at the end as
 the first message of a fresh session.
 
-_Last updated: 24 Nov 2026 ~12:15 IST, coordinating session session_016X4g5Y1bsnhgFzzKddp8Wc (took over 14:00 IST)._
+_Last updated: 24 Nov 2026 ~17:00 IST, coordinating session session_016X4g5Y1bsnhgFzzKddp8Wc (took over 14:00 IST)._
 
 ## The owner's standing rules (unchanged)
 
@@ -40,6 +40,8 @@ _Last updated: 24 Nov 2026 ~12:15 IST, coordinating session session_016X4g5Y1bsn
 **Standing instruction (owner, 24 Nov ~09:05 UTC):** "Check what is already done or covered and work on them ... now onwards you will don't wait for my commands to start, start one by one and finish them." Work the TODO queue in order without asking; owner decisions (ranks, frozen record, model book, deletions) still go to the owner one at a time.
 
 ## State at handover
+
+**24 Nov ~11:30 UTC.** #671 merged (cb0e825); Production QA, parity, R2 gate and lint green on it. On the branch, no PR yet: S203's wrong-today sentences on eight pages; the owner's five S203 answers (all "recommended", one at a time) built; S189 item 3 (the Screener key folds on a phone). Next: run CI's checks locally, open one draft PR, merge on green.
 
 **24 Nov ~08:05 UTC.** #669 merged (91af345) after its run 45350700763 passed the layout audit with the short zone words; main's validation (45352380590), Production QA (45352380424) and parity (45352380450) on 91af345 are running: green there closes S222 and #668. On the branch, no PR yet: the readouts measure again once the web fonts load (e3ee870, S222's second half; local layout audit clean on all ten pages). Owner asked for the waiting decisions one at a time: 1 of 4 (#638) put to the owner 24 Nov; then S138 NEXT 2-7, S166, the readout wording.
 
@@ -84,6 +86,8 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
   published ranks move). It conflicts with main again: merge main into it once, just before merging. Reminder
   `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
 - **#607** is parked by the owner (read-only R2 key).
+
+**Decided by benchmark, owner to confirm (24 Nov, S189):** Screener items 1, 2, 4, 5, 7 (see TODO S189; evidence `archive/SCREENER_REVIEW_2026-11-24.md`). Reversal: one function or CSS rule each.
 
 **Confirmed by the owner (24 Nov, "With your recommendation 1"):** the Dashboard flows readout keeps "heavy buying" / "moderate buying" / "net selling" (S222).
 

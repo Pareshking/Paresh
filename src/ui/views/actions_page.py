@@ -16,7 +16,7 @@ import pandas as pd
 import streamlit as st
 
 from src.engine import book_exposure as bx
-from src.engine.exit_watch import CLEAR, SELL, STATUS_LABEL, UNKNOWN, WATCH, Rules, assess, nearest_rule, qualified_ranks
+from src.engine.exit_watch import RANK_SCALE, CLEAR, SELL, STATUS_LABEL, UNKNOWN, WATCH, Rules, assess, nearest_rule, qualified_ranks
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.ui.system_param import stock_href
 from src.ui import formats as _fmt
@@ -59,6 +59,16 @@ class Plan:
     events_note: str = ""                            # how far ahead each source reaches
     swaps: object = None                             # engine.swap_evidence.SwapEvidence
     uninvested: float | None = None                  # model book: rupees not invested today (Portfolio's figure)
+
+
+def _vs(v, what: str) -> str:
+    """"ahead of Nifty Total Market by 1.2 points" / "behind it by 0.5 points" / "level with it"."""
+    if v is None:
+        return f"not measured against {what}"
+    if round(float(v), 1) == 0:
+        return f"level with {what}"
+    a = abs(float(v))
+    return f"{'ahead of' if v > 0 else 'behind'} {what} by {a:.1f} point{'' if a == 1 else 's'}"
 
 
 def _price(rank_df: pd.DataFrame) -> pd.Series:
@@ -264,11 +274,13 @@ def section_buy(p: Plan) -> list:
             if p.source == "Model book" else f"Amounts are each buy's target weight of {inr(p.value)}, the capital in the Kite basket box.")
     ev = p.swaps
     evid = ("" if ev is None else
-            f'<div class="ac-ev"><b>What swaps have added so far.</b> In their first month the record’s {ev.buys} buys beat '
-            f'Nifty Total Market by {sg(ev.buy_1m)} points on average; the {ev.sold} stocks it sold, by {sg(ev.sold_1m)} in the month after the sale'
+            # The words carry the sign: "beat … by −0.5 points" had no branch for a loss (S203 ac.buy.4).
+            f'<div class="ac-ev"><b>What swaps have added so far.</b> In their first month, the record’s {ev.buys} buys were '
+            f'{_vs(ev.buy_1m, "Nifty Total Market")} on average. The {ev.sold} stocks it sold were {_vs(ev.sold_1m, "it")} '
+            'in the month after the sale'
             + ("" if ev.buy_3m is None or ev.sold_3m is None else
-               f'. Over three months: {sg(ev.buy_3m)} against {sg(ev.sold_3m)}')
-            + f'. {ev.rebought} of the {ev.sold} sold were bought back within two months. '
+               f'. Over 3 months: {sg(ev.buy_3m)} against {sg(ev.sold_3m)} points')
+            + f'. {ev.rebought} of the {ev.sold} sold were bought back within 2 months. '
             + ("" if not getattr(ev, "unpriced", ()) else
                f'{e(", ".join(ev.unpriced))} {"has" if len(ev.unpriced) == 1 else "have"} no price here and '
                f'{"is" if len(ev.unpriced) == 1 else "are"} left out. ')
@@ -321,8 +333,8 @@ def section_hold(p: Plan) -> list:
                  f'<th scope="col" class="dh-num">To −{(1 - p.rules.high_pct):.0%} from 52W high</th>'
                  '<th scope="col" class="ac-wide">Closest to</th><th scope="col" class="dh-num">Since entry</th>'
                  f'</tr></thead><tbody>{rows}</tbody></table></div>',
-                 '<p class="dh-note">Ordered by the least room on any rule, a full rank buffer counted as a 20% fall. '
-                 '"To 50D EMA" and "To the 52W-high line" are how far the price can fall from today before it crosses that line. '
+                 '<p class="dh-note">Ordered by the least room on any sell rule; a full rank buffer counts as a '
+                 f'{RANK_SCALE:.0%} fall. "To 50D EMA" and "To −{(1 - p.rules.high_pct):.0%} from 52W high" are how far the price can fall from today before it crosses that line. '
                  'Rank 3M · 1M · now: the place among the stocks that pass both filters, 3 months ago, a month ago and now; "Out" means it does not pass them.</p>'])
 
 

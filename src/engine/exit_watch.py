@@ -60,6 +60,11 @@ def qualified_ranks(rank_df: pd.DataFrame) -> pd.Series:
 HIGH_SESSIONS = 126   # closes the 52W high needs (config.HIGH_52W_MIN_OBSERVATIONS)
 
 
+def _ord(n) -> str:
+    n = int(n)
+    return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
 def no_high_reason(short_history, sessions: int | None = None) -> str:
     """Why a stock has no 52W high to be within 20% of: a missing value is not a failed rule (S193 E;
     MILKYMIST, listed 70 sessions before, was told it was "more than 20% below its 52-week high")."""
@@ -109,12 +114,17 @@ def assess(rank_df: pd.DataFrame, symbols: list[str], rules: Rules = Rules(),
             broken.append(f"more than {(1 - rules.high_pct):.0%} below its 52-week high" if pd.notna(hi_pct)
                           else no_high_reason(r.get("Short History"), (sessions or {}).get(sym)))
         if e_ok and n_ok and room is not None and room < 0:
-            broken.append(f"ranks #{q} of the qualified, past the top {rules.buffer_n}")
+            # A phrase that reads after "it is", as the other two (S203 cm.rule.3: "it is ranks #45").
+            broken.append(f"{_ord(q)} among the qualified, past the top {rules.buffer_n}")
         if broken:
             status, why = SELL, "; ".join(broken)
         else:
             if room is not None and room <= WATCH_RANK_PLACES:
-                close.append(f"#{q} · {room} places from the buffer")
+                # A verb phrase, the room left inside the kept places (S203 cm.rule.4: "it #38 · 2 places
+                # from the buffer" had no verb, and "from the buffer" read as the distance to it).
+                close.append(f"is {_ord(q)} among the qualified, the last place kept" if room == 0 else
+                             f"is {_ord(q)} among the qualified, {room} place{'s' if room != 1 else ''} "
+                             f"inside the top {rules.buffer_n}")
             if pd.notna(ema_c) and ema_c < WATCH_EMA_CUSHION:
                 # The fall that reaches the EMA, the same figure as the cushion
                 # beside it (it read "2.9% above" next to "2.8% cushion"; F8).

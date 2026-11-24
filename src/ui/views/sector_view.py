@@ -205,6 +205,15 @@ def _list(names: list[str]) -> str:
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
+def _of(n: int) -> str:
+    """The count before "of": "none", "one", "two" (S203: "no of the 30 are")."""
+    return "none" if n == 0 else _words(n)
+
+
+def _are(n: int) -> str:
+    return "is" if n <= 1 else "are"
+
+
 def _words(n: int) -> str:
     return ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"][n] if n <= 12 else str(n)
 
@@ -227,7 +236,8 @@ def head(ld: sp.Leads, sh, noun: str, nse: dict | None) -> list:
                  f"{int(np.floor(min(-worst[0].lead6, -worst[1].lead6)))} pts or more")
     title = lead_txt + trail + "."
     n_both = sum(r.group == "ahead on both" for r in ld.rows)
-    lede = f"{_words(n_both).capitalize()} of {len(ld.rows)} {nouns} are ahead of the 750, equal-weighted, over both windows."
+    lede = (f"{_of(n_both).capitalize()} of the {len(ld.rows)} {nouns} {_are(n_both)} ahead of the 750, equal-weighted, "
+            "over both windows.")
     if nse and nse["gaps"]:
         tm1, m1 = ld.gap.get("1"), ld.market_ret.get(1)
         below = sum(g.gap1 < 0 for g in nse["gaps"])
@@ -253,8 +263,10 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
     n_both = sum(r.group == "ahead on both" for r in ld.rows)
     n_behind = sum(r.group == "behind on both" for r in ld.rows)
     fell = max(ld.rows, key=lambda r: (r.lead6_3m or 0) - r.lead6 if r.group == "behind on both" else -1e9)
-    h2 = (f'<span class="dh-up">{_words(n_both).capitalize()} {nouns} lead on both six months and one month</span>; '
-          f'<span class="dh-down">{_words(n_behind)} trail on both</span>')
+    # Singular and none read right (S203 se.lead.1: "One sectors lead").
+    h2 = (f'<span class="dh-up">{_words(n_both).capitalize()} {noun if n_both == 1 else nouns} '
+          f'{"leads" if n_both == 1 else "lead"} on both six months and one month</span>; '
+          f'<span class="dh-down">{_of(n_behind)} {"trails" if n_behind <= 1 else "trail"} on both</span>')
     if fell.group == "behind on both" and fell.lead6_3m is not None and fell.lead6_3m > 0:
         h2 += f", {e(sh(fell.name))} among them: its six-month lead read {sg(fell.lead6_3m)} pts on {_d(ld.d3)}"
     h2 += "."
@@ -292,7 +304,7 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
              + (f"<li>Nearest to falling behind: {ext}.</li>" if ext else "")
              + "</ul><p class=\"dh-note\">Which sizes lead, against Nifty Total Market at 1M, 3M and 6M: on the Dashboard, "
              f'<a href="{page_href("./")}#s-size" target="_self">Size, and where momentum works →</a></p></div>')
-    ex = next((r for r in ld.rows if r.name == "Healthcare"), ld.rows[0])
+    ex = ld.rows[0]  # the table's top row, not a typed sector (S203 Q4, owner 24 Nov 2026)
     left = ", ".join(f"{k} ({v})" for k, v in sorted(ld.left_out.items(), key=lambda kv: -kv[1]))
     what = (f"A {noun} here is the equal-weighted index of its ranked stocks, rebalanced daily, and so is the 750. "
             f"{len(ld.rows)} have five or more ranked stocks and are shown"
@@ -335,12 +347,18 @@ def section_broad(ld: sp.Leads, nse: dict, sh) -> list:
     if not gaps:
         return []
     m3 = ld.gap.get("3")
-    fin = next((g for g in gaps if g.sector == "Financial Services"), gaps[0])
+    # The example is the widest gap (gaps are narrowest first), not a typed sector; the colour goes on the verdict
+    # clause only, never on the figures (S203 se.broad.1: the whole sentence was rust whatever the sign).
+    fin = gaps[0]
     narrow = [sh(g.sector) for g in gaps if m3 is not None and g.gap3 < m3]
     stocks = next((r.stocks for r in ld.rows if r.name == fin.sector), 0)
-    h2 = (f'<span class="dh-down">{e(fin.index)} {"rose" if fin.nse3 >= 0 else "fell"} {abs(fin.nse3):.1f}% in three months while '
-          f'the sector’s {stocks} ranked stocks {"rose" if fin.ours3 >= 0 else "fell"} {abs(fin.ours3):.1f}%</span>'
-          + (f"; only {e(_list(narrow))} {'is' if len(narrow) == 1 else 'are'} narrower than the 750 against Nifty Total Market." if narrow else "."))
+    h2 = (f'{e(fin.index)} {"rose" if fin.nse3 >= 0 else "fell"} {abs(fin.nse3):.1f}% over 3 months, while '
+          f'the sector’s {stocks} ranked stocks {"rose" if fin.ours3 >= 0 else "fell"} {abs(fin.ours3):.1f}%.')
+    if len(narrow) == 1:
+        h2 += f' <span class="dh-down">Only {e(narrow[0])} is narrower than the 750 against Nifty Total Market.</span>'
+    elif narrow:
+        h2 += (f' <span class="dh-down">{_words(len(narrow)).capitalize()} sectors are narrower than the 750 against '
+               f'Nifty Total Market</span>: {e(_list(narrow))}.')
     rows = []
     if m3 is not None:
         o3, t3 = ld.market_ret.get(3), (ld.market_ret.get(3) or 0) - m3
@@ -359,7 +377,7 @@ def section_broad(ld: sp.Leads, nse: dict, sh) -> list:
             "rows": rows, "lo": -12, "hi": 12, "step": 0.5, "lines": [_r(m3)] if m3 is not None else [], "rest": "Latest · the first row"}
     pairs = [{"short": sh(g.sector), "ours_name": f"{sh(g.sector)}, the 750’s stocks", **{k: v for k, v in nse["pairs"][g.sector].items()}}
              for g in gaps if g.sector in nse["pairs"]]
-    start = next((i for i, p in enumerate(pairs) if p["short"] == sh("Financial Services")), 0)
+    start = 0  # the widest gap, the headline's own example (S203 Q4; it was typed "Financial Services")
     return [f'<div class="dh-sec">{KICK.format("Broad or narrow")}<h2 id="s-broad" class="dh-h2">{h2}</h2>'
             '<p class="dh-note">Each sector’s ranked stocks, equal-weighted, against NSE’s index for the sector, which holds its own '
             'selection of the sector’s companies and weights them by free-float value: the two differ in stocks and in weights. '
@@ -381,7 +399,7 @@ def section_indices(ld: sp.Leads, nse: dict, sh) -> list:
     if full:
         h2 = (f'Over 12 months <span class="dh-up">{e(full[0].name)} leads NSE’s sector indices at {sg(full[0].returns[12], 1, "%")}</span> '
               f'and <span class="dh-down">{e(full[-1].name)} trails at {sg(full[-1].returns[12], 1, "%")}</span>; '
-              f"{_words(young)} of the {len(allix)} are younger than 12 months.")
+              f"{_of(young)} of the {len(allix)} {_are(young)} younger than 12 months.")
 
     def cells(ret, hi, pe, young_since=None, has_pe=True):
         out = "".join(_num(ret.get(m), "%") for m in (1, 3, 6, 9))
@@ -437,8 +455,10 @@ def section_months(months: pd.DataFrame, sh, noun: str) -> list:
         name = months[months["run"].abs() == longest].index[0]
         row = months.loc[name]
         n = int(row["run"])
-        h2 = (f'{e(sh(name))} has <span class="{"dh-up" if n > 0 else "dh-down"}">{"beaten" if n > 0 else "trailed"} the 750 in each '
-              f'of the last {_words(abs(n))} completed months</span>, the longest run.')
+        h2 = (f'{e(sh(name))} has <span class="{"dh-up" if n > 0 else "dh-down"}">{"beaten" if n > 0 else "trailed"} the 750 in '
+              + ("" if abs(n) == 1 else "each ")
+              + ('the last completed month</span>, the longest run.' if abs(n) == 1 else
+                 f'of the last {_words(abs(n))} completed months</span>, the longest run.'))
         done = cols[:-1]
         inside = done[len(done) - abs(n):][::-1]
         parts = [f"{c.split()[0]} {sg(row[c])}" for c in inside]
@@ -504,7 +524,7 @@ def section_map(views: dict, sh, noun: str) -> list:
     lead = max(rows, key=lambda r: r["x1"])
     lag = min(rows, key=lambda r: r["x1"])
     rose = sum(round(r["y1"]) > round(r["y0"]) for r in rows)
-    h2 = (f"Breadth rose in {_words(rose)} of {len(rows)} {noun}s from {rows[0]['then']} to {rows[0]['now']}; "
+    h2 = (f"Breadth rose in {_of(rose)} of the {len(rows)} {noun}s from {rows[0]['then']} to {rows[0]['now']}; "
           f'<span class="dh-up">{e(sh(lead["name"]))} gained most on the 750</span>, '
           f'<span class="dh-down">{e(sh(lag["name"]))} lost most</span>.')
     text = dict(MAP_TEXT, all=f"All {noun}s", sector=noun.capitalize())
