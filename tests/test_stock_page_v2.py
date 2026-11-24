@@ -369,3 +369,12 @@ def test_the_screener_opens_searched_to_an_industry():
     at.run()
     assert not at.exception
     assert at.selectbox(key="rank_search_predictive").value == "[INDUSTRY] IT"
+
+
+def test_a_late_market_close_is_said_not_read_a_session_early():
+    """S148, S203 st.ret.3: Nifty Total Market without a close for the page's session reads "–", and the page says why."""
+    row = pd.Series({"CMP": 100.0, "12M Return": 0.25})
+    day = pd.Timestamp("2026-11-24")
+    text = sl.lede(row, day, None, late=True)
+    assert "Nifty Total Market’s 24 Nov close is not in yet" in text and "against" not in text
+    assert ", against +5.0% for Nifty Total Market" in sl.lede(row, day, 0.05)

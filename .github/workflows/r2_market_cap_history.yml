@@ -1,5 +1,5 @@
 name: R2 dated market-cap publication
-# Stable manifest idempotency is handled by scripts/r2_publish.py; this workflow is also scheduled daily.
+# Stable manifest idempotency is handled by scripts/r2_publish.py; this workflow also runs weekly (Sunday 20:00 UTC).
 
 on:
   # A weekly fallback in case the chain below stops (it was daily until 17 Nov 2026).

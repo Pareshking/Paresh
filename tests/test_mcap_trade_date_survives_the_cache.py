@@ -95,3 +95,22 @@ def test_trade_date_is_written_when_the_live_zip_succeeds(tmp_path, monkeypatch)
     written = pd.read_parquet(path)
     assert "TradeDate" in written.columns
     assert set(written["TradeDate"]) == {"2026-08-18"}
+
+
+def test_a_snapshot_top_up_keeps_the_days_date(cached_pr_file, monkeypatch, tmp_path):
+    """S224 (g): NSE's file for 18 Aug lacked one stock; the committed snapshot of 14 Aug filled it, and its
+    older AsOf overwrote the date, so every cap read as 14 Aug. The date stays NSE's; the filled stock is named."""
+    mcap_loader, path = cached_pr_file
+    _write_cache(path, "2026-08-18")
+    monkeypatch.setattr(mcap_loader, "_is_mcap_cache_fresh", lambda: True)
+    repo = tmp_path / "market_caps.csv"
+    pd.DataFrame({"Symbol": ["RELIANCE", "TCS", "BIRET"], "MarketCap": [1.4e13, 1.1e13, 1.0e11],
+                  "AsOf": ["2026-08-14"] * 3}).to_csv(repo, index=False)
+    monkeypatch.setattr(mcap_loader, "REPO_MCAP_FILE", str(repo))
+    from src.core import startup_metrics as metrics
+
+    caps = mcap_loader.fetch_market_caps(["RELIANCE", "TCS", "BIRET"])
+    facts = metrics.snapshot()["facts"]
+    assert "BIRET" in caps.index
+    assert facts["mcap_as_of"] == "2026-08-18"
+    assert "BIRET" in facts.get("mcap_repo_gap_fill_list", "")

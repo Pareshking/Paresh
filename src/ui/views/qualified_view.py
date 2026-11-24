@@ -42,16 +42,6 @@ def correlation(adj_close: pd.DataFrame, syms: list[str]) -> tuple[pd.DataFrame 
     return corr, float(np.nanmean(corr.values[np.triu_indices_from(corr, k=1)]))
 
 
-def correlation_note(mean: float | None) -> str:
-    """What the average correlation means. None is its own state: an unknown
-    is never labelled as good or bad, and 0.0 is a number, not a missing one."""
-    if mean is None or pd.isna(mean):
-        return "needs two stocks with price history"
-    if mean < 0.3:
-        return "90 days · low, so the list is well spread"
-    if mean < 0.7:
-        return "90 days · moderate: some move together"
-    return "90 days · high: they tend to move as one"
 
 
 def industry_rows(df: pd.DataFrame) -> list[tuple[str, float, str, bool]]:

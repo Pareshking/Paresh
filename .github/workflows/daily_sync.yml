@@ -354,6 +354,7 @@ jobs:
           for SYS in nano combined 1000; do
             if [ -f "rankings_${SYS}.parquet" ]; then
               python scripts/r2_publish.py \
+                --skip-if-published \
                 --path "rankings_${SYS}.parquet" \
                 --dataset "snapshots/rankings_${SYS}" \
                 --source system1 \
@@ -365,6 +366,7 @@ jobs:
 
           if [ -f rankings.parquet ]; then
             python scripts/r2_publish.py \
+              --skip-if-published \
               --path rankings.parquet \
               --dataset snapshots/rankings \
               --source system1 \

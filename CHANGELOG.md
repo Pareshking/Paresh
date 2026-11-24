@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-24 — A late market close is said on the stock page (S203)
+
+- On a day NSE's Nifty Total Market close is not in yet, the stock page shows "–" for the market's figures and says so, as the Dashboard and Portfolio do. It used to compare the stock with the market one session early, without saying.
+
 ## 2026-11-24 — Methods named as they are (S223)
 
 - Guide: a paragraph on how the score differs from NSE's Nifty200 Momentum 30 and MSCI's momentum indices (they use 6 and 12 months only and leave out the latest month; ours adds 1, 3 and 9 months and runs to the latest close).

@@ -632,22 +632,6 @@ def test_market_breadth_does_not_count_a_missing_print_as_a_failure():
     )
 
 
-def test_qualified_correlation_status_handles_zero_and_unknown():
-    """`corr_val and corr_val < 0.70` was a truthiness test, and 0.0 is falsy.
-
-    A perfectly uncorrelated book fell through to "High Correlation", and so did
-    a single-name book where corr_val is None -- labelling an unknown as a bad
-    state beside a "–".
-    """
-    from src.ui.views.qualified_view import correlation_note
-
-    assert "low" in correlation_note(0.0)
-    assert "low" in correlation_note(-0.3)
-    assert "moderate" in correlation_note(0.45)
-    assert "high" in correlation_note(0.85)
-    unknown = correlation_note(None)
-    assert not any(w in unknown for w in ("low", "moderate", "high"))
-    assert not any(w in correlation_note(float("nan")) for w in ("low", "moderate", "high"))
 
 
 def test_qualified_average_return_colour_follows_its_sign():

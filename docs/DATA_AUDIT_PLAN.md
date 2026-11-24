@@ -42,14 +42,14 @@ An element is every figure, chart series, table column and number in a label or 
   - [x] the R2 index-level file Breadth stopped reading on 21 Nov (`indices/prices/research`, written by `r2_nse_index_prices.yml`). Lead, 22 Nov: it has no reader: `fetch_index_levels`, its one reader, went with the old Dashboard in #601 (S179); but `scripts/r2_inventory.py` still lists it in `DAILY_DATASETS`, so the daily inventory fails if the job stops before that line goes. The job has been on its Screener fallback while reporting success (S168). Retiring it is S168 (c). **Done 22 Nov 2026**: job, script and test deleted; the dataset is out of `DAILY_DATASETS` and the alert's watch list; its stored revisions stay on R2 (protected `indices/`)
   - [ ] the index store twice: R2 `indices/nse_close_all` and the app's copy in git (`data/nse_indices_history.parquet`, `data/nse_indices_recent.csv`); S172 decides whether the page reads R2
   - [ ] RRG leftovers (S169): no data of its own (it read the ranking's prices and the benchmark), so nothing to remove from R2 or the release; see `docs/PENDING_DELETIONS.md`
-- [ ] **(c) Pipelines.** For every workflow:
+- [x] **(c) Pipelines** (done 24 Nov: `docs/DATA_AUDIT_2026-11-24.md` §6; follow-ups S225). For every workflow:
   - [ ] run time and failures over the last 30 days
   - [ ] what it downloads again that it already has; what could be incremental, cached or merged; minutes saved
   - [ ] it refuses to write bad data (a guard like S91's or S153's reconciliation) and keeps the committed file
   - [ ] a failure raises an alert (the scheduled-failure issue), not a silent skip
   - [ ] it writes only what changed (no daily commit of an unchanged file)
-- [ ] **(d) Dates (S164).** `breadth_history.csv` ends 16 Nov while prices end 20 Nov (found 21 Nov). On the live site, every figure ends on its page's session or says that it does not (the S148 rule).
-- [ ] **(e) One source per figure** on every page (S154), not only Dashboard, Portfolio, Actions and Market (then Breadth); a test for each shared label. Indices and the Dashboard's "Valuation and styles" card read one copy (`src/ui/indices_data.py`); Large is the Nifty 100 on both (21 Nov).
+- [x] **(d) Dates (S164).** `breadth_history.csv` ends 16 Nov while prices end 20 Nov (found 21 Nov). On the live site, every figure ends on its page's session or says that it does not (the S148 rule). **Done 24 Nov:** the file ends 23 Nov, the pages' session; CI's text audits (`_page_dates.mjs`) read every page and fail a series that ends before its session without a rule (local run 24 Nov: every page "every end on the session or ruled"); the stock page's late market close added (S203 st.ret.3).
+- [x] **(e) One source per figure** on every page (S154; **done 24 Nov** by S154 (b): `docs/FIGURE_INVENTORY.md`, `tests/test_same_label_every_page.py`, the decided differences asserted and 4 open ones as strict xfails for the owner), not only Dashboard, Portfolio, Actions and Market (then Breadth); a test for each shared label. Indices and the Dashboard's "Valuation and styles" card read one copy (`src/ui/indices_data.py`); Large is the Nifty 100 on both (21 Nov).
 - [ ] **(f) Costs** against the private-repo budget (S142): GitHub Actions minutes, R2 storage and operations, Streamlit memory.
 
 ## 3. Added by Claude (owner: "add your thoughts and improvements")
@@ -59,7 +59,7 @@ An element is every figure, chart series, table column and number in a label or 
 - [ ] **The date test in CI on every page** (the S154 (c) test, which now covers four pages).
 - [ ] **Licence and terms** for each third-party source (Screener, NSE's terms for its archives, any feed like IndiaDataHub).
 - [ ] **Reachability:** which figures depend on a source that only GitHub's runners, or only the app, can reach (BSE's FII/DII pages refused this container; R2 was not reachable locally).
-- [ ] **First runs of the jobs added on 21 Nov:** the NSE DII step in `fii_dii.yml` and the Total Market collector, checked on GitHub;
+- [~] **First runs of the jobs added on 21 Nov** (checked 24 Nov from the repository: `data/nse_indices_recent.csv` 148 rows to 23 Nov, committed by the scheduled job on 24 Nov; `data/indices/ind_nifty1000_list.csv` and `indices.nifty_1000` present; Total Market to 23 Nov. Left: the 1-5 Dec freeze of `data/track_record_1000.json`, by date): the NSE DII step in `fii_dii.yml` and the Total Market collector, checked on GitHub;
   `nse_indices.yml` dispatched once with `backfill` (S168 (a)), then a scheduled night that adds one session and commits
   `data/nse_indices_recent.csv` (header only on 22 Nov); the first `daily_sync` after #591 writes
   `data/indices/ind_nifty1000_list.csv` and `indices.nifty_1000` from 30 Oct (neither in the repository on 22 Nov), and

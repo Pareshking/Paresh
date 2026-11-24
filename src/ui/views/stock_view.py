@@ -258,13 +258,13 @@ def _render_actions(sym: str, on_back=None) -> None:
 
 # ── Sections ─────────────────────────────────────────────────────────────────
 
-def head_html(row, uni: sl.Universe, held: bool, as_of, market12, q, n_q, ln, holding, hits=()) -> list:
+def head_html(row, uni: sl.Universe, held: bool, as_of, market12, q, n_q, ln, holding, hits=(), late=False) -> list:
     kick = " · ".join(sl.kicker(row, INDEX_NAMES))
     ts = sl.tiles(row, uni, q, n_q, as_of, ln, holding if held else None)
     tiles = "".join(f'<div class="sp-tile"><span class="k">{e(t.label)}</span><span class="v">{e(t.value)}</span>'
                     f'<span class="s">{e(t.sub)}</span></div>' for t in ts)
     return ['<div class="sp-head">', _kick(kick), f'<h1 class="dh-h1">{e(sl.title(row, uni, held))}</h1>',
-            f'<p class="dh-lede">{e(sl.lede(row, as_of, market12))}</p>',
+            f'<p class="dh-lede">{e(sl.lede(row, as_of, market12, late))}</p>',
             *([f'<p class="dh-lede">Also {e(wl.ranks_elsewhere_words(list(hits)))}. '
                f'{_elsewhere_links(str(row["Symbol"]), list(hits))}</p>'] if hits else []),
             f'<div class="sp-tiles{" n3" if len(ts) == 3 else ""}">{tiles}</div></div>']
@@ -343,7 +343,7 @@ def rules_html(row, a: dict | None, q, ln, high_pct, ladder: sl.Ladder, held, ho
             f'<div>{book}<p class="dh-note">{e(sl.highs_note(row))}</p></div></div>', "</section>"]
 
 
-def returns_html(ws: list[sl.Window], as_of, uni) -> list:
+def returns_html(ws: list[sl.Window], as_of, uni, late: bool = False) -> list:
     step = sl.line_step(ws)
     bs = sl.bars(ws, step)
     a, b, c = sl.returns_heading(ws)
@@ -375,7 +375,8 @@ def returns_html(ws: list[sl.Window], as_of, uni) -> list:
             f'<th scope="col" class="n sp-wide">Rank by return</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>',
             '<p class="sp-phone">On a wider screen: each window’s first day, the lead in pts, the typical stock’s '
             'return and fall, Sharpe, and rank by return.</p>',
-            f'<p class="dh-note sp-cols">{e(sl.returns_note(as_of, uni))}</p>', "</section>"]
+            f'<p class="dh-note sp-cols">{e(sl.returns_note(as_of, uni))}'
+            + (f" {e(formats.closes_not_in([sl.MARKET], as_of))}" if late else "") + '</p>', "</section>"]
 
 
 def industry_html(row, shown: pd.DataFrame, in_ind: pd.DataFrame, as_of) -> list:
@@ -551,7 +552,10 @@ def render_stock_view(
     market = _market()
     if market is not None:
         market = market[market.index <= as_of]     # one session for the whole page (S148)
-    ws = sl.windows(row, rank_df, adj_close.index, market)
+    # A late close is "–", never a session-early figure read as today's (S148; S203 st.ret.3). The Dashboard
+    # and Portfolio already do this.
+    late = market is not None and (market.dropna().empty or market.dropna().index[-1] < pd.Timestamp(as_of))
+    ws = sl.windows(row, rank_df, adj_close.index, None if late else market)
     m12 = next((w.market for w in ws if w.months == 12), None)
 
     closes = adj_close[sym] if sym in adj_close.columns else None
@@ -567,11 +571,11 @@ def render_stock_view(
 
     _render_actions(sym, on_back)
     hits = wl.ranks_elsewhere(sym, _other_ranks(other_rankings))
-    _emit(head_html(row, uni, held, as_of, m12, q, n_q, ln, holding, hits)
+    _emit(head_html(row, uni, held, as_of, m12, q, n_q, ln, holding, hits, late)
           + rank_html(row, uni, q, n_q, ln, tr)
           + rules_html(row, a_row, q, ln, high_pct, sl.ladder(row, closes, high_pct), held, holding, check,
                        events, last_res)
-          + returns_html(ws, as_of, uni))
+          + returns_html(ws, as_of, uni, late))
 
     # 4 · Price: the chart is a widget (the range control), so the section is drawn in pieces.
     ema = ranking_ema(chart_close) if not chart_close.empty else pd.Series(dtype=float)

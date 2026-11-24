@@ -138,7 +138,7 @@ def title(row, uni: Universe, held: bool) -> str:
     return f"{name} is {wl.fmt_ordinal(int(row['Rank']))} {uni.of}, {filters_state(row)} and {book}."
 
 
-def lede(row, as_of: pd.Timestamp, market12: float | None) -> str:
+def lede(row, as_of: pd.Timestamp, market12: float | None, late: bool = False) -> str:
     """The close and its date, the year against the market, the market cap."""
     close = formats.price(row.get("CMP"))
     high_day = pd.to_datetime(str(row.get("52W High Date") or "")[:10], errors="coerce")
@@ -148,7 +148,9 @@ def lede(row, as_of: pd.Timestamp, market12: float | None) -> str:
     if r12 is not None:
         word = "Up" if round(r12 * 100, 1) >= 0 else "Down"
         line = f"{word} {formats.pct(abs(r12), signed_=False)} in 12 months"
-        if market12 is not None:
+        if late:   # S148, S203 st.ret.3: said, not left out
+            line += f"; {MARKET}’s {formats.date(as_of, short=True)} close is not in yet"
+        elif market12 is not None:
             line += f", against {formats.pct(market12)} for {MARKET}"
         parts.append(line + ".")
     mc = num(row.get("Market Cap (Cr)"))
