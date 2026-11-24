@@ -152,10 +152,13 @@ def _mv_df() -> pd.DataFrame:
 
 
 def test_sc_mv_2(monkeypatch):
-    # Held back: the proposed "{SYM} climbed furthest" would name the biggest climb overall, but the code names
-    # the biggest climb INTO the top 50 (S189 item 2), so today's text is kept until the owner rewords it.
+    # Owner, 24 Nov 2026: "…furthest into it" (the biggest climb INTO the top 50, S189 item 2).
     h2 = _clean(re.search(r'<h2 class="mv-h">(.*?)</h2>', _movers(monkeypatch, _mv_df())).group(1))
-    assert h2 == "1 stock entered the top 50 and 1 left; the biggest climb into it, A, came 169 places, from #170 to #1."
+    assert h2 == "1 stock entered the top 50 since 20 Oct and as many left. A climbed furthest into it, 169 places, from 170th to 1st."
+    tie = _mv_df().assign(**{"Rank (-1M)": [170, 2, 3, 80]})
+    tie.loc[1, ["Rank", "Rank (-1M)"]] = [2, 171]
+    h2 = _clean(re.search(r'<h2 class="mv-h">(.*?)</h2>', _movers(monkeypatch, tie)).group(1))
+    assert "A and B climbed furthest into it, 169 places each." in h2
 
 
 def test_sc_mv_3(monkeypatch):

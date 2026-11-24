@@ -988,15 +988,32 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
 
     jr = jumps.to_dict("records")
     n_in, n_out = len(entered), len(left)
-    finding = (f'<span class="up">{n_in} stock{"s" if n_in != 1 else ""} entered the top 50</span> and '
-               f'<span class="down">{n_out} left</span>')
-    # The heading's example is the biggest climb INTO the top 50, the section's subject; the ten biggest jumps
-    # land anywhere in the ranking (S189 item 2, 24 Nov 2026: all ten at #118 to #376 that day).
-    climbs = biggest_jumps(entered, n=1) if entered is not None and len(entered) else entered
+    # S203 sc.mv.2 (owner, 24 Nov 2026: "…furthest into it"): two sentences, the date named, ordinals; the
+    # example is the biggest climb INTO the top 50, the section's subject: the ten biggest jumps land anywhere in
+    # the ranking (S189 item 2, 24 Nov 2026: all ten at #118 to #376 that day).
+    from src.ui.screener_table import _ord
+    since = f" since {_day(d1)}" if d1 is not None else ""
+    if n_in == 0:
+        first = f'<span class="up">No stock entered the top 50</span>{since}'
+        first += ' and <span class="down">none left</span>' if n_out == 0 else \
+            f' and <span class="down">{n_out} left</span>'
+    else:
+        first = (f'<span class="up">{n_in} stock{"s" if n_in != 1 else ""} entered the top 50</span>{since} and '
+                 + ('<span class="down">as many left</span>' if n_out == n_in else f'<span class="down">{n_out} left</span>'))
+    finding = first + "."
+    climbs = biggest_jumps(entered, n=len(entered)) if entered is not None and len(entered) else entered
     if climbs is not None and len(climbs):
-        j = climbs.to_dict("records")[0]
-        finding += (f"; the biggest climb into it, {esc(j['Symbol'])}, came {int(j['Places_gained'])} places, "
-                    f"from #{int(j['Rank_last_month'])} to #{int(j['Rank'])}")
+        rows = climbs.to_dict("records")
+        k = int(rows[0]["Places_gained"])
+        tied = [r for r in rows if int(r["Places_gained"]) == k]
+        if len(tied) > 1:
+            names = [esc(r["Symbol"]) for r in tied]
+            who = ", ".join(names[:-1]) + " and " + names[-1]
+            finding += f" {who} climbed furthest into it, {k} places each."
+        else:
+            j = rows[0]
+            finding += (f" {esc(j['Symbol'])} climbed furthest into it, {k} place{'s' if k != 1 else ''}, "
+                        f"from {_ord(int(j['Rank_last_month']))} to {_ord(int(j['Rank']))}.")
     when = (f"Ranks among the ranked stocks on {_day(d1)}, the last session on or before the same date a month "
             "back, against today. Every row shown.") if d1 is not None else "Every row shown."
     # One footnote for the "–" in the rank-a-month-ago and places columns (S193 E, R1).
@@ -1011,7 +1028,7 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
     st.html(
         _MOVERS_CSS
         + f'<div class="mv-sec" id="t50-movement"><p class="mv-kick">{esc(_movers_heading(adj_close))}</p>'
-        f'<h2 class="mv-h">{finding}.</h2><p class="mv-note">{esc(when)}</p>'
+        f'<h2 class="mv-h">{finding}</h2><p class="mv-note">{esc(when)}</p>'
         f'<div class="mv-grid">{jumps_html}</div>'
         '<div class="mv-grid">'
         + table("Entered the top 50", f"In the top 50 now, not on {_day(d1) or 'the date a month back'}.",
