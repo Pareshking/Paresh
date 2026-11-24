@@ -34,6 +34,8 @@ const ALLOW = [
     why: "a company's name (Reliance Industries, Supreme Industries), not a word for a group of stocks" },
   { re: /[^.\n\t]*TradingView[^.\n\t]*/g, where: /sectors|guide/,
     why: "glossary 2: \"industry\" stays for TradingView's finer split on the Sectors page (and the Guide's note of it)" },
+  { re: /[^.\n\t]*\b(?:NSE (?:macro sector|industry|basic industry)|basic industr(?:y|ies))\b[^.\n\t]*/g, where: null,
+    why: "glossary 2 (S226, owner to confirm): NSE's own third and fourth levels, industry and basic industry, named as NSE names them" },
   { re: /\b20-day average\b/g, where: null,
     why: "a stock's average daily volume over 20 sessions, not a price moving average (glossary 11 is about price averages); wording left for the owner" },
   { re: /pts = percentage points/g, where: null,

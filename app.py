@@ -1138,11 +1138,11 @@ def _screener_book() -> list[str]:
 
 def _page_screener() -> None:
     # What is ranked comes last, under the top-50 moves (owner, 2026-09-27).
-    # The Sector column shows NSE's sector on every system (S189 item 6 (a)): a copy, because
-    # rank_df's Industry is also the model plan's sector cap on Nano and Combined.
-    from src.loaders.nse_classification import with_nse_sectors
+    # The Sector column shows NSE's sector on every system (S189 item 6 (a)), and the search offers
+    # NSE's other levels (S226): a copy, because rank_df's Industry is also the model plan's sector
+    # cap on Nano and Combined.
     render_ranking_view(
-        with_nse_sectors(rank_df, system), adj_close, high_prices, low_prices, volume_data,
+        _nse_display(), adj_close, high_prices, low_prices, volume_data,
         open_prices=data.get("open_prices"),
         regime=regime_data,
         footnote=_system_line,
@@ -1160,9 +1160,18 @@ def _daily_history() -> pd.DataFrame:
     return daily_history.frame(adj_close)
 
 
+def _nse_display() -> pd.DataFrame:
+    """rank_df for a page that only shows and filters: NSE's four levels where the classification
+    file covers 90% of the stocks (S226). Never passed to the plan, the record or a backtest."""
+    from src.loaders.nse_classification import with_nse_levels
+    return with_nse_levels(rank_df, system)
+
+
 def _page_sectors() -> None:
-    render_sector_view(rank_df, adj_close, history_prices=_daily_history(),
-                       benchmark_close=fetch_benchmark_history(period="5y"))
+    # Grouped by NSE's levels on every system once the file covers them (S226); the copy says
+    # whether its Industry is NSE's sector, so NSE's indices are set beside it on Nano too.
+    render_sector_view(_nse_display(), adj_close, history_prices=_daily_history(),
+                       benchmark_close=fetch_benchmark_history(period="5y"), system=system)
 
 
 def _page_portfolio() -> None:

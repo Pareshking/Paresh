@@ -26,7 +26,10 @@ def _rank_and_prices():
         px[sym] = 100 * np.cumprod(1 + drift + rng.normal(0, 0.004, n))
         nse = "Financial Services" if k % 2 else "Healthcare"
         tv = "Health Technology" if k < 6 else "Finance"          # a different split from NSE's
+        # NSE's industry level (S226): a third split, named apart from both sector lists.
+        lvl = "Banks" if k % 4 < 2 else "Pharmaceuticals & Biotechnology"
         rows.append({"Symbol": sym, "Industry": nse, "TV_Sector": tv, "TV_Industry": tv + " sub", "Rank": k + 1,
+                     "NSE_Industry": lvl, "NSE_Basic_Industry": lvl + " basic",
                      "3M Return": 0.01 * k, "6M Return": 0.02 * k, "Above 50 EMA": k % 2 == 1, "Near 52W High": True,
                      "Short History": "No", "Data Gap": ""})
     return pd.DataFrame(rows), pd.DataFrame(px, index=idx)
@@ -64,7 +67,7 @@ def test_nse_sectors_give_the_full_page(frames):
     assert "pairs" in {p.kind for p in parts if isinstance(p, Chart)}
 
 
-@pytest.mark.parametrize("col", ["TV_Sector", "TV_Industry"])
+@pytest.mark.parametrize("col", ["TV_Sector", "TV_Industry", "NSE_Industry", "NSE_Basic_Industry"])
 def test_a_tradingview_grouping_regroups_every_section_and_hides_the_nse_indices(frames, col):
     rank, px, tm = frames
     model, parts, text = _page(rank, px, tm, col)

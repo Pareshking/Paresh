@@ -44,6 +44,32 @@ NSE_ONLY = "NSE’s indices match NSE’s sectors; switch to NSE sectors to see 
 # TradingView sectors "NSE sector" and compared them with NSE's indices where two names matched).
 TV_ONLY = "This list’s stocks carry TradingView’s sectors, so NSE’s sector indices, built on NSE’s sectors, are not set beside them."
 GROUPINGS_TV = {"TradingView sector": "Industry", "TradingView industry": "TV_Industry"}
+# NSE's four levels (S226; owner, 24 Nov 2026: "use Screener 4 level for any filtering"), offered when app.py's
+# display copy carries them (src/loaders/nse_classification.with_nse_levels, each level at 90% of the stocks or
+# more). TradingView's groupings are then not offered; they stay the fallback while the file is short.
+GROUPINGS_NSE = {"NSE sector": "Industry", "NSE macro sector": "NSE_Macro", "NSE industry": "NSE_Industry",
+                 "NSE basic industry": "NSE_Basic_Industry"}
+NSE_LEVEL_COLS = ("NSE_Macro", "NSE_Industry", "NSE_Basic_Industry")
+
+
+def noun_for(col: str) -> str:
+    """What the page calls one group of the grouping `col`: a sector, or an industry."""
+    return "industry" if col in ("TV_Industry", "NSE_Industry", "NSE_Basic_Industry") else "sector"
+
+
+def groupings(rank_df: pd.DataFrame, system: str | None) -> tuple[dict[str, str], bool]:
+    """The grouping picker's choices for this frame, and whether "Industry" holds NSE's sectors.
+
+    A display copy says itself whether its "Industry" is NSE's (`attrs["nse_sectors"]`); a frame without
+    the mark is read by the system, as before S226.
+    """
+    nse_sectors = bool(rank_df.attrs.get("nse_sectors", not tv_sectors(system)))
+    if any(c in rank_df.columns for c in NSE_LEVEL_COLS):
+        base = GROUPINGS_NSE if nse_sectors else {"TradingView sector": "Industry", **{
+            k: v for k, v in GROUPINGS_NSE.items() if v != "Industry"}}
+    else:
+        base = GROUPINGS if nse_sectors else GROUPINGS_TV
+    return {k: v for k, v in base.items() if v == "Industry" or v in rank_df.columns}, nse_sectors
 
 
 def tv_sectors(system: str | None) -> bool:
@@ -691,7 +717,7 @@ def page_parts(model: dict, rank_df: pd.DataFrame, col: str, nse_sectors: bool =
     ld: sp.Leads = model["ld"]
     nse_cols = col == "Industry" and nse_sectors
     nse = model["nse"] if nse_cols else None
-    noun = "industry" if col == "TV_Industry" else "sector"
+    noun = noun_for(col)
     sh = (lambda n: SHORT_NAMES.get(n, n)) if nse_cols else (lambda n: n)
     board, _ = industry_board(rank_df, col)
     parts = head(ld, sh, noun, nse, uni) + section_lead(ld, sh, noun, nse_sectors, uni)
@@ -718,8 +744,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         system = system_param.current()
     universe = UNIVERSE_SHORT.get(system, "750")
     st.html(f"<style>{HOME_CSS}{SX_CSS}</style>")
-    nse_sectors = not tv_sectors(system)
-    choices = {k: v for k, v in (GROUPINGS if nse_sectors else GROUPINGS_TV).items() if v == "Industry" or v in rank_df.columns}
+    choices, nse_sectors = groupings(rank_df, system)
     with st.container(horizontal=True, horizontal_alignment="right", key="sector_grouping_row"):
         pick = st.selectbox("Grouping", list(choices), key="sector_tax_choice", width=260, label_visibility="collapsed",
                             format_func=lambda k: f"Grouping: {k}")
@@ -743,7 +768,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     emit(page_parts(model, rank_df, col, nse_sectors, universe))
 
     ld: sp.Leads = model["ld"]
-    noun = "industry" if col == "TV_Industry" else "sector"
+    noun = noun_for(col)
     sh = (lambda n: SHORT_NAMES.get(n, n)) if col == "Industry" and nse_sectors else (lambda n: n)
     names = [r.name for r in ld.rows]
     top = next((r for r in ld.rows if r.group == "ahead on both"), ld.rows[0])
