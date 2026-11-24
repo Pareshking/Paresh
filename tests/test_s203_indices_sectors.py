@@ -435,7 +435,7 @@ def test_se_lead_2(uni):
     rows = ALL[:2] + [_lead("New", 1.0, 1.0, l12=None), _lead("Newer", 1.0, -1.0, l12=None)]
     note = _note(sv.section_lead(_leads(rows), SH, "sector", True, uni))
     assert note == (f"Lead: the sector’s return less the {uni}’s over the same sessions, both equal-weighted, in pts. Groups: "
-                    "ahead or behind over six months and over the last month; the three- and twelve-month leads are shown "
+                    "ahead or behind over 6 months and over the last month; the 3M and 12M leads are shown "
                     "beside them and do not move a sector between groups. – in 12M: too new (under 12 months of prices): "
                     "New and Newer.")
     assert _note(sv.section_lead(_leads(ALL[:1]), SH, "sector", True, uni)).endswith("between groups.")       # none short
@@ -470,8 +470,8 @@ def test_se_lead_4(uni):
 
 def test_se_lead_5():
     text = _text(html_of(sv.section_lead(_leads(ALL), SH, "sector")))
-    assert ("Each line is 1 pt; the bar is the six-month lead now, the triangle the same reading a month ago, and the "
-            "numbers the reading three months ago, a month ago, now, then the one-, three- and twelve-month leads now. "
+    assert ("Each line is 1 point; the bar is the 6M lead now, the triangle the same reading a month ago, and the "
+            "numbers the reading 3 months ago, a month ago, now, then the 1M, 3M and 12M leads now. "
             "Describing is not forecasting: a lead on both windows has not been tested here as a signal for the next "
             "month.") in text
 
@@ -609,11 +609,11 @@ def test_se_mo_1_and_2(uni, runs, h2, ex):
 
 
 def test_se_mo_3():
-    # KEEP: the note's words stand as approved, "the twelve completed months" included (listed for the owner).
+    # Rule 11: counts are figures, "the 12 completed months" as in se.mo.2.
     parts = sv.section_months(_months({"Auto": [0.4, 0.5, 0.8, 1.2, 0.1]}), SH, "sector", "1000")
     assert _text(re.findall(r'<p class="dh-note">(.*?)</p>', html_of(parts), re.S)[0]) == ("Each cell is the sector’s lead over the 1000 in that calendar month, both equal-weighted, in "
                             "pts; the last month column is the month so far. Run counts completed months in a row on the "
-                            "same side; the last column adds the twelve completed months. Today’s members throughout.")
+                            "same side; the last column adds the 12 completed months. Today’s members throughout.")
 
 
 # ── se.map.1 to se.map.3 ──

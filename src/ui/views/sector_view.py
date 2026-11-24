@@ -262,9 +262,9 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True, uni: str
     h2 = lead_headline(ld, sh, noun)
 
     def rd(r_name, l6, l1, ago, l3=None, l12=None):
-        return [[sg(l6) + " pts", "six-month lead now", _kt(l6)], [sg(ago) + " pts", "a month ago"],
+        return [[sg(l6) + " pts", "6M lead now", _kt(l6)], [sg(ago) + " pts", "a month ago"],
                 [sg(l1) + " pts", "one-month lead", _kt(l1)], [sg(l3) + " pts", "three-month", _kt(l3)],
-                [sg(l12) + " pts", "twelve-month", _kt(l12)]]
+                [sg(l12) + " pts", "12M", _kt(l12)]]
     g = ld.gap
     rows = []
     if g.get("6") is not None:
@@ -303,20 +303,20 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True, uni: str
             + ("regroups the page by NSE sector (the default), TradingView sector or TradingView industry." if nse_sectors else
                "regroups the page by TradingView sector (the default: this list’s stocks carry TradingView’s sectors) "
                "or TradingView industry."))
-    read = ("Each line is 1 pt; the bar is the six-month lead now, the triangle the same reading a month ago, and the "
-            "numbers the reading three months ago, a month ago, now, then the one-, three- and twelve-month leads now. "
+    read = ("Each line is 1 point; the bar is the 6M lead now, the triangle the same reading a month ago, and the "
+            "numbers the reading 3 months ago, a month ago, now, then the 1M, 3M and 12M leads now. "
             "Describing is not forecasting: a lead on both windows has not been tested here as a signal for the next month.")
     table = how(what, read, [noun.capitalize(), "Stocks", f"6M lead {_d(ld.d3)}", f"6M lead {_d(ld.d1)}", "6M lead now", "1M lead",
                              "3M lead", "12M lead"],
                 [[sh(r.name), r.stocks, sg(r.lead6_3m), sg(r.lead6_1m), sg(r.lead6), sg(r.lead1), sg(r.lead3), sg(r.lead12)]
                  for r in ld.rows])
-    # A twelve-month lead needs a year of the group's prices; a "–" says why, once for the column (S193 E).
+    # A 12M lead needs a year of the group's prices; a "–" says why, once for the column (S193 E).
     short = [sh(r.name) for r in ld.rows if r.lead12 is None]
     dash_note = (" " + mw.column_note("12M", f"{mw.TOO_NEW} (under 12 months of prices): {_list(short)}")   # se.lead.2
                  if short else "")
     return [f'<div class="dh-sec">{KICK.format(f"Which {nouns} lead")}<h2 id="s-lead" class="dh-h2">{h2}</h2>'
             f'<p class="dh-note">Lead: the {noun}’s return less the {uni}’s over the same sessions, both equal-weighted, in pts. '
-            'Groups: ahead or behind over six months and over the last month; the three- and twelve-month leads '
+            'Groups: ahead or behind over 6 months and over the last month; the 3M and 12M leads '
             f'are shown beside them and do not move a {noun} between groups.{e(dash_note)}</p></div>',
             Chart("trows", spec, {"label": f"Each {noun}'s lead over the {uni}", "note": "Each line is 1 pt · the triangle is a month ago"}),
             would, table]
@@ -511,7 +511,7 @@ def section_months(months: pd.DataFrame, sh, noun: str, uni: str = "750") -> lis
     return [f'<div class="dh-sec">{KICK.format("Month by month")}<h2 id="s-months" class="dh-h2">{h2}</h2>'
             f'<p class="dh-note">Each cell is the {noun}’s lead over the {uni} in that calendar month, both equal-weighted, in pts; the '
             'last month column is the month so far. Run counts completed months in a row on the same side; the last column adds '
-            'the twelve completed months. Today’s members throughout.</p>'
+            'the 12 completed months. Today’s members throughout.</p>'
             f'<div class="dh-scroll"><table class="dh-tab dh-tab-s sx-mo"><thead><tr><th scope="col">{e(noun.capitalize())}, pts</th>'
             + "".join(f'<th scope="col" class="dh-num">{e(c)}</th>' for c in labels)
             + '<th scope="col" class="dh-num">Run, months</th><th scope="col" class="dh-num">12 months, summed, pts</th></tr></thead>'
