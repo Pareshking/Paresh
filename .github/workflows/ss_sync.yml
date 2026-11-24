@@ -141,6 +141,7 @@ jobs:
           f = s.read_store(Path('data_cache/ss')); f.to_parquet('ss_prices.parquet', index=False, compression='zstd'); \
           print('SS store for R2:', len(f), 'rows,', f['symbol'].nunique(), 'stocks')"
           python scripts/r2_publish.py \
+            --skip-if-published \
             --path ss_prices.parquet \
             --dataset prices/ss \
             --source ss \

@@ -42,7 +42,7 @@ An element is every figure, chart series, table column and number in a label or 
   - [x] the R2 index-level file Breadth stopped reading on 21 Nov (`indices/prices/research`, written by `r2_nse_index_prices.yml`). Lead, 22 Nov: it has no reader: `fetch_index_levels`, its one reader, went with the old Dashboard in #601 (S179); but `scripts/r2_inventory.py` still lists it in `DAILY_DATASETS`, so the daily inventory fails if the job stops before that line goes. The job has been on its Screener fallback while reporting success (S168). Retiring it is S168 (c). **Done 22 Nov 2026**: job, script and test deleted; the dataset is out of `DAILY_DATASETS` and the alert's watch list; its stored revisions stay on R2 (protected `indices/`)
   - [ ] the index store twice: R2 `indices/nse_close_all` and the app's copy in git (`data/nse_indices_history.parquet`, `data/nse_indices_recent.csv`); S172 decides whether the page reads R2
   - [ ] RRG leftovers (S169): no data of its own (it read the ranking's prices and the benchmark), so nothing to remove from R2 or the release; see `docs/PENDING_DELETIONS.md`
-- [ ] **(c) Pipelines.** For every workflow:
+- [x] **(c) Pipelines** (done 24 Nov: `docs/DATA_AUDIT_2026-11-24.md` §6; follow-ups S225). For every workflow:
   - [ ] run time and failures over the last 30 days
   - [ ] what it downloads again that it already has; what could be incremental, cached or merged; minutes saved
   - [ ] it refuses to write bad data (a guard like S91's or S153's reconciliation) and keeps the committed file

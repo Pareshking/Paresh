@@ -254,6 +254,7 @@ jobs:
             exit 1
           fi
           python scripts/r2_publish.py \
+            --skip-if-published \
             --path "$STORE" \
             --dataset prices/screener \
             --source screener \

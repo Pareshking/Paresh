@@ -475,3 +475,47 @@ Hosts named in `src/`, `scripts/`, `app.py` and the workflows. When each last an
 | R2 (Cloudflare; endpoint from secrets) | the app and most jobs (`src/storage`) | The stores | See section 0 |
 
 Not checked: the date each host last answered (the pipelines review reads the runs), and hosts built from variables rather than written out.
+
+
+## 6. Pipelines (section 2 (c) of the plan; 24 Nov 2026)
+
+Run figures for 25 Oct to 24 Nov 2026 read by a second agent from GitHub's API (`list workflow runs`, branch main); median = updated_at − run_started_at. All 30 scheduled workflows are on the alert's watched list (`scheduled_failure_alert.yml:21-52`), and every commit step checks `git diff --staged --quiet` first. The coordinator checked findings 1, 2 and 7 in the files; the run counts are the agent's.
+
+| workflow | schedule UTC | runs/fails/median min | re-downloads | guard | alert | writes only changes |
+|---|---|---|---|---|---|---|
+| daily_sync | 17:30 Mon-Fri, 02:00 daily, +after Screener | 86/0/1.7 | 3 runs a day; the 02:00 slot was for Yahoo, now retired | only empty universe (`sync_data.py:234`); `git add -A data/` after 14 `\|\| echo` steps | yes, warnings via the green scan | git yes; release and R2 rankings 3x a day, no skip |
+| screener_sync | 17:07 daily | 31/1/40.4 | 365 days per stock every night (`config.py:85`) | rows (`:225`), rank (`:149`), vote (`:188`) | yes | git yes; R2 no `--skip-if-published` (`:256`) |
+| ss_sync | 16:32 Fri | 17/1/277.9 (daily until 17 Nov; ~87 min a run since) | stale >12 h only | rows (`:120`) | refusal is a `::warning` (`sync_ss.py:212`) | release and R2 every run |
+| nse_collect | 12:41, 14:41, 16:11 Mon-Fri; 03:41 daily | 91/0/1.2 | no, skips what R2 holds (`nse_collect.py:332`); Screener store cached | `--check` | refusal is a warning (#585 open) | R2 new days |
+| nse_long_prices | Sat 03:30 full; nightly after daily_sync | 15/2/4.1 | Saturday re-reads all of R2 by design; nightly uses the packs | `check_long_publish.py` (`:141`) **before**; audits **after** publish | yes | release re-uploaded every build; R2 skips |
+| nse_indices | 14:10 daily | 4/0/0.8 (new 21 Nov) | new sessions only | `collect_nse_indices.py:122-140` | yes | git yes; R2 no skip (`:60`) |
+| weekly_full_sync | 18:30 Fri | 4/0/0.8 | nothing: FORCE_FULL unused | as daily | yes | release rankings |
+| monthly_track_record | 19:00 1st-5th | 5/0/3.9 | – | freeze refuses (`:122`) | yes | yes |
+| fii_dii | 14:47, 17:47 Mon-Fri | 22/0/0.7 | – | `collect_fii_dii.py:71`, `collect_nse_dii.py:137` | yes | appends new rows |
+| nsdl_fpi | 04:17 Mon-Sat, 13:17 Mon-Fri | 24/0/0.3 | latest page | `nsdl_fpi.py:179` | yes | yes |
+| results_calendar | 16:23 daily | 18/4/0.4 | – | `collect_results_calendar.py:141,198` | yes | yes |
+| nse_reference_sync | 02:45 daily | 30/1/0.4 | – | `sync_nse_reference.py:80` | yes (#541) | yes |
+| bse_daily | 20:30 Fri | 4/0/1.1 | after the last date only | `bse_daily.yml:110-118` | yes | release weekly; R2 monthly |
+| backtest_reference / momentum_health | Sun 05:17 / 06:23 2nd-6th | 2/0/1.8 / 4/0/1.1 | not read | "build and check" (script not read) | yes | yes |
+| r2 bootstrap / market_cap / observed sessions | weekly + chained | 116/0/1.8; 111/0/0.7; 31/0/1.0 | rebuilt from repo | `--skip-if-published` | yes | yes (skip) |
+| r2 inventory / continuity / recovery / retention | daily / daily / 1st / Sun | 40/7/2.1; 30/0/0.6; 9/0/28.1; 17/2/2.8 | audits | – | yes (#612 open) | – |
+| nse_compare / history_audit / history_import | Sun / 3rd / 2nd | 6/0/15.9 (2 timed out at 45 min); 1/0/10.2; 1/0/0.9 | release files | – | yes | report only |
+| v1-full-validation / v1-production-qa | 23:23 / 03:17 + push | 189/11/3.7; 245/53/2.7 | – | – | schedule only; 7 and 33 push failures not alerted | – |
+| keep_awake, schedule_watchdog, screener_catchup | 4-hourly, 05:41, 23:37+01:37 | 3/0/0.5, 13/0/0.6, 0 runs (merged 24 Nov, #663) | – | – | yes | – |
+
+Unwatched manual writers (`nse_prices_backfill`, `owner_cleanup`, `nse_sample_check`, `investigate_raw`, `r2_publish_release_asset`) are dispatch-only.
+
+**Findings** (routed in S225):
+
+1. **The long file is published before its audit limits run** (`nse_long_prices.yml:142-172` publish, `:242-255` limits). This is a recorded choice (PRICE_PIPELINE.md, "Audit limits": "fails the job **after** the file is published"; the alert opens an issue), so it is the owner's: whether a limit breach should hold the file back.
+2. **`weekly_full_sync` repeats the daily sync.** `FORCE_FULL` is read (`sync_data.py:11`) but no longer changes anything since Yahoo left; the job re-uploads rankings. Retiring a job needs the owner's yes.
+3. **daily_sync commits after 14 steps that end `|| echo ::warning`**, with no whole-run check before `git add -A data/` (`daily_sync.yml:451`), and on a rebase conflict keeps this run's copy of every conflicting file (`:475`).
+4. **The green scan reads only each workflow's latest green run** (`alert_green_scan.py:44`), so a warning in an earlier run of a job that runs 3-4 times a day can be missed (inferred from the code).
+5. **A push-to-main failure raises no alert** (`scheduled_failure_alert.yml:81-83`): the agent counts 33 Production QA and 7 Full Validation failures on push in 30 days. The coordinator reads Production QA after each merge it makes; other pushes are not covered.
+6. **Screener sync is the largest cost**: 1,288 minutes in 30 days; it asks 365 days per stock every night (`sync_screener.py:154`). Whether a shorter window saves time (the 1.2 s pause may set the pace) needs one measured run.
+7. **Fixed 24 Nov:** `--skip-if-published` added to the five `r2_publish.py` calls that lacked it (`daily_sync.yml` ×2, `screener_sync.yml`, `ss_sync.yml`, `nse_indices.yml`), as the bootstrap job already does; a re-run after a fix changes the bytes, so nothing real is skipped. A stale comment corrected (`r2_market_cap_history.yml:2`, "daily" → weekly).
+8. **daily_sync's 02:00 UTC slot** was there for Yahoo; dropping it saves about 2 minutes a day (owner).
+9. **18 scheduled workflows install packages without a pip cache** (about 22 s a run).
+10. **Failures open or unexplained:** r2_retention (#612), results_calendar (4 scheduled runs, 12-22 Nov), r2_archive_inventory (7), the 24 Nov scheduled Full Validation.
+
+Not checked: R2 operation counts; the scripts behind backtest_reference and momentum_health; the causes in finding 10.

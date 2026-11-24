@@ -58,6 +58,7 @@ jobs:
       - name: Publish to R2
         run: |
           python scripts/r2_publish.py \
+            --skip-if-published \
             --path nse_indices.parquet \
             --dataset indices/nse_close_all \
             --source nse_ind_close_all \
