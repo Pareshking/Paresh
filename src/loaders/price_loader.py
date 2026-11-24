@@ -291,10 +291,25 @@ def fetch_benchmark_history(
         return pd.Series(dtype=float, name=symbol)
 
 
+# get_market_regime's symbol for Nifty Total Market, joined to the Nifty 500 before its launch on 14 Oct 2021
+# (S165): the Market page's trend reads the same line, so the header and that page agree.
+TOTAL_MARKET_REGIME = "nifty_total_market"
+
+
+def _regime_close(benchmark_symbol: str) -> tuple[pd.Series, str]:
+    """The closes the regime reads and the index's name, as the header prints it."""
+    if benchmark_symbol == TOTAL_MARKET_REGIME:
+        from src.engine import market_questions as mq
+        from src.loaders import benchmark_indices as bi
+        return mq.join_market(fetch_benchmark_history(period="max"), bi.series(bi.TOTAL_MARKET))
+    return fetch_benchmark_history(period="max", symbol=benchmark_symbol), "Nifty 500"
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL, end: str | None = None) -> RegimeData:
     """
     Computes market regime by comparing benchmark index price with its 200 DMA.
+    `benchmark_symbol=TOTAL_MARKET_REGIME` reads Nifty Total Market (S165) and names it in `index_name`.
     `end` (the prices' last session, "YYYY-MM-DD") bounds the index: after NSE's close the file has
     today's Screener close while the stocks end on the last nightly sync, and the header read
     "Nifty 500 23,764" (23 Nov) beside "Prices · closes of 20 Nov" (S216, 23 Nov 2026).
@@ -309,7 +324,7 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL, end: str | None 
         # has not converged, so the header read 2.9% above where the market
         # questions card, which uses the full series, read +3.0 (audit, 8 Nov
         # 2026). Both now measure the same thing on the same history.
-        close_s = fetch_benchmark_history(period="max", symbol=benchmark_symbol)
+        close_s, name = _regime_close(benchmark_symbol)
 
         if close_s is None or close_s.empty:
             return RegimeData(
@@ -317,13 +332,15 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL, end: str | None 
                 current_price=0.0,
                 dma_200=0.0,
                 distance_pct=0.0,
+                index_name=name,
             )
 
         close_s = pd.to_numeric(close_s, errors="coerce").dropna()
         if end is not None:
             close_s = close_s[close_s.index <= pd.Timestamp(end)]
         if close_s.empty:
-            return RegimeData(status=MarketRegime.UNKNOWN, current_price=0.0, dma_200=0.0, distance_pct=0.0)
+            return RegimeData(status=MarketRegime.UNKNOWN, current_price=0.0, dma_200=0.0, distance_pct=0.0,
+                              index_name=name)
         price = float(close_s.iloc[-1])
         # The 200D EMA, as Breadth and Sectors use (pre-launch audit F7): the
         # header said "3.1% above 200D average" from a simple average (2.97% on
@@ -337,6 +354,7 @@ def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL, end: str | None 
             current_price=price,
             dma_200=dma,
             distance_pct=dist,
+            index_name=name,
         )
     except Exception as e:
         logger.warning(f"Failed to compute market regime: {e}")

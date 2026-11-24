@@ -38,5 +38,6 @@ class RegimeData:
     current_price: float
     dma_200: float
     distance_pct: float
+    index_name: str = "Nifty 500"   # the index measured, as the header prints it (S165)
 
 

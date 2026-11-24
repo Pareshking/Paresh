@@ -176,8 +176,10 @@ twice a year, at the March and September rebalances. In between, a holding that 
 price moved it unless it is above 15%, when it is cut to 15%, and each new buy is 5% of the account
 as it stood at the last reset, paid from cash; when cash is short the new names get fewer shares, and
 no holding is sold to pay for them. No sector is above 40% after a rebalance. In the test behind
-the decision (8 Nov 2026, the Nifty 500 from 2010, with an estimate of tax) the monthly reset earned
-15.4% a year after tax and the six-monthly 15.3%, with far fewer trades between resets. The Backtest
+the decision (8 Nov 2026, with an estimate of tax) the monthly reset earned
+15.4% a year after tax and the six-monthly 15.3%, with far fewer trades between resets. That test ran
+on the Nifty 500 from 2010, as the Backtest does, because Nifty Total Market starts only on
+14 Oct 2021. The Backtest
 re-runs the record's rules every week, so its after-tax figure can differ by a little.
 Against the alternative of simply holding the index, both price only, both sold at the end and taxed:
 the Backtest page shows the figures for the record's rules from 2010, re-run every week (section 4).
@@ -213,8 +215,8 @@ leave.</dd>
 <dt>Why does a stock's rank differ from its qualified rank?</dt>
 <dd>The rank places it among all stocks in the universe; the qualified rank, among those passing both
 filters. The book and the buffer use the qualified rank.</dd>
-<dt>Does the Nifty 500's trend change the model?</dt>
-<dd>No. The header's "Nifty 500 ... % above its 200D EMA" (or below) compares the index with its 200D EMA for context.
+<dt>Does the market's trend change the model?</dt>
+<dd>No. The header's "... % above its 200D EMA" (or below) compares the index it names with its 200D EMA, for context.
 The model holds {top_n} stocks whatever the index does and keeps no cash target.</dd>
 <dt>What does "pts" mean?</dt>
 <dd>pts = percentage points: 12% − 8% = 4 pts. A gap between two returns is written in points, by subtraction:

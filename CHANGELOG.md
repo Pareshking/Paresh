@@ -1,6 +1,12 @@
 # Changelog
 
 
+## 2026-11-24 — Market reads Nifty Total Market (S165)
+
+- Market's trend question, its "By size" table and its charts read Nifty Total Market and name it ("Is Nifty Total Market in an uptrend?"). Before its launch on 14 Oct 2021 the line is the Nifty 500, scaled to meet it that day, and the page says so; the bars' ranges now reach back to 1999.
+- Indices: the Nifty 500 P/E chart says why it is the Nifty 500 (Total Market's P/E starts in Oct 2021). The Guide's header question names no index; its tax test says why it ran on the Nifty 500.
+- The header strip can name and read Nifty Total Market; it still shows the Nifty 500 until the app asks for it.
+
 ## 2026-11-24 — Dashboard and Portfolio sentences from approved templates (S203)
 
 - Every sentence on the Dashboard and Portfolio now follows the template the owner approved on 24 Nov: one idea a sentence, the sign in a word ("up 5.5%", "sold ₹5,000 Cr"), "level" only when a gap shows 0.0, dates with their year after "since", and no figure typed into the code. No figure, rank or frozen month changes.

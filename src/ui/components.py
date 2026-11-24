@@ -129,8 +129,8 @@ _MENU_ORDER = ("Dashboard", "Actions", "Screener", "Portfolio", "Market", "Indic
 _QUICK_PAGES = _MENU_ORDER
 
 
-# The header says what it measures (owner, 8 Nov 2026): "Nifty 500 2.9% above its
-# 200D EMA". "Trend: up" sat above the Dashboard's "No clear trend" (four
+# The header says what it measures (owner, 8 Nov 2026): "Nifty Total Market 2.9% above
+# its 200D EMA", the index named from `regime.index_name` (S165). "Trend: up" sat above the Dashboard's "No clear trend" (four
 # measures) and read as a contradiction (audit U-H1); "Bullish" before it read
 # as a market call.
 
@@ -159,7 +159,7 @@ def render_header_kpi_bar(
     dist = regime.distance_pct
     # An unknown regime must read as unknown. With no usable benchmark the
     # loader returns UNKNOWN with distance 0.0 and price 0.0, and the header
-    # printed "Nifty 500 0.0% above its 200D EMA" beside a level of "0" --
+    # printed "<index> 0.0% above its 200D EMA" beside a level of "0" --
     # a wrong number stated as fact, which is worse than an error page
     # (launch slot 5, 10 Nov 2026).
     unknown = regime.status == MarketRegime.UNKNOWN or not regime.current_price
@@ -171,13 +171,14 @@ def render_header_kpi_bar(
         dist_text = f"{abs(dist):.1f}% {'above' if dist >= 0 else 'below'}"
         level_text = f"{regime.current_price:,.0f}"
     pill = _status_pill_html()
+    index_name = html.escape(getattr(regime, "index_name", "") or "Nifty 500")
     market_html = f"""
     <div role="status" aria-label="Market status dashboard" class="mkt-snapshot" tabindex="0">
         <div class="mkt-item mkt-regime-item">
-            <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>Nifty 500 {html.escape(dist_text)}{"" if unknown else " its 200D EMA"}</span>
+            <span class="{regime_cls} mkt-regime"><span class="mkt-dot" aria-hidden="true">●</span>{index_name} {html.escape(dist_text)}{"" if unknown else " its 200D EMA"}</span>
         </div>
         <div class="mkt-item mkt-index">
-            <span class="mkt-label">Nifty 500</span>
+            <span class="mkt-label">{index_name}</span>
             <strong>{level_text}</strong>
         </div>
         <div class="mkt-item">
