@@ -205,3 +205,23 @@ def test_a_push_run_of_production_qa_or_full_validation_alerts_and_the_names_mat
         wf = next(p for p in (ROOT / ".github/workflows").glob("*.yml") if _load(p).get("name") == name)
         on = _load(wf).get(True) or _load(wf).get("on")
         assert "push" in on
+
+
+def test_the_green_scan_reads_every_green_run_since_the_last_scan():
+    """S225 (4): a warning in an earlier green run between two scans is read too."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("alert_green_scan", ROOT / "scripts/alert_green_scan.py")
+    scan = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scan)
+
+    def run(i, at, conclusion="success", event="schedule", name="A"):
+        return {"id": i, "name": name, "event": event, "head_branch": "main", "status": "completed",
+                "conclusion": conclusion, "created_at": at}
+
+    runs = [run(1, "2026-11-24T00:00:00Z"), run(2, "2026-11-24T10:00:00Z"),
+            run(3, "2026-11-24T12:00:00Z", conclusion="failure"), run(4, "2026-11-24T14:00:00Z"),
+            run(5, "2026-11-24T15:00:00Z", event="workflow_dispatch")]
+    got = scan.green_since(runs, ["A"], "2026-11-24T09:00:00Z")
+    assert [r["id"] for r in got["A"]] == [2, 4]
+    assert scan.WINDOW_HOURS > 8   # overlaps the 8-hourly scan

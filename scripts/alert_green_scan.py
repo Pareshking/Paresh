@@ -22,6 +22,7 @@ cause is still there.
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
 import subprocess
@@ -45,14 +46,43 @@ def watched_names(path: Path = ALERT_WORKFLOW) -> list[str]:
     return list(on["workflow_run"]["workflows"])
 
 
+# The scan runs every 8 hours (scheduled_failure_alert.yml); a 9-hour window
+# overlaps the last one, and a run already named on the warning issue is skipped.
+WINDOW_HOURS = 9
+
+
+def _unattended(run: dict) -> bool:
+    return run.get("event") in UNATTENDED or (run.get("event") == "push" and run.get("name") in PUSH_WATCHED)
+
+
+def green_since(runs: list[dict], names: list[str], since: str) -> dict[str, list[dict]]:
+    """Every green unattended main run of each watched name created at or after `since`, oldest first.
+
+    S225 (4): a job that runs 3-4 times a day had only its latest green run read,
+    so a warning in an earlier run between two scans was never reported.
+    """
+    out: dict[str, list[dict]] = {}
+    wanted = set(names)
+    for run in runs:
+        if run.get("name") not in wanted or not _unattended(run):
+            continue
+        if run.get("status") != "completed" or run.get("head_branch") != "main":
+            continue
+        if run.get("conclusion") != "success" or run.get("created_at", "") < since:
+            continue
+        out.setdefault(run["name"], []).append(run)
+    for got in out.values():
+        got.sort(key=lambda r: r["created_at"])
+    return out
+
+
 def latest_unattended(runs: list[dict], names: list[str]) -> dict[str, dict]:
     """Newest completed schedule/workflow_run run of each watched name (and push, for PUSH_WATCHED)."""
     out: dict[str, dict] = {}
     wanted = set(names)
     for run in runs:
         name = run.get("name")
-        unattended = run.get("event") in UNATTENDED or (run.get("event") == "push" and name in PUSH_WATCHED)
-        if name not in wanted or not unattended:
+        if name not in wanted or not _unattended(run):
             continue
         if run.get("status") != "completed" or run.get("head_branch") != "main":
             continue
@@ -120,14 +150,49 @@ def _mentions(repo: str, number: int, url: str) -> bool:
     return any(url in (c.get("body") or "") for c in comments)
 
 
+def _report_warnings(repo: str, name: str, run: dict) -> bool:
+    """Report one green run's warning annotations on the warning issue, once per run."""
+    url, sha, when = run["html_url"], run["head_sha"][:7], run["updated_at"]
+    warns = _warnings(repo, int(run["id"]))
+    if not warns:
+        return False
+    title = f"Scheduled workflow warning: {name}"
+    number = _open_issue(repo, title)
+    if number is not None and _mentions(repo, number, url):
+        print(f"{name}: {len(warns)} warning(s), already reported for {url}")
+        return True
+    body = (f"**{name}** finished GREEN on `{sha}` at {when} with {len(warns)} warning "
+            f"annotation(s): {url}\n\n" + "\n".join(f"- {w}" for w in warns))
+    if number is not None:
+        _gh("issue", "comment", str(number), "--repo", repo, "--body", body)
+    else:
+        body += ("\n\nA warning here does not fail the job on purpose: the step log is the "
+                 "deliverable (daily_sync.yml). Close this once the warnings stop.")
+        _gh("issue", "create", "--repo", repo, "--title", title,
+            "--label", "scheduled-failure", "--body", body)
+    print(f"{name}: reported {len(warns)} warning(s) for {url}")
+    return True
+
+
 def main() -> int:
     repo = os.environ["GH_REPO"]
     _gh("label", "create", "scheduled-failure", "--repo", repo, "--color", "B60205",
         "--description", "A scheduled production workflow failed", check=False)
     names = watched_names()
-    latest = latest_unattended(_runs(repo, names), names)
+    runs = _runs(repo, names)
+    latest = latest_unattended(runs, names)
+    since = (dt.datetime.now(dt.UTC) - dt.timedelta(hours=WINDOW_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    recent = green_since(runs, names, since)
     for name in names:
         run = latest.get(name)
+        # The latest green run is read even when it is older than the window, as
+        # before, so a missed scan still reports it.
+        todo = list(recent.get(name, []))
+        if run is not None and run.get("conclusion") == "success" and all(r["id"] != run["id"] for r in todo):
+            todo.append(run)
+        warned = False
+        for one in todo:
+            warned |= _report_warnings(repo, name, one)
         if run is None:
             print(f"{name}: no unattended run among its last 30 on main")
             continue
@@ -135,30 +200,13 @@ def main() -> int:
             print(f"{name}: latest unattended run {run.get('conclusion')} -- the alert job reports failures")
             continue
         url, sha, when = run["html_url"], run["head_sha"][:7], run["updated_at"]
-        warns = _warnings(repo, int(run["id"]))
-        if warns:
-            title = f"Scheduled workflow warning: {name}"
-            number = _open_issue(repo, title)
-            if number is not None and _mentions(repo, number, url):
-                print(f"{name}: {len(warns)} warning(s), already reported for this run")
-            else:
-                body = (f"**{name}** finished GREEN on `{sha}` at {when} with {len(warns)} warning "
-                        f"annotation(s): {url}\n\n" + "\n".join(f"- {w}" for w in warns))
-                if number is not None:
-                    _gh("issue", "comment", str(number), "--repo", repo, "--body", body)
-                else:
-                    body += ("\n\nA warning here does not fail the job on purpose: the step log is the "
-                             "deliverable (daily_sync.yml). Close this once the warnings stop.")
-                    _gh("issue", "create", "--repo", repo, "--title", title,
-                        "--label", "scheduled-failure", "--body", body)
-                print(f"{name}: reported {len(warns)} warning(s)")
         number = _open_issue(repo, f"Scheduled workflow failing: {name}")
         if number is not None:
             _gh("issue", "comment", str(number), "--repo", repo, "--body",
                 f"Recovered: **{name}** succeeded on `{sha}` at {when}: {url}")
             _gh("issue", "close", str(number), "--repo", repo, "--reason", "completed")
             print(f"{name}: recovered, closed #{number}")
-        elif not warns:
+        elif not warned:
             print(f"{name}: green")
     return 0
 
