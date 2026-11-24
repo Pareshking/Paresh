@@ -59,7 +59,7 @@ An element is every figure, chart series, table column and number in a label or 
 - [ ] **The date test in CI on every page** (the S154 (c) test, which now covers four pages).
 - [ ] **Licence and terms** for each third-party source (Screener, NSE's terms for its archives, any feed like IndiaDataHub).
 - [ ] **Reachability:** which figures depend on a source that only GitHub's runners, or only the app, can reach (BSE's FII/DII pages refused this container; R2 was not reachable locally).
-- [ ] **First runs of the jobs added on 21 Nov:** the NSE DII step in `fii_dii.yml` and the Total Market collector, checked on GitHub;
+- [~] **First runs of the jobs added on 21 Nov** (checked 24 Nov from the repository: `data/nse_indices_recent.csv` 148 rows to 23 Nov, committed by the scheduled job on 24 Nov; `data/indices/ind_nifty1000_list.csv` and `indices.nifty_1000` present; Total Market to 23 Nov. Left: the 1-5 Dec freeze of `data/track_record_1000.json`, by date): the NSE DII step in `fii_dii.yml` and the Total Market collector, checked on GitHub;
   `nse_indices.yml` dispatched once with `backfill` (S168 (a)), then a scheduled night that adds one session and commits
   `data/nse_indices_recent.csv` (header only on 22 Nov); the first `daily_sync` after #591 writes
   `data/indices/ind_nifty1000_list.csv` and `indices.nifty_1000` from 30 Oct (neither in the repository on 22 Nov), and
