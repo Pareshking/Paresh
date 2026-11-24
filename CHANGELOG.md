@@ -1,6 +1,13 @@
 # Changelog
 
 
+## 2026-11-24 — Screener: why a stock is out, and a phone that shows every preset (S189)
+
+- A stock that fails a filter says why beside "Out" in the qualified column ("7.5% under 50D EMA · 30% under 52W high", or "too new for a 52W high"), instead of only in the filter columns far to the right.
+- What moved: the heading names the biggest climb into the top 50; Biggest jumps says its ten can land anywhere in the ranking.
+- On a phone the six presets wrap onto rows with their counts, and the sector stays under each symbol in every column set.
+- A window longer than a stock's history shows "–" for its drawdown as well as its return.
+
 ## 2026-11-24 — Nifty Total Market keeps NSE's special sessions (S163)
 
 - Market and Sectors read Nifty Total Market with NSE's seven weekend sessions since 2023 (the Muhurat sessions of 12 Nov 2023 and 8 Nov 2026, budget-day and drill Saturdays). They were missing from the file those pages read, so a window opening near one started a session off from the Dashboard, Indices and Portfolio.

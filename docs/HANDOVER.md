@@ -85,6 +85,8 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
   `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
 - **#607** is parked by the owner (read-only R2 key).
 
+**Decided by benchmark, owner to confirm (24 Nov, S189):** Screener items 1, 2, 4, 5, 7 (see TODO S189; evidence `archive/SCREENER_REVIEW_2026-11-24.md`). Reversal: one function or CSS rule each.
+
 **Confirmed by the owner (24 Nov, "With your recommendation 1"):** the Dashboard flows readout keeps "heavy buying" / "moderate buying" / "net selling" (S222).
 
 **Waiting on the owner (24 Nov, laptop back):**

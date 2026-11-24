@@ -350,12 +350,15 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     cells["mcap"] = (f'<td class="n" data-v="{"" if mc is None else mc}">'
                      f'{"–" if mc is None else _fmt.inr(mc)}</td>')
     for w in PERIOD_WINDOWS:
-        cells[f"r{w}"] = _pct_cell(_num(row.get(f"{w}M Return")))[0]
+        ret = _num(row.get(f"{w}M Return"))
+        cells[f"r{w}"] = _pct_cell(ret)[0]
         sh = _num(row.get(f"{w}M Sharpe"))
         sh_cls = "" if sh is None else "pos" if sh > 0 else "neg" if sh < 0 else ""
         cells[f"sh{w}"] = (f'<td class="n {sh_cls}" data-v="{"" if sh is None else sh}">'
                            f'{"–" if sh is None else _signed(sh, 2, plus=False)}</td>')
-        dd = _num(row.get(f"Max DD {w}M"))
+        # A window too long for the stock's history has no return, so no drawdown either: the short history's own
+        # fall read as a measured 12-month figure (S189 item 7, 24 Nov 2026: MILKYMIST -18.9% beside "–").
+        dd = _num(row.get(f"Max DD {w}M")) if ret is not None else None
         cells[f"dd{w}"] = (f'<td class="n" data-v="{"" if dd is None else dd}">'
                            f'{"–" if dd is None else _signed(-abs(dd), plus=False) + "%"}</td>')
     ath_v = _num(row.get("% ATH"))
@@ -414,6 +417,23 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
                  (f"{abs(hi_v):.1f}% below its 52W high; the filter is within {NEAR_HIGH_GAP_PCT}%",
                   f"−{abs(hi_v):.0f}%")),
     }
+    # "Out" says why beside the qualified place, from the same reasons the filter columns show (S189 item 1,
+    # 24 Nov 2026: on Nano the reason sat about 3,000 px to the right, and a short history showed a bare ✗).
+    if qr is None and rank is not None:
+        whys, full = [], []
+        if not is_tick_true(row.get("Above 50 EMA")) and miss.get("above"):
+            whys.append(f"{abs(em):.1f}% under 50D EMA")
+            full.append(miss["above"][0])
+        if not is_tick_true(row.get("Near 52W High")):
+            if miss.get("near"):
+                whys.append(f"{abs(hi_v):.0f}% under 52W high")
+                full.append(miss["near"][0])
+            else:
+                whys.append("too new for a 52W high")
+                full.append("under 12 months of prices, so the 52W-high filter cannot pass")
+        if whys:
+            cells["qrank"] = (f'<td class="n" data-v="" title="{_esc("; ".join(full))}">Out'
+                              f'<span class="why">{_esc(" · ".join(whys))}</span></td>')
     for key, col in (("above", "Above 50 EMA"), ("near", "Near 52W High"), ("athf", "At ATH")):
         on = is_tick_true(row.get(col))
         why = None if on else miss.get(key)
@@ -438,6 +458,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
 
 _CSS = """
 *{box-sizing:border-box}
+td .why{display:block;font-size: var(--fs-12);color:var(--c-muted);white-space:nowrap;line-height:1.2}
 body{margin:0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--c-ink);background:transparent;-webkit-font-smoothing:antialiased}
 .wrap{height:100vh;overflow:auto;background:var(--c-white);border:0;border-top:1px solid var(--c-ink);border-radius:0}
 .edge{position:fixed;top:0;right:0;width:56px;height:100vh;pointer-events:none;z-index:6;background:linear-gradient(to right,rgba(255,255,255,0),var(--c-white) 62%);border-right:1px solid var(--c-rule_strong);opacity:0;transition:opacity .15s}
@@ -521,7 +542,7 @@ tbody tr.hl td{background:var(--c-subtle)}
   tr.hdr th:nth-child(2),td.c-stock{left:34px;box-shadow:none;max-width:150px}
   td.c-stock .sym{font-size: var(--fs-13)}
   td.c-stock .sub{display:block;font-size: var(--fs-12);max-width:130px}
-  .wide td.c-stock .sub{display:none}
+  /* The industry stays under the symbol in every column set on a phone (requirement 13; S189 item 5). */
   .wrap:not(.wide) tr.grp-row{display:none}
   .wrap:not(.wide) thead tr.hdr th{top:0}
   td.c-path{padding-left:0}

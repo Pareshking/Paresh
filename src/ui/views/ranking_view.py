@@ -910,9 +910,12 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
     n_in, n_out = len(entered), len(left)
     finding = (f'<span class="up">{n_in} stock{"s" if n_in != 1 else ""} entered the top 50</span> and '
                f'<span class="down">{n_out} left</span>')
-    if jr:
-        j = jr[0]
-        finding += (f"; {esc(j['Symbol'])} climbed {int(j['Places_gained'])} places, "
+    # The heading's example is the biggest climb INTO the top 50, the section's subject; the ten biggest jumps
+    # land anywhere in the ranking (S189 item 2, 24 Nov 2026: all ten at #118 to #376 that day).
+    climbs = biggest_jumps(entered, n=1) if entered is not None and len(entered) else entered
+    if climbs is not None and len(climbs):
+        j = climbs.to_dict("records")[0]
+        finding += (f"; the biggest climb into it, {esc(j['Symbol'])}, came {int(j['Places_gained'])} places, "
                     f"from #{int(j['Rank_last_month'])} to #{int(j['Rank'])}")
     when = (f"Ranks among the ranked stocks on {_day(d1)}, the last session on or before the same date a month "
             "back, against today. Every row shown.") if d1 is not None else "Every row shown."
@@ -923,7 +926,7 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
                    for r in itertools.chain(jr, entered.to_dict("records"), left.to_dict("records")))
     if unranked:
         when += " " + mw.column_note(f"{was_head} and Places", mw.stock_too_new() + ", not ranked on that date")
-    jumps_html = (table("Biggest jumps", "The ten that climbed most places, 1 to 5.", jr[:5], len(jr))
+    jumps_html = (table("Biggest jumps", "The ten that climbed most places anywhere in the ranking, 1 to 5.", jr[:5], len(jr))
                   + (table("Biggest jumps, 6 to 10", "\u00a0", jr[5:], -1) if len(jr) > 5 else ""))
     st.html(
         _MOVERS_CSS
