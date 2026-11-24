@@ -1,6 +1,14 @@
 # Changelog
 
 
+## 2026-11-24 — Sentences that were wrong on some days now read right on every day (S203)
+
+- Indices: the P/E title and heading say "cheaper" or "dearer" from each index's own percentile; they had called the Nifty 50 cheaper and the Smallcap 250 dearer whatever the figures. The style lag gives months ("from Nov 2018 to Oct 2020, and was back by Jul 2023").
+- Backtest: a losing run reads "lost 3.0% a year" and "behind the Nifty 500 by 2.3 points a year", not a minus sign after "made" or a sign carried by colour alone. The trust heading follows the table's own statuses, and "the winners paid for the losers" appears only when gains exceed losses.
+- Stock page and Actions: "It is close to a sell rule: it is 38th among the qualified, 2 places inside the top 40" (it read "it #38 · 2 places from the buffer"); a stock the book does not hold reads "It would be sold if held".
+- Watchlist: "The book holds 2 of them; 1 would be sold at the 30 Nov check", not "sold on 30 Nov" (a sale fills the next session).
+- Sectors: "One sector leads", "none of the 30 is", and the Broad-or-narrow colour on the verdict only. Market: a missing score is said, not "Not enough data participation".
+
 ## 2026-11-24 — Screener: why a stock is out, and a phone that shows every preset (S189)
 
 - A stock that fails a filter says why beside "Out" in the qualified column ("7.5% under 50D EMA · 30% under 52W high", or "too new for a 52W high"), instead of only in the filter columns far to the right.
