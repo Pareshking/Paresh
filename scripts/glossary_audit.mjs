@@ -67,7 +67,8 @@ const RULES = {
   '5 "crore" spelled out, or a lakh crore in thousands': t => t.match(/\bcrores?\b|₹\s?\d{1,2},\d\d,\d{3}(?:,\d{3})* ?Cr\b/gi),
   '6 "1Y", "1-year", "12-month", "one year"': t => t.match(/(?<![\w.])1Y\b|\b1-year\b|\b12-month\b|\bone year\b/gi),
   '7 "since inception", "since start", "since the record began"': t => t.match(/\bsince (?:inception|start|the record began)\b/gi),
-  '8 "Max DD", "largest fall", "maximum drawdown"': t => t.match(/\bMax DD\b|\blargest fall\b|\bmaximum drawdown\b/gi),
+  // "Max DD" is the table and tile form since 24 Nov 2026 (owner); sentences keep "max drawdown" (glossary 8).
+  '8 "largest fall", "maximum drawdown", "max DD" in a sentence': t => t.match(/\blargest fall\b|\bmaximum drawdown\b|\b(?:its|the|a|was) max DD\b/gi),
   '9 "this month", "MTD", "month to date"': t => t.match(/\bthis month\b|\bMTD\b|\bmonth[- ]to[- ]date\b/gi),
   '10 "exit rule", "a hold" as a noun': t => t.match(/\bexit rules?\b|\ba hold\b/gi),
   '11 "200-day average", "50-day", "moving average" as a label': t => t.match(/\b\d+-day (?:average|EMA|SMA|moving average)\b|\b(?:50|200)-day\b|\bmoving average\b/gi),

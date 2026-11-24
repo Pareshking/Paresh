@@ -260,7 +260,8 @@ The model holds {top_n} stocks whatever the index does and keeps no cash target.
 "bps" (basis points, hundredths of a point) is kept for costs.</dd>
 <dt>What is a max drawdown?</dt>
 <dd>The worst fall from a peak to a later low over a window: "6M max drawdown" is the deepest such fall in the
-last six months. Plain "drawdown" is how far a price or the book is below its peak today.</dd>
+last 6 months. Tables and tiles write it "Max DD" ("6M max DD"). Plain "drawdown" is how far a price or the book
+is below its peak today.</dd>
 <dt>What do the costs cover?</dt>
 <dd>{cost:.0f} basis points a round trip, meant to cover brokerage, exchange and SEBI fees, GST on them,
 stamp duty, STT and the bid-ask spread. STT (0.1% on the buy and on the sell) and stamp duty (0.015% on

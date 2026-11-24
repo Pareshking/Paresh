@@ -280,7 +280,7 @@ def section_lag(sts: list[ip.Style]) -> list:
         f'<td class="dh-num dh-muted">{s.worst_peak:%-d %b %Y} → {s.worst_low:%-d %b %Y}</td>'
         f'<td class="dh-num dh-muted">{e(_dy(s.recovered)) if s.recovered is not None else "not yet"}</td></tr>' for s in sts)
     table = ('<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Style</th>'
-             '<th scope="col" class="dh-num">Now</th><th scope="col" class="dh-num">Max drawdown, relative</th>'
+             '<th scope="col" class="dh-num">Now</th><th scope="col" class="dh-num">Max DD, relative</th>'
              '<th scope="col" class="dh-num">Worst, peak → low</th><th scope="col" class="dh-num">Recovered</th></tr></thead>'
              f'<tbody>{body}</tbody></table></div>')
     return [f'<div class="dh-sec">{KICK.format("How long a style can lag")}<h2 id="s-lag" class="dh-h2">{h2}</h2>'

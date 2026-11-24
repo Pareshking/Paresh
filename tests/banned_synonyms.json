@@ -11,7 +11,7 @@
     {"id": "G5-crore", "glossary": 5, "pattern": "\\bcrores?\\b", "flags": "i", "write": "Cr"},
     {"id": "G6-one-year", "glossary": 6, "pattern": "(?<![\\w.])1Y\\b|\\b1-year\\b|\\b12-month\\b|\\bone year\\b", "flags": "i", "write": "12M in figures, 12 months in sentences"},
     {"id": "G7-since-start", "glossary": 7, "pattern": "\\bsince (?:inception|start|the record began)\\b", "flags": "i", "write": "Since 1 Jan 2026 (the system's own date)"},
-    {"id": "G8-max-drawdown", "glossary": 8, "pattern": "\\bMax DD\\b|\\blargest fall\\b|\\bmaximum drawdown\\b|\\bworst (?:relative )?fall\\b", "flags": "i", "write": "Max drawdown"},
+    {"id": "G8-max-drawdown", "glossary": 8, "pattern": "\\b(?:its|the|a|was) max DD\\b|\\blargest fall\\b|\\bmaximum drawdown\\b|\\bworst (?:relative )?fall\\b", "flags": "i", "write": "Max DD in tables, max drawdown in sentences"},
     {"id": "G9-month-so-far", "glossary": 9, "pattern": "(?i:\\bthis month\\b|\\bmonth[- ]to[- ]date\\b)|\\bMTD\\b", "write": "Month so far · Nov"},
     {"id": "G10-sell-rule", "glossary": 10, "pattern": "\\bexit rules?\\b|\\ba hold\\b", "flags": "i", "write": "sell rule; a holding"},
     {"id": "G11-moving-average", "glossary": 11, "pattern": "\\b\\d+-day (?:average|EMA|SMA|moving average)\\b|\\b(?:50|200)-day\\b|\\bmoving average\\b|\\bDMA\\b", "flags": "i", "write": "50D EMA, 200D EMA"},

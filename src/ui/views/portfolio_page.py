@@ -402,7 +402,7 @@ def header(p: Page) -> list:
               "" if gap is None or _fmt.reads_zero(gap) else tone(gap),
               f"Nifty Total Market {pct(mmtd)}"),
              ("Below its peak today", pct(f.now) if f else "–", "dh-watch" if f and f.now < 0 else "",
-              f"Peak {dshort(f.peak_now)}" if f else "", "", f"Max drawdown {pct(f.worst)}" if f else "")]
+              f"Peak {dshort(f.peak_now)}" if f else "", "", f"Max DD {pct(f.worst)}" if f else "")]
     nav = "".join(f'<a class="dh-pill" href="#{a}">{e(t)}</a>' for a, t in NAV)
     # Each system's own start and rules: the 750 from 1 Jan 2026, the others from their
     # inception (Nifty 1000 1 Nov, > ₹2,000 Cr and Combined 1 Oct 2026).
@@ -702,7 +702,7 @@ def section_equity(p: Page) -> list:
     falls = [("Below its peak today", pct(f.now), "dh-watch" if f.now < 0 else "", f"Peak {dshort(f.peak_now)}", "",
               ("" if not fm else f"Nifty Total Market is at a new high ({dshort(fm.peak_now)})" if fm.now > -0.05
                else f"Nifty Total Market {pct(fm.now)}, below its {dshort(fm.peak_now)} peak")),
-             ("Max drawdown", pct(f.worst), "dh-down",
+             ("Max DD", pct(f.worst), "dh-down",
               f"{dshort(f.peak)} → {dshort(f.low)}" + (f", recovered {dshort(f.recovered)}" if f.recovered is not None else ", not yet recovered"), "",
               (f"Nifty Total Market {pct(fm.worst)} ({dshort(fm.peak)} → {dshort(fm.low)})"
                + ("" if fm.recovered is not None else ", not yet recovered")) if fm else ""),
@@ -829,7 +829,7 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
                f'<span class="dh-sub">Nifty Total Market {pct(fm.worst) if fm else "–"}</span></td></tr>')
     years = ('<div class="dh-scroll"><table class="dh-tab dh-tab-s pf-nw"><thead><tr><th scope="col">Year</th><th scope="col" class="dh-num">Book</th>'
              '<th scope="col" class="dh-num">Nifty Total Market</th><th scope="col" class="dh-num">Lead, pts</th><th scope="col" class="dh-num">Momentum 50</th>'
-             f'<th scope="col" class="dh-num">Months ahead</th><th scope="col" class="dh-num">Max drawdown</th></tr></thead><tbody>{ys}</tbody></table></div>')
+             f'<th scope="col" class="dh-num">Months ahead</th><th scope="col" class="dh-num">Max DD</th></tr></thead><tbody>{ys}</tbody></table></div>')
     fys = ""
     first = min(m["book"]) if m["book"] else this
     for lab, vals, ps in pr.financial_years({k: m[k] for k in ("book", "market", "mom")}):

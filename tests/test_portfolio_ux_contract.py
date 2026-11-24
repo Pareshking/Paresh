@@ -161,7 +161,7 @@ def test_one_word_for_one_thing_across_pages():
     views = ROOT / "src/ui/views"
     backtest = (views / "backtest_view.py").read_text(encoding="utf-8")
     # Backtest, 21 Nov 2026 (S173): Portfolio's drawdown term and "lead over", in pts.
-    assert '"Max drawdown"' in backtest and '"Worst fall"' not in backtest   # glossary 8 (owner, 23 Nov 2026)
+    assert '"Max DD"' in backtest and '"Worst fall"' not in backtest   # glossary 8 (owner, 24 Nov 2026: "Max DD" in tables)
     assert '"Lead over the Nifty 500"' in backtest and "Ahead of the index" not in backtest
     assert '"🟢 BOUGHT", "🔴 SOLD"' not in backtest
     assert "Portfolio risk" not in backtest and "Filter " not in backtest

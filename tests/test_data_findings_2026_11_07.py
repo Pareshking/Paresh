@@ -49,7 +49,7 @@ def test_portfolio_drawdown_names_its_basis():
     # Owner, 20 Nov 2026: "Is our daily % fall wording correct?" Each measure named
     # for what it is (src/engine/portfolio_report.py's definitions).
     src = (VIEWS / "portfolio_page.py").read_text(encoding="utf-8")
-    for name in ('"Max drawdown"', '"Worst day"', '"Worst month-end"', '"Below its peak today"'):   # glossary 8
+    for name in ('"Max DD"', '"Worst day"', '"Worst month-end"', '"Below its peak today"'):   # glossary 8
         assert name in src
     assert "Max drawdown, daily" not in src
 

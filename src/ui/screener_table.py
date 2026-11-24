@@ -106,7 +106,7 @@ _ALL = {
 for _w in PERIOD_WINDOWS:
     _ALL[f"r{_w}"] = (f"{_w}M return", "num")
     _ALL[f"sh{_w}"] = (f"{_w}M Sharpe", "num")
-    _ALL[f"dd{_w}"] = (f"{_w}M max drawdown", "num")   # glossary 8
+    _ALL[f"dd{_w}"] = (f"{_w}M max DD", "num")   # glossary 8: "Max DD" in tables (owner, 24 Nov 2026)
 # Columns where 1 is best: a first click sorts them smallest first.
 _RANK_KEYS = ("rank", "p3", "p1", "q3", "q1", "qrank")
 
