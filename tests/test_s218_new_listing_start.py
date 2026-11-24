@@ -65,6 +65,6 @@ def test_the_app_frame_carries_it_and_says_so():
     chosen = ps.PriceFrames(adj_close=close, close=close, high=None, low=None,
                             volume=pd.DataFrame(1.0, index=close.index, columns=close.columns),
                             source="screener", intraday=False)
-    out = ps.keep_and_fill(chosen, ["TRIVENIPT", "OTHER"], None, middle, weekly_fill=False)
+    out = ps.keep_and_fill(chosen, ["TRIVENIPT", "OTHER"], middle, weekly_fill=False)
     assert out.close.loc["2026-10-12", "TRIVENIPT"] == 684.0
     assert any("TRIVENIPT 2" in n for n in out.notes)

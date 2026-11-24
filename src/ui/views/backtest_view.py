@@ -545,10 +545,12 @@ def section_lead(f: dict) -> list:
     dy, half = f["div_yield"], sm.split
     notes = [
         "<b>Price returns, both sides.</b> The rule’s figure includes a dividend only where it was 10% of the price or "
-        "more (the long file takes those out as an adjustment); the Nifty 500 figure is NSE’s price index, with no "
-        + (f"dividends. NSE’s own file puts the Nifty 500’s dividend yield at {dy:.1f}% a year on average since Feb 2012, "
-           "against about 0.5% for the book (measured 2020–25 only, S125), so against the index with dividends the lead "
-           f"is about {dy - 0.5:.1f} points a year smaller than shown." if dy is not None else "dividends."),
+        "more (the long file takes those out as an adjustment); the Nifty 500 figure is NSE’s price index, which takes "
+        "out only special dividends, 2% of the price or more (NSE’s index methodology, Nov 2022), not ordinary ones"
+        + (f". NSE’s own file puts the Nifty 500’s dividend yield at {dy:.1f}% a year on average since Feb 2012, "
+           "against about 0.5% for the book (measured 2020–25 only, S125), so against the index with every dividend "
+           f"(its total-return version) the lead is about {dy - 0.5:.1f} points a year smaller than shown."
+           if dy is not None else "."),
         f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill. "
         f"<b>pts</b>: {_fmt.PTS_NOTE}",
         "<b>Why the Nifty 500 and not Nifty Total Market.</b> Nifty Total Market starts on 14 Oct 2021 and this history in "

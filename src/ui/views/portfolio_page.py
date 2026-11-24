@@ -603,7 +603,7 @@ def section_returns(p: Page) -> list:
         # The Dashboard's sentence for the same cause (S193 E, S203 pf.ret.3).
         grows = (index_late_note(mlast, p.as_of, "Nifty Total Market and Momentum 50")
                  + " Today shows no Nifty Total Market figure. " + grows)
-    return _sec([_head("pf-ret", "Returns", "the book after costs · indices are price returns"),
+    return _sec([_head("pf-ret", "Returns", "the book after costs · price returns on both sides"),
                  '<div class="dh-pair"><div><div class="dh-cap"><b>By period</b><span>to ' + f"{p.as_of:%-d %b}" + '</span></div>'
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Period</th><th scope="col" class="dh-num">The book</th>'
                  '<th scope="col" class="dh-num">Nifty Total Market</th><th scope="col" class="dh-num">Lead, pts</th><th scope="col" class="dh-num">Momentum 50</th>'

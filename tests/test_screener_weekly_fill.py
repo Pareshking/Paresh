@@ -140,10 +140,10 @@ def test_flag_off_is_the_old_frame_exactly():
                         for c in ("A", "B")}, index=sessions)
     scr = nse.reindex(sessions[:200:5].append(sessions[200:]))
     scr.loc[sessions[250], "A"] = np.nan                     # a daily hole for the old fill
-    off = ps.keep_and_fill(_frames(scr.copy()), ["A", "B"], None, nse, weekly_fill=False)
+    off = ps.keep_and_fill(_frames(scr.copy()), ["A", "B"], nse, weekly_fill=False)
     expected = _old_keep_and_fill(scr.copy(), nse)
     assert off.close.equals(expected) and off.weekly_fill is None
-    on = ps.keep_and_fill(_frames(scr.copy()), ["A", "B"], None, nse, weekly_fill=True)
+    on = ps.keep_and_fill(_frames(scr.copy()), ["A", "B"], nse, weekly_fill=True)
     assert len(on.close) > len(off.close)
     assert on.weekly_fill["cells"] > 0
     assert on.volume.index.equals(on.close.index)
@@ -159,10 +159,10 @@ def test_the_flag_defaults_to_the_config(monkeypatch):
     nse = pd.DataFrame({"A": np.linspace(100, 130, 300)}, index=sessions)
     scr = nse.reindex(sessions[:200:5].append(sessions[200:]))
     monkeypatch.setattr(cfg, "SCREENER_WEEKLY_NSE_FILL", False)
-    off = ps.keep_and_fill(_frames(scr.copy()), ["A"], None, nse)
+    off = ps.keep_and_fill(_frames(scr.copy()), ["A"], nse)
     assert off.weekly_fill is None and len(off.close) == len(scr)
     monkeypatch.setattr(cfg, "SCREENER_WEEKLY_NSE_FILL", True)
-    on = ps.keep_and_fill(_frames(scr.copy()), ["A"], None, nse)
+    on = ps.keep_and_fill(_frames(scr.copy()), ["A"], nse)
     assert on.weekly_fill["cells"] > 0
 
 
@@ -184,8 +184,8 @@ def test_the_app_and_the_precompute_take_the_setting_from_one_place():
     for rel in ("app.py", "scripts/sync_data.py", "scripts/precompute_systems.py"):
         assert "weekly_fill=" not in (ROOT / rel).read_text(encoding="utf-8"), rel
     body = (ROOT / "src/loaders/price_source.py").read_text(encoding="utf-8")
-    fn = body[body.index("def frames_from("):body.index("# ── Backup source")]
-    assert "keep_and_fill(chosen, symbols, None, middle_close)" in fn
+    fn = body[body.index("def frames_from("):body.index("# ── Gap fill: Screener first")]
+    assert "keep_and_fill(chosen, symbols, middle_close)" in fn
 
 
 def test_the_committed_extra_closes_fill_only_what_nse_lacks(tmp_path):

@@ -35,6 +35,20 @@ OUT = ROOT / "data" / "nse_total_market.csv"
 URL = "https://nsearchives.nseindia.com/content/indices/ind_close_all_{d:%d%m%Y}.csv"
 FIRST = date(2021, 10, 1)
 TOLERANCE = 0.0005
+# NSE's own index history: its weekend rows are NSE's special sessions (Muhurat, budget-day Saturdays, the
+# 2024 drills), which a weekday calendar never asks for (S163, 24 Nov 2026: 7 missing, 12 Nov 2023 to 8 Nov 2026).
+HISTORY = ROOT / "data" / "nse_indices_history.parquet"
+
+
+def sessions_to_try(first: date, last: date, history: Path = HISTORY) -> list[pd.Timestamp]:
+    """Every weekday from `first` to `last`, and every weekend day NSE's index history holds a session on."""
+    days = set(pd.bdate_range(first, last))
+    try:
+        held = pd.to_datetime(pd.read_parquet(history, columns=["date"])["date"]).dt.normalize()
+    except (OSError, ValueError, KeyError):
+        held = pd.Series([], dtype="datetime64[ns]")
+    days |= {d for d in held.unique() if d.day_of_week >= 5 and pd.Timestamp(first) <= d <= pd.Timestamp(last)}
+    return sorted(days)
 
 
 def parse(raw: bytes, session: pd.Timestamp) -> tuple[pd.Timestamp, float] | None:
@@ -79,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Dropped {len(drop)} date(s) to fetch again: {', '.join(f'{d:%d %b %Y}' for d in sorted(drop))}")
     have = set(pd.to_datetime(kept["date"]).dt.date)
     rows = []
-    for d in pd.bdate_range(FIRST, date.today()):
+    for d in sessions_to_try(FIRST, date.today()):
         if d.date() in have:
             continue
         r = requests.get(URL.format(d=d), headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
