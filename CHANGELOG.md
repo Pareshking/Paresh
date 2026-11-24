@@ -1,6 +1,12 @@
 # Changelog
 
 
+## 2026-11-24 — Methods named as they are (S223)
+
+- Guide: a paragraph on how the score differs from NSE's Nifty200 Momentum 30 and MSCI's momentum indices (they use 6 and 12 months only and leave out the latest month; ours adds 1, 3 and 9 months and runs to the latest close).
+- Backtest: Sharpe and Sortino say they are measured over "a fixed 6.5% a year".
+- Dashboard: the sector under each holding is marked equal-weighted.
+
 ## 2026-11-24 — Sentences that were wrong on some days now read right on every day (S203)
 
 - Indices: the P/E title and heading say "cheaper" or "dearer" from each index's own percentile; they had called the Nifty 50 cheaper and the Smallcap 250 dearer whatever the figures. The style lag gives months ("from Nov 2018 to Oct 2020, and was back by Jul 2023").

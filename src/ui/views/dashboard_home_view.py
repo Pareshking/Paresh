@@ -571,7 +571,7 @@ def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check
             + f' Rank: how today’s rule ranks the stock on that day{when}, among the stocks passing the filters then, on '
             'today’s clean prices; it can differ by a place or two from what the site showed that day. “Out”: it did not '
             f'pass the filters. The trail: higher is a better rank, the dashed line is the cut-off at #{rules.buffer_n}, a '
-            'hollow point is “Out”. Under each name, its sector against all ranked stocks.</p></div>'
+            'hollow point is “Out”. Under each name, its sector (equal-weighted) against all ranked stocks.</p></div>'
             f'<div class="dh-col1"><div class="dh-lab">Would be bought</div><div class="dh-chips">{buys}</div>'
             f'<p class="dh-sub">Next in line: <span class="dh-mono">{nxt}</span></p>'
             f'<div class="dh-callout">{e(churn)} {e(results_line)}</div>{turnover}'

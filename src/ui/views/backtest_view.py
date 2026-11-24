@@ -584,9 +584,9 @@ def section_lead(f: dict) -> list:
             # Costs and turnover do not apply to an index: a blank cell, not "–" (S193 E, rule 2).
             ["A year before costs", _pc(st_.get("cagr_gross")), mw.NOT_APPLICABLE],
             ["Volatility, a year (daily returns)", _pc(st_.get("volatility")), _pc(st_.get("bench_volatility"))],
-            [f"Sharpe, over {RISK_FREE_RATE:.1%}, ± one standard error",
+            [f"Sharpe, over a fixed {RISK_FREE_RATE:.1%} a year, ± one standard error",
              f"{st_.get('sharpe', float('nan')):.2f} ± {st_.get('sharpe_stderr_iid', float('nan')):.2f}", _ratio(st_.get("bench_sharpe"))],
-            [f"Sortino, over {RISK_FREE_RATE:.1%}",
+            [f"Sortino, over a fixed {RISK_FREE_RATE:.1%} a year",
              f"{st_['sortino']:.2f}" if np.isfinite(st_.get("sortino", float("nan"))) else "–", _ratio(st_.get("bench_sortino"))],
             ["Turnover, one way, a month", f"{st_.get('avg_turnover', 0):.0f}%", mw.NOT_APPLICABLE]]
     return ['<div class="dh-sec">', _kick("1", "Ahead of the Nifty 500"), f'<h2 id="s-lead" class="dh-h2">{h2}</h2>', tiles, "</div>",

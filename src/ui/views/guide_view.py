@@ -118,6 +118,12 @@ to that limit, the result is turned into a z-score, and the z-score is capped at
 rescaled; it is not given an average value for the missing window. These are the record's weights. The
 Configuration page can change them for the Screener and the Backtest; the record and the model book
 on Portfolio and Actions keep these.</p>
+<h3>How it differs from NSE's and MSCI's momentum indices</h3>
+<p>The same family: each is a return divided by volatility, turned into a z-score and capped at ±3. NSE's Nifty200
+Momentum 30 and MSCI's momentum indices use only 6 and 12 months, weighted half and half, and leave out the latest
+month; NSE divides by the volatility of 12 months of daily returns, MSCI by that of 3 years of weekly returns. This score adds 1, 3 and
+9 months, runs to the latest close, and divides each window by the volatility inside it. A version that leaves out the
+latest five sessions runs beside the record as a shadow book (Portfolio).</p>
 <p>From the {members_from} ranking the score is worked out over the index members of that day only, as the
 Screener has always done, so the same stock gets the same score on every page; earlier months were
 scored over a wider set of stocks and are left exactly as they were recorded.</p>
