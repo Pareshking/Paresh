@@ -467,7 +467,8 @@ def rank_trail_word(trail: list[int | None], cut: int) -> tuple[str, str]:
     """(word, tone) for a holding's rank trail [3m, 1m, now]; None = did not pass."""
     a, b, c = trail
     if c is None:
-        return ("Fell out of the filters", "down") if (a is not None or b is not None) else ("Out of the filters", "down")
+        # "Out": the site's one word for a stock failing the filters (src/ui/missing_words.OUT; S203, S193 E R1).
+        return ("Fell out of the filters", "down") if (a is not None or b is not None) else ("Out", "down")
     if b is None:
         if a is not None and c > a:
             return f"Faded from #{a}", "down" if c > cut else "watch"

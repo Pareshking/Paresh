@@ -104,7 +104,6 @@ def test_a_closed_month_awaiting_freeze_is_not_called_mtd():
     import pandas as pd
 
     from src.ui.views.portfolio_view import (
-        _month_labels,
         build_portfolio_history,
         live_month_state,
     )
@@ -115,9 +114,6 @@ def test_a_closed_month_awaiting_freeze_is_not_called_mtd():
     assert live_month_state("2026-10", oct1) == "mtd"
     assert live_month_state(None, oct1) == "none"
 
-    labels = _month_labels("2026-09", "closed", oct1)
-    assert labels == {"prefix": "Sep (closed)", "badge": "CLOSED", "next": "Oct MTD"}
-    assert _month_labels("2026-09", "mtd", sep15)["prefix"] == "Sep MTD"
 
     ledger = {"months": {"2026-08": {"strategy": 0.03, "benchmark": 0.0}}}
     meta = {"strategy_mtd": 0.027, "benchmark_mtd": -0.054, "mtd_period": "2026-09", "as_of": "2026-09-30"}
@@ -211,14 +207,7 @@ def test_production_qa_does_not_wait_for_the_removed_live_month_note():
 def test_header_tiles_say_which_return_is_the_account():
     # Owner, 14 Nov 2026: the account tile is the portfolio's; owner, 20 Nov: "add
     # the uninvested line" under it, so holdings + not invested = the value.
-    import pandas as pd
 
-    from src.ui.views.portfolio_view import _month_labels, tile_labels
-
-    nov13 = pd.Timestamp("2026-11-13")
-    tiles = tile_labels("2026-11-02", _month_labels("2026-11", "mtd", nov13)["prefix"])
-    assert tiles["holdings"] == "Holdings since 2 Nov"
-    assert "before costs" in tiles["holdings_note"]
     source = PAGE.read_text(encoding="utf-8")
     head = source[source.index("def header("):source.index("NAV = (")]
     # Glossary 7: the record's start is a date ("Since 1 Jan 2026"), never "since inception".

@@ -25,3 +25,9 @@ def test_nothing_after_the_last_day_gives_none(monkeypatch):
 def test_the_tile_names_the_provisional_days():
     src = (d.__file__ and open(d.__file__, encoding="utf-8").read())
     assert 'f"Provisional, all exchanges, {when} {days[-1]:%b}: "' in src
+
+
+def test_out_of_the_filters_is_the_site_s_word():
+    from src.engine.dashboard_insights import rank_trail_word
+    from src.ui.missing_words import OUT
+    assert rank_trail_word([None, None, None], 20)[0] == OUT

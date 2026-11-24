@@ -82,7 +82,10 @@ def unpriced_note(record: dict[str, Any] | None) -> tuple[str, str] | None:
         return None
     from src.ui.formats import date as _date   # "30 Oct 2026", not "2026-10-30" (S173 rule 3)
     day, names = sorted(gaps.items())[-1]
-    head = f"This book was formed without {len(names)} member{'s' if len(names) != 1 else ''} we hold no close for on {_date(day)}."
+    # S203 pf.err.3: the relative clause read as "members we hold".
+    n = len(names)
+    head = (f"This book was formed without {n} member{'s' if n != 1 else ''}: we have no close for "
+            f"{'them' if n != 1 else 'it'} on {_date(day)}.")
     body = (", ".join(names[:12]) + (" and more" if len(names) > 12 else "")
             + ". Their prices are being collected; the month is frozen only once every member has a close.")
     return head, body
