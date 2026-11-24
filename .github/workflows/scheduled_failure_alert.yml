@@ -32,6 +32,7 @@ on:
       - NSE history import (2010 onwards)
       - NSE long price file (backtests from 2010)
       - NSE adjusted prices vs Screener
+      - NSE classification (monthly)
       - NSE reference feeds sync
       - R2 historical evidence bootstrap
       - R2 archive inventory
