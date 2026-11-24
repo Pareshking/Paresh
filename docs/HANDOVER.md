@@ -38,6 +38,8 @@ _Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsn
 
 ## State at handover
 
+**24 Nov ~05:25 UTC.** #664 merged (d3f5def): the batch below plus the calendar 52-week high in the engine and "a year is the calendar year everywhere" (owner, 24 Nov), and S165 on the Dashboard. Next PR (branch, open when its checks pass): S164's two late figures (12-month tile names its finished months; DII tile adds NSE's provisional days), S173 (c) label fixes, S203 leftovers (pf.view.1 dropped, pf.err.3, "Out"). Work loops every 15 min to 16:45 UTC (`trig_01Lc8VcpwheKPuvE5jGmab9x`, `trig_01DiPAupW1m1NdtAUruteAum`, `trig_01Q8Qjyayj1FBgYRhSTfqDPR`, `trig_01DGbshARRgk12eRUeFTKM5V`; delete after).
+
 **24 Nov ~04:40 UTC (combined batch, one PR).** #663 merged (the catch-up sync, S221). In one PR: S203 (Dashboard and Portfolio sentences from the approved templates), S165 (Market and the header strip read Nifty Total Market; Dashboard and Portfolio still to do), S173 (b)(d) (the label audit and a banned-synonym guard), S154 (a)(b) (figure inventory and a same-label test, 4 strict xfails = findings), S129 (c) (the ICICIPRULI -> ICICILIFE alias; the freeze leaves out renames after its date, hash unchanged). Next: S154's three fixes (Nifty Total Market weekend sessions before 8 Dec first), S173 (c) label fixes, 52W high by calendar date (owner, 24 Nov), S164 when its agent reports.
 
 **24 Nov ~03:10 UTC (overnight, owner away).** S193 E-L and S219 are all merged: #657, #658, #659. Overnight merges:
