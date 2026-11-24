@@ -31,7 +31,7 @@ def test_held_tag_cut_line_and_failed_filters_say_how_much():
     assert '<tr data-stock="AAA" class="cut">' in html and '<table class="byrank">' in html
     assert ">2.35<" in aaa and "Spike" in aaa
     assert "3.2% below its 50D EMA" in bbb and "−3.2%" in bbb
-    assert "28.4% below its 52W high; the filter is within 20%" in bbb and "−28%" in bbb
+    assert "28.4% below its 52-week high; the filter is within 20%" in bbb and "−28%" in bbb
     assert "Held" not in bbb
 
 

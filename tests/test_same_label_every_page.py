@@ -316,7 +316,7 @@ def test_the_rule_numbers_are_the_track_records_on_every_page():
     lede = ranking_view.screener_lede(pd.DataFrame({"Rank": [1]}), None)
     assert f"top {ln.buy} qualified" in lede and f"top {ln.keep}" in lede
     key = ranking_view._KEY_HTML.format(when="a month ago", **ranking_view._key_numbers())   # filled from the rules (S203 rule 9)
-    assert f"top {ln.buy} qualified" in key and f"within {within}% of the 52W high" in key and f"top {ln.keep};" in key
+    assert f"top {ln.buy} qualified" in key and f"within {within}% of the 52-week high" in key and f"top {ln.keep};" in key
     from src.ui.views import guide_view
     guide = guide_view._body()   # rendered: the Guide reads its numbers from the rules (S203 rule 9)
     assert f"within {within}% of its 52-week high" in guide
