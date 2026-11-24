@@ -6,6 +6,7 @@ the app's copy of NSE's daily index files (src/loaders/nse_indices.read_compact)
 """
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -85,8 +86,8 @@ def head(vals: list[ip.Valuation], as_of: pd.Timestamp) -> list:
         title = f"The Nifty 50's P/E is {at(big, True)}; the Nifty Smallcap 250's {at(small, False)}."
     return [f'<div class="dh-sec">{KICK.format("Indices")}<h1 id="s-top" class="dh-h1">{title}</h1>'
             f'<p class="dh-lede">NSE\'s own indices, read at the {_d(as_of)} close: what each index costs against its '
-            'recent past, which investing styles beat their parent index, and how deep each size\'s max drawdown goes in a '
-            'median year. Price returns; dividends are not added.</p></div>']
+            'recent past, which investing styles beat their parent index, and how deep a median year\'s max drawdown goes '
+            'for each size. Price returns; dividends are not added.</p></div>']
 
 
 # The chosen system's own index, when it has no row of its own among the six (S219-7, owner 23 Nov 2026).
@@ -107,21 +108,27 @@ def _young_row(y: ip.YoungValuation) -> tuple[dict, list, str]:
     return row, table, note
 
 
+def _share(v: float) -> str:
+    """A whole share, half up (glossary 12): 79.5 -> "80"."""
+    return _fmt.fixed(v, 0)
+
+
 def _against_past(p: float) -> str:
     """Where today's P/E sits among past days, either way (S203 ix.val.1): `p` is the share of days it was lower."""
-    if round(p) == 50:
+    if _fmt.half_up(p) == 50:
         return "at its median"
-    return f"cheaper than on {100 - p:.0f}% of days" if p < 50 else f"dearer than on {p:.0f}% of days"
+    return f"cheaper than on {_share(100 - p)}% of days" if p < 50 else f"dearer than on {_share(p)}% of days"
 
 
 def valuation_headline(n50: ip.Valuation | None, s250: ip.Valuation | None) -> str:
-    """The valuation heading: direction from each index's own percentile, the date from the data (S203)."""
+    """The valuation heading, two sentences (S203 ix.val.1): direction from each index's own percentile, the date
+    from the data."""
     since = (n50 or s250).since if (n50 or s250) else ip.PE_FROM
     if not (n50 and s250):
         return f"Each index's P/E against its own past since {_dy(since)}."
     small = _against_past(s250.pct_now).replace(" of days", "")
-    return (f"At {n50.pe_now:.1f} times earnings, the Nifty 50 is {_against_past(n50.pct_now)} since {_dy(since)}; "
-            f"the Nifty Smallcap 250 is {small}.")
+    return (f"At {_fmt.fixed(n50.pe_now, 1)} times earnings, the Nifty 50 is {_against_past(n50.pct_now)} since {_dy(since)}. "
+            f"The Nifty Smallcap 250 is {small}.")
 
 
 def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, m3: pd.Timestamp,
@@ -147,7 +154,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
     reg = f.pe["nifty_500"].dropna()
     reg = reg[reg.index >= ip.PE_FROM]
     parts = [f'<div class="dh-sec">{KICK.format("Valuation")}<h2 id="s-valuation" class="dh-h2">{e(h2)}</h2>'
-             '<p class="dh-note">P/E is NSE\'s trailing price to earnings. The percentile counts days from 31 Mar 2021, when '
+             f'<p class="dh-note">P/E is NSE\'s trailing price to earnings. The percentile counts days from {_dy(ip.PE_FROM)}, when '
              'NSE changed the earnings basis (the Nifty 50 went from 40.4 to 33.2 overnight with the price flat), so older '
              'readings are a different measure. Dashed lines mark the middle half; the triangle is a month ago. Each line is '
              '2 percentile points. Describing is not forecasting: this is not a forecast of returns. P/B gets no percentile: '
@@ -159,6 +166,8 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
         old = [round(float(v), 2) if d < ip.PE_FROM else None for d, v in pe.items()]
         new = [round(float(v), 2) if d >= ip.PE_FROM else None for d, v in pe.items()]
         q25, q75 = float(reg.quantile(.25)), float(reg.quantile(.75))
+        tm_pe = f.pe["nifty_total_market"].dropna() if "nifty_total_market" in f.pe else pd.Series(dtype=float)
+        tm_from = f", {_dy(tm_pe.index[0])}" if len(tm_pe) else ""   # from the index file, as mk.size.2 (S203 ix.val.4)
         parts += [Chart("lines", {"dates": dates, "series": [
                         {"name": "Nifty 500 P/E, old basis", "color": "faint", "values": old, "width": 1.6},
                         {"name": "Nifty 500 P/E since 31 Mar 2021", "color": "ink", "values": new, "width": 2}],
@@ -168,7 +177,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
                   how("The Nifty 500's trailing P/E each week since 2012. Grey is the old earnings basis, ink the basis "
                       "since 31 Mar 2021; the shaded band is the middle half of days since then "
                       f"({q25:.1f} to {q75:.1f}). The Nifty 500, not Nifty Total Market, because NSE's P/E for Nifty "
-                      "Total Market starts at its launch, 14 Oct 2021, and this line shows the years before the "
+                      f"Total Market starts at its launch{tm_from}, and this line shows the years before the "
                       "2021 change of basis.",
                       "A line above the band is dearer than three days in four since 2021; below it, cheaper. The two "
                       "colours are two definitions: do not read the 2021 drop as a fall in price.",
@@ -178,17 +187,39 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
     return parts
 
 
-def section_styles(sts: list[ip.Style], m1: pd.Timestamp, m3: pd.Timestamp) -> list:
+def _and(names: list[str]) -> str:
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def styles_headline(sts: list[ip.Style]) -> str:
+    """The styles heading (S203 ix.sty.1): who leads its parent over 12 months, and who trails it by more than
+    5 points. Three or more leaders are counted, not named."""
     lead = sorted((s for s in sts if s.lead_now is not None), key=lambda s: -s.lead_now)
+    if not lead:
+        return "Each style against the index it picks from, over the last 12 months."
     ahead = [s.style.lower() for s in lead if s.lead_now > 0]
     behind = [s for s in lead if s.lead_now < -5]
-    h2 = "Each style against the index it picks from, over the last 12 months."
-    if ahead and behind:
-        lo, hi = min(-s.lead_now for s in behind), max(-s.lead_now for s in behind)
-        span = f"{lo:.0f}–{hi:.0f}" if round(lo) != round(hi) else f"{lo:.0f}"
-        h2 = (f'Over 12 months, {" and ".join(ahead[:2])} <span class="dh-up">lead their parents</span>; '
-              f'{" and ".join(s.style.lower() for s in behind)} <span class="dh-down">trail by {span} points</span>.')
-    rows = [{"name": s.style, "sub": f"{s.name} against {s.parent_name} · live since {_dy(s.live)}",
+    if not ahead:
+        worst = lead[-1]
+        return (f"No style leads its parent over 12 months; {e(worst.style.lower())} trails most, by "
+                f"{_fmt.fixed(abs(worst.lead_now), 1)} points.")
+    if not behind:
+        return (f"Over 12 months, {e(ahead[0])} leads its parent by the most, {_fmt.fixed(lead[0].lead_now, 1)} points; "
+                "no style trails by more than 5.")
+    if len(ahead) == 1:
+        who, verb = ahead[0], "leads its parent"
+    else:
+        who, verb = (_and(ahead) if len(ahead) == 2 else f"{len(ahead)} styles"), "lead their parents"
+    lo, hi = (_fmt.fixed(x, 1) for x in (min(-s.lead_now for s in behind), max(-s.lead_now for s in behind)))
+    span = lo if lo == hi else f"{lo}–{hi}"
+    trail = "trails" if len(behind) == 1 else "trail"
+    return (f'Over 12 months, {e(who)} <span class="dh-up">{verb}</span>; {e(_and([s.style.lower() for s in behind]))} '
+            f'<span class="dh-down">{trail} by more than 5 points: {span}</span>.')
+
+
+def section_styles(sts: list[ip.Style], m1: pd.Timestamp, m3: pd.Timestamp) -> list:
+    h2 = styles_headline(sts)
+    rows =[{"name": s.style, "sub": f"{s.name} against {s.parent_name} · live since {_dy(s.live)}",
              "bar": None if s.lead_now is None else round(s.lead_now, 2), "ago": None if s.lead_1m is None else round(s.lead_1m, 2),
              "vals": [sg(s.lead_3m), sg(s.lead_1m), sg(s.lead_now), sg(s.dy_gap)],
              "cls": [_kt(s.lead_3m), _kt(s.lead_1m), _kt(s.lead_now) + " b", "muted"],
@@ -206,26 +237,37 @@ def section_styles(sts: list[ip.Style], m1: pd.Timestamp, m3: pd.Timestamp) -> l
             Chart("trows", spec, {"label": "Six styles against their parents", "note": "Each line is 0.5 points"})]
 
 
+def lag_headline(mom: ip.Style) -> str:
+    """The lag heading (S203 ix.lag.1). S173 IX-2: the figure is the fall of a ratio (the relative line below its
+    peak), not a gap of two returns."""
+    now = abs(float(mom.from_peak.iloc[-1]))
+    if _fmt.reads_zero(now):
+        return f"{e(mom.style)}’s line against the {e(mom.parent_name)} is at its peak."
+    deepest = now >= abs(mom.worst) - 0.05
+    return (f'{e(mom.style)}’s line against the {e(mom.parent_name)} is <span class="dh-down">{_fmt.fixed(now, 1)}% '
+            f'below its {mom.worst_peak:%B %Y} peak</span>' + (f", its deepest since launch in {mom.live.year}." if deepest else "."))
+
+
+def lag_extra(sts: list[ip.Style], mom: ip.Style) -> str:
+    """The note's sentences after the method (S203 ix.lag.2), each with a leading space: the other styles at their
+    deepest now, one sentence each, then the deepest fall that recovered, with its months."""
+    others = [s for s in sts if s is not mom and abs(s.from_peak.iloc[-1]) >= abs(s.worst) - 0.05 and s.worst < -5]
+    extra = "".join(f" {s.style} is at its deepest too, {_fmt.fixed(abs(s.from_peak.iloc[-1]), 1)}% below its peak."
+                    for s in others)
+    rec = [s for s in sts if s.recovered is not None and s.worst <= -20]
+    if rec:
+        r = min(rec, key=lambda s: s.worst)
+        # Months, not a "2018–20" span that gives none (dash.mom.6's form).
+        extra += (f" {r.style} fell {_fmt.fixed(abs(r.worst), 1)}% against the {r.parent_name}, from {r.worst_peak:%b %Y} "
+                  f"to {r.worst_low:%b %Y}, and was back by {r.recovered:%b %Y}.")
+    return extra
+
+
 def section_lag(sts: list[ip.Style]) -> list:
     if not sts:
         return []
     mom = next((s for s in sts if s.style == "Momentum"), sts[0])
-    worst_now = abs(mom.from_peak.iloc[-1]) >= abs(mom.worst) - 0.05
-    # S173 IX-2: the figure is the fall of a ratio (the relative line below its peak), not a gap of two returns.
-    h2 = (f'{e(mom.style)}’s line against the {e(mom.parent_name)} is <span class="dh-down">{_fmt.fixed(abs(mom.from_peak.iloc[-1]), 1)}% '
-          f'below its {mom.worst_peak:%B %Y} peak</span>' + (f", its deepest since launch in {mom.live.year}." if worst_now else "."))
-    others = [s for s in sts if s is not mom and abs(s.from_peak.iloc[-1]) >= abs(s.worst) - 0.05 and s.worst < -5]
-    rec = [s for s in sts if s.recovered is not None and s.worst <= -20]
-    extra = ""
-    if others:
-        # No signed figure in brackets inside a sentence (S203 ix.lag.2).
-        extra += " " + " and ".join(f"{s.style} is at its deepest too, {_fmt.fixed(abs(s.from_peak.iloc[-1]), 1)}% below its peak"
-                                    for s in others) + "."
-    if rec:
-        r = min(rec, key=lambda s: s.worst)
-        # Months, not a "2018–20" span that gives none (S203 ix.lag.2, dash.mom.6's form).
-        extra += (f" {r.style} fell {abs(r.worst):.1f}% against the {r.parent_name}, from {r.worst_peak:%b %Y} to "
-                  f"{r.worst_low:%b %Y}, and was back by {r.recovered:%b %Y}.")
+    h2, extra = lag_headline(mom), lag_extra(sts, mom)
     styles = []
     for s in sts:
         rel, dd = ip.weekly(s.rel), ip.weekly(s.from_peak)
@@ -248,6 +290,19 @@ def section_lag(sts: list[ip.Style]) -> list:
             f'<div class="dh-sec dh-sec-cont">{table}</div>']
 
 
+def years_headline(led: dict[str, tuple[int, int]]) -> str:
+    """The calendar-years heading (S203 ix.yr.1) from {style: (whole years led, whole years)}; a tie names both."""
+    always = [s for s, (a, b) in led.items() if a == b and b > 1]
+    if always:
+        return f"{always[0]} led its parent in every whole year since launch."
+    key = lambda ab: (ab[0] / ab[1] if ab[1] else 0, ab[1])  # noqa: E731
+    top = max(key(v) for v in led.values())
+    best = [s for s, v in led.items() if key(v) == top]
+    a, b = led[best[0]]
+    return (f"No style led its parent every whole year; {_and([s.lower() for s in best])} came closest, {a} of {b}"
+            + (" each." if len(best) > 1 else "."))
+
+
 def section_years(sts: list[ip.Style], as_of: pd.Timestamp) -> list:
     if not sts:
         return []
@@ -256,10 +311,7 @@ def section_years(sts: list[ip.Style], as_of: pd.Timestamp) -> list:
         ys = {y: v for y, v in s.years.items() if y < as_of.year or (as_of.month == 12 and as_of.day >= 31)}
         return sum(v > 0 for v in ys.values()), len(ys)
     led = {s.style: whole(s) for s in sts}
-    always = [s for s, (a, b) in led.items() if a == b and b > 1]
-    best = max(led.items(), key=lambda kv: (kv[1][0] / kv[1][1] if kv[1][1] else 0, kv[1][1]))
-    h2 = (f"No style led its parent every whole year; {best[0].lower()} came closest, {best[1][0]} of {best[1][1]}."
-          if not always else f"{always[0]} led its parent in every year since launch.")
+    h2 = years_headline(led)
     years = sorted({y for s in sts for y in s.years}, reverse=True)
     head = "".join(f'<th scope="col" class="dh-num">{e(s.style)}</th>' for s in sts)
     body = ""
@@ -274,20 +326,36 @@ def section_years(sts: list[ip.Style], as_of: pd.Timestamp) -> list:
             f'<tbody>{body}</tbody><tfoot>{foot}</tfoot></table></div></div>']
 
 
+def size_headline(sizes: list[ip.SizeYears], from_year: int = ip.SIZE_FROM_YEAR) -> str:
+    """The size heading (S203 ix.size.1): the small index's median max drawdown against the large one's; without a
+    large figure to divide by, the size with the deepest."""
+    by = {z.size: z for z in sizes}
+    large, small = by.get("Large"), by.get("Small")
+    if large and small and large.median_fall < 0 and np.isfinite(small.median_fall):
+        ratio = small.median_fall / large.median_fall
+        word = "twice" if 1.8 <= ratio <= 2.2 else f"{_fmt.fixed(ratio, 1)} times"
+        return (f"In a median year since {from_year}, the {small.name}'s max drawdown was {_fmt.fixed(abs(small.median_fall), 1)}%, "
+                f"{word} the {large.name}'s {_fmt.fixed(abs(large.median_fall), 1)}%.")
+    known = [z for z in sizes if np.isfinite(z.median_fall)]
+    if not known:
+        return "How far each size falls within a calendar year."
+    deep = min(known, key=lambda z: z.median_fall)
+    return (f"In a median year since {from_year}, the {deep.name} had the deepest max drawdown, "
+            f"{_fmt.fixed(abs(deep.median_fall), 1)}%.")
+
+
 def section_size(sizes: list[ip.SizeYears], as_of: pd.Timestamp) -> list:
     if not sizes:
         return []
     by = {z.size: z for z in sizes}
-    large, small = by.get("Large"), by.get("Small")
-    h2 = "How far each size falls within a calendar year."
-    if large and small and large.median_fall < 0:
-        ratio = small.median_fall / large.median_fall
-        word = "twice" if 1.8 <= ratio <= 2.2 else f"{ratio:.1f} times"
-        h2 = (f"In a median year since {ip.SIZE_FROM_YEAR}, the Nifty Smallcap 250 fell {abs(small.median_fall):.0f}% at some point, "
-              f"{word} the Large Cap index's {abs(large.median_fall):.0f}%.")
+    h2 = size_headline(sizes)
     allv = [x for z in sizes for v in z.years.values() for x in v]
     lo, hi = (min(allv) // 20) * 20, -((-max(allv)) // 20) * 20
     meds = ", ".join(f"{_fmt.size(z.size)} {sg(z.median_fall, 1, '%')}" for z in sizes)
+    # The Micro Cap index's first whole year, from its own rows (S203 ix.size.2), when it starts later than the rest.
+    micro_years = sorted(y for y in by["Micro"].years if y < as_of.year) if "Micro" in by else []
+    micro = (f" ({_fmt.size('Micro')} from {micro_years[0]})"
+             if micro_years and micro_years[0] > ip.SIZE_FROM_YEAR else "")
     charts = []
     for z in sizes:
         ys = sorted(z.years)
@@ -313,7 +381,7 @@ def section_size(sizes: list[ip.SizeYears], as_of: pd.Timestamp) -> list:
     return ([f'<div class="dh-sec">{KICK.format("Size, year by year")}<h2 id="s-size" class="dh-h2">{e(h2)}</h2>'
              f'<p class="dh-note">The bar is the calendar year\'s return; the dot is the max drawdown within it. '
              f'{as_of.year} is year to date. Median of whole years since {ip.SIZE_FROM_YEAR}: {e(meds)}'
-             f'{" (micro from 2022)" if "Micro" in by else ""}.</p></div>'] + grid + [table])
+             f'{micro}.</p></div>'] + grid + [table])
 
 
 GROUP_NOTE = {
@@ -323,17 +391,46 @@ GROUP_NOTE = {
 }
 
 
+def every_headline(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Timestamp) -> str:
+    """The every-index heading (S203 ix.ev.1): Nifty Total Market over 12 months, or that its close is late; then
+    the themes' leader and laggard, from the first and last rows of the Theme table."""
+    out = []
+    tm_close = f.close["nifty_total_market"].dropna() if "nifty_total_market" in f.close else pd.Series(dtype=float)
+    if len(tm_close) and tm_close.index[-1] != as_of:
+        out.append(f"Nifty Total Market’s {_d(as_of)} close is not in yet.")
+    elif len(tm_close):
+        tm = ip.ret(tm_close, 12, as_of)
+        if tm is not None:
+            out.append(f"Over 12 months, Nifty Total Market is {_fmt.moved(tm)}.")
+    themes = [r for r in rows.get("Theme", []) if r.returns[12] is not None]
+    if len(themes) == 1:
+        out.append(f"{_short(themes[0].name)} is the only theme with 12 months.")
+    elif themes:
+        out.append(f"Among themes, {_short(themes[0].name)} leads, {_fmt.moved(themes[0].returns[12])}, and "
+                   f"{_short(themes[-1].name)} trails, {_fmt.moved(themes[-1].returns[12])}.")
+    if not out:
+        return f"NSE's {sum(len(v) for v in rows.values())} broad, theme and strategy indices over 12 months."
+    return " ".join(out)
+
+
+def family_headline(g: str, xs: list[ip.IndexRow]) -> str:
+    """A family's h3 (S203 ix.ev.3): how many are up over 12 months; the leader and laggard are the table's first and
+    last rows, so their figures are not repeated."""
+    full = [x for x in xs if x.returns[12] is not None]
+    if not full:
+        return g
+    k, n = sum(x.returns[12] > 0 for x in full), len(full)
+    if n == 1:
+        return f"{g}: {_short(full[0].name)} is {_fmt.moved(full[0].returns[12])} over 12 months."
+    count = "none is up" if k == 0 else "all are up" if k == n else f"{k} of {n} {'is' if k == 1 else 'are'} up"
+    return f"{g}: {count} over 12 months; {_short(full[0].name)} leads and {_short(full[-1].name)} trails."
+
+
 def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Timestamp) -> list:
     n = sum(len(v) for v in rows.values())
-    tm = ip.ret(f.close["nifty_total_market"], 12, as_of) if "nifty_total_market" in f.close else None
-    themes = [r for r in rows.get("Theme", []) if r.returns[12] is not None]
     late = ip.late_names(x for v in rows.values() for x in v)
     late_txt = f" {_fmt.closes_not_in(late, as_of)} Their figures read –." if late else ""
-    h2 = f"NSE's {n} broad, theme and strategy indices over 12 months."
-    if tm is not None and themes:
-        h2 = (f"Over 12 months Nifty Total Market is {'up' if tm >= 0 else 'down'} {abs(tm):.1f}%; among themes, "
-              f"{_short(themes[0].name)} leads at {sg(themes[0].returns[12], 1, '%')} and "
-              f"{_short(themes[-1].name)} trails at {sg(themes[-1].returns[12], 1, '%')}.")
+    h2 = every_headline(f, rows, as_of)
     parts = [f'<div class="dh-sec">{KICK.format("Every index")}<h2 id="s-every" class="dh-h2">{e(h2)}</h2>'
              f'<p class="dh-note">NSE\'s {n} broad, theme and strategy indices, in three families, each sorted by its '
              f'price return over 12 months. Each window ends on {_dy(as_of)} and starts on the last session on or before the same '
@@ -342,12 +439,9 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
              f'indices, India VIX and the dollar Nifty are left out.{e(late_txt)}</p></div>']
     for g in ip.PAGE_FAMILIES:
         xs = rows.get(g, [])
-        full = [x for x in xs if x.returns[12] is not None]
         if not xs:
             continue
-        lead = (f"{g}: {sum(x.returns[12] > 0 for x in full)} of {len(full)} up over the year; "
-                f"{_short(full[0].name)} leads at {sg(full[0].returns[12], 1, '%')}, "
-                f"{_short(full[-1].name)} trails at {sg(full[-1].returns[12], 1, '%')}.") if full else g
+        lead = family_headline(g, xs)
         body = ""
         dash = {}   # one footnote per column for its "–" (S193 E, R1)
         for x in xs:
@@ -392,9 +486,7 @@ def render_indices_view() -> None:
     st.html(f"<style>{HOME_CSS}{IX_CSS}</style>")
     f = indices_data.frames()
     if f is None:
-        st.html('<div class="dh"><div class="dh-sec"><p class="dh-kick">Indices</p><h1 class="dh-h1">No index data yet.</h1>'
-                '<p class="dh-lede">The copy of NSE\'s daily index files this page reads is not in yet; the page fills '
-                'once it is.</p></div></div>')
+        kit.page_empty(mw.NO_INDEX_DATA, mw.NO_INDEX_DATA_WHY, kicker="Indices")   # S203 ix.empty.1, R4
         return
     from src.ui import system_param
     emit(page_parts(f, system_param.current()))

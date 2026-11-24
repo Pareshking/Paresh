@@ -162,7 +162,7 @@ def test_with_the_members_history_sectors_counts_todays_members_as_decided():
     assert dash[2] == pytest.approx(allr.now)
     assert dash[1] == pytest.approx(allr.b1 + 3.0) and dash[1] != pytest.approx(allr.b1)
     text = (ROOT / "src/ui/views/sector_view.py").read_text(encoding="utf-8")
-    assert "today’s members" in text or "today's members" in text
+    assert "today’s members" in text.lower() or "today's members" in text.lower()
 
 
 # Fixed 24 Nov 2026 (S154 finding 4): ema_shares counts every ranked stock.

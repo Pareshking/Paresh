@@ -122,6 +122,8 @@ NO_ROWS = "Nothing to show for this choice."
 NO_ROWS_WAY_OUT = "Pick another filter above."
 NO_PRICES = "No prices yet."
 NO_PRICES_WHY = "This page is drawn from the ranked stocks’ daily closes, and none are loaded."
+NO_INDEX_DATA = "No index data yet."   # Indices (S203 ix.empty.1)
+NO_INDEX_DATA_WHY = "The copy of NSE’s daily index files this page reads is not in yet; the page fills once it is."
 
 
 def no_groups(n: int) -> tuple[str, str]:
