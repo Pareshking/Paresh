@@ -99,9 +99,11 @@ def test_the_scan_takes_the_latest_unattended_main_run_of_each_watched_workflow(
     runs = [run(1, "A", at="2026-11-16T01:00:00Z"), run(2, "A", at="2026-11-17T01:00:00Z"),
             run(3, "A", event="push", at="2026-11-17T05:00:00Z"),           # a person was watching
             run(4, "B", branch="feature"), run(5, "B", event="workflow_run"),
-            run(6, "C", status="in_progress"), run(7, "Z")]                 # Z is not watched
-    got = scan.latest_unattended(runs, ["A", "B", "C"])
-    assert {k: v["id"] for k, v in got.items()} == {"A": 2, "B": 5}
+            run(6, "C", status="in_progress"), run(7, "Z"),                # Z is not watched
+            run(8, "V1 Production QA", at="2026-11-17T01:00:00Z"),
+            run(9, "V1 Production QA", event="push", at="2026-11-17T06:00:00Z")]  # a merge: nobody watching (S225 (5))
+    got = scan.latest_unattended(runs, ["A", "B", "C", "V1 Production QA"])
+    assert {k: v["id"] for k, v in got.items()} == {"A": 2, "B": 5, "V1 Production QA": 9}
     assert set(scan.watched_names()) >= {"Daily NSE Momentum Data Sync", "Screener daily price sync (overnight)"}
 
 
@@ -186,3 +188,40 @@ def test_the_watchdog_also_runs_the_green_scan():
     runs = "\n".join(step.get("run", "") for step in wd["jobs"]["watch"]["steps"])
     assert "python scripts/alert_green_scan.py" in runs
     assert wd["permissions"].get("checks") == "read", "the scan reads annotations"
+
+
+def test_a_push_run_of_production_qa_or_full_validation_alerts_and_the_names_match():
+    """S225 (5): merges to main are unattended since 23 Nov 2026."""
+    import importlib.util
+
+    cond = _load(ALERT)["jobs"]["alert"]["if"]
+    spec = importlib.util.spec_from_file_location("alert_green_scan", ROOT / "scripts/alert_green_scan.py")
+    scan = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scan)
+    assert "github.event.workflow_run.event == 'push'" in cond
+    watched = scan.watched_names()
+    for name in scan.PUSH_WATCHED:
+        assert f"'{name}'" in cond and name in watched
+        wf = next(p for p in (ROOT / ".github/workflows").glob("*.yml") if _load(p).get("name") == name)
+        on = _load(wf).get(True) or _load(wf).get("on")
+        assert "push" in on
+
+
+def test_the_green_scan_reads_every_green_run_since_the_last_scan():
+    """S225 (4): a warning in an earlier green run between two scans is read too."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("alert_green_scan", ROOT / "scripts/alert_green_scan.py")
+    scan = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scan)
+
+    def run(i, at, conclusion="success", event="schedule", name="A"):
+        return {"id": i, "name": name, "event": event, "head_branch": "main", "status": "completed",
+                "conclusion": conclusion, "created_at": at}
+
+    runs = [run(1, "2026-11-24T00:00:00Z"), run(2, "2026-11-24T10:00:00Z"),
+            run(3, "2026-11-24T12:00:00Z", conclusion="failure"), run(4, "2026-11-24T14:00:00Z"),
+            run(5, "2026-11-24T15:00:00Z", event="workflow_dispatch")]
+    got = scan.green_since(runs, ["A"], "2026-11-24T09:00:00Z")
+    assert [r["id"] for r in got["A"]] == [2, 4]
+    assert scan.WINDOW_HOURS > 8   # overlaps the 8-hourly scan

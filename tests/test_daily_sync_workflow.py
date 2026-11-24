@@ -120,23 +120,15 @@ def _crons(spec):
     return [entry["cron"] for entry in _triggers(spec)["schedule"]]
 
 
-def test_both_scheduled_slots_are_present(spec):
+def test_the_night_slot_is_present_and_the_morning_slot_is_gone(spec):
+    """S225 (8), owner 24 Nov 2026: "Drop 02:00". Recovery is the chained night
+    run and screener_catchup.yml's dispatch, not a third slot."""
     crons = _crons(spec)
     assert "30 17 * * 1-5" in crons, "the night slot is gone"
-    assert "0 2 * * *" in crons, "the morning recovery slot is gone"
-
-
-def test_the_morning_slot_runs_every_day(spec):
-    """Including Sunday and Monday, which have no session behind them.
-
-    The run is not only chasing the newest bar. heal_days re-requests the
-    trailing 45 days of settled history, and Yahoo restates an Indian series
-    for weeks -- split adjustments typically land 1-4 weeks late. A Sunday run
-    can still repair a close from three weeks ago.
-    """
-    crons = _crons(spec)
-    morning = [c for c in crons if c.startswith("0 2 ")]
-    assert morning == ["0 2 * * *"], f"the morning slot is not daily: {morning}"
+    assert not any(c.startswith("0 2 ") for c in crons), "the 02:00 slot is back"
+    assert "Screener daily price sync (overnight)" in _triggers(spec)["workflow_run"]["workflows"]
+    catchup = (WORKFLOW.parent / "screener_catchup.yml").read_text(encoding="utf-8")
+    assert "daily_sync" in catchup
 
 
 def test_the_slots_land_where_they_are_meant_to_in_india():
@@ -155,7 +147,6 @@ def test_the_slots_land_where_they_are_meant_to_in_india():
         return t.astimezone(IST).strftime("%H:%M")
 
     assert ist_hhmm(17, 30) == "23:28", "the night slot drifted off 23:00 IST"
-    assert ist_hhmm(2, 0) == "07:58", "the morning slot drifted off 08:00 IST"
 
 
 def test_the_two_slots_cannot_run_over_each_other(spec):

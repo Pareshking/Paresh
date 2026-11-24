@@ -15,10 +15,14 @@ name: NSE long price file (backtests from 2010)
 # first read is picked up. Each build adjusts NSE's raw closes from scratch
 # (the packs hold raw rows, never adjusted ones; actions are deduplicated per
 # symbol, ex-date and purpose), so a full read cannot adjust anything twice.
-# A manual run uses the packs unless full=yes. After the audits
-# the job fails when a finding is worse than its known baseline
-# (scripts/audit_limits.py, LONG_LIMITS); the file is published and the audit
-# uploaded all the same, and scheduled_failure_alert.yml opens an issue.
+# A manual run uses the packs unless full=yes. The audits run before the
+# publish, and the job fails when a finding is worse than its known baseline
+# (scripts/audit_limits.py, LONG_LIMITS) or check_long_against_screener.py finds
+# a step; scheduled_failure_alert.yml opens an issue. On the Saturday build a
+# failure also holds the file back, so last week's stays live (S225 (1); owner,
+# 24 Nov 2026: "Hold back on Saturday") and nse_long_hold.json on the release
+# holds the nightly builds until a build passes the audits again; a manual
+# build publishes all the same, and the audit uploads either way.
 #
 # Every night as well (owner, 21 Nov 2026: "breadth daily"): after the nightly
 # daily sync, a build from the packs adds the new session (~2.5 min) and
@@ -85,6 +89,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
+          cache: pip
       - run: pip install -r requirements.txt
       # The raw-history pack: every row the last build read, so only newer
       # sessions come from R2 (a full read is ~4,700 requests, ~35 minutes).
@@ -127,6 +132,7 @@ jobs:
       # Never replace the published file with a smaller one (owner, 2026-10-07):
       # a dispatch with a later "since", or sessions R2 failed to serve, stops here.
       - name: Check the new file is no smaller than the published one
+        id: size
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IN_SINCE: ${{ inputs.since || '2008-01-01' }}
@@ -139,78 +145,12 @@ jobs:
           gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir published             --pattern nse_long_close.parquet || echo "No published close file yet."
           [ -f pack/nse_raw_pack.parquet ] && cp pack/nse_raw_pack.parquet published/ ||             gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir published               --pattern nse_raw_pack.parquet || echo "No published pack yet."
           python scripts/check_long_publish.py --new data_cache/nse_long --old published
-      - name: Publish to the data-latest release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create data-latest \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Latest data snapshots" \
-              --notes "Rolling history published by the sync jobs." \
-              --latest=false
-          FILES="data_cache/nse_long/nse_long_close.parquet data_cache/nse_long/nse_long_value.parquet data_cache/nse_long/nse_long_report.json"
-          # The packs only on Saturday or by hand: a nightly build adds a session or
-          # two, which the next build reads from R2 again for a handful of requests.
-          if [ "$NIGHTLY" != "yes" ]; then
-            FILES="$FILES data_cache/nse_long/nse_raw_pack.parquet data_cache/nse_long/nse_actions_pack.parquet"
-          fi
-          # shellcheck disable=SC2086
-          gh release upload data-latest $FILES --repo "$GITHUB_REPOSITORY" --clobber
-      # The same three files to R2 (S142, owner 17 Nov 2026: "Yes weekly"), which
-      # src/loaders/nse_long.py reads first. Value and report go first and the
-      # closes last: the app resolves the closes' current build and takes the
-      # other two at that same as_of, so it never sees a new closes file before
-      # its partners exist. Retention keeps the newest two (r2_retention.py).
-      - name: Publish to R2
-        env:
-          PIPELINE: r2-nse-long-${{ github.sha }}
-        run: |
-          set -euo pipefail
-          python -c "from src.loaders.nse_long import report_to_parquet as r; r('data_cache/nse_long/nse_long_report.json', 'data_cache/nse_long/nse_long_report.parquet')"
-          for kind in value report close; do
-            python scripts/r2_publish.py \
-              --path "data_cache/nse_long/nse_long_${kind}.parquet" \
-              --dataset "prices/nse_long_${kind}" \
-              --source nse_long_build \
-              --key-root "archive/prices/nse_long_${kind}" \
-              --pipeline-version "$PIPELINE" \
-              --release-tag data-latest \
-              --skip-if-published
-          done
-      # Breadth reads this file (R2 first, through src/loaders/nse_long.py), so it is
-      # rebuilt straight after the publish, before the audits: an audit finding
-      # fails the job but never holds back a published file, nor what is built on it.
-      - name: Breadth on the members of each date, and the signal tests (S150)
-        id: breadth
-        continue-on-error: true
-        run: python scripts/build_breadth_history.py
-      - name: Commit breadth
-        if: steps.breadth.outcome == 'success'
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data/breadth_history.csv data/signal_tests.json
-          # Read by every system's Dashboard (S193 A6); absent until its first good run.
-          if [ -f data/qualified_now.json ]; then git add data/qualified_now.json; fi
-          if git diff --staged --quiet; then
-            echo "Breadth unchanged."
-            exit 0
-          fi
-          git commit -m "chore(data): breadth from the long NSE file [skip ci]"
-          for i in 1 2 3 4 5; do
-            if git push; then echo "Pushed."; exit 0; fi
-            echo "Push failed (attempt $i); rebasing onto origin/main."
-            git fetch origin main
-            git rebase origin/main || { git rebase --abort; exit 1; }
-            sleep $((i * 5))
-          done
-          echo "::error::Could not push breadth after 5 attempts."
-          exit 1
       # The audits (docs/PRICE_PIPELINE.md, "Audit"): the new file against every
       # reference on the release, against Screener point by point, and NSE's raw
       # rows' own arithmetic, dividends, ISINs and calendar. They run here, after
-      # each build, so no laptop has to be on; a failure never blocks the publish.
+      # each build, before the publish, so no laptop has to be on. On a Saturday
+      # build a breach holds the file back (S225 (1), owner, 24 Nov 2026: "Hold
+      # back on Saturday"); a nightly or manual build still publishes.
       - name: Audit the new file
         id: audit
         if: env.NIGHTLY != 'yes'
@@ -238,21 +178,129 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       # S47: the audits above never fail the job (continue-on-error); this does,
       # when a finding is worse than its baseline or an audit wrote no summary.
-      # The file is already published and the artifact below uploads regardless.
+      # The artifact below uploads regardless.
       - name: Audit limits
-        if: env.NIGHTLY != 'yes'
+        id: limits
+        if: ${{ !cancelled() && env.NIGHTLY != 'yes' && steps.size.outcome == 'success' }}
         run: python scripts/audit_limits.py long --audit audit --report data_cache/nse_long/nse_long_report.json
       # Every night, against the live Screener store (S213): a one-day move of 50% or more in one
       # and not the other is an action one of them missed (CCAVENUE's 10:1 consolidation, 19 Oct
-      # 2026, read +840% here for a month). The file is already published; this fails the job.
+      # 2026, read +840% here for a month). This fails the job; on a Saturday it also holds the file back.
       - name: Steps Screener does not have
-        if: ${{ !cancelled() }}
+        id: steps_check
+        if: ${{ !cancelled() && steps.size.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Read only: this job never uploads the Screener store, so it is not in screener-sync's queue.
           gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern screener_prices.parquet --output screener_ref.parquet --clobber
           python scripts/check_long_against_screener.py --long data_cache/nse_long/nse_long_close.parquet --screener screener_ref.parquet
+      # Saturday's build publishes only when every audit limit held (S225 (1)):
+      # on a breach last week's file stays live, the failed run opens the issue, and
+      # nse_long_hold.json on the release holds the nightly builds too (they run no
+      # audits, so without it the next night would publish the same breach). A build
+      # whose audits all pass (Saturday's, or a manual one) lifts the hold.
+      - name: Hold the file back after a Saturday breach
+        if: ${{ !cancelled() && github.event_name == 'schedule' && steps.size.outcome == 'success' && (steps.limits.outcome != 'success' || steps.steps_check.outcome != 'success') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '{"run_id": "%s", "held_at": "%s", "reason": "audit limits or Screener steps breached (S225 (1))"}\n' \
+            "$GITHUB_RUN_ID" "$(date -u +%Y-%m-%dT%H:%MZ)" > nse_long_hold.json
+          gh release upload data-latest nse_long_hold.json --repo "$GITHUB_REPOSITORY" --clobber
+          echo "::error::Audit breach: the long file is held back; last week's stays live until a build passes the audits."
+      - name: Lift the hold when the audits pass
+        if: ${{ !cancelled() && env.NIGHTLY != 'yes' && steps.limits.outcome == 'success' && steps.steps_check.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete-asset data-latest nse_long_hold.json --repo "$GITHUB_REPOSITORY" -y 2>/dev/null \
+            && echo "Hold lifted." || echo "No hold on the release."
+      - name: Is the file held back?
+        id: hold
+        if: ${{ !cancelled() && env.NIGHTLY == 'yes' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release download data-latest --repo "$GITHUB_REPOSITORY" --pattern nse_long_hold.json --output hold.json --clobber 2>/dev/null; then
+            echo "held=yes" >> "$GITHUB_OUTPUT"
+            echo "::warning::The long file is held back since a Saturday audit breach ($(cat hold.json)); this nightly build publishes nothing."
+          else
+            echo "held=no" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish to the data-latest release
+        id: release
+        if: ${{ !cancelled() && steps.size.outcome == 'success' && steps.hold.outputs.held != 'yes' && (github.event_name != 'schedule' || (steps.limits.outcome == 'success' && steps.steps_check.outcome == 'success')) }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view data-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create data-latest \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Latest data snapshots" \
+              --notes "Rolling history published by the sync jobs." \
+              --latest=false
+          FILES="data_cache/nse_long/nse_long_close.parquet data_cache/nse_long/nse_long_value.parquet data_cache/nse_long/nse_long_report.json"
+          # The packs only on Saturday or by hand: a nightly build adds a session or
+          # two, which the next build reads from R2 again for a handful of requests.
+          if [ "$NIGHTLY" != "yes" ]; then
+            FILES="$FILES data_cache/nse_long/nse_raw_pack.parquet data_cache/nse_long/nse_actions_pack.parquet"
+          fi
+          # shellcheck disable=SC2086
+          gh release upload data-latest $FILES --repo "$GITHUB_REPOSITORY" --clobber
+      # The same three files to R2 (S142, owner 17 Nov 2026: "Yes weekly"), which
+      # src/loaders/nse_long.py reads first. Value and report go first and the
+      # closes last: the app resolves the closes' current build and takes the
+      # other two at that same as_of, so it never sees a new closes file before
+      # its partners exist. Retention keeps the newest two (r2_retention.py).
+      - name: Publish to R2
+        id: r2
+        if: ${{ !cancelled() && steps.release.outcome == 'success' }}
+        env:
+          PIPELINE: r2-nse-long-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python -c "from src.loaders.nse_long import report_to_parquet as r; r('data_cache/nse_long/nse_long_report.json', 'data_cache/nse_long/nse_long_report.parquet')"
+          for kind in value report close; do
+            python scripts/r2_publish.py \
+              --path "data_cache/nse_long/nse_long_${kind}.parquet" \
+              --dataset "prices/nse_long_${kind}" \
+              --source nse_long_build \
+              --key-root "archive/prices/nse_long_${kind}" \
+              --pipeline-version "$PIPELINE" \
+              --release-tag data-latest \
+              --skip-if-published
+          done
+      # Breadth reads this file (R2 first, through src/loaders/nse_long.py), so it is
+      # rebuilt straight after the publish: a breach on a nightly or manual build
+      # fails the job but never holds back a published file, nor what is built on it.
+      - name: Breadth on the members of each date, and the signal tests (S150)
+        id: breadth
+        if: ${{ !cancelled() && steps.r2.outcome == 'success' }}
+        continue-on-error: true
+        run: python scripts/build_breadth_history.py
+      - name: Commit breadth
+        if: ${{ !cancelled() && steps.breadth.outcome == 'success' }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/breadth_history.csv data/signal_tests.json
+          # Read by every system's Dashboard (S193 A6); absent until its first good run.
+          if [ -f data/qualified_now.json ]; then git add data/qualified_now.json; fi
+          if git diff --staged --quiet; then
+            echo "Breadth unchanged."
+            exit 0
+          fi
+          git commit -m "chore(data): breadth from the long NSE file [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "Pushed."; exit 0; fi
+            echo "Push failed (attempt $i); rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; exit 1; }
+            sleep $((i * 5))
+          done
+          echo "::error::Could not push breadth after 5 attempts."
+          exit 1
       - uses: actions/upload-artifact@v7
         if: always() && env.NIGHTLY != 'yes'
         with:

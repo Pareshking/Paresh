@@ -311,9 +311,16 @@ point at most. The history audit against run 37047812302 (2 Oct 2026, its latest
 35 missing weekdays, 87 gap days, 584 "no move", 1,401 unexplained jumps, 142
 renames refused; those counts predate #348, so the first scheduled run will show
 lower ones, and the limits should then be tightened). A count above its limit, a
-share below, or a summary missing fails the job **after** the file is published
-and the report and artifact uploaded; `scheduled_failure_alert.yml` turns a
-failed scheduled run into an issue. A fix or explanation that lowers a count
+share below, a summary missing, or a step `check_long_against_screener.py` finds
+fails the job; the report and artifact upload all the same, and
+`scheduled_failure_alert.yml` turns a failed scheduled run into an issue. The
+audits run **before** the publish. On the Saturday build a failure holds the
+file back (S225 (1); owner, 24 Nov 2026: "Hold back on Saturday"): last week's
+file stays live, and `nse_long_hold.json` on the release stops the nightly
+builds, which run no audits, from publishing the same breach the next night.
+The audit zip on the release then describes the held file. A build whose audits
+all pass (the next Saturday, or `workflow_dispatch` after the fix) lifts the
+hold. A manual build publishes even on a breach, so the owner can override. A fix or explanation that lowers a count
 lowers its constant in the same change.
 
 ### Gaps in the file, checked against BSE (3 Oct 2026)

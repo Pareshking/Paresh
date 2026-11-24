@@ -1,6 +1,11 @@
 # Changelog
 
 
+## 2026-11-24 — A Saturday price-file breach keeps last week's file (S225)
+
+- The long NSE price file (Backtest from 2010, breadth) is audited before it is published. When Saturday's audit finds a breach, last week's file stays live, the nightly builds publish nothing until a build passes, and the failure opens the usual issue. Until now the file was published first and the job failed after.
+- The Friday "Weekly Full Sync" no longer runs on a schedule: it repeated the daily sync of an hour earlier. It can still be run by hand. The daily sync's 02:00 UTC run is dropped too: the night run after the Screener sync and the morning catch-up already cover a missed night.
+
 ## 2026-11-24 — A late market close is said on the stock page (S203)
 
 - On a day NSE's Nifty Total Market close is not in yet, the stock page shows "–" for the market's figures and says so, as the Dashboard and Portfolio do. It used to compare the stock with the market one session early, without saying.

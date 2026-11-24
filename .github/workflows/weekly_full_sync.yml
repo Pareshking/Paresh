@@ -1,9 +1,12 @@
 name: Weekly Full Sync (Friday night)
 
 on:
-  schedule:
-    # Every Friday at 23:00 IST = 18:30 UTC (adjust if DST not needed)
-    - cron: '30 18 * * 5'
+  # No schedule since 24 Nov 2026 (S225 (2); owner: "Drop schedule only"): the
+  # Friday 18:30 UTC run repeated the daily sync of an hour before -- FORCE_FULL
+  # is read nowhere since Yahoo left -- and only re-uploaded the rankings. The
+  # file stays for a manual run; to restore it, add back:
+  #   schedule:
+  #     - cron: '30 18 * * 5'
   workflow_dispatch: # This job rebuilds the whole archive; it must be runnable
                      # on demand. Without this there was no way to deepen the
                      # history except to wait for Friday, and no way to test a
@@ -32,6 +35,7 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
+          cache: pip
 
       - name: Install dependencies
         run: |

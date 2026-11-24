@@ -207,17 +207,34 @@ def test_the_long_file_rereads_everything_on_every_scheduled_saturday():
     assert "inputs.full == 'yes'" in doc["jobs"]["build"]["env"]["FULL"]
 
 
-def test_the_long_file_audit_limits_fail_the_job_after_publish_and_before_the_upload():
+def test_the_long_file_audits_run_before_the_publish_and_saturday_holds_it_back():
+    # S225 (1), owner, 24 Nov 2026: "Hold back on Saturday". The audits run before
+    # the publish; a breach on the scheduled build keeps last week's file live and
+    # holds the nightly builds (which run no audits) until a build passes again.
     doc, _ = _wf("nse_long_prices.yml")
     steps = doc["jobs"]["build"]["steps"]
     names = [s.get("name", s.get("uses", "")) for s in steps]
-    publish = names.index("Publish to the data-latest release")
-    audit_i = names.index("Audit the new file")
-    limits = names.index("Audit limits")
+    by = dict(zip(names, steps))
+    audit_i, limits = names.index("Audit the new file"), names.index("Audit limits")
+    screener = names.index("Steps Screener does not have")
+    hold, lift = names.index("Hold the file back after a Saturday breach"), names.index("Lift the hold when the audits pass")
+    held, publish = names.index("Is the file held back?"), names.index("Publish to the data-latest release")
+    r2 = names.index("Publish to R2")
     upload = next(i for i, s in enumerate(steps) if str(s.get("uses", "")).startswith("actions/upload-artifact"))
-    assert publish < audit_i < limits < upload
+    assert audit_i < limits < screener < hold < lift < held < publish < r2 < upload
     assert "audit_limits.py long" in steps[limits]["run"]
     assert "continue-on-error" not in steps[limits]
+    gate = by["Publish to the data-latest release"]["if"]
+    assert "github.event_name != 'schedule'" in gate
+    assert "steps.limits.outcome == 'success'" in gate and "steps.steps_check.outcome == 'success'" in gate
+    assert "steps.hold.outputs.held != 'yes'" in gate and "steps.size.outcome == 'success'" in gate
+    assert "steps.release.outcome == 'success'" in by["Publish to R2"]["if"]
+    assert "github.event_name == 'schedule'" in by["Hold the file back after a Saturday breach"]["if"]
+    assert "nse_long_hold.json" in by["Hold the file back after a Saturday breach"]["run"]
+    assert "env.NIGHTLY != 'yes'" in by["Lift the hold when the audits pass"]["if"]
+    assert "env.NIGHTLY == 'yes'" in by["Is the file held back?"]["if"]
+    # Breadth reads the published file, so it follows the R2 publish, not the audit.
+    assert "steps.r2.outcome == 'success'" in by["Breadth on the members of each date, and the signal tests (S150)"]["if"]
     # Uploaded even when the limits fail; skipped only on the nightly build, which
     # runs no audit (owner, 21 Nov 2026: the nightly build is the cheap one).
     assert steps[upload]["if"] == "always() && env.NIGHTLY != 'yes'"
