@@ -48,8 +48,8 @@ An element is every figure, chart series, table column and number in a label or 
   - [ ] it refuses to write bad data (a guard like S91's or S153's reconciliation) and keeps the committed file
   - [ ] a failure raises an alert (the scheduled-failure issue), not a silent skip
   - [ ] it writes only what changed (no daily commit of an unchanged file)
-- [ ] **(d) Dates (S164).** `breadth_history.csv` ends 16 Nov while prices end 20 Nov (found 21 Nov). On the live site, every figure ends on its page's session or says that it does not (the S148 rule).
-- [ ] **(e) One source per figure** on every page (S154), not only Dashboard, Portfolio, Actions and Market (then Breadth); a test for each shared label. Indices and the Dashboard's "Valuation and styles" card read one copy (`src/ui/indices_data.py`); Large is the Nifty 100 on both (21 Nov).
+- [x] **(d) Dates (S164).** `breadth_history.csv` ends 16 Nov while prices end 20 Nov (found 21 Nov). On the live site, every figure ends on its page's session or says that it does not (the S148 rule). **Done 24 Nov:** the file ends 23 Nov, the pages' session; CI's text audits (`_page_dates.mjs`) read every page and fail a series that ends before its session without a rule (local run 24 Nov: every page "every end on the session or ruled"); the stock page's late market close added (S203 st.ret.3).
+- [x] **(e) One source per figure** on every page (S154; **done 24 Nov** by S154 (b): `docs/FIGURE_INVENTORY.md`, `tests/test_same_label_every_page.py`, the decided differences asserted and 4 open ones as strict xfails for the owner), not only Dashboard, Portfolio, Actions and Market (then Breadth); a test for each shared label. Indices and the Dashboard's "Valuation and styles" card read one copy (`src/ui/indices_data.py`); Large is the Nifty 100 on both (21 Nov).
 - [ ] **(f) Costs** against the private-repo budget (S142): GitHub Actions minutes, R2 storage and operations, Streamlit memory.
 
 ## 3. Added by Claude (owner: "add your thoughts and improvements")
