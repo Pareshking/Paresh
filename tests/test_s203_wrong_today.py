@@ -74,3 +74,20 @@ def test_the_market_title_says_a_missing_score():
     assert market_title(N(verdict="Broad"), N(verdict="Not enough data")) == \
         "Participation is broad; Nifty Total Market's trend cannot be read today."
     assert "Not enough data" not in market_title(N(verdict="Not enough data"), N(verdict="Not enough data"))
+
+
+# ── Rule 9: the numbers are read from the rules, so a change in config changes the page ──
+def test_the_guide_and_the_screener_key_follow_the_config(monkeypatch):
+    from src.engine.track_record import TRACK_RECORD_CONFIG as cfg
+    from src.ui.views import guide_view, ranking_view
+    monkeypatch.setitem(cfg, "hold_cap", 0.18)
+    monkeypatch.setitem(cfg, "buy_size", 0.04)
+    monkeypatch.setitem(cfg, "high_pct", 0.75)
+    monkeypatch.setitem(cfg, "hold_cap_from", "2027-05-31")
+    monkeypatch.setitem(cfg, "weight_reset_months", [6, 12])
+    body = guide_view._body()
+    assert "trimmed only above 18%" in body and "each new buy is 4%" in body and "within 25% of its 52-week high" in body
+    assert "From the 31 May 2027" in body and "(June and December)" in body
+    assert "30 Nov 2026 rebalance" not in body and "March and September" not in body
+    key = ranking_view._KEY_HTML.format(when="x", **ranking_view._key_numbers())
+    assert "within 25% of the 52W high" in key

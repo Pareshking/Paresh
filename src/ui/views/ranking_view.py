@@ -500,7 +500,7 @@ def render_ranking_view(
         density_mode = _DEFAULT_DENSITY
     # The key to the marks (S87 item 9), in short lines, two columns on a wide
     # screen (PAGE_DESIGN §2a: it was one 1,240 px line).
-    st.html(_KEY_HTML.format(when=_trail_words(adj_close)))
+    st.html(_KEY_HTML.format(when=_trail_words(adj_close), **_key_numbers()))
 
     view = with_book_columns(rank_df, book_symbols,
                              history_prices if history_prices is not None else adj_close)
@@ -675,7 +675,7 @@ def system_note(system_name: str, ranked, members, *, nano: bool,
     head = (f"{system_name} · {len(ranked_set)} of {len(members)} stocks ranked"
             + (" among themselves." if nano else " as one list."))
     body = (f"{len(unranked)} {reason}: "
-            + ", ".join(unranked[:12]) + (" and more." if len(unranked) > 12 else ".")) if unranked else ""
+            + ", ".join(unranked) + ".") if unranked else ""   # every name, no "and more" (PAGE_DESIGN §2; S189 item 6)
     return head, body
 
 
@@ -734,16 +734,26 @@ def screener_lede(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
 # Two columns of short lines on a wide screen, one on a phone. No tag-shaped
 # text in the CSS (PAGE_DESIGN §6: a comment holding one drops the block).
 _KEY_BODY = (
-    "<p><b>Qualified:</b> above the 50D EMA and within 20% of the 52W high. The qualified place is the "
+    "<p><b>Qualified:</b> above the 50D EMA and within {gap} of the 52W high. The qualified place is the "
     "stock's place among them, the number Actions and the Dashboard use; “Out” means it fails a filter, "
     "and the filter columns show ✗ and by how much.</p>"
     "<p><b>Rank before:</b> the rank among the ranked stocks {when}, the dates the Dashboard's rank trail "
     "uses. Past figures are grey; a click on a column heading sorts every stock.</p>"
-    "<p><b>Held:</b> in the model book. The book buys the top 20 qualified and keeps a holding while it is in "
-    "the top 40; in rank order the two rows where those places fall are named.</p>"
-    "<p><b>Big movers:</b> rank moved 150 places or more in a month. <b>Volume spike:</b> today's volume "
-    "1.5 times its 20-day average or more.</p>"
+    "<p><b>Held:</b> in the model book. The book buys the top {buy} qualified and keeps a holding while it is in "
+    "the top {keep}; in rank order the two rows where those places fall are named.</p>"
+    "<p><b>Big movers:</b> rank moved {big} places or more in a month. <b>Volume spike:</b> today's volume "
+    "{spike} times its {vwin}-day average or more.</p>"
 )
+
+
+def _key_numbers() -> dict:
+    """The key's numbers from the rules themselves, not typed (S203 rule 9)."""
+    from src.engine.momentum import VOLUME_SPIKE, VOLUME_WINDOW
+    from src.engine.track_record import TRACK_RECORD_CONFIG as cfg
+    return {"gap": f"{1 - cfg['high_pct']:.0%}", "buy": cfg["top_n"], "keep": cfg["buffer_n"],
+            "big": BIG_MOVE_PLACES, "spike": f"{VOLUME_SPIKE:g}", "vwin": VOLUME_WINDOW}
+
+
 # In plain sight on a wide screen, folded on a phone (PAGE_DESIGN §2a; S189 item 3: at 390 px the key pushed
 # the first stock row to about 1,080 px, below the first screen).
 _KEY_HTML = (

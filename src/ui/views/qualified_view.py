@@ -95,8 +95,10 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
                            disabled=view.empty)
 
     if view.empty:
-        kit.empty("No stock passes both filters today:",
-                  "above its 50D EMA and within 20% of its 52-week high.")
+        from src.engine.track_record import TRACK_RECORD_CONFIG
+        gap = 1 - float(TRACK_RECORD_CONFIG["high_pct"])   # read, not typed (S203 ac.qual.2, rule 9)
+        kit.empty("No stock passes both filters today.",
+                  f"They are a close above the 50D EMA and within {gap:.0%} of the 52-week high.")
         return
 
     with kit.card("The list", "qual_list"):

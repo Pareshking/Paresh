@@ -216,8 +216,9 @@ MODEL_BOOK_CAPITAL: Final[float] = 10_000_000.0
 # Risk-free rate used as the excess-return hurdle in Sharpe and Sortino.
 # It was a bare 0.065 inline in the backtester, which meant the number every
 # ratio on the Backtest tab is measured against could not be found, changed or
-# even seen from anywhere the user looks. Roughly the 10-year GOI yield; it is
-# an assumption, so it lives where assumptions live.
+# even seen from anywhere the user looks. A fixed assumption for every year, not a
+# dated rate: MSCI's momentum method uses a short rate (3-month NSE MIBOR), which
+# moves year to year (S223 (b), 24 Nov 2026). The page says "a fixed 6.5%".
 RISK_FREE_RATE: Final[float] = 0.065
 
 # Minimum real observations before a "52-week high" may be quoted at all.

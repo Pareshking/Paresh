@@ -74,6 +74,19 @@ def _body() -> str:
     import html as _html
     others = _html.escape(f"{SYSTEM_NAMES[SYSTEM_1000]} and the {SYSTEM_NAMES[SYSTEM_NANO]} list")
     score = " + ".join(f"{float(v):.2f}·z({k})" for k, v in w.items())
+    # The rest of the typed numbers, read from the rules (S203 rule 9: gd.step.3-4, gd.sc.1, gd.fl.5, gd.bk.2,
+    # gd.wt.2-3). A rule changed in config now changes the Guide with it.
+    import inspect
+    import calendar
+    from src.engine.calendar_momentum import ANCHOR_STALENESS_LIMIT
+    from src.engine.portfolio import PortfolioOptimizer as _pc
+    gap = f"{1 - high_pct:.0%}"
+    rule_from = pd.Timestamp(cfg["hold_cap_from"]).strftime("%-d %b %Y")
+    buy_size, hold_cap = f"{float(cfg['buy_size']):.0%}", f"{float(cfg['hold_cap']):.0%}"
+    reset = " and ".join(calendar.month_name[int(m)] for m in cfg["weight_reset_months"])
+    stale = {5: "five"}.get(int(ANCHOR_STALENESS_LIMIT), str(int(ANCHOR_STALENESS_LIMIT)))
+    wait = {6: "six"}.get(round(min_high / 21), str(round(min_high / 21)))
+    inv_window = int(inspect.signature(_pc.inverse_volatility).parameters["window"].default)
     return f"""
 <div class="gd">
 <nav aria-label="On this page">
@@ -90,10 +103,10 @@ consolidations, rights issues and demergers; the history from 2010 also takes ou
 The {others} follow the same steps on their own lists.</li>
 <li><b>Score.</b> Each stock's return over 1, 3, 6, 9 and 12 months, divided by its volatility over
 the same window; each window ranked against the other stocks; the five blended ({weights}).</li>
-<li><b>Filters.</b> Above its 50D EMA and within 20% of its 52-week high.</li>
+<li><b>Filters.</b> Above its 50D EMA and within {gap} of its 52-week high.</li>
 <li><b>Book.</b> The top {top_n} stocks that pass both filters, at most {per_industry} from one sector.
-A holding stays while it ranks within the top {buffer_n} and passes both filters. From the 30 Nov 2026
-rebalance every holding goes back to 5% twice a year (March and September); in between, winners run
+A holding stays while it ranks within the top {buffer_n} and passes both filters. From the {rule_from}
+rebalance every holding goes back to {buy_size} twice a year ({reset}); in between, winners run
 (see Weighting).</li>
 <li><b>Trades.</b> Once a month: the ranking at the month's last close, the trades at the next
 session's close. Nothing is sold in between.</li>
@@ -103,7 +116,7 @@ session's close. Nothing is sold in between.</li>
 <h2 id="score">The score</h2>
 <h3>Windows are calendar months</h3>
 <p>A window of <i>m</i> months opens on the first session on or after the same date <i>m</i> months
-earlier. If a stock did not trade that day, its last close up to five sessions before stands in;
+earlier. If a stock did not trade that day, its last close up to {stale} sessions before stands in;
 older than that, the window has no value for that stock.</p>
 <h3>Return over volatility, per window</h3>
 <pre>return_m     = ln(P_today / P_open)
@@ -118,6 +131,12 @@ to that limit, the result is turned into a z-score, and the z-score is capped at
 rescaled; it is not given an average value for the missing window. These are the record's weights. The
 Configuration page can change them for the Screener and the Backtest; the record and the model book
 on Portfolio and Actions keep these.</p>
+<h3>How it differs from NSE's and MSCI's momentum indices</h3>
+<p>The same family: each is a return divided by volatility, turned into a z-score and capped at ±3. NSE's Nifty200
+Momentum 30 and MSCI's momentum indices use only 6 and 12 months, weighted half and half, and leave out the latest
+month; NSE divides by the volatility of 12 months of daily returns, MSCI by that of 3 years of weekly returns. This score adds 1, 3 and
+9 months, runs to the latest close, and divides each window by the volatility inside it. A version that leaves out the
+latest five sessions runs beside the record as a shadow book (Portfolio).</p>
 <p>From the {members_from} ranking the score is worked out over the index members of that day only, as the
 Screener has always done, so the same stock gets the same score on every page; earlier months were
 scored over a wider set of stocks and are left exactly as they were recorded.</p>
@@ -136,9 +155,9 @@ No liquidity filter is applied, in the record or by default in the Backtest.</p>
 {ema_period}D EMA at all, so it cannot be above one and cannot pass the trend filter. It is
 not ranked low; it is simply not among the stocks that qualify, and it cannot be bought. This is the
 rule the Screener has always used, and the months already recorded replay as they were.</p>
-<h3>A new listing waits about six months</h3>
+<h3>A new listing waits about {wait} months</h3>
 <p>No stock is ranked before {min_ranked} sessions of prices, and the 52-week high needs {min_high} closes
-before the near-the-high filter can pass. A recent listing therefore waits about six months of trading
+before the near-the-high filter can pass. A recent listing therefore waits about {wait} months of trading
 before it can be bought.</p>
 <h3>The 52-week high is read from closes</h3>
 <p>The high the filter measures against is the highest <i>close</i> of the last year, not the highest
@@ -150,14 +169,14 @@ figure only lines up with another measured the same way.</p>
 
 <h2 id="book">The book</h2>
 <ul>
-<li><b>Size:</b> {top_n} stocks, each 1/{top_n} of the account at a reset (the March and September
+<li><b>Size:</b> {top_n} stocks, each 1/{top_n} of the account at a reset (the {reset}
 rebalances); in between, a holding that stays is held as it moves, and a new buy is 1/{top_n} of the
 account as it stood at the last reset (see Weighting).</li>
 <li><b>Caps:</b> a new buy is {stock_cap:.0%} of the account as it stood at the last reset (a little more
 than {stock_cap:.0%} of today's if the book has fallen since) and no NSE sector is above
 {sector_cap:.0%} of the book at a rebalance, so at most {per_industry} of the {top_n} from one sector; the
-next-ranked stock from another sector takes the place. From the 30 Nov 2026 rebalance a holding that
-is kept is trimmed only above 15%, not back to {stock_cap:.0%} (see Weighting), so a holding whose price
+next-ranked stock from another sector takes the place. From the {rule_from} rebalance a holding that
+is kept is trimmed only above {hold_cap}, not back to {stock_cap:.0%} (see Weighting), so a holding whose price
 has risen sits above the buy size until a reset. Between rebalances prices can carry a sector past
 its cap until the next rebalance trims it.</li>
 <li><b>Buffer:</b> a holding is kept while its rank among stocks passing both filters stays within
@@ -170,12 +189,12 @@ test quoted under Weighting.</li>
 
 <h2 id="weights">Weighting</h2>
 <p><b>Equal weight</b> sets each new book's targets: 1/{top_n} of the account a holding.</p>
-<p><b>Six-monthly reset</b> (from the 30 Nov 2026 rebalance). Until then every rebalance put each
+<p><b>Six-monthly reset</b> (from the {rule_from} rebalance). Until then every rebalance put each
 holding back to 1/{top_n}, selling some of a winner and topping up a laggard. From then that happens
-twice a year, at the March and September rebalances. In between, a holding that stays is left as its
-price moved it unless it is above 15%, when it is cut to 15%, and each new buy is 5% of the account
+twice a year, at the {reset} rebalances. In between, a holding that stays is left as its
+price moved it unless it is above {hold_cap}, when it is cut to {hold_cap}, and each new buy is {buy_size} of the account
 as it stood at the last reset, paid from cash; when cash is short the new names get fewer shares, and
-no holding is sold to pay for them. No sector is above 40% after a rebalance. In the test behind
+no holding is sold to pay for them. No sector is above {sector_cap:.0%} after a rebalance. In the test behind
 the decision (8 Nov 2026, with an estimate of tax) the monthly reset earned
 15.4% a year after tax and the six-monthly 15.3%, with far fewer trades between resets. That test ran
 on the Nifty 500 from 2010, as the Backtest does, because Nifty Total Market starts only on
@@ -185,7 +204,7 @@ Against the alternative of simply holding the index, both price only, both sold 
 the Backtest page shows the figures for the record's rules from 2010, re-run every week (section 4).
 Months before the change keep the old rule.</p>
 <p><b>Inverse volatility</b> can be tried in the Backtest: each holding's weight is proportional to
-one over its volatility over the last 63 sessions.</p>
+one over its volatility over the last {inv_window} sessions.</p>
 <pre>w_i = (1 / σ_i) / Σ_j (1 / σ_j)</pre>
 <p>It gives calmer stocks more weight. Whether that lowers the book's volatility or drawdown depends
 on the period; run the Backtest with each weighting to compare them.</p>

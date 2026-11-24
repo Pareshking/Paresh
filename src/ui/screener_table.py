@@ -45,6 +45,8 @@ INDEX_NAMES = {
     "SMALL250": "Nifty Smallcap 250", "MICRO250": "Nifty Microcap 250",
     "NANO250": "Nano Cap", "NANO": "> ₹2,000 Cr",      # S175: the Nifty 1000's other 250; the ₹2,000 Cr list
 }
+# The systems' own lists among those tags: not NSE indices (S189 item 6 (b)).
+_SYSTEM_TAGS = {"NANO250", "NANO"}
 
 # (key, header, sort type). One registry; Executive, Core and Quant are column
 # sets drawn from it, so a column looks and sorts the same in every view. The
@@ -94,11 +96,14 @@ _RANK_KEYS = ("rank", "p3", "p1", "q3", "q1", "qrank")
 # Executive and Core are this set with columns hidden, nothing else. Sharpe is
 # a quant-view statistic (not comparable like a return) and the drawdown shown
 # outside Quant is the 3M one.
+# The filters come before the windows (S189 item 8, decided by benchmark 24 Nov 2026, owner to confirm:
+# TradingView groups columns by the question they answer): whether a stock passes is the reader's next
+# question after its place, and at 1400 px the filters sat about 3,100 px to the right.
 _QUANT_KEYS = (
-    ("rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "score", "idx", "ind", "mcap")
+    ("rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "score", "idx", "ind", "mcap",
+     "hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")
     + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
-    + ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3", "stop", "chand",
-       "gap", "ffill", "hz", "spark")
+    + ("stop", "chand", "gap", "ffill", "hz", "spark")
 )
 _CORE_KEYS = ("rank", "stock", "price", "p3", "p1", "qrank", "idx", "ind", "mcap",
               "r1", "r3", "r6", "r12", "dd3", "hi", "ema", "vol", "above", "near", "spark")
@@ -118,10 +123,11 @@ _QUANT_GROUPS = (
     ("Rank before", ("p3", "p1", "d1m")),
     ("Qualified", ("q3", "q1", "qrank")),
     ("Plan", ("plan",)),
-    ("Score", ("score",)),
+    # No label over the one Score column: "Score" over "Score" said it twice (S189 item 8).
+    ("", ("score",)),
     ("Company", ("idx", "ind", "mcap")),
-    *((f"{w} month{'s' if w > 1 else ''}", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
     ("Filters and highs", ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")),
+    *((f"{w} month{'s' if w > 1 else ''}", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
     ("Exits", ("stop", "chand")),
     ("Data health", ("gap", "ffill", "hz")),
     ("Trend", ("spark",)),
@@ -371,7 +377,8 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     vol = str(row.get("Volume") or "Normal")
     # "High" is one day's volume at 1.5x or more its 20-day average
     # (momentum.py): a spike, not a high-volume stock (S87 item 3).
-    vchip = ('<span class="vol" title="Today\'s volume 1.5x or more its 20-day average">Spike</span>'
+    from src.engine.momentum import VOLUME_SPIKE, VOLUME_WINDOW
+    vchip = (f'<span class="vol" title="Today\'s volume {VOLUME_SPIKE:g}x or more its {VOLUME_WINDOW}-day average">Spike</span>'
              if vol == "High" else '<span class="muted">Normal</span>')
     cells["vol"] = f'<td data-v="{_esc(vol)}">{vchip}</td>'
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
@@ -400,8 +407,11 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     # own tags, NANO and NANO250, which this map does not know).
     idx_name = str(row.get("Index Name") or "").strip() or INDEX_NAMES.get(tag, tag)
     idx_order = list(INDEX_NAMES).index(tag) if tag in INDEX_NAMES else 9
-    idx_html = (f'<span class="tag">{_esc(idx_name)}</span>' if tag
-                else '<span class="muted">–</span>')
+    # A system's own list (the > ₹2,000 Cr list, the Nifty 1000's other 250) is not an NSE index: "–", with
+    # the reason on hover, not the list's name on every row (S189 item 6 (b)). A page's own "Index Name" stays.
+    own_list = tag in _SYSTEM_TAGS and not str(row.get("Index Name") or "").strip()
+    idx_html = ('<span class="muted" title="In no NSE size index">–</span>' if own_list or not tag
+                else f'<span class="tag">{_esc(idx_name)}</span>')
     cells["idx"] = f'<td data-v="{idx_order}">{idx_html}</td>'
     ind_full = str(row.get("Industry") or "").strip()
     ind_short = short_industry(ind_full)

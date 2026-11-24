@@ -425,9 +425,12 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
             w = float(plan.weights.get(plan.buys[0], 0.0))
             cash = w * len(plan.buys)
             # The comparison is each buy against the buy size, not the total (S193 B: "13.3% ... less than the 5%").
-            limit = (f"Each buy gets {w * 100:.1f}%, less than the {cfg.get('buy_size', 0.05) * 100:.0f}% buy size: the record never "
-                     f"trims a kept stock to make room, so the buys share the {cash * 100:.1f}% the sells free up (the six-monthly "
-                     "rule, from the 30 Nov rebalance)." if w < float(cfg.get("buy_size") or 0.05) - 1e-9 else "")
+            # Three sentences, the rule's start read from the record's config, not typed (S203 ac.buy.3, rule 9).
+            rule_from = pd.Timestamp(cfg.get("hold_cap_from") or "2026-11-30")
+            limit = (f"Each buy gets {w * 100:.1f}%, less than the {cfg.get('buy_size', 0.05) * 100:.0f}% buy size. The record "
+                     f"does not trim a kept stock to make room, so the buys share the {cash * 100:.1f}% the sells free up. "
+                     f"This is the six-monthly rule, in force from the {rule_from:%-d %b %Y} rebalance."
+                     if w < float(cfg.get("buy_size") or 0.05) - 1e-9 else "")
     else:
         symbols = list(my_symbols or [])
         if not symbols:

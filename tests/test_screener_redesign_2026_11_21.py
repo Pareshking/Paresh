@@ -125,7 +125,9 @@ def test_the_nano_and_combined_footnote_names_what_is_not_ranked():
     head, body = rv.system_note("Combined", ["A"], ["A"], nano=False)
     assert head.endswith("as one list.") and body == ""
     many = [f"S{i:02d}" for i in range(14)]
-    assert rv.system_note("Nano Cap", [], many, nano=True)[1].endswith(" and more.")
+    # Every name, no "and more" (PAGE_DESIGN §2; S189 item 6).
+    body = rv.system_note("Nano Cap", [], many, nano=True)[1]
+    assert "and more" not in body and body.endswith("S12, S13.")
 
 
 def test_no_capitals_in_group_labels():
@@ -140,3 +142,11 @@ def test_the_qualified_place_is_named_where_it_stands_alone():
     assert "Qualified #" in head("Core (17)")
     full = head("Full Quant (35)")
     assert "Qualified #" not in full and ">Now<" in full
+
+
+def test_a_systems_own_list_is_not_shown_as_an_nse_index():
+    """S189 item 6 (b): Nano's rows read "> ₹2,000 Cr" under "NSE index", which is not an NSE index."""
+    nano = st_.table_html(pd.DataFrame([{**_row(), "Indices": "NANO"}]), None, "Full Quant (35)")
+    assert "&gt; ₹2,000 Cr" not in nano and "> ₹2,000 Cr" not in nano and "In no NSE size index" in nano
+    n50 = st_.table_html(pd.DataFrame([{**_row(), "Indices": "N50"}]), None, "Full Quant (35)")
+    assert "Nifty 50" in n50
