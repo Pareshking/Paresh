@@ -40,7 +40,7 @@ another workflow, so the cron alone is not the number.
 
 | Workflow | Cron (UTC) | Cron says /day | Measured runs/day | External resources it fetches |
 |---|---|---|---|---|
-| `daily_sync` | `30 17 * * 1-5`, `0 2 * * *`, + after `screener_sync` | 1.71 | **2.57** | niftyindices 6 constituent CSVs (**×17 requests**, below; one each since C5, 11 Nov), and since 21 Nov the Nifty 1000 list (recorded, not ranked; one request); NSE PR bundle (`--recent 3`) and again in `build_benchmarks --update`; screener.in (`classify_missing`); TradingView scanner; R2 (publish ×2, `nse_collect`); release `rankings*.parquet` upload; release packs **only** when a Nano Cap member is missing (exit 3) |
+| `daily_sync` | `30 17 * * 1-5`, + after `screener_sync` (02:00 dropped 24 Nov 2026, S225 (8)) | 1.71 | **2.57** | niftyindices 6 constituent CSVs (**×17 requests**, below; one each since C5, 11 Nov), and since 21 Nov the Nifty 1000 list (recorded, not ranked; one request); NSE PR bundle (`--recent 3`) and again in `build_benchmarks --update`; screener.in (`classify_missing`); TradingView scanner; R2 (publish ×2, `nse_collect`); release `rankings*.parquet` upload; release packs **only** when a Nano Cap member is missing (exit 3) |
 | `r2-historical-evidence-bootstrap` | `15 20 * * *` + after `daily_sync` + push on `data/indices/**` | 1 | **3.50** | R2 only: **17 `r2_publish.py` invocations per run** |
 | `r2_ranking_archive` | `45 20 * * *` + after `daily_sync` + push | 1 | **3.79** | release `rankings.parquet`; R2 publish + audit |
 | `r2_market_cap_history` | `00 20 * * *` + after `daily_sync` | 1 | **3.50** | R2 only (publish ×2, audit) |

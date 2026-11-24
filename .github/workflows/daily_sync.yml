@@ -28,40 +28,11 @@ on:
     # visible.
     - cron: '30 17 * * 1-5'
 
-    # 02:00 UTC, nominally 07:30 IST -- the morning after each trading session.
-    # In practice GitHub's queue puts it hours later (06:54 UTC on 2026-09-18,
-    # so nearer 12:30 IST). That is tolerable precisely because this slot is
-    # for RECOVERY rather than freshness: it re-requests settled history, and
-    # settled history does not care what time the job runs.
-    #
-    # This run does NOT make the screener fresher, and it is not meant to.
-    # Yahoo publishes an Indian session over about a day and a half, largest
-    # names first, measured on 2026-09-17:
-    #
-    #     ~10h after close (the 23:00 slot)   150/750    20%
-    #     ~15h after close (this slot)        378/750    50%
-    #     ~34h after close                    750/750   100%
-    #
-    # The ranking needs a near-complete session, so at 50% it still lands on
-    # the previous day exactly as the night run did. What this slot buys is
-    # RECOVERY: the night run is the only thing that fills the cache, and when
-    # it is delayed past its window, throttled by NSE, or fails outright, the
-    # gap currently waits a full day. heal_days re-requests 45 days of settled
-    # history on every run and deliberately bypasses the download gate, so this
-    # is a genuine second attempt rather than a no-op.
-    #
-    # Every day, including Sunday and Monday. There is no session behind
-    # those two, but the run is not only chasing the newest bar: heal_days
-    # re-requests the trailing 45 days of SETTLED history on every run, and
-    # Yahoo restates an Indian series for weeks after the fact -- split
-    # adjustments typically land 1-4 weeks late. A Sunday run costs one job
-    # and can still repair a close from three weeks ago.
-    #
-    # What it does NOT do is deepen the archive. heal_days reaches back 45
-    # days and no further; the 10-year window is rebuilt only by the weekly
-    # FORCE_FULL run, which is the one place a longer PRICE_ARCHIVE_PERIOD
-    # takes effect.
-    - cron: '0 2 * * *'
+    # The 02:00 UTC slot was dropped on 24 Nov 2026 (S225 (8); owner: "Drop
+    # 02:00"). It was a recovery run for Yahoo's late sessions; Yahoo is gone, the
+    # night run is chained after the Screener sync (below), and screener_catchup.yml
+    # dispatches this job when the store is newer than its last success. To
+    # restore it: - cron: '0 2 * * *'
   workflow_dispatch: # Allows manual 1-click execution anytime from GitHub Actions tab
 
   # Re-rank as soon as new Screener prices are published.
@@ -83,7 +54,7 @@ on:
 permissions:
   contents: write
 
-# Two scheduled slots a day now, plus manual dispatch. They must not overlap:
+# One scheduled slot, the chained night run, and catch-up dispatches. They must not overlap:
 # both write the same rotating price cache and both commit to main, and a
 # second runner starting mid-commit would race the rebase-and-retry push below.
 # Queue rather than cancel -- a run that is already fetching prices is worth
