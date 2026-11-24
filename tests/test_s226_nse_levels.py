@@ -185,3 +185,22 @@ def test_the_measure_refuses_below_the_guard(capsys, tmp_path):
     empty.write_text("Symbol,Macro,Sector,Industry,Basic_Industry,Source,Checked\n")
     assert m.main(["--system", xu.SYSTEM_NANO, "--classification", str(empty)]) == 2
     assert "run the full Screener sweep first" in capsys.readouterr().out
+
+
+def test_a_former_member_falls_back_to_the_historical_file(tmp_path, monkeypatch):
+    """S226 (B), 24 Nov 2026: 249 of the long file's 1,532 stocks are not on Screener any more (mostly
+    delisted); historical_industries.csv (NSE's four levels, S18) names 217 of them. The sweep's file wins."""
+    from src.loaders import nse_classification as nc
+    hist = tmp_path / "hist.csv"
+    hist.write_text("ISIN,NSE_SYMBOL,COMPANY_NAME,MACRO_SECTOR,SECTOR,INDUSTRY,BASIC_INDUSTRY,CONFIDENCE,SOURCE_URL,NOTES\n"
+                    "X,ANDHRABANK,Andhra Bank,Financial Services,Financial Services,Banks,Public Sector Bank,high,u,\n"
+                    "Y,SANSERA,Sansera,Old,Old Sector,Old,Old,high,u,\n", encoding="utf-8")
+    cls = tmp_path / "cls.csv"
+    cls.write_text("Symbol,Macro,Sector,Industry,Basic_Industry,Source,Checked\n"
+                   "SANSERA,Consumer Discretionary,Automobile and Auto Components,Auto Components,"
+                   "Auto Components & Equipments,SANSERA,2026-11-24\n", encoding="utf-8")
+    monkeypatch.setattr(nc, "HISTORICAL_PATH", str(hist))
+    monkeypatch.setattr(nc._historical, "__defaults__", (str(hist),))
+    m = nc.sector_map(str(cls), str(tmp_path / "none.csv"), str(tmp_path / "none.csv"))
+    assert m["ANDHRABANK"] == "Financial Services"
+    assert m["SANSERA"] == "Automobile and Auto Components"

@@ -32,6 +32,22 @@ from src.engine import extra_universe as xu
 
 CLASSIFICATION_PATH = os.path.join(REPO_DATA_DIR, "reference", "nse_classification.csv")
 TOTAL_MARKET_PATH = os.path.join(REPO_DATA_DIR, "indices", "ind_niftytotalmarket_list.csv")
+# NSE's four levels for former index members, each web-checked (S18, #346): the fallback for a stock the
+# Screener sweep no longer finds (mostly delisted or renamed names in the 2010+ price history).
+HISTORICAL_PATH = os.path.join(REPO_DATA_DIR, "reference", "historical_industries.csv")
+_HISTORICAL_LEVELS = {"Macro": "MACRO_SECTOR", "Sector": "SECTOR", "Industry": "INDUSTRY",
+                      "Basic_Industry": "BASIC_INDUSTRY"}
+
+
+def _historical(level: str, path: str = HISTORICAL_PATH) -> dict[str, str]:
+    """{symbol: label} at one level from the historical file; {} without it."""
+    try:
+        frame = pd.read_csv(path, dtype=str, keep_default_na=False)
+        col = _HISTORICAL_LEVELS[level]
+        return {str(s).strip().upper(): " ".join(str(v).split())
+                for s, v in zip(frame["NSE_SYMBOL"], frame[col]) if str(v).strip()}
+    except (OSError, KeyError, ValueError):
+        return {}
 
 
 def _list_sectors(path: str) -> dict[str, str]:
@@ -52,7 +68,7 @@ def sector_map(classification_path: str = CLASSIFICATION_PATH,
     """{symbol: NSE sector, in the 750's spelling}: NSE's lists first, then the classification file."""
     from src.loaders.extra_universe_loader import NIFTY_1000_PATH, nse_industry
 
-    out: dict[str, str] = {}
+    out: dict[str, str] = _historical("Sector")   # the oldest source first; each later one overrides it
     try:
         cls = pd.read_csv(classification_path, dtype=str, keep_default_na=False)
         out.update({str(s).strip().upper(): v for s, v in zip(cls["Symbol"], cls["Sector"]) if str(v).strip()})
@@ -119,7 +135,8 @@ def levels_map(classification_path: str = CLASSIFICATION_PATH) -> dict[str, dict
     for col, level in LEVEL_COLUMNS.items():
         if level not in cls:
             continue
-        out[col] = {s: " ".join(str(v).split()) for s, v in zip(syms, cls[level]) if str(v).strip()}
+        out[col] = {**_historical(level),
+                    **{s: " ".join(str(v).split()) for s, v in zip(syms, cls[level]) if str(v).strip()}}
     return out
 
 
