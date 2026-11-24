@@ -105,3 +105,16 @@ Verdicts: **Same**; **Different (fix)**; **Different (keep)** with the reason; *
   12, 13, 15, 27). Each method is the textbook one as far as I know, but that is memory, not evidence.
 - **Position sizing** (`portfolio.py:276`, target volatility) and the after-tax figure (`backtest_reference.json`
   `after_tax`, today's tax rates for every year) were not reviewed.
+
+## The six "Not checked" rows, sourced (S223 (e), 24 Nov 2026)
+
+Found by a second agent and read on 24 Nov 2026. The GIPS quotes were checked by the coordinator against the text extracted from the PDF.
+
+| Row | Verdict | Source, read 24 Nov 2026 | Quote | Page change |
+|---|---|---|---|---|
+| 2 TWR, linked | **Same** | [GIPS 2020 for firms](https://www.gipsstandards.org/wp-content/uploads/2021/03/2020_gips_standards_firms.pdf) 1.A.35, 2.A.24(f) | "The firm must present time-weighted returns unless certain criteria are met"; "Geometrically link periodic and sub-period returns." | None. "TWR equals MWR with no flows" is not sourced |
+| 3 After costs | **Same** | GIPS 2020, 2.A.13, 2.A.37 | "All returns must be calculated after the deduction of transaction costs incurred during the period." | None: GIPS's "gross" is still after trading costs, so our figure must not be called gross. The Backtest says "A year before costs", not "gross" (`backtest_view.py:585`). SEBI not checked |
+| 12 Calmar | **Different (keep)** | [Wikipedia, Calmar ratio](https://en.wikipedia.org/wiki/Calmar_ratio), a fallback citing Young (1991), *Futures*, not read | "average annual rate of return for the last 36 months divided by the maximum drawdown for the last 36 months" | None: no page shows Calmar (`theme.py:106` is a format entry only). If one ever does, say "over the whole run, on CAGR" |
+| 13 Beta, TE | **Same**, weak source | Wikipedia, [Beta](https://en.wikipedia.org/wiki/Beta_(finance)) and [Tracking error](https://en.wikipedia.org/wiki/Tracking_error) | "the standard deviation of the active returns" | None. Annualising by √N not sourced; no CFA, MSCI or S&P DJI page found |
+| 15 Drawdown on closes | **Not found** | None | A lead only: MSCI factsheets date drawdowns to days, consistent with daily closes but not stated | None |
+| 27 % above 200D average | **Different (keep)** | [StockCharts ChartSchool](https://chartschool.stockcharts.com/table-of-contents/index-and-market-indicator-catalog/stockcharts-percent-above-moving-average) | "the Nasdaq 100 %Above 50-day SMA ($NDXA50R) shows the percentage of stocks … above their 50-day moving average" | None: ours is an EMA and the page names it (glossary 11) |
