@@ -1082,12 +1082,15 @@ def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], br
     parts = ['<div class="dh-sec"><div class="dh-gl-top"><h2 id="s-glance" class="dh-h3">At a glance</h2>'
              '<span class="dh-sub">Reference figures; the full readings are a page away</span></div></div>']
     if breadth:
+        ix = breadth.get("idx", "Nifty 500")
+        joined = (", the Nifty 500 before its launch on 14 Oct 2021, scaled to meet it" if ix == "Nifty Total Market"
+                  and breadth.get("dates") and breadth["dates"][0] < "2021-10-14" else "")
         counted = ("counted over the members of each date, leavers included." if pit else
                    "counted over today's members (this list's members of each date are not kept far enough back for this chart).")
         parts += [Chart("breadth", breadth, {"note": "The index and how many stocks carry it",
-                                             "label": f"Nifty 500 and the share of the {universe} above their 200D EMA"}),
-                  how(f"Top: the Nifty 500. Bottom: the share of the {universe} above their own 200D EMA, {counted}", "When the top line rises while the bottom one falls, fewer stocks are carrying the index.",
-                      ["Date", "Nifty 500", "Above 200D EMA"],
+                                             "label": f"{ix} and the share of the {universe} above their 200D EMA"}),
+                  how(f"Top: {ix}{joined}. Bottom: the share of the {universe} above their own 200D EMA, {counted}", "When the top line rises while the bottom one falls, fewer stocks are carrying the index.",
+                      ["Date", ix, "Above 200D EMA"],
                       [[d, f"{n:,.1f}", "–" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]])]
     return parts + [f'<div class="dh-gls">{cells}</div>']
 
@@ -1185,7 +1188,10 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     n500 = (pd.to_numeric(bench["nifty500"], errors="coerce").dropna() if bench is not None
             else pd.Series(dtype=float))
     industry = rank_df.set_index("Symbol")["Industry"] if "Industry" in rank_df else pd.Series(dtype=str)
-    leaders = mq.leaders_answer(adj_close, industry, n500, None)
+    # Nifty Total Market, joined to the Nifty 500 before its launch (S165), for every "against the market" reading
+    # here; the signal rows and their tests keep the Nifty 500, the history they were tested on.
+    mkt_line, mkt_name = mq.join_market(n500, bi.series(bi.TOTAL_MARKET))
+    leaders = mq.leaders_answer(adj_close, industry, mkt_line, None, market_name=mkt_name)
     sectors = leaders.sectors if leaders is not None else pd.DataFrame(columns=["Industry", "rel_6m", "rel_1m"])
     ind_state = {}
     for _, r in sectors.iterrows():
@@ -1270,7 +1276,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     # Today's weights, Portfolio's Weight column, so "the book by size" is the same "now" as Portfolio and Actions (S154).
     w_now = (series.table.set_index("Symbol")["Weight %"] if series is not None and "Weight %" in series.table
              else book.set_index("Symbol")["Weight %"])
-    risk = br.book_risk(w_now, adj_close, n500, eq, volume,
+    risk = br.book_risk(w_now, adj_close, mkt_line, eq, volume,
                         float(series.value) if series is not None else MODEL_BOOK_CAPITAL)
     # Volatility and beta as Portfolio shows them: the book's daily series against Nifty Total Market,
     # the same function (S154; the card showed 16.7% and 0.77 from today's weights against the Nifty 500
@@ -1294,7 +1300,9 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     lead_bars = _lead_bars(own, lead)
     fpi_bars = _fpi_bars(nsdl, ev, flows, nse_dii)
     compare = _flow_compare(di.cut_at(_read_csv(FILES["nse_flows"]), as_of), nsdl)
-    breadth = _breadth_spec(n500, hist.get("above_200"), idx_end, UNIVERSE_SHORT.get(system, "750"))
+    breadth = _breadth_spec(mkt_line, hist.get("above_200"), idx_end, UNIVERSE_SHORT.get(system, "750"))
+    if breadth:
+        breadth = {**breadth, "idx": mkt_name, "idxc": "--s-market" if mkt_name == mq.MARKET else "--s-n500"}
 
     uni = UNIVERSE_SHORT.get(system, "750")
     first_fill = fill0 if fill0 is not None and first_month == as_of.to_period("M") else None
@@ -1493,8 +1501,8 @@ def _flow_compare(nse: pd.DataFrame | None, nsdl: pd.DataFrame | None) -> tuple[
 
 def _breadth_spec(n500: pd.Series, above_200: pd.Series | None, as_of: pd.Timestamp,
                   universe: str = "750") -> dict | None:
-    """Three years of the Nifty 500 and the share of the system's ranked stocks above the 200D EMA, on the
-    index's sessions. `universe` names them in the chart's readout (UNIVERSE_SHORT; S193 C)."""
+    """Three years of the index (Nifty Total Market, S165) and the share of the system's ranked stocks above the
+    200D EMA, on the index's sessions. `universe` names them in the chart's readout (UNIVERSE_SHORT; S193 C)."""
     if n500 is None or n500.empty or above_200 is None:
         return None
     idx = n500[(n500.index > as_of - pd.DateOffset(years=3)) & (n500.index <= as_of)]

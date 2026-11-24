@@ -142,8 +142,8 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     from src.engine.exit_watch import qualified_ranks
     _, trails = di.rank_trails(series.prices, syms, now=qualified_ranks(rank_df))   # now: the plan's rank (S154)
     industry = rank_df.set_index("Symbol")["Industry"] if "Industry" in rank_df else pd.Series(dtype=str)
-    n500 = _n500()
-    leaders = mq.leaders_answer(series.prices, industry, n500, None)
+    # Against Nifty Total Market (S165); the industry states read the equal-weighted ranked stocks either way.
+    leaders = mq.leaders_answer(series.prices, industry, market, None, market_name=mq.MARKET)
     state = {}
     if leaders is not None:
         for _, r in leaders.sectors.iterrows():
@@ -171,14 +171,6 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
                 prices=series.prices, cfg=dict(TRACK_RECORD_CONFIG), trails=trails, industry_state=state,
                 sizes=sizes, exposure=exposure, market_weights=mw, indices=idx, systems=systems,
                 correlation=corr, system=system)
-
-
-def _n500() -> pd.Series:
-    try:
-        b = pd.read_csv(ROOT / "data" / "benchmarks.csv", parse_dates=["date"]).set_index("date").sort_index()
-        return pd.to_numeric(b["nifty500"], errors="coerce").dropna()
-    except (OSError, KeyError, ValueError):
-        return pd.Series(dtype=float)
 
 
 def _market_weights(rank_df: pd.DataFrame) -> dict[str, float]:
