@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-24 — Shorter flows readout on a phone (S222)
+
+- The Dashboard's foreign-flows readout names a month "heavy buying", "moderate buying" or "net selling" (it was "a heavy-buying month" and "net buying, below the heavy line"), so each series keeps one line at phone width in any font.
+
 ## 2026-11-24 — One name for each thing (S173), and two late figures named (S164)
 
 - Portfolio's growth chart names its lines in full (Nifty500 Momentum 50, Nifty Total Market) and heads its lower pane "Below its peak". Indices' table says "Max drawdown, relative", and its momentum heading reads "Momentum’s line against the Nifty 500 is 12.3% below its March 2025 peak". The Screener's index filter uses NSE's full index names. "Market cap" replaces "market value" for NSE's caps.
