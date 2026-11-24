@@ -75,12 +75,18 @@ concurrency:
 jobs:
   alert:
     # Scheduled runs, and runs chained off another workflow (workflow_run):
-    # both happen with nobody watching. Pushes and dispatches have a person
-    # looking at them already.
+    # both happen with nobody watching. Dispatches have a person looking at
+    # them. Pushes to main of Production QA and Full Validation alert too
+    # (S225 (5)): merges are made without the owner once CI is green (owner,
+    # 23 Nov 2026), and 33 Production QA push runs failed with no issue. The
+    # names match PUSH_WATCHED in scripts/alert_green_scan.py.
     if: >-
       github.event_name == 'workflow_run' &&
       (github.event.workflow_run.event == 'schedule' ||
-       github.event.workflow_run.event == 'workflow_run') &&
+       github.event.workflow_run.event == 'workflow_run' ||
+       (github.event.workflow_run.event == 'push' &&
+        (github.event.workflow_run.name == 'V1 Production QA' ||
+         github.event.workflow_run.name == 'V1 Full Validation'))) &&
       (github.event.workflow_run.conclusion == 'failure' ||
        github.event.workflow_run.conclusion == 'timed_out' ||
        github.event.workflow_run.conclusion == 'cancelled')

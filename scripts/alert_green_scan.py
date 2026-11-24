@@ -31,6 +31,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ALERT_WORKFLOW = ROOT / ".github" / "workflows" / "scheduled_failure_alert.yml"
 UNATTENDED = ("schedule", "workflow_run")
+# A merge to main is unattended too since the owner's "merge it once CI is green"
+# (23 Nov 2026): nobody watches the push runs these two make (S225 (5)). Kept in
+# step with the alert job's `if:` in scheduled_failure_alert.yml.
+PUSH_WATCHED = ("V1 Production QA", "V1 Full Validation")
 
 
 def watched_names(path: Path = ALERT_WORKFLOW) -> list[str]:
@@ -42,12 +46,13 @@ def watched_names(path: Path = ALERT_WORKFLOW) -> list[str]:
 
 
 def latest_unattended(runs: list[dict], names: list[str]) -> dict[str, dict]:
-    """Newest completed schedule/workflow_run run of each watched name."""
+    """Newest completed schedule/workflow_run run of each watched name (and push, for PUSH_WATCHED)."""
     out: dict[str, dict] = {}
     wanted = set(names)
     for run in runs:
         name = run.get("name")
-        if name not in wanted or run.get("event") not in UNATTENDED:
+        unattended = run.get("event") in UNATTENDED or (run.get("event") == "push" and name in PUSH_WATCHED)
+        if name not in wanted or not unattended:
             continue
         if run.get("status") != "completed" or run.get("head_branch") != "main":
             continue
