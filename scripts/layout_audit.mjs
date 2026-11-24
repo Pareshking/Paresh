@@ -60,7 +60,11 @@ function probe() {
   }
   const ro = document.querySelector('.readout'), card = document.getElementById('c');
   if (ro && card && visible(ro) && document.querySelector('.chart svg') && ro.getBoundingClientRect().height > 0.25 * card.getBoundingClientRect().height)
-    out.push(['readout crowds the chart', `${Math.round(ro.getBoundingClientRect().height)} of ${Math.round(card.getBoundingClientRect().height)} px`]);
+    out.push(['readout crowds the chart', `${Math.round(ro.getBoundingClientRect().height)} of ${Math.round(card.getBoundingClientRect().height)} px`
+      // What wrapped, so a failure on a runner is readable from its log: each line's text and width, the readout's width.
+      + ` (readout ${Math.round(ro.getBoundingClientRect().width)} px wide: `
+      + [...ro.querySelectorAll('*')].filter(e => !e.children.length && e.textContent.trim())
+          .map(e => `"${e.textContent.trim()}" ${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)}`).join(' | ') + ')']);
   // 4: bar tracks
   for (const el of document.querySelectorAll('.pf-ibar, .dh-ibar, .tt')) if (visible(el) && el.getBoundingClientRect().width > 520)
     out.push(['bar track too wide', `${Math.round(el.getBoundingClientRect().width)} px`]);

@@ -1490,7 +1490,9 @@ def _fpi_bars(nsdl: pd.DataFrame | None, ev, flows, nse: pd.DataFrame | None = N
     out = {"values": [round(float(v)) for v in mo.values], "labels": [f"{p:%b}" for p in mo.index],
            "full": [f"{p:%b %Y}" for p in mo.index], "dates": [f"{p.end_time:%Y-%m-%d}" for p in mo.index], "unit": "foreign", "money": True, "axisDiv": 1000,
            "valueLabels": True, "xn": 12, "height": 240, "lastNote": f", to {flows.as_of:%-d %b}",
-           "above": "a heavy-buying month", "between": "net buying, below the heavy line", "belowZero": "net selling"}
+           # Short zone words: the readout keeps one line per series at 412 px in any fallback font. "a heavy-buying
+           # month" wrapped on CI's runner (no Inter), 91 of 347 px, and kept main red from #666 (S222).
+           "above": "heavy buying", "between": "moderate buying", "belowZero": "net selling"}
     if ev is not None:
         out["levels"] = [round(float(ev.threshold))]
     out["band"] = [round(q1), round(q3), ""]

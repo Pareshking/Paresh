@@ -15,7 +15,7 @@ _Last updated: 24 Nov 2026 ~12:15 IST, coordinating session session_016X4g5Y1bsn
   **current head** and it merges cleanly with `main`. Squash-merge with
   `expectedHeadSha`. After a squash merge, restart your branch from `main`.
 - **Before taking an S-number,** check open PRs as well as `main`. Next free:
-  **S222** (TODO's header lists what is reserved).
+  **S223** (TODO's header lists what is reserved).
 - **Verify every claim yourself.** Nothing is deleted without the owner's yes on
   each item; the `ref_*` release files always stay.
 - **Tests:** `python scripts/fetch_nse_closes.py` first, then
@@ -38,6 +38,8 @@ _Last updated: 24 Nov 2026 ~12:15 IST, coordinating session session_016X4g5Y1bsn
   pattern to stop.
 
 ## State at handover
+
+**24 Nov ~07:40 UTC.** #667 merged (1fdd88d); Production QA green on 9649964 and 1fdd88d. **Main's validation is red since #666 (S222, issue #668)**: the Dashboard's flows readout crowds its chart at 412 px on the runner only; cause found 07:45: a readout line wraps in the runner's fallback font (DejaVu Sans), not in Inter; fix on #669 (short zone words, test pinned). Open: #669 (S168 benchmarks on NSE closes from 2012, owner OK 24 Nov; S191, S167 (b), S196, S175 recorded). Merge only once its validation is green.
 
 **24 Nov ~06:45 UTC.** #665 and #666 merged; Production QA green on 9649964 (run 45340114559, served 9649964). S210, S136, S214 closed from the live site (S214: the live Backtest holds R2's current long-file revision, `r2:5ae3e494706e…`). Next PR (branch, open when its checks pass): S138 I2/I3 (markers), I6 (page CSS in `src/ui/page.css`), I7 (test cache in a temp dir), ruff B, UP and SIM, NEXT 8 (engine edge cases; a repeated or reversed date no longer crashes or empties the ranking). Left in S138: NEXT 2-7, research for the owner. The four 15-minute check-ins (`trig_01Lc8…`, `trig_01DiPA…`, `trig_01Q8Qj…`, `trig_01DGbs…`) run to 16:45 UTC and are then deleted.
 

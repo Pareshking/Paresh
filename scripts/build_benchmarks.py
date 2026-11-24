@@ -8,6 +8,8 @@
                                                    # weekdays the file lacks (weekly era)
     python scripts/build_benchmarks.py --kaggle nse_kaggle_raw/Datasets/INDEX --nse-days 0
                                                    # daily history back to 1999
+    python scripts/build_benchmarks.py --nse-history --nse-days 0
+                                                   # NSE's own closes from 21 Feb 2012 (S168)
 
 NSE's daily bundle (the index rows of Pd<ddmmyy>.csv) is the record. SS'
 index chart (daily, back to the index's start) and Screener's fill what NSE
@@ -180,6 +182,26 @@ def weekdays_after(last: date | None, today: date, limit: int) -> list[date]:
     return out[-limit:] if limit else []
 
 
+NSE_HISTORY = bs.FILE.parent / "nse_indices_history.parquet"
+NSE_HISTORY_KEYS = {"nifty500": "nifty_500", "nifty50": "nifty_50"}
+
+
+def nse_history_rows(path=NSE_HISTORY) -> pd.DataFrame:
+    """Both indices from NSE's own daily index file (S168: every index from 21 Feb 2012), as "nse" rows.
+
+    A date is taken only when NSE gives both closes and neither is derived, so a
+    row never mixes sources or leaves a column empty."""
+    h = pd.read_parquet(path, columns=["date", "key", "close", "derived"])
+    h = h[h["key"].isin(NSE_HISTORY_KEYS.values()) & ~h["derived"].astype(bool)]
+    wide = h.pivot_table(index="date", columns="key", values="close", aggfunc="last")
+    wide = wide.rename(columns={v: k for k, v in NSE_HISTORY_KEYS.items()})
+    wide = wide.reindex(columns=list(NSE_HISTORY_KEYS)).dropna()
+    wide.index = pd.DatetimeIndex(wide.index).normalize()
+    wide.index.name = "date"
+    wide["source"] = "nse"
+    return wide
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -189,6 +211,9 @@ def main(argv=None) -> int:
     ap.add_argument("--update", action="store_true", help="add the NSE days since the last row")
     ap.add_argument("--kaggle", default=None,
                     help="the Kaggle dataset's INDEX folder: daily closes back to 1999 for dates the file lacks")
+    ap.add_argument("--nse-history", action="store_true",
+                    help="NSE's own closes from data/nse_indices_history.parquet (from 21 Feb 2012) "
+                         "replace the other sources' on those dates")
     ap.add_argument("--backfill-from", type=date.fromisoformat, default=None,
                     help="also ask NSE for weekdays from this date that have no row "
                          "(Screener's older history is weekly), newest first")
@@ -200,8 +225,8 @@ def main(argv=None) -> int:
                          "downloaded again")
     args = ap.parse_args(argv)
     nse_fetch = bundle_reader(args.bundles) if args.bundles else nse_bundle.fetch_bundle
-    if not (args.seed or args.update or args.backfill_from or args.ss or args.kaggle):
-        ap.error("pass --seed, --update, --backfill-from, --ss and/or --kaggle")
+    if not (args.seed or args.update or args.backfill_from or args.ss or args.kaggle or args.nse_history):
+        ap.error("pass --seed, --update, --backfill-from, --ss, --kaggle and/or --nse-history")
 
     frame = bs.read()
     before = len(frame)
@@ -210,6 +235,8 @@ def main(argv=None) -> int:
         frame = bs.merge(frame, screener_rows(365))  # daily for the last year
     if args.kaggle:
         frame = bs.merge(frame, kaggle_rows(args.kaggle))
+    if args.nse_history:
+        frame = bs.merge(frame, nse_history_rows())
     if args.ss:
         try:
             frame = bs.merge(frame, ss_rows(None if args.seed else 1))
