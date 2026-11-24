@@ -20,6 +20,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from src.ui.formats import fixed as _fixed   # half away from zero (glossary 12); formats has no streamlit import
+
 # A holding is flagged "watch" inside these margins.
 WATCH_RANK_PLACES = 9      # within 9 places of the buffer
 WATCH_EMA_CUSHION = 0.03   # price within 3% of its 50D EMA
@@ -108,7 +110,7 @@ def assess(rank_df: pd.DataFrame, symbols: list[str], rules: Rules = Rules(),
 
         broken, close = [], []
         if not e_ok:
-            broken.append(f"{abs(ema_pct):.1f}% below its 50D EMA" if pd.notna(ema_pct)
+            broken.append(f"{_fixed(abs(ema_pct))}% below its 50D EMA" if pd.notna(ema_pct)
                           else "below its 50D EMA")
         if not n_ok:
             broken.append(f"more than {(1 - rules.high_pct):.0%} below its 52-week high" if pd.notna(hi_pct)
@@ -128,9 +130,11 @@ def assess(rank_df: pd.DataFrame, symbols: list[str], rules: Rules = Rules(),
             if pd.notna(ema_c) and ema_c < WATCH_EMA_CUSHION:
                 # The fall that reaches the EMA, the same figure as the cushion
                 # beside it (it read "2.9% above" next to "2.8% cushion"; F8).
-                close.append(f"can fall {ema_c * 100:.1f}% to its 50D EMA")
+                close.append(f"can fall {_fixed(ema_c * 100)}% before it reaches its 50D EMA")
             if pd.notna(hi_c) and hi_c < WATCH_HIGH_CUSHION:
-                close.append(f"can fall {hi_c * 100:.1f}% to the −{(1 - rules.high_pct):.0%} line")
+                # "the −20% line" alone did not say of what (S203 cm.rule.5).
+                close.append(f"can fall {_fixed(hi_c * 100)}% before it reaches the −{(1 - rules.high_pct):.0%} line "
+                             "from its 52-week high")
             status, why = (WATCH, "; ".join(close)) if close else (CLEAR, "")
         rows.append({
             "Symbol": sym, "Industry": r.get("Industry"), "Rank": r.get("Rank"),

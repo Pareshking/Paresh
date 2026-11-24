@@ -191,6 +191,24 @@ def data_to(as_of, source: str = PRICES_SOURCE) -> str:
     return f"Data from {source}" if _missing(as_of) else f"Data to {date(as_of)} · {source}"
 
 
+def foot_line(rank_df, as_of) -> str:
+    """The ranked pages' footer, one sentence for every page (S203 cm.foot.1): "Data to 20 Nov 2026 · NSE. 750 stocks
+    ranked; 3 with a price gap, 1 with a short history." A count of 0 reads "none with a price gap", as the
+    Watchlist writes it."""
+    from src.ui.components import gap_count     # lazily: components imports streamlit, this module does not
+
+    n = 0 if rank_df is None else len(rank_df)
+    gaps = gap_count(rank_df) if rank_df is not None else 0
+    col = rank_df.get("Short History") if rank_df is not None else None
+    short = 0 if col is None else int((col == "Yes").sum())
+
+    def count(k: int, what: str) -> str:
+        return f"{'none' if k == 0 else k} with {what}"
+
+    return (f"{data_to(as_of)}. {n} stock{'' if n == 1 else 's'} ranked; {count(gaps, 'a price gap')}, "
+            f"{count(short, 'a short history')}.")
+
+
 def closes_not_in(names, day) -> str:
     """The one sentence for indices without a close for the page's session (S148, S193 E):
     "NSE's 20 Nov closes for Nifty 50 and Nifty Bank are not in yet." "" when none."""

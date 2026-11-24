@@ -79,6 +79,6 @@ def test_a_watched_holding_reads_one_number_for_its_ema_room():
     rows = [{"Symbol": "S", "Rank": 1, "Above 50 EMA": True, "Near 52W High": True,
              "% 50 EMA": 100 * (1 / (1 - 0.028) - 1), "% High": 0.0, "Industry": "X"}]
     a = assess(pd.DataFrame(rows), ["S"], Rules())
-    assert a.iloc[0]["why"] == "can fall 2.8% to its 50D EMA"
+    assert a.iloc[0]["why"] == "can fall 2.8% before it reaches its 50D EMA"   # S203 cm.rule.5
 
 

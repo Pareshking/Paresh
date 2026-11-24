@@ -170,6 +170,7 @@ with app_import_guard():
     from src.ui.views.indices_view import render_indices_view
     from src.ui.views.portfolio_view import render_portfolio_view
     from src.ui.views.actions_view import render_actions_view
+    from src.ui.views.actions_page import record_start_line
     from src.ui.views.dashboard_home_view import render_home_view
     from src.ui.views.ranking_view import render_ranking_view, system_note
     from src.ui.views.sector_view import render_sector_view
@@ -1103,11 +1104,8 @@ def _before_inception() -> bool:
 
 
 def _record_start() -> str:
-    """For Nano Cap and Combined: when their book and record begin."""
-    start = pd.Period(SYSTEM_INCEPTION[system], freq="M")
-    return (f"The {system_name} model book forms at the close of "
-            f"{(start - 1).strftime('%B %Y')}'s last session and its record starts "
-            f"with {start.strftime('%B %Y')}.")
+    """For Nano Cap and Combined: when their book and record begin, the day named (S203 ac.empty.2)."""
+    return record_start_line(system_name, SYSTEM_INCEPTION[system])
 
 
 # ── Navigation ───────────────────────────────────────────────────────────────
