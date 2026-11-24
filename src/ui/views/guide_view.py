@@ -43,6 +43,18 @@ _CSS = """<style>
 </style>"""
 
 
+def _members_now() -> int | None:
+    """How many stocks Nifty Total Market lists on its last recorded date (data/membership_history.json,
+    the record the 750 is scored on); None when the record cannot be read (S203 gd.step.1)."""
+    try:
+        from src.engine.membership import describe, load_history_or_none
+        h = load_history_or_none()
+        n = describe(h)["current_size"] if h else 0
+    except Exception:  # noqa: BLE001 -- a count in the Guide, never a reason to fail the page
+        return None
+    return int(n) or None
+
+
 def _body() -> str:
     cfg = TRACK_RECORD_CONFIG
     top_n, buffer_n, cost = int(cfg["top_n"]), int(cfg["buffer_n"]), float(cfg["cost_bps"])
@@ -84,8 +96,12 @@ def _body() -> str:
     rule_from = pd.Timestamp(cfg["hold_cap_from"]).strftime("%-d %b %Y")
     buy_size, hold_cap = f"{float(cfg['buy_size']):.0%}", f"{float(cfg['hold_cap']):.0%}"
     reset = " and ".join(calendar.month_name[int(m)] for m in cfg["weight_reset_months"])
-    stale = {5: "five"}.get(int(ANCHOR_STALENESS_LIMIT), str(int(ANCHOR_STALENESS_LIMIT)))
-    wait = {6: "six"}.get(round(min_high / 21), str(round(min_high / 21)))
+    # Counts in figures (S203 rule 11): "up to 5 sessions", "about 6 months".
+    stale = int(ANCHOR_STALENESS_LIMIT)
+    wait = round(min_high / 21)
+    n_members = _members_now()
+    universe = (f"The {n_members:,} stocks of Nifty Total Market" if n_members
+                else "The stocks of Nifty Total Market")
     inv_window = int(inspect.signature(_pc.inverse_volatility).parameters["window"].default)
     return f"""
 <div class="gd">
@@ -97,7 +113,7 @@ def _body() -> str:
 
 <h2 id="steps">The five steps</h2>
 <ol>
-<li><b>Universe.</b> About 750 stocks: the Nifty Total Market as NSE published it on each date,
+<li><b>Universe.</b> {universe} as NSE published it on each date,
 so a stock counts only while it was a member. Prices are daily closes, adjusted for splits, bonuses,
 consolidations, rights issues and demergers; the history from 2010 also takes out dividends of 10% or more.
 The {others} follow the same steps on their own lists.</li>
@@ -194,7 +210,8 @@ holding back to 1/{top_n}, selling some of a winner and topping up a laggard. Fr
 twice a year, at the {reset} rebalances. In between, a holding that stays is left as its
 price moved it unless it is above {hold_cap}, when it is cut to {hold_cap}, and each new buy is {buy_size} of the account
 as it stood at the last reset, paid from cash; when cash is short the new names get fewer shares, and
-no holding is sold to pay for them. No sector is above {sector_cap:.0%} after a rebalance. In the test behind
+no holding is sold to pay for them.</p>
+<p>No sector is above {sector_cap:.0%} after a rebalance. In the test behind
 the decision (8 Nov 2026, with an estimate of tax) the monthly reset earned
 15.4% a year after tax and the six-monthly 15.3%, with far fewer trades between resets. That test ran
 on the Nifty 500 from 2010, as the Backtest does, because Nifty Total Market starts only on
@@ -259,7 +276,7 @@ def render_guide_view(rank_df: pd.DataFrame) -> None:
     # A title that answers the reader's question, the page's name as the kicker (S203 Q1, owner 24 Nov 2026).
     kit.page_head(
         "How the ranking picks the book, and how to act on it.",
-        "The ranking, the filters, the book and the record, step by step",
+        "The ranking, the filters, the book and the record, step by step.",
         kicker="Guide",
     )
     st.html(_CSS + _body())

@@ -130,17 +130,15 @@ def _emit(parts: list) -> None:
 
 
 def _peers_note(shown: pd.DataFrame, in_ind: pd.DataFrame, sym: str) -> str:
-    """"The eight best-ranked of the sector's 26, with this stock", or, when the stock is below them,
-    "The seven best-ranked of the sector's 26, and this stock (14th)" (S193 B: it read "eight" over seven)."""
-    words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight"}
+    """"The 8 best-ranked of the sector's 26, with this stock", or, when the stock is below them,
+    "The 7 best-ranked of the sector's 26, and this stock (14th)" (S193 B: it read "eight" over seven;
+    S203 st.ind.2 and rule 11: a count in a sentence is a figure)."""
     order = [str(s) for s in in_ind["Symbol"]]
     top = [str(s) for s in shown["Symbol"]]
     if sym in order and sym in top and order.index(sym) >= len(top):   # shown after the best, below them in the sector
-        n = len(top) - 1
-        return (f"The {words.get(n, str(n))} best-ranked of the sector’s {len(in_ind)}, and this stock "
+        return (f"The {len(top) - 1:,} best-ranked of the sector’s {len(in_ind):,}, and this stock "
                 f"({_ordinal(order.index(sym) + 1)})")
-    n = len(top)
-    return f"The {words.get(n, str(n))} best-ranked of the sector’s {len(in_ind)}, with this stock"
+    return f"The {len(top):,} best-ranked of the sector’s {len(in_ind):,}, with this stock"
 
 
 def _ordinal(n: int) -> str:
@@ -265,13 +263,13 @@ def head_html(row, uni: sl.Universe, held: bool, as_of, market12, q, n_q, ln, ho
                     f'<span class="s">{e(t.sub)}</span></div>' for t in ts)
     return ['<div class="sp-head">', _kick(kick), f'<h1 class="dh-h1">{e(sl.title(row, uni, held))}</h1>',
             f'<p class="dh-lede">{e(sl.lede(row, as_of, market12, late))}</p>',
-            *([f'<p class="dh-lede">Also {e(wl.ranks_elsewhere_words(list(hits)))}. '
+            *([f'<p class="dh-lede">It also ranks {e(wl.ranks_elsewhere_words(list(hits)))}. '
                f'{_elsewhere_links(str(row["Symbol"]), list(hits))}</p>'] if hits else []),
             f'<div class="sp-tiles{" n3" if len(ts) == 3 else ""}">{tiles}</div></div>']
 
 
 def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
-    a, b = sl.rank_heading(row, uni, q, n_q, ln)
+    a, b, c = sl.rank_heading(row, uni, q, n_q, ln)
     heads = "".join(f'<th scope="col" class="n">{lab}<span class="sub">{e(wl.fmt_day(d)) if d is not None else formats.DASH}</span></th>'
                     for lab, d in zip(("3M ago", "1M ago", "Now"), tr.dates))
     rk = "".join(f'<td class="n{" past" if i < 2 else ""}">{"–" if r is None else r}</td>' for i, r in enumerate(tr.ranks))
@@ -298,7 +296,7 @@ def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
     from src.ui.tokens import resolve
     img = (f'<img width="220" height="170" alt="{e(label)}" '
            f'src="data:image/svg+xml,{quote(resolve(svg))}">')
-    return ['<section class="dh-sec sp-sec">', _kick("1 · Rank"), _h2(a, b, ".", "up" if q is not None and q <= ln.keep else "down"),
+    return ['<section class="dh-sec sp-sec">', _kick("1 · Rank"), _h2(a, b, c, "up" if q is not None and q <= ln.keep else "down"),
             '<div class="sp-trail"><div><div class="sp-tbox"><table class="sp-t"><thead><tr><th scope="col"></th>'
             f'{heads}</tr></thead><tbody><tr><th scope="row">{e(uni.rank_label)}</th>{rk}</tr>'
             f'<tr><th scope="row">Place among the qualified</th>{pl}</tr></tbody></table></div>'
@@ -445,8 +443,9 @@ def _render_not_ranked(symbol: str, rank_df: pd.DataFrame, uni: sl.Universe, as_
     elif new:
         from src.ui.system_param import stock_href
         go = f' <a class="sp-go" href="{e(stock_href(new))}" target="_self">{e(new)}’s page →</a>'
-    else:
-        go = " Back to the Screener for the stocks that are ranked."
+    else:   # S203 st.nr.1: a link, as the other ways on are
+        from src.ui.system_param import page_href
+        go = f' <a class="sp-go" href="{e(page_href("screener"))}" target="_self">Back to the Screener →</a>'
     _render_actions(symbol, on_back)
     _emit(['<div class="sp-head">', _kick(f"Stock · {symbol}"),
            f'<h1 class="dh-h1">{e(symbol)} is not in the current ranking of {e(uni.the)}.</h1>',

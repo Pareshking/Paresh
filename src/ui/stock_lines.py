@@ -20,17 +20,17 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
+from src.engine.backtester import EMA_MIN_PRINTS
 from src.ui import formats
 from src.ui import watchlist_lines as wl
 
 PERIODS = (1, 3, 6, 9, 12)
 MARKET = "Nifty Total Market"   # S165: the market the 750 is measured against, named in full (S173 rule 6)
 DASH = formats.DASH
-_WORDS = ("First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth",
-          "Eleventh", "Twelfth", "Thirteenth", "Fourteenth", "Fifteenth", "Sixteenth", "Seventeenth",
-          "Eighteenth", "Nineteenth", "Twentieth")
 # The 52W high counts only after this many sessions (S3, owner 13 Oct; config.HIGH_52W_MIN_OBSERVATIONS).
 HIGH_SESSIONS = 126
+# The EMA's warm-up from the rule, not typed (S203 st.px.2, rule 9).
+_EMA_MIN = int(EMA_MIN_PRINTS)
 
 
 # ── Small words ──────────────────────────────────────────────────────────────
@@ -47,12 +47,6 @@ def tick(v) -> bool:
     return wl._tick(v)
 
 
-def ordinal_word(n: int) -> str:
-    """Twelfth, or 37th past the twentieth (a title starts with a word, not a figure)."""
-    n = int(n)
-    return _WORDS[n - 1] if 1 <= n <= len(_WORDS) else wl.fmt_ordinal(n)
-
-
 def short_name(name, symbol: str) -> str:
     """The company without "Limited" / "Ltd." (as Portfolio and the Watchlist write it)."""
     text = str(name or "").strip()
@@ -63,13 +57,11 @@ def short_name(name, symbol: str) -> str:
     return text
 
 
-def market_cap(cr: float | None) -> str:
-    """₹29,944 Cr; ₹1.22 lakh Cr above a lakh crore (S173 rule 2)."""
-    if cr is None:
-        return DASH
-    if abs(cr) >= 100000:
-        return f"₹{cr / 100000:.2f} lakh Cr"
-    return f"{formats.inr(cr)} Cr"
+def market_cap(v: float | None) -> str:
+    """Money in a sentence through the Dashboard's one helper, `cr()` (S203 answer 6, st.head.2):
+    ₹30,000 Cr; ₹1.22 lakh Cr above a lakh crore. A size, not a flow, so without cr()'s "+"."""
+    from src.ui.views.dashboard_home_view import cr
+    return cr(v).removeprefix("+")
 
 
 @dataclass(frozen=True)
@@ -103,17 +95,20 @@ def universe(system: str, n: int) -> Universe:
 
 def filters_state(row) -> str:
     a, h = tick(row.get("Above 50 EMA")), tick(row.get("Near 52W High"))
+    # S203 st.head.1: one filter is named, the tiles already say which it fails.
     return ("passes both filters" if a and h else "fails both filters" if not a and not h
-            else "passes one filter")
+            else "passes only the 50D EMA filter" if a else "passes only the 52-week-high filter")
 
 
-def failed_filters(row) -> str:
+def failed_filters(row, sentence: bool = False) -> str:
+    """'the 52W-high filter' in a tile; 'the 52-week-high filter' in a sentence (glossary 14)."""
     a, h = tick(row.get("Above 50 EMA")), tick(row.get("Near 52W High"))
+    hw = "52-week" if sentence else "52W"
     # A recent listing has no 52W high to be near: say so, not that it is far below one (S193 E).
     young = (not h and num(row.get("% High")) is None and str(row.get("Short History") or "") == "Yes")
-    why = f", too new to have a 52W high (none before {HIGH_SESSIONS} sessions)" if young else ""
+    why = f", too new to have a {hw} high (none before {HIGH_SESSIONS} sessions)" if young else ""
     return ("both filters" + why if not a and not h else "the 50D EMA filter" if not a
-            else "the 52W-high filter" + why if not h else "")
+            else f"the {hw}-high filter" + why if not h else "")
 
 
 # ── Head ─────────────────────────────────────────────────────────────────────
@@ -143,15 +138,17 @@ def lede(row, as_of: pd.Timestamp, market12: float | None, late: bool = False) -
     close = formats.price(row.get("CMP"))
     high_day = pd.to_datetime(str(row.get("52W High Date") or "")[:10], errors="coerce")
     new_high = pd.notna(high_day) and high_day.normalize() == pd.Timestamp(as_of).normalize()
-    parts = [f"{close} at the close on {formats.date(as_of)}" + (", a new 52-week closing high." if new_high else ".")]
+    # S203 st.head.2: the sign in a word, not "+0.8%" in a sentence (rule 2); "over 12 months".
+    parts = [f"{close} at the {formats.date(as_of)} close" + (", a new 52-week closing high." if new_high else ".")]
     r12 = num(row.get("12M Return"))
     if r12 is not None:
-        word = "Up" if round(r12 * 100, 1) >= 0 else "Down"
-        line = f"{word} {formats.pct(abs(r12), signed_=False)} in 12 months"
+        line = formats.moved(r12 * 100)
+        line = line[0].upper() + line[1:] + " over 12 months"
         if late:   # S148, S203 st.ret.3: said, not left out
             line += f"; {MARKET}’s {formats.date(as_of, short=True)} close is not in yet"
         elif market12 is not None:
-            line += f", against {formats.pct(market12)} for {MARKET}"
+            m = formats.moved(market12 * 100)
+            line += (f", against an unchanged {MARKET}" if m == "unchanged" else f", against {m} for {MARKET}")
         parts.append(line + ".")
     mc = num(row.get("Market Cap (Cr)"))
     if mc is not None:
@@ -171,7 +168,7 @@ def tiles(row, uni: Universe, q: int | None, n_qualified: int, as_of: pd.Timesta
     """Close, rank, place among the qualified, and (when held) the book's return since entry."""
     r1 = num(row.get("1M Return"))
     out = [Tile(f"Close, {wl.fmt_day(as_of)}", formats.price(row.get("CMP")),
-                f"{formats.pct(r1)} in a month" if r1 is not None else "")]
+                f"{formats.pct(r1)} over 1M" if r1 is not None else "")]
     r3 = num(row.get("Rank (-3M)"))
     out.append(Tile(uni.rank_label, str(int(row["Rank"])),
                     f"{int(r3)} three months ago" if r3 is not None else "not ranked three months ago"))
@@ -211,15 +208,15 @@ def place_text(p) -> str:
     return "Out" if p is None else wl.fmt_ordinal(int(p))
 
 
-def rank_heading(row, uni: Universe, q: int | None, n_qualified: int, ln: wl.Lines) -> tuple[str, str]:
-    """(plain, coloured) halves of the heading: 'Twelfth of the 290 that pass both filters, '
-    + 'inside the book's buy line'."""
+def rank_heading(row, uni: Universe, q: int | None, n_qualified: int, ln: wl.Lines) -> tuple[str, str, str]:
+    """(plain, coloured, plain) parts of the heading: '12th of the 290 that pass both filters, '
+    + 'inside the book's buy line' + '.' (S203 st.rank.1: ordinals in figures, rule 8)."""
     if q is None:
-        return (f"{ordinal_word(int(row['Rank']))} {uni.of}, but out of the {n_qualified:,} the book picks from: ",
-                f"it fails {failed_filters(row)}")
+        return (f"{wl.fmt_ordinal(int(row['Rank']))} {uni.of}, but ", f"it fails {failed_filters(row, sentence=True)}",
+                f", so it is not among the {n_qualified:,} the book picks from.")
     where = ("inside the book’s buy line" if q <= ln.buy else
              "between the book’s buy and keep lines" if q <= ln.keep else "past the book’s keep line")
-    return f"{ordinal_word(q)} of the {n_qualified:,} that pass both filters, ", where
+    return f"{wl.fmt_ordinal(q)} of the {n_qualified:,} that pass both filters, ", where, "."
 
 
 def rank_note(row, uni: Universe, ln: wl.Lines) -> str:
@@ -230,7 +227,7 @@ def rank_note(row, uni: Universe, ln: wl.Lines) -> str:
     if score is not None:
         scored = ("with all five horizons scored" if hz is not None and hz >= 5 else
                   f"with {int(hz)} of the five horizons scored" if hz is not None else "")
-        text += f" Score {formats.signed(score, 3, plus=False)}" + (f", {scored}." if scored else ".")
+        text += f" Its score is {formats.signed(score, 3, plus=False)}" + (f", {scored}." if scored else ".")
     return text
 
 
@@ -341,7 +338,7 @@ def rules_heading(a: dict | None, check: pd.Timestamp | None, high_pct: float,
     when = f"the {wl.fmt_day(check)} check" if check is not None else "the next check"
     if status == SELL:
         # S203 st.rule.1: "A holding would be sold" was said of stocks the book does not hold.
-        return ("It would be sold" if held else "It would fail a sell rule",
+        return ("It would be sold" if held else "It would be sold if held",
                 f" at {when} if today's price holds: it is {a.get('why') or 'past a rule'}.")
     if status == WATCH:
         return "It is close to a sell rule", f": it {a.get('why')}."
@@ -354,7 +351,7 @@ def rules_heading(a: dict | None, check: pd.Timestamp | None, high_pct: float,
             return ("Clear of all three sell rules",
                     f"; a {formats.pct(c, signed_=False)} fall would reach the nearest, {what}.")
         return "Clear of all three sell rules", "."
-    return "The sell rules cannot be read", " for this stock today."
+    return "", "No sell rule can be checked: the stock is not ranked today."
 
 
 @dataclass(frozen=True)
@@ -395,7 +392,7 @@ def holding_sentence(held: bool, h: Holding | None) -> tuple[str, str]:
         bits.append(f"first bought on {formats.date(h.entry)}"
                     + (f" at {formats.price(h.entry_price)}" if h.entry_price is not None else ""))
     if h.ret is not None:
-        bits.append(f"{formats.pct(h.ret, fraction=False)} since")
+        bits.append(f"{formats.moved(h.ret)} since")   # S203 st.rule.3: the sign in a word (rule 2)
     return "The model book holds it:", (" " + ", ".join(bits) + ".") if bits else ""
 
 
@@ -590,15 +587,15 @@ def rs_words(rs_end: float | None) -> str:
 
 
 def price_heading(above: int, of: int, rs_end: float | None) -> tuple[str, str, str]:
-    """('Above its 50D EMA on 57 of the last 60 sessions; ', 'against Nifty Total Market it has almost tripled', ' in 12 months.')"""
+    """('Above its 50D EMA on 57 of the last 60 sessions; ', 'against Nifty Total Market it has almost tripled', ' over 12 months.')"""
     a = f"Above its 50D EMA on {above} of the last {of} sessions" if of else "Too few sessions for a 50D EMA yet"
     words = rs_words(rs_end)
     if not words:
         return a + ".", "", ""
-    return a + "; ", f"against {MARKET} it {words}" if words.startswith("has") else f"against {MARKET} {words}", " in 12 months."
+    return a + "; ", f"against {MARKET} it {words}" if words.startswith("has") else f"against {MARKET} {words}", " over 12 months."
 
 
-PRICE_NOTE = ("Three panes: price with its 50D EMA, the one the ranking reads (none before 30 sessions); volume, the "
+PRICE_NOTE = (f"Three panes: price with its 50D EMA, the one the ranking reads (none before {_EMA_MIN} sessions); volume, the "
               "shares traded each session (taller bars on busier days, blue when the close rose); and RS, the stock’s "
               f"price over {MARKET}’s, set to 100 at the start of the range: above 100 it has gained more than {MARKET} "
               "since then. Prices are adjusted for corporate actions.")
@@ -629,8 +626,10 @@ def industry_heading(row, in_ind: pd.DataFrame) -> str:
     pos = order.index(sym) + 1 if sym in order else None
     q = pd.to_numeric(in_ind.get("Qualified Rank"), errors="coerce").notna().sum() if "Qualified Rank" in in_ind else 0
     ind = short_industry(row.get("Industry"))
-    head = (f"{ordinal_word(pos)} of {len(in_ind)} {ind} stocks" if pos else f"{len(in_ind)} {ind} stocks")
-    return f"{head}; {int(q)} of them pass{'es' if q == 1 else ''} both filters."
+    # S203 st.ind.1: the ordinal in figures (rule 8); counts as figures, "none" for 0 (rule 11).
+    head = (f"{wl.fmt_ordinal(pos)} of the {len(in_ind):,} {ind} stocks" if pos else f"{len(in_ind):,} {ind} stocks")
+    k = int(q)
+    return f"{head}; {'none' if k == 0 else f'{k:,}'} of them pass{'es' if k <= 1 else ''} both filters."
 
 
 def from_high(r, as_of: pd.Timestamp) -> str:
@@ -729,17 +728,17 @@ def data_heading(dc: DataChecks) -> str:
     if dc.to_read == 0 and not dc.actions:
         return ("Nothing to correct: a full year of prices with no gaps, and no split, bonus or rights issue to "
                 "adjust for.")
+    # S203 st.data.2: two sentences, not one with two semicolons.
     parts = []
     if dc.actions:
         last = dc.actions[-1]
         kind = {"rights": "rights issue"}.get(last.kind, last.kind)
         # The lists start in Oct 2024; an older action (RELIANCE's 2023 demerger) is in the history but not counted here (S193 B).
         parts.append(f"{wl.fmt_count(len(dc.actions), 'corporate action')} in NSE’s lists{dc.since}, the latest a {kind} "
-                     f"ex {formats.date(last.ex)}; the prices before it are rescaled")
+                     f"ex {formats.date(last.ex)}; prices before it are rescaled.")
     if dc.to_read:
-        parts.append(f"{wl.fmt_count(dc.to_read, 'check')} to read")
-    text = "; ".join(parts) + "."
-    return text[0].upper() + text[1:]
+        parts.append(f"{wl.fmt_count(dc.to_read, 'check')} to read below.")
+    return " ".join(parts)
 
 
 def foot(as_of) -> str:

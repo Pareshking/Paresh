@@ -88,7 +88,7 @@ def test_guide_states_what_the_code_does():
     import re
     from src.ui.views import guide_view
     body = re.sub(r"\s+", " ", guide_view._body())
-    assert "waits about six months" in body and "about six weeks" not in body          # 63 sessions to rank, 126 for the high
+    assert "waits about 6 months" in body and "about six weeks" not in body          # 63 sessions to rank, 126 for the high
     assert "buy orders only" not in body and "its sells at the model book's share counts" in body
     assert "never above" not in body and "as it stood at the last reset" in body
     assert "except the after-tax rows in the Backtest's section 4" in body
