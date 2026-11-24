@@ -43,13 +43,11 @@ def market_title(breadth, trend, name: str = "Nifty Total Market") -> str:
     owner 24 Nov 2026), and a missing score is said, not "Not enough data participation" (mk.head.1)."""
     from src.engine.market_questions import word_for
     missing = word_for(None, ("",) * 5)
-    if breadth is None or trend is None:
-        return "Market breadth"
-    b_ok, t_ok = breadth.verdict != missing, trend.verdict != missing
-    index = the(name)
-    index = index[0].upper() + index[1:]
-    t_txt = f"{index} {_TREND.get(trend.verdict, trend.verdict.lower())}"
-    b_txt = f"Participation is {breadth.verdict.lower()}"
+    b_ok = breadth is not None and breadth.verdict != missing
+    t_ok = trend is not None and trend.verdict != missing
+    index = the(name)   # after the semicolon, so "the Nifty 500" keeps its small "the"
+    t_txt = f"{index} {_TREND.get(trend.verdict, trend.verdict.lower())}" if t_ok else ""
+    b_txt = f"Participation is {breadth.verdict.lower()}" if b_ok else ""
     if b_ok and t_ok:
         return f"{b_txt}; {t_txt}."
     if b_ok:
@@ -57,6 +55,12 @@ def market_title(breadth, trend, name: str = "Nifty Total Market") -> str:
     if t_ok:
         return f"Participation cannot be read today; {t_txt}."
     return "The ranked stocks' prices are not in yet."
+
+
+def market_sub(name: str = "Nifty Total Market") -> str:
+    """S203 mk.head.2: the page's lede, its question asked as one."""
+    return ("Two questions, answered from the ranked stocks and NSE’s index closes: are most stocks taking part, "
+            f"and is {the(name)} in an uptrend? Then today’s charts.")
 
 
 def _columns_key(prices: pd.DataFrame, syms: list) -> str:
@@ -89,7 +93,7 @@ def _scale(a: mq.Answer) -> str:
 
 
 def _tone(a: mq.Answer) -> str:
-    return "up" if a.score >= 0.25 else "down" if a.score <= -0.25 else ""
+    return "up" if a.score >= mq.LEAN_AT else "down" if a.score <= -mq.LEAN_AT else ""
 
 
 # Anchors for the Dashboard's "On this page" line (owner, 8 Nov 2026: the
@@ -145,9 +149,9 @@ def joined_note(close: pd.Series, name: str) -> str:
     tm = bi.series(bi.TOTAL_MARKET).dropna()
     if close.empty or tm.empty or close.index[0] >= tm.index[0]:
         return ""
-    return (f"Nifty Total Market from {tm.index[0]:%-d %b %Y}, when NSE launched it; before that the {mq.EARLIER}, "
-            f"scaled to meet it on that day, so the trend’s ranges reach back to {close.index[0]:%Y}. NSE publishes "
-            "no Nifty Total Market closes before its launch.")
+    return (f"Nifty Total Market from {tm.index[0]:%-d %b %Y}, when NSE launched it. Before that it is the "
+            f"{mq.EARLIER}, scaled to meet it on that day, so the trend’s ranges reach back to {close.index[0]:%Y}. "
+            "NSE publishes no Nifty Total Market closes before its launch.")
 
 
 def total_market() -> pd.Series:
@@ -217,10 +221,20 @@ _PAGE_CSS = """<style>
 </style>"""
 
 
+def no_month_ago(a: mq.Answer, kind: str) -> str:
+    """S203 mk.q.4, the missing case with its cause: a breadth history that starts inside the month reads
+    "– a month ago: not published yet (the breadth history starts 2 Nov 2026)."."""
+    from src.ui import missing_words as mw
+    firsts = [m.first for m in a.measures if m.first is not None]
+    if kind == "breadth" and firsts:
+        return f"– a month ago: {mw.NOT_PUBLISHED} (the breadth history starts {_fmt.date(min(firsts))})."
+    return "A month-ago reading is not available."
+
+
 def _changes_html(a: mq.Answer, kind: str) -> str:
     items = mq.changes(a)[:3]
     if not items:
-        return "<ul><li>A month-ago reading is not available.</li></ul>"
+        return f"<ul><li>{html.escape(no_month_ago(a, kind))}</li></ul>"
     words = _VOTE_WORD[kind]
     li = []
     for m, then, now in items:
@@ -260,10 +274,18 @@ def _move_words(m: mq.Measure, side: str) -> str:
     return "falling below" if m.vote == mq.UP else "falling to"
 
 
+def _too_short() -> str:
+    from src.ui import missing_words as mw
+    return f"–: the measure is {mw.TOO_NEW} (under 12 months of history)."   # S203 mk.q.7, the R1 cause words
+
+
+TOO_SHORT = _too_short()
+
+
 def _range_html(m: mq.Measure) -> str:
     h = m.history
     if not h or m.now is None:
-        return '<span class="qp-note">Under a year of history</span>'
+        return f'<span class="qp-note">{html.escape(TOO_SHORT)}</span>'
     lo, q1, q3, hi, _pct, _since = h
     span = (hi - lo) or 1.0
     x = lambda v: max(0.0, min(100.0, (v - lo) / span * 100))  # noqa: E731
@@ -277,6 +299,11 @@ def _ordinal(n: float) -> str:
     k = int(round(n))
     suf = "th" if 10 <= k % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(k % 10, "th")
     return f"{k}{suf}"
+
+
+# The note's two cut-offs, from `word_for`'s own constants (S203 mk.q.8).
+VERDICT_CUTOFFS = (f"The verdict is at an end when the weighted vote is {mq.END_AT:g} or more either way, "
+                   f"leaning at {mq.LEAN_AT:g}.")
 
 
 def question_section_html(a: mq.Answer, kind: str, anchor: str) -> str:
@@ -305,7 +332,7 @@ def question_section_html(a: mq.Answer, kind: str, anchor: str) -> str:
         f'<tbody>{"".join(rows)}</tbody></table>'
         '<p class="qp-note">Each measure votes by its cut-offs; primary measures count twice. The bar runs from '
         'the lowest reading in the price history the site holds to the highest; the shaded part is the middle '
-        'half. The verdict is at an end when the weighted vote is 0.6 or more either way, leaning at 0.25.</p>'
+        'half. ' + VERDICT_CUTOFFS + '</p>'
         '</section>')
 
 
@@ -348,7 +375,7 @@ def size_trend_html(bench: pd.Series, size: dict[str, pd.Series], late=(), day=N
             f'<tbody>{"".join(rows)}</tbody></table>'
             '<p class="qp-note">The 10-month columns read the close on each day against the average of the last '
             'ten monthly closes, the month in progress counted at that close, as a monthly chart draws it; at a '
-            'month-end it is the classic month-end reading. Points are per cent.'
+            'month-end it is the classic month-end reading. Figures are per cent of the index\'s level.'
             + (f' {html.escape(_fmt.closes_not_in(late, day))}' if late and day is not None else '') + '</p>')
 
 
@@ -392,7 +419,37 @@ def _chart_series(key: str, _prices: pd.DataFrame, _bench: pd.Series, pit: bool 
 
 
 def _moved(v: float) -> str:
-    return f"rose {abs(v):.1f}%" if v > 0 else f"fell {abs(v):.1f}%" if v < 0 else "was flat"
+    if _fmt.reads_zero(v, 1):
+        return "was unchanged"
+    return f"{'rose' if v > 0 else 'fell'} {_fmt.fixed(abs(v), 1)}%"
+
+
+def year_head(name: str, ret: float, a: float, b: float) -> str:
+    """S203 mk.ch.1: "Over 12 months, Nifty Total Market rose 8.2%, and the share of stocks above their 200D EMA
+    went from 61% to 48%." The same share reads "stayed at"."""
+    sa, sb = (_fmt.pct(v, signed_=False, digits=0, fraction=False) for v in (a, b))
+    share = f"stayed at {sa}" if sa == sb else f"went from {sa} to {sb}"
+    return f"Over 12 months, {the(name)} {_moved(ret)}, and the share of stocks above their 200D EMA {share}."
+
+
+def highs_head(x: float, y: float | None) -> str:
+    """S203 mk.ch.2: "Net new 52-week highs this week: +5.5% of stocks, against −2.0% 12 months ago."."""
+    return (f"Net new 52-week highs this week: {_fmt.signed(x, 1)}% of stocks"
+            + (f", against {_fmt.signed(y, 1)}% 12 months ago" if y is not None else "") + ".")
+
+
+def ten_month_head(name: str, today: float, on, me: float | None = None, me_at=None) -> str:
+    """S203 mk.ch.4: "Nifty Total Market is 2.3% above its 10-month average on 20 Nov." Then, when the last
+    month-end is not today: "At the 30 Oct month-end it was 1.1% below." Level reads "at its 10-month average"."""
+    def side(v: float, what: str) -> str:
+        if _fmt.reads_zero(v, 1):
+            return f"at {what}"
+        return f"{_fmt.fixed(abs(v), 1)}% {'above' if v > 0 else 'below'}" + (f" {what}" if what else "")
+    head = f"{sentence_case(the(name))} is {side(today, 'its 10-month average')} on {_fmt.date(on, short=True)}."
+    if me is None or me_at is None or pd.Timestamp(me_at) == pd.Timestamp(on):
+        return head
+    tail = side(me, "its 10-month average") if _fmt.reads_zero(me, 1) else side(me, "")
+    return f"{head} At the {_fmt.date(me_at, short=True)} month-end it was {tail}."
 
 
 def _chart_head(title: str, note: str) -> None:
@@ -426,8 +483,7 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
     with left:
         if y0 is not None and b1 is not None and s0 is not None:
             ret = (float(bench.loc[b1]) / float(bench.loc[y0]) - 1) * 100
-            _chart_head(f"Over the year {the(name)} {_moved(ret)}; the share of stocks above their "
-                        f"200D EMA went from {share200.loc[s0]:.0f}% to {share200.iloc[-1]:.0f}%",
+            _chart_head(year_head(name, ret, float(share200.loc[s0]), float(share200.iloc[-1])),
                         "The index above, the share of the ranked stocks above their own 200D EMA below, "
                         "on one time axis. When the index rises while the lower line falls, fewer stocks "
                         "are carrying it. " + ("Members of each date, leavers included." if pit else
@@ -444,8 +500,7 @@ def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
             w = weekly.loc[since:].dropna()
             daily = nnh if nnh is not None and len(nnh) else weekly
             a = mq._on_or_before(daily.index, end - pd.DateOffset(years=1))
-            _chart_head(f"Net new 52W highs this week: {_fmt.signed(daily.iloc[-1], 1)}% of stocks"
-                        + (f"; 12 months ago {_fmt.signed(daily.loc[a], 1)}%" if a is not None else ""),
+            _chart_head(highs_head(float(daily.iloc[-1]), float(daily.loc[a]) if a is not None else None),
                         "Each week, the stocks that made a new 52-week high in the seven days to its last session "
                         "less those that made a new low, each counted once, as a share of the stocks that could "
                         "make one, on daily closes throughout. Above zero, more stocks are making highs.")
@@ -481,10 +536,7 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series], name: str = mq.M
     left, right = st.columns(2, gap="medium")
     with left:
         if today is not None:
-            side = lambda v: f"{abs(v):.1f}% {'above' if v >= 0 else 'below'}"  # noqa: E731
-            month_end = ("" if me is None or me_at is None or me_at == b.index[-1] else
-                         f"; at the {me_at:%-d %b} month-end it was {side(me)}")
-            _chart_head(f"{sentence_case(the(name))} is {side(today)} its 10-month average on {b.index[-1]:%-d %b}{month_end}",
+            _chart_head(ten_month_head(name, today, b.index[-1], me, me_at),
                         f"Monthly closes against the average of the last ten, {b.index[-1]:%B} at today's close. Above "
                         "the average the 10-month rule reads up; the classic rule reads only month-ends. Three years; "
                         "price only.")
@@ -566,8 +618,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     st.html(_CSS + _PAGE_CSS + _CHART_CSS +
             '<div class="qp-head"><p class="qp-kick">Market</p>'
             f'<h1 class="qp-title">{html.escape(title)}</h1>'
-            '<p class="qp-sub">Two questions, answered from the ranked stocks and NSE’s index closes: are most stocks '
-            f'taking part, and is {html.escape(the(name))} in an uptrend. Then today’s charts.</p></div>'
+            f'<p class="qp-sub">{html.escape(market_sub(name))}</p></div>'
             '<nav class="qp-nav" aria-label="On this page">'
             '<a href="#q-breadth">Are most stocks taking part?</a>'
             f'<a href="#q-trend">Is {html.escape(the(name))} in an uptrend?</a><a href="#q-charts">Today\'s charts</a></nav>')

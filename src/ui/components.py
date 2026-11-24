@@ -86,7 +86,7 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
         signals.append(
             SignalAlert(
                 icon="⚠️",
-                text=f"Fewer than {buy} pass both filters: the book cannot fill its {buy} places",
+                text=f"Fewer than {buy} pass both filters: the book cannot fill its {buy} places.",
                 color=C.caution,
                 category="risk",
             )

@@ -65,7 +65,7 @@ data-heavy pages that S151 counts.
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 22 | Approved 23 Nov 2026 (mock-up v2). The title answers the first question in the serif (rank, filters, held or not); "Stock" and the symbol are the small kicker above it; a lede gives the close, its date and the year against the market | PAGE_DESIGN §2, §2a | Top | [css .kicker] Stock + passes both filters\|passes one filter\|fails both filters |
+| 22 | Approved 23 Nov 2026 (mock-up v2). The title answers the first question in the serif (rank, filters, held or not); "Stock" and the symbol are the small kicker above it; a lede gives the close, its date and the year against the market | PAGE_DESIGN §2, §2a | Top | [css .kicker] Stock + passes both filters\|passes only the\|fails both filters |
 | 23 | Approved 23 Nov 2026 (mock-up v2). Four tiles: close, rank of 750, place among the qualified, and (when held) the model book's return since entry; tile figures in the serif at 30 px | PAGE_DESIGN §2a | Top | Place among the qualified |
 | 24 | Approved 23 Nov 2026 (mock-up v2). Section headings are sentences that state the finding, in the serif, 30 px (24 px on a phone), each ending in a full stop | PAGE_DESIGN §2, §2a, §8 | Sections | sell rules |
 | 25 | Approved 23 Nov 2026 (mock-up v2). Rank trail 3M ago · 1M ago · now, as numbers in their own columns, for the rank of 750 and for the place among the qualified, read from `dashboard_insights.rank_trails` on the last session on or before each date (the Dashboard's, Portfolio's and the Screener's dates); a three-point trail with the 20th and 40th lines dashed. The 6M and 2M steps go | PAGE_DESIGN §2, §4.3, §6a; Screener decision A (21 Nov) | Rank | 3M ago + 1M ago + Now |

@@ -56,13 +56,14 @@ def test_the_title_answers_rank_filters_and_held():
                                            "and is in the model book.")
     assert "fails both filters and is not in the model book." in sl.title(
         _row(**{"Above 50 EMA": False, "Near 52W High": False}), uni, False)
-    assert "passes one filter" in sl.title(_row(**{"Near 52W High": False}), uni, False)
+    assert "passes only the 50D EMA filter" in sl.title(_row(**{"Near 52W High": False}), uni, False)   # S203 st.head.1
 
 
 def test_the_lede_gives_the_close_the_date_and_the_year_against_nifty_total_market():
     text = sl.lede(_row(), DAY, 0.0080)
-    assert text == ("₹4,798 at the close on 20 Nov 2026, a new 52-week closing high. Up 200.9% in 12 months, "
-                    "against +0.8% for Nifty Total Market. Market cap ₹29,944 Cr.")
+    # S203 st.head.2: the sign in a word (rule 2), "over 12 months", money through cr() (answer 6).
+    assert text == ("₹4,798 at the 20 Nov 2026 close, a new 52-week closing high. Up 200.9% over 12 months, "
+                    "against up 0.8% for Nifty Total Market. Market cap ₹30,000 Cr.")
     assert "Down 23.9%" in sl.lede(_row(**{"12M Return": -0.239, "52W High Date": "2026-08-19"}), DAY, 0.008)
     assert sl.market_cap(122000.0) == "₹1.22 lakh Cr"
 
@@ -88,19 +89,20 @@ def test_the_trail_reads_the_rankings_past_ranks_and_the_dashboards_qualified_pl
     assert tr.ranks == [16, 13, 12] and tr.places == [16, 11, 12]
     html = "".join(stock_view.rank_html(_row(), sl.Universe("750", 750), 12, 290, LN, tr))
     for text in ("3M ago", "1M ago", "Now", "20 Aug", "19 Oct", "16th", "11th", "Rank of 750",
-                 "Score 1.973, with all five horizons scored."):
+                 "Its score is 1.973, with all five horizons scored."):
         assert text in html, text
     assert "data:image/svg+xml" in html            # the trail is drawn (st.html drops inline SVG)
 
 
 def test_the_rank_heading_places_the_stock_against_the_books_lines():
     uni = sl.Universe("750", 750)
-    assert sl.rank_heading(_row(), uni, 12, 290, LN) == (
-        "Twelfth of the 290 that pass both filters, ", "inside the book’s buy line")
+    assert sl.rank_heading(_row(), uni, 12, 290, LN) == (   # S203 st.rank.1: the ordinal in figures
+        "12th of the 290 that pass both filters, ", "inside the book’s buy line", ".")
     assert sl.rank_heading(_row(), uni, 33, 290, LN)[1] == "between the book’s buy and keep lines"
     assert sl.rank_heading(_row(), uni, 41, 290, LN)[1] == "past the book’s keep line"
-    a, b = sl.rank_heading(_row(Rank=591, **{"Above 50 EMA": False, "Near 52W High": False}), uni, None, 290, LN)
+    a, b, c = sl.rank_heading(_row(Rank=591, **{"Above 50 EMA": False, "Near 52W High": False}), uni, None, 290, LN)
     assert a.startswith("591st of 750") and b == "it fails both filters"
+    assert c == ", so it is not among the 290 the book picks from."
 
 
 def test_the_trail_drawing_puts_the_lines_where_it_says():
@@ -135,7 +137,7 @@ def test_a_broken_rule_says_a_holding_would_be_sold_at_the_check():
     lead, rest = sl.rules_heading(a, pd.Timestamp("2026-11-30"), 0.8)
     assert lead == "It would be sold" and rest.startswith(" at the 30 Nov check if today's price holds: it is 5.0% below")
     # S203 st.rule.1: a stock the book does not hold is not called a holding.
-    assert sl.rules_heading(a, pd.Timestamp("2026-11-30"), 0.8, held=False)[0] == "It would fail a sell rule"
+    assert sl.rules_heading(a, pd.Timestamp("2026-11-30"), 0.8, held=False)[0] == "It would be sold if held"
     rows = sl.rules(rank_df.iloc[1], a, None, LN, 0.8)
     assert rows[0].fall == "Below it" and rows[2].today == "Out"
 
@@ -153,7 +155,7 @@ def test_the_holding_is_portfolios_own_row():
     h = sl.holding_from_table(table, "SANSERA")
     lead, rest = sl.holding_sentence(True, h)
     assert lead == "The model book holds it:"
-    assert rest == " 165 shares, 5.4% of the book, first bought on 2 Mar 2026 at ₹2,230, +115.2% since."
+    assert rest == " 165 shares, 5.4% of the book, first bought on 2 Mar 2026 at ₹2,230, up 115.2% since."
     assert sl.holding_sentence(False, None) == ("The model book does not hold it.", "")
     assert sl.holding_from_table(table, "NOPE") is None
 
@@ -273,7 +275,7 @@ def test_the_readout_is_one_line_at_a_fixed_height():
 
 def test_the_price_heading():
     assert sl.price_heading(57, 60, 298.6) == ("Above its 50D EMA on 57 of the last 60 sessions; ",
-                                               "against Nifty Total Market it has almost tripled", " in 12 months.")
+                                               "against Nifty Total Market it has almost tripled", " over 12 months.")
     # A ratio, not a gap in points (S193 B, glossary 4).
     assert sl.rs_words(110.0) == "its relative strength rose 10.0%" and sl.rs_words(80.0) == "its relative strength fell 20.0%"
     assert sl.price_heading(18, 60, 88.2)[1] == "against Nifty Total Market its relative strength fell 11.8%"
@@ -289,7 +291,7 @@ def test_the_industry_heading_and_link():
                          "CMP": [1.0, 2.0, 3.0]})
     row = _row(Symbol="S")
     shown, in_ind = sl.peers(full, row)
-    assert sl.industry_heading(row, in_ind) == "Second of 3 Auto stocks; 2 of them pass both filters."
+    assert sl.industry_heading(row, in_ind) == "2nd of the 3 Auto stocks; 2 of them pass both filters."   # S203 st.ind.1
     html = "".join(stock_view.industry_html(row, shown, in_ind, DAY))
     assert "screener?ind=Automobile%20and%20Auto%20Components" in html
     assert "All 3 Auto stocks on the Screener →" in html and "this stock" in html
@@ -377,4 +379,4 @@ def test_a_late_market_close_is_said_not_read_a_session_early():
     day = pd.Timestamp("2026-11-24")
     text = sl.lede(row, day, None, late=True)
     assert "Nifty Total Market’s 24 Nov close is not in yet" in text and "against" not in text
-    assert ", against +5.0% for Nifty Total Market" in sl.lede(row, day, 0.05)
+    assert ", against up 5.0% for Nifty Total Market" in sl.lede(row, day, 0.05)

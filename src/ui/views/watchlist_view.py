@@ -252,11 +252,11 @@ def _lines_section(matched: pd.DataFrame, prices, plan, ln, n_ranked: int) -> No
              else "3 months and a month ago")
     n = len(table)
     keys = [
-        f"<b>Qualified:</b> above the 50D EMA and within {ln.high_gap}% of the 52W high. The qualified place is "
+        f"<b>Qualified:</b> above the 50D EMA and within {ln.high_gap}% of the 52-week high. The qualified place is "
         "the stock's place among them, the number Actions and the Dashboard use; “Out” means it failed a filter that day.",
         f"<b>Rank before:</b> the rank among the {n_ranked:,} ranked stocks {trail}, the dates the Dashboard's rank trail uses. "
         "Past figures are grey.",
-        (f"<b>{e(plan_label)}:</b> what the model book does at the next rebalance if today's prices hold, from the "
+        (f"<b>{e(plan_label)}:</b> what the model book would do at the next rebalance if today's prices hold, from the "
          f"plan Actions shows; “{wl.MISSING}” where it neither holds nor buys the stock. <b>Held:</b> in the model book."
          if plan is not None else
          f"<b>Plan:</b> “{wl.MISSING}” on every row: the model book's plan could not be read just now. "
@@ -338,7 +338,7 @@ def _foot(as_of, user_symbols: list, matched: pd.DataFrame, rank_df: pd.DataFram
     if not user_symbols:
         return text
     n, k = len(user_symbols), len(matched)
-    text += f" {k} of your {wl.fmt_count(n, 'symbol')} ranked among the {len(rank_df):,}"
+    text += f" {k} of your {wl.fmt_count(n, 'symbol')} {'is' if k == 1 else 'are'} ranked among the {len(rank_df):,}"
     if not k:
         return text + "."
     hz = pd.to_numeric(matched.get("Horizons Scored", pd.Series(dtype=float)), errors="coerce")

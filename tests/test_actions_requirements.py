@@ -22,4 +22,4 @@ def test_an_unranked_holding_is_shown_and_named():
                    weights=pd.Series({"A": 0.5, "GONE": 0.5}), assess=a, trails={}, qrank=pd.Series({"A": 1}),
                    rank_df=rank_df, value=None)
     html = "".join(ap.section_hold(plan))
-    assert "GONE" in html and "No rule can be checked" in html
+    assert "GONE" in html and "No sell rule can be checked: the stock is not ranked today." in html   # S203 ac.hold.2

@@ -38,7 +38,7 @@ the same view but is its own redesign (PAGE_DESIGN §7, "Stock page").
 | 8 | One colour rule: returns, Sharpe, distance to the 50D EMA and rank changes up/down with + or −; drawdowns and distance below a high plain; true minus signs; "New high" at the high | Owner 7 Nov | Table | Return |
 | 9 | Export CSV with every column the ranking carries, in rank order (rank-change order for big movers), and saying so | Owner 7 Nov | Toolbar | Export CSV |
 | 10 | What moved in the month: biggest jumps, entered the top 50, left the top 50, with the session the month counts from in the heading | Owner 7 Nov, 13 Oct | After the table | Biggest jumps + Entered the top 50\|Entered top 50 + Left the top 50\|Left top 50 + Since |
-| 11 | Nano Cap and Combined: what is ranked, and the stocks too new to rank (the 750 shows none; no test covers this today, the build adds one) | Owner 27 Sep | Foot | stocks ranked |
+| 11 | Nano Cap and Combined: what is ranked, and the stocks too new to rank (the 750 shows none; no test covers this today, the build adds one) | Owner 27 Sep | Foot | stocks ranked|stocks are ranked |
 | 12 | The data-quality counts (price gaps, short history) on this page | Owner 8 Nov | Foot | short history |
 | 13 | Phone: rank and stock fixed while the table scrolls sideways; the industry under the symbol; the trend column headed 60D | Owner 7 Nov | Table | [phone] Rank |
 | 14 | The wheel scrolls the page, not the table; "Show all" redraws the table at full height, no box scrolling inside the page | Owner 7, 8 Nov | Table | Show all 750 |

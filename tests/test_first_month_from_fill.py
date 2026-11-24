@@ -79,7 +79,9 @@ def test_sectors_headline_names_its_members_rule():
     shares = [sp.Share("All ranked stocks", 750, 40.0, 37.0, 47.0), sp.Share("Auto", 49, 30.0, 35.0, 60.0),
               sp.Share("Metals", 20, 50.0, 45.0, 20.0)]
     out = sv.section_inside(None, shares, pd.DataFrame(), pd.DataFrame({"Symbol": ["A"], "3M Return": [1.0], "Industry": ["Auto"]}), lambda s: s, "sector")
-    assert "37% a month ago, today’s members;" in out[0]
+    # S203 se.in.1: the members rule moved from the heading to the note, which already said it.
+    assert "47% of the 750’s stocks are above their 200D EMA, up from 37% a month ago." in out[0]
+    assert "Today’s members throughout" in out[0]
 
 
 def test_since_start_market_starts_at_the_fill():

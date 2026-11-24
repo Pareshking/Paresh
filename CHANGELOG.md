@@ -1,6 +1,11 @@
 # Changelog
 
 
+## 2026-11-24 — Every page's sentences from the approved templates (S203)
+
+- Actions, Screener, Market, Indices, Sectors, Watchlist, Backtest, the stock page and the Guide now write their sentences from the templates drafted and approved on 24 Nov: counts as figures ("7 of 20 sectors"), up and down in words, the list named ("leads the 750"), no vendor names, every number filled from the data or the record's settings.
+- Fixes found on the way: Sectors printed "industrys"; a one-sector qualified list crashed its concentration line; "No sell rule can be checked" now says why ("the stock is not ranked today").
+
 ## 2026-11-24 — A Saturday price-file breach keeps last week's file (S225)
 
 - The long NSE price file (Backtest from 2010, breadth) is audited before it is published. When Saturday's audit finds a breach, last week's file stays live, the nightly builds publish nothing until a build passes, and the failure opens the usual issue. Until now the file was published first and the job failed after.

@@ -162,7 +162,7 @@ def test_with_the_members_history_sectors_counts_todays_members_as_decided():
     assert dash[2] == pytest.approx(allr.now)
     assert dash[1] == pytest.approx(allr.b1 + 3.0) and dash[1] != pytest.approx(allr.b1)
     text = (ROOT / "src/ui/views/sector_view.py").read_text(encoding="utf-8")
-    assert "today’s members" in text or "today's members" in text
+    assert "today’s members" in text.lower() or "today's members" in text.lower()
 
 
 # Fixed 24 Nov 2026 (S154 finding 4): ema_shares counts every ranked stock.
@@ -316,7 +316,7 @@ def test_the_rule_numbers_are_the_track_records_on_every_page():
     lede = ranking_view.screener_lede(pd.DataFrame({"Rank": [1]}), None)
     assert f"top {ln.buy} qualified" in lede and f"top {ln.keep}" in lede
     key = ranking_view._KEY_HTML.format(when="a month ago", **ranking_view._key_numbers())   # filled from the rules (S203 rule 9)
-    assert f"top {ln.buy} qualified" in key and f"within {within}% of the 52W high" in key and f"top {ln.keep};" in key
+    assert f"top {ln.buy} qualified" in key and f"within {within}% of the 52-week high" in key and f"top {ln.keep};" in key
     from src.ui.views import guide_view
     guide = guide_view._body()   # rendered: the Guide reads its numbers from the rules (S203 rule 9)
     assert f"within {within}% of its 52-week high" in guide

@@ -59,4 +59,4 @@ def test_the_ranked_page_shows_its_own_rank_first_then_the_others():
     parts = stock_view.head_html(row, sl.universe(SYSTEM_750, 750), False, pd.Timestamp("2026-11-20"),
                                  None, 12, 290, wl.lines(), None, hits)
     html = " ".join(parts)
-    assert html.index("12th of 750") < html.index("Also 17th of 17")
+    assert html.index("12th of 750") < html.index("It also ranks 17th of 17")

@@ -61,16 +61,6 @@ class Plan:
     uninvested: float | None = None                  # model book: rupees not invested today (Portfolio's figure)
 
 
-def _vs(v, what: str) -> str:
-    """"ahead of Nifty Total Market by 1.2 points" / "behind it by 0.5 points" / "level with it"."""
-    if v is None:
-        return f"not measured against {what}"
-    if round(float(v), 1) == 0:
-        return f"level with {what}"
-    a = abs(float(v))
-    return f"{'ahead of' if v > 0 else 'behind'} {what} by {a:.1f} point{'' if a == 1 else 's'}"
-
-
 def _price(rank_df: pd.DataFrame) -> pd.Series:
     return pd.to_numeric(rank_df.drop_duplicates("Symbol").set_index("Symbol").get("CMP"), errors="coerce")
 
@@ -144,40 +134,57 @@ def header(p: Plan) -> list:
     n_watch = sum(1 for s in p.holds if s in a.index and a.loc[s, "status"] == WATCH)
     sell_amt = sum(r["amount"] or 0 for r in sell_rows(p))
     buy_amt = sum(r["amount"] or 0 for r in buy_rows(p))
+    breaks = "breaks" if len(p.sells) == 1 else "break"
     cells = [("Sell", str(len(p.sells)), "dh-down" if p.sells else "",
-              "break a rule at today's close" if p.sells else "nothing breaks a rule", "dh-muted",
-              f"{inr(sell_amt)} to sell" if sell_amt else ""),
+              f"{breaks} a sell rule at today's close" if p.sells else "none breaks a sell rule", "dh-muted",
+              f"{_lakh(sell_amt)} to sell" if sell_amt else ""),
              ("Buy", str(len(p.buys)), "dh-up" if p.buys else "", "best qualified, not held", "dh-muted",
-              f"{inr(buy_amt)} to buy" if buy_amt else ""),
+              f"{_lakh(buy_amt)} to buy" if buy_amt else ""),
              ("Hold", str(len(p.holds)), "", f"{n_watch} close to a rule" if n_watch else "all clear of the rules",
               "dh-watch" if n_watch else "dh-muted", ""),
              ("Next rebalance", f"{p.check:%a} {dshort(p.check)}", "",
               f"{p.sessions} session{'s' if p.sessions != 1 else ''} away · fills {p.fill:%a} {dshort(p.fill)}", "dh-muted",
               p.holiday_note)]
-    who = ("The model book: what the record would trade at the next rebalance."
-           if p.source == "Model book" else "Your holdings, under the same rules.")
-    when = f"{p.check:%a} {dshort(p.check)}"
-    if p.sells or p.buys:
-        # Sells in rust, buys in blue: the two verdict phrases (S219 2).
-        answer = (kit.verdict(f"{len(p.sells)} sell{'s' if len(p.sells) != 1 else ''}", False if p.sells else None) + " and "
-                  + kit.verdict(f"{len(p.buys)} buy{'s' if len(p.buys) != 1 else ''}", True if p.buys else None)
-                  + e(f" at the {when} close, filled {p.fill:%a} {dshort(p.fill)}"   # the signal day, then the fill (S193 B)
-                      + (f": {_lakh(sell_amt)} out, {_lakh(buy_amt)} in." if sell_amt or buy_amt else ".")))
-    else:
-        answer = e(f"Nothing to trade on {when}: ") + kit.verdict("every holding is clear of the rules", True) + "."
-    return [f'<div class="pf-head"><p class="pf-kick">Actions</p><h1 class="pf-title">{answer}</h1>'
-            f'<p class="pf-sub">If today\'s prices hold. {e(who)}</p>',
+    return [f'<div class="pf-head"><p class="pf-kick">Actions</p><h1 class="pf-title">{title(p, sell_amt, buy_amt)}</h1>'
+            f'<p class="pf-sub">{e(subtitle(p))}</p>',
             _kpis(cells, "pf-four"), "</div>"]
+
+
+def _count(n: int, word: str, first: bool = False) -> str:
+    """"2 sells", "1 sell", "No sells" / "no buys" (S203 ac.head.1; rule 11: a count is a figure)."""
+    return f"{'No' if first else 'no'} {word}s" if n == 0 else f"{n} {word}{'' if n == 1 else 's'}"
+
+
+def title(p: Plan, sell_amt: float = 0.0, buy_amt: float = 0.0) -> str:
+    """The h1 (S203 ac.head.1): the trades at the check, named "check" as on the Dashboard and Portfolio, then
+    the money in a sentence of its own. The two counts are the verdict phrases, sells in rust and buys in
+    blue (S219 2); a zero side stays in ink."""
+    check = dshort(p.check)
+    if not p.sells and not p.buys:
+        return (e(f"No trade at the {check} check: ") + kit.verdict("every holding is clear of the sell rules", True)
+                + ".")
+    sells = kit.verdict(_count(len(p.sells), "sell", first=True), False if p.sells else None)
+    buys = kit.verdict(_count(len(p.buys), "buy"), True if p.buys else None)
+    money = [f"{_lakh(v)} {side}" for v, side in ((sell_amt, "out"), (buy_amt, "in")) if v]
+    return (f"{sells} and {buys}" + e(f" at the {check} check, filled on {dshort(p.fill)}.")
+            + (e(f" {' and '.join(money)}.") if money else ""))
+
+
+def subtitle(p: Plan) -> str:
+    """What the plan is and the condition it rests on, as one sentence (S203 ac.head.2)."""
+    return ("What the model book would trade at the next rebalance, if today's prices hold." if p.source == "Model book"
+            else "Your holdings under the record's rules, if today's prices hold.")
 
 
 def section_change(p: Plan) -> list:
     """Row 25: what could still change before the close that counts."""
     a = p.assess.set_index("Symbol") if len(p.assess) else pd.DataFrame()
     close = [(s, a.loc[s, "why"]) for s in p.holds if s in a.index and a.loc[s, "status"] == WATCH]
-    items = "".join(f'<li><b>{e(s)}</b> {e(str(w))}</li>' for s, w in close) or "<li>No holding is within reach of a line.</li>"
+    # cm.rule.4-6 are sentences now: each item ends with a full stop (S203 ac.chg.1).
+    items = "".join(f'<li><b>{e(s)}</b> {e(str(w))}.</li>' for s, w in close) or "<li>No holding is close to a sell rule.</li>"
     nxt = " · ".join(e(s) for s in p.next_in_line[:4]) or "–"
     return _sec([_head("ac-change", "What could still change", f"before the {dshort(p.check)} close"),
-                 f'<div class="dh-pair"><div><div class="dh-cap ac-cap"><b>Holdings close to a line</b><span>could still change to a sale</span></div>'
+                 f'<div class="dh-pair"><div><div class="dh-cap ac-cap"><b>Holdings close to a sell rule</b><span>could still change to a sale</span></div>'
                  f'<ul class="ac-list">{items}</ul></div>'
                  f'<div><div class="dh-cap ac-cap"><b>Next in line</b><span>would come in if a buy drops out or another holding breaks a rule</span></div>'
                  f'<p class="ac-next">{nxt}</p></div></div>',
@@ -229,7 +236,8 @@ def section_after(p: Plan) -> list:
 
 def section_sell(p: Plan) -> list:
     if not p.sells:
-        return _sec([_head("ac-sell", "Sell", "none at today's close"), '<p class="dh-note">Nothing breaks a rule.</p>'])
+        # The head says it; the note repeated the tile's "none breaks a sell rule" (S203 ac.sell.1, §2).
+        return _sec([_head("ac-sell", "Sell", "none at today's close")])
     a = p.assess.set_index("Symbol")
     rows = ""
     for r in sell_rows(p):
@@ -241,7 +249,7 @@ def section_sell(p: Plan) -> list:
                  f'<td class="dh-num">{"–" if r["qty"] is None else f"{r['qty']:,}"}</td>'
                  f'<td class="dh-num">{"–" if r["amount"] is None else inr(r["amount"])}</td></tr>')
     note = ("Sell in full. The basket carries these sells with the model book's share counts."
-            if p.source == "Model book" else "Sell in full; your share counts are not known, so sells are not in the basket.")
+            if p.source == "Model book" else "Sell in full. Your share counts are not known, so the basket has no sells.")
     return _sec([_head("ac-sell", "Sell", f"{len(p.sells)} at today's close"),
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab"><thead><tr><th scope="col">Holding</th>'
                  '<th scope="col">The rule it broke</th><th scope="col" class="dh-num ac-wide">Held since</th>'
@@ -250,9 +258,72 @@ def section_sell(p: Plan) -> list:
                  f'<p class="dh-note">{e(note)} <span class="ac-phone">On a wider screen each row also shows when it was bought.</span></p>'])
 
 
+def no_buy_line(p: Plan) -> str:
+    """Why there is no buy, one cause each (S203 ac.buy.1): every place taken, or no stock that passes both
+    filters outside the book."""
+    outside = set(p.qrank.index) - set(p.holds) - set(p.sells)
+    if outside:
+        return "No stock that passes both filters is free to buy: every place is taken."
+    return "No stock that passes both filters is outside the book."
+
+
+def amounts_line(p: Plan) -> str:
+    """What a buy's amount is a share of (S203 ac.buy.2). The book's value in whole rupees, the form Portfolio shows
+    for the same figure (S154, one form per figure; number audit rule 1), not the draft's "₹1.02 Cr"."""
+    if p.source == "Model book":
+        return ("Amounts are the record's target weight of the model book's value today"
+                + ("." if p.value is None else f", {inr(p.value)}."))
+    return ("Amounts are each buy's target weight" + ("" if p.value is None else f" of {inr(p.value)}")
+            + ", the capital in the Kite basket box.")
+
+
+def kite_caption(p: Plan) -> str:
+    """The Kite basket's caption (S203 ac.kite.1)."""
+    if p.source == "My holdings":
+        return "Buy orders only, each at its target weight of the capital above; your share counts are not known."
+    return ("The model book's sell orders, with its share counts, and its buy orders, each at the record's "
+            "target weight of the book's value today" + ("." if p.value is None else f", {inr(p.value)}."))
+
+
+def _gap_phrase(v: float, what: str) -> str:
+    """"ahead by 3.1 points" / "behind by 0.5 points" / "level with Nifty Total Market" (0.0, S203 rule 4).
+    The words carry the sign: "beat … by −0.5 points" had no branch for a loss (dash.flow.8's fault)."""
+    if _fmt.reads_zero(v):
+        return f"level with {what}"
+    return f"{'ahead' if v > 0 else 'behind'} by {_fmt.fixed(abs(v))} points"
+
+
+def swaps_sentences(ev) -> list[str]:
+    """What swaps have added so far, a sentence per idea, numbers in figures (S203 ac.buy.4)."""
+    tm = "Nifty Total Market"
+    first = _gap_phrase(ev.buy_1m, tm)
+    buys = f"{ev.buys} buy{'' if ev.buys == 1 else 's'} {'was' if ev.buys == 1 else 'were'}"
+    out = [f"In their first month, the record's {buys} {first}{'' if first.startswith('level') else ' on ' + tm} on average."]
+    sold = f"{ev.sold} stock{'' if ev.sold == 1 else 's'} it sold {'was' if ev.sold == 1 else 'were'}"
+    out.append(f"The {sold} {_gap_phrase(ev.sold_1m, tm)} in the month after the sale.")
+    if ev.buy_3m is not None and ev.sold_3m is not None:
+        out.append(f"Over 3 months: {sg(ev.buy_3m)} against {sg(ev.sold_3m)} points.")
+    k = int(ev.rebought)
+    out.append(f"None of the {ev.sold} sold was bought back within 2 months." if k == 0 else
+               f"{k} of the {ev.sold} sold {'was' if k == 1 else 'were'} bought back within 2 months.")
+    un = tuple(getattr(ev, "unpriced", ()) or ())
+    if un:
+        out.append(f"{', '.join(un)} {'has' if len(un) == 1 else 'have'} no price here and "
+                   f"{'is' if len(un) == 1 else 'are'} left out.")
+    return out
+
+
+def swaps_html(ev) -> str:
+    if ev is None:
+        return ""
+    return (f'<div class="ac-ev"><b>What swaps have added so far.</b> {e(" ".join(swaps_sentences(ev)))} '
+            f'<span class="dh-muted">{ev.first:%b %Y} to {ev.last:%b %Y}: a short record, measured on the record itself, '
+            'before costs, with overlapping windows; evidence, not proof.</span></div>')
+
+
 def section_buy(p: Plan) -> list:
     if not p.buys:
-        return _sec([_head("ac-buy", "Buy", "none"), '<p class="dh-note">No new stock qualifies for a free place.</p>'])
+        return _sec([_head("ac-buy", "Buy", "none"), f'<p class="dh-note">{e(no_buy_line(p))}</p>'])
     r = p.rank_df.drop_duplicates("Symbol").set_index("Symbol")
     rows = ""
     for b in buy_rows(p):
@@ -270,22 +341,8 @@ def section_buy(p: Plan) -> list:
                  f'<td class="dh-num">{"–" if b["qty"] is None else f"{b['qty']:,}"}</td></tr>')
     nxt = "".join(f'<a class="dh-pill" href="{stock_href(s)}" target="_self">#{int(p.qrank.get(s, 0))} {e(s)}</a>'
                   for s in p.next_in_line[:4])
-    base = (f"Amounts are the record's target weight of the model book's value today, {inr(p.value)}."
-            if p.source == "Model book" else f"Amounts are each buy's target weight of {inr(p.value)}, the capital in the Kite basket box.")
-    ev = p.swaps
-    evid = ("" if ev is None else
-            # The words carry the sign: "beat … by −0.5 points" had no branch for a loss (S203 ac.buy.4).
-            f'<div class="ac-ev"><b>What swaps have added so far.</b> In their first month, the record’s {ev.buys} buys were '
-            f'{_vs(ev.buy_1m, "Nifty Total Market")} on average. The {ev.sold} stocks it sold were {_vs(ev.sold_1m, "it")} '
-            'in the month after the sale'
-            + ("" if ev.buy_3m is None or ev.sold_3m is None else
-               f'. Over 3 months: {sg(ev.buy_3m)} against {sg(ev.sold_3m)} points')
-            + f'. {ev.rebought} of the {ev.sold} sold were bought back within 2 months. '
-            + ("" if not getattr(ev, "unpriced", ()) else
-               f'{e(", ".join(ev.unpriced))} {"has" if len(ev.unpriced) == 1 else "have"} no price here and '
-               f'{"is" if len(ev.unpriced) == 1 else "are"} left out. ')
-            + f'<span class="dh-muted">{ev.first:%b %Y} to {ev.last:%b %Y}: a short record, measured on the record itself, before costs, '
-            'with overlapping windows; evidence, not proof.</span></div>')
+    base = amounts_line(p)
+    evid = swaps_html(p.swaps)
     return _sec([_head("ac-buy", "Buy", "best qualified, not held"), evid,
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s ac-tab"><thead><tr><th scope="col">Stock</th>'
                  '<th scope="col" class="dh-num">Qualified</th><th scope="col" class="dh-num">Price</th>'
@@ -296,6 +353,20 @@ def section_buy(p: Plan) -> list:
                  f'<p class="dh-note">{e(base)} {e(p.buy_limit)} '
                  '<span class="ac-phone">On a wider screen each row also shows the weight, the 3- and 6-month returns and the distance from the 52-week high.</span></p>',
                  f'<div class="ac-nextrow"><span class="dh-muted">Next in line</span>{nxt}</div>' if nxt else ""])
+
+
+NOT_RANKED_LINE = "No sell rule can be checked: the stock is not ranked today."   # the cause (S203 ac.hold.2, R1)
+MY_EMPTY = ("Add your holdings above,", "or upload the holdings CSV from Kite, to see what to do with them.")   # ac.empty.1
+
+
+def hold_note(rules: Rules) -> str:
+    """How the Hold table is ordered and what its two cushion columns are (S203 ac.hold.3); the scale and the
+    line's percent are read from exit_watch and the record's rules, not typed."""
+    gap = f"{(1 - rules.high_pct):.0%}"
+    return ("Ordered by the least room on any sell rule; a full rank buffer counts as a "
+            f"{RANK_SCALE:.0%} fall. “To 50D EMA” and “To −{gap} from 52W high” are how far the price can fall from "
+            "today before it crosses that line. Rank 3M · 1M · now: the place among the stocks that pass both filters, "
+            "3 months ago, a month ago and now; \"Out\" means it does not pass them.")
 
 
 def section_hold(p: Plan) -> list:
@@ -310,7 +381,7 @@ def section_hold(p: Plan) -> list:
         word = {SELL: "dh-down", WATCH: "dh-watch", CLEAR: "dh-up", UNKNOWN: "dh-muted"}.get(status, "")
         if status == UNKNOWN:
             rows += (f'<tr>{_name(p, s)}<td class="{word}">{STATUS_LABEL[UNKNOWN]}</td>'
-                     '<td colspan="8" class="dh-muted">No rule can be checked.</td></tr>')
+                     f'<td colspan="8" class="dh-muted">{NOT_RANKED_LINE}</td></tr>')
             continue
         q, room = r["Qualified rank"], r["Rank room"]
         buf = "off the list" if pd.isna(q) else (f"{int(room)} to go" if room >= 0 else f"past {p.rules.buffer_n}")
@@ -333,17 +404,11 @@ def section_hold(p: Plan) -> list:
                  f'<th scope="col" class="dh-num">To −{(1 - p.rules.high_pct):.0%} from 52W high</th>'
                  '<th scope="col" class="ac-wide">Closest to</th><th scope="col" class="dh-num">Since entry</th>'
                  f'</tr></thead><tbody>{rows}</tbody></table></div>',
-                 '<p class="dh-note">Ordered by the least room on any sell rule; a full rank buffer counts as a '
-                 f'{RANK_SCALE:.0%} fall. "To 50D EMA" and "To −{(1 - p.rules.high_pct):.0%} from 52W high" are how far the price can fall from today before it crosses that line. '
-                 'Rank 3M · 1M · now: the place among the stocks that pass both filters, 3 months ago, a month ago and now; "Out" means it does not pass them.</p>'])
+                 f'<p class="dh-note">{e(hold_note(p.rules))}</p>'])
 
 
 def footer(p: Plan) -> list:
-    from src.ui.components import gap_count
-    rd = p.rank_df
-    short_n = int((rd.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
-    return [f'<p class="dh-foot">{_fmt.data_to(p.as_of)}. {len(rd)} stocks ranked; {gap_count(rd)} with a price gap, '
-            f'{short_n} with a short history.</p>']
+    return [f'<p class="dh-foot">{e(_fmt.foot_line(p.rank_df, p.as_of))}</p>']   # one function (S203 cm.foot.1)
 
 
 def page_parts(p: Plan) -> list:
@@ -422,15 +487,7 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
         except (KeyError, ValueError, OSError):
             swaps = None
         if plan.buys:
-            w = float(plan.weights.get(plan.buys[0], 0.0))
-            cash = w * len(plan.buys)
-            # The comparison is each buy against the buy size, not the total (S193 B: "13.3% ... less than the 5%").
-            # Three sentences, the rule's start read from the record's config, not typed (S203 ac.buy.3, rule 9).
-            rule_from = pd.Timestamp(cfg.get("hold_cap_from") or "2026-11-30")
-            limit = (f"Each buy gets {w * 100:.1f}%, less than the {cfg.get('buy_size', 0.05) * 100:.0f}% buy size. The record "
-                     f"does not trim a kept stock to make room, so the buys share the {cash * 100:.1f}% the sells free up. "
-                     f"This is the six-monthly rule, in force from the {rule_from:%-d %b %Y} rebalance."
-                     if w < float(cfg.get("buy_size") or 0.05) - 1e-9 else "")
+            limit = buy_limit_line(float(plan.weights.get(plan.buys[0], 0.0)), len(plan.buys), cfg)
     else:
         symbols = list(my_symbols or [])
         if not symbols:
@@ -454,6 +511,33 @@ def gather(source: str, rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmar
                 buy_limit=limit, rules=rules, now_weights=now_w, sizes=sizes, events=events, events_note=events_note, swaps=swaps, uninvested=uninv)
 
 
+def buy_limit_line(w: float, n_buys: int, cfg: dict) -> str:
+    """Why a buy is under the buy size, in three sentences (S203 ac.buy.3). The comparison is each buy against
+    the buy size, not the total (S193 B: "13.3% ... less than the 5%"). The buy size and the rule's start are
+    read from the record's config (rule 9); without a start date the third sentence is left out. At the buy
+    size: no sentence."""
+    size = cfg.get("buy_size")
+    if size is None or w >= float(size) - 1e-9:
+        return ""
+    out = [f"Each buy gets {_fmt.fixed(w * 100)}%, less than the {_fmt.fixed(float(size) * 100, 0)}% buy size.",
+           f"The record does not trim a kept stock to make room, so the buys share the {_fmt.fixed(w * n_buys * 100)}% "
+           "the sells free up."]
+    if cfg.get("hold_cap_from"):
+        out.append(f"This is the six-monthly rule, in force from the {_fmt.date(pd.Timestamp(cfg['hold_cap_from']))} "
+                   "rebalance.")
+    return " ".join(out)
+
+
+def record_start_line(system_name: str, inception_month: str) -> str:
+    """Before a system's first book (S203 ac.empty.2): the day it forms, the last NSE session of the month before
+    its record starts, read from NSE's calendar, and the month its record starts in."""
+    from src.ui.views.actions_view import _session
+    start = pd.Period(inception_month, freq="M")
+    last = _session().rollback((start - 1).end_time.normalize())
+    return (f"The {system_name} model book forms at the {_fmt.date(last)} close; its record starts in "
+            f"{start.strftime('%B %Y')}.")
+
+
 def _sizes(symbols: list, on: pd.Timestamp) -> dict:
     import json
     from pathlib import Path
@@ -473,23 +557,38 @@ def _events(symbols: list, sells: set, buys: set, as_of: pd.Timestamp, fill: pd.
     root = Path(__file__).resolve().parents[3]
     role = lambda s: "to sell" if s in sells else "to buy" if s in buys else "held"   # noqa: E731
     lo, hi = pd.Timestamp(as_of).normalize() + pd.Timedelta(days=1), pd.Timestamp(fill).normalize()
-    out, notes = [], []
+    out = []
     cal = rc.load()
     if cal is not None and len(cal):
         hit = cal[cal["symbol"].isin(symbols) & (cal["date"] >= lo) & (cal["date"] <= hi)]
         out += [(d, sym, role(sym), rc.short_purpose(str(pur))) for sym, d, pur in zip(hit["symbol"], hit["date"], hit["purpose"])]
-        notes.append(f"Board meetings: NSE's calendar, announced to {cal['date'].max():%-d %b}")
+        cal_last = cal["date"].max()
+    else:
+        cal_last = None
     try:
         ca = pd.DataFrame(json.loads((root / "data" / "reference" / "nse" / "corporate_actions_recent.json").read_text()))
         ca["ex"] = pd.to_datetime(ca["exDate"], format="%d-%b-%Y", errors="coerce")
         hit = ca[ca["symbol"].isin(symbols) & (ca["ex"] >= lo) & (ca["ex"] <= hi)]
         out += [(d, sym, role(sym), str(sub)) for sym, d, sub in zip(hit["symbol"], hit["ex"], hit["subject"])]
-        last = ca["ex"].max()
-        notes.append(f"ex-dates: NSE's corporate actions, collected to {last:%-d %b}"
-                     + ("; dates after that are not yet in the file" if pd.notna(last) and last < hi else ""))
+        ca_last, ca_read = ca["ex"].max(), True
     except (OSError, ValueError, KeyError):
-        notes.append("ex-dates: not available")
-    return sorted(out), "; ".join(notes) + ". Dates are as companies announced them and can move."
+        ca_last, ca_read = None, False
+    return sorted(out), events_note(cal_last, ca_last, hi, ca_read)
+
+
+def events_note(cal_last, ca_last, fill, ca_read: bool = True) -> str:
+    """Where the dates before the fill come from and how far each reaches, a sentence per idea (S203 ac.chg.5).
+    A missing calendar drops its sentence; an unread corporate-action file says why."""
+    out = []
+    if cal_last is not None and pd.notna(cal_last):
+        out.append(f"Board meetings are from NSE's calendar, announced to {dshort(cal_last)}.")
+    if not ca_read:
+        out.append("NSE's corporate-action file could not be read just now.")
+    elif ca_last is not None and pd.notna(ca_last):
+        later = "; later ones are not in yet" if pd.Timestamp(ca_last) < pd.Timestamp(fill).normalize() else ""
+        out.append(f"Ex-dates are from NSE's corporate actions, collected to {dshort(ca_last)}{later}.")
+    out.append("Dates are as companies announced them and can move.")
+    return " ".join(out)
 
 
 def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, system: str = "750",
@@ -520,7 +619,7 @@ def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, syst
         p = gather(source, rank_df, adj_close, benchmark_close, system, my_syms, my_since, capital)
     if p is None:
         if source == "My holdings":
-            kit.empty("Add your holdings above,", "or upload the holdings CSV from Kite, to see what to do with them.")
+            kit.empty(*MY_EMPTY)
         else:
             kit.empty(mw.NO_MODEL_BOOK, mw.NO_MODEL_BOOK_WHY)   # the sentence Dashboard and Portfolio use (S193 E, R5)
         return
@@ -536,10 +635,7 @@ def render(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close, syst
             remember(av.KITE_CAPITAL_KEY, int(cap))
             if cap != p.value:
                 p.value = cap
-            kit.caption("Buy orders only, each at its target weight of the capital above; your share counts are not known.")
-        else:
-            kit.caption(f"The model book's sell orders, with its share counts, and its buy orders, each at the record's "
-                        f"target weight of the book's value today, {inr(p.value)}.")
+        kit.caption(kite_caption(p))
         orders = basket(p)
         st.download_button("Download basket CSV", orders.to_csv(index=False).encode(), f"kite_actions_{ist_now():%Y%m%d}.csv",
                            "text/csv", type="primary", key="dl_actions_basket", icon=":material/download:", disabled=orders.empty)

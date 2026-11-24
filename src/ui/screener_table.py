@@ -54,8 +54,26 @@ _SYSTEM_TAGS = {"NANO250", "NANO"}
 # 3M return under the price.
 PERIOD_WINDOWS = (1, 3, 6, 9, 12)
 # The model book's lines (TRACK_RECORD_CONFIG: top_n 20, buffer_n 40,
-# high_pct 0.80), drawn under those qualified places in rank order.
-BUY_CUT, KEEP_CUT, NEAR_HIGH_GAP_PCT = 20, 40, 20
+# high_pct 0.80), drawn under those qualified places in rank order. Read from the
+# rules, not typed (S203 rule 9).
+from src.engine.track_record import TRACK_RECORD_CONFIG as _TR_CFG  # noqa: E402
+
+BUY_CUT, KEEP_CUT = int(_TR_CFG["top_n"]), int(_TR_CFG["buffer_n"])
+NEAR_HIGH_GAP_PCT = int(_fmt.half_up((1 - float(_TR_CFG["high_pct"])) * 100))
+def _ord(n: int) -> str:
+    return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
+def cell_title_ema(em: float) -> str:
+    """S203 sc.cell.1: "3.2% below its 50D EMA", half up."""
+    return f"{_fmt.fixed(abs(em), 1)}% below its 50D EMA"
+
+
+def cell_title_high(hi_v: float) -> str:
+    """S203 sc.cell.1: "28.4% below its 52-week high; the filter is within 20%" (glossary 14 in a sentence)."""
+    return f"{_fmt.fixed(abs(hi_v), 1)}% below its 52-week high; the filter is within {NEAR_HIGH_GAP_PCT}%"
+
+
 _ALL = {
     "rank": ("Rank", "num"), "stock": ("Stock", "text"), "price": ("Price", "num"),
     # Rank among the 750 three months and a month ago, read on the session on or
@@ -321,8 +339,8 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     # stock is from its line) names the lines there instead.
     place_note = str(row.get("Place Note") or "").strip()
     cut_txt = "" if place_note else (
-        "The book buys to here: the 20th qualified" if qr == BUY_CUT else
-        "A holding is kept to here: the 40th qualified" if qr == KEEP_CUT else "")
+        f"The book buys to here: the {_ord(BUY_CUT)} qualified" if qr == BUY_CUT else
+        f"A holding is kept to here: the {_ord(KEEP_CUT)} qualified" if qr == KEEP_CUT else "")
     sc = _num(row.get("Score"))
     cells["score"] = (f'<td class="n" data-v="{"" if sc is None else sc}">'
                       f'{"–" if sc is None else f"{sc:.2f}"}</td>')
@@ -422,9 +440,9 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     hi_v = _num(row.get("% High"))
     miss = {
         "above": (None if em is None or em >= 0 else
-                  (f"{abs(em):.1f}% below its 50D EMA", f"−{abs(em):.1f}%")),
+                  (cell_title_ema(em), f"−{abs(em):.1f}%")),
         "near": (None if hi_v is None else
-                 (f"{abs(hi_v):.1f}% below its 52W high; the filter is within {NEAR_HIGH_GAP_PCT}%",
+                 (cell_title_high(hi_v),
                   f"−{abs(hi_v):.0f}%")),
     }
     # "Out" says why beside the qualified place, from the same reasons the filter columns show (S189 item 1,

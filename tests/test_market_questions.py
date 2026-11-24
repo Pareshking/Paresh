@@ -127,7 +127,7 @@ def test_sentences_keep_their_capitals():
     m = [mq._measure("Stocks above their 200D EMA", "pct", [43, 40, 60], 60, 40, ""),
          mq._measure("Stocks ahead of the Nifty 500 over a year", "pct", [45, 47, None], 55, 45, "")]
     text = mq._breadth_sentence("Narrow", m)
-    assert text == "43% of the ranked stocks are above their 200D EMA and 45% beat the Nifty 500 over the year."
+    assert text == "43% of the ranked stocks are above their 200D EMA, and 45% beat the Nifty 500 over 12 months."
 
 
 def test_what_would_change_names_the_measures_one_step_from_another_word():
