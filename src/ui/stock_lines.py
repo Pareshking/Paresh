@@ -396,20 +396,31 @@ def holding_sentence(held: bool, h: Holding | None) -> tuple[str, str]:
     return "The model book holds it:", (" " + ", ".join(bits) + ".") if bits else ""
 
 
-def calendar_sentence(check: pd.Timestamp | None, events: list, last_results: pd.Timestamp | None) -> str:
-    """The check day, and what is announced before it (the calendar Actions reads, row 28)."""
+def calendar_sentence(check: pd.Timestamp | None, events: list, last_results: pd.Timestamp | None,
+                      fill: pd.Timestamp | None = None) -> str:
+    """The check day, and what is announced before the fill (the calendar Actions reads, row 28). S203 st.rule.4
+    (owner, 24 Nov 2026: "Read to the fill"): the window runs to the fill, as on Actions, and the none case is
+    Actions' own sentence (`mw.no_events`), so the check is never called the fill."""
     if check is None:
         return "The rules are checked at the month-end close."
-    text = f"The rules are checked at the month-end close, next on {formats.date(check)}; "
-    if events:
-        said = [f"{what} on {wl.fmt_day(d)}" for d, _sym, _role, what in events]
-        text += f"board meetings and ex-dates announced before then: {wl.fmt_names(said)}."
-    else:
+    if fill is None:   # no fill day known: the window is the check, said as such
+        text = f"The rules are checked at the month-end close, next on {formats.date(check)}; "
+        if events:
+            said = [f"{what} on {wl.fmt_day(d)}" for d, _sym, _role, what in events]
+            return text + f"board meetings and ex-dates announced before then: {wl.fmt_names(said)}."
         text += "no board meeting is announced before then"
         if last_results is not None:
             text += f" (its last results meeting was on {wl.fmt_day(last_results)})"
-        text += "."
-    return text
+        return text + "."
+    text = f"The rules are checked at the month-end close, next on {formats.date(check)}. "
+    if events:
+        said = [f"{what} on {wl.fmt_day(d)}" for d, _sym, _role, what in events]
+        return text + f"Announced before the {wl.fmt_day(fill)} fill: {wl.fmt_names(said)}."
+    from src.ui import missing_words as mw
+    none = mw.no_events("it", fill)
+    if last_results is not None:
+        none = none[:-1] + f" (its last results meeting was on {wl.fmt_day(last_results)})."
+    return text + none
 
 
 def highs_note(row) -> str:

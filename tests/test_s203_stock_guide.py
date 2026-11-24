@@ -530,3 +530,19 @@ def test_gd_keep():
     assert "60 bps" not in t or "at 60 and 100 bps every week (section 4)" in t
     for banned in ("12-month", "one year", "1-year"):
         assert banned not in t.lower()
+
+
+def test_st_rule_4_reads_to_the_fill():
+    """Owner, 24 Nov 2026: "Read to the fill". The window and the sentence are Actions' own; the check is never
+    called the fill."""
+    fill = pd.Timestamp("2026-12-01")
+    assert sl.calendar_sentence(CHECK, [], None, fill) == (
+        "The rules are checked at the month-end close, next on 30 Nov 2026. "
+        "No board meeting or ex-date is announced for it before the 1 Dec fill.")
+    assert sl.calendar_sentence(CHECK, [], pd.Timestamp("2026-11-05"), fill) == (
+        "The rules are checked at the month-end close, next on 30 Nov 2026. No board meeting or ex-date is "
+        "announced for it before the 1 Dec fill (its last results meeting was on 5 Nov).")
+    ev = [(pd.Timestamp("2026-12-01"), "TCS", "held", "board meeting")]
+    assert sl.calendar_sentence(CHECK, ev, None, fill) == (
+        "The rules are checked at the month-end close, next on 30 Nov 2026. "
+        "Announced before the 1 Dec fill: board meeting on 1 Dec.")
