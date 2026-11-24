@@ -83,7 +83,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
   `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
 - **#607** is parked by the owner (read-only R2 key).
 
-**Owner to confirm (24 Nov):** the Dashboard flows readout's zone words, "heavy buying" / "moderate buying" / "net selling" (were "a heavy-buying month" / "net buying, below the heavy line"), chosen to fit one line at 412 px in any fallback font (S222). Reversal: one dict in `_fpi_bars`, but the longer words wrap on a phone.
+**Confirmed by the owner (24 Nov, "With your recommendation 1"):** the Dashboard flows readout keeps "heavy buying" / "moderate buying" / "net selling" (S222).
 
 **Waiting on the owner (24 Nov, laptop back):**
 - (a) Run the branch clean-up in TODO S212: tags for group C, then delete the merged branches. This session could
