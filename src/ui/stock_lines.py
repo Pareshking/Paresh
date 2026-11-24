@@ -58,10 +58,13 @@ def short_name(name, symbol: str) -> str:
 
 
 def market_cap(v: float | None) -> str:
-    """Money in a sentence through the Dashboard's one helper, `cr()` (S203 answer 6, st.head.2):
-    ₹30,000 Cr; ₹1.22 lakh Cr above a lakh crore. A size, not a flow, so without cr()'s "+"."""
+    """The market cap in the stock's opening sentence, exact to the crore: ₹29,944 Cr (owner, 24 Nov 2026:
+    "Exact ₹29,944 Cr"); ₹1.22 lakh Cr from a lakh crore, glossary 5's form for the largest."""
+    from src.ui.formats import inr
     from src.ui.views.dashboard_home_view import cr
-    return cr(v).removeprefix("+")
+    if v is None or v != v:
+        return "–"
+    return cr(v).removeprefix("+") if abs(v) >= 1e5 else f"{inr(v)} Cr"
 
 
 @dataclass(frozen=True)

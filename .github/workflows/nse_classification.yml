@@ -1,0 +1,83 @@
+name: NSE classification (monthly)
+
+# NSE's four-level classification (macro-economic sector, sector, industry, basic industry) for
+# every stock the site lists, read from Screener.in's company pages (scripts/nse_classification.py),
+# into data/reference/nse_classification.csv. Reader: the Screener's Sector column on Nano, Combined
+# and the Nifty 1000 (src/loaders/nse_classification.py); S190 (Sectors' finer indices) is the next.
+#
+# Monthly, incremental: stocks with no row first, then rows older than 90 days, at most 900 a run
+# (~35 min at ~2.3 s a stock), so a full refresh spreads over three months. Run by hand with
+# all=true for the full sweep (~2,400 stocks, ~95 min). Classifications move rarely; nothing here
+# depends on the minute GitHub's queue starts it.
+on:
+  schedule:
+    - cron: '17 20 2 * *'    # 2nd of the month, 20:17 UTC (01:47 IST on the 3rd)
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "Ask about every stock (the full sweep), not only the missing and the stale"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nse-classification
+  cancel-in-progress: false
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Exits 1 when Screener stops the run (403, or a 429 that does not clear): what was fetched
+      # is already saved, the commit below still runs, and the run shows red.
+      - name: Read NSE's classification from Screener.in
+        env:
+          PYTHONPATH: .
+        run: |
+          if [ "${{ inputs.all }}" = "true" ]; then
+            python scripts/nse_classification.py --all
+          else
+            python scripts/nse_classification.py --limit 900
+          fi
+
+      - name: Commit and push the classification
+        if: ${{ !cancelled() }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/reference/nse_classification.csv
+          if git diff --staged --quiet; then
+            echo "No classification changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(data): NSE classification from Screener.in [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt; rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || {
+              # In a rebase --theirs is the commit being replayed, i.e. this run's file.
+              git checkout --theirs -- data/reference/nse_classification.csv 2>/dev/null || true
+              git add data/reference/nse_classification.csv
+              GIT_EDITOR=true git rebase --continue || git rebase --abort
+            }
+            sleep $((attempt * 3))
+          done
+          echo "::error::Could not push the classification after 5 attempts."
+          exit 1

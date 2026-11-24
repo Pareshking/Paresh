@@ -3,6 +3,17 @@
 Owner, 11 Nov 2026: *"Record items which required delete as I am on mobile and
 can't do it, whatever possible please delete it."*
 
+## S224 (d) clean-up (owner, 24 Nov 2026: "Yes")
+
+- **R2 `market_caps/nse_history`, `market_caps/nse_snapshot`, `prices/ss`, `nse/source_checks`**: nothing reads them
+  (DATA_AUDIT_2026-11-24 b4, b6, b7). Writers stopped in the same PR (`r2_market_cap_history.yml` removed, the
+  bootstrap's snapshot step, `ss_sync`'s R2 step, `nse_collect`'s check publish); in `RETIRED_DATASETS`, protection
+  lifted for these names only (`RETIRED_BY_OWNER`). Deleted by a dispatch of `r2_retention.yml` with `apply` and the
+  dry run's count, after the merge. `prices/ss` was kept on 22 Nov (4.2); the 24 Nov yes replaces that.
+- **Kept, not deleted:** the membership set (`indices/membership/*`, `indices/constituents/*`,
+  `universes/point_in_time`, b5, ~8 MiB). It has no reader today, but it is point-in-time evidence that can't be
+  downloaded again, and S197/S198's membership builder is its reader in December. Approved by the owner, 24 Nov 2026 ("Ok for all").
+
 ## S195 clean-up (owner, 22 Nov 2026: "go with your recommendations")
 
 `docs/RESOURCES.md` section 4 has the evidence for each.

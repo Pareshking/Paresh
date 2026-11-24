@@ -77,22 +77,22 @@ def test_plan_drops_only_the_retained_datasets_and_only_unkept_dates():
     assert set(yahoo.drop) == dropped
     # pointer + manifest + payload per dropped date
     assert len(yahoo.delete_keys) == 3 * len(dropped)
-    assert set(plans) == {"prices/screener", "prices/ss", "bse/daily", "market_caps/nse_history",
+    assert set(plans) == {"prices/screener", "bse/daily",
                           "prices/nse_long_close", "prices/nse_long_value", "prices/nse_long_report",
                           "snapshots/rankings", "snapshots/rankings_nano", "snapshots/rankings_combined",
                           "snapshots/rankings_1000",
                           "snapshots/application", "prices/yahoo/bootstrap",
                           "calculations/rankings", "indices/prices/research",   # retired 22 Nov (S195)
                           "prices/yahoo", "prices/yahoo/raw", "app/prices_snapshot",
-                          "app/prices_extra"}
-    # market_caps/nse_history: the newest two (the 2026-09-18 pin went 17 Nov).
-    assert set(plans["market_caps/nse_history"].keep) == set(SEP[-2:])
+                          "app/prices_extra",
+                          # retired 24 Nov 2026 (owner, S224 (d)): R2 copies nothing reads
+                          "market_caps/nse_history", "market_caps/nse_snapshot", "prices/ss", "nse/source_checks"}
+    assert set(plans["market_caps/nse_history"].drop) == set(AUG + SEP)
     # Every Yahoo dataset goes whole, each key planned once.
     assert set(plans["prices/yahoo"].drop) == set(AUG + SEP)
     every = [k for p in plans.values() for k in p.delete_keys]
     assert len(every) == len(set(every))
     assert not [k for k in every if "screener/bootstrap" in k]
-    assert not [k for k in every if "market_caps" in k and any(d in k for d in SEP[-2:])]
     # Pointers go first, payloads last.
     assert yahoo.delete_keys[0].endswith("/current.json")
     assert not yahoo.delete_keys[-1].startswith("archive/manifests/")
@@ -327,7 +327,7 @@ def test_the_nse_history_and_its_products_are_protected_too():
     for ds in ("nse/prices_daily", "nse/corporate_actions_history", "indices/membership/nifty_500",
                "indices/constituents/nifty50", "indices/nse_close_all",
                "snapshots/rankings", "snapshots/rankings_nano", "snapshots/rankings_1000",
-               "market_caps/nse_history", "trading_sessions/confirmed"):
+               "market_caps/nse_market_caps", "trading_sessions/confirmed"):
         with pytest.raises(ValueError, match="protected"):
             rr.check_protected({ds: f"archive/{ds}"}, {})
     # A retired root that would sweep the NSE archive, or the published rankings, is refused.
@@ -384,15 +384,19 @@ def test_a_protected_dataset_is_never_emptied_or_also_pruned():
         rr.make_plan(FakeArchive(), superseded_only={"prices/screener": "archive/prices/screener"})
 
 
-def test_prices_ss_keeps_its_newest_three_and_no_month_ends():
-    # Owner, 15 Nov 2026: three dailies; 17 Nov 2026 (S141): no month-ends.
-    # Nothing reads prices/ss from R2 (ss_sync restores from the release).
+def test_the_owners_retired_datasets_go_whole_and_only_they_leave_protection():
+    # Owner, 24 Nov 2026 (S224 (d), "Yes"): four R2 copies nothing reads go whole; the rest of market_caps/ and
+    # nse/ stays protected.
     a = FakeArchive()
-    for i, d in enumerate(AUG + SEP):
+    for i, d in enumerate(SEP):
         publish(a, "prices/ss", "archive/prices/ss", d, 3000 + i, size=1000)
+        publish(a, "nse/source_checks", "archive/nse/source_checks", d, 3100 + i)
+        publish(a, "nse/prices_daily", "archive/nse/prices_daily", d, 3200 + i)
     plans = {p.dataset: p for p in rr.make_plan(a)}
-    assert set(plans["prices/ss"].keep) == set(SEP[-3:])
-    assert rr.KEEP_LATEST_ONLY["prices/ss"] == 3
+    assert set(plans["prices/ss"].drop) == set(SEP) and set(plans["nse/source_checks"].drop) == set(SEP)
+    assert "nse/prices_daily" not in plans
+    assert "prices/ss" not in rr.KEEP_LATEST_ONLY and "market_caps/nse_history" not in rr.PROTECTED_KEEP_NEWEST
+    assert set(rr.RETIRED_DATASETS) >= rr.RETIRED_BY_OWNER
 
 
 def test_rankings_keep_every_date_and_only_the_newest_revision_of_each():
@@ -415,18 +419,17 @@ def test_rankings_keep_every_date_and_only_the_newest_revision_of_each():
 
 def test_the_post_retention_audit_covers_every_dataset_that_keeps_some_keys():
     covered = set(rr.deleted_from())
-    assert {"prices/screener", "prices/ss", "bse/daily", "market_caps/nse_history",
-            "snapshots/rankings"} <= covered
+    assert {"prices/screener", "bse/daily", "snapshots/rankings"} <= covered
     assert not covered & set(rr.RETIRED_DATASETS)
 
 
 def test_a_pinned_date_survives_thinning(monkeypatch):
-    monkeypatch.setitem(rr.PINNED_DATES, "market_caps/nse_history", frozenset({SEP[0]}))
+    monkeypatch.setitem(rr.PINNED_DATES, "bse/daily", frozenset({SEP[0]}))
     a = FakeArchive()
     for i, d in enumerate(SEP):
-        publish(a, "market_caps/nse_history", "archive/market_caps/nse_history", d, 7000 + i)
-    plan = {p.dataset: p for p in rr.make_plan(a)}["market_caps/nse_history"]
-    assert set(plan.keep) == {SEP[0], *SEP[-2:]}
+        publish(a, "bse/daily", "archive/bse/daily", d, 7000 + i)
+    plan = {p.dataset: p for p in rr.make_plan(a)}["bse/daily"]
+    assert set(plan.keep) == {SEP[0], SEP[-1]}
 
 
 def test_the_long_nse_file_keeps_its_newest_two_builds_and_nothing_else_of_it():

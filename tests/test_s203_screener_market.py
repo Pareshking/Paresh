@@ -199,7 +199,7 @@ def test_sc_data_1(monkeypatch):
 @pytest.mark.parametrize("name, nano, ranked, members, head, body", [
     ("Nifty 1000", False, ["A", "B"], ["A", "B", "C"], "2 of the Nifty 1000's 3 stocks are ranked, as one list.",
      "1 is not ranked yet: under 3 months of prices with us; their history is being collected. C."),
-    ("> ₹2,000 Cr", True, ["A"], ["A", "B", "C"], "1 of the 3 stocks in the > ₹2,000 Cr list is ranked, among themselves.",
+    ("> ₹2,000 Cr", True, ["A"], ["A", "B", "C"], "1 of the 3 stocks in the Ultra Nano Cap list (> ₹2,000 Cr until January) is ranked, among themselves.",
      "2 are not ranked yet: under 3 months of prices. B, C."),
     ("Combined", False, ["A"], ["A"], "1 of the 1 stock in the combined universe is ranked, as one list.", ""),
 ])
@@ -480,14 +480,27 @@ def test_mk_dead_1():
 def test_sc_sys_1_a_list_takes_no_possessive():
     from src.ui.views.ranking_view import system_note
     head, _ = system_note("> ₹2,000 Cr", ["A", "B"], ["A", "B", "C"], nano=True)
-    assert head == "2 of the 3 stocks in the > ₹2,000 Cr list are ranked, among themselves."
+    assert head == "2 of the 3 stocks in the Ultra Nano Cap list (> ₹2,000 Cr until January) are ranked, among themselves."
     head, _ = system_note("Combined", ["A"], ["A", "B"], nano=False)
     assert head == "1 of the 2 stocks in the combined universe is ranked, as one list."
 
 
-def test_the_qualified_now_column_has_one_width_on_every_system():
-    """Owner, 24 Nov 2026: the Nifty 1000's table showed a ~300 px gap. One "Out" row's reasons, on one nowrap
-    line, set the column's width; each reason is now its own line in a column of one fixed width."""
+def test_out_is_one_word_again_and_the_reasons_stay_in_the_filter_columns():
+    """Owner, 24 Nov 2026 (S189 item 1, "None required at all, look is also important"): "Out" carries no
+    reason beside it, so the qualified column keeps the width of its numbers on every system (the Nifty
+    1000's ~300 px gap came from those reasons); the 50D EMA and 52W-high columns still say why."""
     from src.ui import screener_table as stt
-    assert "td.qn{width:7.5rem;min-width:7.5rem}" in stt._CSS
-    assert "white-space:nowrap" not in stt._CSS.split("td .why{", 1)[1].split("}", 1)[0]
+    src = _src("src/ui/screener_table.py")
+    assert 'class="why"' not in src and "td.qn" not in stt._CSS
+    assert "Under 12 months of prices, so the 52W-high" in src
+
+
+def test_a_short_history_max_dd_carries_the_since_listing_mark():
+    """Owner, 24 Nov 2026 (S189 item 7, "Show it with a mark"): the drawdown shows, marked, where the return is "–"."""
+    import pandas as pd
+    from src.ui import screener_table as stt
+    v = pd.DataFrame({"Max DD 12M": [18.9, 10.0], "12M Return": [None, 0.2]})
+    assert stt.has_since_listing(v)
+    assert not stt.has_since_listing(v.iloc[[1]])
+    src = _src("src/ui/screener_table.py")
+    assert 'title="Since listing: under {w} months of prices"' in src

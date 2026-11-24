@@ -77,18 +77,18 @@ def test_st_head_1(ema, high, state, held):
 
 @pytest.mark.parametrize("kw, market, late, want", [
     ({}, 0.0080, False, "₹4,798 at the 20 Nov 2026 close, a new 52-week closing high. Up 200.9% over 12 months, "
-                        "against up 0.8% for Nifty Total Market. Market cap ₹30,000 Cr."),           # new high
+                        "against up 0.8% for Nifty Total Market. Market cap ₹29,944 Cr."),           # new high
     ({"12M Return": -0.239, "52W High Date": "2026-08-19"}, -0.031, False,
      "₹4,798 at the 20 Nov 2026 close. Down 23.9% over 12 months, against down 3.1% for Nifty Total Market. "
-     "Market cap ₹30,000 Cr."),
+     "Market cap ₹29,944 Cr."),
     ({"12M Return": 0.0004, "52W High Date": "2026-08-19"}, 0.05, False,
      "₹4,798 at the 20 Nov 2026 close. Unchanged over 12 months, against up 5.0% for Nifty Total Market. "
-     "Market cap ₹30,000 Cr."),                                                                       # level
+     "Market cap ₹29,944 Cr."),                                                                       # level
     ({"Market Cap (Cr)": 122000.0}, None, False,
      "₹4,798 at the 20 Nov 2026 close, a new 52-week closing high. Up 200.9% over 12 months. "
      "Market cap ₹1.22 lakh Cr."),                                                                    # market missing
     ({}, None, True, "₹4,798 at the 20 Nov 2026 close, a new 52-week closing high. Up 200.9% over 12 months; "
-                     "Nifty Total Market’s 20 Nov close is not in yet. Market cap ₹30,000 Cr."),       # late
+                     "Nifty Total Market’s 20 Nov close is not in yet. Market cap ₹29,944 Cr."),       # late
     ({"Market Cap (Cr)": None}, 0.008, False,
      "₹4,798 at the 20 Nov 2026 close, a new 52-week closing high. Up 200.9% over 12 months, "
      "against up 0.8% for Nifty Total Market."),                                                      # cap missing

@@ -71,7 +71,15 @@ def wanted_symbols(notes: dict, renames: dict) -> tuple[list[str], set[str]]:
     The raw set adds the old ticker of every rename into a kept name, so the
     years before a ticker change are read and joined.
     """
-    keep = all_ever_members() | set(SAME_COMPANY) | set(notes.get("renames") or {})
+    return with_renames(all_ever_members() | set(SAME_COMPANY) | set(notes.get("renames") or {}), renames)
+
+
+def with_renames(keep, renames: dict) -> tuple[list[str], set[str]]:
+    """(the kept symbols with each rename's successor, the raw tickers to read for them).
+
+    The same join for the long file and for any other set (scripts/s198_measure.py).
+    """
+    keep = set(keep)
     succ = {old: (a["new_symbol"] if isinstance(a, dict) else str(a)) for old, a in renames.items()}
     keep |= {succ[s] for s in keep if s in succ}
     raw = set(keep) | {old for old, new in succ.items() if new in keep}

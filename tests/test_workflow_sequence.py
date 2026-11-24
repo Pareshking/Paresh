@@ -27,7 +27,6 @@ def _on(doc: dict) -> dict:
 CHAINS = {
     "daily_sync.yml": "Screener daily price sync (overnight)",          # re-rank the new store
     "r2_observed_trading_sessions.yml": "Screener daily price sync (overnight)",
-    "r2_market_cap_history.yml": "Daily NSE Momentum Data Sync",        # data/nse_market_caps.csv
     "r2-historical-evidence-bootstrap.yml": "Daily NSE Momentum Data Sync",
     "nse_long_prices.yml": "Daily NSE Momentum Data Sync",              # tonight's session, then breadth
 }
@@ -108,7 +107,7 @@ def test_the_evidence_bootstrap_passes_the_skip_on_every_publish():
         for step in doc["jobs"]["bootstrap"]["steps"]
         if "scripts/r2_publish.py" in str(step.get("run", ""))
     ]
-    assert len(runs) == 7
+    assert len(runs) == 6   # market_caps/nse_snapshot retired 24 Nov 2026 (S224 (d))
     for run in runs:
         assert run.count("scripts/r2_publish.py") == run.count("--skip-if-published")
 

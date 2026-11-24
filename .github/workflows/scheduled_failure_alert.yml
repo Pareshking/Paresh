@@ -32,11 +32,11 @@ on:
       - NSE history import (2010 onwards)
       - NSE long price file (backtests from 2010)
       - NSE adjusted prices vs Screener
+      - NSE classification (monthly)
       - NSE reference feeds sync
       - R2 historical evidence bootstrap
       - R2 archive inventory
       - R2 Final Acceptance
-      - R2 dated market-cap publication
       - R2 observed trading-session publication
       - NSE indices (every index, daily)
       - R2 retention

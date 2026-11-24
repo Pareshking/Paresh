@@ -426,6 +426,19 @@ def size_table(closes: dict[str, pd.Series], market: pd.Series, as_of: pd.Timest
     return out
 
 
+def momentum_gap(closes: dict[str, pd.Series], as_of: pd.Timestamp, months: int = 12) -> dict[str, float]:
+    """{size: momentum index less the index it picks from, over `months`}, for the section's heading when neither
+    of its findings holds (S203 dash.size.4: "over 12M", a window the table, 1M to 6M, does not show)."""
+    start = as_of - pd.DateOffset(months=months)
+    out = {}
+    for size, _parent, mom, mom_parent in SIZES:
+        q = window_return(closes.get(mom), start, as_of) if mom else None
+        mp = window_return(closes.get(mom_parent), start, as_of)
+        if q is not None and mp is not None:
+            out[size] = q - mp
+    return out
+
+
 # ── 6. The book by industry status ──────────────────────────────────────────
 
 

@@ -1138,8 +1138,11 @@ def _screener_book() -> list[str]:
 
 def _page_screener() -> None:
     # What is ranked comes last, under the top-50 moves (owner, 2026-09-27).
+    # The Sector column shows NSE's sector on every system (S189 item 6 (a)): a copy, because
+    # rank_df's Industry is also the model plan's sector cap on Nano and Combined.
+    from src.loaders.nse_classification import with_nse_sectors
     render_ranking_view(
-        rank_df, adj_close, high_prices, low_prices, volume_data,
+        with_nse_sectors(rank_df, system), adj_close, high_prices, low_prices, volume_data,
         open_prices=data.get("open_prices"),
         regime=regime_data,
         footnote=_system_line,

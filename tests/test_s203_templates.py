@@ -321,6 +321,22 @@ def test_dash_size_1_3_4():
     assert _clean(dv.size_head(_size_rows((1, 1, 1.5), (3, 1, -4.25), (4, 2, 2.0)), book)) == \
         "Mid Cap momentum is furthest from its index: 4.3 points behind over 6M."
     assert "even as" not in dv.size_head(_size_rows((-3.2, -5.0, -7.75), (9, 9, 9), (9, 9, 9)), book)   # size.2 dropped
+    # dash.size.4 over 12M, the approved window, when the 12M figures can be read (the table stops at 6M).
+    rows = _size_rows((1, 1, 1.5), (3, 1, -0.5), (4, 2, 2.0))
+    assert _clean(dv.size_head(rows, book, {"Large": 1.0, "Mid": -6.04, "Small": 3.0})) == \
+        "Mid Cap momentum is furthest from its index: 6.0 points behind over 12M."
+    assert _clean(dv.size_head(rows, book, {"Large": 1.0, "Mid": -2.0})) == \
+        "Momentum is within 2.5 points of its index in every size over 12M."
+
+
+def test_momentum_gap_reads_twelve_months():
+    import pandas as pd
+    from src.engine import dashboard_insights as di
+    days = pd.bdate_range("2025-10-01", "2026-11-20")
+    up = pd.Series(range(100, 100 + len(days)), index=days, dtype=float)
+    flat = pd.Series(100.0, index=days)
+    gap = di.momentum_gap({"midcap150_mom50": up, "midcap150": flat}, days[-1], 12)
+    assert set(gap) == {"Mid"} and gap["Mid"] > 0
 
 
 def test_dash_size_5():

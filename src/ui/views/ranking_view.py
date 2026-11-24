@@ -587,6 +587,9 @@ def render_ranking_view(
         view = view.sort_values("Rank", kind="stable")
     render_screener_table(view, adj_close, density_mode,
                           sort_key="d1m" if movers else "rank", sort_desc=movers, page_rows=50)
+    from src.ui.screener_table import SINCE_LISTING_MARK, has_since_listing
+    if has_since_listing(view):
+        st.caption(f"{SINCE_LISTING_MARK} Max DD since listing: the stock has fewer months of prices than the window.")
 
     # Export EVERY column the ranking carries, not just the ones on screen.
     # DISPLAY_COLS is a screen-layout decision -- it drops Score, the raw
@@ -684,7 +687,10 @@ def system_note(system_name: str, ranked, members, *, nano: bool,
     members = {str(x) for x in members}
     unranked = sorted(members - ranked_set)
     # An index takes the possessive ("the Nifty 1000's 3 stocks"); a list does not ("the > ₹2,000 Cr's" read badly).
-    lists = {"> ₹2,000 Cr": "the > ₹2,000 Cr list", "Combined": "the combined universe"}
+    # The footnote uses the January name already (owner, 24 Nov 2026: "Ultra Nano Cap now"); until S198's switch the
+    # list is still > ₹2,000 Cr outside the 750, so the bracket says so.
+    lists = {"> ₹2,000 Cr": "the Ultra Nano Cap list (> ₹2,000 Cr until January)",
+             "Combined": "the combined universe"}
     m = len(members)
     stocks = "stock" if m == 1 else "stocks"
     whose = (f"of the {m:,} {stocks} in {lists[system_name]}" if system_name in lists
