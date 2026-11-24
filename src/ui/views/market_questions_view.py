@@ -137,7 +137,10 @@ def total_market() -> pd.Series:
         t = pd.read_csv(f, parse_dates=["date"])
         nse = pd.Series(pd.to_numeric(t["close"], errors="coerce").values, index=t["date"]).dropna()
     ours = bi.series(bi.TOTAL_MARKET).dropna()
-    return pd.concat([nse, ours[ours.index > (nse.index.max() if len(nse) else pd.Timestamp(0))]]).sort_index()
+    # The archive's close wins where it has one; every other session comes from the index file, not only those
+    # after the archive ends: the archive lacks NSE's seven weekend sessions (Muhurat and Budget days, 12 Nov 2023
+    # to 8 Nov 2026), which the index file holds from NSE's own files (S154, found 24 Nov 2026).
+    return nse.combine_first(ours).sort_index()
 
 
 def size_closes(levels: pd.DataFrame | None = None, ok: bool = True) -> dict[str, pd.Series]:

@@ -410,9 +410,20 @@ def _ema_gap_series(close: pd.Series, span: int = 200) -> pd.Series:
     return ((s / s.ewm(span=span, min_periods=int(span * 0.8)).mean() - 1) * 100).dropna()
 
 
-def _from_high_series(close: pd.Series) -> pd.Series:
-    s = close.dropna()
-    return ((s / s.rolling(252, min_periods=200).max() - 1) * 100).dropna()
+def _from_high_series(close: pd.Series, min_sessions: int = 200) -> pd.Series:
+    """The distance from the 52W high at each session, over the calendar year (t - 1 year, t], the window
+    `from_high` reads (owner, 24 Nov 2026: "Use calendar date everywhere"; was 252 sessions, which parted from
+    Market's reading on 9 of 750 sessions, S154). A session with fewer than `min_sessions` in its year is left out."""
+    s = close.dropna().sort_index()
+    if s.empty:
+        return s
+    idx, v = s.index, s.to_numpy(dtype=float)
+    starts = idx.searchsorted(idx - pd.DateOffset(years=1), side="right")
+    out = np.full(len(v), np.nan)
+    for i, a in enumerate(starts):
+        if i + 1 - a >= min_sessions:
+            out[i] = (v[i] / v[a:i + 1].max() - 1) * 100
+    return pd.Series(out, index=idx).dropna()
 
 
 def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,

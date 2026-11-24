@@ -112,9 +112,7 @@ def test_total_market_month_so_far_and_this_year_agree_on_dashboard_and_portfoli
     _one([bm.market_ytd, periods["This year"]])
 
 
-@pytest.mark.xfail(strict=True, reason="Undocumented: Sectors' lede rounds with Python's format (half to even on "
-                   "the binary value), the other pages with formats.signed (half away from zero, glossary 12). "
-                   "sector_view.py:236 `abs(tmr):.1f`; 2.25 shows 2.2 there and +2.3 on the Dashboard.")
+# Fixed 24 Nov 2026 (S154 finding 3): the lede rounds with formats.signed.
 def test_sectors_lede_rounds_the_total_market_figure_as_the_other_pages_do():
     from src.ui.views import sector_view as sv
     when = AS_OF
@@ -167,9 +165,7 @@ def test_with_the_members_history_sectors_counts_todays_members_as_decided():
     assert "today’s members" in text or "today's members" in text
 
 
-@pytest.mark.xfail(strict=True, reason="Undocumented: Sectors' 'all ranked stocks' counts only stocks with an "
-                   "industry (sectors_page.ema_shares via clean_groups); Market and the Dashboard count every ranked "
-                   "stock (market_questions._share_above_ema on rank_df's symbols).")
+# Fixed 24 Nov 2026 (S154 finding 4): ema_shares counts every ranked stock.
 def test_a_ranked_stock_without_an_industry_counts_on_every_page():
     px = _prices(n=120)
     groups = _groups(px)
@@ -232,10 +228,7 @@ def test_from_the_52w_high_agrees_on_market_indices_and_sectors():
     _one([market, sectors, indices])
 
 
-@pytest.mark.xfail(strict=True, reason="Undocumented: the Dashboard's 'Nifty 500 from its 52W high' (Sharp rebound "
-                   "row, dashboard_home_view.py:1563) reads market_questions._from_high_series, a 252-session window; "
-                   "Market (market_questions.from_high, trend_answer) and Indices read a calendar year. On NSE's "
-                   "closes they differed on 9 of the last 750 sessions, most on 1 Oct 2025: -6.4 against -3.5.")
+# Fixed 24 Nov 2026 (owner: "Use calendar date everywhere"): both read the calendar year.
 def test_the_dashboards_52w_high_is_markets():
     s, _ = _peak_just_over_a_year_back()
     dash = di.trail_of(mq._from_high_series(s), AS_OF)[2]
@@ -372,3 +365,17 @@ def test_the_index_files_the_pages_read_give_one_close_per_session():
         j = pd.concat([pd.to_numeric(a, errors="coerce"), pd.to_numeric(b, errors="coerce")], axis=1, join="inner").dropna()
         assert len(j), a.name
         assert float((j.iloc[:, 0] / j.iloc[:, 1] - 1).abs().max()) <= tol, a.name
+
+
+def test_total_market_keeps_nse_weekend_sessions_the_archive_lacks(monkeypatch, tmp_path):
+    """S154 finding 2: data/nse_total_market.csv lacks NSE's weekend sessions (Muhurat, Budget days);
+    total_market() took the index file's rows only after the archive's end, so a 1M window from
+    6 Nov 2026 would have started on the wrong session from 8 Dec."""
+    from src.loaders import benchmark_indices as bi
+    from src.ui.views import market_questions_view as mqv
+    days = pd.DatetimeIndex(["2026-11-06", "2026-11-08", "2026-11-09"])
+    ours = pd.Series([100.0, 101.0, 102.0], index=days)
+    monkeypatch.setattr(bi, "series", lambda key, *a, **k: ours)
+    tm = mqv.total_market()
+    assert pd.Timestamp("2026-11-08") in tm.index
+    assert tm.index.is_monotonic_increasing and not tm.index.duplicated().any()
