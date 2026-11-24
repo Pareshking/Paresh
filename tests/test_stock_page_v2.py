@@ -229,10 +229,10 @@ def test_the_returns_heading_and_note():
     ws = [sl.Window(12, None, 2.009156, 0.008, None, -16.996686, None, None, None)]
     # S203 Q5 (owner, 24 Nov 2026): the lede keeps the 12M return; the heading counts the windows ahead.
     assert "".join(sl.returns_heading(ws)) == ("Ahead of Nifty Total Market on 1 of 1 window; "
-                                               "its 12-month max drawdown was 17.0%.")   # glossary 1, 6, 8
+                                               "its max drawdown over 12 months was 17.0%.")   # glossary 1, 6, 8
     ws2 = ws + [sl.Window(3, None, -0.05, 0.02, None, -9.0, None, None, None),
                 sl.Window(6, None, 0.10, 0.04, None, -12.0, None, None, None)]
-    assert "".join(sl.returns_heading(ws2)).startswith("Ahead of Nifty Total Market on 2 of 3 windows; its 12-month")
+    assert "".join(sl.returns_heading(ws2)).startswith("Ahead of Nifty Total Market on 2 of 3 windows; its max drawdown over 12")
     assert sl.returns_tone(ws2) == "up"
     assert sl.returns_heading([sl.Window(12, None, None, None, None, None, None, None, None)])[0] == \
         "No return to show for this stock yet."

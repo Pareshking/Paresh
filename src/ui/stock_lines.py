@@ -534,14 +534,14 @@ def bars(ws: list[Window], step: int) -> list[Bar]:
 
 
 def returns_heading(ws: list[Window]) -> tuple[str, str, str]:
-    """('', 'Ahead of Nifty Total Market on 3 of 5 windows', '; its 12-month max drawdown was 17.0%.').
+    """('', 'Ahead of Nifty Total Market on 3 of 5 windows', '; its max drawdown over 12 months was 17.0%.').
 
     The lede states the 12-month return; the heading leads with what the table shows beside it (S203 Q5,
     owner 24 Nov 2026: no figure twice, the lede keeps the 12M return)."""
     both = [x for x in ws if x.ret is not None and x.market is not None]
     w = next((x for x in ws if x.months == 12 and x.fall is not None), None) or next(
         (x for x in reversed(ws) if x.fall is not None), None)
-    dd = (f"its {w.months}-month max drawdown was {formats.pct(abs(w.fall), signed_=False, fraction=False)}."
+    dd = (f"its max drawdown over {w.months} months was {formats.pct(abs(w.fall), signed_=False, fraction=False)}."
           if w is not None else "")
     if not both:
         return ((dd[0].upper() + dd[1:]) if dd else "No return to show for this stock yet."), "", ""

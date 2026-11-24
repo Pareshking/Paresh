@@ -36,7 +36,7 @@ approves the design, and then added here as an `Order:` line.
 | 8 | Buy: each stock, industry, qualified rank, price, 3M, 6M, distance from the 52W high | Live page | Buy | Qualified + From 52W high |
 | 9 | Next in line after the buys | Live page | Buy | Next in line |
 | 10 | Hold: status, rank buffer (place among the qualified, places to go), cushion to the 50D EMA, cushion to the 52W-high line, the closest rule, return since entry | Live page | Hold | Rank buffer + 50D EMA + from 52W high + Closest to |
-| 11 | Holds ordered by least room on any rule, a full rank buffer counted as a 20% fall, said on the page | Owner Nov (CHANGELOG, PVRINOX order) | Hold | least room on any rule |
+| 11 | Holds ordered by least room on any rule, a full rank buffer counted as a 20% fall, said on the page | Owner Nov (CHANGELOG, PVRINOX order) | Hold | least room on any sell rule |
 | 12 | A holding that cannot be ranked is said so, not hidden (today's book has none; the case is covered by `tests/test_actions_requirements.py`) | Live page | Figures | Hold |
 | 13 | Buy candidates: the qualified list, collapsed | Live page | End | Buy candidates |
 | 14 | A phone drops columns only with a note saying which | Design audit 9 Nov | Sell, Buy | [phone] On a wider screen |
