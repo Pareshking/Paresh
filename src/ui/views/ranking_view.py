@@ -434,7 +434,7 @@ def render_ranking_view(
             label_visibility="collapsed",
             format_func=search_label,
             on_change=_open_searched_stock,
-            width=260,
+            width=240,
         )
         filt = st.pills(
             "Presets",

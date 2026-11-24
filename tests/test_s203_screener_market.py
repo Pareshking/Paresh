@@ -477,3 +477,11 @@ def test_sc_sys_1_a_list_takes_no_possessive():
     assert head == "2 of the 3 stocks in the > ₹2,000 Cr list are ranked, among themselves."
     head, _ = system_note("Combined", ["A"], ["A", "B"], nano=False)
     assert head == "1 of the 2 stocks in the combined universe is ranked, as one list."
+
+
+def test_the_qualified_now_column_has_one_width_on_every_system():
+    """Owner, 24 Nov 2026: the Nifty 1000's table showed a ~300 px gap. One "Out" row's reasons, on one nowrap
+    line, set the column's width; each reason is now its own line in a column of one fixed width."""
+    from src.ui import screener_table as stt
+    assert "td.qn{width:7.5rem;min-width:7.5rem}" in stt._CSS
+    assert "white-space:nowrap" not in stt._CSS.split("td .why{", 1)[1].split("}", 1)[0]
