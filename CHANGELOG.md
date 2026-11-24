@@ -4,7 +4,7 @@
 ## 2026-11-24 — One name for each thing (S173), and two late figures named (S164)
 
 - Portfolio's growth chart names its lines in full (Nifty500 Momentum 50, Nifty Total Market) and heads its lower pane "Below its peak". Indices' table says "Max drawdown, relative", and its momentum heading reads "Momentum’s line against the Nifty 500 is 12.3% below its March 2025 peak". The Screener's index filter uses NSE's full index names. "Market cap" replaces "market value" for NSE's caps.
-- The Dashboard's 12-month momentum tile names its window ("Nov 2025 to Oct 2026"). The domestic-institutions tile adds the days NSE's own file has not reached, from NSE's provisional all-exchange report, named as such.
+- The Dashboard's 12-month momentum tile names its window ("finished months Nov 2025 to Oct 2026"). The domestic-institutions tile adds the days NSE's own file has not reached, from NSE's provisional all-exchange report, named as such.
 
 ## 2026-11-24 — One 52-week high: the calendar year, everywhere
 
