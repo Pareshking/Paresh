@@ -34,6 +34,12 @@ from src.engine.calendar_momentum import (
 )
 
 
+
+# A volume spike: today's volume this many times its VOLUME_WINDOW-session average or more. Named so the
+# Screener's key and chip read the rule, not a typed copy (S203 rule 9).
+VOLUME_SPIKE = 1.5
+VOLUME_WINDOW = 20
+
 def time_ordered(df: pd.DataFrame | None, name: str = "prices") -> pd.DataFrame | None:
     """`df` with its dates ascending and each date once (the last copy kept), logged when it was not.
 
@@ -444,11 +450,11 @@ class MomentumEngine:
         if self.volume is not None and not self.volume.empty:
             vol_df = self.volume.copy()
             vol_df.columns = [normalise_symbol(c) for c in vol_df.columns]
-            vol_20_avg = vol_df.rolling(20, min_periods=10).mean().iloc[-1]
+            vol_20_avg = vol_df.rolling(VOLUME_WINDOW, min_periods=10).mean().iloc[-1]
             vol_latest = vol_df.iloc[-1]
             vol_ratio = vol_latest / vol_20_avg.replace(0, np.nan)
             vol_label = vol_ratio.map(
-                lambda r: "High" if r >= 1.5 else ("Low" if r < 0.7 else "Normal")
+                lambda r: "High" if r >= VOLUME_SPIKE else ("Low" if r < 0.7 else "Normal")
             )
         else:
             vol_label = pd.Series("Normal", index=latest_close.index)

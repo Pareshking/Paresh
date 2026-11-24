@@ -11,7 +11,8 @@ import numpy as np, pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "scripts" / "research"))
 import rebalance_rules_after_tax as rr
-from src.loaders import nse_adjusted as na
+from src.engine.metrics import max_drawdown  # noqa: E402
+from src.loaders import nse_adjusted as na  # noqa: E402
 
 long_p, act_p, raw_p = sys.argv[1:4]
 close = pd.read_parquet(long_p)
@@ -59,7 +60,7 @@ for name, c in (("10% (today)", close), ("2% (NSE's line)", close2)):
     eq = res["equity_curve"]; eq = eq.iloc[:, 0] if isinstance(eq, pd.DataFrame) else eq
     yrs = (eq.index[-1] - eq.index[0]).days / 365.25
     cagr = (eq.iloc[-1] / eq.iloc[0]) ** (1 / yrs) - 1
-    dd = (eq / eq.cummax() - 1).min()
+    dd = max_drawdown(eq)
     tb = res["tradebook"]
     last = tb[pd.to_datetime(tb["Period Start"]) == pd.to_datetime(tb["Period Start"]).max()]
     held = set(last[last["Action"].astype(str).str.contains("BUY|HOLD")]["Symbol"])

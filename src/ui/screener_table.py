@@ -377,7 +377,8 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     vol = str(row.get("Volume") or "Normal")
     # "High" is one day's volume at 1.5x or more its 20-day average
     # (momentum.py): a spike, not a high-volume stock (S87 item 3).
-    vchip = ('<span class="vol" title="Today\'s volume 1.5x or more its 20-day average">Spike</span>'
+    from src.engine.momentum import VOLUME_SPIKE, VOLUME_WINDOW
+    vchip = (f'<span class="vol" title="Today\'s volume {VOLUME_SPIKE:g}x or more its {VOLUME_WINDOW}-day average">Spike</span>'
              if vol == "High" else '<span class="muted">Normal</span>')
     cells["vol"] = f'<td data-v="{_esc(vol)}">{vchip}</td>'
     for key, col in (("stop", "Stop Loss"), ("chand", "Chand Exit")):
