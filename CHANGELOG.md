@@ -6,6 +6,7 @@
 - Guide: a paragraph on how the score differs from NSE's Nifty200 Momentum 30 and MSCI's momentum indices (they use 6 and 12 months only and leave out the latest month; ours adds 1, 3 and 9 months and runs to the latest close).
 - Backtest: Sharpe and Sortino say they are measured over "a fixed 6.5% a year".
 - Dashboard: the sector under each holding is marked equal-weighted.
+- Screener: in Full Quant the filters (from 52W high, above 50D EMA, near 52W high) come before the 1-12 month windows, so a desktop's first screen shows whether a stock passes.
 
 ## 2026-11-24 — Sentences that were wrong on some days now read right on every day (S203)
 

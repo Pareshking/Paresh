@@ -94,11 +94,14 @@ _RANK_KEYS = ("rank", "p3", "p1", "q3", "q1", "qrank")
 # Executive and Core are this set with columns hidden, nothing else. Sharpe is
 # a quant-view statistic (not comparable like a return) and the drawdown shown
 # outside Quant is the 3M one.
+# The filters come before the windows (S189 item 8, decided by benchmark 24 Nov 2026, owner to confirm:
+# TradingView groups columns by the question they answer): whether a stock passes is the reader's next
+# question after its place, and at 1400 px the filters sat about 3,100 px to the right.
 _QUANT_KEYS = (
-    ("rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "score", "idx", "ind", "mcap")
+    ("rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "score", "idx", "ind", "mcap",
+     "hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")
     + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
-    + ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3", "stop", "chand",
-       "gap", "ffill", "hz", "spark")
+    + ("stop", "chand", "gap", "ffill", "hz", "spark")
 )
 _CORE_KEYS = ("rank", "stock", "price", "p3", "p1", "qrank", "idx", "ind", "mcap",
               "r1", "r3", "r6", "r12", "dd3", "hi", "ema", "vol", "above", "near", "spark")
@@ -118,10 +121,11 @@ _QUANT_GROUPS = (
     ("Rank before", ("p3", "p1", "d1m")),
     ("Qualified", ("q3", "q1", "qrank")),
     ("Plan", ("plan",)),
-    ("Score", ("score",)),
+    # No label over the one Score column: "Score" over "Score" said it twice (S189 item 8).
+    ("", ("score",)),
     ("Company", ("idx", "ind", "mcap")),
-    *((f"{w} month{'s' if w > 1 else ''}", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
     ("Filters and highs", ("hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")),
+    *((f"{w} month{'s' if w > 1 else ''}", (f"r{w}", f"sh{w}", f"dd{w}")) for w in PERIOD_WINDOWS),
     ("Exits", ("stop", "chand")),
     ("Data health", ("gap", "ffill", "hz")),
     ("Trend", ("spark",)),
