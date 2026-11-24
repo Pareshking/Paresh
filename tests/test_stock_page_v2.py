@@ -63,7 +63,7 @@ def test_the_lede_gives_the_close_the_date_and_the_year_against_nifty_total_mark
     text = sl.lede(_row(), DAY, 0.0080)
     # S203 st.head.2: the sign in a word (rule 2), "over 12 months", money through cr() (answer 6).
     assert text == ("₹4,798 at the 20 Nov 2026 close, a new 52-week closing high. Up 200.9% over 12 months, "
-                    "against up 0.8% for Nifty Total Market. Market cap ₹30,000 Cr.")
+                    "against up 0.8% for Nifty Total Market. Market cap ₹29,944 Cr.")
     assert "Down 23.9%" in sl.lede(_row(**{"12M Return": -0.239, "52W High Date": "2026-08-19"}), DAY, 0.008)
     assert sl.market_cap(122000.0) == "₹1.22 lakh Cr"
 

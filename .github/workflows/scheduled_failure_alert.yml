@@ -36,7 +36,6 @@ on:
       - R2 historical evidence bootstrap
       - R2 archive inventory
       - R2 Final Acceptance
-      - R2 dated market-cap publication
       - R2 observed trading-session publication
       - NSE indices (every index, daily)
       - R2 retention
