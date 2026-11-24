@@ -218,9 +218,7 @@ def test_every_file_in_the_table_is_read_by_a_page():
 
 # ── Open items the text check cannot see (strict: each fails once fixed) ────
 
-@pytest.mark.xfail(strict=True, reason="S164 open (staleness audit #7): the Dashboard's '12 months' momentum tile ends "
-                   "at the last finished month and does not name it (src/engine/system_momentum.py:152, "
-                   "dashboard_insights.py:181); fix: its note names the window, e.g. 'Nov 2025 to Oct 2026'")
+# Fixed 24 Nov 2026: the note names the window ("Nov 2025 to Oct 2026").
 def test_the_12_month_tile_names_the_month_it_ends():
     from src.engine import system_momentum as sm
     months = pd.period_range("2025-08", "2026-10", freq="M").astype(str)

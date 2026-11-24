@@ -821,9 +821,15 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                       f"Bought so far in {f.as_of:%B}" if share[0] > 0 else f"Sold so far in {f.as_of:%B}", tone(share[0]),
                       f"The 11 months before: {'sold' if share[1] < 0 else 'bought'} {_fmt.fixed(abs(share[1]), 1)}% of it"))
     if dii:
+        note = "Taking the other side of foreign buying" if dii[2] < 0 and f.mtd > 0 else ""
+        later = _dii_provisional_after(dii[1]) if (dii[5] if len(dii) > 5 else "on NSE") == "on NSE" else None
+        if later:   # NSE's own file is a few sessions behind; its provisional all-exchange report is not (S164)
+            net, days = later
+            when = " and ".join(f"{d:%-d}" for d in days) if len(days) <= 2 else f"{days[0]:%-d} to {days[-1]:%-d}"
+            note = ((note + ". ") if note else "") + (f"Provisional, all exchanges, {when} {days[-1]:%b}: "
+                                                      f"{'sold' if net < 0 else 'bought'} {cr(abs(net)).lstrip('+')}")
         kp.append((f"Domestic institutions, {dii[0]:%-d} to {dii[1]:%-d %b}, {dii[5] if len(dii) > 5 else 'on NSE'}", cr(dii[2]), tone(dii[2]),
-                   f"Net sellers on {dii[4]} of {dii[3]} sessions", "dh-down" if dii[4] * 2 > dii[3] else "dh-muted",
-                   "Taking the other side of foreign buying" if dii[2] < 0 and f.mtd > 0 else ""))
+                   f"Net sellers on {dii[4]} of {dii[3]} sessions", "dh-down" if dii[4] * 2 > dii[3] else "dh-muted", note))
     evid = ""
     if ev is not None:
         halves = "; ".join(f"{p.replace('-', ' to ')}: {sg(h)} vs {sg(r)}" for p, h, r in ev.halves)
@@ -1423,6 +1429,22 @@ def _dii_months(nse: pd.DataFrame | None) -> dict:
     for p, v in allx.items():
         out[p] = v
     return out
+
+
+def _dii_provisional_after(last: pd.Timestamp) -> tuple[float, list[pd.Timestamp]] | None:
+    """(net ₹ crore, sessions) of domestic institutions in NSE's provisional all-exchange report after `last`, in the
+    same month (data/fii_dii_flows.csv): the days NSE's own DII file has not reached yet. None when there are none."""
+    f = _read_csv(FILES["nse_flows"])
+    if f is None or f.empty or "category" not in f:
+        return None
+    x = f[f["category"].astype(str).str.upper() == "DII"].assign(date=lambda d: pd.to_datetime(d["date"]),
+                                                                  net=lambda d: pd.to_numeric(d["net"], errors="coerce"))
+    last = pd.Timestamp(last)
+    x = x[(x["date"] > last) & (x["date"].dt.to_period("M") == last.to_period("M"))].dropna(subset=["net"])
+    x = x.drop_duplicates("date", keep="last").sort_values("date")
+    if x.empty:
+        return None
+    return float(x["net"].sum()), list(x["date"])
 
 
 def _all_exchange_months() -> dict:
