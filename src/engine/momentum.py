@@ -322,8 +322,10 @@ class MomentumEngine:
         # those 70 sessions, sat 0.0% below it, ranked #1, and passed a gate the
         # backtest would have excluded it from. Fewer prints made the gate
         # EASIER, which points the bias at recent listings.
-        win_52w = min(252, len(high_src))
-        _win = high_src.iloc[-win_52w:]
+        # The calendar year, from the last session on or before the date a year back (owner, 24 Nov
+        # 2026: "Use calendar date everywhere"; it was the last 252 rows).
+        from src.engine.calendar_momentum import year_window_start
+        _win = high_src.iloc[year_window_start(high_src.index, len(high_src) - 1):]
         _win_obs = _win.notna().sum()
         _enough_hist = _win_obs >= HIGH_52W_MIN_OBSERVATIONS
         high_52w = _win.max().where(_enough_hist, np.nan)

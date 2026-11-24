@@ -11,7 +11,15 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from scripts.check_symbol_changes import _pairs, _twins
+from pathlib import Path
+
+from scripts.check_symbol_changes import (
+    _id_twins,
+    _pairs,
+    _rename_between,
+    _twins,
+    _unaliased_renames,
+)
 
 
 def _sessions(n: int) -> pd.DatetimeIndex:
@@ -74,3 +82,74 @@ def test_sundarmhld_to_rubicon_is_explained_not_a_handover():
     assert "INE506V01022" in why and "TSFINV" in why
     eq = (Path(__file__).resolve().parents[1] / "data" / "reference" / "nse" / "equity_l.csv").read_text()
     assert "RUBICON,Rubicon Research Limited,EQ,16-OCT-2025" in eq
+
+
+# ── S129 (c): Screener id twins and renames filed as an exit and an entry ────
+
+_REPO = Path(__file__).resolve().parents[1]
+
+
+def test_two_symbols_on_one_screener_company_id_are_id_twins():
+    ids = {"HEG": "1301", "HEGAM": "1301", "ABB": "7", "ICICILIFE": "9", "ICICIPRULI": "9"}
+    assert _id_twins(ids) == [("HEG", "HEGAM", "1301"), ("ICICILIFE", "ICICIPRULI", "9")]
+    assert _id_twins({"ABB": "7", "ACC": "8"}) == []
+
+
+def test_a_twin_is_explained_only_by_a_rename_that_joins_the_pair():
+    known = {"HEG": {"new_symbol": "HEGAM"}}
+    assert _rename_between("HEGAM", "HEG", known) == ("HEG", "HEGAM")
+    assert _rename_between("HEG", "OTHER", known) is None
+
+
+def _history(changes, aliases=None, baseline=("ABB",)):
+    return {"baseline": {"date": "2021-10-29", "symbols": list(baseline)},
+            "changes": changes, "aliases": aliases or {}}
+
+
+def test_a_rename_filed_as_out_and_in_without_an_alias_is_reported():
+    """ICICIPRULI -> ICICILIFE (NSE symbolchange.csv, 23-OCT-2026): the daily sync
+    filed it as ICICIPRULI out, ICICILIFE in on 28 Oct, with no alias."""
+    known = {"ICICIPRULI": {"new_symbol": "ICICILIFE"}}
+    h = _history([{"date": "2026-10-28", "added": ["ICICILIFE"], "removed": ["ICICIPRULI"]}],
+                 baseline=("ICICIPRULI",))
+    assert _unaliased_renames(h, known) == [("2026-10-28", "ICICIPRULI", "ICICILIFE")]
+    h["aliases"] = {"ICICIPRULI": {"new_symbol": "ICICILIFE", "effective": "2026-10-23"}}
+    assert _unaliased_renames(h, known) == []
+
+
+def test_an_old_ticker_whose_membership_ended_before_the_rename_is_not_reported():
+    # TIDEWATER left the Smallcap 250 in 2017; it became VEEDOL in Oct 2024.
+    known = {"TIDEWATER": {"new_symbol": "VEEDOL"}}
+    h = _history([{"date": "2017-09-29", "added": [], "removed": ["TIDEWATER"]}],
+                 baseline=("TIDEWATER",))
+    assert _unaliased_renames(h, known) == []
+
+
+# Renames already found and awaiting their data entry (a symbol_aliases row in
+# data/membership_notices.json, then extend_membership_from_notices.py apply).
+# Anything NOT listed fails: that is the new case nobody was told about. Remove
+# the row once the alias is in the committed history.
+PENDING_ALIASES: set = set()   # ICICIPRULI -> ICICILIFE aliased 24 Nov 2026 (owner go-ahead)
+
+
+def _known_renames() -> dict:
+    import json
+
+    from src.loaders.nse_identity import auto_renames
+    ledger = json.loads((_REPO / "data/nse_prices/notes.json").read_text()).get("renames", {})
+    return {**auto_renames(), **ledger}
+
+
+def test_every_committed_screener_id_twin_is_a_joined_rename():
+    import json
+    ids = json.loads((_REPO / "data/screener_company_ids.json").read_text())["ids"]
+    known = _known_renames()
+    bad = [t for t in _id_twins(ids) if _rename_between(t[0], t[1], known) is None]
+    assert bad == [], f"symbols sharing a Screener company id with no rename joining them: {bad}"
+
+
+def test_no_new_rename_is_filed_in_membership_as_an_exit_and_an_entry():
+    import json
+    history = json.loads((_REPO / "data/membership_history.json").read_text())
+    found = set(_unaliased_renames(history, _known_renames()))
+    assert found <= PENDING_ALIASES, f"new unaliased renames: {sorted(found - PENDING_ALIASES)}"

@@ -26,6 +26,18 @@ def test_a_change_after_the_freeze_date_does_not_move_the_hash():
     assert fh.digest(fh.frozen_view(later)) == fh.digest(fh.frozen_view(HIST))
 
 
+def test_a_rename_after_the_freeze_date_does_not_move_the_hash():
+    later = copy.deepcopy(HIST)
+    later["aliases"]["NEWNAME_OLD"] = {"new_symbol": "NEWNAME", "effective": "2026-12-01"}
+    assert fh.digest(fh.frozen_view(later)) == fh.digest(fh.frozen_view(HIST))
+
+
+def test_a_rename_inside_the_frozen_range_is_detected():
+    changed = copy.deepcopy(HIST)
+    changed["aliases"]["OLDX"] = {"new_symbol": "NEWX", "effective": "2025-01-01"}
+    assert fh.check(changed, FREEZE)
+
+
 @pytest.mark.parametrize("edit", [
     lambda h: h["indices"]["nifty_50"]["baseline"]["symbols"].append("X"),
     lambda h: h["indices"]["nifty_500"]["changes"][0].update(date="2010-02-25"),

@@ -85,7 +85,7 @@ Fixed 22 Nov 2026 in S184 (#606), before the redesign: `ranking_view.with_book_c
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
 | 14 | The title answers the first question; "Watchlist" is the small kicker above it | PAGE_DESIGN §2a | Top | [css .qp-kick] Watchlist |
-| 15 | Section headings in the serif, each a sentence stating the finding | PAGE_DESIGN §2, §2a | Sections | is the one buy |
+| 15 | Section headings in the serif, each a sentence stating the finding | PAGE_DESIGN §2, §2a | Sections | is the one buy\|are the buys\|none of your stocks is a buy |
 | 16 | The rank and the qualified place 3M ago, 1M ago and now, as numbers in their own columns, on the Dashboard's dates (on or before) | PAGE_DESIGN §2, §6a; Screener decision A, 21 Nov 2026 | Table | 3M ago + 1M ago + Now |
 | 17 | No internal names: index tags as the Screener writes them ("Microcap 250"), no "NANO" | PAGE_DESIGN §2; Screener row 17 | Table | Microcap 250 |
 | 18 | Tables: sentence-case headers, headings over their columns, figures in Plex Mono right-aligned, row labels never wrap; colour only the cell that carries the meaning | PAGE_DESIGN §3 | Table | Rank |

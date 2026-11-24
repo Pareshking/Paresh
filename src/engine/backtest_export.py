@@ -213,7 +213,7 @@ def rules_table(spec: RunSpec, trades: pd.DataFrame) -> pd.DataFrame:
     else:
         add("Entry rules", "1. In the index on T", spec.universe, "Membership on the signal date")
     add("Entry rules", "2. Trend filter", f"Close above its {ema}-session EMA", "Evaluated on T")
-    add("Entry rules", "3. 52-week-high filter", f"Close at least {_pct(high)} of the 252-session high", "Evaluated on T")
+    add("Entry rules", "3. 52-week-high filter", f"Close at least {_pct(high)} of the 52-week high (the last 12 months of closes)", "Evaluated on T")
     if spec.ath_pct is not None:
         add("Entry rules", "All-time-high filter", f"Close at least {_pct(spec.ath_pct)} of the highest close on file",
             f"Applied once a stock has {spec.ath_min_years:g} years of prices on file")

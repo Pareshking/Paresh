@@ -77,6 +77,19 @@ def signed(v: float | Decimal, digits: int = 1, plus: bool = True) -> str:
     return f"{sign}{abs(r):.{digits}f}"
 
 
+def reads_zero(v: float, digits: int = 1) -> bool:
+    """True when v shows as 0.0 at ``digits`` places: the one test for "level" in a sentence (S203 rule 4)."""
+    return half_up(abs(v), digits) == 0
+
+
+def moved(v: float, digits: int = 1, unit: str = "%") -> str:
+    """A return in a sentence, the sign in a word and the figure unsigned (S203 rule 2):
+    "up 5.5%", "down 1.2%", "unchanged" when it shows as 0.0."""
+    if reads_zero(v, digits):
+        return "unchanged"
+    return f"{'up' if v > 0 else 'down'} {fixed(abs(v), digits)}{unit}"
+
+
 def indian_group(whole: int) -> str:
     """Digits in Indian grouping: 2827942 -> "28,27,942"."""
     s = str(abs(int(whole)))

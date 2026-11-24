@@ -233,8 +233,8 @@ def head(ld: sp.Leads, sh, noun: str, nse: dict | None) -> list:
         below = sum(g.gap1 < 0 for g in nse["gaps"])
         if tm1 is not None and m1 is not None:
             tmr = m1 - tm1
-            lede += (f" NSE’s indices tell a different month: Nifty Total Market {'rose' if tmr >= 0 else 'fell'} {abs(tmr):.1f}% and "
-                     f"the 750, equal-weighted, {'rose' if m1 >= 0 else 'fell'} {abs(m1):.1f}%, so "
+            lede += (f" NSE’s indices tell a different month: Nifty Total Market {'rose' if tmr >= 0 else 'fell'} {_fmt.signed(abs(tmr), plus=False)}% and "
+                     f"the 750, equal-weighted, {'rose' if m1 >= 0 else 'fell'} {_fmt.signed(abs(m1), plus=False)}%, so "
                      f"{'all ' + str(below) if below == len(nse['gaps']) else str(below) + ' of ' + str(len(nse['gaps']))} "
                      "sector indices beat their sector’s ranked stocks over the month.")
     lede += f" Price returns, closes of {ld.when:%-d %b %Y}."

@@ -3,8 +3,8 @@ already holds (owner, 7 Nov: tipsheet's question pages as the model, our own
 sources as the data).
 
 * Are most stocks taking part?  (breadth of the ranked universe)
-* Is the market in an uptrend?  (Nifty 500 and the size indices against their
-  averages and highs)
+* Is the market in an uptrend?  (Nifty Total Market, joined to the Nifty 500
+  before its launch, and the size indices against their averages and highs)
 * What is leading?               (size indices and NSE industries against the
   Nifty 500)
 
@@ -78,6 +78,32 @@ def anchor_dates(index: pd.DatetimeIndex) -> dict[str, pd.Timestamp | None]:
     return {"now": now,
             "month_ago": _on_or_before(idx, now - pd.DateOffset(months=1)),
             "year_ago": _on_or_before(idx, now - pd.DateOffset(years=1))}
+
+
+# The market every live figure is read against (S165; owner, 21 Nov 2026: "use Nifty total market 750 as
+# benchmark everywhere unless we need historical data"). NSE launched it on 14 Oct 2021 and publishes no
+# back-calculated years (S165 G1), so a reading that needs a longer history joins the Nifty 500 before
+# that day (owner-approved, 21 Nov 2026).
+MARKET = "Nifty Total Market"
+EARLIER = "Nifty 500"
+
+
+def join_market(earlier: pd.Series | None, market: pd.Series | None) -> tuple[pd.Series, str]:
+    """Nifty Total Market's closes from its first session, the Nifty 500's before it scaled to meet them on
+    that session: one continuous line whose every level from the join on is NSE's own Total Market close.
+    Returns (closes, the name to print). With no Total Market closes it returns the Nifty 500 under its own
+    name, so a page never labels one index with the other's name."""
+    e = pd.Series(dtype=float) if earlier is None else pd.to_numeric(earlier, errors="coerce").dropna().sort_index()
+    m = pd.Series(dtype=float) if market is None else pd.to_numeric(market, errors="coerce").dropna().sort_index()
+    m = m[~m.index.duplicated(keep="last")]
+    if m.empty:
+        return e, EARLIER
+    first = m.index[0]
+    at = _on_or_before(e.index, first) if len(e) else None
+    if at is None:
+        return m, MARKET
+    before = e[e.index < first] * (float(m.iloc[0]) / float(e.loc[at]))
+    return pd.concat([before, m]).sort_index(), MARKET
 
 
 def _vote(v: float | None, up_at: float, down_at: float) -> str:
@@ -366,7 +392,8 @@ def from_high(close: pd.Series, when: pd.Timestamp | None) -> float | None:
     if when is None:
         return None
     s = close.dropna().loc[:when]
-    s = s.loc[s.index > s.index[-1] - pd.DateOffset(years=1)] if len(s) else s
+    from src.engine.calendar_momentum import year_window_start
+    s = s.iloc[year_window_start(s.index, len(s) - 1):] if len(s) else s   # on or before a year back
     if s.empty:
         return None
     return (float(s.iloc[-1]) / float(s.max()) - 1) * 100
@@ -384,24 +411,37 @@ def _ema_gap_series(close: pd.Series, span: int = 200) -> pd.Series:
     return ((s / s.ewm(span=span, min_periods=int(span * 0.8)).mean() - 1) * 100).dropna()
 
 
-def _from_high_series(close: pd.Series) -> pd.Series:
-    s = close.dropna()
-    return ((s / s.rolling(252, min_periods=200).max() - 1) * 100).dropna()
+def _from_high_series(close: pd.Series, min_sessions: int = 200) -> pd.Series:
+    """The distance from the 52W high at each session, over the calendar year (from the last session on or before the date a year back), the window
+    `from_high` reads (owner, 24 Nov 2026: "Use calendar date everywhere"; was 252 sessions, which parted from
+    Market's reading on 9 of 750 sessions, S154). A session with fewer than `min_sessions` in its year is left out."""
+    s = close.dropna().sort_index()
+    if s.empty:
+        return s
+    from src.engine.calendar_momentum import year_window_starts
+    idx, v = s.index, s.to_numpy(dtype=float)
+    starts = year_window_starts(idx)
+    out = np.full(len(v), np.nan)
+    for i, a in enumerate(starts):
+        if i + 1 - a >= min_sessions:
+            out[i] = (v[i] / v[a:i + 1].max() - 1) * 100
+    return pd.Series(out, index=idx).dropna()
 
 
 def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
-                 share_above_200: pd.Series | None) -> Answer | None:
+                 share_above_200: pd.Series | None, index_name: str = EARLIER) -> Answer | None:
+    """`index_name` names the index `bench` holds, in each measure and in the question."""
     if bench is None or bench.dropna().empty:
         return None
     b = bench.dropna().sort_index()
     d = anchor_dates(b.index)
     keys = list(d)
     ms = [
-        _measure("Nifty 500 against its 10-month average", "pts", [ten_month_today(b, d[k]) for k in keys],
+        _measure(f"{index_name} against its 10-month average", "pts", [ten_month_today(b, d[k]) for k in keys],
                  0.0001, -0.0001, _ten_month_rule_text(b, d["now"]), primary=True, history=_ten_month_series(b)),
-        _measure("Nifty 500 against its 200D EMA", "pts", [ema_gap(b, d[k]) for k in keys],
+        _measure(f"{index_name} against its 200D EMA", "pts", [ema_gap(b, d[k]) for k in keys],
                  0.0001, -0.0001, "above is up, below is down", primary=True, history=_ema_gap_series(b)),
-        _measure("Nifty 500 from its 52W high", "pts", [from_high(b, d[k]) for k in keys],
+        _measure(f"{index_name} from its 52W high", "pts", [from_high(b, d[k]) for k in keys],
                  -5, -15, "within 5% is up, 15% or more below is down", history=_from_high_series(b)),
     ]
     for name, s in (size_closes or {}).items():
@@ -417,7 +457,7 @@ def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
                            [_f(s.get(_on_or_before(s.index, d[k]))) if d[k] is not None and
                             _on_or_before(s.index, d[k]) is not None else None for k in keys],
                            60, 40, "60% or more is up, 40% or less is down", history=s.iloc[200:]))
-    return _answer("Is the Nifty 500 in an uptrend?", ms,
+    return _answer(f"Is {'the ' if index_name == EARLIER else ''}{index_name} in an uptrend?", ms,
                    ("Strong downtrend", "Downtrend", "No clear trend", "Uptrend", "Strong uptrend"),
                    lambda word, m: _trend_sentence(word, ms))
 

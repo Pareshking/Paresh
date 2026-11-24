@@ -119,7 +119,7 @@ def test_every_system_has_a_universe_name():
 def test_portfolio_and_dashboard_name_the_systems_universe_not_the_750():
     portfolio = (ROOT / "src" / "ui" / "views" / "portfolio_page.py").read_text(encoding="utf-8")
     assert "UNIVERSE_SHORT.get(p.system" in portfolio and "the sector’s weight in the {uni}" in portfolio
-    assert '"began the year" if size.index[0].month == 1' in portfolio
+    assert "At its first rebalance, {pd.Timestamp(first_date):%b %Y}" in portfolio   # S203 pf.exp.1
     assert '<span class="dh-num">The 750</span>' not in portfolio
     dash = (ROOT / "src" / "ui" / "views" / "dashboard_home_view.py").read_text(encoding="utf-8")
     assert '"Equal-weighted 750"' not in dash and "Nano Cap and Ultra Nano Cap are our own groups" in dash

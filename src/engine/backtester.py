@@ -31,10 +31,14 @@ SESSIONS_PER_MONTH: int = 21
 DEFAULT_BACKTEST_MONTHS: int = 6
 
 
-def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
-    """Return the canonical 252-session high at one row, equal to pandas rolling.
+def _rolling_high_at(prices: pd.DataFrame, idx: int, legacy: bool = False) -> pd.Series:
+    """Return the canonical 52-week high at one row, equal to pandas rolling.
 
-    The reference is ``prices.rolling(252, min_periods=126).max().iloc[idx]``,
+    The window is the calendar year: from the last session on or before the date a year back
+    (`calendar_momentum.year_window_start`; owner, 24 Nov 2026: "Use calendar date everywhere").
+    ``legacy=True`` reads the last 252 rows, the rule before, only to replay record months
+    signalled before ``TRACK_RECORD_CONFIG["high_rule_from"]``.
+    The reference is ``prices.iloc[start:idx + 1].rolling(len, min_periods=126).max().iloc[-1]``,
     and this returns exactly its values (tests/test_backtester_rolling_high_parity.py
     asserts equality, not closeness). Rolling the whole 252-row window to keep
     its last row cost 11.7 s of a 36 s default Backtest run (S204, 23 Nov 2026),
@@ -51,7 +55,9 @@ def _rolling_high_at(prices: pd.DataFrame, idx: int) -> pd.Series:
     The result owns its array, so keeping ~200 of them (``_high_at_cache``)
     pins no window: the 8 Oct 2026 incident, tests/test_memory_guardrails.py.
     """
-    window = prices.iloc[max(0, idx - 251) : idx + 1].to_numpy(dtype="float64")
+    from src.engine.calendar_momentum import year_window_start
+    first = max(0, idx - 251) if legacy else year_window_start(prices.index, idx)
+    window = prices.iloc[first : idx + 1].to_numpy(dtype="float64")
     finite = np.isfinite(window)
     if window.shape[0]:
         high = np.where(finite, window, -np.inf).max(axis=0)
@@ -1051,6 +1057,7 @@ def run_backtest(
     ath_min_years: float = 3.0,
     members_only_scoring_from: str | None = MEMBERS_ONLY_SCORING_FROM,
     ema_warmup_from: str | None = EMA_WARMUP_FROM,
+    high_rule_from: str | None = None,
     hold_cap: float | None = None,
     hold_cap_from: str | None = None,
     buy_size: float | None = None,
@@ -1238,12 +1245,18 @@ def run_backtest(
     ema_exit = (prices.ewm(span=int(exit_ema_period)).mean()
                 if exit_ema_period is not None and int(exit_ema_period) != int(ema_period) else ema)
     _high_at_cache: dict[int, pd.Series] = {}
+    # The calendar 52-week high applies to every signal, unless a replay of the live record names the
+    # signal it starts from: earlier signals keep the 252-row high their months were struck under.
+    _high_from = pd.Timestamp(high_rule_from).normalize() if high_rule_from else None
+
+    def _high_legacy(idx: int) -> bool:
+        return _high_from is not None and pd.Timestamp(prices.index[idx]).normalize() < _high_from
 
     def _high_at(idx: int) -> pd.Series:
         cached = _high_at_cache.get(idx)
         if cached is not None:
             return cached
-        high = _rolling_high_at(prices, idx)
+        high = _rolling_high_at(prices, idx, legacy=_high_legacy(idx))
         _high_at_cache[idx] = high
         return high
 

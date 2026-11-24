@@ -51,7 +51,7 @@ def test_the_trend_verdict_votes_on_today_and_names_the_month_end():
 
 def test_the_sentence_gives_the_month_end_count_only_when_it_differs():
     rows = [{"like": 1.0, "like_me": 1.0}, {"like": 1.0, "like_me": -1.0}, {"like": -1.0, "like_me": -1.0}]
-    assert dh._month_end_count(rows, 0.0) == "; at the last month-end, which the tests read, 1 and 2"
+    assert dh._month_end_count(rows, 0.0) == (1, 2)       # worded by dash.mom.3 (S203)
     same = [{"like": 1.0, "like_me": 1.0}]
-    assert dh._month_end_count(same, 0.0) == ""
-    assert dh._month_end_count(rows, None) == ""
+    assert dh._month_end_count(same, 0.0) is None
+    assert dh._month_end_count(rows, None) is None

@@ -17,9 +17,9 @@ the owner's word, and note it in the Source column.
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
 | 1 | Everything visible; no "more questions" or clicks to reach content | Owner 19 Nov | Whole page | The book, month so far |
-| 2 | One-paragraph verdict first, with section links | Owner 19 Nov; tipsheet pattern | Top | Of the 5 signals that pass our own test |
+| 2 | One-paragraph verdict first, with section links | Owner 19 Nov; tipsheet pattern; marker in S203's approved wording (owner, 24 Nov 2026) | Top | of our tested signals pass |
 | 3 | Sections in the agreed order, numbered | Owner 20 Nov ("correct order"); §7 removed with RRG, owner 21 Nov | Page | 6 · Where the book is strong and weak |
-| 4 | Headline of each section states the finding, coloured by impact | Owner 19 Nov | Each section | November’s lag is |
+| 4 | Headline of each section states the finding, coloured by impact | Owner 19 Nov; marker in S203's approved wording (owner, 24 Nov 2026) | Each section | points ahead|points behind|The book trails Nifty Total Market|is level with Nifty Total Market |
 | 5 | Market = Nifty Total Market, named | Owner 20 Nov | §1 | Nifty Total Market |
 | 6 | Frozen months kept, Total Market compared beside | Owner 20 Nov | §1 note | January to October stay as recorded against the Nifty 500 |
 | 7 | NSE momentum indices against the book this month | Owner 20 Nov | §1 | Nifty500 Momentum 50 |
@@ -48,7 +48,7 @@ the owner's word, and note it in the Source column.
 | 30 | The book by size bar | Owner liked (#4), 20 Nov | §5 | The book by size |
 | 31 | Is the rally shared: breadth by size, with 3M ago and 1M ago | v7 (tipsheet) | §5 | Is the rally shared? |
 | 32 | The typical stock: equal-weight and median against Nifty Total Market | v7 (tipsheet) | §5 | The typical stock against Nifty Total Market |
-| 33 | Where the book is strong and weak, as cards with each sector's six-month and one-month figures | Owner liked (#1), 20 Nov; the RRG rotation line and quadrant badge removed, owner 21 Nov | §6 | Ahead of all ranked stocks over six months and one month |
+| 33 | Where the book is strong and weak, as cards with each sector's six-month and one-month figures | Owner liked (#1), 20 Nov; the RRG rotation line and quadrant badge removed, owner 21 Nov; marker in S203's approved wording (owner, 24 Nov 2026) | §6 | Ahead of all ranked stocks over 6 months and 1 month |
 | 37 | At a glance: index moves (one date), breadth, the book's risk | v6 | Glance | The book’s risk |
 | 38 | Breadth history on each date's members | Owner 20 Nov | Glance, §3 | leavers included |
 | 39 | Every chart gives values on touch and pointer | Owner 20 Nov | Charts (`static/dash_charts.js`) | Latest|DashCharts.render( |

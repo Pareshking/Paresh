@@ -11,6 +11,8 @@
 //   5      a missing value written "nan", "None", "NaN", or "—" alone in a table cell (the rule is "–")
 //   6      a second word for one thing (see SYNONYMS)
 //   7      no footer "Data to <date> · <source>"
+//   9      a figure that ends before the page's session without a stated rule (S164; _page_dates.mjs, read at 1400 px
+//          only: the dates do not change with the width)
 // Not checkable from the text and so not checked: the explicit + on a change (rule 4), that a missing value's
 // reason is in a footnote (rule 5), ranks and counts being whole (rule 8).
 // Allowed, with the reason: a chart's scale note ("Each line is 0.25%"), statutory rates as the law writes them
@@ -19,6 +21,7 @@
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
 import { readPageText, savePageText } from './_page_text.mjs';
+import { reportPageDates } from './_page_dates.mjs';
 
 const args = process.argv.slice(2);
 const report = args.includes('--report');
@@ -58,9 +61,14 @@ for (const url of urls) {
     // The Guide holds no data, so it has no data date (rule 7 is for pages that show data).
     if (!/\/guide\b/.test(url) && !new RegExp(`Data to \\d{1,2} ${MON} 20\\d\\d · \\S`).test(t)) found['7 footer'] = ['no "Data to <date> · <source>"'];
     if (/Screener and NSE|Data from: |Ranked from: /.test(t)) found['7 source named'] = ['a vendor or internal source named (owner, 20-21 Nov: no source names)'];
+    let dates = null;
+    if (width === 1400) {
+      dates = reportPageDates(url, read);
+      if (dates.n) found['9 ends before the session with no rule (S164)'] = dates.lines.slice(1).map(l => l.trim());
+    }
     const n = Object.values(found).reduce((a, m) => a + m.length, 0);
     bad += n;
-    console.log(`${url} @${width}: ${n ? n + ' found' : 'clean'}`);
+    console.log(`${url} @${width}: ${n ? n + ' found' : 'clean'}` + (dates ? ` · ${dates.lines[0].slice(url.length + 2)}` : ''));
     for (const [rule, m] of Object.entries(found)) console.log(`  rule ${rule}: ${m.slice(0, 10).join(' | ')}${m.length > 10 ? ` (+${m.length - 10})` : ''}`);
   }
 }

@@ -97,7 +97,7 @@ jobs:
 
       - name: Markdown-reading tests (Markdown-only PR)
         if: ${{ steps.scope.outputs.docs_only == 'true' }}
-        run: python -m pytest -q tests/test_launch_slot_10_leftovers.py tests/test_ss_prices.py
+        run: python -m pytest -q tests/test_launch_slot_10_leftovers.py tests/test_ss_prices.py tests/test_banned_synonyms.py
 
       # Everything, R2 suites included. They are hermetic (fakes, no
       # credentials, ~2 s), and they also depend on code no R2 path filter

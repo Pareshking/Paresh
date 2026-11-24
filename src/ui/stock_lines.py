@@ -278,10 +278,12 @@ def ema_level(row) -> float | None:
 
 
 def ladder(row, closes: pd.Series | None, high_pct: float) -> Ladder:
-    """52W low (the last 252 closes, as the 52W high is), the −20% line, 50D EMA, 52W high."""
+    """52W low (the calendar year of closes, as the 52W high is), the −20% line, 50D EMA, 52W high."""
     low = low_date = None
     if closes is not None:
-        s = pd.to_numeric(closes, errors="coerce").dropna().tail(252)
+        from src.engine.calendar_momentum import year_window_start
+        s = pd.to_numeric(closes, errors="coerce").dropna()
+        s = s.iloc[year_window_start(s.index, len(s) - 1):] if len(s) else s
         if not s.empty:
             low, low_date = float(s.min()), pd.Timestamp(s.idxmin())
     hi = num(row.get("52W High"))
@@ -409,7 +411,7 @@ def calendar_sentence(check: pd.Timestamp | None, events: list, last_results: pd
 
 
 def highs_note(row) -> str:
-    text = ("Highs and lows are closing prices over the last 252 sessions, as the ranking uses them, so they can "
+    text = ("Highs and lows are closing prices over the last 12 months, as the ranking uses them, so they can "
             "differ from an intraday high quoted elsewhere.")
     ath, hi = num(row.get("ATH")), num(row.get("52W High"))
     if ath is None:

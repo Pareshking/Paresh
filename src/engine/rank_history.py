@@ -20,7 +20,7 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 
-from src.core.config import HIGH_52W_MIN_OBSERVATIONS, MOMENTUM_WINDOWS
+from src.core.config import MOMENTUM_WINDOWS
 from src.engine.backtester import EMA_MIN_PRINTS, EMA_WARMUP_FROM, _warmup_cutoff_rows
 from src.engine.backtester import _composite_z_score, _index_mask
 from src.engine.calendar_momentum import anchor_frame
@@ -51,14 +51,20 @@ def snapshots(prices: pd.DataFrame, dates: Sequence[pd.Timestamp], *, membership
     # 2026): it was hardcoded here and in the backtester while
     # config.HIGH_52W_MIN_OBSERVATIONS held the number, so a test that
     # moved the constant proved nothing about either.
-    high = prices.rolling(252, min_periods=HIGH_52W_MIN_OBSERVATIONS).max()
+    # The 52-week high as the book read it on each date: the calendar year (owner, 24 Nov 2026), or the
+    # last 252 rows for a date before the record's go-live (TRACK_RECORD_CONFIG["high_rule_from"]).
+    from src.engine.backtester import _rolling_high_at
+    from src.engine.track_record import TRACK_RECORD_CONFIG
+    _hf = TRACK_RECORD_CONFIG.get("high_rule_from")
+    high_from = pd.Timestamp(_hf).normalize() if _hf else None
     out = []
     for d in dict.fromkeys(pd.Timestamp(x) for x in dates):
         pos = prices.index.searchsorted(d, side="right") - 1
         if pos < 0:
             continue
         day = prices.index[pos]
-        p, e, h = prices.iloc[pos], ema.iloc[pos], high.iloc[pos]
+        p, e = prices.iloc[pos], ema.iloc[pos]
+        h = _rolling_high_at(prices, pos, legacy=high_from is not None and pd.Timestamp(day).normalize() < high_from)
         if warm_from is not None and pd.Timestamp(day).normalize() >= warm_from:
             e = e.where(warm_rows <= pos)
         above = p > e

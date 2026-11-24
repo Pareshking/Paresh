@@ -26,7 +26,7 @@ Order: current book → sector & size → returns → equity, drawdown & risk �
 | 9 | Daily movement against the index, kept (owner) and given context: today, 5 sessions, sessions ahead in 20, capture | Owner 20 Nov ("day's P&L was kept to measure daily movement vs index") | §3 | Last 20 sessions |
 | 10 | Up-day and down-day capture | Proposed 20 Nov | §3 | capture |
 | 11 | Holdings: one figure per cell; industry status, weight, return since entry, rank trail | PAGE_DESIGN §3 | §4 | 3M · 1M · now |
-| 12 | The rupee mark explained in one short note | Live page | §4 | a mark, not a cost |
+| 12 | The rupee mark explained in one short note | Live page | §4 | so rupee figures are a mark |
 | 13 | The book by industry status and by size | Dashboard §5, §6 | §4 | The book by size |
 | 14 | Trades: win rate, average win against average loss, holding period | 20 Nov review | §5 | Average win |
 | 15 | Which exit rule fired, and what each earned | 20 Nov review | §5 | Trend breakdown |
@@ -48,7 +48,7 @@ Order: current book → sector & size → returns → equity, drawdown & risk �
 | 32 | Risk: volatility, beta and tracking error, marked as an early reading | Review 20 Nov | Equity & drawdown | Volatility + Tracking error + Since 1 Jan 2026, + also the last 12 months and each year|>Window< |
 | 33 | Trades filtered (all, winners, losers, open) with export | Live page | Trades | Trade history + Winners + Losers + Open + Export CSV |
 | 34 | Rebalance lines filtered (buy, sell, hold) | Live page | Rebalances | Buy + Sell + Hold |
-| 35 | Systems compared over the same window, not month columns (owner, 20 Nov: "difficult for past months when next year data will be there"). A system joins the window only after its first full month (owner, 22 Nov 2026: "first full month"): one that started this month shows its own figures and "joins from" the next month, so it never shrinks the others' window to a few weeks; the heading counts the systems in the window (S183) | Owner 20 Nov; owner 22 Nov | Systems, side by side | compared over the same window + after its first full month |
+| 35 | Systems compared over the same window, not month columns (owner, 20 Nov: "difficult for past months when next year data will be there"). A system joins the window only after its first full month (owner, 22 Nov 2026: "first full month"): one that started this month shows its own figures and "joins from" the next month, so it never shrinks the others' window to a few weeks; the heading counts the systems in the window (S183) | Owner 20 Nov; owner 22 Nov; S203 pf.sys.1 (owner, 24 Nov: a frozen month, S194 F5) | Systems, side by side | compared over the same window + once its first full month is frozen |
 | 37 | Column widths fit their content: numbers sized to fit, the name column takes the rest (owner, 20 Nov: "abnormal spaces") | Owner 20 Nov | Tables | Current book |
 | 38 | Holdings show the entry date and days held | Owner 20 Nov ("Portfolio must have entry date column") | Current book | Entry date + days |
 | 39 | Holdings show how close each is to a sell rule: against its 50D EMA, from its 52-week high, rank against #40; a holding past a line is marked | Owner 20 Nov ("which other columns we should add, why?") | Current book | vs 50D + From 52W + past a sell rule |
@@ -56,7 +56,7 @@ Order: current book → sector & size → returns → equity, drawdown & risk �
 | 41 | Industry exposure against the 750's own weights, with the large industries the book does not hold | Owner 20 Nov ("Industry exposure etc required new design") | Industry & size | The 750 + Not held |
 | 42 | The market's drawdown drawn with the book's | Owner 20 Nov ("Showing only portfolio DD, not index benchmark") | Equity, drawdown & risk | market below peak |
 | 43 | Drawdown terms defined: fall from a peak, largest fall from a peak, worst day, worst month-end | Owner 20 Nov ("Is our daily % fall wording correct") | Equity, drawdown & risk | (value ÷ peak) − 1 |
-| 44 | Tracking error explained with an example | Owner 20 Nov | Equity, drawdown & risk | Nifty Total Market makes +10% |
+| 44 | Tracking error explained in one line (it was a +10% example until the owner chose the definition, 24 Nov 2026, S203 answer 7) | Owner 20 Nov; owner 24 Nov | Equity, drawdown & risk | A tracking error of |
 | 45 | Risk measured on all the record's history, named; from January 2027 also the last 12 months and each year | Owner 20 Nov | Equity, drawdown & risk | from January 2027 also the last 12 months |
 | 46 | Calendar returns last for years: a row group per year with months, quarters and the year; the momentum index beside | Owner 20 Nov ("people visiting after 5 years") | Calendar returns | each new year adds a row + Momentum 50 |
 | 47 | Trades and rebalance lines in one section, hidden until opened, each view with its CSV of every field | Owner 20 Nov ("Can't it be one and hidden?", "CSV export of past trades ... so people can verify") | Trades | Trade history + 15 fields + 300 lines |

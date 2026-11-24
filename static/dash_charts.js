@@ -299,19 +299,21 @@ R.segbar = (card, s) => {
   show(null); fit(); new ResizeObserver(fit).observe(bar);
 };
 
-/* The index and how many stocks carry it: two panes, one crosshair; 6M · 12M · 3Y, opening on 12M (S193 H). */
+/* The index and how many stocks carry it: two panes, one crosshair; 6M · 12M · 3Y, opening on 12M (S193 H).
+   s.idx names the index and s.idxc its colour variable (Market: Nifty Total Market, S165); without them the Nifty 500. */
 R.breadth = (card, s) => {
   const top = $('[data-pane="top"]', card), bot = $('[data-pane="bottom"]', card);
+  const ixName = s.idx || 'Nifty 500', ixVar = s.idxc || '--s-n500';
   let from = 0, panes = [];
   const draw = () => { const dates = s.dates.slice(from), n5 = s.n500.slice(from), a = s.a200.slice(from);
-    panes = [linePane(top, {dates, series: [{name: 'Nifty 500', color: css('--s-n500'), values: n5, area: true, width: 1.8, dash: '5 4'}], height: 180, noX: true, yfmt: v => v.toLocaleString('en-IN')}),
+    panes = [linePane(top, {dates, series: [{name: ixName, color: css(ixVar), values: n5, area: true, width: 1.8, dash: '5 4'}], height: 180, noX: true, yfmt: v => v.toLocaleString('en-IN')}),
              linePane(bot, {dates, series: [{name: 'Above their 200D EMA', color: css('--up'), values: a, area: true, width: 1.8}], height: 130, range: [0, 100], ticks: 4, yfmt: v => v + '%', areaBase: 0,
                bands: [{from: 60, to: 100, fill: css('--up-soft')}, {from: 0, to: 40, fill: css('--down-soft')}],
                levels: [{v: 60, label: 'Broad', color: css('--up')}, {v: 40, label: 'Narrow', color: css('--down')}]})]; };
   from = rangeChips(card, s, () => s.dates, i => { from = i; draw(); });
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(top);
   interact(card, () => panes, $('.readout', card), k => { const i = from + k; return {date: dlong(s.dates[i]), items: [
-    {name: 'Nifty 500', color: css('--s-n500'), v: grp(s.n500[i], 1)},
+    {name: esc(ixName), color: css(ixVar), v: grp(s.n500[i], 1)},
     {name: `of the ${esc(s.uni || '750')} above their 200D EMA`, color: css('--up'), v: s.a200[i] == null ? '–' : fx(s.a200[i], 0) + '%', vcolor: s.a200[i] >= 60 ? css('--up') : s.a200[i] <= 40 ? css('--down') : ''}]}; }, () => s.dates.length - 1 - from);
 };
 

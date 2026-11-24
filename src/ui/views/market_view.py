@@ -24,7 +24,7 @@ from src.ui.components import gap_count
 from src.ui.theme import render_saas_table
 from src.loaders.index_levels import nse_benchmarks
 from src.engine.extra_universe import NANOCAP_250_NAME, NANOCAP_250_SHORT
-from src.ui.views.market_questions_view import render_market_page_questions, size_closes
+from src.ui.views.market_questions_view import market_close, render_market_page_questions, size_closes
 
 
 def index_members(rank_df: pd.DataFrame, index_name: str) -> list[str]:
@@ -43,7 +43,12 @@ def index_members(rank_df: pd.DataFrame, index_name: str) -> list[str]:
 # page. The Chart settings (average, periods, by index, the high/low window, % or count) still rerun it:
 # each changes what is measured, not the dates shown (PAGE_DESIGN 4.1, the exception stated there).
 PERIOD = {"default": "12M", "why": "lately", "chips": ["3M", "6M", "12M"]}
-LOOKBACK = 252   # sessions sent: the longest chip
+def _lookback(index) -> int:
+    """Sessions sent for the longest chip: the calendar year to the last session, from the session on or before
+    the date a year back (owner, 24 Nov 2026: "365-day calendar window everywhere instead of 252")."""
+    from src.engine.calendar_momentum import year_window_start
+    n = len(index)
+    return n - year_window_start(index, n - 1) if n else 0
 
 
 def _participation_chart(pct: pd.DataFrame, ma_type: str, pit: dict[str, pd.Series] | None = None) -> None:
@@ -94,12 +99,18 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
         system = system_param.current()
     # The 750's members-of-the-day breadth history is joined only under the 750 (S194 L4, 23 Nov 2026).
     pit_ok = system == SYSTEM_750
-    bench = nse_benchmarks()
-    nifty500 = (benchmark_close if benchmark_close is not None and len(benchmark_close)
-                else _series_of(bench, "nifty500"))
+    # The trend is read against Nifty Total Market, joined to the Nifty 500 before its launch on 14 Oct 2021
+    # (S165; owner-approved 21 Nov 2026), so its ranges keep their long history. The earlier index is the
+    # whole stored series (app.py passes five years, which ends before the join is needed).
+    from src.loaders.price_loader import fetch_benchmark_history
+    earlier = fetch_benchmark_history(period="max")
+    if earlier is None or not len(earlier):
+        earlier = (benchmark_close if benchmark_close is not None and len(benchmark_close)
+                   else _series_of(nse_benchmarks(), "nifty500"))
+    market, name = market_close(earlier)
     from src.engine.extra_universe import UNIVERSE_SHORT
     render_market_page_questions(rank_df, history_prices if history_prices is not None else adj_close,
-                             nifty500, size_closes(), pit_ok, UNIVERSE_SHORT.get(system, "750"))
+                             market, size_closes(), pit_ok, UNIVERSE_SHORT.get(system, "750"), name)
 
     with st.container(key="br_chart_head", horizontal=True, vertical_alignment="center", gap="small"):
         st.html('<h2 id="q-charts" class="br-charts-h">Today\'s charts</h2>', width="stretch")
@@ -125,10 +136,11 @@ def render_market_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     # Whole-history fingerprint, not last date + shape (an intraday refresh
     # or a restatement kept the old key and served stale breadth).
     ph = known_fingerprint(adj_close)  # computed once in app.py's loader (S208)
+    lookback = _lookback(adj_close.index)
     breadth_df = compute_ma_breadth(
-        ph, adj_close, tuple(sel_mas), lookback=LOOKBACK, ma_type=ma_type
+        ph, adj_close, tuple(sel_mas), lookback=lookback, ma_type=ma_type
     )
-    hl_df = compute_hl_timeseries(ph, adj_close, window=hl_window, lookback=LOOKBACK)
+    hl_df = compute_hl_timeseries(ph, adj_close, window=hl_window, lookback=lookback)
 
     # The figure tiles that sat here repeated the evidence table above.
 

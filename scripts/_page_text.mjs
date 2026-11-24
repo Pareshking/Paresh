@@ -11,12 +11,15 @@ import { settle } from './_settle.mjs';
 //             an index name is allowed (glossary 3). Columns are counted on the header's last row, colspans
 //             included (the Screener has a group row above it).
 // emCells: table cells holding "—" alone (number rule 5).
+// frames: each frame's text as shown and, for a chart, the last date of its spec ("dates", lightweight-charts
+//         "time"); frames[0] is the main document (the date audit, _page_dates.mjs, S164).
 export async function readPageText(browser, url, width) {
   const p = await browser.newPage({ viewport: { width, height: 900 } });
   await p.goto(url);
   await p.waitForSelector('.site, .dh, [data-testid="stMainBlockContainer"] h1', { timeout: 180000 }).catch(() => {});
   await settle(p);                 // Streamlit's run over, fonts in, frames still (S205)
   let raw = '', glossary = '', emCells = 0;
+  const frames = [];
   for (const f of p.frames()) {
     try {
       const r = await f.evaluate(() => {
@@ -35,13 +38,22 @@ export async function readPageText(browser, url, width) {
           if (col < 0) continue;
           for (const tr of table.querySelectorAll('tbody tr')) { const c = at(tr, col); if (c) c.textContent = ''; }
         }
-        return [before, document.body.innerText, cells];
+        // A chart's spec is JSON in its frame: its last date, the latest of every "dates" list's last item and
+        // every lightweight-charts "time". The main document holds no spec.
+        let specEnd = null;
+        if (window.top !== window) {
+          const h = document.documentElement.innerHTML;
+          for (const m of h.matchAll(/"dates":\[[^\]]*?"(\d{4}-\d\d-\d\d)"\]/g)) if (!specEnd || m[1] > specEnd) specEnd = m[1];
+          for (const m of h.matchAll(/"time":\s*"(\d{4}-\d\d-\d\d)"/g)) if (!specEnd || m[1] > specEnd) specEnd = m[1];
+        }
+        return [before, document.body.innerText, cells, specEnd];
       });
       raw += r[0] + '\n'; glossary += r[1] + '\n'; emCells += r[2];
+      frames.push({ text: r[0], specEnd: r[3] });
     } catch { /* a frame still loading */ }
   }
   await p.close();
-  return { raw, glossary, emCells };
+  return { raw, glossary, emCells, frames };
 }
 
 const file = (dir, url, width) => join(dir, `${encodeURIComponent(url)}@${width}.json`);

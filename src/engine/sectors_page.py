@@ -57,7 +57,9 @@ def from_high(s: pd.Series, end: pd.Timestamp) -> float | None:
     s = s[s.index <= end]
     if s.empty or s.index[0] > end - pd.DateOffset(months=12):
         return None
-    year = s[s.index > end - pd.DateOffset(months=12)]
+    # On or before the date a year back, as every 52-week high (owner, 24 Nov 2026: calendar date everywhere).
+    from src.engine.calendar_momentum import year_window_start
+    year = s.iloc[year_window_start(s.index, len(s) - 1):]
     return float(s.iloc[-1] / year.max() - 1) * 100
 
 
@@ -263,7 +265,8 @@ def ema_shares(prices: pd.DataFrame, groups: pd.Series, ld: Leads, span: int = 2
         p, e = px.loc[d, members], ema.loc[d, members]
         obs = p.notna() & e.notna()
         return None if not obs.any() else float(((p > e) & obs).sum() / obs.sum() * 100)
-    out = [Share("All ranked stocks", len(g), *(share(list(g.index), d) for d in (ld.d3, ld.d1, ld.when)))]
+    # Every ranked stock, with or without an industry, as Market and the Dashboard count them (S154, 24 Nov 2026).
+    out = [Share("All ranked stocks", px.shape[1], *(share(list(px.columns), d) for d in (ld.d3, ld.d1, ld.when)))]
     for name in ld.levels:
         members = list(g.index[g == name])
         out.append(Share(name, len(members), *(share(members, d) for d in (ld.d3, ld.d1, ld.when))))

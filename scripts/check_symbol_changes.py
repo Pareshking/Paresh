@@ -28,6 +28,23 @@ So this is a detector, not a fix. It reports two things:
              nothing checks that, and the day a stale name reaches an index
              list the same company would be ranked twice.
 
+  ID TWINS   two symbols in `data/screener_company_ids.json` resolve to the
+             same Screener company id. That is the root of every store twin:
+             Screener's /company/<old>/ page still answers for a renamed
+             company, so the old ticker and the new one fetch the same series.
+             Read from the committed map, so the nightly run sees it without
+             the store. A pair NSE's symbol change record joins is a dead old
+             ticker, reported as explained; any other pair is two companies on
+             one series and is reported.
+
+  UNALIASED  NSE's record joins OLD -> NEW, the membership history files it
+             as OLD out and NEW in on one day (how the daily sync records a
+             ticker change), and its `aliases` does not follow OLD. Then `members_on(canonical=True)`
+             returns the old ticker up to the change and the new one after it,
+             so the backtester reads a ticker change as an index exit and a
+             fresh entry: ICICIPRULI -> ICICILIFE (23 Oct 2026) until it is
+             added to `data/membership_notices.json`'s `symbol_aliases`.
+
 A rename that IS joined is not reported: the point is the gap between what NSE
 did and what we know, not a list of every ticker that ever changed.
 
@@ -46,6 +63,8 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 CLOSES = ROOT / "data" / "nse_prices" / "closes.parquet"
 NOTES = ROOT / "data" / "nse_prices" / "notes.json"
+SCREENER_IDS = ROOT / "data" / "screener_company_ids.json"
+MEMBERSHIP = ROOT / "data" / "membership_history.json"
 
 # A rename's two sides meet at a similar price: NSE's own ratio across the 21
 # joins already in the ledger runs 0.937 to 1.053, so 20% is generous without
@@ -116,6 +135,51 @@ def _twins(close: pd.DataFrame) -> list[tuple]:
                 if (tail[a].loc[both] - tail[b].loc[both]).abs().max() < TWIN_TOL:
                     out.append((a, b, len(both)))
     return out
+
+
+def _id_twins(ids: dict[str, str]) -> list[tuple[str, str, str]]:
+    """(a, b, company id) for symbols the Screener id map sends to one company."""
+    by_id: dict[str, list[str]] = {}
+    for sym, cid in ids.items():
+        by_id.setdefault(str(cid), []).append(str(sym))
+    out = []
+    for cid, syms in sorted(by_id.items()):
+        syms = sorted(syms)
+        out += [(a, b, cid) for i, a in enumerate(syms) for b in syms[i + 1:]]
+    return out
+
+
+def _rename_between(a: str, b: str, known: dict) -> tuple[str, str] | None:
+    """(old, new) when the rename record joins the two symbols either way, else None."""
+    if (known.get(a) or {}).get("new_symbol") == b:
+        return a, b
+    if (known.get(b) or {}).get("new_symbol") == a:
+        return b, a
+    return None
+
+
+def _unaliased_renames(history: dict, known: dict) -> list[tuple[str, str, str]]:
+    """(day, old, new) where the membership record files a rename as an exit and
+    an entry -- OLD removed and NEW added in one change, which is how the daily
+    sync records a ticker change -- and `aliases` does not follow OLD. Canonical
+    membership then switches ticker that day instead of carrying one company
+    through it.
+
+    Only that pattern, on purpose: a record that names a company under its old
+    ticker for a membership that ENDED before the change (TIDEWATER left the
+    Smallcap 250 in 2017, seven years before it became VEEDOL) is right for its
+    time and is not an exit the company did not make."""
+    parts = [history] + list((history.get("indices") or {}).values())
+    aliases = history.get("aliases") or {}
+    out = set()
+    for part in parts:
+        for c in part.get("changes") or []:
+            removed, added = set(c.get("removed") or []), set(c.get("added") or [])
+            for old in removed - set(aliases):
+                new = (known.get(old) or {}).get("new_symbol")
+                if new and new in added:
+                    out.add((c["date"], old, new))
+    return sorted(out)
 
 
 # Handovers on price that are not handovers, each with NSE's evidence (S129).
@@ -191,12 +255,51 @@ def main() -> int:
     else:
         print("  (the Screener store was not given, so its twins are not checked; "
               "pass --screener to include them)")
+    # A twin of a joined rename is the old ticker's dead series: explained, and
+    # what matters is that membership follows the rename (UNALIASED below).
+    unexplained_twins = []
     for a, b, n in twins:
-        print(f"  TWINS     {a} and {b} agree on {n} sessions to the paisa. "
-              f"Harmless while only one is in the ranked universe -- which is "
-              f"what to check.")
+        r = _rename_between(a, b, known)
+        if r:
+            print(f"  EXPLAINED twins {a} and {b} ({n} sessions): {r[0]} -> {r[1]} is a "
+                  f"rename NSE's record joins; {r[0]} is the dead old ticker.")
+        else:
+            unexplained_twins.append((a, b, n))
+            print(f"  TWINS     {a} and {b} agree on {n} sessions to the paisa and no "
+                  f"rename joins them: two symbols carrying one series.")
 
-    if (unjoined or twins) and args.fail_on_new:
+    ids = {}
+    if SCREENER_IDS.exists():
+        ids = json.loads(SCREENER_IDS.read_text(encoding="utf-8")).get("ids") or {}
+    id_twins = _id_twins(ids)
+    unexplained_ids = []
+    print(f"\n{len(id_twins)} symbol pair(s) sharing a Screener company id "
+          f"({SCREENER_IDS.relative_to(ROOT)})")
+    for a, b, cid in id_twins:
+        r = _rename_between(a, b, known)
+        if r:
+            print(f"  EXPLAINED id {cid}: {r[0]} -> {r[1]} is a rename NSE's record "
+                  f"joins; {r[0]} is the dead old ticker.")
+        else:
+            unexplained_ids.append((a, b, cid))
+            print(f"  ID TWINS  {a} and {b} both resolve to Screener company {cid} and "
+                  f"no rename joins them: they fetch the same series.")
+
+    unaliased = []
+    if MEMBERSHIP.exists():
+        history = json.loads(MEMBERSHIP.read_text(encoding="utf-8"))
+        unaliased = _unaliased_renames(history, known)
+        print(f"\n{len(unaliased)} rename(s) the membership record files as an exit "
+              f"and an entry without an alias")
+    for day, old, new in unaliased:
+        print(f"  UNALIASED {day}  {old} out, {new} in: NSE's record says {old} became "
+              f"{new} and data/membership_history.json's aliases do not follow it, so "
+              f"the backtester reads the ticker change as an index exit and a new "
+              f"entry. Add {old} to "
+              f"data/membership_notices.json symbol_aliases with NSE's evidence and "
+              f"run scripts/extend_membership_from_notices.py apply.")
+
+    if (unjoined or unexplained_twins or unexplained_ids or unaliased) and args.fail_on_new:
         return 1
     return 0
 

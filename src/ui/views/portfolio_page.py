@@ -31,7 +31,8 @@ from src.engine import book_exposure as bx
 from src.engine import dashboard_insights as di
 from src.engine import portfolio_report as pr
 from src.loaders import benchmark_indices as bi
-from src.ui.views.dashboard_home_view import (END, HOME_CSS, SHORT, Chart, emit, how, html_of, sg, size_class)
+from src.ui.views.dashboard_home_view import (END, HOME_CSS, SHORT, Chart, emit, how, html_of, index_late_note, sg,
+                                              size_class)
 
 e = html.escape
 ROOT = Path(__file__).resolve().parents[3]
@@ -41,7 +42,7 @@ YTD_ROWS = (("microcap250", "Nifty Microcap 250"), ("mix", "Mix in the book’s 
             (bi.TOTAL_MARKET, "Nifty Total Market"), ("nifty50", "Nifty 50"))
 EXIT_NAMES = (("Trend Breakdown", "Trend breakdown", "closed below its 50D EMA"),
               ("Rank Dropped", "Rank dropped", "fell out of the top {cut}"),
-              ("52W", "Off its high", "more than {hc}% below the 52W high"))
+              ("52W", "Off its high", "more than {hc}% below the 52-week high"))
 # The ranges Portfolio's dated bar charts open on (S193 H, docs/PAGE_DESIGN.md 4.1). The months are the book's
 # record, all of them. The days are a stated exception: the last 20 sessions, the window the "Last 20 sessions"
 # tile counts; a year of daily bars would be too thin to read, and the Since tile and the ₹100 chart carry the record.
@@ -141,8 +142,8 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     from src.engine.exit_watch import qualified_ranks
     _, trails = di.rank_trails(series.prices, syms, now=qualified_ranks(rank_df))   # now: the plan's rank (S154)
     industry = rank_df.set_index("Symbol")["Industry"] if "Industry" in rank_df else pd.Series(dtype=str)
-    n500 = _n500()
-    leaders = mq.leaders_answer(series.prices, industry, n500, None)
+    # Against Nifty Total Market (S165); the industry states read the equal-weighted ranked stocks either way.
+    leaders = mq.leaders_answer(series.prices, industry, market, None, market_name=mq.MARKET)
     state = {}
     if leaders is not None:
         for _, r in leaders.sectors.iterrows():
@@ -170,14 +171,6 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
                 prices=series.prices, cfg=dict(TRACK_RECORD_CONFIG), trails=trails, industry_state=state,
                 sizes=sizes, exposure=exposure, market_weights=mw, indices=idx, systems=systems,
                 correlation=corr, system=system)
-
-
-def _n500() -> pd.Series:
-    try:
-        b = pd.read_csv(ROOT / "data" / "benchmarks.csv", parse_dates=["date"]).set_index("date").sort_index()
-        return pd.to_numeric(b["nifty500"], errors="coerce").dropna()
-    except (OSError, KeyError, ValueError):
-        return pd.Series(dtype=float)
 
 
 def _market_weights(rank_df: pd.DataFrame) -> dict[str, float]:
@@ -316,21 +309,57 @@ def _frozen_note(p: Page) -> str:
             "worked out beside them (the Nifty 500 row shows what each was frozen against). ")
 
 
+def _month_span(a: pd.Period, b: pd.Period) -> str:
+    """"January to October 2026", "December 2025 to March 2026", "October 2026"."""
+    if a == b:
+        return f"{a:%B %Y}"
+    return f"{a:%B} to {b:%B %Y}" if a.year == b.year else f"{a:%B %Y} to {b:%B %Y}"
+
+
 def _provenance(p: Page) -> str:
-    """How the record's months were made, when not all were struck month by month (S193 B)."""
+    """How the record's months were made, when not all were struck month by month (S193 B, S203 pf.head.3, pf.head.4)."""
     months = (p.ledger or {}).get("months") or {}
     back = sorted(k for k, v in months.items() if (v or {}).get("origin") == "backfill")
     if back:
         on = (months[back[-1]] or {}).get("finalized_on")
         a, b = pd.Period(back[0], "M"), pd.Period(back[-1], "M")
-        span = f"{a:%b}" if a == b else f"{a:%b} to {b:%b}"
-        return (f" {span} {a.year} were worked out from the rules" + (f" on {pd.Timestamp(on):%-d %b %Y}" if on else "")
-                + "; later months were recorded as they happened.")
+        when = f" on {_fmt.date(pd.Timestamp(on))}" if on else ""
+        what = f"{a:%B %Y} was" if a == b else f"The months {_month_span(a, b)} were"
+        return f" {what} worked out from the rules{when}. Later months were recorded as they happened."
     from src.engine.extra_universe import SYSTEM_1000
     if p.system == SYSTEM_1000 and not months:
-        # THREE_SYSTEMS.md: the Nifty 1000's November is reconstructed from a list NSE published on 16 Nov.
-        return " November is reconstructed: its 30 Oct book uses a list NSE first published on 16 Nov."
+        return reconstructed_note(p.system)
     return ""
+
+
+def reconstructed_note(system: str, membership: dict | None = None) -> str:
+    """The Nifty 1000's first month is reconstructed (THREE_SYSTEMS.md): its book's date from the membership file,
+    the day NSE first published the list from the backfill's record of it; no date typed here (S203 pf.head.4)."""
+    from src.engine.nifty1000_backfill import FIRST_PUBLISHED
+    from src.engine.systems import inception
+    try:
+        membership = membership or json.loads((ROOT / "data" / "membership_history.json").read_text())
+        base = pd.Timestamp(membership["indices"]["nifty_1000"]["baseline"]["date"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return ""
+    first = inception(system)
+    return (f" {first:%B} is reconstructed: its {base:%-d %b} book uses a list NSE first published on "
+            f"{pd.Timestamp(FIRST_PUBLISHED):%-d %b}.")
+
+
+def header_title(since: float | None, mkt_since: float | None, begun: pd.Timestamp) -> str:
+    """Portfolio's h1 (S203 pf.head.1): the date with its year (glossary 7); the verdict phrases in colour, at most
+    two (S219 2), "level with" in ink; a sentence when the record has no return yet."""
+    from src.ui.page_kit import verdict
+    if since is None:
+        return f"The model book’s record starts on {_fmt.date(begun)}."
+    out = "The book is " + verdict(_fmt.moved(since), None if _fmt.reads_zero(since) else since >= 0) + f" since {_fmt.date(begun)}"
+    if mkt_since is not None:
+        lead = since - mkt_since
+        out += (", level with Nifty Total Market" if _fmt.reads_zero(lead) else
+                ", " + verdict(f"{_fmt.fixed(abs(lead), 1)} points {'ahead of' if lead >= 0 else 'behind'}", lead >= 0)
+                + " Nifty Total Market")
+    return out + "."
 
 
 def header(p: Page) -> list:
@@ -368,23 +397,18 @@ def header(p: Page) -> list:
               f"Nifty Total Market {pct(day['market'])}" if day["market"] is not None
               else f"Nifty Total Market for {dshort(last)} not in yet"),
              (f"Month so far · {this:%b}", pct(mtd), tone(mtd),
-              "" if gap is None else f"{_fmt.fixed(abs(gap), 1)} pts {'ahead of' if gap >= 0 else 'behind'} Nifty Total Market", tone(gap),
+              "" if gap is None else "Level with Nifty Total Market" if _fmt.reads_zero(gap) else
+              f"{_fmt.fixed(abs(gap), 1)} pts {'ahead of' if gap >= 0 else 'behind'} Nifty Total Market",
+              "" if gap is None or _fmt.reads_zero(gap) else tone(gap),
               f"Nifty Total Market {pct(mmtd)}"),
              ("Below its peak today", pct(f.now) if f else "–", "dh-watch" if f and f.now < 0 else "",
               f"Peak {dshort(f.peak_now)}" if f else "", "", f"Max drawdown {pct(f.worst)}" if f else "")]
     nav = "".join(f'<a class="dh-pill" href="#{a}">{e(t)}</a>' for a, t in NAV)
     # Each system's own start and rules: the 750 from 1 Jan 2026, the others from their
     # inception (Nifty 1000 1 Nov, > ₹2,000 Cr and Combined 1 Oct 2026).
-    sub = (f"The model book: ₹1 Cr put in on {begun:%-d %B %Y}, run by the "
-           f"{SYSTEM_NAMES.get(p.system, 'Nifty 750')} rules, {len(tab)} stocks. Returns are after costs.{_provenance(p)}")
-    lead = None if since is None or mkt_since is None else since - mkt_since
-    # The verdict phrases in up/down colour, at most two (S219 2).
-    from src.ui.page_kit import verdict
-    answer = ("The model book" if since is None else
-              "The book is " + verdict(f"{'up' if since >= 0 else 'down'} {abs(since):.1f}%", since >= 0) + f" since {begun:%-d %B}"
-              + ("" if lead is None else
-                 ", " + verdict(f"{_fmt.fixed(abs(lead), 1)} points {'ahead of' if lead >= 0 else 'behind'}", lead >= 0)
-                 + " Nifty Total Market") + ".")
+    sub = (f"₹1 Cr was put in on {_fmt.date(begun)}. The book follows the {SYSTEM_NAMES.get(p.system, 'Nifty 750')} rules "
+           f"and holds {len(tab)} stocks. Returns are after costs.{_provenance(p)}")
+    answer = header_title(since, mkt_since, begun)
     # The title answers the reader's first question; the page's name is the kicker (tipsheet benchmark, 21 Nov 2026).
     return [f'<div class="pf-head"><p class="pf-kick">Portfolio</p><h1 class="pf-title">{answer}</h1><p class="pf-sub">{e(sub)}</p>',
             _kpis(cells, "pf-five"), f'<div class="dh-pills pf-nav" role="navigation" aria-label="On this page">{nav}</div></div>']
@@ -430,10 +454,10 @@ def holdings_spec(p: Page) -> dict:
             "past_high": sum(1 for x in rows if x["hi"] is not None and x["hi"] <= -hc),
             "past_rank": sum(1 for x in rows if x["rn"] is None or x["rn"] > cut)}
     fill = pd.to_datetime(p.meta.get("fill_date"), errors="coerce")
-    fill_s = dshort(fill) if pd.notna(fill) else "the fill"
+    fill_s = dshort(fill) if pd.notna(fill) else ""
     # Labels from here, not the kit, so the page's words are in the page (and in the CI check without a browser).
     cols = [["s", "Stock", 0], ["ind", "Sector · size", 0], ["since", "Entry date", 0], ["q", "Qty", 1], ["ep", "Entry price", 1],
-            ["px", "Price", 1], ["val", "Value", 1], ["w", "Weight", 1], ["dayp", "Today", 1], ["pnl", f"P&L from {fill_s}", 1],
+            ["px", "Price", 1], ["val", "Value", 1], ["w", "Weight", 1], ["dayp", "Today", 1], ["pnl", f"P&L from {fill_s}" if fill_s else "P&L from the fill", 1],
             ["ret", "Since entry", 1], ["ema", "vs 50D EMA", 1], ["hi", "From 52W high", 1], ["rn", "Rank 3M · 1M · now", 0]]
     text = {"holdings": f"{len(rows)} holdings", "before": "before costs", "below": "below", "past_high": f"past −{hc}%",
             "past_rank": f"past #{cut}"}
@@ -447,9 +471,11 @@ def section_book(p: Page) -> list:
     # Actions and the Dashboard print them (S193 A4).
     px = p.prices.index if len(p.prices.index) else pd.DatetimeIndex([p.as_of])
     dates = [di.on_or_before(px, d) or d for d in di.trail_dates(p.as_of).values()]
-    note = (f"Entry price and since entry are from the day the stock was first bought. P&L in rupees starts at the {spec['fill']} "
-            "fill, where today’s share counts were set: the record keeps returns and weights, so rupee figures are a mark, not "
-            f"a cost. Holdings {inr(p.holdings)} + {inr(p.value - p.holdings)} not invested = portfolio value {inr(p.value)}. "
+    fill = f"the {spec['fill']} fill" if spec["fill"] else "the fill"
+    # One idea a sentence (S203 pf.book.2).
+    note = (f"Entry price and since entry are from the day the stock was first bought. P&L in rupees starts at {fill}, "
+            "where today’s share counts were set. The record keeps returns and weights, not costs, so rupee figures are a "
+            f"mark. Holdings {inr(p.holdings)} + {inr(p.value - p.holdings)} not invested = portfolio value {inr(p.value)}. "
             f"Sell rules, checked at each month-end: below its 50D EMA (trend breakdown), more than {hc}% below its 52-week high, "
             f"or out of the top {cut} by rank. Rank: where today’s rule puts the stock on {', '.join(dshort(d) for d in dates)} "
             "among the stocks that pass its filters; “Out” means it does not pass them. The plan for the next rebalance is on Actions.")
@@ -457,6 +483,22 @@ def section_book(p: Page) -> list:
                                                   "rule’s line today (the rules are checked at month-end)"),
                  Chart("holdings", spec, {"label": "The book's holdings"}),
                  f'<p class="dh-note">{e(note)}</p>'])
+
+
+def size_shift(first_date, first, last) -> str:
+    """The book's size then and now (S203 pf.exp.1): its first rebalance by its month, then whichever side holds more
+    of the book now, the groups named only when held (S193 B, S194 L3)."""
+    lm = float(first.get("Large", 0) or 0) + float(first.get("Mid", 0) or 0)
+    then = "none" if _fmt.fixed(lm, 0) == "0" else f"{_fmt.fixed(lm, 0)}%"
+    out = f"At its first rebalance, {pd.Timestamp(first_date):%b %Y}, the book held {then} in Large Cap and Mid Cap. "
+    lm_now = float(last.get("Large", 0) or 0) + float(last.get("Mid", 0) or 0)
+    held = [(k, _fmt.size(k)) for k in ("Small", "Micro", "Nano Cap", "Ultra Nano Cap") if float(last.get(k, 0) or 0) > 0]
+    small = sum(float(last.get(k, 0) or 0) for k, _ in held)
+    if held and small > lm_now:
+        names = [n for _, n in held]
+        words = names[0] if len(names) == 1 else ", ".join(names[:-1]) + f" and {names[-1]}"
+        return out + f"Now {_fmt.fixed(small, 0)}% is in {words}. "
+    return out + f"Now {_fmt.fixed(lm_now, 0)}% is in Large Cap and Mid Cap. "
 
 
 def section_exposure(p: Page) -> list:
@@ -506,21 +548,7 @@ def section_exposure(p: Page) -> list:
                     for n, r in big.iterrows()) + "</tbody></table>")
     first = size.iloc[0] if len(size) else None
     last = size.iloc[-1] if len(size) else None
-    shift = ""
-    if first is not None:
-        # A system whose record starts after January (Nano Cap, Combined, Nifty 1000) names its first rebalance;
-        # "small and micro" takes in Nano Cap and Ultra Nano Cap when the book holds them (S194 L3, 23 Nov 2026).
-        began = "began the year" if size.index[0].month == 1 else f"began {MON[size.index[0].month - 1]} {size.index[0].year}"
-        # Only the groups the book holds now (S193 B: the list read "Small Cap, Micro Cap, Nano Cap and Ultra
-        # Nano Cap" while 40% Nano Cap and 60% Ultra Nano Cap).
-        held = [(k, n) for k, n in (("Small", "Small Cap"), ("Micro", "Micro Cap"), ("Nano Cap", "Nano Cap"),
-                                    ("Ultra Nano Cap", "Ultra Nano Cap")) if float(last.get(k, 0) or 0) > 0]
-        held = held or [("Small", "Small Cap"), ("Micro", "Micro Cap")]
-        small = sum(float(last.get(k, 0) or 0) for k, _ in held)
-        names = [n for _, n in held]
-        words = names[0] if len(names) == 1 else ", ".join(names[:-1]) + f" and {names[-1]}"
-        shift = (f"The book {began} {first.get('Large', 0) + first.get('Mid', 0):.0f}% in Large Cap and Mid Cap and is now "
-                 f"{small:.0f}% {words}. ")
+    shift = size_shift(size.index[0], first, last) if first is not None else ""
     note = (shift + "Each rebalance’s sector and size weights are worked out from that month’s book and kept, so the history "
             "stays as it was when later lists change. Size is by NSE’s index lists on each date; sectors are the record’s own.")
     since = f"since {_fmt.date(_start(p))}"
@@ -567,13 +595,14 @@ def section_returns(p: Page) -> list:
                      + f'</th><td class="dh-num dh-b {tone(vals.get(k))}">{pct(vals.get(k))}</td>'
                      f'<td class="dh-num {tone(None if vals.get(k) is None or book_ytd is None else book_ytd - vals[k])}">'
                      f'{sg(None if vals.get(k) is None or book_ytd is None else book_ytd - vals[k])}</td></tr>' for k, n in YTD_ROWS))
-    grows = (f"From the record’s second year the table adds 12 months, 3 years, 5 years and a yearly rate since {_fmt.date(begun)} "
-             "by itself; nothing is annualised before then." if not any(r[0] == "1 year" for r in rows) else
+    grows = (f"Once the record is a year old, the table adds 12 months, 3 years, 5 years and a yearly rate since {_fmt.date(begun)}. "
+             "Nothing is annualised before then." if not any(r[0] == "1 year" for r in rows) else
              f"A yearly rate since {_fmt.date(begun)} compounds the whole record to a return per 12 months.")
     mlast = p.market.dropna().index.max() if len(p.market.dropna()) else None
     if mlast is not None and mlast < p.as_of:
-        grows = (f"Nifty Total Market and Momentum 50 to {dshort(mlast)}: NSE’s closes for {dshort(p.as_of)} are not in yet, "
-                 "so Today shows no Nifty Total Market figure and the longer windows end a session early on the index side. " + grows)
+        # The Dashboard's sentence for the same cause (S193 E, S203 pf.ret.3).
+        grows = (index_late_note(mlast, p.as_of, "Nifty Total Market and Momentum 50")
+                 + " Today shows no Nifty Total Market figure. " + grows)
     return _sec([_head("pf-ret", "Returns", "the book after costs · indices are price returns"),
                  '<div class="dh-pair"><div><div class="dh-cap"><b>By period</b><span>to ' + f"{p.as_of:%-d %b}" + '</span></div>'
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Period</th><th scope="col" class="dh-num">The book</th>'
@@ -583,25 +612,44 @@ def section_returns(p: Page) -> list:
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Index</th>'
                  f'<th scope="col" class="dh-num">{_fmt.since(begun) if young else "This year"}</th>'
                  f'<th scope="col" class="dh-num">The book’s lead, pts</th></tr></thead><tbody>{ytd}</tbody></table></div>'
-                 f'<p class="dh-note">The book is mostly {e(book_size_words(p))}, so Nifty Total Market is not its only fair yardstick. '
+                 f'<p class="dh-note">{e(yardstick_line(p))}'
                  + ('The mix holds the four NSE size indices in the book’s own size split, reset at each rebalance (see Sector &amp; size). '
                     if vals.get("mix") is not None else
                     'A mix of NSE’s size indices cannot be built for it: Nano Cap and Ultra Nano Cap have no NSE index. ')
                  + f'{_fmt.PTS_NOTE}</p></div></div>'])
 
 
-def book_size_words(p: Page) -> str:
-    """The two size groups holding most of the book today ("Small Cap and Micro Cap" on the 750;
-    "Nano Cap and Ultra Nano Cap" on the > ₹2,000 Cr list), from its own size split (S193 C)."""
+def book_size_groups(p: Page) -> list[tuple[str, float]]:
+    """The two size groups holding most of the book at its last rebalance, with their weights (%), largest first
+    ("Small Cap and Micro Cap" on the 750; "Nano Cap and Ultra Nano Cap" on the > ₹2,000 Cr list; S193 C); [] when
+    the record holds no size split."""
     ex = p.exposure
     if ex is None or not len(ex):
-        return "Small Cap and Micro Cap"
+        return []
     size = ex[ex["kind"] == "size"]
     if size.empty:
-        return "Small Cap and Micro Cap"
+        return []
     last = size[size["date"] == size["date"].max()].groupby("name")["weight"].sum().sort_values(ascending=False)
-    top = [_fmt.size(k) for k, v in last.items() if v > 0][:2]
-    return " and ".join(top) if top else "Small Cap and Micro Cap"
+    return [(_fmt.size(k), float(v)) for k, v in last.items() if v > 0][:2]
+
+
+def book_size_words(p: Page) -> str:
+    """"Small Cap and Micro Cap": the two largest size groups, or "" when none is recorded."""
+    return " and ".join(n for n, _ in book_size_groups(p))
+
+
+def yardstick_line(p: Page) -> str:
+    """Why Nifty Total Market is not the book's only yardstick (S203 pf.ret.4): "most" only when the two largest size
+    groups hold half the book or more; nothing when the record holds no size split (it named Small Cap and Micro Cap
+    with no data behind them)."""
+    groups = book_size_groups(p)
+    if not groups:
+        return ""
+    words = " and ".join(n for n, _ in groups)
+    if sum(w for _, w in groups) >= 50:
+        return f"Most of the book is in {words}, so Nifty Total Market is not its only fair yardstick. "
+    which = "groups are" if len(groups) > 1 else "group is"
+    return f"The book’s largest size {which} {words}, so Nifty Total Market is not its only fair yardstick. "
 
 
 def growth_spec(p: Page) -> dict:
@@ -627,6 +675,19 @@ def _start(p: Page) -> pd.Timestamp:
     return inception(p.system).start_time
 
 
+def capture_word(v: float, verb: str, days: str) -> str:
+    """"Falls less on bad days", "Rises as much on good days" at 100% as shown (S203 pf.eq.6)."""
+    shown = f"{v:.0f}"     # as the tile shows it
+    return f"{verb} {'as much' if shown == '100' else 'less' if v < 100 else 'more'} on {days} days"
+
+
+def tracking_line(te: float) -> str:
+    """What a tracking error means, in one definition (S203 pf.eq.9; owner's answer 7: no worked +10% example)."""
+    return (f"A tracking error of {_fmt.fixed(te, 1)}% means the book’s return over 12 months usually lands within about "
+            f"{_fmt.fixed(te, 1)} points of Nifty Total Market’s, two years in three. On a typical day the two differ by about "
+            f"{_fmt.fixed(te / np.sqrt(pr.YEAR), 1)} points (tracking error ÷ √250).")
+
+
 def section_equity(p: Page) -> list:
     spec = growth_spec(p)
     f, fm = pr.falls(p.equity), pr.falls(pr._clean(p.market).loc[p.equity.index[0]:p.as_of])
@@ -650,15 +711,17 @@ def section_equity(p: Page) -> list:
               f"{wme_m:%B}" if wme_m is not None else "", "", "Counting month-end values only")] if f else []
     risk_cells = []
     if rk:
+        ratio = rk.vol / rk.market_vol
         risk_cells = [("Volatility, a year", f"{rk.vol:.1f}%", "", f"Nifty Total Market {rk.market_vol:.1f}%", "",
-                       f"Swings about {rk.vol / rk.market_vol:.1f} times as much as the index"),
+                       "Swings about as much as the index" if _fmt.fixed(ratio, 1) == "1.0"
+                       else f"Swings about {_fmt.fixed(ratio, 1)} times as much as the index"),
                       ("Beta", f"{rk.beta:.1f}", "", "How much it moves with Nifty Total Market", "",
                        f"On average, a 1% day for the index is a {rk.beta:.1f}% book day"),
                       ("Tracking error", f"{rk.tracking:.1f}%", "", "How far it strays from Nifty Total Market", "",
-                       f"About {rk.tracking / np.sqrt(pr.YEAR):.1f} pt on a typical day"),
+                       f"About {_fmt.fixed(rk.tracking / np.sqrt(pr.YEAR), 1)} points on a typical day"),
                       ("Up / down capture, 60 sessions", f"{cap[0]:.0f}% / {cap[1]:.0f}%" if cap else "–", "",
-                       "Falls less on bad days" if cap and cap[1] < 100 else "Falls more on bad days", "dh-up" if cap and cap[1] < 100 else "dh-down",
-                       "Rises less on good days" if cap and cap[0] < 100 else "Rises more on good days"),
+                       capture_word(cap[1], "Falls", "bad") if cap else "", "dh-up" if cap and cap[1] < 100 else "dh-down",
+                       capture_word(cap[0], "Rises", "good") if cap else ""),
                       ("How they move together, 90 sessions", "–" if p.correlation is None else f"{p.correlation:.2f}", "",
                        "Average correlation of the holdings", "", "Low: the list is well spread" if p.correlation is not None and p.correlation < 0.3 else "")]
     windows = " · ".join(f"{r.label}, {r.sessions} sessions" for r in risks[:1])
@@ -674,8 +737,6 @@ def section_equity(p: Page) -> list:
                   + "".join(f'<tr><th scope="row">{e(r.label)}</th><td class="dh-num">{r.sessions}</td><td class="dh-num">{r.vol:.1f}%</td>'
                             f'<td class="dh-num">{r.market_vol:.1f}%</td><td class="dh-num">{r.beta:.2f}</td><td class="dh-num">{r.tracking:.1f}%</td></tr>'
                             for r in risks) + "</tbody></table></div>")
-    te = rk.tracking if rk else 0
-    ex_hi, ex_lo = 10 + te, 10 - te
     return _sec([_head("pf-eq", "Equity, drawdown & risk", f"₹100 on {_start(p):%-d %b}, daily"),
                  (Chart("growth", spec, {"label": "Growth of ₹100: the book, Nifty500 Momentum 50 and Nifty Total Market"})
                   if len(spec["dates"]) > 1 else   # a system's first days (Nifty 1000, Nov 2026): one point draws no line
@@ -697,11 +758,7 @@ def section_equity(p: Page) -> list:
                      "of the index’s.",
                      ((f"Worked out from {rk.sessions} sessions, so a rough guide until the book has a year. "
                        if rk and rk.sessions < 250 else "")   # S193 B: the list's 22.9% rested on 34 sessions
-                      + f"Tracking error {te:.1f}% means: over 12 months in which Nifty Total Market makes +10%, a book like this one would usually end between about "
-                     f"{_fmt.signed(ex_lo, 0)}% and {_fmt.signed(ex_hi, 0)}% (10 ± {te:.1f}, two years in three), and outside that range one year in three. On a "
-                     f"typical day the book and Nifty Total Market differ by about {te / np.sqrt(pr.YEAR):.1f} point (tracking error ÷ √250). An "
-                     "index fund aims for well under 1%; a 20-stock small-company momentum book cannot be close to Nifty Total Market, and that "
-                     "distance is where its lead comes from.")
+                      + tracking_line(rk.tracking))
                      if rk else f"No risk figures yet: {mw.book_too_short(pr.RISK_MIN_SESSIONS, len(pr._clean(p.equity)))}.",   # S193 B7: read 0.0%
                      ["Measure", "The book", "Nifty Total Market"],
                      [["Volatility, a year", f"{rk.vol:.1f}%", f"{rk.market_vol:.1f}%"], ["Beta", f"{rk.beta:.2f}", "1.00"],
@@ -718,6 +775,7 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
     mark_month = first.month - 1 if fill is not None and first in m["book"] else None
 
     def cell(v, b=False, q=False, mark=False, na=False):
+        # A month or quarter still to come does not apply yet: a blank cell, not "–" (R2; owner's answer 8).
         cls = "dh-num" + (" pf-q" if q else "") + (f" dh-b {tone(v)}" if b else "")
         sup = '<sup class="dh-muted">*</sup>' if mark and v is not None else ""
         # Not applicable is a blank cell, not "–" (S193 E, R2): the Nifty 500 was recorded by month only.
@@ -742,20 +800,17 @@ def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
                 qs = [None if a is None or c is None else a - c for a, c in zip(bk["quarters"], mk["quarters"])]
                 yr = None if bk["year"] is None or mk["year"] is None else bk["year"] - mk["year"]
             body += (f'<tr class="{"dh-muted" if k == "n500" else ""}"><th scope="row">{names[k]}</th>'
-                     + "".join(cell(v, b, mark=(y == first.year and i == mark_month)) for i, v in enumerate(r["months"]))
-                     + "".join(cell(v, b, i == 0, na=(k == "n500")) for i, v in enumerate(qs)) + cell(yr, b, True, na=(k == "n500")) + "</tr>")
+                     + "".join(cell(v, b, mark=(y == first.year and i == mark_month), na=(y == this.year and i + 1 > this.month))
+                               for i, v in enumerate(r["months"]))
+                     + "".join(cell(v, b, i == 0, na=(k == "n500" or (y == this.year and 3 * i + 1 > this.month)))
+                               for i, v in enumerate(qs)) + cell(yr, b, True, na=(k == "n500")) + "</tr>")
     body += (f'<tr class="pf-yr pf-ghost"><th scope="rowgroup" colspan="18">{this.year + 1}<span class="dh-muted"> · from January, a row group '
              'like the one above; each year adds its own</span></th></tr>') if len(cal) == 1 else ""
     foot = (f'<p class="dh-note">* {first:%b %Y}, the first month: from the fill, {fill:%-d %b}. A system\u2019s first month has '
             'no book before it, so the book and every index start at its first fill.</p>' if mark_month is not None else "")
-    # One footnote for the grid's "–" (S193 E, R1): months before the system's record, months not yet published.
-    dash = []
+    # One footnote for the grid's "–" (S193 E, R1): the months before the system's record (S203 pf.cal.2).
     if first.month > 1:
-        dash.append(f"before {first:%b %Y}, {mw.system_too_young()}")
-    if this.month < 12:
-        dash.append(f"after {this:%b %Y}, {mw.NOT_PUBLISHED}")
-    if dash:
-        foot += f'<p class="dh-note">{e(mw.column_note("a month", "; ".join(dash)))}</p>'
+        foot += f'<p class="dh-note">{e(mw.column_note("a month", f"before {first:%b %Y}, {mw.system_too_young()}"))}</p>'
     grid = f'<div class="dh-scroll"><table class="dh-tab pf-grid pf-nw">{head}<tbody>{body}</tbody></table></div>{foot}'
     # Calendar and financial years
     ys = ""
@@ -824,7 +879,7 @@ def day_section(p: Page) -> list:
                  '<div class="dh-cap"><b>The book against Nifty Total Market, last 20 sessions</b><span>points</span></div>',
                  Chart("bars", {**spec, "range": DAY_RANGE}, {"label": "The book's daily lead over Nifty Total Market, last 20 sessions"}),
                  how("Each session, the book’s day less Nifty Total Market’s day, in points.",
-                     f"One day is mostly noise; a run of bars on one side is not. The book beat Nifty Total Market on {beat} of {len(g)} sessions.",
+                     "One day says little; a run of bars on one side says more.",
                      ["Session", "Book", "Nifty Total Market", "Lead, pts"],
                      [[f"{d:%-d %b %Y}", pct(r.book), pct(r.market), sg(r.gap)] for d, r in last.iloc[::-1].iterrows()])])
 
@@ -865,6 +920,23 @@ def _days(v) -> str:
     return "–" if v is None or pd.isna(v) else f"{v:.0f}"
 
 
+def _rebalances(n: int) -> str:
+    return f"{n} rebalance{'s' if n != 1 else ''}"
+
+
+def changed_tile(reb: list, n_hold: int) -> tuple:
+    """The "Changed at a rebalance" tile (S203 pf.tr.4): the holdings count from the book, not a typed 20; the two
+    months named for what they are. `reb`: (start, bought, sold, held) per rebalance, the first book first."""
+    after = reb[1:]
+    if not after:
+        return ("Changed at a rebalance", mw.DASH, "", "", "", mw.SYSTEM_TOO_YOUNG.capitalize())
+    avg = sum(b for _, b, _, _ in after) / len(after)
+    lo = min(after, key=lambda r: r[1])
+    last = reb[-1]
+    return ("Changed at a rebalance", f"{_fmt.fixed(avg, 0)} of {n_hold}", "", f"On average since {after[0][0]:%B}", "",
+            f"Latest {last[0]:%B} {last[1]} · fewest {lo[0]:%B} {lo[1]}")
+
+
 def section_trades_top(p: Page, s: dict) -> list:
     if not s:
         return _sec([_head("pf-trades", "Trades", "no trades yet")])
@@ -872,12 +944,9 @@ def section_trades_top(p: Page, s: dict) -> list:
         # A system's first month (Nifty 1000 from Nov 2026, S175): trades are open, none closed.
         # Left open like the full section below: render() closes it.
         return ['<section class="dh-sec pf-sec">',
-                _head("pf-trades", "Trades", f"0 closed · {s.get('open', 0)} open · {len(s.get('rebal') or [])} rebalances"),
+                _head("pf-trades", "Trades", f"0 closed · {s.get('open', 0)} open · {_rebalances(len(s.get('rebal') or []))}"),
                 '<p class="dh-note">No trade has closed yet; these figures start with the first exit.</p>']
     reb = s["rebal"]
-    after = [b for _, b, _, _ in reb[1:]]
-    avg = sum(after) / len(after) if after else None
-    lo = min(reb[1:], key=lambda r: r[1]) if len(reb) > 1 else None
     cells = [("Trades won", f"{s['wins'] / s['closed'] * 100:.0f}%", "dh-watch" if s["wins"] / s["closed"] < 0.5 else "dh-up",
               f"{s['wins']} of {s['closed']} closed", "", ""),
              ("Average win", pct(s["avg_win"]), "dh-up", f"Median {pct(s['med_win'])}", "", "A few large winners carry it"
@@ -885,8 +954,7 @@ def section_trades_top(p: Page, s: dict) -> list:
              ("Average loss", pct(s["avg_loss"]), "dh-down", f"Median {pct(s['med_loss'])}", "", ""),
              # A side with no closed trade has no median (Combined, 21 Nov 2026: no closed loser yet).
              ("Held, median", _days(s["hold"]) + " days", "", f"Winners {_days(s['hold_win'])} · losers {_days(s['hold_loss'])}", "", ""),
-             ("Changed at a rebalance", f"{avg:.0f} of 20" if avg else "–", "", f"On average, from {reb[1][0]:%B}" if len(reb) > 1 else "", "",
-              f"{reb[-1][0]:%B} {reb[-1][1]}, {lo[0]:%B} {lo[1]}" if lo else "")]
+             changed_tile(reb, len(p.table))]
     ex = "".join(f'<tr><th scope="row">{e(n)}<span class="dh-sub">{e(sub)}</span></th><td class="dh-num">{k}</td>'
                  f'<td class="dh-num {tone(a)}">{pct(a)}</td><td class="dh-num {tone(md)}">{pct(md)}</td></tr>' for n, sub, k, a, md in s["exits"])
 
@@ -896,7 +964,7 @@ def section_trades_top(p: Page, s: dict) -> list:
         return f"{dshort(a)} → {dshort(b)}" if pd.notna(a) and pd.notna(b) else ""
     bw = "".join(f'<tr><th scope="row">{e(str(r.Symbol))}</th><td>{held(r)}</td><td class="dh-num {tone(r.r)}">{pct(r.r)}</td></tr>'
                  for df in (s["best"], s["worst"]) for _, r in df.iterrows())
-    return ['<section class="dh-sec pf-sec">', _head("pf-trades", "Trades", f"{s['closed']} closed · {s['open']} open · {len(reb)} rebalances"),
+    return ['<section class="dh-sec pf-sec">', _head("pf-trades", "Trades", f"{s['closed']} closed · {s['open']} open · {_rebalances(len(reb))}"),
             _kpis(cells, "pf-five"),
             '<div class="dh-pair"><div><div class="dh-cap"><b>Which rule closed each trade</b><span>' + f"{s['closed']} closed" + '</span></div>'
             '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Sell rule</th><th scope="col" class="dh-num">Trades</th>'
@@ -938,8 +1006,23 @@ def history_spec(trades: pd.DataFrame, tb: pd.DataFrame | None, rebal: list) -> 
 
 
 def _and(names: list[str]) -> str:
+    """"the 750", "the 750 and the 1000", "the 750, the 1000 and the list"; "" for none (it read "all of them")."""
     names = [f"the {n}" for n in names]
-    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + f" and {names[-1]}" if names else "all of them"
+    if not names:
+        return ""
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + f" and {names[-1]}"
+
+
+def window_line(common: str, systems: list[str]) -> str:
+    """What "Since {day}" is (S203 pf.sys.1): the verb agrees with the systems in it; the rule a new system waits on is
+    a frozen month (S194 F5), not a full one."""
+    if not systems:
+        return ""
+    who = _and(systems)
+    traded = (f"the window {who} has traded since it began" if len(systems) == 1 else
+              f"the window that {who} have {'both' if len(systems) == 2 else 'all'} traded")
+    return (f"“Since {common}” is {traded}, so it is the fair comparison. It grows as the systems age. "
+            "A new system joins it once its first full month is frozen. ")
 
 
 def section_systems(p: Page) -> list:
@@ -955,8 +1038,7 @@ def section_systems(p: Page) -> list:
         f'<td class="dh-num {tone(o)}">{mw.NOT_APPLICABLE if n == "Nifty Total Market" and o is None else pct(o)}</td><td>{e(started)}</td></tr>'
         for n, sub, m, c, o, started in p.systems[1:])
     young = [n for n, _sub, _m, c, _o, _st in p.systems[1:-1] if c is None]
-    dash = (mw.column_note(f"Since {common}", f"{mw.SYSTEM_TOO_YOUNG} ({_and(young)}: a system joins after its first full month)")
-            if young else "")
+    dash = mw.column_note(f"Since {common}", f"{mw.SYSTEM_TOO_YOUNG} ({_and(young)})") if young else ""
     from src.engine.track_record import SHADOWS
     shadows = ", ".join(f"{b.name.replace(' (shadow)', '')} (from {b.inception.strftime('%b %Y')})" for b in SHADOWS.values())
     return _sec([_head("pf-sys", f"{_NUMBER_WORDS.get(total, str(total)).capitalize()} systems, side by side",
@@ -964,9 +1046,7 @@ def section_systems(p: Page) -> list:
                  f'<div class="dh-scroll"><table class="dh-tab dh-tab-s pf-sys"><thead><tr><th scope="col">System</th><th scope="col" class="dh-num">Month so far · {p.as_of:%b}</th>'
                  f'<th scope="col" class="dh-num">Since {e(common)}, all {word}</th><th scope="col" class="dh-num">Since it started</th><th scope="col">Started</th>'
                  f'</tr></thead><tbody>{rows}</tbody></table></div>',
-                 f'<p class="dh-note">“Since {e(common)}” is the window {e(_and([r[0] for r in p.systems[1:-1] if r[3] is not None]))} have all traded, '
-                 'so it is the fair comparison; it grows as the systems age. '
-                 'A new system joins it after its first full month. '
+                 f'<p class="dh-note">{e(window_line(common, [r[0] for r in p.systems[1:-1] if r[3] is not None]))}'
                  + (f'{e(dash)} ' if dash else '') +
                  f'<b>Shadow systems</b>, recorded but not traded: {e(shadows)}.</p>'])
 
@@ -1069,7 +1149,7 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
         return
     series = book_series(book, record, ledger, rank_df, prices, benchmark_close, PORTFOLIO_STARTING_CAPITAL)
     if series is None:
-        kit.empty("The model book could not be sized.")
+        kit.note("The model book’s holdings could not be valued just now.", "Reload the page in a few minutes.", kind="warning")
         return
     with st.spinner("Reading the record…"):
         p = gather(series, record, ledger, rank_df, system, benchmark_close)

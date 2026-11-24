@@ -214,8 +214,11 @@ def test_header_and_the_uptrend_card_measure_the_200d_ema_the_same_way():
     from src.engine.market_questions import ema_gap
     from src.loaders import price_loader
 
-    src = inspect.getsource(price_loader.get_market_regime)
-    assert 'period="max"' in src, "the header's regime must read the whole benchmark series"
+    # The regime's closes come from _regime_close (S165: Nifty Total Market joined to the Nifty 500, or one
+    # benchmark): every branch reads the whole series.
+    assert "_regime_close(benchmark_symbol)" in inspect.getsource(price_loader.get_market_regime)
+    src = inspect.getsource(price_loader._regime_close)
+    assert src.count('period="max"') == 2, "the header's regime must read the whole benchmark series"
 
     s = price_loader.fetch_benchmark_history(period="max").dropna()
     if s.empty:
@@ -223,6 +226,14 @@ def test_header_and_the_uptrend_card_measure_the_200d_ema_the_same_way():
     ema = s.ewm(span=200, min_periods=160).mean()
     header = (float(s.iloc[-1]) - float(ema.iloc[-1])) / float(ema.iloc[-1]) * 100
     assert round(header, 1) == round(ema_gap(s, s.index[-1]), 1)
+    # And the Total Market line the header can read is the one the Market page's trend reads.
+    price_loader.get_market_regime.clear()
+    r = price_loader.get_market_regime(price_loader.TOTAL_MARKET_REGIME)
+    if r.index_name == "Nifty Total Market":
+        from src.ui.views.market_questions_view import market_close
+        m, _ = market_close(s)
+        assert round(r.distance_pct, 1) == round(ema_gap(m, m.index[-1]), 1)
+    price_loader.get_market_regime.clear()
 
 
 def test_a_half_written_benchmarks_file_degrades_instead_of_crashing(tmp_path, monkeypatch):

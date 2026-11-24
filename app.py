@@ -139,6 +139,7 @@ with app_import_guard():
     from src.loaders.price_loader import (
         fetch_benchmark_history,
         get_market_regime,
+        TOTAL_MARKET_REGIME,
     )
     from src.loaders.tv_loader import load_tv_classification
     from src.loaders.screener_cache import fetch_screener_store as _fetch_screener_store
@@ -787,7 +788,7 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
     # background threads so the three fetches overlap on cold start.
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as _pool:
         _fut_mcaps = _pool.submit(_mcaps_for_system)
-        _fut_regime = _pool.submit(get_market_regime)
+        _fut_regime = _pool.submit(get_market_regime, TOTAL_MARKET_REGIME)
         # Nothing about the download depends on the prices below, only the
         # CHECK does -- so it overlaps the price work instead of following it.
         # Each system has its own table (scripts/precompute_systems.py).
@@ -1024,9 +1025,8 @@ regime_data = data["regime_data"]
 # were known, so read it again up to their last session when the index has a later close.
 if adj_close is not None and not adj_close.empty:
     _last_px = adj_close.index.max()
-    _n500 = fetch_benchmark_history(period="5y")
-    if _n500 is not None and len(_n500) and _n500.index.max() > _last_px:
-        regime_data = get_market_regime(end=f"{_last_px:%Y-%m-%d}")
+    # Nifty Total Market (S165), the line the Market page reads; always bounded by the prices' session.
+    regime_data = get_market_regime(TOTAL_MARKET_REGIME, end=f"{_last_px:%Y-%m-%d}")
 
 
 # An empty ranking is a pipeline failure, not a view to render. Twelve tabs of

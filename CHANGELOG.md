@@ -1,6 +1,29 @@
 # Changelog
 
 
+## 2026-11-24 — One 52-week high: the calendar year, everywhere
+
+- The 52-week high is now the calendar year (from the session on or before the date a year back) on every page and in the engine: the Screener's "within 20% of the 52W high" filter, the Backtest, rank history, breadth's new highs and lows, the Dashboard's signal rows and the signal tests. It was the last 252 sessions in some places and only the sessions after the date in others.
+- Every other year window follows: the stock page's 52W low and its note, Market's 12M charts and the Backtest export's rule text read the last 12 months, not 252 sessions. Sharpe, volatility and Sortino still annualise over 252 sessions.
+- On 23 Nov this changes one stock's filter (COHANCE, outside the top 60). The model book applies it from the 30 Nov rebalance; months already recorded are unchanged.
+
+## 2026-11-24 — Configuration lists every file a page reads (S164)
+
+- Configuration's data table now lists each file the pages read (breadth history, foreign and domestic flows, momentum's record and others), its latest date, how late it may be and why, and whether it keeps that rule. It listed four sources before, all current, and none of the files that ran late.
+- A check in the page audits fails on any chart, table or sentence that ends before the page's session without saying why.
+
+## 2026-11-24 — Market reads Nifty Total Market (S165)
+
+- Market's trend question, its "By size" table and its charts read Nifty Total Market and name it ("Is Nifty Total Market in an uptrend?"). Before its launch on 14 Oct 2021 the line is the Nifty 500, scaled to meet it that day, and the page says so; the bars' ranges now reach back to 1999.
+- Indices: the Nifty 500 P/E chart says why it is the Nifty 500 (Total Market's P/E starts in Oct 2021). The Guide's header question names no index; its tax test says why it ran on the Nifty 500.
+- The header strip and the Dashboard's breadth chart read Nifty Total Market. The Dashboard's signal rows keep the Nifty 500, the index they were tested on since 2010, and say so; frozen months stay as recorded against it.
+
+## 2026-11-24 — Dashboard and Portfolio sentences from approved templates (S203)
+
+- Every sentence on the Dashboard and Portfolio now follows the template the owner approved on 24 Nov: one idea a sentence, the sign in a word ("up 5.5%", "sold ₹5,000 Cr"), "level" only when a gap shows 0.0, dates with their year after "since", and no figure typed into the code. No figure, rank or frozen month changes.
+- Dashboard: section headings say what they are about ("Momentum is ahead over 12 months, but has trailed in October and so far in November"); size reads "within 2.5 points of its index", not "level"; the heavy-buying cut reads ₹14,000 Cr; the "other" earlier falls no longer count the deepest; an earlier fall names both its months (a December peak read as the next year).
+- Portfolio: tracking error is one definition, not a worked example; months still to come in the calendar are blank, not "–"; "1 rebalance"; the Nifty 1000's reconstructed month reads its dates from the data; the rebalance tile counts the book's own holdings.
+
 ## 2026-11-24 — Backtest opens faster
 
 - A second reader of the same run no longer waits for its figures, trade table and trade log to be rebuilt: 6 s to about 1.5 s locally; the page reads the same.

@@ -311,7 +311,9 @@ def every_index(f: Frames, families=PAGE_FAMILIES, now: pd.Timestamp | None = No
                                    None, None, late=pd.Timestamp(s.index[-1])))
             continue
         r = {m: ret(s, m, now) for m in WINDOWS}
-        year = s[s.index > months_back(now, 12)]
+        # On or before the date a year back, as every 52-week high (owner, 24 Nov 2026: calendar date everywhere).
+        from src.engine.calendar_momentum import year_window_start
+        year = s.iloc[year_window_start(s.index, len(s) - 1):]
         hi = None if r[12] is None else float(s.iloc[-1] / year.max() - 1) * 100
         pe = f.pe[k].dropna()
         out[g].append(IndexRow(k, f.names.get(k, k), g, pd.Timestamp(s.index[0]), r, hi,

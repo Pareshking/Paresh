@@ -39,7 +39,7 @@ def test_breadth_chart_readout_carries_the_systems_universe():
 def test_market_note_says_members_of_each_date_only_when_it_is_so():
     src = _src("src/ui/views/market_questions_view.py")
     assert '("Members of each date, leavers included." if pit else' in src
-    assert "_breadth_charts(bench.dropna(), share200, weekly, nnh, pit, universe)" in src
+    assert "_breadth_charts(bench.dropna(), share200, weekly, nnh, pit, universe, name)" in src
 
 
 def test_portfolio_names_the_books_own_size_groups():
@@ -53,7 +53,7 @@ def test_portfolio_names_the_books_own_size_groups():
     blank.update(exposure=exposure)
     assert pp.book_size_words(pp.Page(**blank)) == "Ultra Nano Cap and Nano Cap"
     blank.update(exposure=pd.DataFrame())
-    assert pp.book_size_words(pp.Page(**blank)) == "Small Cap and Micro Cap"
+    assert pp.book_size_words(pp.Page(**blank)) == ""      # no size split: no claim (S203 pf.ret.4)
     assert "The book is mostly Small Cap and Micro Cap" not in _src("src/ui/views/portfolio_page.py")
 
 
@@ -102,7 +102,7 @@ def test_market_size_rows_survive_a_nifty_500_close_the_stocks_do_not_have(monke
     bench = pd.Series(range(len(idx) + 1), index=idx.append(pd.DatetimeIndex(["2026-11-23"])), dtype=float) + 100
     size = {"Nifty Microcap 250": pd.Series(range(len(idx)), index=idx, dtype=float) + 50}
     seen = {}
-    monkeypatch.setattr(mqv, "_answers", lambda key, px, ind, b, s, pit: seen.update(b=b, s=s) or (None, None, None))
+    monkeypatch.setattr(mqv, "_answers", lambda key, px, ind, b, s, pit, name: seen.update(b=b, s=s) or (None, None, None))
     monkeypatch.setattr(mqv.st, "html", lambda *a, **k: None)
     mqv.render_market_page_questions(pd.DataFrame({"Symbol": ["A"], "Industry": ["X"]}), prices, bench, size)
     assert seen["b"].index[-1] == pd.Timestamp("2026-11-20")
@@ -123,4 +123,5 @@ def test_header_regime_ends_on_the_prices_session(monkeypatch):
     assert pl.get_market_regime(end="2020-01-01").current_price == 0.0
     pl.get_market_regime.clear()
     src = _src("app.py")
-    assert 'regime_data = get_market_regime(end=f"{_last_px:%Y-%m-%d}")' in src
+    assert 'regime_data = get_market_regime(TOTAL_MARKET_REGIME, end=f"{_last_px:%Y-%m-%d}")' in src
+    assert "_pool.submit(get_market_regime, TOTAL_MARKET_REGIME)" in src

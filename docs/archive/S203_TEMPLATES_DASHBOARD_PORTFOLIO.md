@@ -261,3 +261,17 @@ no month figure (dash.book.1 d); a fall prints "up −1.2 to 3.4%" (dash.book.3)
 systems. The case lists come from the branches in the code. Before the templates are built, each case
 needs a run on the system it names (for example the list's down month for dash.book.3, and a selling
 month for dash.flow.1).
+
+## 6. Owner's answers (24 Nov 2026)
+
+1. Losing months (dash.mom.1): **(a)**, name the months for a 2-month run ("has trailed in October and so far in November"), count them from 3 ("has trailed for 3 months and so far in November").
+2. The brief's repeated figures: **(a)**, the brief keeps the signal count and the 1M beat share, as the page's verdict and the one stated exception to §2; section 3's h2 drops the count (its table shows it); section 5 keeps the beat share with its table.
+3-8. Owner, 24 Nov: "I don't require to approve one by one, go with your recommendation". So:
+   3. Size headline with neither finding (dash.size.4): name the size furthest from its index over 12M with the gap, only when it is 2.5 points or more; below that, "Momentum is within 2.5 points of its index in every size over 12M."
+   4. "Level" for size (dash.size.3): "within 2.5 points of its index"; "level" means 0.0 everywhere.
+   5. "A light month." (dash.next.5): kept, with the average and its months beside it.
+   6. The heavy-buying cut in sentences (dash.flow.8, dash.flow.13): `cr()` (₹14,000 Cr); the exact figure stays in the chart's table.
+   7. Tracking error (pf.eq.9): the one-line definition replaces the worked example.
+   8. Months still to come in the calendar grid (pf.cal.2): a blank cell, not "–, not published yet".
+
+All eight answered: the draft is approved and can be built (TODO S203).

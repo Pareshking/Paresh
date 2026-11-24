@@ -121,7 +121,7 @@ def test_market_pickers_moved_into_the_charts(captured):
     from src.ui.views import market_view as mv
     src = (ROOT / "src" / "ui" / "views" / "market_view.py").read_text(encoding="utf-8")
     assert "br_lb_days" not in src and '"Period"' not in src
-    assert mv.PERIOD == {"default": "12M", "why": "lately", "chips": ["3M", "6M", "12M"]} and mv.LOOKBACK == 252
+    assert mv.PERIOD == {"default": "12M", "why": "lately", "chips": ["3M", "6M", "12M"]} and mv._lookback(pd.bdate_range("2025-06-30", "2026-06-30")) == len(pd.bdate_range("2025-06-30", "2026-06-30"))
     idx = pd.bdate_range(end="2026-11-20", periods=252)
     mv._participation_chart(pd.DataFrame({"50D": 50.0, "200D": 40.0}, index=idx), "EMA", None)
     mv._highs_lows_chart(pd.DataFrame({"% New Highs": 2.0, "% New Lows": 1.0}, index=idx), True)
@@ -140,12 +140,12 @@ def test_market_breadth_and_weekly_highs_open_on_12m_the_ten_month_average_on_3y
     mq._breadth_charts(bench, share, weekly, None, True, "750")
     mq._trend_charts(bench, {"Nifty Midcap 150": bench * 1.1})
     by = {f.get("label"): (k, s) for k, s, f in captured}
-    assert by["The Nifty 500 and the share of stocks above their 200D EMA"][1]["range"]["default"] == "12M"
+    assert by["Nifty Total Market and the share of stocks above their 200D EMA"][1]["range"]["default"] == "12M"
     k, w = by["Net new 52-week highs each week"]
     assert w["range"] == {"default": "12M", "why": "lately", "chips": ["12M", "3Y"]} and len(w["dates"]) > 150
-    ten = by["The Nifty 500's monthly closes and its 10-month average"][1]["range"]
+    ten = by["Nifty Total Market’s monthly closes and its 10-month average"][1]["range"]
     assert ten["default"] == "3Y" and ten["why"] == "fixed" and "10-month" in ten["note"]
-    assert by["Each size index against the Nifty 500 over the year"][1]["range"]["default"] == "12M"
+    assert by["Each size index against Nifty Total Market over the year"][1]["range"]["default"] == "12M"
 
 
 # ── The stock chart: three years sent once, chips in the frame ───────────────

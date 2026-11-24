@@ -148,7 +148,9 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
                         {"label": "Nifty 500 P/E, weekly, since 2012"}),
                   how("The Nifty 500's trailing P/E each week since 2012. Grey is the old earnings basis, ink the basis "
                       "since 31 Mar 2021; the shaded band is the middle half of days since then "
-                      f"({q25:.1f} to {q75:.1f}).",
+                      f"({q25:.1f} to {q75:.1f}). The Nifty 500, not Nifty Total Market, because NSE's P/E for Nifty "
+                      "Total Market starts at its launch, 14 Oct 2021, and this line shows the years before the "
+                      "2021 change of basis.",
                       "A line above the band is dearer than three days in four since 2021; below it, cheaper. The two "
                       "colours are two definitions: do not read the 2021 drop as a fall in price.",
                       ["Index", "P/E", "P/B", "Div yield", "Percentile now", "A month ago", "3 months ago"],

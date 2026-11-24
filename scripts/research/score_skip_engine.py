@@ -56,7 +56,7 @@ def run(close: pd.DataFrame, bench: pd.Series, skip: int) -> dict:
         sector_cap=cfg["sector_cap"], sector_map=record_sector_map(cols), _benchmark_close=bench,
         backtest_months=months, _membership=membership, stateful_history=True,
         history_start=START.start_time, _actions=[],
-        members_only_scoring_from=cfg.get("members_only_scoring_from"),
+        members_only_scoring_from=cfg.get("members_only_scoring_from"), high_rule_from=cfg.get("high_rule_from"),
         ema_warmup_from=cfg.get("ema_warmup_from"),
         hold_cap=cfg.get("hold_cap"), hold_cap_from=cfg.get("hold_cap_from"),
         buy_size=cfg.get("buy_size"),

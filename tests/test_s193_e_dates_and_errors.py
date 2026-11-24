@@ -181,7 +181,7 @@ def test_qualify_row_reads_dash_under_now_without_todays_reading():
     rows = _signals(spreads, pd.Series(dtype=float), D20, None, {}, {"tests": {}}, qualify_now={})
     q = next(r for r in rows if r["key"] == "qualify")
     assert q["cells"][2] == "–" and q["cells"][0] != "–"
-    assert "today’s share is not worked out yet, so Now reads –" in q["sub"]
+    assert q["now_note"] and "Now reads" not in q["sub"]     # the reason is the Now column's footnote (S203 dash.mom.11)
     live = _signals(spreads, pd.Series(dtype=float), D20, None, {}, {"tests": {}},
                     qualify_now={"2026-08-20": 0.4, "2026-10-20": 0.3, "2026-11-20": 0.2})
     assert next(r for r in live if r["key"] == "qualify")["cells"][2] == "20%"
