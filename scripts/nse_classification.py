@@ -17,7 +17,8 @@ its "Industry" NSE's basic industry.
 Who is asked: the Nifty Total Market (750), the Nifty 1000, the > ₹2,000 Cr list
 (data/indices/ind_nanocap_list.csv) and every symbol in data/nse_tv_classification.csv.
 Writes data/reference/nse_classification.csv (Symbol, Macro, Sector, Industry,
-Basic_Industry, Source, Checked), sorted by symbol. Read by the Screener's Sector column on
+Basic_Industry, Source, Checked), sorted by symbol. Read by the Screener's search, Sectors' grouping
+(S226) and the Screener's Sector column on
 Nano, Combined and the Nifty 1000 (src/loaders/nse_classification.py).
 
     python scripts/nse_classification.py                 # missing or older than 90 days

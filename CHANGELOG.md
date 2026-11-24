@@ -1,6 +1,12 @@
 # Changelog
 
 
+## 2026-11-25 — NSE's four levels for filtering (S226, the safe part)
+
+- Screener: the search will offer NSE's macro sector, industry and basic industry beside its sector, in place of TradingView's sector and industry. Sectors: the grouping picker will offer the same four NSE levels on every system, and on > ₹2,000 Cr and Combined sets NSE's sector indices beside NSE's sectors. Each level appears once the classification file covers 90% of a system's stocks; until then both pages stay as they are. A stock the file lacks reads "Unclassified" at that level.
+- Configuration: the data files table lists the NSE classification file.
+- Ranks, the model plan's sector cap, the record and backtests do not change: they still read today's labels. `scripts/s226_measure.py` measures what would move if they read NSE's sector, for the owner to decide.
+
 ## 2026-11-24 — The owner's confirmation round
 
 - Screener: "Out" stands alone again in the qualified column, with no reason beside it (owner: "look is also important"); the 50D EMA and 52W-high columns still say why, and a stock too new for a 52W high says so on hover.

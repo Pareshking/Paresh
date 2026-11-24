@@ -116,7 +116,31 @@ def _kept(key: str, default, options: list | None = None):
 
 # NSE's 22 groups (the ranking's "Industry" column) read "sector"; "industry" is kept for TradingView's split (glossary 2).
 _SEARCH_KINDS = {"[STOCK] ": "", "[INDEX] ": "index", "[INDUSTRY] ": "sector",
+                 "[MACRO] ": "macro sector", "[NSE_INDUSTRY] ": "industry", "[BASIC_INDUSTRY] ": "basic industry",
                  "[SECTOR] ": "TradingView sector", "[TV_INDUSTRY] ": "TradingView industry"}
+# NSE's levels in the search (S226), each read from its column of the display copy app.py passes
+# (src/loaders/nse_classification.with_nse_levels). TradingView's two options are offered only
+# when the copy carries none of NSE's levels: the classification file is short of 90% of the stocks.
+NSE_SEARCH = {"[MACRO] ": "NSE_Macro", "[NSE_INDUSTRY] ": "NSE_Industry", "[BASIC_INDUSTRY] ": "NSE_Basic_Industry"}
+
+
+def nse_search_options(rank_df: pd.DataFrame) -> list[str]:
+    """The search's NSE level options, macro sector first; [] when the frame carries none."""
+    out: list[str] = []
+    for tag, col in NSE_SEARCH.items():
+        if col in rank_df.columns:
+            out += sorted(f"{tag}{v}" for v in rank_df[col].dropna().unique()
+                          if str(v).strip() and str(v) != "Unclassified")
+    return out
+
+
+def search_filter(view: pd.DataFrame, value: str) -> pd.DataFrame | None:
+    """`view` cut to an NSE level option; None for any other kind of option."""
+    for tag, col in NSE_SEARCH.items():
+        if value.startswith(tag):
+            want = value[len(tag):].strip().upper()
+            return view[view.get(col, pd.Series("", index=view.index)).astype(str).str.upper() == want]
+    return None
 
 
 def search_label(value: str) -> str:
@@ -333,14 +357,15 @@ def render_ranking_view(
         if "Industry" in rank_df.columns
         else []
     )
-    sec_opts = sorted(
+    nse_opts = nse_search_options(rank_df)
+    sec_opts = [] if nse_opts else sorted(
         [
             f"[SECTOR] {s}"
             for s in rank_df.get("TV_Sector", pd.Series()).dropna().unique()
             if str(s).strip()
         ]
     )
-    tv_ind_opts = sorted(
+    tv_ind_opts = [] if nse_opts else sorted(
         [
             f"[TV_INDUSTRY] {i}"
             for i in rank_df.get("TV_Industry", pd.Series()).dropna().unique()
@@ -370,7 +395,7 @@ def render_ranking_view(
         f"[STOCK] {sym} — {ind}" for sym, ind in zip(_symbols, _industries)
     ]
 
-    search_options = stock_opts + idx_opts + ind_opts + sec_opts + tv_ind_opts
+    search_options = stock_opts + idx_opts + ind_opts + nse_opts + sec_opts + tv_ind_opts
 
     # ── Page header ──────────────────────────────────────────────────────────
 
@@ -511,7 +536,10 @@ def render_ranking_view(
     view["New Highs 3M"] = view["Symbol"].map(_nh["3M"]).fillna(0).astype(int)
     if selected_search and str(selected_search).strip():
         s_val = str(selected_search).strip()
-        if s_val.startswith("[INDUSTRY] "):
+        nse_cut = search_filter(view, s_val)
+        if nse_cut is not None:
+            view = nse_cut
+        elif s_val.startswith("[INDUSTRY] "):
             target_ind = s_val.replace("[INDUSTRY] ", "").strip()
             view = view[view["Industry"].str.upper() == target_ind.upper()]
         elif s_val.startswith("[SECTOR] "):

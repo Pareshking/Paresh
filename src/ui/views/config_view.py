@@ -26,6 +26,7 @@ from src.core.config import (
     MCAPS_FILE,
     TV_CLASSIFICATION_FILE,
 )
+from src.loaders.nse_classification import CLASSIFICATION_PATH as NSE_CLASSIFICATION_FILE
 from src.engine.corporate_actions import load_events
 from src.engine.extra_universe import (
     NANOCAP_250_NAME, SYSTEM_750, SYSTEM_1000, SYSTEM_COMBINED, SYSTEM_NAMES, SYSTEM_NANO, SYSTEMS,
@@ -622,6 +623,8 @@ def _section_data_health(rank_df: pd.DataFrame) -> None:
     cache_data = [
         ("Market Caps", MCAPS_FILE, "Not cached; rebuilt when needed"),
         ("TV Classification", TV_CLASSIFICATION_FILE, "Missing"),
+        # NSE's four levels, from Screener.in (S189 6 (a)); the Screener and Sectors read it (S226).
+        ("NSE Classification", NSE_CLASSIFICATION_FILE, "Missing"),
     ]
     cache_rows = []
     for label, path, absent in cache_data:
