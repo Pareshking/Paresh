@@ -101,8 +101,9 @@ def test_the_title_answers_who_leads_and_can_be_bought():
         "Above 50 EMA": [True, True, False, True], "Near 52W High": [True, True, True, True],
     })
     # "a month ago", not "this month": the comparison is with the rank a month back (glossary 9).
-    assert rv.screener_title(df) == "2 of the top 3 can be bought; 1 of the 3 were not in the top 3 a month ago."
-    assert rv.screener_title(df.drop(columns="Rank (-1M)")) == "2 of the top 3 can be bought."
+    # S203 sc.head.1: "pass both filters", not "can be bought" (the book buys only the top 20 qualified).
+    assert rv.screener_title(df) == "2 of the top 3 pass both filters. 1 of them was not in the top 3 a month ago."
+    assert rv.screener_title(df.drop(columns="Rank (-1M)")) == "2 of the top 3 pass both filters."
 
 
 def test_the_data_line_names_no_source(monkeypatch):
@@ -120,8 +121,8 @@ def test_the_data_line_names_no_source(monkeypatch):
 
 def test_the_nano_and_combined_footnote_names_what_is_not_ranked():
     head, body = rv.system_note("Nano Cap", ["A", "B"], ["A", "B", "C"], nano=True)
-    assert head == "Nano Cap · 2 of 3 stocks ranked among themselves."
-    assert body == "1 too new to rank (under three months of prices): C."
+    assert head == "2 of the Nano Cap's 3 stocks are ranked, among themselves."      # S203 sc.sys.1
+    assert body == "1 is not ranked yet: under 3 months of prices. C."
     head, body = rv.system_note("Combined", ["A"], ["A"], nano=False)
     assert head.endswith("as one list.") and body == ""
     many = [f"S{i:02d}" for i in range(14)]

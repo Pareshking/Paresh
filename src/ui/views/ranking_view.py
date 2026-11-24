@@ -377,7 +377,7 @@ def render_ranking_view(
     n_total = len(rank_df)
     # The title answers the reader's first question (which lead, and can the
     # book buy them?); "Screener" is the kicker (PAGE_DESIGN §2a, 21 Nov 2026).
-    c_export = kit.page_head(screener_title(rank_df), screener_lede(rank_df, adj_close),
+    c_export = kit.page_head(screener_title(rank_df, adj_close), screener_lede(rank_df, adj_close, screener_universe()),
                              actions=True, kicker="Screener")
     chips = signal_chips_html(compute_signals(rank_df))
     if chips:
@@ -500,7 +500,7 @@ def render_ranking_view(
         density_mode = _DEFAULT_DENSITY
     # The key to the marks (S87 item 9), in short lines, two columns on a wide
     # screen (PAGE_DESIGN §2a: it was one 1,240 px line).
-    st.html(_KEY_HTML.format(when=_trail_words(adj_close), **_key_numbers()))
+    st.html(_KEY_HTML.format(when=_trail_words(adj_close), **_key_numbers(adj_close)))
 
     view = with_book_columns(rank_df, book_symbols,
                              history_prices if history_prices is not None else adj_close)
@@ -663,19 +663,30 @@ def biggest_jumps(rank_df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     return out.sort_values("Places_gained", ascending=False).head(n)
 
 
+NOT_RANKED_REASON = "under 3 months of prices"
+NOT_RANKED_REASON_1000 = "under 3 months of prices with us; their history is being collected"
+
+
+def not_ranked_reason(system: str | None = None) -> str:
+    """Why a member is not ranked, one reason per system (S203 sc.sys.1): the Nifty 1000's unranked stocks are
+    mostly not new, their history is still being collected (S175); elsewhere they are too new."""
+    from src.engine.extra_universe import SYSTEM_1000
+    return NOT_RANKED_REASON_1000 if system == SYSTEM_1000 else NOT_RANKED_REASON
+
+
 def system_note(system_name: str, ranked, members, *, nano: bool,
-                reason: str = "too new to rank (under three months of prices)") -> tuple[str, str]:
-    """The Screener's footnote for the systems beyond the 750: what is ranked, and the
-    stocks too new to rank (owner, 27 Sep 2026). The Nifty 1000 passes its own
-    reason: most of its unranked stocks are not new, their history is still being
-    collected (S175)."""
+                reason: str = NOT_RANKED_REASON) -> tuple[str, str]:
+    """The Screener's footnote for the systems beyond the 750: what is ranked, and the stocks not ranked yet
+    (owner, 27 Sep 2026), with their reason (`not_ranked_reason`). S203 sc.sys.1: "2 of the Nifty 1000's 3
+    stocks are ranked, as one list." + "1 is not ranked yet: {reason}. C." Every name is listed, no "and
+    more" (PAGE_DESIGN §2; S189 item 6)."""
     ranked_set = {str(x) for x in ranked}
     members = {str(x) for x in members}
     unranked = sorted(members - ranked_set)
-    head = (f"{system_name} · {len(ranked_set)} of {len(members)} stocks ranked"
-            + (" among themselves." if nano else " as one list."))
-    body = (f"{len(unranked)} {reason}: "
-            + ", ".join(unranked) + ".") if unranked else ""   # every name, no "and more" (PAGE_DESIGN §2; S189 item 6)
+    head = (f"{len(ranked_set):,} of the {system_name}'s {len(members):,} stocks are ranked, "
+            + ("among themselves." if nano else "as one list."))
+    k = len(unranked)
+    body = (f"{k:,} {'is' if k == 1 else 'are'} not ranked yet: {reason}. " + ", ".join(unranked) + ".") if k else ""
     return head, body
 
 
@@ -707,51 +718,88 @@ def _passes(df: pd.DataFrame) -> pd.Series:
     return to_bool_mask(df.get("Above 50 EMA")) & to_bool_mask(df.get("Near 52W High"))
 
 
-def screener_title(rank_df: pd.DataFrame) -> str:
-    """The answer to "which stocks lead, and can the book buy them?"."""
+def _top_n() -> tuple[int, int]:
+    from src.engine.track_record import TRACK_RECORD_CONFIG as cfg
+    return int(cfg["top_n"]), int(cfg["buffer_n"])
+
+
+def screener_title(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None = None) -> str:
+    """The answer to "which stocks lead, and which pass the filters?" (S203 sc.head.1): "49 of the top 50 pass
+    both filters. 23 of them were not in the top 50 on 19 Oct." Not "can be bought": the book buys only the top
+    {buy} qualified. The date is the session the 1M rank is read on (`_month_ago`), as in the movers section."""
     if rank_df is None or rank_df.empty or "Rank" not in rank_df.columns:
-        return "Screener"
+        return "No stock is ranked yet."
     now = pd.to_numeric(rank_df["Rank"], errors="coerce")
     top = rank_df[now <= 50]
     n_top = len(top)
     if not n_top:
-        return "Screener"
+        return "No stock is ranked yet."
     n_q = int(_passes(top).sum())
-    head = f"{n_q} of the top {n_top} can be bought"
+    if n_q == 0:
+        head = f"None of the top {n_top} passes both filters."
+    elif n_q == n_top:
+        head = f"All of the top {n_top} pass both filters."
+    else:
+        head = f"{n_q} of the top {n_top} {'passes' if n_q == 1 else 'pass'} both filters."
     prev = pd.to_numeric(top.get("Rank (-1M)"), errors="coerce") if "Rank (-1M)" in top.columns else None
     if prev is None or prev.isna().all():
-        return head + "."
+        return head
     new = int((~(prev <= 50)).sum())     # no rank a month ago counts as outside (S193 B5)
-    return f"{head}; {new} of the {n_top} were not in the top {n_top} a month ago."   # not the running month (glossary 9)
+    d1 = _month_ago(adj_close, 1)
+    when = f"on {_day(d1)}" if d1 is not None else "a month ago"     # not the running month (glossary 9)
+    if new == 0:
+        return f"{head} All of them were in the top {n_top} {when}."
+    return f"{head} {new} of them {'was' if new == 1 else 'were'} not in the top {n_top} {when}."
 
 
-def screener_lede(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
+def screener_lede(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None, universe: str = "750") -> str:
+    """S203 sc.head.2: the list named ({uni}), the book's two numbers from the rules (rule 9)."""
     when = "" if adj_close is None or not len(adj_close.index) else f" at the {pd.Timestamp(adj_close.index[-1]):%-d %b} close"
-    return (f"The {len(rank_df)} ranked stocks, by momentum{when}. The book buys the top 20 qualified "
-            "and keeps a holding while it is in the top 40.")
+    buy, keep = _top_n()
+    return (f"The {len(rank_df):,} ranked stocks of the {universe}, by momentum{when}. The book buys the top {buy} "
+            f"qualified and keeps a holding while it is in the top {keep}.")
+
+
+def screener_universe() -> str:
+    """{uni} for the chosen system: "750", "1000", "> ₹2,000 Cr list". The Nifty 1000 without NSE's list on disk
+    ranks the 750 (app.py `_ranked_list`), and the lede then names the 750."""
+    from src.engine.extra_universe import SYSTEM_750, SYSTEM_1000, UNIVERSE_SHORT
+    from src.ui import system_param
+    system = system_param.current()
+    if system == SYSTEM_1000:
+        try:
+            from src.loaders import extra_universe_loader as extra_loader
+            if extra_loader.extra_members(SYSTEM_1000).empty:
+                return UNIVERSE_SHORT[SYSTEM_750]
+        except Exception:  # noqa: BLE001 -- the name only; the page draws either way
+            pass
+    return UNIVERSE_SHORT.get(system, "750")
 
 
 # Two columns of short lines on a wide screen, one on a phone. No tag-shaped
 # text in the CSS (PAGE_DESIGN §6: a comment holding one drops the block).
 _KEY_BODY = (
-    "<p><b>Qualified:</b> above the 50D EMA and within {gap} of the 52W high. The qualified place is the "
+    "<p><b>Qualified:</b> above the 50D EMA and within {gap} of the 52-week high. The qualified place is the "
     "stock's place among them, the number Actions and the Dashboard use; “Out” means it fails a filter, "
     "and the filter columns show ✗ and by how much.</p>"
     "<p><b>Rank before:</b> the rank among the ranked stocks {when}, the dates the Dashboard's rank trail "
     "uses. Past figures are grey; a click on a column heading sorts every stock.</p>"
     "<p><b>Held:</b> in the model book. The book buys the top {buy} qualified and keeps a holding while it is in "
     "the top {keep}; in rank order the two rows where those places fall are named.</p>"
-    "<p><b>Big movers:</b> rank moved {big} places or more in a month. <b>Volume spike:</b> today's volume "
+    "<p><b>Big movers:</b> rank moved {big} places or more {since}. <b>Volume spike:</b> today's volume "
     "{spike} times its {vwin}-day average or more.</p>"
 )
 
 
-def _key_numbers() -> dict:
-    """The key's numbers from the rules themselves, not typed (S203 rule 9)."""
+def _key_numbers(adj_close: pd.DataFrame | None = None) -> dict:
+    """The key's numbers from the rules themselves, not typed (S203 rule 9); "since 19 Oct", the session the
+    1M rank change counts from (sc.key.1), or "in a month" without the prices."""
+    d1 = _month_ago(adj_close, 1)
     from src.engine.momentum import VOLUME_SPIKE, VOLUME_WINDOW
     from src.engine.track_record import TRACK_RECORD_CONFIG as cfg
     return {"gap": f"{1 - cfg['high_pct']:.0%}", "buy": cfg["top_n"], "keep": cfg["buffer_n"],
-            "big": BIG_MOVE_PLACES, "spike": f"{VOLUME_SPIKE:g}", "vwin": VOLUME_WINDOW}
+            "big": BIG_MOVE_PLACES, "spike": f"{VOLUME_SPIKE:g}", "vwin": VOLUME_WINDOW,
+            "since": "in a month" if d1 is None else f"since {_day(d1)}"}
 
 
 # In plain sight on a wide screen, folded on a phone (PAGE_DESIGN §2a; S189 item 3: at 390 px the key pushed
@@ -877,6 +925,14 @@ _MOVERS_CSS = (
 )
 
 
+def jumps_caption(k: int) -> str:
+    """S203 sc.mv.4: the count is the rows' own, not "ten" printed over fewer; "1 to 5" only when a second table
+    follows. "Anywhere in the ranking" stays (S189 item 2: the climbs land outside the top 50)."""
+    if k == 0:
+        return "No stock climbed since the date a month back."
+    return (f"The {k} that climbed most places anywhere in the ranking" + (", 1 to 5." if k > 5 else "."))
+
+
 def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None = None,
                          held: set | None = None) -> None:
     """What moved in the month: the biggest climbs, the stocks that entered the
@@ -944,7 +1000,7 @@ def render_top50_changes(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None =
                    for r in itertools.chain(jr, entered.to_dict("records"), left.to_dict("records")))
     if unranked:
         when += " " + mw.column_note(f"{was_head} and Places", mw.stock_too_new() + ", not ranked on that date")
-    jumps_html = (table("Biggest jumps", "The ten that climbed most places anywhere in the ranking, 1 to 5.", jr[:5], len(jr))
+    jumps_html = (table("Biggest jumps", jumps_caption(len(jr)), jr[:5], len(jr))
                   + (table("Biggest jumps, 6 to 10", "\u00a0", jr[5:], -1) if len(jr) > 5 else ""))
     st.html(
         _MOVERS_CSS

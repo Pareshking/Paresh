@@ -90,4 +90,4 @@ def test_the_guide_and_the_screener_key_follow_the_config(monkeypatch):
     assert "From the 31 May 2027" in body and "(June and December)" in body
     assert "30 Nov 2026 rebalance" not in body and "March and September" not in body
     key = ranking_view._KEY_HTML.format(when="x", **ranking_view._key_numbers())
-    assert "within 25% of the 52W high" in key
+    assert "within 25% of the 52-week high" in key

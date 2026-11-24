@@ -42,6 +42,7 @@ class Measure:
     # Where today sits in the measure's own history (the store's span):
     # (low, 25th pct, 75th pct, high, percentile of today, first date).
     history: tuple | None = None
+    first: pd.Timestamp | None = None   # the measure's history's first date, also when it is too short to rank
 
 
 @dataclass(frozen=True)
@@ -144,10 +145,17 @@ def history_stats(series: pd.Series | None, now: float | None) -> tuple | None:
             pct, pd.Timestamp(s.index[0]) if isinstance(s.index, pd.DatetimeIndex) else None)
 
 
+def _first_date(series) -> pd.Timestamp | None:
+    if series is None or not isinstance(getattr(series, "index", None), pd.DatetimeIndex):
+        return None
+    s = pd.to_numeric(series, errors="coerce").dropna()
+    return pd.Timestamp(s.index[0]) if len(s) else None
+
+
 def _measure(name, unit, values, up_at, down_at, rule, primary=False, history=None) -> Measure:
     now, month, year = values
     return Measure(name, unit, now, month, year, _vote(now, up_at, down_at), rule,
-                   up_at, down_at, primary, history_stats(history, now))
+                   up_at, down_at, primary, history_stats(history, now), _first_date(history))
 
 
 def _f(x) -> float | None:
@@ -294,21 +302,29 @@ def breadth_answer(prices: pd.DataFrame, bench: pd.Series, past: pd.DataFrame | 
         _measure("Net new 52W highs this week, share of stocks", "pts", [at(nnh, k) for k in d], 5, -5,
                  "+5 or more is broad, −5 or less is narrow", history=nnh),
         _measure(f"Median stock less {market}, 12M", "pts", [beat[k][1] for k in d], 3, -3,
-                 "+3 pts or more is broad, −3 or less is narrow", history=beat_gap),
+                 "+3 points or more is broad, −3 or less is narrow", history=beat_gap),
     ]
     return _answer("Are most stocks taking part?", ms,
                    ("Very narrow", "Narrow", "About usual", "Broad", "Very broad"),
                    lambda word, m: _breadth_sentence(word, ms, market))
 
 
+def _share(v: float) -> str:
+    """A whole share, half up (glossary 12): 42.5 -> "43%"."""
+    from decimal import ROUND_HALF_UP, Decimal
+    return f"{Decimal(repr(float(v))).quantize(Decimal(1), rounding=ROUND_HALF_UP)}%"
+
+
 def _breadth_sentence(word: str, ms: list[Measure], market: str = "the Nifty 500") -> str:
+    """S203 mk.q.1: "43% of the ranked stocks are above their 200D EMA, and 45% beat the Nifty 500 over 12
+    months." One missing: that clause only; both: no sentence."""
     a200, beat = ms[0].now, ms[1].now
     parts = []
     if a200 is not None:
-        parts.append(f"{a200:.0f}% of the ranked stocks are above their 200D EMA")
+        parts.append(f"{_share(a200)} of the ranked stocks are above their 200D EMA")
     if beat is not None:
-        parts.append(f"{beat:.0f}% beat {market} over the year")
-    text = " and ".join(parts) + "."
+        parts.append(f"{_share(beat)} beat {market} over 12 months")
+    text = ", and ".join(parts) + "."
     return text[:1].upper() + text[1:] if parts else ""
 
 
@@ -372,9 +388,15 @@ def last_month_end(close: pd.Series, when: pd.Timestamp | None) -> pd.Timestamp 
 
 def _ten_month_rule_text(close: pd.Series, when) -> str:
     me, at = ten_month_gap(close, when), last_month_end(close, when)
-    num = None if me is None else f"{me:+.1f}".replace("-", "−")
-    tail = "" if num is None or at is None else f"; at the {at:%-d %b} month-end {num}"
+    tail = "" if me is None or at is None else f". At the {at:%-d %b} month-end it read {_signed1(me)}."
     return "today's close against the last ten monthly closes; above is up, below is down" + tail
+
+
+def _signed1(v: float) -> str:
+    """A figure with its sign to one decimal, half up: "+2.3", "−1.9", "0.0"."""
+    from decimal import ROUND_HALF_UP, Decimal
+    r = Decimal(repr(float(v))).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+    return f"{'+' if r > 0 else '−' if r < 0 else ''}{abs(r):.1f}"
 
 
 def ema_gap(close: pd.Series, when: pd.Timestamp | None, span: int = 200) -> float | None:
@@ -463,9 +485,14 @@ def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
 
 
 def _trend_sentence(word: str, ms: list[Measure]) -> str:
+    """S203 mk.q.2: "3 of 5 measures say up, 1 says down."; 0 reads "none say down" / "None of the 5 measures
+    says up"."""
     ups = sum(m.vote == UP for m in ms)
     downs = sum(m.vote == DOWN for m in ms)
-    return f"{ups} of {len(ms)} measures say up, {downs} say down."
+    up = (f"None of the {len(ms)} measures says up" if ups == 0 else
+          f"{ups} of {len(ms)} measures {'says' if ups == 1 else 'say'} up")
+    down = "none say down" if downs == 0 else f"{downs} {'says' if downs == 1 else 'say'} down"
+    return f"{up}, {down}."
 
 
 # ── What is leading? ────────────────────────────────────────────────────────
@@ -548,19 +575,24 @@ def leaders_answer(prices: pd.DataFrame, industry: pd.Series, bench: pd.Series,
 
 # ── Shared ──────────────────────────────────────────────────────────────────
 
+# The weighted vote's two cut-offs: at an end from END_AT either way, leaning from LEAN_AT. One place, read by
+# `word_for` and by the Market page's note (S203 mk.q.8).
+END_AT, LEAN_AT = 0.6, 0.25
+
+
 def word_for(score: float | None, words: tuple[str, ...]) -> str:
-    """Five bands of the weighted vote: at an end (|score| >= 0.6), leaning
-    (>= 0.25), else the middle word."""
+    """Five bands of the weighted vote: at an end (|score| >= END_AT), leaning
+    (>= LEAN_AT), else the middle word."""
     if score is None:
         return "Not enough data"
     lo2, lo1, mid, hi1, hi2 = words
-    if score >= 0.6:
+    if score >= END_AT:
         return hi2
-    if score >= 0.25:
+    if score >= LEAN_AT:
         return hi1
-    if score <= -0.6:
+    if score <= -END_AT:
         return lo2
-    if score <= -0.25:
+    if score <= -LEAN_AT:
         return lo1
     return mid
 

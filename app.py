@@ -172,7 +172,7 @@ with app_import_guard():
     from src.ui.views.actions_view import render_actions_view
     from src.ui.views.actions_page import record_start_line
     from src.ui.views.dashboard_home_view import render_home_view
-    from src.ui.views.ranking_view import render_ranking_view, system_note
+    from src.ui.views.ranking_view import not_ranked_reason, render_ranking_view, system_note
     from src.ui.views.sector_view import render_sector_view
     from src.ui.views.watchlist_view import render_watchlist_view
     
@@ -1088,8 +1088,7 @@ def _system_line() -> None:
     members = set(data["idx_info"]["Symbol"]) if data.get("idx_info") is not None else set()
     if system == SYSTEM_1000:
         kit.note(*system_note(system_name, rank_df["Symbol"], members, nano=False,
-                              reason="not ranked yet (under three months of prices with us; "
-                                     "their history is being collected)"), kind="warning")   # members missing from the list
+                              reason=not_ranked_reason(system)), kind="warning")   # members missing from the list
         return
     # What this system ranks, and its rule for a stock too new: scope and method, so a neutral note.
     kit.note(*system_note(system_name, rank_df["Symbol"], members, nano=system == SYSTEM_NANO), kind="info")
