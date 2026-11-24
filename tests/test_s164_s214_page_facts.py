@@ -31,3 +31,15 @@ def test_out_of_the_filters_is_the_site_s_word():
     from src.engine.dashboard_insights import rank_trail_word
     from src.ui.missing_words import OUT
     assert rank_trail_word([None, None, None], 20)[0] == OUT
+
+
+def test_the_long_file_names_its_revision_in_the_page_metrics(tmp_path):
+    """S214: which revision the Backtest read, and whether it was held or downloaded, is in the page's
+    hidden metrics, so production's answer is read from the site."""
+    from src.core import startup_metrics as metrics
+    from src.loaders import nse_long
+    f = tmp_path / "nse_long_close.parquet"
+    f.write_bytes(b"x")
+    (tmp_path / "nse_long_close.parquet.revision").write_text("r2:abcdef0123456789abcdef", encoding="utf-8")
+    nse_long._note_source("nse_long_close.parquet", f, "held")
+    assert metrics.public_snapshot()["facts"]["nse_long_close_revision"] == "r2:abcdef0123456789abcde held"

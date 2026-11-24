@@ -93,7 +93,7 @@ jobs:
       # module-skips and the guards on the sync workflow -- the ones that catch a
       # step declaring both `uses` and `run`, which invalidated the file and cost
       # 200 consecutive runs -- silently do not run in the only place that matters.
-      - run: pip install -r requirements.txt pytest pyyaml
+      - run: pip install -r requirements.txt pytest pytest-xdist pyyaml
 
       - name: Markdown-reading tests (Markdown-only PR)
         if: ${{ steps.scope.outputs.docs_only == 'true' }}
@@ -111,9 +111,11 @@ jobs:
         if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: python scripts/fetch_nse_closes.py
 
+      # Four workers (S138 I8, 24 Nov 2026): the suite passed three times in a row under xdist, 154 s -> 51-66 s
+      # locally; the runner has 4 vCPUs. worksteal keeps the long Backtest tests from bunching on one worker.
       - name: Full regression suite
         if: ${{ steps.scope.outputs.docs_only != 'true' }}
-        run: python -m pytest -q
+        run: python -m pytest -q -n 4 --dist worksteal
 
       - name: Compile application and source
         if: ${{ steps.scope.outputs.docs_only != 'true' }}

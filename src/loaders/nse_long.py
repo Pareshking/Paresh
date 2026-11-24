@@ -113,6 +113,17 @@ def _stale(path: Path, name: str) -> Path | None:
     return path
 
 
+def _note_source(name: str, path: Path | None, how: str) -> None:
+    """Which revision a page read and how (S214): "r2:<sha16> held", "release:<etag> downloaded", in the
+    page's hidden metrics, so production's answer is read from the site rather than its log."""
+    try:
+        from src.core import startup_metrics as metrics
+        held = (_held_revision(path) if path is not None else None) or "none"
+        metrics.note(f"{name.split('.')[0]}_revision", f"{held[:24]} {how}")
+    except Exception:  # noqa: BLE001  telemetry never breaks a load
+        pass
+
+
 def _from_r2(name: str, cache: Path, as_of: str | None = None) -> tuple[Path | None, str | None]:
     """(cached path, as_of) of `name` at R2's current revision, or (None, None) when R2 is off or fails.
 
@@ -131,11 +142,13 @@ def _from_r2(name: str, cache: Path, as_of: str | None = None) -> tuple[Path | N
         revision = f"r2:{ref.revision_sha256}"
         path = cache / name
         if _held_revision(path) == revision:
+            _note_source(name, path, "held")
             return path, ref.as_of
         data = reader.read_bytes(ref)          # size and SHA-256 checked against the manifest
         if name == REPORT_FILE:
             data = _report_text(data)
         path = _write(cache, name, data, revision)
+        _note_source(name, path, "downloaded")
         logger.info("Long NSE file %s from R2 (as_of %s, revision %s).", name, ref.as_of, ref.revision_sha256[:16])
         return path, ref.as_of
     except Exception as exc:  # noqa: BLE001  the release is the fallback
@@ -165,13 +178,16 @@ def _fetch(name: str, base: str, cache: Path, as_of: str | None = None,
             logger.info("Long NSE file %s unavailable (HTTP %s).", name, code)
             return _stale(path, name)
         if etag and _held_revision(path) == f"release:{etag}":
+            _note_source(name, path, "held")
             return path
         resp = requests.get(url, timeout=TIMEOUT_S)
         if resp.status_code != 200 or not resp.content:
             logger.info("Long NSE file %s unavailable (HTTP %s).", name, resp.status_code)
             return _stale(path, name)
         tag = resp.headers.get("ETag", "").strip() or etag
-        return _write(cache, name, resp.content, f"release:{tag}" if tag else "release:unknown")
+        out = _write(cache, name, resp.content, f"release:{tag}" if tag else "release:unknown")
+        _note_source(name, out, "downloaded")
+        return out
     except Exception as exc:  # noqa: BLE001  a stale copy beats none
         logger.info("Long NSE file %s fetch failed (%s).", name, type(exc).__name__)
         return _stale(path, name)
