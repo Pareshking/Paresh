@@ -82,15 +82,6 @@ def test_screener_frames_report_no_intraday_data():
     assert got.high_basis == "closing prices"
 
 
-def test_yahoo_frames_are_closes_only_like_screener():
-    """Owner, 2026-09-27: no open/high/low anywhere, so the 52-week high is on
-    closes whichever source ranked the day."""
-    f = pd.DataFrame({"AAA": [1.0, 2.0]})
-    got = ps.from_yahoo(f, f, f, f, f)
-    assert got.intraday is False and got.high is None and got.low is None
-    assert got.high_basis == ps.from_screener(_store()).high_basis
-
-
 def test_the_limits_are_carried_with_the_frames():
     """A caller that never reads the notes still cannot get a wrong number,
     but the notes are what the UI prints, so they must exist."""
@@ -192,15 +183,7 @@ def test_a_table_from_the_other_source_is_rejected():
 # ── Falling back ─────────────────────────────────────────────────────────────
 
 def test_preferred_source_is_configurable():
-    assert ps.preferred() in ("screener", "yahoo")
-
-
-def test_an_unusable_screener_store_leaves_yahoo_untouched():
-    """A failed collection night must degrade, never empty the screener."""
-    f = pd.DataFrame({"AAA": [1.0, 2.0]})
-    fallback = ps.from_yahoo(f, f, f, f, f)
-    assert ps.from_screener(None) is None
-    assert fallback.source == "yahoo" and fallback.adj_close is f
+    assert ps.preferred() == "screener"
 
 
 # ── The served page must not name the vendor ─────────────────────────────────

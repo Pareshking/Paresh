@@ -201,7 +201,7 @@ def from_screener(store: pd.DataFrame) -> PriceFrames | None:
         last = pd.DatetimeIndex(close.index)[-1].date()
         logger.info(
             "Screener history reaches %s-%s, short of the %d-month lookback; "
-            "using Yahoo instead. One more collection night closes this.",
+            "ranking on what it has. One more collection night closes this.",
             first, last, max(MOMENTUM_MONTHS),
         )
         metrics.note("price_source_rejected", "screener_too_short")
@@ -217,27 +217,11 @@ def from_screener(store: pd.DataFrame) -> PriceFrames | None:
     )
 
 
-def from_yahoo(adj_close, close, high, low, volume) -> PriceFrames:
-    """Yahoo as the ranking source: closes only, like Screener.
-
-    Owner, 2026-09-27: the app needs no open, high or low -- no candles, ATR,
-    stop loss or chandelier exit. Dropping them here as well means a day
-    ranked from Yahoo measures the 52-week high on closes exactly as a
-    Screener day does, instead of switching definition with the source.
-    """
-    return PriceFrames(
-        adj_close=adj_close, close=close, high=None, low=None, volume=volume,
-        source="yahoo", intraday=False,
-        notes=["52-week high measured on closing prices, not intraday highs"],
-    )
-
-
 # What a reader sees. The internal ids stay as they are -- they are the
 # contract term, the config value and what the logs say -- so renaming here
 # cannot change which table is accepted or which source is chosen.
 _DISPLAY_NAMES: dict[str, str] = {
     "screener": "Personal",
-    "yahoo": "Yahoo",
 }
 
 
@@ -303,14 +287,15 @@ def frames_from(chosen: PriceFrames | None, symbols,
                 middle_close: pd.DataFrame | None = None) -> PriceFrames | None:
     """ranking_frames for a store already shaped by from_screener (the app memoises that)."""
     if chosen is not None and any(c in set(symbols) for c in chosen.close.columns):
-        return keep_and_fill(chosen, symbols, None, middle_close)
+        return keep_and_fill(chosen, symbols, middle_close)
     return from_nse(middle_close, symbols)
 
 
-# ── Backup source: Screener first, Yahoo for what it lacks ───────────────────
+# ── Gap fill: Screener first, NSE for what it lacks ──────────────────────────
 
 # Owner, 2026-09-27: "Screener, NSE, and last is Yahoo". NSE took the middle
-# place on 2026-10-02 (its corporate-action layer passed the fourth report).
+# place on 2026-10-02 (its corporate-action layer passed the fourth report); the
+# Yahoo tier had no caller after that and was removed on 24 Nov 2026 (S167 (c)).
 BACKUP_SESSION_COVERAGE = 0.98
 
 
@@ -569,7 +554,7 @@ def fill_weekly_from_nse(screener: pd.DataFrame, nse: pd.DataFrame | None, *,
     return out, report
 
 
-MIDDLE_MAX_DRIFT = 0.01   # a stock whose NSE and Screener levels drift past 1% is left to Yahoo
+MIDDLE_MAX_DRIFT = 0.01   # a stock whose NSE and Screener levels drift past 1% is not filled from NSE
 
 
 def eligible_middle(primary: pd.DataFrame, middle: pd.DataFrame | None
@@ -577,8 +562,8 @@ def eligible_middle(primary: pd.DataFrame, middle: pd.DataFrame | None
     """NSE's adjusted closes cut to the stocks that track Screener within 1%.
 
     Owner, 2026-10-02: NSE is the middle source, "skipping the ~50 stocks still
-    off by more than 1%" (fourth NSE report). Those stocks keep falling through
-    to Yahoo. Imported lazily: nse_adjusted imports this module.
+    off by more than 1%" (fourth NSE report). Those stocks are not filled
+    from NSE (and, since S167 (c), from nothing else). Imported lazily: nse_adjusted imports this module.
     """
     if middle is None or middle.empty or primary is None or primary.empty:
         return None
@@ -673,14 +658,14 @@ def _middle_failed(chosen: PriceFrames, step: str, exc: Exception) -> None:
         "Screener's alone for the gaps NSE would have filled"]
 
 
-def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | None,
+def keep_and_fill(chosen: PriceFrames, symbols,
                   middle_close: pd.DataFrame | None = None, *,
                   weekly_fill: bool | None = None) -> PriceFrames:
-    """The chosen frames cut to `symbols`, gaps filled Screener -> NSE -> Yahoo.
+    """The chosen frames cut to `symbols`, gaps filled Screener -> NSE (no Yahoo tier: S167 (c), 24 Nov 2026).
 
     The app and the nightly precompute both call this, so they rank the same
     frame and the published ranking's contract still matches. `middle_close`
-    is NSE's adjusted closes (None leaves the old Screener -> Yahoo order).
+    is NSE's adjusted closes (None fills nothing).
     `weekly_fill` (default: config SCREENER_WEEKLY_NSE_FILL) also fills
     Screener's weekly stretch with NSE's daily moves (fill_weekly_from_nse).
     """
@@ -731,7 +716,6 @@ def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | Non
                 f"from Screener's by more than {WEEKLY_FILL_TOLERANCE:.0%})"]
         elif weekly["skipped"]:
             metrics.note("price_weekly_nse_skipped", weekly["skipped"])
-    close, n_cells, added = fill_from_backup(close, backup_close)
     chosen.adj_close = chosen.close = close
     chosen.volume = chosen.volume.reindex(index=close.index, columns=keep)
     if mid_cells or mid_added:
@@ -741,10 +725,4 @@ def keep_and_fill(chosen: PriceFrames, symbols, backup_close: pd.DataFrame | Non
             f"{mid_cells} missing Screener prices filled from NSE's daily moves"
             + (f"; sessions from NSE: {', '.join(str(d.date()) for d in mid_added)}"
                if mid_added else "")]
-    if n_cells or added:
-        metrics.note("price_backup_cells", n_cells)
-        metrics.note("price_backup_sessions", ",".join(str(d.date()) for d in added))
-        chosen.notes = list(chosen.notes) + [
-            f"{n_cells} missing Screener prices filled from Yahoo's daily moves"
-            + (f"; sessions from Yahoo: {', '.join(str(d.date()) for d in added)}" if added else "")]
     return chosen

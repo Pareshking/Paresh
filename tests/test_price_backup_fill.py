@@ -1,4 +1,5 @@
-"""Screener first; a missing Screener price is chained from Yahoo's daily move."""
+"""Screener first; a missing Screener price is chained from another source's daily move (NSE since 2 Oct 2026;
+the Yahoo tier was removed by S167 (c), 24 Nov 2026). fill_from_backup is the chaining rule itself."""
 import numpy as np
 import pandas as pd
 
@@ -51,7 +52,8 @@ def _frames(primary):
                           volume=primary * 0 + 1, source="screener", intraday=False, notes=[])
 
 
-def test_nse_fills_before_yahoo_and_a_drifting_stock_is_left_to_yahoo():
+def test_nse_fills_a_gap_and_a_drifting_stock_is_left_unfilled():
+    """No Yahoo tier since S167 (c) (24 Nov 2026): a stock NSE disagrees with stays a gap."""
     idx = pd.bdate_range("2026-08-03", periods=30)
     base = pd.DataFrame({"OK": 100.0, "DRIFT": 100.0}, index=idx)
     base["OK"] *= 1.001 ** np.arange(30)
@@ -61,21 +63,17 @@ def test_nse_fills_before_yahoo_and_a_drifting_stock_is_left_to_yahoo():
     nse = base.copy()
     nse.iloc[10:, nse.columns.get_loc("DRIFT")] *= 1.5     # NSE disagrees with Screener by 50%
     nse["OK"] *= 1.0003 ** np.arange(30)                   # a different move, to tell the sources apart
-    yahoo = base.copy()
-    yahoo["OK"] *= 1.0006 ** np.arange(30)
-    out = ps.keep_and_fill(_frames(primary), ["OK", "DRIFT"], yahoo, nse).close
+    out = ps.keep_and_fill(_frames(primary), ["OK", "DRIFT"], nse).close
     step_nse = nse["OK"].iloc[20] / nse["OK"].iloc[19]
-    step_yahoo = yahoo["DRIFT"].iloc[20] / yahoo["DRIFT"].iloc[19]
     assert np.isclose(out["OK"].iloc[20], primary["OK"].iloc[19] * step_nse)
-    assert np.isclose(out["DRIFT"].iloc[20], primary["DRIFT"].iloc[19] * step_yahoo)
+    assert np.isnan(out["DRIFT"].iloc[20])
 
 
-def test_without_a_middle_source_the_order_is_unchanged():
+def test_without_a_middle_source_nothing_is_filled():
     primary = pd.DataFrame({"A": [100, 102, np.nan, 104, 105.0]}, index=IDX)
-    yahoo = pd.DataFrame({"A": [95, 96.9, 98.8, 98.8, 100.776]}, index=IDX)
-    a = ps.keep_and_fill(_frames(primary.copy()), ["A"], yahoo).close
-    b = ps.keep_and_fill(_frames(primary.copy()), ["A"], yahoo, None).close
-    assert a.equals(b) and a.loc[IDX[2], "A"] == 102 * 98.8 / 96.9
+    a = ps.keep_and_fill(_frames(primary.copy()), ["A"]).close
+    b = ps.keep_and_fill(_frames(primary.copy()), ["A"], None).close
+    assert a.equals(b) and np.isnan(a.loc[IDX[2], "A"])
 
 
 def test_a_new_listing_with_no_shared_day_is_not_filled_and_does_not_raise():
@@ -88,7 +86,7 @@ def test_a_new_listing_with_no_shared_day_is_not_filled_and_does_not_raise():
     nse["OK"] = 100.0 * 1.001 ** np.arange(30)
     nse["NEW"] = np.nan
     nse.iloc[-3, 1] = 684.0
-    out = ps.keep_and_fill(_frames(primary), ["OK", "NEW"], None, nse, weekly_fill=False)
+    out = ps.keep_and_fill(_frames(primary), ["OK", "NEW"], nse, weekly_fill=False)
     assert out.middle_errors == []
     assert np.isclose(out.close["OK"].iloc[20], nse["OK"].iloc[20])   # OK still filled from NSE
     assert out.close["NEW"].notna().sum() == 2                        # NEW: Screener's two closes only
@@ -103,7 +101,7 @@ def test_a_failing_nse_step_costs_the_fill_not_the_ranking(monkeypatch):
 
     monkeypatch.setattr(ps, "eligible_middle", boom)
     monkeypatch.setattr(ps, "splice_weekly", boom)
-    out = ps.keep_and_fill(_frames(primary.copy()), ["A"], None, nse, weekly_fill=True)
+    out = ps.keep_and_fill(_frames(primary.copy()), ["A"], nse, weekly_fill=True)
     assert out.close.equals(primary)                       # Screener's prices, untouched
     assert [e.split(":")[0] for e in out.middle_errors] == ["NSE gap fill", "NSE weekly splice"]
     assert any("skipped after an error" in n for n in out.notes)
