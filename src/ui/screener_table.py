@@ -45,6 +45,8 @@ INDEX_NAMES = {
     "SMALL250": "Nifty Smallcap 250", "MICRO250": "Nifty Microcap 250",
     "NANO250": "Nano Cap", "NANO": "> ₹2,000 Cr",      # S175: the Nifty 1000's other 250; the ₹2,000 Cr list
 }
+# The systems' own lists among those tags: not NSE indices (S189 item 6 (b)).
+_SYSTEM_TAGS = {"NANO250", "NANO"}
 
 # (key, header, sort type). One registry; Executive, Core and Quant are column
 # sets drawn from it, so a column looks and sorts the same in every view. The
@@ -404,8 +406,11 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     # own tags, NANO and NANO250, which this map does not know).
     idx_name = str(row.get("Index Name") or "").strip() or INDEX_NAMES.get(tag, tag)
     idx_order = list(INDEX_NAMES).index(tag) if tag in INDEX_NAMES else 9
-    idx_html = (f'<span class="tag">{_esc(idx_name)}</span>' if tag
-                else '<span class="muted">–</span>')
+    # A system's own list (the > ₹2,000 Cr list, the Nifty 1000's other 250) is not an NSE index: "–", with
+    # the reason on hover, not the list's name on every row (S189 item 6 (b)). A page's own "Index Name" stays.
+    own_list = tag in _SYSTEM_TAGS and not str(row.get("Index Name") or "").strip()
+    idx_html = ('<span class="muted" title="In no NSE size index">–</span>' if own_list or not tag
+                else f'<span class="tag">{_esc(idx_name)}</span>')
     cells["idx"] = f'<td data-v="{idx_order}">{idx_html}</td>'
     ind_full = str(row.get("Industry") or "").strip()
     ind_short = short_industry(ind_full)

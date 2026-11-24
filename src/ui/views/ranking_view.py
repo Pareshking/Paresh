@@ -675,7 +675,7 @@ def system_note(system_name: str, ranked, members, *, nano: bool,
     head = (f"{system_name} · {len(ranked_set)} of {len(members)} stocks ranked"
             + (" among themselves." if nano else " as one list."))
     body = (f"{len(unranked)} {reason}: "
-            + ", ".join(unranked[:12]) + (" and more." if len(unranked) > 12 else ".")) if unranked else ""
+            + ", ".join(unranked) + ".") if unranked else ""   # every name, no "and more" (PAGE_DESIGN §2; S189 item 6)
     return head, body
 
 
