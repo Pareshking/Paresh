@@ -53,7 +53,7 @@ Production QA green on af15327. Open:
 
 **Pending approvals (decided by benchmark or by rule, owner to confirm):**
 - **Approved (owner, 24 Nov):** month bars on the Dashboard: the step is 0.25% unless a row would pass 65 lines, then 0.5/1/2% (the list showed a 544 px track, over the 520 px rule); PAGE_DESIGN 4.2 updated.
-- Amber notes split into warnings and info notes (`kit.note(kind=...)`): now info, the Backtest system note, Actions' "No model book yet", the Nano/Combined Screener footnote; kept as warnings, Backtest's empty window and Config's "every stock at the cap" (borderline).
+- **Approved (owner, 24 Nov):** amber notes split into warnings and info notes (`kit.note(kind=...)`): now info, the Backtest system note, Actions' "No model book yet", the Nano/Combined Screener footnote; kept as warnings, Backtest's empty window and Config's "every stock at the cap" (borderline).
 - Backtest's Nifty 500 column shows its own volatility, Sharpe and Sortino (were "–").
 - Portfolio's lead-by-month chart opens on all months of the book (was the last 12; the same today).
 - Production QA's Backtest load budget 31 s (was 17; rule: the slowest live reading x 1.5); back down once S220 is fixed.
