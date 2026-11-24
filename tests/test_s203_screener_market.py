@@ -196,9 +196,9 @@ def test_sc_data_1(monkeypatch):
 @pytest.mark.parametrize("name, nano, ranked, members, head, body", [
     ("Nifty 1000", False, ["A", "B"], ["A", "B", "C"], "2 of the Nifty 1000's 3 stocks are ranked, as one list.",
      "1 is not ranked yet: under 3 months of prices with us; their history is being collected. C."),
-    ("> ₹2,000 Cr", True, ["A"], ["A", "B", "C"], "1 of the > ₹2,000 Cr's 3 stocks are ranked, among themselves.",
+    ("> ₹2,000 Cr", True, ["A"], ["A", "B", "C"], "1 of the 3 stocks in the > ₹2,000 Cr list is ranked, among themselves.",
      "2 are not ranked yet: under 3 months of prices. B, C."),
-    ("Combined", False, ["A"], ["A"], "1 of the Combined's 1 stocks are ranked, as one list.", ""),
+    ("Combined", False, ["A"], ["A"], "1 of the 1 stock in the combined universe is ranked, as one list.", ""),
 ])
 def test_sc_sys_1(name, nano, ranked, members, head, body):
     system = SYSTEM_1000 if name == "Nifty 1000" else SYSTEM_NANO
@@ -466,3 +466,11 @@ def test_mk_today_1():
 def test_mk_dead_1():
     assert not hasattr(mqv, "run_example")
     assert "run_example" not in _src("src/ui/views/market_questions_view.py")
+
+
+def test_sc_sys_1_a_list_takes_no_possessive():
+    from src.ui.views.ranking_view import system_note
+    head, _ = system_note("> ₹2,000 Cr", ["A", "B"], ["A", "B", "C"], nano=True)
+    assert head == "2 of the 3 stocks in the > ₹2,000 Cr list are ranked, among themselves."
+    head, _ = system_note("Combined", ["A"], ["A", "B"], nano=False)
+    assert head == "1 of the 2 stocks in the combined universe is ranked, as one list."

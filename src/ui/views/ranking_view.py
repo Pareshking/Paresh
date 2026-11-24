@@ -683,7 +683,13 @@ def system_note(system_name: str, ranked, members, *, nano: bool,
     ranked_set = {str(x) for x in ranked}
     members = {str(x) for x in members}
     unranked = sorted(members - ranked_set)
-    head = (f"{len(ranked_set):,} of the {system_name}'s {len(members):,} stocks are ranked, "
+    # An index takes the possessive ("the Nifty 1000's 3 stocks"); a list does not ("the > ₹2,000 Cr's" read badly).
+    lists = {"> ₹2,000 Cr": "the > ₹2,000 Cr list", "Combined": "the combined universe"}
+    m = len(members)
+    stocks = "stock" if m == 1 else "stocks"
+    whose = (f"of the {m:,} {stocks} in {lists[system_name]}" if system_name in lists
+             else f"of the {system_name}'s {m:,} {stocks}")
+    head = (f"{len(ranked_set):,} {whose} {'is' if len(ranked_set) == 1 else 'are'} ranked, "
             + ("among themselves." if nano else "as one list."))
     k = len(unranked)
     body = (f"{k:,} {'is' if k == 1 else 'are'} not ranked yet: {reason}. " + ", ".join(unranked) + ".") if k else ""
