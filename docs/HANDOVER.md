@@ -44,7 +44,7 @@ _Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsn
 - #662: Backtest's figures, trade table and trade log cached once per run (warm 6 → 1.5 s locally); flows "Tested here" counts 129 months.
 
 Production QA green on af15327. Open:
-- S220: live Backtest is about 11 s, with 40-44 s spikes; cause not found.
+- S220: live Backtest is about 11 s (server stages ~0.6 s; the rest is outside the page body); parked to 2 Feb 2027 (owner, 24 Nov).
 - 24 Nov checks (B10, the all-time-high move, long-vs-Screener, breadth, the S186 note): moved to 26 Nov 11:41 IST (owner, 24 Nov; a reminder is set).
 - S186 deploy note not yet seen.
 - Reminder set for the 1-5 Dec monthly run (2 Dec 04:41 UTC).
