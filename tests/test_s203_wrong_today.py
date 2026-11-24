@@ -35,12 +35,12 @@ def test_the_title_without_the_figures():
 
 
 @pytest.mark.parametrize("b,s,want", [
-    (20, 80, "At 22.0 times earnings, the Nifty 50 is cheaper than on 80% of days since 31 Mar 2021; "
-             "the Nifty Smallcap 250 is dearer than on 80%."),
-    (80, 20, "At 22.0 times earnings, the Nifty 50 is dearer than on 80% of days since 31 Mar 2021; "
-             "the Nifty Smallcap 250 is cheaper than on 80%."),
-    (50, 50, "At 22.0 times earnings, the Nifty 50 is at its median since 31 Mar 2021; "
-             "the Nifty Smallcap 250 is at its median."),
+    (20, 80, "At 22.0 times earnings, the Nifty 50 is cheaper than on 80% of days since 31 Mar 2021. "
+             "The Nifty Smallcap 250 is dearer than on 80%."),
+    (80, 20, "At 22.0 times earnings, the Nifty 50 is dearer than on 80% of days since 31 Mar 2021. "
+             "The Nifty Smallcap 250 is cheaper than on 80%."),
+    (50, 50, "At 22.0 times earnings, the Nifty 50 is at its median since 31 Mar 2021. "
+             "The Nifty Smallcap 250 is at its median."),
 ])
 def test_the_valuation_heading_reads_each_way(b, s, want):
     assert iv.valuation_headline(_v("nifty_50", b), _v("nifty_smallcap_250", s)) == want

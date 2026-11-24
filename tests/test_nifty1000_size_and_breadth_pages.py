@@ -90,16 +90,16 @@ def test_market_by_index_lists_the_250_where_the_system_ranks_them():
 
 
 def test_sectors_name_the_systems_universe_and_leave_the_750_unchanged():
-    from src.ui.views.dashboard_home_view import Chart, Cols
-    from src.ui.views.sector_view import for_universe
-    parts = ["Each month against the 750.", Chart("trows", {"label": "Each sector's lead over the 750"}),
-             Cols(["The 750’s 12 stocks"], ["the 750"])]
-    assert for_universe(parts, "750") is parts
-    out = for_universe(parts, "1000")
-    assert out[0] == "Each month against the 1000."
-    assert out[1].spec["label"] == "Each sector's lead over the 1000"
-    assert out[2].left == ["The 1000’s 12 stocks"] and out[2].right == ["the 1000"]
-    assert for_universe(["Nifty 750 and 7500 stay"], "1000") == ["Nifty 750 and 7500 stay"]
+    # S203 se.uni.1: the universe is a slot in each template (rule 12); the regex pass over the parts is gone.
+    from src.ui.views import sector_view as sv
+    src = (ROOT / "src" / "ui" / "views" / "sector_view.py").read_text(encoding="utf-8")
+    assert "for_universe" not in src and not re.search(r"[Tt]he 750\b(?!\")", src.split('"""', 2)[2])
+    months = pd.DataFrame({"Sep 2026": [1.0], "Oct 2026": [2.0], "Nov so far": [0.1], "run": [2], "total": [3.0]},
+                          index=["Auto"])
+    for uni in ("750", "1000", "> ₹2,000 Cr list"):
+        h2, ex = sv.months_headline(months, lambda n: n, "sector", uni)
+        assert f"beaten the {uni} in September and October" in h2 and f"ahead of the {uni}" in ex
+        assert sv.map_text(uni)["q_across"] == f"Across: did it beat the {uni} over the {{p}}?"
 
 
 def test_the_250_carry_the_owners_name_on_every_page():

@@ -536,7 +536,7 @@ R.lmap = (card, s) => {
       + `<p><b>${esc(T.q_lift)}</b> ${esc(T.a_lift.replace('{n}', n))} ${lifts}.</p>`
       + `<p><b>${esc(T.q_line)}</b> ${esc(T.a_line)} ${fx(Math.abs(dx), 1)} ${T.pts} ${dx >= 0 ? T.right : T.left}, ${flat ? T.no_move : fx(Math.abs(dy), 0) + ' ' + T.pts + ' ' + (dy >= 0 ? T.up : T.down)}: ${esc(reading)} ${esc(T.today.replace('{side}', side).replace('{half}', half))} ${esc(T.four)}</p>`;
     const fell = R.filter(r => rnd(r.y1) < rnd(r.y0)).length;
-    $('.mcap', card).textContent = `${R[0].then} → ${R[0].now}: ${T.fell.replace('{n}', fell).replace('{of}', R.length)}`
+    $('.mcap', card).textContent = `${R[0].then} → ${R[0].now}: ${T.fell.replace('{n}', fell === 0 ? 'none' : fell).replace('{of}', R.length)}`
       + (narrow.length ? ` ${T.narrow.replace('{span}', span)} ${narrow.map(r => sh(r.name)).join(', ')}.` : '');
     $('.mtab', card).innerHTML = `<table class="lt"><thead><tr><th>${esc(T.sector)}</th><th class="num">${esc(T.lead)} ${esc(R[0].then)}</th><th class="num">${esc(T.lead)} ${esc(R[0].now)}</th><th class="num">${esc(T.share)} ${esc(R[0].then)}</th><th class="num">${esc(T.share)} ${esc(R[0].now)}</th></tr></thead><tbody>`
       + R.slice().sort((a, b) => b.x1 - a.x1).map(r => `<tr><td>${esc(sh(r.name))}</td><td class="num">${sg(r.x0)}</td><td class="num ${tone(r.x1)}">${sg(r.x1)}</td><td class="num">${rnd(r.y0)}%</td><td class="num">${rnd(r.y1)}%</td></tr>`).join('') + '</tbody></table>'; };
