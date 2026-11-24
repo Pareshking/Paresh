@@ -437,14 +437,20 @@ def test_mk_ch_4_note(monkeypatch):
 
 
 def test_mk_ch_5(monkeypatch):
-    # Held back: the figure is a relative line less 100 (a ratio), so "points" in the proposed text is the measure
-    # in question (S173 IX-2); today's text is kept until that is settled.
+    # Owner, 24 Nov 2026: "% against the line" (a ratio less 100, as Indices, S173 IX-2), not points.
     s = _closes()
     heads, _ = _charts(monkeypatch, mqv._trend_charts, s, {"Nifty 50": s * 1.0, "Nifty Smallcap 250": s.pow(1.01)})
     title, note = heads[1]
-    assert title.startswith("Over 12 months, Nifty Smallcap 250 did best against Nifty Total Market (+")
-    assert "pts) and Nifty 50 worst (0.0 pts)" in title
+    assert title.startswith("Over 12 months, Nifty Smallcap 250 did best against Nifty Total Market, ")
+    assert "% above its line; Nifty 50 did worst, on it" in title
     assert note.startswith("Each size index divided by Nifty Total Market, set to 100 at the start 12 months ago")
+    assert "pts" not in title + note and "points" not in note
+    assert mqv.size_line_head({"A": 18.24, "B": -6.1}, "Nifty Total Market") == (
+        "Over 12 months, A did best against Nifty Total Market, 18.2% above its line; B did worst, 6.1% below it")
+    assert mqv.size_line_head({"A": -1.0, "B": -6.1}, "Nifty Total Market").endswith(
+        "A did best against Nifty Total Market, 1.0% below its line; B did worst, 6.1% below it")
+    assert mqv.size_line_head({"A": 3.0}, "Nifty Total Market") == (
+        "Over 12 months, A is the only size index with a year of closes: 3.0% above its line")
 
 
 def test_mk_ch_6():
