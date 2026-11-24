@@ -143,7 +143,10 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
     prices = history_prices if history_prices is not None else adj_close
     # The qualified place and "Held" come from the whole ranking, as on the
     # Screener; from the bare ranking every row read "Out" (S184, 22 Nov 2026).
-    full = with_book_columns(rank_df, book_symbols, prices)
+    # Its rows (and the export) carry NSE's levels where the file covers them (S226 (A)); the plan below
+    # reads rank_df itself, whose Industry is the sector cap on Nano and Combined.
+    from src.loaders.nse_classification import with_nse_levels
+    full = with_book_columns(with_nse_levels(rank_df, system), book_symbols, prices)
     matched = full[full["Symbol"].isin(user_symbols)].sort_values("Rank").copy()
     # The session the header shows, not the frame's last row (S193 E).
     as_of = (formats.session_of(adj_close if adj_close is not None and len(adj_close.index) else prices)
