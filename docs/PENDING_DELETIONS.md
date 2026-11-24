@@ -12,7 +12,7 @@ can't do it, whatever possible please delete it."*
   dry run's count, after the merge. `prices/ss` was kept on 22 Nov (4.2); the 24 Nov yes replaces that.
 - **Kept, not deleted:** the membership set (`indices/membership/*`, `indices/constituents/*`,
   `universes/point_in_time`, b5, ~8 MiB). It has no reader today, but it is point-in-time evidence that can't be
-  downloaded again, and S197/S198's membership builder is its reader in December. Owner to confirm.
+  downloaded again, and S197/S198's membership builder is its reader in December. Approved by the owner, 24 Nov 2026 ("Ok for all").
 
 ## S195 clean-up (owner, 22 Nov 2026: "go with your recommendations")
 
