@@ -1,6 +1,12 @@
 # Changelog
 
 
+## 2026-11-24 — Dashboard and Portfolio sentences from approved templates (S203)
+
+- Every sentence on the Dashboard and Portfolio now follows the template the owner approved on 24 Nov: one idea a sentence, the sign in a word ("up 5.5%", "sold ₹5,000 Cr"), "level" only when a gap shows 0.0, dates with their year after "since", and no figure typed into the code. No figure, rank or frozen month changes.
+- Dashboard: section headings say what they are about ("Momentum is ahead over 12 months, but has trailed in October and so far in November"); size reads "within 2.5 points of its index", not "level"; the heavy-buying cut reads ₹14,000 Cr; the "other" earlier falls no longer count the deepest; an earlier fall names both its months (a December peak read as the next year).
+- Portfolio: tracking error is one definition, not a worked example; months still to come in the calendar are blank, not "–"; "1 rebalance"; the Nifty 1000's reconstructed month reads its dates from the data; the rebalance tile counts the book's own holdings.
+
 ## 2026-11-24 — Backtest opens faster
 
 - A second reader of the same run no longer waits for its figures, trade table and trade log to be rebuilt: 6 s to about 1.5 s locally; the page reads the same.
