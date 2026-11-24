@@ -1,0 +1,69 @@
+name: Price sync catch-up (if the nightly run was missed)
+
+# Owner, 24 Nov 2026: "add second screener run ... if first one is missed, second one can complete the
+# job. If first already finished, second don't require to run and automatically it marks done".
+# On 23 Nov GitHub never started the 17:07 UTC Screener sync nor either daily-sync slot, and the site
+# kept 20 Nov's closes into the morning. This job only looks: scripts/screener_catchup.py compares the
+# published Screener store with the newest session NSE has settled (holidays from NSE's own list) and
+# whether a daily sync has succeeded since the store was published.
+#   behind -> dispatch the Screener sync (the daily sync chains after it, as on a normal night)
+#   store current, daily sync not since -> dispatch the daily sync
+#   both current, or a Screener run already queued or running -> nothing; the run ends green
+# If the daily sync does not chain after a dispatched Screener run, the second slot finds the store current
+# and the daily sync not since, and dispatches it.
+# Read by: nobody but this run (no file is written). Times: past the main run's worst start so far
+# (7.3 h late, ~40 min a run), so a normal night is left alone; two tries in case one slot is dropped.
+
+on:
+  schedule:
+    - cron: '37 23 * * *'   # 05:07 IST
+    - cron: '37 1 * * *'    # 07:07 IST
+  workflow_dispatch:
+
+concurrency:
+  group: price-catchup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - name: Install what the check reads
+        run: pip install pandas pyarrow
+      - name: Decide and act
+        run: |
+          set -euo pipefail
+          busy=$(gh run list --repo "$REPO" --workflow screener_sync.yml --json status \
+                   -q '[.[] | select(.status=="queued" or .status=="in_progress" or .status=="waiting")] | length')
+          if [ "$busy" != "0" ]; then
+            echo "A Screener sync is already queued or running: nothing to catch up."
+            exit 0
+          fi
+          mkdir -p /tmp/published
+          gh release download data-latest --repo "$REPO" --dir /tmp/published --pattern screener_prices.parquet || true
+          published=$(gh release view data-latest --repo "$REPO" --json assets \
+                        -q '.assets[] | select(.name=="screener_prices.parquet") | .updatedAt' || true)
+          daily=$(gh run list --repo "$REPO" --workflow daily_sync.yml --status success -L 1 --json updatedAt \
+                    -q '.[0].updatedAt // ""' || true)
+          action=$(python scripts/screener_catchup.py --store /tmp/published/screener_prices.parquet \
+                     --store-published "$published" --daily-success "$daily")
+          echo "Decision: $action"
+          case "$action" in
+            screener) gh workflow run screener_sync.yml --repo "$REPO" --ref main ;;
+            daily)    gh workflow run daily_sync.yml --repo "$REPO" --ref main ;;
+            none)     ;;
+            *)        echo "::error::unexpected decision '$action'"; exit 1 ;;
+          esac

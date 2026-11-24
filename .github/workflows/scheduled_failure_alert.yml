@@ -46,6 +46,7 @@ on:
       - Schedule watchdog (daily)
       - SS price sync (gentle)
       - Screener daily price sync (overnight)
+      - Price sync catch-up (if the nightly run was missed)
       - V1 Production QA
       - V1 Full Validation
       - Weekly Full Sync (Friday night)

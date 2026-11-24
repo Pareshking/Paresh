@@ -35,6 +35,7 @@ is NSE's exactly.
 
 ## The Screener night (`screener_sync.yml`, 22:37 IST; 00:15 IST until 19 Nov 2026) and when it is late
 
+- **When GitHub drops the night** (23 Nov 2026: the 17:07 UTC slot and both daily-sync slots never started; the site kept 20 Nov's closes until a run was started by hand at 09:05 IST), `screener_catchup.yml` looks at 05:07 and 07:07 IST. It dispatches the Screener sync when the published store does not reach the newest settled session (holidays from NSE's list), the daily sync when the store does but no daily sync has succeeded since, and nothing when both are current or a Screener run is queued or running (S221).
 - **The Nifty 1000 is gated like the 750** (owner, 22 Nov 2026: "Nothing should be
   without proper price history ... same process we must follow";
   `sync_screener.gated_universe`): the members of `ind_nifty1000_list.csv` outside
