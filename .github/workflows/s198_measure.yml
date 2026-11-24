@@ -1,0 +1,85 @@
+name: S198 measure (read only)
+
+# TODO S198 (a) (owner, 24 Nov 2026: "we should do it"): Ultra Nano Cap measured
+# month by month from R2's NSE market caps, its price coverage and traded value,
+# and a backtest of the three January 2027 systems against today's, with the
+# record's engine (scripts/s198_measure.py). Beside it, S224 (a)-(c): which
+# git-only files have an R2 copy, key names only (scripts/s224_r2_copies.py).
+#
+# Read only: R2 is read with the same secrets as the other R2 jobs and nothing
+# is written to it; the release files are downloaded, never uploaded; the job
+# has contents: read, so it cannot commit. The figures go to an artifact,
+# whose reader is the S198 (a) write-up in docs/archive/.
+#
+# Run after the 1-5 Dec freeze:
+#   gh workflow run s198_measure.yml --ref main
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "First month-end to use (YYYY-MM-DD); blank for every month-end on R2"
+        default: ""
+      extra_prices:
+        description: "Adjust the names the long file lacks from NSE's raw pack (yes/no)"
+        default: "yes"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s198_measure
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      PYTHONPATH: .
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: The long file and the raw packs from the data-latest release (download only)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXTRA: ${{ inputs.extra_prices }}
+        run: |
+          mkdir -p in
+          gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir in \
+            --pattern nse_long_close.parquet --pattern nse_long_value.parquet
+          if [ "$EXTRA" = "yes" ]; then
+            gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir in \
+              --pattern nse_raw_pack.parquet --pattern nse_actions_pack.parquet \
+              || echo "::warning::no raw pack: only names on the long file are priced"
+            gh release download data-latest --repo "$GITHUB_REPOSITORY" --dir in --pattern bse_daily.parquet \
+              || echo "::warning::no bse_daily.parquet: NSE-only gaps of the extra names stay empty"
+          fi
+          ls -lh in
+      - name: Measure and backtest
+        env:
+          IN_SINCE: ${{ inputs.since }}
+        # A file the release did not give is skipped by the script and named in the write-up.
+        run: |
+          python scripts/s198_measure.py --long in/nse_long_close.parquet --value in/nse_long_value.parquet \
+            --pack in/nse_raw_pack.parquet --actions-pack in/nse_actions_pack.parquet --bse in/bse_daily.parquet \
+            --since "$IN_SINCE" --out out/s198
+          cat out/s198/s198_measure.md >> "$GITHUB_STEP_SUMMARY"
+      - name: S224 (a)-(c) R2 copies (key names only)
+        if: always()
+        run: python scripts/s224_r2_copies.py --out out/s198/s224_r2_copies.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: s198-measure
+          path: out/s198
+          retention-days: 30
+          if-no-files-found: warn
