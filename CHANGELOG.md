@@ -1,6 +1,11 @@
 # Changelog
 
 
+## 2026-11-24 — Configuration lists every file a page reads (S164)
+
+- Configuration's data table now lists each file the pages read (breadth history, foreign and domestic flows, momentum's record and others), its latest date, how late it may be and why, and whether it keeps that rule. It listed four sources before, all current, and none of the files that ran late.
+- A check in the page audits fails on any chart, table or sentence that ends before the page's session without saying why.
+
 ## 2026-11-24 — Market reads Nifty Total Market (S165)
 
 - Market's trend question, its "By size" table and its charts read Nifty Total Market and name it ("Is Nifty Total Market in an uptrend?"). Before its launch on 14 Oct 2021 the line is the Nifty 500, scaled to meet it that day, and the page says so; the bars' ranges now reach back to 1999.

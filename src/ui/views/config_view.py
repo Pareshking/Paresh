@@ -134,6 +134,106 @@ def _freshness_table() -> None:
         "Status": "Behind" if i["stale"] else "Current",
     } for i in items]
     render_saas_table(pd.DataFrame(rows))
+    session = next((i.get("date") for i in items if i.get("label") == "Prices" and i.get("date")), None)
+    files = file_dates(session)
+    if files:
+        st.html('<div class="cfg-sub">Files the pages read</div>')
+        render_saas_table(pd.DataFrame(files))
+        st.caption("Each file against the prices’ session, by its own rule: how many sessions late it may be, and why. "
+                   "A page that reads a late file says where its figure ends.")
+
+
+_DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "data")
+DAILY, MONTHLY = "daily", "monthly"
+
+# Staleness audit, 21 Nov 2026 (S164): the freshness table listed four sources, all current, and left out every
+# file that lagged. Each file a page reads, its date, and its rule. (name, file, read by, how its date is read,
+# kind, sessions it may lag, the rule in words.)
+FILE_RULES: list[tuple[str, str, str, str, str, int, str]] = [
+    ("Nifty 500 and Nifty 50", "benchmarks.csv", "Dashboard, Market", "date", DAILY, 0,
+     "NSE’s close, collected each evening"),
+    ("NSE indices", "benchmark_indices.csv", "Dashboard, Portfolio, Market, Sectors", "date", DAILY, 1,
+     "NSE’s index closes; a page names an index whose close is not in yet"),
+    ("Nifty Total Market", "nse_total_market.csv", "Market page", "date", DAILY, 0, "NSE’s close, collected each evening"),
+    ("Foreign flows", "nsdl_fpi_daily.csv", "Dashboard", "date", DAILY, 1, "NSDL’s daily report, the next morning"),
+    ("Domestic institutions, all exchanges", "fii_dii_flows.csv", "Dashboard", "date", DAILY, 1,
+     "NSE’s provisional report, collected each evening"),
+    ("Domestic institutions, on NSE", "nse_dii.csv", "Dashboard", "dii_day", DAILY, 2,
+     "NSE posts its category workbook about two sessions late"),
+    ("Breadth history", "breadth_history.csv", "Dashboard, Market", "date", DAILY, 1,
+     "rebuilt each night after NSE’s long price file; the pages add the sessions since from "
+     "today’s prices"),
+    ("Stocks that qualify, today", "qualified_now.json", "Dashboard", "as_of", DAILY, 1,
+     "written with the breadth history; the Dashboard works it out from today’s prices when it is older"),
+    ("Momentum’s record", "momentum_health.csv", "Dashboard", "month", MONTHLY, 1,
+     "a month’s lead needs the next month’s return; written on the 2nd to 6th"),
+    ("Stocks that qualify, month-end", "momentum_health_latest.json", "Dashboard", "date", MONTHLY, 1,
+     "the signal tests read month-ends; written on the 2nd to 6th"),
+    ("NSE closes for gaps", os.path.join("nse_prices", "closes.parquet"), "Screener (fills a gap in the prices)",
+     "parquet", MONTHLY, 1, "extended on the 1st to 5th of each month"),
+]
+
+
+def _file_date(path: str, how: str):
+    """The last date a file holds, or None when it is missing or unreadable."""
+    import json
+
+    try:
+        if how == "parquet":
+            idx = pd.read_parquet(path, columns=[]).index
+            return pd.Timestamp(idx.max()).normalize() if len(idx) else None
+        if path.endswith(".json"):
+            with open(path, encoding="utf-8") as fh:
+                return pd.Timestamp(json.load(fh)[how]).normalize()
+        if how == "dii_day":
+            d = pd.read_csv(path, usecols=["kind", "period"])
+            return pd.to_datetime(d.loc[d["kind"] == "day", "period"]).max().normalize()
+        if how == "month":
+            return pd.Period(pd.read_csv(path, usecols=["month"])["month"].astype(str).max(), "M").end_time.normalize()
+        return pd.to_datetime(pd.read_csv(path, usecols=["date"])["date"]).max().normalize()
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def _sessions_between(start: pd.Timestamp, end: pd.Timestamp) -> int:
+    """NSE sessions after `start` up to `end`: 0 when the file is on the session."""
+    from src.loaders.nse_calendar import published_holidays
+
+    if start >= end:
+        return 0
+    cal = pd.offsets.CustomBusinessDay(holidays=published_holidays())
+    return max(len(pd.date_range(start + pd.Timedelta(days=1), end, freq=cal)), 0)
+
+
+def file_dates(session, root: str | None = None) -> list[dict]:
+    """One row per file a page reads: its last date, its rule and whether it keeps it, against `session`
+    (the prices' date). Empty without a session."""
+    if session is None or pd.isna(pd.Timestamp(session)):
+        return []
+    session = pd.Timestamp(session).normalize()
+    rows = []
+    for name, file, readers, how, kind, lag, why in FILE_RULES:
+        last = _file_date(os.path.join(root or _DATA, file), how)
+        if last is None or pd.isna(last):
+            latest, status = "Not on this server", "Not checked"
+        elif kind == MONTHLY:
+            # Finished months: the last month-end before the session's month, or the one before it until the
+            # month's job has run (the 6th).
+            months = (session.to_period("M") - last.to_period("M")).n
+            allowed = lag + (1 if session.day <= 6 else 0)
+            latest = f"{last:%b %Y}" if how == "month" else _fmt.date(last)
+            status = "Within its rule" if months <= allowed else "Behind its rule"
+        else:
+            behind = _sessions_between(last, session)
+            latest = _fmt.date(last)
+            status = ("On the session" if behind == 0 else
+                      f"{behind} session{'s' if behind != 1 else ''} late, within its rule" if behind <= lag else
+                      f"{behind} sessions late, behind its rule")
+        rule = ("On the session" if kind == DAILY and lag == 0 else
+                f"Up to {lag} session{'s' if lag != 1 else ''} late" if kind == DAILY else
+                "The last finished month") + f". {why[0].upper()}{why[1:]}."
+        rows.append({"File": name, "Read by": readers, "Latest": latest, "Its rule": rule, "Status": status})
+    return rows
 
 
 def _section_data_sync(sync_meta: dict, tot_stk: int, engine_stocks: int) -> None:

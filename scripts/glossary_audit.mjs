@@ -10,10 +10,13 @@
 // ALLOW silently: say why in the entry, and in the pull request.
 // Not checkable from text and so not checked here: rounding (glossary 12; tests/test_rounding_parity.py), whether a
 // "sector" really is one of NSE's 22 groups, and whether "points" sits in a sentence rather than a figure.
+// A page not in the cache also gets S164's date check (_page_dates.mjs), as number_format_audit.mjs gives the pages
+// it reads, so every page CI opens is checked once.
 // Exit 1 on any finding, unless --report.
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { readPageText, cachedPageText } from './_page_text.mjs';
+import { reportPageDates } from './_page_dates.mjs';
 
 const args = process.argv.slice(2);
 const report = args.includes('--report');
@@ -97,9 +100,16 @@ if (fromFiles) {
   const b = await chromium.launch();
   for (const url of targets) {
     for (const width of [412, 1400]) {
-      const read = cachedPageText(cacheDir, url, width) || await readPageText(b, url, width);
+      const cached = cachedPageText(cacheDir, url, width);
+      const read = cached || await readPageText(b, url, width);
       const t = read.glossary;
       bad += audit(`${url} @${width}`, t);
+      // S164's date check on a page number_format_audit.mjs did not read (it checks the ones it reads): same rules.
+      if (!cached && width === 1400) {
+        const d = reportPageDates(url, read);
+        d.lines.forEach(l => console.log(l));
+        bad += d.n;
+      }
     }
   }
   await b.close();
