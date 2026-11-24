@@ -519,3 +519,36 @@ Unwatched manual writers (`nse_prices_backfill`, `owner_cleanup`, `nse_sample_ch
 10. **Failures open or unexplained:** r2_retention (#612), results_calendar (4 scheduled runs, 12-22 Nov), r2_archive_inventory (7), the 24 Nov scheduled Full Validation.
 
 Not checked: R2 operation counts; the scripts behind backtest_reference and momentum_health; the causes in finding 10.
+
+## 7. Costs (section 2 (f) of the plan; 24 Nov 2026)
+
+Measured from the Actions API (`/actions/workflows/{id}/runs`, completed runs, `updated_at − run_started_at`), all events and
+branches, 25 Oct – 24 Nov and 17–24 Nov. Wall time per run, which is close to billed time for one-job workflows and below it
+for jobs that run in parallel or for under a minute: GitHub bills each job rounded up to the minute, so the "≤ billed" column
+counts every run as at least one minute, an upper bound (a job skipped by its `if:`, which most alert runs are, bills nothing).
+
+| | 30 days | ≤ billed | last 7 days | x 30/7 |
+|---|---|---|---|---|
+| All workflows | 12,784 min, 5,020 runs | 15,690 | 5,396 min, 2,468 runs | ~23,100 |
+| V1 Full Validation | 4,204 (750 runs) | 4,580 | 3,176 (422 runs: 302 on PRs, 99 of them cancelled; 114 pushes to main; 8 scheduled) | ~13,600 |
+| SS price sync | 3,423 (17 runs, 201 min each) | 3,431 | 175 (2) | weekly since 17 Nov (owner): ~4 x 200 = ~860 |
+| Screener daily sync | 1,288 (31) | 1,303 | 423 (9) | ~1,800 |
+| V1 Production QA | 834 (246) | 966 | 401 (128) | ~1,700 |
+| Canonical parity | 636 (827) | 866 | 330 (440) | ~1,400 |
+| Everything else | ~2,400 | | ~890 | ~3,800 |
+
+Read:
+1. **Full Validation is 59% of the last week**: about 60 runs a day, 9 minutes for a push to main and 6.3 for a PR run. Its
+   count follows the number of pushes: 109 of the 114 main pushes in the week were merges. S199 (docs-only PRs skip it) and
+   the batching rule (one PR per decision round) are the levers; the merge cadence of 24 Nov (16 merges a day) is what costs.
+2. **The private-plan allowance** (S142): GitHub Free gives 2,000 minutes a month, Pro and Team 3,000 (GitHub's billing page,
+   not re-read today). The last week runs at ~23,000 a month, 8-11 times either. Even without Full Validation (~9,500 a month),
+   it is over. Going private needs Full Validation cut to a few runs a day, and Parity and Production QA on push only.
+3. **SS sync fell from 3,423 to ~860 a month** with the weekly schedule (17 Nov); already done.
+4. **R2:** 1.68 GB in 27,025 objects (r2_archive_inventory, run 45396914100, 24 Nov), down from 3.49 GB on 14 Nov (run
+   43579606312) after the retention rules of 17-22 Nov. Cloudflare's free tier is 10 GB of storage; operation counts are not
+   in the inventory and were not measured (left open).
+5. **Streamlit memory:** not measured here (the Community Cloud host's figures are not readable from a runner or this
+   container); left open.
+
+Not checked: billed minutes as GitHub reports them (the billing API needs the owner's token); R2 operations; Streamlit memory.
