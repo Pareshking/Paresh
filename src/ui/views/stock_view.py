@@ -309,7 +309,7 @@ def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
 def rules_html(row, a: dict | None, q, ln, high_pct, ladder: sl.Ladder, held, holding, check, events, last_res) -> list:
     from src.ui.system_param import page_href
     from src.engine.exit_watch import SELL, WATCH
-    ca, cb = sl.rules_heading(a, check, high_pct)
+    ca, cb = sl.rules_heading(a, check, high_pct, bool(held))
     status = (a or {}).get("status")
     tone = "down" if status == SELL else "watch" if status == WATCH else "up"
     at_high = ladder.close is not None and ladder.high is not None and round(ladder.close) >= round(ladder.high)

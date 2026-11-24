@@ -34,6 +34,24 @@ _CSS = """<style>
 </style>"""
 
 
+def market_title(breadth, trend) -> str:
+    """The title; a missing score says so instead of "Not enough data participation" (S203 mk.head.1).
+    The wording of the full title is the owner's question 2 (S203)."""
+    from src.engine.market_questions import word_for
+    missing = word_for(None, ("",) * 5)
+    if breadth is None or trend is None:
+        return "Market breadth"
+    b_ok, t_ok = breadth.verdict != missing, trend.verdict != missing
+    t_txt = trend.verdict[0].lower() + trend.verdict[1:]
+    if b_ok and t_ok:
+        return f"{breadth.verdict} participation; {t_txt}."
+    if b_ok:
+        return f"{breadth.verdict} participation; the trend cannot be read today."
+    if t_ok:
+        return f"Participation cannot be read today; {t_txt}."
+    return "The ranked stocks' prices are not in yet."
+
+
 def _columns_key(prices: pd.DataFrame, syms: list) -> str:
     """Names prices[syms] exactly: the whole frame's fingerprint, computed once in
     app.py's loader (S208), and the columns taken, in order."""
@@ -537,8 +555,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     key = "|".join([_columns_key(prices, syms), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
     breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size, pit, name)
     # The title answers both questions; the page's name is the kicker (PAGE_DESIGN 2a, 21 Nov 2026).
-    title = ("Market breadth" if breadth is None or trend is None else
-             f"{breadth.verdict} participation; {trend.verdict[0].lower() + trend.verdict[1:]}.")
+    title = market_title(breadth, trend)
     st.html(_CSS + _PAGE_CSS + _CHART_CSS +
             '<div class="qp-head"><p class="qp-kick">Market</p>'
             f'<h1 class="qp-title">{html.escape(title)}</h1>'

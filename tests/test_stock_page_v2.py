@@ -133,9 +133,17 @@ def test_a_broken_rule_says_a_holding_would_be_sold_at_the_check():
     a = assess(rank_df, ["B"]).iloc[0].to_dict()
     assert a["status"] == SELL
     lead, rest = sl.rules_heading(a, pd.Timestamp("2026-11-30"), 0.8)
-    assert lead == "A holding would be sold" and rest.startswith(" if this holds at the 30 Nov check: it is 5.0% below")
+    assert lead == "It would be sold" and rest.startswith(" at the 30 Nov check if today's price holds: it is 5.0% below")
+    # S203 st.rule.1: a stock the book does not hold is not called a holding.
+    assert sl.rules_heading(a, pd.Timestamp("2026-11-30"), 0.8, held=False)[0] == "It would be sold if held"
     rows = sl.rules(rank_df.iloc[1], a, None, LN, 0.8)
     assert rows[0].fall == "Below it" and rows[2].today == "Out"
+
+
+def test_the_rank_rule_reads_as_a_sentence():
+    """S203 cm.rule.3-4: "it #38 · 2 places from the buffer" had no verb; "it is ranks #45" read wrong."""
+    from src.engine import exit_watch as ew
+    assert ew._ord(38) == "38th" and ew._ord(41) == "41st" and ew._ord(12) == "12th"
 
 
 def test_the_holding_is_portfolios_own_row():
@@ -298,7 +306,7 @@ def test_corporate_actions_come_from_nses_list_one_per_action():
 def test_a_clean_stock_says_nothing_to_correct():
     dc = sl.data_checks(_row(), DAY, [], pd.Timestamp("2024-10-04"))
     texts = [t for _, t in dc.items]
-    assert "More than 126 sessions of prices, so the 52W high counts" in texts
+    assert "More than 126 sessions of prices, so the 52-week high counts" in texts
     assert "Ranked on all five horizons (1, 3, 6, 9 and 12 months)" in texts
     assert "No split, bonus, rights issue or demerger in NSE’s lists since October 2024" in texts
     assert sl.data_heading(dc).startswith("Nothing to correct")

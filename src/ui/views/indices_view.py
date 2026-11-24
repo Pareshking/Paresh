@@ -68,20 +68,25 @@ def _num(v: float | None, digits: int = 1, unit: str = "") -> str:
 def head(vals: list[ip.Valuation], as_of: pd.Timestamp) -> list:
     by = {v.key: v for v in vals}
     big, small = by.get("nifty_50"), by.get("nifty_smallcap_250")
-    if big and small and big.pct_now < 50 <= small.pct_now:
-        title = ('The Nifty 50 trades <span class="dh-up">below its usual P/E</span>; '
-                 'the Nifty Smallcap 250 <span class="dh-down">above it</span>.')
-    elif big and small:
-        # Cheaper than its usual reads blue, dearer rust (S219 2).
-        title = ("The Nifty 50 sits " + kit.verdict(f"at the {_ord(big.pct_now)} percentile", big.pct_now < 50)
-                 + " of its P/E since 2021; the Nifty Smallcap 250 "
-                 + kit.verdict(f"at the {_ord(small.pct_now)}", small.pct_now < 50) + ".")
+    since = f"{ip.PE_FROM:%b %Y}"
+    if not (big and small):
+        title = "NSE's index P/Es are not in yet."
+    elif round(big.pct_now) != 50 and round(small.pct_now) != 50 and (big.pct_now < 50) != (small.pct_now < 50):
+        # One under its median, one over (S203 ix.head.1 a, a'). Cheaper than its usual reads blue, dearer rust (S219 2).
+        b_word, s_word = ("below", "above") if big.pct_now < 50 else ("above", "below")
+        title = ("The Nifty 50's P/E is " + kit.verdict(f"{b_word} its median", big.pct_now < 50)
+                 + f" since {since}; the Nifty Smallcap 250's is " + kit.verdict(f"{s_word} it", small.pct_now < 50) + ".")
     else:
-        title = "NSE's indices: what each costs, and which styles pay."
+        def at(v: ip.Valuation, first: bool) -> str:
+            if round(v.pct_now) == 50:
+                return "at its median" + (f" since {since}" if first else "")
+            words = f"at the {_ord(v.pct_now)} percentile" if first else f"at the {_ord(v.pct_now)}"
+            return kit.verdict(words, v.pct_now < 50) + (f" of its days since {since}" if first else "")
+        title = f"The Nifty 50's P/E is {at(big, True)}; the Nifty Smallcap 250's {at(small, False)}."
     return [f'<div class="dh-sec">{KICK.format("Indices")}<h1 id="s-top" class="dh-h1">{title}</h1>'
             f'<p class="dh-lede">NSE\'s own indices, read at the {_d(as_of)} close: what each index costs against its '
-            'recent past, which investing styles beat their parent index, and how deep a normal year\'s fall goes for '
-            'each size. Price returns; dividends are not added.</p></div>']
+            'recent past, which investing styles beat their parent index, and how deep each size\'s max drawdown goes in a '
+            'median year. Price returns; dividends are not added.</p></div>']
 
 
 # The chosen system's own index, when it has no row of its own among the six (S219-7, owner 23 Nov 2026).
@@ -102,14 +107,28 @@ def _young_row(y: ip.YoungValuation) -> tuple[dict, list, str]:
     return row, table, note
 
 
+def _against_past(p: float) -> str:
+    """Where today's P/E sits among past days, either way (S203 ix.val.1): `p` is the share of days it was lower."""
+    if round(p) == 50:
+        return "at its median"
+    return f"cheaper than on {100 - p:.0f}% of days" if p < 50 else f"dearer than on {p:.0f}% of days"
+
+
+def valuation_headline(n50: ip.Valuation | None, s250: ip.Valuation | None) -> str:
+    """The valuation heading: direction from each index's own percentile, the date from the data (S203)."""
+    since = (n50 or s250).since if (n50 or s250) else ip.PE_FROM
+    if not (n50 and s250):
+        return f"Each index's P/E against its own past since {_dy(since)}."
+    small = _against_past(s250.pct_now).replace(" of days", "")
+    return (f"At {n50.pe_now:.1f} times earnings, the Nifty 50 is {_against_past(n50.pct_now)} since {_dy(since)}; "
+            f"the Nifty Smallcap 250 is {small}.")
+
+
 def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, m3: pd.Timestamp,
                       young: ip.YoungValuation | None = None) -> list:
     by = {v.key: v for v in vals}
     n50, s250 = by.get("nifty_50"), by.get("nifty_smallcap_250")
-    h2 = "Valuation against the index's own recent past."
-    if n50 and s250:
-        h2 = (f"The Nifty 50 at {n50.pe_now:.1f} times earnings is cheaper than {100 - n50.pct_now:.0f}% of days "
-              f"since April 2021; the Nifty Smallcap 250 is dearer than {s250.pct_now:.0f}%.")
+    h2 = valuation_headline(n50, s250)
     rows = [{"name": v.name, "sub": f"percentile since {_dy(v.since)}", "bar": round(v.pct_now, 1), "ago": round(v.pct_1m, 1),
              "vals": [f"{v.pe_3m:.2f}", f"{v.pe_1m:.2f}", f"{v.pe_now:.2f}", f"{v.pct_now:.0f}"],
              "cls": ["muted", "muted", "b", ""],
@@ -199,11 +218,14 @@ def section_lag(sts: list[ip.Style]) -> list:
     rec = [s for s in sts if s.recovered is not None and s.worst <= -20]
     extra = ""
     if others:
-        extra += " " + " and ".join(f"{s.style} is at its worst too ({sg(s.from_peak.iloc[-1])}%)" for s in others) + "."
+        # No signed figure in brackets inside a sentence (S203 ix.lag.2).
+        extra += " " + " and ".join(f"{s.style} is at its deepest too, {_fmt.fixed(abs(s.from_peak.iloc[-1]), 1)}% below its peak"
+                                    for s in others) + "."
     if rec:
         r = min(rec, key=lambda s: s.worst)
-        extra += (f" {r.style} fell {abs(r.worst):.1f}% against the {r.parent_name} in {r.worst_peak.year}–{str(r.worst_low.year)[2:]}"
-                  f" and took until {r.recovered:%B %Y} to recover.")
+        # Months, not a "2018–20" span that gives none (S203 ix.lag.2, dash.mom.6's form).
+        extra += (f" {r.style} fell {abs(r.worst):.1f}% against the {r.parent_name}, from {r.worst_peak:%b %Y} to "
+                  f"{r.worst_low:%b %Y}, and was back by {r.recovered:%b %Y}.")
     styles = []
     for s in sts:
         rel, dd = ip.weekly(s.rel), ip.weekly(s.from_peak)

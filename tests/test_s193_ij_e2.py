@@ -271,5 +271,23 @@ def test_watchlist_headline_for_one_stock():
     ln = wl.Lines(buy=20, keep=40, high_gap=20)
     t = pd.DataFrame({"Symbol": ["ABC"], "Qualified Rank": [55]})
     head = wl.title(t, 1, None, ln)
-    assert head.startswith("Your 1 stock is ") and "not in the book&#x27;s top 20" in head and "None of" not in head
+    assert head.startswith("Your 1 stock is ") and "not in the top 20 qualified" in head and "None of" not in head
     assert 'class="dh-down"' in head
+
+
+def test_watchlist_headline_says_the_check_not_a_sale_date():
+    """S203 wl.head.1: "sold on 30 Nov" read as a trade on the 30th; sales fill the next session."""
+    import re
+    from types import SimpleNamespace
+
+    import pandas as pd
+
+    from src.ui import watchlist_lines as wl
+    ln = wl.Lines(buy=20, keep=40, high_gap=20)
+    t = pd.DataFrame({"Symbol": ["A", "B", "C"], "Qualified Rank": [3, 30, 60]})
+    plan = SimpleNamespace(book=["A", "B"], sells=["B"], check=pd.Timestamp("2026-11-30"))
+    txt = re.sub(r"<[^>]+>", "", wl.title(t, 3, plan, ln))
+    assert txt == "1 of your 3 stocks is in the top 20 qualified. The book holds 2 of them; 1 would be sold at the 30 Nov check."
+    plan = SimpleNamespace(book=["A"], sells=[], check=pd.Timestamp("2026-11-30"))
+    assert re.sub(r"<[^>]+>", "", wl.title(t, 3, plan, ln)).endswith(
+        "The book holds one of them, A, and would keep it at the 30 Nov check.")
