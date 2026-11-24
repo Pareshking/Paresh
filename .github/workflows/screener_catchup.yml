@@ -41,6 +41,10 @@ jobs:
         with:
           python-version-file: .python-version
           cache: pip
+          # Its own key (S225 (9)): setup-python keys the pip cache on requirements.txt across
+          # every workflow, so a cache saved here with two packages would be the one the
+          # full installs restore, and they would download everything again.
+          cache-dependency-path: .github/workflows/screener_catchup.yml
       - name: Install what the check reads
         run: pip install pandas pyarrow
       - name: Decide and act
