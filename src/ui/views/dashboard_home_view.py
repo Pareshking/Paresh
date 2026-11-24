@@ -1131,6 +1131,14 @@ def results_due_line(symbols: list[str], check) -> str:
 # ── The page ────────────────────────────────────────────────────────────────
 
 
+def display_labels(rank_df: pd.DataFrame, system: str) -> pd.DataFrame:
+    """rank_df for the Dashboard's labels: Industry as NSE's sector where the classification covers 90%
+    of the system's stocks (S226 (A), `with_nse_sectors`), else rank_df as it is. Never changes rank_df,
+    and never reaches `model_plan`: on Nano and Combined rank_df's Industry is the plan's sector cap."""
+    from src.loaders.nse_classification import with_nse_sectors
+    return with_nse_sectors(rank_df, system)
+
+
 def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_close: pd.Series | None,
                      system: str = "750", volume: pd.DataFrame | None = None) -> None:
     from src.core.config import MODEL_BOOK_CAPITAL
@@ -1184,7 +1192,10 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     fill0 = di.first_fill(market, first_month)
     since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, as_of)
 
-    a = assess(rank_df, symbols, rules)
+    # The labels under each holding and the book by sector read NSE's sector (S226 (A)) from a copy;
+    # the plan reads rank_df itself, whose Industry is the sector cap (switched with S198, January 2027).
+    shown = display_labels(rank_df, system)
+    a = assess(shown, symbols, rules)
     check, fill = next_rebalance(as_of)
     from src.ui.model_plan import model_plan
     plan = model_plan(book, record, rank_df, adj_close, benchmark_close, system, check)   # the same plan as Actions (S154)
@@ -1197,7 +1208,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     bench = bench.set_index("date").sort_index() if bench is not None else None
     n500 = (pd.to_numeric(bench["nifty500"], errors="coerce").dropna() if bench is not None
             else pd.Series(dtype=float))
-    industry = rank_df.set_index("Symbol")["Industry"] if "Industry" in rank_df else pd.Series(dtype=str)
+    industry = shown.set_index("Symbol")["Industry"] if "Industry" in shown else pd.Series(dtype=str)
     # Nifty Total Market, joined to the Nifty 500 before its launch (S165), for every "against the market" reading
     # here; the signal rows and their tests keep the Nifty 500, the history they were tested on.
     mkt_line, mkt_name = mq.join_market(n500, bi.series(bi.TOTAL_MARKET))

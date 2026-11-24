@@ -5,6 +5,7 @@
 
 - Screener: the search will offer NSE's macro sector, industry and basic industry beside its sector, in place of TradingView's sector and industry. Sectors: the grouping picker will offer the same four NSE levels on every system, and on > ₹2,000 Cr and Combined sets NSE's sector indices beside NSE's sectors. Each level appears once the classification file covers 90% of a system's stocks; until then both pages stay as they are. A stock the file lacks reads "Unclassified" at that level.
 - Configuration: the data files table lists the NSE classification file.
+- Dashboard, Market and Watchlist: the sector shown under each holding, in the book by sector, in the new highs and lows table and in the Watchlist's rows and export is NSE's sector (the same guard); the plan behind them, and Portfolio's "Sector / Industry" column, keep today's labels until the sector cap switches in January (S198).
 - Ranks, the model plan's sector cap, the record and backtests do not change: they still read today's labels. `scripts/s226_measure.py` measures what would move if they read NSE's sector, for the owner to decide.
 
 ## 2026-11-24 — The owner's confirmation round

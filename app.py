@@ -1223,7 +1223,8 @@ def _page_indices() -> None:
 
 
 def _page_market() -> None:
-    render_market_view(rank_df, adj_close, history_prices=_daily_history(),
+    # Labels only (no plan on Market): NSE's sector and levels, as the Screener (S226 (A)).
+    render_market_view(_nse_display(), adj_close, history_prices=_daily_history(),
                         benchmark_close=fetch_benchmark_history(period="5y"))
 
 

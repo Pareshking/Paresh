@@ -120,9 +120,66 @@ def test_sector_nouns():
 def test_only_display_pages_get_the_nse_copy():
     app = (ROOT / "app.py").read_text()
     callers = [m_.group(1) for m_ in re.finditer(r"(render_\w+)\(\s*_nse_display\(\)", app)]
-    assert sorted(callers) == ["render_ranking_view", "render_sector_view"]
+    assert sorted(callers) == ["render_market_view", "render_ranking_view", "render_sector_view"]
     # The plan's labels: rank_df's Industry, set from TradingView on Nano and Combined (S226 (B), measured).
     assert 'rank_df["Industry"] = rank_df["TV_Sector"]' in app
+
+
+# ── The Dashboard and the Watchlist: labels from a copy, the plan from rank_df (S226 (A)) ─────────────
+
+
+def _plan_rank():
+    # Four names in one TradingView sector that NSE splits in two: with 2 slots a sector the cap binds on
+    # TradingView's labels and not on NSE's, so a plan struck from the display copy would buy differently.
+    n = 6
+    rank = pd.DataFrame({"Symbol": [f"S{k}" for k in range(n)], "Rank": range(1, n + 1),
+                         "Industry": ["T", "T", "T", "T", "U", "V"], "Above 50 EMA": True, "Near 52W High": True})
+    nse = {"S0": "A", "S1": "A", "S2": "B", "S3": "B", "S4": "U", "S5": "V"}
+    return rank, nse
+
+
+def _plan(rank):
+    from src.engine.actions import plan_rebalance
+    p = plan_rebalance(rank, ["S0", "S4"], top_n=4, buffer_n=4, stock_cap=0.25, sector_cap=0.5)
+    return p.sells, p.buys, p.holds, p.next_in_line, p.weights.round(10).to_dict()
+
+
+def test_dashboard_labels_are_nses_and_the_plan_is_unchanged(monkeypatch):
+    from src.ui.views import dashboard_home_view as dh
+    rank, nse = _plan_rank()
+    before = _plan(rank)
+    monkeypatch.setattr(nc, "fetch_sector_map", lambda: nse)
+    shown = dh.display_labels(rank, xu.SYSTEM_NANO)
+    assert shown is not rank and shown["Industry"].tolist() == ["A", "A", "B", "B", "U", "V"]
+    assert rank["Industry"].tolist() == ["T", "T", "T", "T", "U", "V"]          # the plan's input untouched
+    assert _plan(rank) == before                                                 # same names, same weights
+    assert _plan(shown) != before          # the test can tell: NSE's labels would have moved the book
+    assert dh.display_labels(rank, xu.SYSTEM_750) is rank
+
+
+def _function_source(path: str, name: str) -> str:
+    import ast
+    src = (ROOT / path).read_text()
+    fn = next(n for n in ast.walk(ast.parse(src)) if isinstance(n, ast.FunctionDef) and n.name == name)
+    return ast.get_source_segment(src, fn)
+
+
+def test_dashboard_and_watchlist_strike_the_plan_from_rank_df():
+    import ast
+    home = _function_source("src/ui/views/dashboard_home_view.py", "render_home_view")
+    assert "model_plan(book, record, rank_df," in home and "shown = display_labels(rank_df, system)" in home
+    assert "assess(shown," in home and 'industry = shown.set_index("Symbol")["Industry"]' in home
+    wl = _function_source("src/ui/views/watchlist_view.py", "render_watchlist_view")
+    assert "wl.book_plan(rank_df," in wl and "with_book_columns(with_nse_levels(rank_df, system)" in wl
+    for body in (home, wl):     # rank_df is never rebound or written to in either function
+        for node in ast.walk(ast.parse(body)):
+            targets = (node.targets if isinstance(node, ast.Assign)
+                       else [node.target] if isinstance(node, (ast.AugAssign, ast.AnnAssign)) else [])
+            for t in targets:
+                base = t
+                while isinstance(base, (ast.Subscript, ast.Attribute)):
+                    base = base.value
+                assert not (isinstance(base, ast.Name) and base.id == "rank_df")
 
 
 def test_configuration_lists_the_classification_file():
