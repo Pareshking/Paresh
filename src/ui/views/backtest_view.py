@@ -566,7 +566,7 @@ def section_lead(f: dict) -> list:
         "more (the long file takes those out as an adjustment); the Nifty 500 figure is NSE’s price index, which takes "
         "out only special dividends, 2% of the price or more (NSE’s index methodology, Nov 2022), not ordinary ones"
         + (f". NSE’s own file puts the Nifty 500’s dividend yield at {dy:.1f}% a year on average since Feb 2012, "
-           "against about 0.5% for the book (measured 2020–25 only, S125), so against the index with every dividend "
+           "against about 0.5% a year for the book in a test of 11 Nov 2026 (2020–25 only), so against the index with every dividend "
            f"(its total-return version) the lead is about {dy - 0.5:.1f} points a year smaller than shown."
            if dy is not None else "."),
         f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill. "

@@ -382,7 +382,7 @@ where `:.1f` and `:.0f` sit today (Market chart heads, Sectors, Indices, the Act
 
 ## 12. Questions for the owner
 
-Answers (owner, 24 Nov 2026, one at a time): 1, the question title (recommended); 2, the subject named (recommended).
+Answers (owner, 24 Nov 2026, one at a time): 1, the question title (recommended); 2, the subject named; 3, tie the chip to the buy count; 4, dated quotes, Sectors examples filled; 5, the lede keeps the 12M return (all recommended).
 
 1. **The Guide's title (gd.head.1).** Every other page's h1 now answers a question (§2a); the Guide's is its name.
    I recommend "How the ranking picks the book, and how to act on it.", with "Guide" as the kicker. The alternative

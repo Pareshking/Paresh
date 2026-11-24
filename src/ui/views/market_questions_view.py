@@ -34,19 +34,26 @@ _CSS = """<style>
 </style>"""
 
 
-def market_title(breadth, trend) -> str:
-    """The title; a missing score says so instead of "Not enough data participation" (S203 mk.head.1).
-    The wording of the full title is the owner's question 2 (S203)."""
+_TREND = {"Strong downtrend": "is in a strong downtrend", "Downtrend": "is in a downtrend",
+          "No clear trend": "has no clear trend", "Uptrend": "is in an uptrend", "Strong uptrend": "is in a strong uptrend"}
+
+
+def market_title(breadth, trend, name: str = "Nifty Total Market") -> str:
+    """"Participation is narrow; Nifty Total Market is in a strong uptrend." The trend has a subject (S203 Q2,
+    owner 24 Nov 2026), and a missing score is said, not "Not enough data participation" (mk.head.1)."""
     from src.engine.market_questions import word_for
     missing = word_for(None, ("",) * 5)
     if breadth is None or trend is None:
         return "Market breadth"
     b_ok, t_ok = breadth.verdict != missing, trend.verdict != missing
-    t_txt = trend.verdict[0].lower() + trend.verdict[1:]
+    index = the(name)
+    index = index[0].upper() + index[1:]
+    t_txt = f"{index} {_TREND.get(trend.verdict, trend.verdict.lower())}"
+    b_txt = f"Participation is {breadth.verdict.lower()}"
     if b_ok and t_ok:
-        return f"{breadth.verdict} participation; {t_txt}."
+        return f"{b_txt}; {t_txt}."
     if b_ok:
-        return f"{breadth.verdict} participation; the trend cannot be read today."
+        return f"{b_txt}; {the(name)}'s trend cannot be read today."
     if t_ok:
         return f"Participation cannot be read today; {t_txt}."
     return "The ranked stocks' prices are not in yet."
@@ -555,7 +562,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     key = "|".join([_columns_key(prices, syms), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
     breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size, pit, name)
     # The title answers both questions; the page's name is the kicker (PAGE_DESIGN 2a, 21 Nov 2026).
-    title = market_title(breadth, trend)
+    title = market_title(breadth, trend, name)
     st.html(_CSS + _PAGE_CSS + _CHART_CSS +
             '<div class="qp-head"><p class="qp-kick">Market</p>'
             f'<h1 class="qp-title">{html.escape(title)}</h1>'
@@ -586,8 +593,8 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
         _trend_charts(bench.dropna(), size, name)
     st.html('<p class="qp-note" style="margin:10px 0 18px">Today counts the stocks ranked today. Every earlier '
             'reading counts the stocks in Nifty Total Market on that date, including those that have since left it, '
-            'from NSE’s first recorded list (29 Oct 2021); counting today’s members back in time made the past look '
-            'about 5 points broader than it was.</p>' if pit else
+            'from NSE’s first recorded list (29 Oct 2021). In a test of 20 Nov 2026, counting today’s members back in '
+            'time made the past look about 5 points broader than it was.</p>' if pit else
             '<p class="qp-note" style="margin:10px 0 18px">Every reading counts the stocks this system ranks today, '
             'back in time: a members-of-the-day history is kept for the Nifty 750 only, so the past may read a few '
             'points broader than it was.</p>')

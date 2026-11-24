@@ -78,11 +78,15 @@ def compute_signals(rank_df: pd.DataFrame) -> list[SignalAlert]:
     nr_hi = pd.Series(nr_hi, index=rank_df.index, dtype="bool")
     has_rank = pd.Series(rk_col.notna(), index=rank_df.index, dtype="bool")
     qualified = rank_df[ab_ema & nr_hi & has_rank]
-    if len(qualified) < 15:
+    # Tied to the book's buy count: the chip's point is that the book cannot fill (S203 Q3, owner 24 Nov 2026;
+    # it tested 15 and said 20).
+    from src.engine.track_record import TRACK_RECORD_CONFIG
+    buy = int(TRACK_RECORD_CONFIG["top_n"])
+    if len(qualified) < buy:
         signals.append(
             SignalAlert(
                 icon="⚠️",
-                text="Fewer than 20 pass both filters",
+                text=f"Fewer than {buy} pass both filters: the book cannot fill its {buy} places",
                 color=C.caution,
                 category="risk",
             )

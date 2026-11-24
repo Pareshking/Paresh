@@ -237,9 +237,11 @@ tax is not included.</dd>
 
 
 def render_guide_view(rank_df: pd.DataFrame) -> None:
+    # A title that answers the reader's question, the page's name as the kicker (S203 Q1, owner 24 Nov 2026).
     kit.page_head(
-        "Guide",
-        "How the ranking, the filters, the book and the record work, and how to act on them",
+        "How the ranking picks the book, and how to act on it.",
+        "The ranking, the filters, the book and the record, step by step",
+        kicker="Guide",
     )
     st.html(_CSS + _body())
     render_data_quality_footer(

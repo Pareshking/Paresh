@@ -135,7 +135,7 @@ def test_a_broken_rule_says_a_holding_would_be_sold_at_the_check():
     lead, rest = sl.rules_heading(a, pd.Timestamp("2026-11-30"), 0.8)
     assert lead == "It would be sold" and rest.startswith(" at the 30 Nov check if today's price holds: it is 5.0% below")
     # S203 st.rule.1: a stock the book does not hold is not called a holding.
-    assert sl.rules_heading(a, pd.Timestamp("2026-11-30"), 0.8, held=False)[0] == "It would be sold if held"
+    assert sl.rules_heading(a, pd.Timestamp("2026-11-30"), 0.8, held=False)[0] == "It would fail a sell rule"
     rows = sl.rules(rank_df.iloc[1], a, None, LN, 0.8)
     assert rows[0].fall == "Below it" and rows[2].today == "Out"
 
@@ -227,8 +227,15 @@ def test_line_bars_use_one_scale_and_fill_left_for_a_fall():
 
 def test_the_returns_heading_and_note():
     ws = [sl.Window(12, None, 2.009156, 0.008, None, -16.996686, None, None, None)]
-    assert "".join(sl.returns_heading(ws)) == ("Up 200.9% in 12 months against +0.8% for Nifty Total Market; "
-                                               "its max drawdown was 17.0%.")   # glossary 1, 6, 8
+    # S203 Q5 (owner, 24 Nov 2026): the lede keeps the 12M return; the heading counts the windows ahead.
+    assert "".join(sl.returns_heading(ws)) == ("Ahead of Nifty Total Market on 1 of 1 window; "
+                                               "its 12-month max drawdown was 17.0%.")   # glossary 1, 6, 8
+    ws2 = ws + [sl.Window(3, None, -0.05, 0.02, None, -9.0, None, None, None),
+                sl.Window(6, None, 0.10, 0.04, None, -12.0, None, None, None)]
+    assert "".join(sl.returns_heading(ws2)).startswith("Ahead of Nifty Total Market on 2 of 3 windows; its 12-month")
+    assert sl.returns_tone(ws2) == "up"
+    assert sl.returns_heading([sl.Window(12, None, None, None, None, None, None, None, None)])[0] == \
+        "No return to show for this stock yet."
     note = sl.returns_note(DAY, sl.Universe("750", 750))
     assert "not annualised" in note and "Nifty Total Market" in note and "the median of the 750" in note
 

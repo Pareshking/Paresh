@@ -61,12 +61,16 @@ def test_the_backtest_verbs_carry_the_sign():
 
 # ── Market (S203 mk.head.1): a missing score is said, not "Not enough data participation" ──
 def test_the_market_title_says_a_missing_score():
+    """S203 Q2 (owner, 24 Nov 2026): the trend names its index; a missing score is said."""
     from types import SimpleNamespace as N
 
     from src.ui.views.market_questions_view import market_title
-    assert market_title(N(verdict="Broad"), N(verdict="Clear uptrend")) == "Broad participation; clear uptrend."
-    assert market_title(N(verdict="Not enough data"), N(verdict="Clear uptrend")) == \
-        "Participation cannot be read today; clear uptrend."
+    assert market_title(N(verdict="Narrow"), N(verdict="Strong uptrend")) == \
+        "Participation is narrow; Nifty Total Market is in a strong uptrend."
+    assert market_title(N(verdict="About usual"), N(verdict="No clear trend")) == \
+        "Participation is about usual; Nifty Total Market has no clear trend."
+    assert market_title(N(verdict="Not enough data"), N(verdict="Uptrend")) == \
+        "Participation cannot be read today; Nifty Total Market is in an uptrend."
     assert market_title(N(verdict="Broad"), N(verdict="Not enough data")) == \
-        "Broad participation; the trend cannot be read today."
+        "Participation is broad; Nifty Total Market's trend cannot be read today."
     assert "Not enough data" not in market_title(N(verdict="Not enough data"), N(verdict="Not enough data"))

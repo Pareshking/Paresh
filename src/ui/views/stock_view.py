@@ -365,7 +365,7 @@ def returns_html(ws: list[sl.Window], as_of, uni) -> list:
             f'<td class="n sp-wide">{formats.pct(w.typical_fall, fraction=False)}</td>'
             f'<td class="n sp-wide">{formats.signed(w.sharpe, 2, plus=False) if w.sharpe is not None else formats.DASH}</td>'
             f'<td class="n sp-wide">{wl.fmt_ordinal(w.place) if w.place is not None else formats.DASH}</td></tr>')
-    return ['<section class="dh-sec sp-sec">', _kick("3 · Returns and falls"), _h2(a, b, c),
+    return ['<section class="dh-sec sp-sec">', _kick("3 · Returns and falls"), _h2(a, b, c, sl.returns_tone(ws)),
             f'<div class="sp-key"><span><i class="ln"></i>One line is {step}% of return, one scale for every row</span>'
             f'<span><i class="tri"></i>{sl.MARKET}, same sessions</span></div>',
             '<div class="sp-tbox sp-ret"><table class="sp-t"><thead><tr><th scope="col">Window</th><th scope="col">Return</th>'

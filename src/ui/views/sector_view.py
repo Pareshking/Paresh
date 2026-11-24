@@ -304,7 +304,7 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True) -> list:
              + (f"<li>Nearest to falling behind: {ext}.</li>" if ext else "")
              + "</ul><p class=\"dh-note\">Which sizes lead, against Nifty Total Market at 1M, 3M and 6M: on the Dashboard, "
              f'<a href="{page_href("./")}#s-size" target="_self">Size, and where momentum works →</a></p></div>')
-    ex = next((r for r in ld.rows if r.name == "Healthcare"), ld.rows[0])
+    ex = ld.rows[0]  # the table's top row, not a typed sector (S203 Q4, owner 24 Nov 2026)
     left = ", ".join(f"{k} ({v})" for k, v in sorted(ld.left_out.items(), key=lambda kv: -kv[1]))
     what = (f"A {noun} here is the equal-weighted index of its ranked stocks, rebalanced daily, and so is the 750. "
             f"{len(ld.rows)} have five or more ranked stocks and are shown"
@@ -377,7 +377,7 @@ def section_broad(ld: sp.Leads, nse: dict, sh) -> list:
             "rows": rows, "lo": -12, "hi": 12, "step": 0.5, "lines": [_r(m3)] if m3 is not None else [], "rest": "Latest · the first row"}
     pairs = [{"short": sh(g.sector), "ours_name": f"{sh(g.sector)}, the 750’s stocks", **{k: v for k, v in nse["pairs"][g.sector].items()}}
              for g in gaps if g.sector in nse["pairs"]]
-    start = next((i for i, p in enumerate(pairs) if p["short"] == sh("Financial Services")), 0)
+    start = 0  # the widest gap, the headline's own example (S203 Q4; it was typed "Financial Services")
     return [f'<div class="dh-sec">{KICK.format("Broad or narrow")}<h2 id="s-broad" class="dh-h2">{h2}</h2>'
             '<p class="dh-note">Each sector’s ranked stocks, equal-weighted, against NSE’s index for the sector, which holds its own '
             'selection of the sector’s companies and weights them by free-float value: the two differ in stocks and in weights. '
