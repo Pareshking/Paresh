@@ -68,7 +68,7 @@ def test_dashboard_tiles_read_the_systems_record():
     src = (ROOT / "src" / "ui" / "views" / "dashboard_home_view.py").read_text(encoding="utf-8")
     assert "This system’s top fifth against the {e(uni)}, equal weight" in src
     assert "own = sm.for_tiles(sm.read(system if system in sm.SYSTEMS else SYSTEM_750))" in src
-    assert "No year of this system’s own record yet" in src
+    assert "This system’s record is under 12 months old" in src     # S203 dash.mom.1
     assert "This ranking’s top 100 against the Nifty 500" not in src
     wf = (ROOT / ".github" / "workflows" / "momentum_health.yml").read_text(encoding="utf-8")
     assert "data/momentum_health_*.csv" in wf             # the month-end job collects each system's record
@@ -82,8 +82,8 @@ def test_the_nifty_500s_longer_record_is_one_line_beside_every_system():
     sp = pd.read_csv(ROOT / "data" / "momentum_health.csv")
     long = dv._long_record(sp)
     line = dv._long_record_line(long)
-    assert line.startswith(" Over the longer record, the Nifty 500’s members since 2010 by the same rule")
+    assert line.startswith(" On the Nifty 500’s record since 2010, by the same rule, the deepest fall was")   # S203 dash.mom.7
     assert "of 5% or more took" in line and "to recover" in line
     short = dv._lag_note(None, short="This system’s own record is being collected.", long=long)
-    assert "Over the longer record" in short
+    assert "On the Nifty 500’s record since 2010" in short
     assert dv._long_record(sp.drop(columns=["ew"])) is None

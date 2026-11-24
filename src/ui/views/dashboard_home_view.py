@@ -502,6 +502,20 @@ def rebalance_head(sells: int, buys: int, watch: int, check, n_sess: int) -> str
     return head
 
 
+def worst_line(sym: str, was: int, now: int, cut: int) -> str:
+    """The holding that fell furthest (S203 dash.next.2): its places from the cut-off, 1 place, or at it."""
+    k = cut - now
+    return (f'<span class="dh-watch">{e(sym)} fell from #{was} to #{now} in a month</span>'
+            + (", and sits at the cut-off." if k == 0 else f", {k} place{'s' if k != 1 else ''} from the cut-off."))
+
+
+def sector_go_line(n: int, sector: str) -> str:
+    """Every holding of a weak sector sold (S203 dash.next.3): its own sentence, with the measure behind "weak"."""
+    word = "Both" if n == 2 else f"All {n}"
+    return (f'<span class="dh-down">{word} {e(sector)} holdings go</span>; the sector is behind all ranked stocks '
+            'over 6M and 1M.')
+
+
 def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check, fill, n_sess: int,
                       rules: Rules, n_hold: int, churn: str, results_line: str, turnover: str = "",
                       dates: dict | None = None) -> list:
@@ -517,18 +531,13 @@ def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check
             break
     head = rebalance_head(sells, len(plan.buys), watch, check, n_sess)
     if worst:
-        k = rules.buffer_n - worst[2]
-        head += (f' <span class="dh-watch">{e(worst[0])} fell from #{worst[1]} to #{worst[2]} in a month</span>'
-                 + (", and sits at the cut-off." if k == 0 else f", {k} place{'s' if k != 1 else ''} from the cut-off."))
+        head += " " + worst_line(*worst, rules.buffer_n)
     sold = a[a["Symbol"].isin(plan.sells)]
     shared_ind = [i for i, n in sold["Industry"].value_counts().items() if n >= 2] if "Industry" in sold else []
     for ind in shared_ind:
         n_ind = int((a["Industry"] == ind).sum())
         if n_ind == int((sold["Industry"] == ind).sum()) and ind_state.get(str(ind), ("",))[0] == "behind on both":
-            word = "Both" if n_ind == 2 else f"All {n_ind}"
-            # Its own sentence, with the measure the sector is judged on (S203 dash.next.3).
-            head += (f' <span class="dh-down">{word} {e(str(ind))} holdings go</span>; the sector is behind all ranked stocks '
-                     'over 6M and 1M.')
+            head += " " + sector_go_line(n_ind, str(ind))
             break
     body = []
     for _, r in rows.iterrows():
@@ -832,7 +841,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                 f'<div class="dh-ev-box"><b>No forecast for the Nifty 500.</b> Flows move with the Nifty 500 in the same month '
                 f'(correlation {sg(ev.corr_same, 2)}) and {"only loosely with" if loose else "say nothing about"} the next '
                 f'({sg(ev.corr_next, 2)}).</div>'
-                + (f'<div class="dh-ev-box"><b>Not a large-cap story.</b> In those months the Nifty 50 and the Nifty 500 did '
+                + ('<div class="dh-ev-box"><b>Not a large-cap story.</b> In those months the Nifty 50 and the Nifty 500 did '
                    'about the same.</div>' if _fmt.reads_zero(lmb) else
                    f'<div class="dh-ev-box"><b>{"Not a large-cap story" if lmb < 0 else "A large-cap tilt"}.</b> '
                    f'In those heavy-buying months the Nifty 50 {"trailed" if lmb < 0 else "beat"} the Nifty 500 '
@@ -1005,6 +1014,18 @@ def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None,
             'for quality; NSE has no microcap momentum index.</p>' + END]
 
 
+def strong_weak_head(strong: float, weak: float, k: int) -> str:
+    """Section 6's h2 (S203 dash.sec.1): the windows named; "sits" once, not twice; 0 and 1 in words."""
+    if _fmt.fixed(strong, 0) == "0":
+        first = "None of the book is in a sector ahead of all ranked stocks over 6M and 1M"
+    else:
+        first = (f'<span class="dh-up">{_fmt.fixed(strong, 0)}% of the book is in sectors ahead of all ranked stocks</span> '
+                 'over 6M and 1M')
+    if k == 0:
+        return first + ". No sector the book holds is behind on both."
+    return first + f'; <span class="dh-down">{_fmt.fixed(weak, 0)}% is in {"1 sector" if k == 1 else k} behind on both</span>.'
+
+
 def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame) -> list:
     """The book's weight by industry status, Sectors' measures only (RRG removed, owner 21 Nov 2026)."""
     s = sectors.set_index("Industry")
@@ -1017,18 +1038,16 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame) -> list:
         rows.append((ind, int(r["Holdings"]), float(r["Weight"]), a, b, di.industry_bucket(a, b)))
     tot = {k: sum(x[2] for x in rows if x[5] == k) for k in ("strong", "turning", "weak")}
     weak_names = [x[0] for x in rows if x[5] == "weak"]
-    head = (f'<span class="dh-up">{tot["strong"]:.0f}% sits in sectors beating all ranked stocks.</span> '
-            f'<span class="dh-down">{tot["weak"]:.0f}% sits in {len(weak_names)} that lag</span>')
-    head += "."
+    head = strong_weak_head(tot["strong"], tot["weak"], len(weak_names))
     order = {"strong": 0, "turning": 1, "weak": 2}
     srt = sorted(rows, key=lambda x: (order[x[5]], -x[2]))
     segs = [[SHORT.get(x[0], x[0]), x[1], round(x[2], 1), round(x[3], 1), round(x[4], 1), "", x[5]] for x in srt]
     turning = [x for x in srt if x[5] == "turning"]
     desc = {
-        "strong": "Ahead of all ranked stocks over six months and one month.",
+        "strong": "Ahead of all ranked stocks over 6 months and 1 month.",
         "turning": "Ahead on one window only" + (": " + ", ".join(
-            f"{SHORT.get(x[0], x[0])} over {'the month' if x[4] > 0 else 'six months'}" for x in turning) + "." if turning else "."),
-        "weak": "Behind all ranked stocks on both windows.",
+            f"{SHORT.get(x[0], x[0])} over {'1 month' if x[4] > 0 else '6 months'}" for x in turning) + "." if turning else "."),
+        "weak": "Behind all ranked stocks over 6 months and 1 month.",
     }
     cards = []
     for k, title, cls in (("strong", "Strong", "up"), ("turning", "Turning", "turning"), ("weak", "Weak", "down")):
@@ -1045,8 +1064,8 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame) -> list:
                      f'<b class="dh-{cls} dh-mono">{tot[k]:.1f}%</b></div><p>{e(desc[k])}</p>{body}</div>')
     return [f'<div class="dh-sec">{_kicker("6", "Where the book is strong and weak")}<h2 id="s-book" class="dh-h2">{head}</h2></div>',
             Chart("segbar", {"segs": segs, "totals": {k: round(v, 1) for k, v in tot.items()}}, {"label": "The book by sector status"}),
-            how("The book’s weight in each sector, coloured by how that sector stands against all ranked stocks over six "
-                "months and one month.", "Blue is ahead on both, grey ahead on one, rust behind on both. The cards give each "
+            how("The book’s weight in each sector, coloured by how that sector stands against all ranked stocks over 6 "
+                "months and 1 month.", "Blue is ahead on both, grey ahead on one, rust behind on both. The cards give each "
                 "sector’s figures.", ["Sector", "Weight", "Status"],
                 [[x[0], f"{x[2]:.1f}%", x[6].capitalize()] for x in sorted(segs, key=lambda x: -x[2])]),
             f'<div class="dh-gcards">{"".join(cards)}</div>'
@@ -1071,6 +1090,29 @@ def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], br
                       ["Date", "Nifty 500", "Above 200D EMA"],
                       [[d, f"{n:,.1f}", "–" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]])]
     return parts + [f'<div class="dh-gls">{cells}</div>']
+
+
+def churn_line(buys: int, n: int, bought: list[tuple[str, int]]) -> str:
+    """How many holdings the rebalance would change, against the months it is set beside (S203 dash.next.5;
+    owner's answer 5: "A light month." kept, under 75% of the average). `bought`: (month key "2026-02", buys) for
+    each rebalance after the first book."""
+    first = "No holding would change" if buys == 0 else f"{buys} of {n} holdings would change"
+    if len(bought) >= 3:
+        avg = sum(b for _, b in bought) / len(bought)
+        since = pd.Period(bought[0][0], "M")
+        return (("A light month. " if buys < avg * 0.75 else "")
+                + f"{first}, against {_fmt.fixed(avg, 0)} in an average month since {since:%B}.")
+    if bought:   # one or two rebalances are not an average (S193 B: the list's "10 in an average month" was one)
+        last = pd.Period(bought[-1][0], "M")
+        return f"{first}, against {bought[-1][1]} at the {last:%B} rebalance."
+    return f"{first}."
+
+
+def results_due_line(symbols: list[str], check) -> str:
+    """Results before the check, in the words the calendar can know (S203 dash.next.6)."""
+    if not symbols:
+        return f"No holding or buy has results announced before the {check:%-d %b} check."
+    return f"Results are due before the {check:%-d %b} check from {_names(symbols)}."
 
 
 # ── The page ────────────────────────────────────────────────────────────────
@@ -1155,21 +1197,14 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     # 2. churn and results
     from src.engine import results_calendar as rc
     books = (record or {}).get("month_books") or {}
-    bought = [int((b["Action"] == "Bought").sum()) for k, b in sorted(books.items())[1:]
+    bought = [(k, int((b["Action"] == "Bought").sum())) for k, b in sorted(books.items())[1:]
               if hasattr(b, "columns") and "Action" in b.columns]
-    churn = f"{len(plan.buys)} of {len(symbols)} would change."
-    if len(bought) >= 3:
-        avg = sum(bought) / len(bought)
-        churn = (("A light month. " if len(plan.buys) < avg * 0.75 else "")
-                 + f"{len(plan.buys)} of {len(symbols)} would change; {avg:.0f} in an average month.")
-    elif bought:   # one or two rebalances are not an average (S193 B: the list's "10 in an average month" was one)
-        churn = f"{len(plan.buys)} of {len(symbols)} would change; {bought[-1]} at the last rebalance."
+    churn = churn_line(len(plan.buys), len(symbols), bought)
     bc = rc.for_book(rc.load(), symbols, list(plan.buys), pd.Timestamp(ist_now().date()), fetched=rc.fetched_on())
     results_line = ""
     if bc is not None:
         due = bc.upcoming[pd.to_datetime(bc.upcoming["date"]) <= check] if len(bc.upcoming) else bc.upcoming
-        results_line = ("No results are due from the holdings or the buys before the check."
-                        if due.empty else f"Results due before the check: {', '.join(due['symbol'].astype(str).unique())}.")
+        results_line = results_due_line(list(due["symbol"].astype(str).unique()) if len(due) else [], check)
 
     turnover = _turnover_html(di.leadership_turnover(hist.get("rank_table")), industry)
 
@@ -1262,10 +1297,10 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     breadth = _breadth_spec(n500, hist.get("above_200"), idx_end, UNIVERSE_SHORT.get(system, "750"))
 
     uni = UNIVERSE_SHORT.get(system, "750")
-    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{as_of:%B}", uni)]
+    first_fill = fill0 if fill0 is not None and first_month == as_of.to_period("M") else None
+    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{as_of:%B}", uni, fill=first_fill)]
     parts += section_book(bm, since, since_mkt, as_of, prev, inc + pd.Timedelta(days=1), frozen=_frozen_span(ledger),
-                          fill=fill0 if fill0 is not None and first_month == as_of.to_period("M") else None,
-                          late=idx_late)
+                          fill=first_fill, late=idx_late)
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
                                results_line, turnover, hist.get("dates"))
     own_since = pd.Period(own["month"].iloc[0], "M").strftime("%B %Y") if own is not None else ""
@@ -1273,7 +1308,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_momentum(lead, streak, signals, average, lead_bars,
                               None if short or own is None else di.momentum_lag(own), uni, own_since,
                               long=_long_record(spreads), short=short,
-                              so_far=f"{as_of:%B}" if mtd is not None and mtd < 0 else None)
+                              so_far=f"{as_of:%B}" if mtd is not None and mtd < 0 else None,
+                              last_month=f"{as_of.to_period('M') - 1:%B}", month_end=di.month_end_before(adj_close.index, as_of))
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}")
@@ -1467,33 +1503,55 @@ def _breadth_spec(n500: pd.Series, above_200: pd.Series | None, as_of: pd.Timest
             "a200": [None if pd.isna(v) else round(float(v), 1) for v in a.values], "uni": universe}
 
 
+def brief_book(bm: di.BookMonth, month: str, fill: pd.Timestamp | None = None) -> str:
+    """Today in brief, the book's sentence (S203 dash.brief.1): against Nifty Total Market, then where momentum is."""
+    if bm.market_mtd is None or bm.book_mtd is None or not bm.momentum_mtd:
+        return ""
+    when = f"Since the {fill:%-d %b} fill," if fill is not None else f"So far in {month},"
+    gap = bm.book_mtd - bm.market_mtd
+    lo, hi = min(bm.momentum_mtd.values()), max(bm.momentum_mtd.values())
+    if _fmt.reads_zero(gap):
+        return f"{when} the book is level with Nifty Total Market."
+    if gap > 0:
+        return f"{when} the book is ahead of Nifty Total Market."
+    if bm.book_mtd >= hi - 0.05:
+        return (f"{when} the book is behind Nifty Total Market but "
+                + ("level with the best momentum index." if abs(bm.book_mtd - hi) < 0.05 else "ahead of every momentum index."))
+    place = ("behind all of NSE’s momentum indices" if bm.book_mtd < lo - 0.05
+             else "within the range of NSE’s momentum indices")
+    return f"{when} the book is behind Nifty Total Market and {place}."
+
+
+def brief_signals(signals: list[dict], average, flows=None) -> str:
+    """Today in brief, the signals (S203 dash.brief.3; owner's answer 2: the brief keeps the count)."""
+    tested = [x for x in signals if x["test"] is not None]
+    passed = [x for x in tested if x["test"]["passed"]]
+    read = [x for x in passed if x["like"] is not None and average is not None]
+    if not read:
+        return ""
+    good = [x for x in read if x["like"] >= average]
+    out = (f"{len(passed)} of our tested signals {'passes' if len(passed) == 1 else 'pass'}. "
+           + readings_line(len(good), len(read) - len(good)).replace(
+               "to a stronger month</span>", "to a stronger month for momentum</span>"))
+    if any(x["key"] == "fpi" for x in good):
+        out += (" Record foreign buying is one of them." if flows is not None and flows.month_rank == 1
+                else " Heavy foreign buying is one of them.")
+    return out
+
+
 def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, typical, flows=None,
-           month: str = "the month", universe: str = "750") -> str:
-    bits = []
-    if bm.market_mtd is not None and bm.book_mtd is not None and bm.momentum_mtd:
-        if bm.book_mtd < bm.market_mtd and bm.book_mtd >= max(bm.momentum_mtd.values()) - 0.05:
-            bits.append(f"So far in {month} the book is keeping pace with momentum, and momentum is losing to Nifty Total Market.")
-        elif bm.book_mtd >= bm.market_mtd:
-            bits.append(f"The book is ahead of Nifty Total Market so far in {month}.")
-        else:
-            bits.append(f"The book is behind Nifty Total Market and behind momentum so far in {month}.")
+           month: str = "the month", universe: str = "750", fill: pd.Timestamp | None = None) -> str:
+    bits = [x for x in (brief_book(bm, month, fill),) if x]
     if n_sells:
-        bits.append(f'<span class="dh-down">{n_sells} holding{"s" if n_sells != 1 else ""} go on {check:%-d %b}.</span>')
-    passed = [x for x in signals if x["like"] is not None and average is not None]
-    if passed:
-        good = [x for x in passed if x["like"] >= average]
-        fpi = any(x["key"] == "fpi" for x in good)
-        n = len(passed)
-        bits.append(f'Of the {n} signal{"s" if n != 1 else ""} that pass our own test, on today\'s readings '
-                    f'<span class="dh-up">{len(good)} point{"s" if len(good) == 1 else ""} to a stronger month for momentum</span>'
-                    + ((", record foreign buying among them," if flows is not None and flows.month_rank == 1
-                        else ", foreign buying among them,") if fpi else "")
-                    + f' and <span class="dh-down">{n - len(good)} to a weaker one</span>'
-                    + _month_end_count(passed, average) + '.')
+        # "would": it holds only if prices hold; the sale fills the next session (S193 B, S203 dash.brief.2).
+        bits.append(f'<span class="dh-down">{n_sells} holding{"s" if n_sells != 1 else ""} would be sold at the '
+                    f'{check:%-d %b} check.</span>')
+    if sig := brief_signals(signals, average, flows):
+        bits.append(sig)
     b1 = typical["beat_share"][0] if typical else None
     if b1 is not None and b1 < 40:
         # The 1M window (from the same date a month back), not the month so far (S193 A8).
-        bits.append(f'<span class="dh-watch">The rally is narrow: only {b1:.0f}% of the {universe} beat Nifty Total Market over the past month.</span>')
+        bits.append(f'<span class="dh-watch">The rally is narrow: only {_fmt.fixed(b1, 0)}% of the {universe} beat Nifty Total Market over the past month.</span>')
     nav = "".join(f'<a href="#{a}" class="dh-pill">{e(t)}</a>' for a, t in (
         ("s-month", "1 The book"), ("s-next", "2 Next rebalance"), ("s-mom", "3 Momentum"), ("s-flow", "4 Money flows"),
         ("s-size", "5 Size"), ("s-book", "6 Strong and weak"), ("s-glance", "At a glance")))

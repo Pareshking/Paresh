@@ -21,30 +21,26 @@ def test_no_market_figure_yet_does_not_crash():
     assert "Nifty Total Market has no December figure yet" in html
 
 
-def test_a_range_crossing_zero_reads_between():
-    assert dv._index_range(-1.2, 3.4) == "between −1.2% and +3.4%"
-    assert dv._index_range(0.5, 2.0) == "up 0.5 to 2.0%"
-    assert dv._index_range(-2.1, -0.5) == "down 0.5 to 2.1%"
+def test_a_range_crossing_zero_reads_from_to():
+    # S203 dash.book.3: the approved template ("range from −1.2% to +3.4%") replaced "between ... and ...".
+    two = lambda a, b: {"nifty200_mom30": a, "nifty500_mom50": b}  # noqa: E731
+    assert dv._momentum_range(two(-1.2, 3.4)) == "NSE’s 2 momentum indices range from −1.2% to +3.4%."
+    assert dv._momentum_range(two(0.5, 2.0)) == "NSE’s 2 momentum indices are up 0.5% to 2.0%."
+    assert dv._momentum_range(two(-2.1, -0.5)) == "NSE’s 2 momentum indices are down 0.5% to 2.1%."
 
 
 def test_a_selling_month_says_sold():
     f = di.Flows(as_of=pd.Timestamp("2026-12-05"), mtd=-5000.0, month_rank=9, months_in_record=60, prior_record=None,
                  last20=-5000.0, last20_is_record=False, streak=0, before=12000.0, before_selling_months=3,
                  monthly=[], trail20=[])
-    try:
-        html = "".join(dv.section_flows(f, None, None))
-    except Exception:   # later parts of the section need more data; the headline is built first
-        import inspect
-        src = inspect.getsource(dv.section_flows)
-        assert "have sold" in src and "f.mtd < 0" in src
-        return
+    html = dv.flows_head(f)
     assert "have sold" in html and "bought −" not in html and "bought -" not in html
 
 
 def test_book_too_short_reads_one_colon_in_a_note():
     from src.ui import missing_words as mw
     note = "No risk figures yet: " + mw.book_too_short(63, 20) + "."
-    assert note.count(":") == 1 and "63 sessions" in note and "it has 20" in note
+    assert note.count(":") == 1 and "63 sessions" in note and "the book has 20" in note
 
 
 def test_flow_evidence_counts_only_months_with_a_next_month():

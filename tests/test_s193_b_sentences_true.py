@@ -38,10 +38,10 @@ def test_b1_every_cached_function_hashes_an_argument():
 
 def test_b2_b3_the_book_against_the_momentum_indices():
     from src.ui.views.dashboard_home_view import _against_momentum as at
-    assert at(5.5, 4.3, 4.56) == "is ahead of them."           # the 1000 read "level with the best"
-    assert at(-2.8, 4.3, 5.7) == "is behind all of them."      # the list read "within their range"
-    assert at(4.58, 4.3, 4.56) == "is level with the best of them."
-    assert at(4.4, 4.3, 4.56) == "is within their range."
+    assert at(5.5, 4.3, 4.56) == "ahead of all of them"        # the 1000 read "level with the best"
+    assert at(-2.8, 4.3, 5.7) == "behind all of them"          # the list read "within their range"
+    assert at(4.58, 4.3, 4.56) == "level with the best of them"
+    assert at(4.4, 4.3, 4.56) == "within their range"
 
 
 def test_b4_month_end_state_is_the_month_end_reading():
