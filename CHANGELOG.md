@@ -4,6 +4,7 @@
 ## 2026-11-24 — One 52-week high: the calendar year, everywhere
 
 - The 52-week high is now the calendar year (from the session on or before the date a year back) on every page and in the engine: the Screener's "within 20% of the 52W high" filter, the Backtest, rank history, breadth's new highs and lows, the Dashboard's signal rows and the signal tests. It was the last 252 sessions in some places and only the sessions after the date in others.
+- Every other year window follows: the stock page's 52W low and its note, Market's 12M charts and the Backtest export's rule text read the last 12 months, not 252 sessions. Sharpe, volatility and Sortino still annualise over 252 sessions.
 - On 23 Nov this changes one stock's filter (COHANCE, outside the top 60). The model book applies it from the 30 Nov rebalance; months already recorded are unchanged.
 
 ## 2026-11-24 — Configuration lists every file a page reads (S164)

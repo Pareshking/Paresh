@@ -121,7 +121,7 @@ def test_market_pickers_moved_into_the_charts(captured):
     from src.ui.views import market_view as mv
     src = (ROOT / "src" / "ui" / "views" / "market_view.py").read_text(encoding="utf-8")
     assert "br_lb_days" not in src and '"Period"' not in src
-    assert mv.PERIOD == {"default": "12M", "why": "lately", "chips": ["3M", "6M", "12M"]} and mv.LOOKBACK == 252
+    assert mv.PERIOD == {"default": "12M", "why": "lately", "chips": ["3M", "6M", "12M"]} and mv._lookback(pd.bdate_range("2025-06-30", "2026-06-30")) == len(pd.bdate_range("2025-06-30", "2026-06-30"))
     idx = pd.bdate_range(end="2026-11-20", periods=252)
     mv._participation_chart(pd.DataFrame({"50D": 50.0, "200D": 40.0}, index=idx), "EMA", None)
     mv._highs_lows_chart(pd.DataFrame({"% New Highs": 2.0, "% New Lows": 1.0}, index=idx), True)

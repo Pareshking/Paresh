@@ -401,7 +401,7 @@ _WINDOW_HELP = {
     "6M": "6 months to the latest close, about 126 sessions. An established trend.",
     "9M": "9 months to the latest close, about 189 sessions. Persistence; more "
           "weight favours slow, persistent trends.",
-    "12M": "12 months to the latest close, about 252 sessions. The long base; "
+    "12M": "12 months to the latest close (about 250 sessions). The long base; "
            "guards against spikes.",
 }
 

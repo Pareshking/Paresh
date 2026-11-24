@@ -51,12 +51,14 @@ def test_frozen_months_do_not_carry_the_rule():
     assert config_for_month(TRACK_RECORD_CONFIG, nxt)["high_rule_from"] == go
 
 
-def test_no_engine_or_page_reads_a_52_week_high_over_252_rows():
+def test_no_engine_or_page_reads_a_year_as_252_rows():
+    """Owner, 24 Nov 2026: "365-day calendar window everywhere instead of 252 except for calculating sharpe etc
+    which needs it". Annualising (x252, sqrt(252)) is allowed; a window of 252 rows is not."""
     offenders = []
     for path in list((ROOT / "src").rglob("*.py")):
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             code = line.split("#", 1)[0]
-            if re.search(r"rolling\(\s*252", code):
+            if re.search(r"rolling\(\s*252|tail\(\s*252|iloc\[\s*-\s*252\s*:|shift\(\s*-?252|min\(\s*252\s*,", code):
                 offenders.append(f"{path.relative_to(ROOT)}:{n}")
     assert offenders == []
 

@@ -167,9 +167,11 @@ def test_highs_are_closing_prices_and_the_all_time_high_is_named_when_it_differs
         "The all-time closing high is ₹1,301, on 20 Sep 2024.")
 
 
-def test_the_ladder_low_is_the_last_252_closes():
-    s = pd.Series(np.r_[np.full(10, 50.0), np.linspace(100, 200, 252)],
-                  index=pd.bdate_range("2025-01-01", periods=262))
+def test_the_ladder_low_is_the_calendar_year_of_closes():
+    # Owner, 24 Nov 2026: "365-day calendar window everywhere instead of 252": the 50s are over a year old.
+    year = pd.bdate_range("2025-06-30", "2026-06-30")
+    s = pd.Series(np.r_[np.full(10, 50.0), np.linspace(100, 200, len(year))],
+                  index=pd.bdate_range("2024-06-03", periods=10).append(year))
     lad = sl.ladder(_row(CMP=200.0, **{"52W High": 200.0, "% 50 EMA": 25.0}), s, 0.8)
     assert lad.low == 100.0 and lad.line == 160.0 and lad.ema == 160.0
     assert lad.x(lad.low) == 0.0 and lad.x(lad.high) == 100.0
