@@ -328,7 +328,7 @@ def test_the_rule_numbers_are_the_track_records_on_every_page():
     assert float(DEFAULT_TRANSACTION_COST_BPS) == float(cfg["cost_bps"])
     # Configuration's defaults (weights, "Most in one sector", "Most in one stock") are the Guide's.
     assert [float(w) for w in DEFAULT_LOOKBACK_WEIGHTS] == [float(w) for w in cfg["config_weights"]]
-    assert (DEFAULT_SECTOR_CAP, DEFAULT_STOCK_CAP) == (float(cfg["sector_cap"]), float(cfg["stock_cap"]))
+    assert (float(cfg["sector_cap"]), float(cfg["stock_cap"])) == (DEFAULT_SECTOR_CAP, DEFAULT_STOCK_CAP)
 
 
 # ── The ranked list's market value: Dashboard (flows against it), Portfolio (industries by it) ─

@@ -43,7 +43,7 @@ def test_the_guide_names_the_members_only_scoring_rule():
     body = _guide()
     assert pd.Timestamp(MEMBERS_ONLY_SCORING_FROM).strftime("%-d %b %Y") in body
     assert "index members of that day only" in body
-    assert MEMBERS_ONLY_SCORING_FROM == TRACK_RECORD_CONFIG["members_only_scoring_from"]
+    assert TRACK_RECORD_CONFIG["members_only_scoring_from"] == MEMBERS_ONLY_SCORING_FROM
 
 
 def test_track_record_md_carries_both_rules_before_the_guide_quotes_them():

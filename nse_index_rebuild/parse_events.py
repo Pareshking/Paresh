@@ -10,7 +10,7 @@ class _Row:
         return _ROW_STRICT.match(line) or _ROW_RELAXED.match(line)
 ROW = _Row()
 _ROW_DATED = re.compile(r"^\s*(\d+)\s+(.+?)\s{2,}([A-Z0-9&\-_]+)\s{2,}([A-Z][a-z]+)\s+(\d{1,2}),\s*(\d{4})\s*$")  # a table with an Effective Date column
-MON = "January February March April May June July August September October November December".split()
+MON = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 _EFF = re.compile(r"(?:effective(?:\s+from)?|with effect from|w\.e\.f\.?)\s+([A-Z][a-z]+)\s*(\d{1,2})[,\s]*(?:\d{1,2}[,\s]+)?(\d{4})")
 def _dates(t):
     """[(score, position, iso date)] for every date phrase in t; score 2 when the sentence it sits in makes an index change."""
@@ -130,8 +130,8 @@ for f in sorted(glob.glob("announcements/txt/*.txt")):
                 cur, mode = idx_of(h.group(1)), None
             continue
         dm = _ROW_DATED.match(line)
-        if dm and cur and mode and dm.group(4) in ("January February March April May June July August September October November December".split()):
-            day = f"{dm.group(6)}-{('January February March April May June July August September October November December'.split()).index(dm.group(4)) + 1:02d}-{int(dm.group(5)):02d}"
+        if dm and cur and mode and dm.group(4) in (["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]):
+            day = f"{dm.group(6)}-{(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']).index(dm.group(4)) + 1:02d}-{int(dm.group(5)):02d}"
             out.append([pub, day, base, cur, mode, dm.group(3), dm.group(2).strip()])
             continue
         r = ROW.match(line)

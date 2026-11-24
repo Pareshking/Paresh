@@ -77,7 +77,7 @@ def main(long_path: str, actions_path: str, raw_path: str, report_path: str) -> 
     divs = dividend_yields(pd.read_parquet(actions_path), pd.read_parquet(raw_path,
                            columns=["date", "mkt", "symbol", "close"]))
     divs = divs[(divs["y"] > 0) & (divs["y"] < 1)]
-    renames = json.load(open(report_path)).get("renames_landed", {})
+    renames = json.loads(Path(report_path).read_text(encoding="utf-8")).get("renames_landed", {})
     divs["symbol"] = divs["symbol"].map(lambda x: renames.get(x, x))
     membership = iu.index_history("nifty_500")
 

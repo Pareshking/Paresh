@@ -15,7 +15,7 @@ import pytest
 from src.ui import screener_table, tokens
 
 ROOT = Path(__file__).resolve().parents[1]
-THEME = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
+THEME = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8") + (ROOT / "src" / "ui" / "page.css").read_text(encoding="utf-8")
 
 
 def _block(start: str, end: str) -> str:

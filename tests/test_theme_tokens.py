@@ -10,7 +10,14 @@ import pytest
 from src.ui.tokens import PALETTE, C, css_root, resolve
 
 ROOT = Path(__file__).resolve().parents[1]
-UI = [p for p in (ROOT / "src" / "ui").rglob("*.py") if p.name != "tokens.py"] + [ROOT / "app.py"]
+
+
+def _code(d):
+    """The Python and the stylesheets under d: page.css is the page CSS since S138 I6."""
+    return sorted([*d.rglob("*.py"), *d.rglob("*.css")])
+
+
+UI = [p for p in _code(ROOT / "src" / "ui") if p.name != "tokens.py"] + [ROOT / "app.py"]
 
 
 def test_every_colour_name_the_ui_uses_is_in_the_palette():
@@ -91,7 +98,7 @@ def test_no_colour_literals_outside_the_tokens():
     from pathlib import Path
     ui = Path(__file__).resolve().parent.parent / "src" / "ui"
     offenders = []
-    for f in ui.rglob("*.py"):
+    for f in _code(ui):
         if f.name == "tokens.py":
             continue
         for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
@@ -112,7 +119,7 @@ def test_every_colour_variable_used_is_a_palette_token():
 
     root = Path(__file__).resolve().parents[1] / "src"
     used = {}
-    for f in root.rglob("*.py"):
+    for f in _code(root):
         for n, line in enumerate(f.read_text().splitlines(), 1):
             for name in re.findall(r"var\(--c-([A-Za-z0-9_-]+)", line):
                 used.setdefault(name, f"{f.relative_to(root)}:{n}")
@@ -131,7 +138,7 @@ def test_the_theme_file_is_the_only_place_sizes_are_set():
 
     ui = Path(__file__).resolve().parents[1] / "src" / "ui"
     budget = {  # file -> the most literal font sizes it may still carry
-        "theme.py": 0, "page_kit.py": 0, "components.py": 0, "screener_table.py": 0,
+        "theme.py": 0, "page.css": 0, "page_kit.py": 0, "components.py": 0, "screener_table.py": 0,
     }
     for name, allowed in budget.items():
         found = re.findall(r"font-size:\s*[\d.]+px", (ui / name).read_text())
@@ -155,7 +162,7 @@ def test_every_theme_variable_used_is_defined():
               "r": tokens.RADIUS, "sh": tokens.SHADOW}
     root = Path(__file__).resolve().parents[1] / "src"
     unknown = {}
-    for f in root.rglob("*.py"):
+    for f in _code(root):
         for n, line in enumerate(f.read_text().splitlines(), 1):
             for kind, name in re.findall(r"var\(--(c|fs|sp|r|sh)-([A-Za-z0-9_]+)", line):
                 if name not in groups[kind]:

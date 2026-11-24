@@ -278,7 +278,7 @@ def test_every_ranking_constant_is_in_the_digest(monkeypatch, module, name, valu
 def test_the_version_is_stable_when_nothing_changes():
     """A digest that moved on its own would mean the precompute never hits."""
     assert pipeline.pipeline_version() == pipeline.pipeline_version()
-    assert pipeline.PIPELINE_VERSION == pipeline.pipeline_version()
+    assert pipeline.pipeline_version() == pipeline.PIPELINE_VERSION
 
 
 def test_the_version_still_carries_a_readable_tag():
