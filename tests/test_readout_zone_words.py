@@ -26,3 +26,9 @@ def test_the_zone_words_are_short_enough_for_one_line_at_412px():
     words = _zone_words()
     assert words == {"above": "heavy buying", "between": "moderate buying", "belowZero": "net selling"}
     assert all(len(w) <= LIMIT for w in words.values())
+
+
+def test_both_readout_holders_measure_again_once_the_web_fonts_load():
+    """A first fit in the fallback font must not hold its height after IBM Plex arrives (S222)."""
+    js = (SRC.parents[3] / "static" / "dash_charts.js").read_text(encoding="utf-8")
+    assert js.count("addEventListener('loadingdone'") == 2      # interact() and rowsInteract()
