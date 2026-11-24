@@ -30,13 +30,13 @@ the owner approves the section order.
 
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
-| 1 | Two questions, each with a verdict word, one sentence, and a scale marking today, a month ago and a year ago | Owner 7 Nov ("tipsheet's question pages as the model") | Top | Are most stocks taking part? + Is the Nifty 500 in an uptrend? + A month ago + 12 months ago |
+| 1 | Two questions, each with a verdict word, one sentence, and a scale marking today, a month ago and a year ago | Owner 7 Nov ("tipsheet's question pages as the model") | Top | Are most stocks taking part? + Is Nifty Total Market in an uptrend? + A month ago + 12 months ago |
 | 2 | What has changed this month, and what would change the answer (the measure, the reading it needs) | Owner 7 Nov | Each question | What has changed + What would change the answer |
 | 3 | The evidence: each measure with its cut-offs written out, where today sits in its own history (percentile, middle half), a year ago, and its vote; primary measures count twice | Owner 7 Nov (CHANGELOG "Editorial type") | Each question | The evidence + percentile + Primary |
 | 4 | Breadth counted over the members of each date, leavers included, from NSE's first recorded list (29 Oct 2021), said on the page | S150, owner 20 Nov | Note | leavers |
-| 5 | Behind each answer, its chart: the index above the share of stocks above their 200D EMA; net new 52W highs week by week; the Nifty 500 against its 10-month average | Owner 7 Nov (CHANGELOG "the charts behind each answer") | Each question | Behind the answer |
+| 5 | Behind each answer, its chart: the index above the share of stocks above their 200D EMA; net new 52W highs week by week; Nifty Total Market against its 10-month average | Owner 7 Nov (CHANGELOG "the charts behind each answer") | Each question | Behind the answer |
 | 6 | Net new 52W highs count each stock once in a week | Fixed 7 Nov | Chart | each counted once |
-| 7 | By size: Nifty 500, Nifty 50, Midcap 150, Smallcap 250, Microcap 250 against their 10-month average, 200D EMA and 52W high, a month ago and now | Owner 7 Nov | Uptrend | Nifty 50 + Midcap 150 + Smallcap 250 + Microcap 250 |
+| 7 | By size: Nifty Total Market, Nifty 50, Midcap 150, Smallcap 250, Microcap 250 against their 10-month average, 200D EMA and 52W high, a month ago and now | Owner 7 Nov | Uptrend | Nifty 50 + Midcap 150 + Smallcap 250 + Microcap 250 |
 | 8 | Today's charts: participation above each average (3M, 6M, 1Y; EMA or SMA; 10D to 200D), by index, new highs against new lows | Live page | Charts | Participation + New highs against new lows |
 | 9 | The stocks making new highs and lows in the last 20 sessions, filterable | Live page | End | Stocks making new highs and lows + Highs + Lows |
 | 10 | No forward returns or outcome claims unless tested (the S150 rule) | Owner 7 Nov; S150 | Whole page | Two questions, answered from the ranked stocks |
@@ -63,8 +63,10 @@ the owner approves the section order.
 - **Benchmark (owner, 21 Nov 2026: "Yes", Total Market with the shorter history):** "Stocks ahead of the market
   over a year" and "Median stock less the market" read Nifty Total Market, daily from NSE's archive
   (`data/nse_total_market.csv`, `scripts/collect_nse_total_market.py`, checked against `benchmark_indices.csv`);
-  their history starts Nov 2022, a year after Total Market's first session. The trend rules keep the Nifty 500
-  (history from 2000); the signal tests' Nifty 500 universe keeps the Nifty 500.
+  their history starts Nov 2022, a year after Total Market's first session. The trend question, its charts and
+  the header strip read Nifty Total Market too (S165, 24 Nov 2026), joined to the Nifty 500 before its launch on
+  14 Oct 2021 so the trend's ranges reach back to 1999; the page says so. The signal tests' Nifty 500 universe keeps
+  the Nifty 500.
 
 ## Figures that also appear on another page
 
