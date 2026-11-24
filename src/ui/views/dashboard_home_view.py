@@ -953,7 +953,7 @@ def _shared_parts(by_size, typical, book_sizes, universe: str = "750", month: st
     return [Cols(left, [right] + right_more, (1, 1))]
 
 
-def size_head(rows, book_sizes: dict[str, float]) -> str:
+def size_head(rows, book_sizes: dict[str, float], gap12: dict[str, float] | None = None) -> str:
     """Section 5's h2 (S203 dash.size.1, dash.size.3, dash.size.4; owner's answers 3 and 4: "level" means 0.0, the size
     band is named as "within 2.5 points"). `rows`: (size, [size less market], [momentum less its size index]) by window."""
     win = [f"{m}M" for m in di.WINDOWS]
@@ -973,20 +973,24 @@ def size_head(rows, book_sizes: dict[str, float]) -> str:
                  f'window. They hold {_fmt.fixed(ms, 0)}% of the book.')
     if head:
         return head.strip()
-    # Neither finding holds: the size furthest from its index over the longest window, at 2.5 points or more (answer 3).
-    longest = [(s, p[-1]) for s, _, p in rows if p and p[-1] is not None]
+    # Neither finding holds: the size furthest from its index over 12M, as approved (answer 3), at 2.5 points or
+    # more; the table's longest window (6M) only when no 12M figure can be read.
+    if gap12:
+        longest, over = list(gap12.items()), "12M"
+    else:
+        longest, over = [(s, p[-1]) for s, _, p in rows if p and p[-1] is not None], win[-1]
     if not longest:
         return "Momentum within each size, against its own index."
     s, gap = max(longest, key=lambda x: abs(x[1]))
     if abs(gap) < 2.5:
-        return f"Momentum is within 2.5 points of its index in every size over {win[-1]}."
+        return f"Momentum is within 2.5 points of its index in every size over {over}."
     return (f"{e(_fmt.size(s))} momentum is furthest from its index: {_fmt.fixed(abs(gap), 1)} points "
-            f"{'ahead' if gap > 0 else 'behind'} over {win[-1]}.")
+            f"{'ahead' if gap > 0 else 'behind'} over {over}.")
 
 
 def section_size(rows, book_sizes: dict[str, float], by_size=None, typical=None, universe: str = "750",
-                 month: str = "the month") -> list:
-    head = size_head(rows, book_sizes)
+                 month: str = "the month", gap12: dict[str, float] | None = None) -> list:
+    head = size_head(rows, book_sizes, gap12)
     parents = {sz: p for sz, p, _, _ in di.SIZES}
     moms = {sz: m for sz, _, m, _ in di.SIZES}
     mom_parents = {sz: mp for sz, _, _, mp in di.SIZES}
@@ -1330,7 +1334,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                               last_month=f"{as_of.to_period('M') - 1:%B}", month_end=di.month_end_before(adj_close.index, as_of))
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
-    parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}")
+    parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}",
+                          gap12=di.momentum_gap(closes, idx_end, 12))
     parts += section_strong_weak(weights, sectors)
     parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk, book_sessions) + _indices_glance(idx_end), breadth,
                             UNIVERSE_SHORT.get(system, "750"), system == SYSTEM_750)

@@ -6,7 +6,7 @@ on:
       research_dataset:
         description: "Immutable R2 dataset"
         required: true
-        default: "market_caps/nse_history"
+        default: "corporate_actions/evidence"
       # Empty (the default): the dataset's newest revision. Until 17 Nov 2026 this
       # was fixed to 2026-09-18 / f01555ee..., which made retention keep that copy.
       research_as_of:
@@ -55,7 +55,7 @@ jobs:
         run: python scripts/r2_membership_live_validation.py --as-of "2026-09-18"
       - name: Live immutable research acceptance
         env:
-          IN_DATASET: ${{ inputs.research_dataset || 'market_caps/nse_history' }}
+          IN_DATASET: ${{ inputs.research_dataset || 'corporate_actions/evidence' }}
           IN_AS_OF: ${{ inputs.research_as_of }}
           IN_REVISION: ${{ inputs.research_revision }}
         run: |

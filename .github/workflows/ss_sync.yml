@@ -17,7 +17,7 @@ name: SS price sync (gentle)
 #      checkpoints: each takes the next 40 not yet updated in this run, so a stopped
 #      run loses nothing. About 75 minutes for the universe.
 #   2. Saved to the data-latest release (the store the next run resumes from)
-#      and published to R2 as prices/ss (r2_retention.py keeps the newest 3).
+#      (R2's prices/ss copy retired 24 Nov 2026, S224 (d): nothing read it).
 #   3. The three-source check (scripts/reconcile_report.py): SS, Screener and
 #      NSE, NSE as judge, rights issues adjusted automatically. The report is
 #      this run's summary and is saved to the release. It never changes a price.
@@ -125,29 +125,6 @@ jobs:
           cp manifest.json ss_manifest.json
           gh release upload data-latest ss_prices_*.parquet ss_manifest.json --repo "$GITHUB_REPOSITORY" --clobber
           python -c "import json; m=json.load(open('manifest.json')); print('SYMBOLS SAVED:', len(m['symbols']), '| FAILED:', len(m['failed']), '| ROWS:', m.get('rows'))"
-
-      - name: Publish to R2
-        if: always()
-        env:
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-        run: |
-          set -euo pipefail
-          [ -f data_cache/ss/manifest.json ] || { echo "Nothing to publish."; exit 0; }
-          python -c "from pathlib import Path; from src.loaders import ss_prices as s; \
-          f = s.read_store(Path('data_cache/ss')); f.to_parquet('ss_prices.parquet', index=False, compression='zstd'); \
-          print('SS store for R2:', len(f), 'rows,', f['symbol'].nunique(), 'stocks')"
-          python scripts/r2_publish.py \
-            --skip-if-published \
-            --path ss_prices.parquet \
-            --dataset prices/ss \
-            --source ss \
-            --key-root archive/prices/ss \
-            --pipeline-version "ss-nightly-${GITHUB_SHA}" \
-            --release-tag data-latest
 
       - name: Three-source check (SS, Screener, NSE as judge)
         if: always()

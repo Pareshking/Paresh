@@ -11,7 +11,6 @@ same immutable publisher as every other archive dataset:
   nse/prices_daily       every security's OHLC, previous close, value, volume
   nse/corporate_actions  the book closures NSE listed that day, parsed
   nse/market_caps        every listed security's market cap
-  nse/source_checks      where Screener disagrees with NSE that day
   nse/closed_days        a day NSE has no bundle for, a week or more after it
                          (a holiday): remembered so it is never asked again
 
@@ -50,7 +49,6 @@ DATASETS = {
     "prices": ("nse/prices_daily", "archive/nse/prices_daily"),
     "corporate_actions": ("nse/corporate_actions", "archive/nse/corporate_actions"),
     "market_caps": ("nse/market_caps", "archive/nse/market_caps"),
-    "source_checks": ("nse/source_checks", "archive/nse/source_checks"),
     "closed_days": ("nse/closed_days", "archive/nse/closed_days"),
 }
 SOURCE = "nse_pr_bundle"
@@ -372,8 +370,8 @@ def main(argv: list[str] | None = None) -> int:
                 counts = flags["check"].value_counts().to_dict() if len(flags) else {}
                 print(f"NSE_CHECK {newest} flags={len(flags)} {counts}")
                 if len(flags):
+                    # Printed only: the R2 copy (nse/source_checks) had no reader and is retired (S224 (d)).
                     print(flags.head(40).to_string(index=False))
-                    publish_tables({"source_checks": flags}, newest, Path(tmp), publish)
 
     if blocked:
         print("::warning::NSE refused this runner; the rest resumes on the next run")

@@ -64,8 +64,6 @@ KEEP_DAILY = 7
 # like every nested one, is never matched here.
 RETAINED_DATASETS: dict[str, str] = {
     "prices/screener": "archive/prices/screener",
-    # The SS store (ss_sync.yml), whole history in one file each run (weekly, Fridays).
-    "prices/ss": "archive/prices/ss",
     # The 2010+ backtest's long NSE file (nse_long_prices.yml, Saturdays), each
     # copy the whole history from 2008 (~18 + 24 MB): the newest two are kept
     # (KEEP_LATEST_ONLY), one to read and one to fall back to.
@@ -85,7 +83,6 @@ RETAINED_KEEP_DAILY: dict[str, int] = {}
 # (owner, 15 Nov 2026: three dailies; 17 Nov 2026, S141: no month-ends either,
 # which grew it by ~445 MB a year).
 KEEP_LATEST_ONLY: dict[str, int] = {
-    "prices/ss": 3,
     "prices/nse_long_close": 2,
     "prices/nse_long_value": 2,
     "prices/nse_long_report": 2,
@@ -108,7 +105,20 @@ RETIRED_DATASETS: dict[str, str] = {
     # replaces it. Each was unprotected for this (PROTECTED_DATASETS below).
     "calculations/rankings": "archive/calculations/rankings",
     "indices/prices/research": "archive/indices/prices/research",
+    # Owner, 24 Nov 2026 (S224 (d), "Yes"): R2 copies nothing reads (DATA_AUDIT_2026-11-24 b4, b6, b7). Their writers
+    # stop in the same change. market_caps/nse_history is rebuilt from data/nse_market_caps.csv's git history;
+    # market_caps/nse_snapshot was a one-off bootstrap of the same file; prices/ss repeats the release's ss_* files;
+    # nse/source_checks were diagnostic flags, re-made by `nse_collect.py --check`.
+    "market_caps/nse_history": "archive/market_caps/nse_history",
+    "market_caps/nse_snapshot": "archive/market_caps/nse_snapshot",
+    "prices/ss": "archive/prices/ss",
+    "nse/source_checks": "archive/nse/source_checks",
 }
+
+# Retired datasets that sit under a protected prefix ("market_caps/", "nse/"): the owner's yes, by name, lifts
+# the protection for exactly these (24 Nov 2026, S224 (d)); everything else under the prefix stays protected.
+RETIRED_BY_OWNER: frozenset[str] = frozenset({"market_caps/nse_history", "market_caps/nse_snapshot",
+                                              "nse/source_checks"})
 
 # Never pruned, never retired (owner, 2026-10-03: the reference histories the
 # long price file is checked against must not be lost to a clean-up). A
@@ -148,7 +158,6 @@ PROTECTED_DATASETS: tuple[str, ...] = (
 # the app, the backtests or the ranking reads it from R2.
 PROTECTED_KEEP_NEWEST: dict[str, tuple[str, int]] = {
     "bse/daily": ("archive/bse/daily", 1),
-    "market_caps/nse_history": ("archive/market_caps/nse_history", 2),
 }
 MIN_PROTECTED_COPIES = 1
 
@@ -177,6 +186,8 @@ SCHEDULED_MAX_DELETES = 50
 
 
 def _protected(dataset: str) -> bool:
+    if dataset in RETIRED_BY_OWNER:
+        return False
     return any(dataset == p or (p.endswith("/") and dataset.startswith(p))
                or (p.endswith("*") and dataset.startswith(p[:-1]))
                for p in PROTECTED_DATASETS)

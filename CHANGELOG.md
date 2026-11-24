@@ -1,6 +1,15 @@
 # Changelog
 
 
+## 2026-11-24 — The owner's confirmation round
+
+- Screener: "Out" stands alone again in the qualified column, with no reason beside it (owner: "look is also important"); the 50D EMA and 52W-high columns still say why, and a stock too new for a 52W high says so on hover.
+- Screener: a Max DD over a window longer than the stock's history now shows, marked "†" ("since listing"), with a caption under the table; it used to be "–".
+- Screener: the footnote on the > ₹2,000 Cr system names it "the Ultra Nano Cap list (> ₹2,000 Cr until January)".
+- Stock page: the opening sentence gives the exact market cap ("₹29,944 Cr"); a lakh crore and above still reads "₹1.22 lakh Cr".
+- Dashboard: when neither of the size section's findings holds, its heading names the size furthest from its index over 12M, as approved (it used 6M, the table's longest window).
+- R2: four copies nothing read are retired and their writers stopped (market-cap history and snapshot, the SS store copy, NSE-vs-Screener check flags).
+
 ## 2026-11-24 — "Max DD" in tables (owner)
 
 - Table headings and tiles write the worst fall from a peak as "Max DD" ("6M max DD"): the Screener's five window columns, Backtest, Portfolio, Indices and the stock page. Sentences keep "max drawdown", as tables write "52W" and sentences "52-week". The Guide says so where it defines the term.

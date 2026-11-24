@@ -333,8 +333,7 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     for key, col, cls in (("q3", "Qualified (-3M)", " past"), ("q1", "Qualified (-1M)", " past"),
                           ("qrank", "Qualified Rank", "")):
         q = _num(row.get(col))
-        qn = " qn" if key == "qrank" else ""
-        cells[key] = (f'<td class="n{cls}{qn}" data-v="{"" if q is None else q}">'
+        cells[key] = (f'<td class="n{cls}" data-v="{"" if q is None else q}">'
                       f'{"Out" if q is None else int(q)}</td>')
     for key, col in (("p3", "Rank (-3M)"), ("p1", "Rank (-1M)")):
         p_ = _num(row.get(col))
@@ -386,11 +385,16 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
         sh_cls = "" if sh is None else "pos" if sh > 0 else "neg" if sh < 0 else ""
         cells[f"sh{w}"] = (f'<td class="n {sh_cls}" data-v="{"" if sh is None else sh}">'
                            f'{"–" if sh is None else _signed(sh, 2, plus=False)}</td>')
-        # A window too long for the stock's history has no return, so no drawdown either: the short history's own
-        # fall read as a measured 12-month figure (S189 item 7, 24 Nov 2026: MILKYMIST -18.9% beside "–").
-        dd = _num(row.get(f"Max DD {w}M")) if ret is not None else None
-        cells[f"dd{w}"] = (f'<td class="n" data-v="{"" if dd is None else dd}">'
-                           f'{"–" if dd is None else _signed(-abs(dd), plus=False) + "%"}</td>')
+        # A window too long for the stock's history has no return; its drawdown is the short history's own fall,
+        # so it carries a mark, "since listing" (S189 item 7; owner, 24 Nov 2026: "Show it with a mark").
+        dd = _num(row.get(f"Max DD {w}M"))
+        if dd is not None and ret is None:
+            cells[f"dd{w}"] = (f'<td class="n" data-v="{dd}" title="Since listing: under {w} months of prices">'
+                               f'{_signed(-abs(dd), plus=False)}%{SINCE_LISTING_MARK}'
+                               f'<span class="sr"> since listing</span></td>')
+        else:
+            cells[f"dd{w}"] = (f'<td class="n" data-v="{"" if dd is None else dd}">'
+                               f'{"–" if dd is None else _signed(-abs(dd), plus=False) + "%"}</td>')
     ath_v = _num(row.get("% ATH"))
     peak = str(row.get("ATH Date") or "").strip()
     ath_title = f' title="Peak printed {_esc(peak)}"' if peak else ""
@@ -451,25 +455,6 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
                  (cell_title_high(hi_v),
                   f"−{abs(hi_v):.0f}%")),
     }
-    # "Out" says why beside the qualified place, from the same reasons the filter columns show (S189 item 1,
-    # 24 Nov 2026: on Nano the reason sat about 3,000 px to the right, and a short history showed a bare ✗).
-    if qr is None and rank is not None:
-        whys, full = [], []
-        if not is_tick_true(row.get("Above 50 EMA")) and miss.get("above"):
-            whys.append(f"{abs(em):.1f}% under 50D EMA")
-            full.append(miss["above"][0])
-        if not is_tick_true(row.get("Near 52W High")):
-            if miss.get("near"):
-                whys.append(f"{abs(hi_v):.0f}% under 52W high")
-                full.append(miss["near"][0])
-            else:
-                whys.append("too new for a 52W high")
-                full.append("under 12 months of prices, so the 52W-high filter cannot pass")
-        if whys:
-            # One reason a line, in a column of one width on every system and page of rows (owner, 24 Nov
-            # 2026: the Nifty 1000's table opened a 300 px gap; one nowrap reason line set the column's width).
-            cells["qrank"] = (f'<td class="n qn" data-v="" title="{_esc("; ".join(full))}">Out'
-                              + "".join(f'<span class="why">{_esc(w)}</span>' for w in whys) + '</td>')
     for key, col in (("above", "Above 50 EMA"), ("near", "Near 52W High"), ("athf", "At ATH")):
         on = is_tick_true(row.get(col))
         why = None if on else miss.get(key)
@@ -477,6 +462,11 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
             cells[key] = (f'<td class="c-tick" data-v="{int(on)}" title="{_esc(why[0])}">'
                           f'<span class="tick no" aria-hidden="true">✗</span>'
                           f'<span class="miss">{why[1]}</span><span class="sr">{_esc(why[0])}</span></td>')
+        elif not on and key == "near" and hi_v is None:
+            # Too new for a 52W high: the reason on hover, the cell unchanged (S189 item 1 reverted, owner,
+            # 24 Nov 2026: "look is also important").
+            cells[key] = (f'<td class="c-tick" data-v="0" title="Under 12 months of prices, so the 52W-high '
+                          f'filter cannot pass">{_tick(on)}</td>')
         else:
             cells[key] = f'<td class="c-tick" data-v="{int(on)}">{_tick(on)}</td>'
     for key, col in (("nh1", "New Highs 1M"), ("nh3", "New Highs 3M")):
@@ -492,10 +482,20 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     return _short_sort_keys(f'<tr data-stock="{sym_s}"{hl}>' + "".join(cells[c[0]] for c in cols) + "</tr>")
 
 
+SINCE_LISTING_MARK = "\u2020"   # the dagger beside a Max DD measured over a history shorter than its window
+
+
+def has_since_listing(view: pd.DataFrame) -> bool:
+    """True when some row shows a Max DD with the since-listing mark (its window's return is missing)."""
+    for w in PERIOD_WINDOWS:
+        dd, ret = f"Max DD {w}M", f"{w}M Return"
+        if dd in view and ret in view and (view[dd].notna() & view[ret].isna()).any():
+            return True
+    return False
+
+
 _CSS = """
 *{box-sizing:border-box}
-td .why{display:block;font-size: var(--fs-12);color:var(--c-muted);white-space:normal;line-height:1.2}
-td.qn{width:7.5rem;min-width:7.5rem}
 body{margin:0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--c-ink);background:transparent;-webkit-font-smoothing:antialiased}
 .wrap{height:100vh;overflow:auto;background:var(--c-white);border:0;border-top:1px solid var(--c-ink);border-radius:0}
 .edge{position:fixed;top:0;right:0;width:56px;height:100vh;pointer-events:none;z-index:6;background:linear-gradient(to right,rgba(255,255,255,0),var(--c-white) 62%);border-right:1px solid var(--c-rule_strong);opacity:0;transition:opacity .15s}
