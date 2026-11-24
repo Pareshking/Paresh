@@ -379,6 +379,8 @@ def main() -> int:
             hold_cap=TRACK_RECORD_CONFIG.get("hold_cap"), hold_cap_from=TRACK_RECORD_CONFIG.get("hold_cap_from"),
             buy_size=TRACK_RECORD_CONFIG.get("buy_size"),
             weight_reset_months=tuple(TRACK_RECORD_CONFIG.get("weight_reset_months") or ()) or None,
+            # The record's months before the calendar 52-week high's go-live were struck on 252 rows.
+            high_rule_from=TRACK_RECORD_CONFIG.get("high_rule_from"),
         )
         rr = compare_monthly_ledger(ledger, r["equity_curve"], r["benchmark"], accepted=accepted)
         record("research_default", bool(rr["passed"]), counts=rr["counts"])

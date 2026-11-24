@@ -10,6 +10,35 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+YEAR_WINDOW = 252   # the picker's "52W" choice: read as the calendar year, not 252 rows
+
+
+def _rolling_extremes(prices: pd.DataFrame, window: int, min_p: int, tail: int | None = None
+                      ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """(high, low) over each session's window. The 52-week window is the calendar year, from the last
+    session on or before the date a year back (owner, 24 Nov 2026: "Use calendar date everywhere"); any
+    other window is that many sessions. Only the last `tail` rows are filled for the calendar year (the
+    tables read no more), the rest are NaN."""
+    if window != YEAR_WINDOW:
+        return (prices.rolling(window, min_periods=min_p).max(),
+                prices.rolling(window, min_periods=min_p).min())
+    from src.engine.calendar_momentum import year_window_starts
+    v = prices.to_numpy(dtype="float64")
+    n = len(v)
+    hi = np.full(v.shape, np.nan)
+    lo = np.full(v.shape, np.nan)
+    starts = year_window_starts(prices.index)
+    first = 0 if tail is None else max(0, n - tail)
+    for i in range(first, n):
+        w = v[starts[i]:i + 1]
+        enough = np.isfinite(w).sum(axis=0) >= min_p
+        finite = np.where(np.isfinite(w), w, np.nan)
+        hi[i] = np.where(enough, np.fmax.reduce(finite, axis=0), np.nan)
+        lo[i] = np.where(enough, np.fmin.reduce(finite, axis=0), np.nan)
+    return (pd.DataFrame(hi, index=prices.index, columns=prices.columns),
+            pd.DataFrame(lo, index=prices.index, columns=prices.columns))
+
+
 
 # Suffix marking the companion count column for a breadth series.
 OBSERVED_SUFFIX: str = "__observed"
@@ -75,8 +104,7 @@ def compute_hl_timeseries(
         return pd.DataFrame()
 
     min_p = max(int(window * 0.6), 20)
-    high_w = _prices.rolling(window, min_periods=min_p).max()
-    low_w = _prices.rolling(window, min_periods=min_p).min()
+    high_w, low_w = _rolling_extremes(_prices, window, min_p, tail=lookback)
 
     tol = _prices * 0.001
     is_high = (_prices >= high_w - tol).astype(float)
@@ -120,9 +148,11 @@ def new_extreme_counts(
         return {"high": empty, "low": empty.copy()}
     min_p = max(int(window * 0.6), 20)
     tol = prices_df * 0.001
-    is_high = prices_df >= prices_df.rolling(window, min_periods=min_p).max() - tol
-    is_low = prices_df <= prices_df.rolling(window, min_periods=min_p).min() + tol
     end = pd.Timestamp(as_of if as_of is not None else prices_df.index[-1])
+    _tail = int((prices_df.index > end - pd.DateOffset(months=3)).sum()) + 1
+    high_w, low_w = _rolling_extremes(prices_df, window, min_p, tail=_tail)
+    is_high = prices_df >= high_w - tol
+    is_low = prices_df <= low_w + tol
     out = {}
     for name, flags in (("high", is_high), ("low", is_low)):
         cols = {}
@@ -144,8 +174,7 @@ def get_recent_hl_events(
         return pd.DataFrame()
 
     min_p = max(int(window * 0.6), 20)
-    high_w = prices_df.rolling(window, min_periods=min_p).max()
-    low_w = prices_df.rolling(window, min_periods=min_p).min()
+    high_w, low_w = _rolling_extremes(prices_df, window, min_p, tail=lookback)
 
     tol = prices_df * 0.001
     is_high = prices_df >= high_w - tol

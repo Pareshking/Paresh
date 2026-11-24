@@ -57,7 +57,9 @@ def from_high(s: pd.Series, end: pd.Timestamp) -> float | None:
     s = s[s.index <= end]
     if s.empty or s.index[0] > end - pd.DateOffset(months=12):
         return None
-    year = s[s.index > end - pd.DateOffset(months=12)]
+    # On or before the date a year back, as every 52-week high (owner, 24 Nov 2026: calendar date everywhere).
+    from src.engine.calendar_momentum import year_window_start
+    year = s.iloc[year_window_start(s.index, len(s) - 1):]
     return float(s.iloc[-1] / year.max() - 1) * 100
 
 

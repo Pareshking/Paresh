@@ -49,6 +49,27 @@ def calendar_start_positions(
     return np.searchsorted(idx.values, targets.values, side="left")
 
 
+def year_window_start(index: pd.DatetimeIndex, end_pos: int, months: int = 12) -> int:
+    """The position opening the 52-week window that ends at `end_pos`: the last session on or before the
+    same date a year back (0 when the data starts later). One 52-week high on every page and in the engine
+    (owner, 24 Nov 2026: "Use calendar date everywhere"; it was the last 252 rows in the ranking, the
+    Backtest, rank history and breadth). On or before is the rule S211 decided for every window."""
+    idx = pd.DatetimeIndex(index)
+    if idx.empty or end_pos < 0:
+        return 0
+    target = pd.Timestamp(idx[end_pos]).normalize() - pd.DateOffset(months=months)
+    return max(int(np.searchsorted(idx.values[: end_pos + 1], np.datetime64(target), side="right")) - 1, 0)
+
+
+def year_window_starts(index: pd.DatetimeIndex, months: int = 12) -> np.ndarray:
+    """`year_window_start` for every position at once."""
+    idx = pd.DatetimeIndex(index)
+    if idx.empty:
+        return np.array([], dtype=int)
+    targets = idx.normalize() - pd.DateOffset(months=months)
+    return np.maximum(np.searchsorted(idx.values, targets.values, side="right") - 1, 0)
+
+
 def rank_history_position(
     index: pd.DatetimeIndex,
     months: int,

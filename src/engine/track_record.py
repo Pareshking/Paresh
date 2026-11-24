@@ -70,6 +70,11 @@ TRACK_RECORD_CONFIG: dict[str, Any] = {
     # 10 Nov 2026). Forward-dated, so every frozen month keeps its
     # fingerprint and replays unchanged.
     "ema_warmup_from": "2026-11-30",
+    # The 52-week high over the calendar year (owner, 24 Nov 2026: "Use calendar date everywhere"; it was
+    # the last 252 rows), for the record from this signal. Forward-dated: a replay of a month signalled
+    # earlier keeps the 252-row high it was struck under, so frozen months replay unchanged. The live
+    # Screener and the research Backtest use the calendar year throughout.
+    "high_rule_from": "2026-11-30",
     # Six-monthly reset (owner, 8 Nov 2026: "6 monthly reset final", after TODO
     # S111's tests of four rules with a tax estimate: Nifty 500 2010-26 after
     # tax, monthly reset 15.41% a year, six-monthly 15.30%, the owner's fixed
@@ -350,6 +355,7 @@ def run_backtest_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
         "buffer_n": cfg["buffer_n"],
         "members_only_scoring_from": cfg.get("members_only_scoring_from"),
         "ema_warmup_from": cfg.get("ema_warmup_from"),
+        "high_rule_from": cfg.get("high_rule_from"),
         "hold_cap": cfg.get("hold_cap"),
         "hold_cap_from": cfg.get("hold_cap_from"),
         "buy_size": cfg.get("buy_size"),
@@ -375,7 +381,7 @@ def config_fingerprint(**params: Any) -> str:
 
 # Rules that start on a signal date. A month governed by an earlier signal was
 # not struck under them, so they are left out of that month's fingerprint.
-FORWARD_DATED_KEYS = ("members_only_scoring_from", "hold_cap_from", "ema_warmup_from")
+FORWARD_DATED_KEYS = ("members_only_scoring_from", "hold_cap_from", "ema_warmup_from", "high_rule_from")
 # Settings that exist only with a forward-dated rule: left out with it.
 FORWARD_DATED_COMPANIONS = {"hold_cap_from": ("hold_cap", "buy_size", "weight_reset_months")}
 

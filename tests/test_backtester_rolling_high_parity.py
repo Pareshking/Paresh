@@ -5,6 +5,17 @@ import pytest
 from src.engine.backtester import _rolling_high_at
 
 
+def _reference(prices: pd.DataFrame, idx: int) -> pd.Series:
+    """The 52-week high by the calendar, worked out from date masks alone (owner, 24 Nov 2026: "Use calendar date everywhere";
+    the last 12 months, opening on the last session on or before the date a year back)."""
+    when = prices.index[idx]
+    target = when - pd.DateOffset(months=12)
+    before = prices.index[prices.index <= target]
+    first = before[-1] if len(before) else prices.index[0]
+    rows = int(((prices.index >= first) & (prices.index <= when)).sum())
+    return prices.rolling(max(rows, 126), min_periods=126).max().iloc[idx]
+
+
 @pytest.mark.parametrize("idx", [0, 124, 125, 251, 252, 253, 269])
 def test_signal_date_high_matches_full_history_rolling(idx: int) -> None:
     """The memory-saving single-date path must equal the canonical full matrix."""
@@ -17,7 +28,7 @@ def test_signal_date_high_matches_full_history_rolling(idx: int) -> None:
     )
 
     # Exercise rolling min_periods at the 125/126-observation boundary and
-    # holes scattered throughout a 252-session window.
+    # holes scattered throughout a 12-month window.
     prices.iloc[:125, 0] = np.nan
     prices.iloc[125, 0] = 101.0
     prices.iloc[:126, 1] = np.nan
@@ -27,7 +38,7 @@ def test_signal_date_high_matches_full_history_rolling(idx: int) -> None:
     prices.iloc[40, 4] = np.inf
     prices.iloc[60, 5] = -np.inf
 
-    expected = prices.rolling(252, min_periods=126).max().iloc[idx]
+    expected = _reference(prices, idx)
     actual = _rolling_high_at(prices, idx)
     pd.testing.assert_series_equal(actual, expected, check_exact=True)
 
@@ -44,10 +55,9 @@ def test_single_date_high_matches_reference_for_every_row() -> None:
     prices.iloc[125, 2] = 99.0
     prices.iloc[::19, 3] = np.nan
 
-    reference = prices.rolling(252, min_periods=126).max()
     for idx in range(len(prices)):
         pd.testing.assert_series_equal(
-            _rolling_high_at(prices, idx), reference.iloc[idx], check_exact=True
+            _rolling_high_at(prices, idx), _reference(prices, idx), check_exact=True
         )
 
 
@@ -65,7 +75,6 @@ def test_production_scale_signal_dates_match_full_history_reference() -> None:
     prices.iloc[::37, 4] = np.nan
     prices.iloc[::113, 81] = np.nan
     prices.iloc[:125, 749] = np.nan
-    reference = prices.rolling(252, min_periods=126).max()
     month_ends = (
         pd.Series(np.arange(rows), index=prices.index)
         .groupby(prices.index.to_period("M"))
@@ -73,9 +82,9 @@ def test_production_scale_signal_dates_match_full_history_reference() -> None:
         .astype(int)
         .tolist()
     )
-    for idx in month_ends:
+    for idx in month_ends[-24:]:   # the reference rolls the whole frame per date; two years is enough
         pd.testing.assert_series_equal(
-            _rolling_high_at(prices, idx), reference.iloc[idx], check_exact=True
+            _rolling_high_at(prices, idx), _reference(prices, idx), check_exact=True
         )
 
 
