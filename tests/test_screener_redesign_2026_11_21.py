@@ -59,7 +59,8 @@ def test_the_table_names_indices_and_industries_as_every_page_does():
 
 
 def test_past_ranks_are_numbers_and_out_means_not_qualified():
-    html = st_.table_html(pd.DataFrame([_row()]), None, "Full Quant (35)")
+    # The qualified place 3M and 1M ago is on the Watchlist only (owner, 24 Nov 2026).
+    html = st_.table_html(pd.DataFrame([_row()]), None, "Watchlist")
     row = html.split('<tr data-stock="AAA"')[1].split("</tr>")[0]
     for v in (52, 9, 30):
         assert re.search(rf'<td class="n past" data-v="{v}(\.0)?">{v}</td>', row), v
@@ -141,8 +142,9 @@ def test_no_capitals_in_group_labels():
 def test_the_qualified_place_is_named_where_it_stands_alone():
     head = lambda d: re.search(r'<tr class="hdr">(.*?)</tr>', st_.table_html(pd.DataFrame([_row()]), None, d), re.S).group(1)
     assert "Qualified #" in head("Core (17)")
-    full = head("Full Quant (35)")
-    assert "Qualified #" not in full and ">Now<" in full
+    # Alone in Full Quant too since 24 Nov 2026 (owner: "Qualified: Now only"); "Now" only beside 3M and 1M.
+    assert "Qualified #" in head("Full Quant (35)")
+    assert ">Now<" in head("Watchlist")
 
 
 def test_a_systems_own_list_is_not_shown_as_an_nse_index():

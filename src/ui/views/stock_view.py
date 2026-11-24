@@ -204,13 +204,14 @@ def _holding(sym: str, prices: pd.DataFrame, rank_df: pd.DataFrame, system: str)
         return None
 
 
-def _calendar(sym: str, as_of: pd.Timestamp, check: pd.Timestamp) -> tuple[list, pd.Timestamp | None]:
-    """Board meetings and ex-dates from the day after the data to the check (Actions' `_events`),
+def _calendar(sym: str, as_of: pd.Timestamp, until: pd.Timestamp) -> tuple[list, pd.Timestamp | None]:
+    """Board meetings and ex-dates from the day after the data to the fill (Actions' `_events`, the same window;
+    S203 st.rule.4, owner 24 Nov 2026),
     and the stock's last results meeting this season (`results_calendar.for_book`)."""
     try:
         from src.engine import results_calendar as rc
         from src.ui.views.actions_page import _events
-        events, _note = _events([sym], set(), set(), as_of, check)
+        events, _note = _events([sym], set(), set(), as_of, until)
         cal = rc.load()
         rep = rc.for_book(cal, [sym], [], as_of + pd.Timedelta(days=1)) if cal is not None else None
         last = None
@@ -304,7 +305,8 @@ def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
             f'<div>{img}<div class="cap">Place among the qualified; higher is better.</div></div></div>', "</section>"]
 
 
-def rules_html(row, a: dict | None, q, ln, high_pct, ladder: sl.Ladder, held, holding, check, events, last_res) -> list:
+def rules_html(row, a: dict | None, q, ln, high_pct, ladder: sl.Ladder, held, holding, check, events, last_res,
+               fill=None) -> list:
     from src.ui.system_param import page_href
     from src.engine.exit_watch import SELL, WATCH
     ca, cb = sl.rules_heading(a, check, high_pct, bool(held))
@@ -330,7 +332,7 @@ def rules_html(row, a: dict | None, q, ln, high_pct, ladder: sl.Ladder, held, ho
         f'<td class="n">{e(r.fall)}</td><td class="n {"up" if r.ok else "down"}">{e(r.today)}</td></tr>'
         for r in sl.rules(row, a, q, ln, high_pct))
     lead, rest = sl.holding_sentence(held, holding)
-    book = (f'<p class="dh-note"><b>{e(lead)}</b>{e(rest)} {e(sl.calendar_sentence(check, events, last_res))} '
+    book = (f'<p class="dh-note"><b>{e(lead)}</b>{e(rest)} {e(sl.calendar_sentence(check, events, last_res, fill))} '
             f'<a class="sp-go" href="{e(page_href("actions"))}" target="_self">The plan, share by share, on Actions →</a></p>')
     return ['<section class="dh-sec sp-sec">', _kick("2 · Filters and sell rules"), _h2("", ca, cb, tone),
             f'<div class="sp-ladder" role="img" aria-label="{e(aria)}"><div class="track">{dots}</div>'
@@ -544,8 +546,8 @@ def render_stock_view(
     a = assess(rank_df, [sym], sessions=None if n_win is None else {sym: n_win})
     a_row = a.iloc[0].to_dict() if not a.empty else None
     from src.ui.views.actions_view import next_rebalance
-    check, _fill = next_rebalance(as_of)
-    events, last_res = _calendar(sym, as_of, check)
+    check, fill = next_rebalance(as_of)
+    events, last_res = _calendar(sym, as_of, fill if fill is not None else check)
     holding = _holding(sym, prices, rank_df, system) if held else None
 
     market = _market()
@@ -573,7 +575,7 @@ def render_stock_view(
     _emit(head_html(row, uni, held, as_of, m12, q, n_q, ln, holding, hits, late)
           + rank_html(row, uni, q, n_q, ln, tr)
           + rules_html(row, a_row, q, ln, high_pct, sl.ladder(row, closes, high_pct), held, holding, check,
-                       events, last_res)
+                       events, last_res, fill)
           + returns_html(ws, as_of, uni, late))
 
     # 4 · Price: the chart is a widget (the range control), so the section is drawn in pieces.

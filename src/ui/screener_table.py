@@ -118,7 +118,9 @@ _RANK_KEYS = ("rank", "p3", "p1", "q3", "q1", "qrank")
 # TradingView groups columns by the question they answer): whether a stock passes is the reader's next
 # question after its place, and at 1400 px the filters sat about 3,100 px to the right.
 _QUANT_KEYS = (
-    ("rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "score", "idx", "ind", "mcap",
+    # No qualified place 3M and 1M ago (owner, 24 Nov 2026: "Qualified: Now only"): near the top it repeated the
+    # rank before (71 and 70, 3 and 3) and differed only where a stock was "Out". The Watchlist keeps them.
+    ("rank", "stock", "price", "p3", "p1", "qrank", "score", "idx", "ind", "mcap",
      "hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")
     + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
     + ("stop", "chand", "gap", "ffill", "hz", "spark")
@@ -200,6 +202,9 @@ def column_groups(keys: list[str]) -> list[tuple[str, int, bool]]:
 
     def label(k: str) -> str:
         g = group_of.get(k, "")
+        # The qualified place alone is headed "Qualified #": "Qualified" over it said it twice (as Score, S189 8).
+        if k == "qrank" and not ({"q3", "q1"} & set(keys)):
+            return ""
         if g in windowed and partial:
             return "Returns" if k.startswith("r") else "Risk"
         return g
@@ -328,7 +333,8 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
     for key, col, cls in (("q3", "Qualified (-3M)", " past"), ("q1", "Qualified (-1M)", " past"),
                           ("qrank", "Qualified Rank", "")):
         q = _num(row.get(col))
-        cells[key] = (f'<td class="n{cls}" data-v="{"" if q is None else q}">'
+        qn = " qn" if key == "qrank" else ""
+        cells[key] = (f'<td class="n{cls}{qn}" data-v="{"" if q is None else q}">'
                       f'{"Out" if q is None else int(q)}</td>')
     for key, col in (("p3", "Rank (-3M)"), ("p1", "Rank (-1M)")):
         p_ = _num(row.get(col))
@@ -460,8 +466,10 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
                 whys.append("too new for a 52W high")
                 full.append("under 12 months of prices, so the 52W-high filter cannot pass")
         if whys:
-            cells["qrank"] = (f'<td class="n" data-v="" title="{_esc("; ".join(full))}">Out'
-                              f'<span class="why">{_esc(" · ".join(whys))}</span></td>')
+            # One reason a line, in a column of one width on every system and page of rows (owner, 24 Nov
+            # 2026: the Nifty 1000's table opened a 300 px gap; one nowrap reason line set the column's width).
+            cells["qrank"] = (f'<td class="n qn" data-v="" title="{_esc("; ".join(full))}">Out'
+                              + "".join(f'<span class="why">{_esc(w)}</span>' for w in whys) + '</td>')
     for key, col in (("above", "Above 50 EMA"), ("near", "Near 52W High"), ("athf", "At ATH")):
         on = is_tick_true(row.get(col))
         why = None if on else miss.get(key)
@@ -486,7 +494,8 @@ def _row_html(row: dict, cols: list, paths: dict, highlight: str = "") -> str:
 
 _CSS = """
 *{box-sizing:border-box}
-td .why{display:block;font-size: var(--fs-12);color:var(--c-muted);white-space:nowrap;line-height:1.2}
+td .why{display:block;font-size: var(--fs-12);color:var(--c-muted);white-space:normal;line-height:1.2}
+td.qn{width:7.5rem;min-width:7.5rem}
 body{margin:0;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--c-ink);background:transparent;-webkit-font-smoothing:antialiased}
 .wrap{height:100vh;overflow:auto;background:var(--c-white);border:0;border-top:1px solid var(--c-ink);border-radius:0}
 .edge{position:fixed;top:0;right:0;width:56px;height:100vh;pointer-events:none;z-index:6;background:linear-gradient(to right,rgba(255,255,255,0),var(--c-white) 62%);border-right:1px solid var(--c-rule_strong);opacity:0;transition:opacity .15s}

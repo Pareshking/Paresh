@@ -17,9 +17,11 @@ def _rows():
 
 def test_full_quant_shows_qualified_place_and_score():
     keys = [c[0] for c in st_.columns_for("Full Quant (35)")]
-    # Rank 3M and 1M ago, then the qualified place on the same dates and now
-    # (Screener decision A, 21 Nov 2026), then the score.
-    assert keys[:9] == ["rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "score"]
+    # Rank 3M and 1M ago, then the qualified place now, then the score. The qualified place 3M and 1M ago
+    # (Screener decision A, 21 Nov 2026) left the Screener (owner, 24 Nov 2026: "Qualified: Now only").
+    assert keys[:7] == ["rank", "stock", "price", "p3", "p1", "qrank", "score"]
+    assert "q3" not in keys and "q1" not in keys
+    assert {"q3", "q1"} <= {c[0] for c in st_.columns_for("Watchlist")}   # the Watchlist keeps them
     assert "qrank" in [c[0] for c in st_.columns_for("Core (17)")]
 
 
@@ -47,3 +49,11 @@ def test_the_screener_frame_never_scrolls_inside_the_page():
     assert 'id="showall"' not in paged and 'id="showall"' not in full
     assert ".wrap{height:auto;overflow-y:visible}" in full
     assert "nth-child(n+51){display:none}" in paged and "nth-child(n+51)" not in full
+
+
+def test_the_qualified_place_alone_has_no_group_label():
+    """Owner, 24 Nov 2026: "Qualified: Now only". Alone, the column is headed "Qualified #"; a "Qualified" group
+    label over it would say it twice (as Score, S189 item 8)."""
+    groups = dict((lab, n) for lab, n, _ in st_.column_groups([c[0] for c in st_.columns_for("Full Quant (35)")]))
+    assert "Qualified" not in groups
+    assert "Qualified" in [lab for lab, _, _ in st_.column_groups([c[0] for c in st_.columns_for("Watchlist")])]

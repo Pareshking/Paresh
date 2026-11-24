@@ -452,6 +452,22 @@ def ten_month_head(name: str, today: float, on, me: float | None = None, me_at=N
     return f"{head} At the {_fmt.date(me_at, short=True)} month-end it was {tail}."
 
 
+def _vs_line(v: float, it: str) -> str:
+    r = _fmt.half_up(v, 1)
+    return f"on {it}" if r == 0 else f"{_fmt.fixed(abs(r), 1)}% {'above' if r > 0 else 'below'} {it}"
+
+
+def size_line_head(last: dict, market: str) -> str:
+    """S203 mk.ch.5 (owner, 24 Nov 2026: "% against the line"): each size index's line is a ratio to the market
+    set to 100 a year ago, so its reading is a % against that line, not points (as Indices, S173 IX-2)."""
+    if len(last) == 1:
+        (only, v), = last.items()
+        return f"Over 12 months, {only} is the only size index with a year of closes: {_vs_line(v, 'its line')}"
+    best, worst = max(last, key=last.get), min(last, key=last.get)
+    return (f"Over 12 months, {best} did best against {market}, {_vs_line(last[best], 'its line')}; "
+            f"{worst} did worst, {_vs_line(last[worst], 'it')}")
+
+
 def _chart_head(title: str, note: str) -> None:
     st.html(f'<div class="qp-ch"><h3 class="qp-ch-h">{html.escape(title)}</h3>'
             f'<p class="qp-note" style="margin:0 0 4px">{html.escape(note)}</p></div>')
@@ -559,11 +575,9 @@ def _trend_charts(bench: pd.Series, size: dict[str, pd.Series], name: str = mq.M
             rel[size_name] = (s.loc[s0:] / float(s.loc[s0])) / (bb / float(b.loc[b0])) * 100
         if rel:
             last = {k: float(v.dropna().iloc[-1]) - 100 for k, v in rel.items() if len(v.dropna())}
-            best, worst = max(last, key=last.get), min(last, key=last.get)
-            _chart_head(f"Over 12 months, {best} did best against {the(name)} ({_fmt.signed(last[best], 1)} pts) and "
-                        f"{worst} worst ({_fmt.signed(last[worst], 1)} pts)",
+            _chart_head(size_line_head(last, the(name)),
                         f"Each size index divided by {the(name)}, set to 100 at the start 12 months ago (the dashed line); above 100 it has "
-                        f"done better. Price only. {_fmt.PTS_NOTE}")
+                        "done better. Price only.")
             idx = sorted(set().union(*[set(v.dropna().index) for v in rel.values()]))
             from src.ui.tokens import LINE_CYCLE
             dc.render("lines", {"dates": _dates(idx), "yfmt": "num", "range": {"default": "12M", "why": "lately"},

@@ -152,10 +152,13 @@ def _mv_df() -> pd.DataFrame:
 
 
 def test_sc_mv_2(monkeypatch):
-    # Held back: the proposed "{SYM} climbed furthest" would name the biggest climb overall, but the code names
-    # the biggest climb INTO the top 50 (S189 item 2), so today's text is kept until the owner rewords it.
+    # Owner, 24 Nov 2026: "…furthest into it" (the biggest climb INTO the top 50, S189 item 2).
     h2 = _clean(re.search(r'<h2 class="mv-h">(.*?)</h2>', _movers(monkeypatch, _mv_df())).group(1))
-    assert h2 == "1 stock entered the top 50 and 1 left; the biggest climb into it, A, came 169 places, from #170 to #1."
+    assert h2 == "1 stock entered the top 50 since 20 Oct and as many left. A climbed furthest into it, 169 places, from 170th to 1st."
+    tie = _mv_df().assign(**{"Rank (-1M)": [170, 2, 3, 80]})
+    tie.loc[1, ["Rank", "Rank (-1M)"]] = [2, 171]
+    h2 = _clean(re.search(r'<h2 class="mv-h">(.*?)</h2>', _movers(monkeypatch, tie)).group(1))
+    assert "A and B climbed furthest into it, 169 places each." in h2
 
 
 def test_sc_mv_3(monkeypatch):
@@ -434,14 +437,20 @@ def test_mk_ch_4_note(monkeypatch):
 
 
 def test_mk_ch_5(monkeypatch):
-    # Held back: the figure is a relative line less 100 (a ratio), so "points" in the proposed text is the measure
-    # in question (S173 IX-2); today's text is kept until that is settled.
+    # Owner, 24 Nov 2026: "% against the line" (a ratio less 100, as Indices, S173 IX-2), not points.
     s = _closes()
     heads, _ = _charts(monkeypatch, mqv._trend_charts, s, {"Nifty 50": s * 1.0, "Nifty Smallcap 250": s.pow(1.01)})
     title, note = heads[1]
-    assert title.startswith("Over 12 months, Nifty Smallcap 250 did best against Nifty Total Market (+")
-    assert "pts) and Nifty 50 worst (0.0 pts)" in title
+    assert title.startswith("Over 12 months, Nifty Smallcap 250 did best against Nifty Total Market, ")
+    assert "% above its line; Nifty 50 did worst, on it" in title
     assert note.startswith("Each size index divided by Nifty Total Market, set to 100 at the start 12 months ago")
+    assert "pts" not in title + note and "points" not in note
+    assert mqv.size_line_head({"A": 18.24, "B": -6.1}, "Nifty Total Market") == (
+        "Over 12 months, A did best against Nifty Total Market, 18.2% above its line; B did worst, 6.1% below it")
+    assert mqv.size_line_head({"A": -1.0, "B": -6.1}, "Nifty Total Market").endswith(
+        "A did best against Nifty Total Market, 1.0% below its line; B did worst, 6.1% below it")
+    assert mqv.size_line_head({"A": 3.0}, "Nifty Total Market") == (
+        "Over 12 months, A is the only size index with a year of closes: 3.0% above its line")
 
 
 def test_mk_ch_6():
@@ -474,3 +483,11 @@ def test_sc_sys_1_a_list_takes_no_possessive():
     assert head == "2 of the 3 stocks in the > ₹2,000 Cr list are ranked, among themselves."
     head, _ = system_note("Combined", ["A"], ["A", "B"], nano=False)
     assert head == "1 of the 2 stocks in the combined universe is ranked, as one list."
+
+
+def test_the_qualified_now_column_has_one_width_on_every_system():
+    """Owner, 24 Nov 2026: the Nifty 1000's table showed a ~300 px gap. One "Out" row's reasons, on one nowrap
+    line, set the column's width; each reason is now its own line in a column of one fixed width."""
+    from src.ui import screener_table as stt
+    assert "td.qn{width:7.5rem;min-width:7.5rem}" in stt._CSS
+    assert "white-space:nowrap" not in stt._CSS.split("td .why{", 1)[1].split("}", 1)[0]
