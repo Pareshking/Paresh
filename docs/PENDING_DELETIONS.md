@@ -9,7 +9,7 @@ can't do it, whatever possible please delete it."*
   (DATA_AUDIT_2026-11-24 b4, b6, b7). Writers stopped in the same PR (`r2_market_cap_history.yml` removed, the
   bootstrap's snapshot step, `ss_sync`'s R2 step, `nse_collect`'s check publish); in `RETIRED_DATASETS`, protection
   lifted for these names only (`RETIRED_BY_OWNER`). Deleted by a dispatch of `r2_retention.yml` with `apply` and the
-  dry run's count, after the merge. `prices/ss` was kept on 22 Nov (4.2); the 24 Nov yes replaces that.
+  dry run's count, after the merge. **24 Nov:** merged in #680 (ea662a6); dry run 45454590953 planned 399 keys, 225.6 MB (the four: nse_history 9, nse_snapshot 132, prices/ss 9, source_checks 181; routine pruning 68); apply dispatched with 399. `prices/ss` was kept on 22 Nov (4.2); the 24 Nov yes replaces that.
 - **Kept, not deleted:** the membership set (`indices/membership/*`, `indices/constituents/*`,
   `universes/point_in_time`, b5, ~8 MiB). It has no reader today, but it is point-in-time evidence that can't be
   downloaded again, and S197/S198's membership builder is its reader in December. Approved by the owner, 24 Nov 2026 ("Ok for all").
