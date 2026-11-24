@@ -733,12 +733,7 @@ def screener_lede(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
 
 # Two columns of short lines on a wide screen, one on a phone. No tag-shaped
 # text in the CSS (PAGE_DESIGN §6: a comment holding one drops the block).
-_KEY_HTML = (
-    "<style>.scr-key{{columns:2;column-gap:40px;font-size:var(--fs-13);color:var(--c-text_2);margin:4px 0 0}}"
-    ".scr-key p{{margin:0 0 6px;break-inside:avoid;max-width:80ch;line-height:1.5}}"
-    ".scr-key b{{color:var(--c-ink);font-weight:600}}"
-    "@media (max-width:900px){{.scr-key{{columns:1}}}}</style>"
-    '<div class="scr-key">'
+_KEY_BODY = (
     "<p><b>Qualified:</b> above the 50D EMA and within 20% of the 52W high. The qualified place is the "
     "stock's place among them, the number Actions and the Dashboard use; “Out” means it fails a filter, "
     "and the filter columns show ✗ and by how much.</p>"
@@ -747,7 +742,20 @@ _KEY_HTML = (
     "<p><b>Held:</b> in the model book. The book buys the top 20 qualified and keeps a holding while it is in "
     "the top 40; in rank order the two rows where those places fall are named.</p>"
     "<p><b>Big movers:</b> rank moved 150 places or more in a month. <b>Volume spike:</b> today's volume "
-    "1.5 times its 20-day average or more.</p></div>"
+    "1.5 times its 20-day average or more.</p>"
+)
+# In plain sight on a wide screen, folded on a phone (PAGE_DESIGN §2a; S189 item 3: at 390 px the key pushed
+# the first stock row to about 1,080 px, below the first screen).
+_KEY_HTML = (
+    "<style>.scr-key{{columns:2;column-gap:40px;font-size:var(--fs-13);color:var(--c-text_2);margin:4px 0 0}}"
+    ".scr-key p{{margin:0 0 6px;break-inside:avoid;max-width:80ch;line-height:1.5}}"
+    ".scr-key b{{color:var(--c-ink);font-weight:600}}"
+    ".scr-key-narrow{{display:none;font-size:var(--fs-13);color:var(--c-text_2)}}"
+    ".scr-key-narrow summary{{cursor:pointer;color:var(--c-ink);font-weight:600;padding:6px 0}}"
+    "@media (max-width:900px){{.scr-key{{columns:1}}.scr-key-wide{{display:none}}.scr-key-narrow{{display:block}}}}</style>"
+    '<div class="scr-key scr-key-wide">' + _KEY_BODY + "</div>"
+    '<details class="scr-key-narrow"><summary>How to read the table</summary><div class="scr-key">' + _KEY_BODY
+    + "</div></details>"
 )
 
 

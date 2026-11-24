@@ -13,7 +13,7 @@
 
 - A stock that fails a filter says why beside "Out" in the qualified column ("7.5% under 50D EMA · 30% under 52W high", or "too new for a 52W high"), instead of only in the filter columns far to the right.
 - What moved: the heading names the biggest climb into the top 50; Biggest jumps says its ten can land anywhere in the ranking.
-- On a phone the six presets wrap onto rows with their counts, and the sector stays under each symbol in every column set.
+- On a phone the key folds under "How to read the table", so the first stocks show on the first screen; the six presets wrap onto rows with their counts, and the sector stays under each symbol in every column set.
 - A window longer than a stock's history shows "–" for its drawdown as well as its return.
 
 ## 2026-11-24 — Nifty Total Market keeps NSE's special sessions (S163)
