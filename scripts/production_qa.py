@@ -1330,8 +1330,14 @@ def main() -> None:
 
                 report["expected_revision"] = EXPECTED_SHA[:7]
                 report["served_revision"] = (served or "unknown")[:7]
-                loaded = (read_telemetry(page) or {}).get("loaded_revision")
+                _tele = read_telemetry(page) or {}
+                loaded = _tele.get("loaded_revision")
                 report["loaded_revision"] = (loaded or "unknown")[:7]
+                # S210: whether the boot used the published ranking ("hit") or ranked live ("miss_<reason>"),
+                # read from the page so nobody needs the Streamlit log to know.
+                _facts = _tele.get("facts") or {}
+                report["ranking_precompute"] = _facts.get("ranking_precompute")
+                report["ranking_precompute_rows"] = _facts.get("ranking_precompute_rows")
                 stale = _stale_modules(loaded, served)
                 if stale:
                     report["stale_modules"] = stale
@@ -1587,6 +1593,9 @@ def main() -> None:
     _src = (report.get("stock_link") or {}).get("data_source")
     if _src is not None:
         print(f"data loaded from      : {_src or 'not shown'}", flush=True)
+    if "ranking_precompute" in report:
+        print(f"precomputed ranking   : {report.get('ranking_precompute') or 'not shown'}"
+              + (f" ({report['ranking_precompute_rows']} rows)" if report.get("ranking_precompute_rows") else ""), flush=True)
     print(f"websocket established : {report['websocket_established']}", flush=True)
     print(f"page errors           : {len(page_errors)}", flush=True)
     print(f"console errors        : {len(console_errors)}", flush=True)
