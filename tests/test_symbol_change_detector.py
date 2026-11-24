@@ -129,7 +129,7 @@ def test_an_old_ticker_whose_membership_ended_before_the_rename_is_not_reported(
 # data/membership_notices.json, then extend_membership_from_notices.py apply).
 # Anything NOT listed fails: that is the new case nobody was told about. Remove
 # the row once the alias is in the committed history.
-PENDING_ALIASES = {("2026-10-28", "ICICIPRULI", "ICICILIFE")}
+PENDING_ALIASES: set = set()   # ICICIPRULI -> ICICILIFE aliased 24 Nov 2026 (owner go-ahead)
 
 
 def _known_renames() -> dict:

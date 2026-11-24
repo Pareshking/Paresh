@@ -16,6 +16,13 @@
       "effective": "2026-09-23",
       "company": "HEG Ltd.",
       "evidence": "The daily sync recorded HEG out and HEGAM in on 2026-09-23. Yahoo's HEG.NS and HEGAM.NS carry identical adjusted closes on every overlapping day (24-30 Sep 2026), and the whole earlier history is filed under HEGAM."
+    },
+    "ICICIPRULI": {
+      "new_symbol": "ICICILIFE",
+      "effective": "2026-10-23",
+      "company": "ICICI Prudential Life Insurance Company Ltd. -> ICICI Life Insurance Ltd.",
+      "isin": "INE726G01019",
+      "evidence": "NSE symbolchange.csv (fetched 2026-11-24): 'ICICI Life Insurance Limited,ICICIPRULI,ICICILIFE,23-OCT-2026'; BSE bhavcopy: INE726G01019 ICICIPRULI 22 Oct close 433.00, ICICILIFE 23 Oct prev close 433.00. Added on the owner's go-ahead, 24 Nov 2026 (S129 c)."
     }
   },
   "notices": [
