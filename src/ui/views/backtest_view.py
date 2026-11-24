@@ -47,6 +47,8 @@ e = html.escape
 ROOT = Path(__file__).resolve().parents[3]
 REFERENCE = ROOT / "data" / "backtest_reference.json"
 HISTORICAL_INDUSTRIES = bp.HISTORICAL_INDUSTRIES
+BOOK_YIELD = 0.5                    # % a year, the book's dividend yield in the test of 11 Nov 2026 (2020-25 only, S125)
+BOOK_YIELD_TEST = "11 Nov 2026"
 MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 # How a held stock's weight is set at each rebalance (owner, 11 Nov 2026; decision G of
@@ -125,6 +127,22 @@ def _t(v) -> str:
 
 def _kt(v) -> str:
     return "" if v is None or not np.isfinite(v) else ("up" if v > 0 else "down" if v < 0 else "")
+
+
+def _num(v: float, digits: int = 1) -> str:
+    """An unsigned figure, half away from zero (glossary 12): 0.125 -> "0.13"."""
+    return _fmt.signed(abs(float(v)), digits).lstrip("+")
+
+
+def _ahead_by(v: float, digits: int = 2) -> str:
+    """"ahead by 0.12" / "behind by 0.05" / "level": the word carries the sign (S203 bt.lead.6)."""
+    if _fmt.reads_zero(v * 100, digits):
+        return "level"
+    return f"{'ahead' if v > 0 else 'behind'} by {_num(v * 100, digits)}"
+
+
+def _count(n: int, word: str) -> str:
+    return f"{int(n):,} {word if int(n) == 1 else word + 's'}"
 
 
 def _rupees(v) -> str:
@@ -510,7 +528,7 @@ def head(f: dict) -> list:
     if sm.a_year is not None:
         ahead = None if sm.bench_a_year is None else sm.a_year >= sm.bench_a_year
         # The verb carries the sign, never a signed figure after "made" (S203 bt.head.1).
-        title = (e(f"Since {sm.first:%b %Y}, this rule ")
+        title = (e(f"Since {sm.first:%B %Y}, this rule ")
                  + kit.verdict(f"{'made' if sm.a_year >= 0 else 'lost'} {_pc(abs(sm.a_year))} a year", ahead)
                  + e(_against(sm.bench_a_year) + ", before tax."))
     else:
@@ -551,7 +569,7 @@ def section_lead(f: dict) -> list:
          _t(sm.lead if sm.lead is not None else sm.total - sm.bench_total), "a year" if sm.lead is not None else "over the run"),
         ("₹100 became", _rupees(100 * (1 + sm.total)), "", f"Nifty 500 {_rupees(100 * (1 + sm.bench_total))}"),
         ("Months ahead of the Nifty 500", f"{sm.ahead} of {sm.months}", "",
-         f"{sm.ahead / max(sm.months, 1):.0%} · up in {sm.up}"),
+         f"{sm.ahead / max(sm.months, 1):.0%} · up in {_count(sm.up, 'month')}"),
     ])
     ch = f["chart"]
     series = [{"name": "This rule", "short": "This rule", "color": "s-book", "values": ch["series"]["rule"], "dd": ch["dd"]["rule"]},
@@ -565,20 +583,25 @@ def section_lead(f: dict) -> list:
         "<b>Price returns, both sides.</b> The rule’s figure includes a dividend only where it was 10% of the price or "
         "more (the long file takes those out as an adjustment); the Nifty 500 figure is NSE’s price index, which takes "
         "out only special dividends, 2% of the price or more (NSE’s index methodology, Nov 2022), not ordinary ones"
-        + (f". NSE’s own file puts the Nifty 500’s dividend yield at {dy:.1f}% a year on average since Feb 2012, "
-           "against about 0.5% a year for the book in a test of 11 Nov 2026 (2020–25 only), so against the index with every dividend "
-           f"(its total-return version) the lead is about {dy - 0.5:.1f} points a year smaller than shown."
-           if dy is not None else "."),
+        + (f". NSE’s file puts the Nifty 500’s dividend yield at {dy:.1f}% a year on average since "
+           f"{f['div_yield_from']:%b %Y}; in a test of {BOOK_YIELD_TEST} the book’s was about {BOOK_YIELD:.1f}%, measured "
+           f"2020–25 only. Against the index with every dividend, the lead is about {dy - BOOK_YIELD:.1f} points a year "
+           "smaller than shown."
+           if dy is not None and f.get("div_yield_from") is not None else "."),
         f"<b>A year, compounded</b> is measured over calendar time, {sm.years:.1f} years from the first fill. "
         f"<b>pts</b>: {_fmt.PTS_NOTE}",
-        "<b>Why the Nifty 500 and not Nifty Total Market.</b> Nifty Total Market starts on 14 Oct 2021 and this history in "
-        "2010 (owner, 21 Nov 2026). Nifty Total Market is beside it from 2022 in section 3 and from Nov 2021 in section 4."
+        "<b>Why the Nifty 500 and not Nifty Total Market.</b> "
+        + (f"Nifty Total Market starts on {_d(f['tm_from'])} and this history in {sm.first.year}" if f.get("tm_from") is not None
+           else f"This history starts in {sm.first.year}, before Nifty Total Market")
+        + f" (owner, 21 Nov 2026). Nifty Total Market is beside it from {bp.TOTAL_MARKET_FROM} in section 3"
+        + (f" and from {f['tm_window_from']:%b %Y} in section 4." if f.get("tm_window_from") is not None else ".")
         + (f" For this universe its own index, the {e(f['uidx_name'])}, is shown beside both." if f.get("uidx_name") else ""),
     ]
     if half is not None and sm.lead_first_half is not None:
-        notes.append(f"<b>The two halves.</b> The rule led by {sm.lead_first_half * 100:.2f} pts a month on average to "
-                     f"{half - pd.offsets.MonthEnd(1):%b %Y} and {sm.lead_second_half * 100:.2f} after; the median month "
-                     f"{_pts(sm.median_lead)}.")
+        # The words carry the sign (S203 bt.lead.6): "led by −0.12" had no branch.
+        notes.append(f"<b>The two halves.</b> To {half - pd.offsets.MonthEnd(1):%b %Y}, the rule was "
+                     f"{_ahead_by(sm.lead_first_half)} points a month on average; after it, {_ahead_by(sm.lead_second_half)}."
+                     + (f" The median month’s lead was {sg(sm.median_lead * 100, 2)} points." if sm.median_lead is not None else ""))
     rows = [["Total return", _pcs(sm.total, 0), _pcs(sm.bench_total, 0)],
             ["A year, compounded", _pc(sm.a_year), _pc(sm.bench_a_year)],
             # Costs and turnover do not apply to an index: a blank cell, not "–" (S193 E, rule 2).
@@ -606,11 +629,17 @@ def section_falls(f: dict) -> list:
     big = rule_falls[0] if rule_falls else None
     if now < -0.005:
         peak = f["current_peak"]
-        h2 = f'The rule is <span class="dh-down">{e(_pc(-now))} below its {peak:%B %Y} peak</span>'
-        h2 += ("; its max drawdown since " + str(f["summary"].first.year) + " has not yet recovered." if big and big.recovered is None
-               else f"; its max drawdown, {e(_pc(big.depth))}, was back at its peak on {e(_d(big.recovered))}." if big else ".")
+        # One verb for one event, "made back" (S203 bt.fall.1, dash.mom.6); the open case gives its depth too.
+        h2 = f'The rule is <span class="dh-down">{e(_pc(-now))} below its {peak:%B %Y} peak</span>.'
+        if big and big.recovered is None:
+            h2 += f" Its max drawdown since {f['summary'].first.year}, {e(_pc(abs(big.depth)))}, is not yet made back."
+        elif big:
+            h2 += f" Its max drawdown, {e(_pc(abs(big.depth)))}, was made back by {e(_d(big.recovered))}."
     else:
-        h2 = "The rule is at its peak" + (f"; its max drawdown was {e(_pc(big.depth))}." if big else ".")
+        h2 = "The rule is at its peak."
+        if big:
+            h2 += (f" Its max drawdown was {e(_pc(abs(big.depth)))}, made back by {e(_d(big.recovered))}." if big.recovered is not None
+                   else f" Its max drawdown was {e(_pc(abs(big.depth)))}.")
     cur_days = f["current_days"]
     needs = (1 / (1 + now) - 1) if now < 0 else 0.0
     tiles = _kpis([
@@ -669,7 +698,7 @@ def trust_headline(checks: list) -> str:
         parts.append(f'<span class="dh-watch">{e(w)}</span> {"is the soft spot" if len(soft) == 1 else "are the soft spots"}')
     n = sum(1 for c in checks if c[2] == "Not checked")
     if n:
-        parts.append(f"{n} check{'s are' if n != 1 else ' is'} not made (below)")
+        parts.append(f"{n} check{'s are' if n != 1 else ' is'} not made")
     return "; ".join(parts) + "."
 
 
@@ -700,24 +729,35 @@ def section_years(f: dict) -> list:
     whole = [i for i, (_, r) in enumerate(yt.iterrows()) if int(r["months"]) == 12 and np.isfinite(lead[i])]
     ahead = sum(1 for i in whole if lead[i] > 0)
     known = len(whole)
-    part = [(int(r["year"]), _span(r), lead[i]) for i, (_, r) in enumerate(yt.iterrows())
+    part = [(int(r["year"]), (int(r["first_month"]), int(r["last_month"])), lead[i]) for i, (_, r) in enumerate(yt.iterrows())
             if int(r["months"]) != 12 and np.isfinite(lead[i])]
-    extra = "".join(f" ({y} {s}: {'ahead' if v > 0 else 'behind'})" for y, s, v in part)
     worst = min(whole, key=lambda i: lead[i]) if whole else None
+    # Sentences, not a parenthesis inside the headline; "points" in a sentence (S203 bt.yr.1).
+    sents = []
+    if known:
+        tone = "dh-up" if ahead * 2 > known else "dh-down" if ahead * 2 < known else ""
+        sents.append(f'The rule was ahead of the Nifty 500 in <span class="{tone}">{ahead} of {known} whole years</span>.'
+                     if tone else f"The rule was ahead of the Nifty 500 in {ahead} of {known} whole years.")
     if worst is not None and lead[worst] < 0:
-        h2 = (f'Ahead in <span class="dh-up">{ahead} of {known} whole years</span>{e(extra)}; {int(yt.iloc[worst]["year"])} was the '
-              f'worst, <span class="dh-down">{e(_pts(abs(lead[worst])).lstrip("+"))}</span> behind.')
-    else:
-        h2 = f'Ahead in <span class="dh-up">every whole year</span> of {known}{e(extra)}.'
+        sents.append(f'{int(yt.iloc[worst]["year"])} was the worst, '
+                     f'<span class="dh-down">{e(_num(lead[worst] * 100))} points behind</span>.')
+    for y, (a_m, b_m), v in part:
+        side = "ahead" if v > 0 else "behind" if v < 0 else "level"
+        span = (f"from {MON[a_m - 1]} to {MON[b_m - 1]}" if a_m > 1 and b_m < 12 else
+                f"from {MON[a_m - 1]}" if a_m > 1 else f"to {MON[b_m - 1]}")
+        sents.append(f"{y}, {span}, was {side}.")
+    h2 = " ".join(sents) or "No whole calendar year in this run yet."
     spec = {"label": "Year", "barHead": "Lead over the Nifty 500", "head": ["This rule"] + [c for _, c in cols] + ["Lead, pts"],
             "rows": rows, "lo": float(lo), "hi": float(hi), "step": step, "rest": f"{rows[0]['name']}, the first year" if rows else ""}
     mtd = f.get("mtd")
+    live = f", live from {_d(f['tm_from'])}," if f.get("tm_from") is not None else ""
     note = (f"A dark zero line; a lead left of it is a year behind. The first year starts at "
-            f"the first fill, {_d(f['summary'].first)}. Nifty Total Market is NSE’s index, live from 14 Oct 2021, so it starts in "
+            f"the first fill, {_d(f['summary'].first)}. Nifty Total Market is NSE’s index{live} so it starts in "
             f"{bp.TOTAL_MARKET_FROM}.")
     if mtd:
-        note += (f" {mtd['label']} so far, to {_d(mtd['as_of'])}, is not in the table: this rule {_pcs(mtd['rule'])}, "
-                 f"the Nifty 500 {_pcs(mtd['bench'])}.")
+        # The sign in words (rule 2): "this rule is up 1.2%", not "this rule +1.2%".
+        note += (f" {mtd['label']} so far, to {_d(mtd['as_of'])}, is not in the table: this rule is {_updown(mtd['rule'])}"
+                 + (f", the Nifty 500 {_updown(mtd['bench'])}." if mtd.get("bench") is not None else "."))
     grid = months_grid(f["monthly"])
     return ['<div class="dh-sec">', _kick("3", "Year by year"), f'<h2 id="s-years" class="dh-h2">{h2}</h2>', "</div>",
             Chart("trows", spec, {"label": "Each calendar year: this rule, the Nifty 500 and the lead",
@@ -727,14 +767,10 @@ def section_years(f: dict) -> list:
 
 
 def _months_dash_note(m: pd.DataFrame) -> str:
-    """One footnote for the grid's "–" (S193 E, rule 1): months before the first fill, and months after the last month-end tested."""
-    first, last = m.index.min(), m.index.max()
-    bits = []
-    if first.month > 1:
-        bits.append(f"before {first:%b %Y}, the replay's first month")
-    if last.month < 12:
-        bits.append(f"after {last:%b %Y}, the replay's last completed month ({mw.NOT_PUBLISHED})")
-    return mw.column_note("a month", "; ".join(bits)) if bits else ""
+    """One footnote for the grid's "–" (S193 E, rule 1): months before the first fill. Months after the last
+    month tested are blank cells, not "–" (S203 bt.yr.3, owner's answer 8)."""
+    first = m.index.min()
+    return mw.column_note("a month", f"before {first:%b %Y}, the replay's first month") if first.month > 1 else ""
 
 
 def _ratio(v) -> str:
@@ -747,15 +783,21 @@ def months_grid(m: pd.DataFrame) -> str:
         return ""
     head = "".join(f'<th scope="col" class="dh-num">{x}</th>' for x in MON + ["Year"])
     body = ""
+    last = m.index.max()
     for y, g in m.groupby(m.index.year):
         by = {d.month: r for d, r in g.iterrows()}
+
+        def empty(k, y=y):
+            # Before the first fill: "–", said in the note; after the last month tested: blank (owner's answer 8).
+            return '<td class="dh-num"></td>' if (y, k) > (last.year, last.month) else '<td class="dh-num dh-muted">–</td>'
+
         yr_rule = float((1 + g["rule"]).prod() - 1)
         yr_b = float((1 + g["bench"]).prod() - 1)
         body += f'<tr class="bt-y"><th scope="rowgroup" colspan="14">{y}</th></tr>'
         for label, fn, yv in (("This rule", lambda r: _pcs(r["rule"]), _pcs(yr_rule)),
                               ("Nifty 500", lambda r: _pcs(r["bench"]), _pcs(yr_b)),
                               ("Lead", lambda r: _pts(r["rule"] - r["bench"]).replace(" pts", ""), _pts(yr_rule - yr_b).replace(" pts", ""))):
-            cells = "".join(f'<td class="dh-num">{e(fn(by[k]))}</td>' if k in by else '<td class="dh-num dh-muted">–</td>'
+            cells = "".join(f'<td class="dh-num">{e(fn(by[k]))}</td>' if k in by else empty(k)
                             for k in range(1, 13))
             body += f'<tr><th scope="row">{label}</th>{cells}<td class="dh-num"><b>{e(yv)}</b></td></tr>'
     return (f'<table class="dh-tab bt-months"><thead><tr><th scope="col"></th>{head}</tr></thead><tbody>{body}</tbody></table>'
@@ -774,14 +816,16 @@ def section_depends(f: dict) -> list:
             tax_cost = (r["as_tested"] - r["nifty_500"]) - (at["rule"] - at["nifty_500"])
         cost_hit = (r["as_tested"] - r["cost_60"]) if r.get("cost_60") is not None else None
         rule_hit = abs(r["as_tested"] - r["monthly_reset"]) if r.get("monthly_reset") is not None else None
+        # Two sentences, and a sentence when the stored tests are missing, not a label (S203 bt.dep.1).
         bits = []
         if tax_cost is not None:
-            bits.append(f'Tax costs the lead <span class="dh-down">{tax_cost * 100:.1f} points a year</span>')
+            bits.append(f'Tax costs the lead <span class="dh-down">{_num(tax_cost * 100)} points a year</span>.')
         if cost_hit is not None and rule_hit is not None:
-            bits.append("costs matter more than the rebalance rule" if cost_hit > rule_hit else
-                        "the rebalance rule matters more than costs")
-        h2 = ("; ".join(bits) + ".") if bits else "What the result depends on, for the default run."
-        h2 = h2[0].upper() + h2[1:]
+            c, r_ = _num(cost_hit * 100), _num(rule_hit * 100)
+            bits.append("Costs and the rebalance rule matter about as much." if c == r_ else
+                        "Costs matter more than the rebalance rule." if cost_hit > rule_hit else
+                        "The rebalance rule matters more than costs.")
+        h2 = " ".join(bits) if bits else "The stored tests for the default run are not in yet."
         items = [("As tested", "six-monthly reset, 30 bps", sm.a_year, True),
                  ("Monthly reset", "the record’s rule to Oct 2026", r.get("monthly_reset"), False),
                  ("Costs 60 bps", "a round trip", r.get("cost_60"), False),
@@ -826,22 +870,37 @@ def section_depends(f: dict) -> list:
                   '<th scope="col" class="dh-num">A year</th><th scope="col" class="dh-num">Max drawdown</th></tr></thead>'
                   f'<tbody>{trows}</tbody></table></div>',
                   '<p class="dh-note">NSE’s Nifty200 Momentum 30 is the nearest index a fund tracks; it is a price index too. '
-                  'These windows are short and include this rule’s max drawdown.</p>']
+                  + ("These windows are short and include this rule’s max drawdown." if _windows_cover_max_drawdown(f)
+                     else "These windows are short.") + '</p>']
     return parts + ["</div>", END]
+
+
+def _windows_cover_max_drawdown(f: dict) -> bool:
+    """Whether every comparison window starts on or before the rule's max drawdown's peak (S203 bt.dep.4)."""
+    falls, starts = f.get("falls") or [], f.get("windows_from") or []
+    return bool(falls and starts and falls[0].peak >= max(pd.Timestamp(x) for x in starts))
 
 
 def section_trust(f: dict) -> list:
     st_, h, sm = f["stats"], f["h"], f["summary"]
     pit, cur = int(st_.get("pit_periods", 0) or 0), int(st_.get("current_universe_periods", 0) or 0)
     stale, short = f["stale"], f["short"]
-    stale_txt = ("No sale used a price five or more sessions old." if not stale else
-                 f"{len(stale)} sale{'s' if len(stale) > 1 else ''} used a price {min(x['sessions'] for x in stale)} to "
-                 f"{max(x['sessions'] for x in stale)} sessions old ({', '.join(sorted({x['symbol'] for x in stale})[:6])}"
-                 f"{'…' if len(stale) > 6 else ''}), {min(x['exit'].year for x in stale)}–{max(x['exit'].year for x in stale)}: "
-                 "stocks taken over or delisted, sold at their last price.")
-    short_txt = ("Every rebalance found enough stocks that passed the rules." if not short else
-                 "; ".join(f"{d:%B %Y} found only {n} stocks that passed the rules" for d, n in short[:3])
-                 + "; the rest of the book sat in cash at 0% until the next rebalance.")
+    stale_txt = "No sale used a price five or more sessions old."
+    if stale:
+        lo, hi = min(x["sessions"] for x in stale), max(x["sessions"] for x in stale)
+        y0, y1 = min(x["exit"].year for x in stale), max(x["exit"].year for x in stale)
+        stale_txt = (f"{len(stale)} sale{'s' if len(stale) > 1 else ''} used a price {lo if lo == hi else f'{lo} to {hi}'} "
+                     f"sessions old ({', '.join(sorted({x['symbol'] for x in stale})[:6])}{'…' if len(stale) > 6 else ''}), "
+                     f"{f'in {y0}' if y0 == y1 else f'{y0}–{y1}'}: stocks taken over or delisted, sold at their last price.")
+    # A month does not find stocks; at its rebalance only so many passed (S203 bt.tr.2).
+    short_txt = "Every rebalance found enough stocks that passed the rules."
+    if short:
+        first_d, first_n = short[0]
+        short_txt = (f"At {first_d:%B %Y}’s rebalance only {_count(first_n, 'stock')} passed the rules"
+                     + "".join(f"; at {d:%B %Y}’s, only {n:,}" for d, n in short[1:3])
+                     + (f"; {_count(len(short) - 3, 'more rebalance')} {'was' if len(short) == 4 else 'were'} short too"
+                        if len(short) > 3 else "")
+                     + ". The rest of the book sat in cash at 0% until the next rebalance.")
     shadows = ", ".join(f"“{b.name.replace(' (shadow)', '')}” from {b.inception.strftime('%b %Y')}" for b in SHADOWS.values())
     checks = [
         ("Survivorship", f"{pit} of {pit + cur} rebalances picked from the {h['name']} as it stood that day, leavers included; "
@@ -889,7 +948,6 @@ def section_trades_head(f: dict) -> list:
     # Only when it is true (S203 bt.trd.2): it was printed whatever the profit factor.
     if pf is not None and np.isfinite(pf) and pf > 1:
         h2 += f" The winners paid for the losers: gains were {pf:.2f} times the losses."
-    pf = ts.get("profit_factor")
     tiles = _kpis([
         ("Trades closed", f"{ts['closed']:,}", "", f"{ts['open']} still held"),
         ("Won", f"{won:.0%}", "", "of closed trades"),
@@ -957,12 +1015,13 @@ def gather(res: dict, s: dict, h: dict, bench: pd.Series, default: bool) -> dict
     bench_cal = bp.on_calendar(bench, eq.index)
     now = bp.below_peak_now(eq)
     peak_at = eq.loc[:eq.index[-1]].idxmax() if now < 0 else eq.index[-1]
-    alts = []
+    alts, windows_from, tm_window_from = [], [], None
     mom = close[bp.MOMENTUM_INDEX].dropna() if bp.MOMENTUM_INDEX in close else pd.Series(dtype=float)
     if len(mom) and eq.index[-1] > mom.index[0]:
         start = mom.index[0] + pd.offsets.MonthEnd(0)
         w = bp.window(eq, {"mom": mom, "n500": bench}, start)
         if w:
+            windows_from.append(w["from"])
             alts.append(("Since Nifty200 Momentum 30 went live", f"{_d(w['from'])} – {_d(w['to'])}",
                          [(f"This rule, {h['name']}", *w["rule"]), ("Nifty200 Momentum 30", *w["mom"]), ("Nifty 500", *w["n500"])]))
     ref = _reference() if default else None
@@ -970,6 +1029,8 @@ def gather(res: dict, s: dict, h: dict, bench: pd.Series, default: bool) -> dict
         start = tm.index[0] + pd.offsets.MonthEnd(0)
         w = bp.window(eq, {"tm": tm, "n500": bench}, start)
         if w:
+            windows_from.append(w["from"])
+            tm_window_from = w["from"]
             items = [(f"This rule, {h['name']}", *w["rule"])]
             tu = (ref or {}).get("total_market_universe")
             if tu and key != bp.TOTAL_MARKET:
@@ -984,10 +1045,11 @@ def gather(res: dict, s: dict, h: dict, bench: pd.Series, default: bool) -> dict
         if per == pd.Period(sm.last, "M") + 1:
             mtd = {"label": per.strftime("%B"), "as_of": meta.get("as_of"), "rule": float(meta["strategy_mtd"]),
                    "bench": None if meta.get("benchmark_mtd") is None else float(meta["benchmark_mtd"])}
-    dy = None
+    dy = dy_from = None
     if store is not None and "nifty_500" in store.dy:
         v = store.dy["nifty_500"].dropna()
         dy = float(v.mean()) if len(v) else None
+        dy_from = pd.Timestamp(v.index[0]) if len(v) else None
     chart = bp.weekly_chart(eq, {"n500": bench})
     return {
         "s": s, "h": h, "default": default, "stats": res.get("stats") or {}, "summary": sm,
@@ -995,7 +1057,9 @@ def gather(res: dict, s: dict, h: dict, bench: pd.Series, default: bool) -> dict
         "bench_below_now": bp.below_peak_now(bench_cal), "current_peak": pd.Timestamp(peak_at),
         "current_days": int((eq.index[-1] - pd.Timestamp(peak_at)).days),
         "years": years, "monthly": bp.months(eq, bench), "alternatives": alts, "reference": ref,
-        "uidx_name": uidx_name, "uidx_short": uidx_short, "mtd": mtd, "div_yield": dy, "chart": chart,
+        "uidx_name": uidx_name, "uidx_short": uidx_short, "mtd": mtd, "div_yield": dy, "div_yield_from": dy_from, "chart": chart,
+        "tm_from": pd.Timestamp(tm.index[0]) if len(tm) else None, "windows_from": windows_from,
+        "tm_window_from": tm_window_from,
         "stale": bp.stale_exits(res.get("closed_trades"), h["close"]),
         "short": bp.short_books(res.get("monthly"), s["top_n"]),
         "trades": bp.trade_stats(res.get("closed_trades")),
@@ -1153,7 +1217,7 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
     res = _run(s, h, bench, stock_cap, sector_cap)
     mark("run")
     if res is None:
-        kit.note("Not enough price history for this window.", "The rules need a 12M lookback before the first "
+        kit.note("Not enough price history for this window.", "The rules need 12 months of prices before the first "
                  "month tested; pick a later start above.", kind="warning")
         return
     eq = pd.Series(res.get("equity_curve")).dropna()

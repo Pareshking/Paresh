@@ -257,7 +257,7 @@ def title(table: pd.DataFrame, n_saved: int, plan: BookPlan | None, ln: Lines) -
     # (S203 wl.head.1, dash.brief.2's form).
     at = f"at the {when} check"
     if len(held) == 1:
-        it = "it" if n_saved == 1 else f"one of them, {held[0]},"
+        it = "it," if n_saved == 1 else f"one of them, {held[0]},"
         tail = (f"The book holds {it} and would keep it {at}." if not sold else
                 f"The book holds {it} and " + verdict("would sell it", False) + f" {at}.")
     else:
@@ -267,42 +267,45 @@ def title(table: pd.DataFrame, n_saved: int, plan: BookPlan | None, ln: Lines) -
 
 
 def plan_sentence(table: pd.DataFrame, plan: BookPlan | None) -> str:
-    """'If today's prices hold, on Mon 30 Nov the model book buys X and sells Y; Z is next in line.'"""
+    """'If today's prices hold, the model book would buy X and sell Y at the 30 Nov check. Z is next in line.'
+
+    "Would" and "at the check" (S203 wl.head.2, dash.brief.2's form): the trades fill the next session."""
     if plan is None:
         return "The model book's plan for the next rebalance is not available just now."
     syms = list(table["Symbol"].astype(str))
     buys = [s for s in syms if s in plan.buys]
     sells = [s for s in syms if s in plan.sells]
     nxt = [s for s in syms if s in plan.next_in_line]
-    lead = f"If today's prices hold, on {fmt_weekday(plan.check)} the model book"
-    acts = ([f"buys {fmt_names(buys)}"] if buys else []) + ([f"sells {fmt_names(sells)}"] if sells else [])
-    text = f"{lead} {' and '.join(acts)}" if acts else f"{lead} neither buys nor sells any of your stocks"
+    at = f"at the {fmt_day(plan.check)} check"
+    acts = ([f"buy {fmt_names(buys)}"] if buys else []) + ([f"sell {fmt_names(sells)}"] if sells else [])
+    text = (f"If today's prices hold, the model book would {' and '.join(acts)} {at}." if acts else
+            f"If today's prices hold, the model book would not trade any of your stocks {at}.")
     if nxt:
-        text += f"; {fmt_names(nxt)} {'is' if len(nxt) == 1 else 'are'} next in line"
-    return text + "."
+        text += f" {fmt_names(nxt)} {'is' if len(nxt) == 1 else 'are'} next in line."
+    return text
 
 
 def lines_heading(table: pd.DataFrame, plan: BookPlan | None, ln: Lines) -> str:
-    """The section's finding: the buys among my names, and the nearest name below the line."""
+    """The section's finding: the buys among my names, and the nearest name below the line, as two
+    sentences (S203 wl.lines.2; a count is a figure, "1 place", rule 8)."""
     syms = list(table["Symbol"].astype(str))
     q = dict(zip(syms, table.get("Qualified Rank", pd.Series([None] * len(syms)))))
     if plan is None:
         first = ""
     else:
         buys = [s for s in syms if s in plan.buys]
-        first = ("None of your stocks is a buy" if not buys else
-                 f"{buys[0]} is the one buy" if len(buys) == 1 else f"{fmt_names(buys)} are the buys")
+        first = ("None of your stocks is a buy." if not buys else
+                 f"{buys[0]} is the one buy." if len(buys) == 1 else f"{fmt_names(buys)} are the buys.")
     below = sorted(((int(v), s) for s, v in q.items() if v is not None and not pd.isna(v) and int(v) > ln.buy))
     second = ""
     if below:
         v, s = below[0]
         gap = v - ln.buy
-        second = f"{s} is {'a place' if gap == 1 else fmt_count(gap, 'place')} short of the top {ln.buy}"
+        second = f"{s} is the nearest below the buy line, {fmt_count(gap, 'place')} short of the top {ln.buy}."
     parts = [p for p in (first, second) if p]
     if not parts:
         return "None of your stocks is qualified: each fails a filter."
-    text = "; ".join(parts)
-    return text[0].upper() + text[1:] + "."
+    return " ".join(parts)
 
 
 # ── Not ranked ───────────────────────────────────────────────────────────────
@@ -354,6 +357,22 @@ def ranks_elsewhere_words(hits: list[tuple[str, int, int]]) -> str:
     if len(parts) < 2:
         return "".join(parts)
     return ", ".join(parts[:-1]) + " and " + parts[-1]
+
+
+# The 1000's unranked members are mostly not new: their history is still being collected (S175). The Screener's
+# system note gives the same reason (sc.sys.1), so one stock reads the same on both pages (S203 wl.nr.1).
+SYSTEM_1000_NAME = "Nifty 1000"
+_SMALL = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+
+
+def too_new_words(universe: str) -> tuple[str, str]:
+    """(why, where) for a member of the list that is not ranked yet; the months from the engine's own minimum."""
+    from src.engine.momentum import MIN_OBSERVATIONS
+    months = max(1, round(int(MIN_OBSERVATIONS) / 21))          # 63 sessions: about three months
+    need = f"It needs about {_SMALL.get(months, str(months))} months of prices."
+    if str(universe) == SYSTEM_1000_NAME:
+        return f"In {fmt_system(universe)}, but not ranked yet: its history is being collected.", need
+    return f"In {fmt_system(universe)}, but too new to rank.", need
 
 
 def not_ranked(symbols: list, rank_df: pd.DataFrame, *, universe: str, members=(),
@@ -419,8 +438,7 @@ def not_ranked(symbols: list, rank_df: pd.DataFrame, *, universe: str, members=(
                                 link_label=f"See it in {fmt_system(name)}"))
             continue
         if sym in members:
-            out.append(Unranked(sym, TOO_NEW, f"In {fmt_system(universe)}, but too new to rank.",
-                                "It needs about three months of prices."))
+            out.append(Unranked(sym, TOO_NEW, *too_new_words(universe)))
             continue
         if sym in listed:
             out.append(Unranked(sym, LISTED, "Listed on NSE, but in none of the systems' lists.", MISSING))
@@ -430,19 +448,18 @@ def not_ranked(symbols: list, rank_df: pd.DataFrame, *, universe: str, members=(
 
 
 def not_ranked_heading(rows: list[Unranked], universe: str) -> str:
-    """'2 of your symbols are not in the Nifty 750: one was renamed, one is in > ₹2,000 Cr.'"""
+    """'2 of your symbols are not in the Nifty 750: 1 was renamed, 1 is in > ₹2,000 Cr.' (a count is a figure, rule 11)"""
     n = len(rows)
-    words = {1: "one", 2: "two", 3: "three"}
     parts = []
     for kind, say in ((RENAMED, "renamed"), (TOO_NEW, "too new to rank"), (LISTED, "in no system's list"),
                       (UNKNOWN, "not a known symbol")):
         k = sum(r.kind == kind for r in rows)
         if k:
             verb = ("was" if k == 1 else "were") if kind == RENAMED else ("is" if k == 1 else "are")
-            parts.append(f"{words.get(k, str(k))} {verb} {say}")
+            parts.append(f"{k} {verb} {say}")
     for name in dict.fromkeys(r.system for r in rows if r.kind == ELSEWHERE):
         k = sum(r.system == name for r in rows)
-        parts.append(f"{words.get(k, str(k))} {'is' if k == 1 else 'are'} in {fmt_system(name)}")
+        parts.append(f"{k} {'is' if k == 1 else 'are'} in {fmt_system(name)}")
     head = (f"1 of your symbols is not in {fmt_system(universe)}" if n == 1
             else f"{n} of your symbols are not in {fmt_system(universe)}")
     return head + (": " + ", ".join(parts) if parts else "") + "."
@@ -456,8 +473,9 @@ def fill_heading(events: list, fill: pd.Timestamp) -> str:
         from src.ui.missing_words import no_events
         return no_events("your stocks", fill)   # Actions' sentence (S193 E, R5)
     names = list(dict.fromkeys(str(e[1]) for e in events))
-    return (f"{fmt_count(len(events), 'meeting or ex-date', 'meetings or ex-dates')} "
-            f"before {when}: {fmt_names(names)}.")
+    k = len(events)
+    what = "board meeting or ex-date is" if k == 1 else "board meetings or ex-dates are"
+    return f"{k:,} {what} announced before {when}, for {fmt_names(names)}."     # S203 wl.fill.1: a verb
 
 
 def reported_sentence(reported: pd.DataFrame | None, n_ranked: int) -> str:
@@ -470,6 +488,8 @@ def reported_sentence(reported: pd.DataFrame | None, n_ranked: int) -> str:
             f"between {fmt_day(first['date'])} ({first['symbol']}) and {fmt_day(last['date'])} ({last['symbol']})")
     if n_ranked == 1:
         return f"{first['symbol']} held its last results meeting on {fmt_day(first['date'])}."
-    who = ("Every ranked stock on your list" if len(r) == n_ranked else
-           f"{len(r)} of the {n_ranked} ranked stocks on your list")
-    return f"{who} held its last results meeting {span}."
+    if len(r) == n_ranked:
+        return f"Every ranked stock on your list held its last results meeting {span}."
+    if len(r) == 1:
+        return f"1 of the {n_ranked} ranked stocks on your list held its last results meeting {span}."
+    return f"{len(r)} of the {n_ranked} ranked stocks on your list held their last results meetings {span}."

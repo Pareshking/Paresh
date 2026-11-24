@@ -106,7 +106,7 @@ def test_frozen_months_are_named_only_where_a_system_has_them():
 def test_backtest_heading_counts_the_checks_not_made():
     from src.ui.views.backtest_view import trust_headline
     assert trust_headline([("Look-ahead", "", "Checked"), ("b", "", "Not checked"), ("c", "", "Not checked")]) == \
-        "Look-ahead is handled; 2 checks are not made (below)."
+        "Look-ahead is handled; 2 checks are not made."
     assert trust_headline([("Look-ahead", "", "Checked")]) == "Look-ahead is handled."
 
 
@@ -119,7 +119,7 @@ def test_backtest_trust_headline_follows_the_statuses():
             ("Tax", "", "Soft spot"), ("Rules chosen after looking", "", "Soft spot"), ("Sector cap", "", "Not checked")]
     assert re.sub(r"<[^>]+>", "", trust_headline(rows)) == (
         "Look-ahead is handled; survivorship, costs, tax and the choice of rules are the soft spots; "
-        "1 check is not made (below).")
+        "1 check is not made.")
     rows[0] = ("Survivorship", "", "Checked")
     assert re.sub(r"<[^>]+>", "", trust_headline(rows)).startswith(
         "Survivorship and look-ahead are handled; costs, tax and the choice of rules are the soft spots")

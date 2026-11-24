@@ -116,8 +116,8 @@ def test_the_column_header_is_the_next_rebalance_day():
     assert ">30 Nov<" in doc and 'class="c-plan pos" data-v="Buy"' in doc and 'class="c-plan neg" data-v="Sell"' in doc
     assert "Next in line" in doc
     assert doc.count('<tr class="gh">') == len(heads)
-    assert wl.plan_sentence(table, plan) == ("If today's prices hold, on Mon 30 Nov the model book buys S1 "
-                                             "and sells S2; S4 is next in line.")
+    assert wl.plan_sentence(table, plan) == ("If today's prices hold, the model book would buy S1 "
+                                             "and sell S2 at the 30 Nov check. S4 is next in line.")
 
 
 # ── Row 24: why a symbol is not ranked ──────────────────────────────────────
@@ -140,8 +140,8 @@ def test_not_ranked_says_why_and_where():
     assert by["LISTEDCO"].kind == wl.LISTED
     assert by["ZZZ"].kind == wl.UNKNOWN
     assert wl.not_ranked_heading(rows, "Nifty 750") == (
-        "5 of your symbols are not in the Nifty 750: one was renamed, one is too new to rank, "
-        "one is in no system's list, one is not a known symbol, one is in > ₹2,000 Cr.")
+        "5 of your symbols are not in the Nifty 750: 1 was renamed, 1 is too new to rank, "
+        "1 is in no system's list, 1 is not a known symbol, 1 is in > ₹2,000 Cr.")
 
 
 def test_a_symbol_listed_today_is_never_called_renamed():
@@ -213,5 +213,5 @@ def test_the_foot_names_the_data_date_once():
     ranking = _ranking()
     foot = wv._foot(pd.Timestamp("2026-11-20"), ["S1", "S2", "ZZZ"], ranking[ranking["Symbol"].isin(["S1", "S2"])], ranking)
     assert foot.startswith(formats.data_to(pd.Timestamp("2026-11-20")) + ".")
-    assert foot.count("Data to") == 1 and "2 of your 3 symbols ranked among the 9" in foot
+    assert foot.count("Data to") == 1 and "2 of your 3 symbols are ranked among the 9" in foot
     # That the view does not also hand the date to the shared footer: test_launch_slot_10_leftovers.
