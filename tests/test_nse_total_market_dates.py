@@ -38,3 +38,24 @@ def test_the_committed_file_has_one_close_per_weekday_session():
     on = f.set_index("date")["close"]
     assert on[pd.Timestamp("2023-10-04")] == pytest.approx(9608.10)
     assert on[pd.Timestamp("2023-04-10")] == pytest.approx(8237.65)
+
+
+def test_weekend_special_sessions_are_asked_for(tmp_path):
+    """NSE's special weekend sessions (Muhurat 8 Nov 2026, budget Saturday 1 Feb 2025) are fetched (S163)."""
+    import importlib.util
+    from datetime import date
+    from pathlib import Path
+
+    import pandas as pd
+    spec = importlib.util.spec_from_file_location(
+        "cntm", Path(__file__).resolve().parents[1] / "scripts" / "collect_nse_total_market.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    hist = tmp_path / "h.parquet"
+    pd.DataFrame({"date": pd.to_datetime(["2025-01-31", "2025-02-01", "2026-11-08", "2019-01-05"]),
+                  "key": "nifty_50", "close": 1.0}).to_parquet(hist)
+    days = m.sessions_to_try(date(2021, 10, 1), date(2026, 11, 24), hist)
+    assert pd.Timestamp("2025-02-01") in days and pd.Timestamp("2026-11-08") in days
+    assert pd.Timestamp("2025-02-02") not in days            # an ordinary Sunday is not asked for
+    assert pd.Timestamp("2019-01-05") not in days            # outside the range
+    assert pd.Timestamp("2026-11-23") in days                # weekdays as before

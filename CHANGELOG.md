@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-24 — Nifty Total Market keeps NSE's special sessions (S163)
+
+- Market and Sectors read Nifty Total Market with NSE's seven weekend sessions since 2023 (the Muhurat sessions of 12 Nov 2023 and 8 Nov 2026, budget-day and drill Saturdays). They were missing from the file those pages read, so a window opening near one started a session off from the Dashboard, Indices and Portfolio.
+
 ## 2026-11-24 — Shorter flows readout on a phone (S222)
 
 - The Dashboard's foreign-flows readout names a month "heavy buying", "moderate buying" or "net selling" (it was "a heavy-buying month" and "net buying, below the heavy line"), so each series keeps one line at phone width in any font.
