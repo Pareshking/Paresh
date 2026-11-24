@@ -52,7 +52,7 @@ def run(verbose=True):
         # Filename ordering is not chronological (e.g. February vs August notices).
         items.sort(key=lambda x: (x[0], x[1], x[2], x[3]), reverse=True)
         snaps = []
-        for e, published, kind, f, payload in items:
+        for e, _published, kind, f, payload in items:
             if kind == 0:
                 if payload["new_symbol"] in state:
                     state.discard(payload["new_symbol"]); state.add(payload["old_symbol"])

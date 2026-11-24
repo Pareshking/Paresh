@@ -37,7 +37,7 @@ import os
 import random
 import re
 import time
-from typing import Sequence
+from collections.abc import Sequence
 
 import pandas as pd
 import requests

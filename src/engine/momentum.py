@@ -13,7 +13,8 @@ out to Yahoo mid-calculation), and none paid for the surface area it cost.
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd

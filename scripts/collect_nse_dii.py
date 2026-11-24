@@ -26,7 +26,7 @@ import io
 import re
 import sys
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, UTC
 from pathlib import Path
 
 import pandas as pd
@@ -107,7 +107,7 @@ def build(history: pd.DataFrame, days: pd.DataFrame, sessions: dict[str, int]) -
 
 
 def main() -> int:
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     kept = pd.read_csv(OUT, dtype={"period": str}) if OUT.exists() else pd.DataFrame(columns=FIELDS)
     have = set(kept.loc[kept["kind"] == "day", "period"])
     start = date(today.year, today.month, 1) - timedelta(days=45)       # this month and last, for the check

@@ -23,7 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date, datetime, timezone
+from datetime import date, datetime, UTC
 from pathlib import Path
 
 import numpy as np
@@ -129,7 +129,7 @@ def write_report(result: rc.Reconciled, out: Path, start, end, notes: list[str])
     for name in ("rights", "votes", "drifts", "filled"):
         getattr(result, name).to_csv(out / f"{name}.csv", index=False)
     (out / "summary.json").write_text(json.dumps(
-        {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        {"generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
          "window": [str(start), str(end)], **s, "notes": notes}, indent=1) + "\n", encoding="utf-8")
 
     v = result.votes

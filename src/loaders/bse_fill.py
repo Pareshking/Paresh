@@ -37,7 +37,7 @@ looked at gets a verdict, filled or refused and why.
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -237,7 +237,7 @@ def fill(close: pd.DataFrame, bse: pd.DataFrame | dict, *, history: pd.DataFrame
                "junction_before": None, "junction_after": None, "filled_sessions": 0}
 
         def refuse(why: str, detail: str = "") -> None:
-            rows.append({**row, "verdict": f"refused: {why}", "detail": detail})
+            rows.append({**row, "verdict": f"refused: {why}", "detail": detail})  # noqa: B023
 
         nse_tail = close[sym].iloc[max(0, p0 - MATCH_DAYS + 1): p0 + 1]
         code, how, refusal, detail = map_code(sym, last, nxt, b, nse_tail, history=history, current=current)

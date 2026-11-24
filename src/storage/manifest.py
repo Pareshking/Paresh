@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any
 
@@ -49,7 +49,7 @@ def build_manifest(
     manifest: dict[str, Any] = {
         "dataset": dataset,
         "as_of": as_of,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "source": source,
         "schema_version": int(schema_version),
         "row_count": row_count,

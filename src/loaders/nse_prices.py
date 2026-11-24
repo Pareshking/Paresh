@@ -48,7 +48,8 @@ import threading
 import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -649,7 +650,7 @@ def blend_screener(base: pd.DataFrame, store: pd.DataFrame | None, extra: Iterab
 # -- the NSE files, the price frame, the membership, the window, the Screener
 # store -- misses and recomputes. A hit hands back a copy: no caller can alter
 # the memo. Two entries: one per live system a reader is likely to switch between.
-_BASIS_MEMO: "OrderedDict[tuple, tuple[pd.DataFrame | None, dict[str, Any], Any]]" = OrderedDict()
+_BASIS_MEMO: OrderedDict[tuple, tuple[pd.DataFrame | None, dict[str, Any], Any]] = OrderedDict()
 _BASIS_MEMO_SIZE = 2
 _BASIS_LOCK = threading.Lock()
 

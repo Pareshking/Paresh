@@ -107,7 +107,7 @@ def test_apply_deletes_exactly_the_plan_and_keeps_readers_whole():
     assert set(a.deleted) == planned
     assert set(a.objects) == before - planned
     # The newest date of each retained dataset still resolves end to end.
-    for ds, root in rr.RETAINED_DATASETS.items():
+    for ds, _root in rr.RETAINED_DATASETS.items():
         if f"archive/manifests/{ds}/2026-09-24/current.json" not in before:
             continue  # not in this fixture
         ptr = json.loads(a.objects[f"archive/manifests/{ds}/2026-09-25/current.json"])

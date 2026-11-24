@@ -54,7 +54,7 @@ class Frames:
     def as_of(self) -> pd.Timestamp:
         return pd.Timestamp(self.close.index[-1])
 
-    def until(self, day: pd.Timestamp) -> "Frames":
+    def until(self, day: pd.Timestamp) -> Frames:
         """The same frames cut at `day`, so a figure reads on another page's session."""
         cut = lambda x: x[x.index <= pd.Timestamp(day)]  # noqa: E731
         return Frames(cut(self.close), cut(self.pe), cut(self.pb), cut(self.dy), self.names, self.groups)
@@ -127,7 +127,7 @@ def valuation(f: Frames, keys=VALUATION_KEYS) -> list[Valuation]:
             continue
         now = f.as_of
         d1, d3 = on_or_before(pe, months_back(now, 1)), on_or_before(pe, months_back(now, 3))
-        at = lambda d: (float(pe[d]), percentile(reg[reg.index <= d], float(pe[d])))  # noqa: E731
+        at = lambda d: (float(pe[d]), percentile(reg[reg.index <= d], float(pe[d])))  # noqa: B023, E731
         (p3, c3), (p1, c1) = at(d3), at(d1)
         out.append(Valuation(k, f.names.get(k, k), p3, p1, float(pe.iloc[-1]), c3, c1,
                              percentile(reg, float(pe.iloc[-1])), pd.Timestamp(reg.index[0]),

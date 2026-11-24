@@ -24,9 +24,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -528,7 +529,7 @@ def finalize_months(
             "alpha": round(s_ret - b_ret, 6) if b_ret is not None else None,
             "origin": origin,
             "universe": universe,
-            "finalized_on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "finalized_on": datetime.now(UTC).strftime("%Y-%m-%d"),
             "config": fingerprint(period) if callable(fingerprint) else fingerprint,
             "data_as_of": (
                 pd.Timestamp(data_as_of).strftime("%Y-%m-%d")

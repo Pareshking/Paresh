@@ -228,7 +228,7 @@ def action_factors(close: pd.DataFrame, actions: pd.DataFrame
     # audit, 3 Oct 2026), so the price cannot confirm it. NSE listed it; apply
     # it unless the same action is already applied within SMALL_DAYS (the Bc
     # file and the yearly list can date one action differently).
-    for i, r, day, move in small:
+    for i, r, day, _move in small:
         f = round(float(r.bc_factor), 6)
         if any(k[0] == r.symbol and k[2] == r.kind and k[3] == f
                and abs((k[1] - day).days) <= SMALL_DAYS for k in done):

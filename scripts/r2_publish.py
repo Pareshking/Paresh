@@ -102,7 +102,7 @@ def _publish_manifest(
         archive.put_bytes(key, body, content_type="application/json", immutable=True)
         print(f"MANIFEST PUBLISHED {key}")
         return manifest
-    except R2ImmutableObjectExists:
+    except R2ImmutableObjectExists as exc:
         existing = json.loads(archive.get_bytes(key).decode("utf-8"))
         existing_contract = _immutable_manifest_contract(existing)
         candidate_contract = _immutable_manifest_contract(manifest)
@@ -115,7 +115,7 @@ def _publish_manifest(
         if material:
             raise RuntimeError(
                 f"Existing R2 manifest differs for {key}: {', '.join(material)}"
-            )
+            ) from exc
         print(
             f"MANIFEST ALREADY PRESENT + VERIFIED {key}"
             + (f"; preserving immutable metadata: {', '.join(differing)}" if differing else "")

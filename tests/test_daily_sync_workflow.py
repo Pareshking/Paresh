@@ -12,6 +12,7 @@ nobody reads. They are cheap to assert here.
 import pathlib
 
 import pytest
+from datetime import UTC
 
 yaml = pytest.importorskip("yaml")
 
@@ -150,7 +151,7 @@ def test_the_slots_land_where_they_are_meant_to_in_india():
     observed_delay = timedelta(minutes=28)
 
     def ist_hhmm(hour, minute):
-        t = datetime(2026, 9, 22, hour, minute, tzinfo=timezone.utc) + observed_delay
+        t = datetime(2026, 9, 22, hour, minute, tzinfo=UTC) + observed_delay
         return t.astimezone(IST).strftime("%H:%M")
 
     assert ist_hhmm(17, 30) == "23:28", "the night slot drifted off 23:00 IST"

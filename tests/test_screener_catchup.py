@@ -1,6 +1,6 @@
 """The nightly catch-up acts only when the published prices are behind (owner, 24 Nov 2026)."""
 import importlib.util
-from datetime import date, datetime, timezone
+from datetime import date, datetime, UTC
 from pathlib import Path
 
 import numpy as np
@@ -10,7 +10,7 @@ _spec = importlib.util.spec_from_file_location("screener_catchup", Path(__file__
 sc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(sc)
 
-IST = timezone.utc  # the times below are only compared with each other
+IST = UTC  # the times below are only compared with each other
 
 
 def test_holiday_is_not_a_due_session():

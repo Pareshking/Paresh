@@ -50,7 +50,7 @@ def main():
         for t in timeline: eod[t[0]] = t  # later entry for the same date wins
         timeline = sorted(eod.values(), key=lambda t: t[0])
         open_ = {}
-        for i, (d, members, _) in enumerate(timeline):
+        for _i, (d, members, _) in enumerate(timeline):
             for s in list(open_):
                 if s not in members:
                     rows.append((idx, s, open_.pop(s), day_before(d)))
@@ -71,7 +71,7 @@ def members_on(rows, idx, d):
 
 def verify(rows, res):
     n = 0
-    for idx, (initial, snaps, timeline) in res.items():
+    for idx, (_initial, _snaps, timeline) in res.items():
         for d, members, _ in timeline:
             got = members_on(rows, idx, d)
             if got != members: sys.exit(f"replay mismatch {idx} {d}: {sorted(got ^ members)[:5]}")

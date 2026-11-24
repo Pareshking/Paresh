@@ -26,7 +26,8 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+from collections.abc import Iterable
 
 from src.core.logger import logger
 from src.core.tickers import is_tradeable_symbol

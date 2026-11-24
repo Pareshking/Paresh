@@ -36,7 +36,7 @@ def main(write=True):
             seen.add(out); out = export_pit.aliases[out]["new_symbol"]
         return out
     report = {}
-    for idx, (initial, snaps, timeline) in export_all(res).items():
+    for idx, (_initial, _snaps, timeline) in export_all(res).items():
         key = KEY[idx]
         states = [(d, {cur(s, key) for s in m}, f) for d, m, f in timeline]
         old = hist["indices"].get(key)
@@ -50,7 +50,7 @@ def main(write=True):
                 states.append((bdate, states[-1][1], None))
         base_d, base, _ = states[0]
         changes = []
-        for (d0, s0, _f0), (d1, s1, f1) in zip(states, states[1:]):
+        for (_d0, s0, _f0), (d1, s1, f1) in zip(states, states[1:]):
             added, removed = sorted(s1 - s0), sorted(s0 - s1)
             if added or removed: changes.append({"date": d1, "added": added, "removed": removed, "notice": f1 + ".pdf"})
         if old:

@@ -83,7 +83,7 @@ def pair_leftovers(nse_left, mine_left, name_min=0.6, days=45):
     cands = sorted(((similar(n[2], m[2]), -gap(n[0], m[0]), i, j) for i, n in enumerate(nse_left) for j, m in enumerate(mine_left)
                     if n[1] == m[1] and gap(n[0], m[0]) <= days and similar(n[2], m[2]) >= name_min), reverse=True)
     used_n, used_m, renamed, moved = set(), set(), [], []
-    for sim, _g, i, j in cands:
+    for _sim, _g, i, j in cands:
         if i in used_n or j in used_m:
             continue
         used_n.add(i); used_m.add(j)

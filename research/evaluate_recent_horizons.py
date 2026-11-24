@@ -256,7 +256,7 @@ def main() -> int:
             # parameter block describes.
             relaxations: list[str] = []
             handler = logging.Handler()
-            handler.emit = lambda record: relaxations.append(record.getMessage())
+            handler.emit = lambda record: relaxations.append(record.getMessage())  # noqa: B023
             engine_log = logging.getLogger("nse_momentum")
             engine_log.addHandler(handler)
 

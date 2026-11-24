@@ -165,7 +165,7 @@ class Tile:
 
 
 def tiles(row, uni: Universe, q: int | None, n_qualified: int, as_of: pd.Timestamp, ln: wl.Lines,
-          holding: "Holding | None") -> list[Tile]:
+          holding: Holding | None) -> list[Tile]:
     """Close, rank, place among the qualified, and (when held) the book's return since entry."""
     r1 = num(row.get("1M Return"))
     out = [Tile(f"Close, {wl.fmt_day(as_of)}", formats.price(row.get("CMP")),

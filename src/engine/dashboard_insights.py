@@ -381,7 +381,7 @@ def flow_evidence(nsdl: pd.DataFrame, spreads: pd.DataFrame, bench: pd.DataFrame
     hi, lo = nxt[nxt["fpi"] >= q], nxt[nxt["fpi"] < q]
     mid = nxt.index[len(nxt) // 2]
     halves = []
-    for name, part in (("first half", nxt[nxt.index < mid]), ("second half", nxt[nxt.index >= mid])):
+    for _name, part in (("first half", nxt[nxt.index < mid]), ("second half", nxt[nxt.index >= mid])):
         qq = float(part["fpi"].quantile(0.75))
         halves.append((f"{part.index[0]:%Y}-{part.index[-1]:%Y}",
                        float(part[part["fpi"] >= qq]["lead_next"].mean()),

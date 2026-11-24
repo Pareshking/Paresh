@@ -180,8 +180,8 @@ def _calendar_period_metrics(
         as_of_row = index.normalize().to_numpy().copy()
         if n_rows:
             as_of_row[-1] = np.datetime64(
-                (pd.Timestamp(latest_as_of).normalize() if latest_as_of is not None
-                 else latest_as_of_date(index))
+                pd.Timestamp(latest_as_of).normalize() if latest_as_of is not None
+                 else latest_as_of_date(index)
             )
         targets = pd.DatetimeIndex(as_of_row) - pd.DateOffset(months=months)
         does_not_fit = np.asarray(targets < first_date)

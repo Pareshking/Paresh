@@ -25,7 +25,7 @@ def main():
         keep_old = {o for o in export_pit.aliases if o in named}  # tickers the file records under their old name
         def cur(s):
             seen = set()
-            while s in export_pit.aliases and s not in seen and s not in keep_old:
+            while s in export_pit.aliases and s not in seen and s not in keep_old:  # noqa: B023
                 seen.add(s); s = export_pit.aliases[s]["new_symbol"]
             return s
         eod = {}

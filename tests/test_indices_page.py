@@ -90,15 +90,15 @@ def test_every_index_sorts_by_one_year_and_lists_new_indices_last():
 
 def test_the_compact_copy_round_trips(tmp_path):
     rows = ni.parse_file((
-        "Index Name,Index Date,Open Index Value,High Index Value,Low Index Value,Closing Index Value,"
-        "Points Change,Change(%),Volume,Turnover (Rs. Cr.),P/E,P/B,Div Yield\n"
-        "Nifty 50,20-11-2026,-,-,-,25800.60,1,1,1,1,21.02,3.6,1.3\n").encode(), {"nifty_50": "nifty_50"})
+        b"Index Name,Index Date,Open Index Value,High Index Value,Low Index Value,Closing Index Value,"
+        b"Points Change,Change(%),Volume,Turnover (Rs. Cr.),P/E,P/B,Div Yield\n"
+        b"Nifty 50,20-11-2026,-,-,-,25800.60,1,1,1,1,21.02,3.6,1.3\n"), {"nifty_50": "nifty_50"})
     h, r = tmp_path / "h.parquet", tmp_path / "r.csv"
     ni.write_compact(rows, freeze=True, history=h, recent=r)
     more = ni.parse_file((
-        "Index Name,Index Date,Open Index Value,High Index Value,Low Index Value,Closing Index Value,"
-        "Points Change,Change(%),Volume,Turnover (Rs. Cr.),P/E,P/B,Div Yield\n"
-        "Nifty 50,23-11-2026,-,-,-,25900.10,1,1,1,1,21.10,3.6,1.3\n").encode(), {"nifty_50": "nifty_50"})
+        b"Index Name,Index Date,Open Index Value,High Index Value,Low Index Value,Closing Index Value,"
+        b"Points Change,Change(%),Volume,Turnover (Rs. Cr.),P/E,P/B,Div Yield\n"
+        b"Nifty 50,23-11-2026,-,-,-,25900.10,1,1,1,1,21.10,3.6,1.3\n"), {"nifty_50": "nifty_50"})
     assert ni.write_compact(ni.merge(rows, more), history=h, recent=r) == (1, 1)
     c = ni.read_compact(history=h, recent=r)
     assert list(c["close"]) == [25800.60, 25900.10] and not c["derived"].any()

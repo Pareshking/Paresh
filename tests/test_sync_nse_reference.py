@@ -1,6 +1,6 @@
 """Guards for scripts/sync_nse_reference.py: never overwrite good data with a broken fetch."""
 import json
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 import pytest
 
@@ -34,10 +34,10 @@ def test_corporate_action_window_and_shape():
         seen.update(params)
         return json.dumps([{"symbol": "A"}]).encode()
 
-    rows = s.fetch_corporate_actions(datetime(2026, 10, 2, tzinfo=timezone.utc), days=45, fetch=fetch)
+    rows = s.fetch_corporate_actions(datetime(2026, 10, 2, tzinfo=UTC), days=45, fetch=fetch)
     assert rows == [{"symbol": "A"}] and seen["to_date"] == "23-10-2026" and seen["from_date"] == "18-08-2026"   # 21 days ahead (owner, 21 Nov 2026)
     with pytest.raises(s.SyncError):
-        s.fetch_corporate_actions(datetime(2026, 10, 2, tzinfo=timezone.utc), fetch=lambda u, p: b'{"x": 1}')
+        s.fetch_corporate_actions(datetime(2026, 10, 2, tzinfo=UTC), fetch=lambda u, p: b'{"x": 1}')
 
 
 def test_membership_symbols_reads_baselines_and_recent_changes(tmp_path):

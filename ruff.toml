@@ -1,9 +1,18 @@
 # CI lint gate. Deliberately narrow: pyflakes (unused/undefined names,
 # duplicate definitions) and syntax errors -- the classes that hide real bugs,
-# such as a test defined twice so the first copy never runs. Widen it once the
-# wider rule sets (B, UP, SIM) have been cleaned up.
+# such as a test defined twice so the first copy never runs. Widened (S138, 24 Nov
+# 2026) to bugbear (B) and pyupgrade (UP), each hit fixed or exempted below. SIM is
+# not on yet: 74 of its 107 hits are open() outside a with block, a change per file.
 # Matches .python-version (3.14), which CI and production run.
 target-version = "py314"
 
 [lint]
-select = ["F", "E9"]
+select = ["F", "E9", "B", "UP"]
+ignore = [
+    "B905",   # zip() without strict=: adding it changes behaviour where lengths differ; 116 call sites
+    "B008",   # a call in a default argument: the cases are exit_watch's frozen Rules() and a test's len()
+    "UP031",  # printf-style formatting: style only
+    "UP042",  # StrEnum: changes what str() of a member returns
+]
+# B023 (a closure reading a loop variable) is on: the 18 hits today are closures
+# called within the same iteration, each marked `noqa: B023` where it stands.

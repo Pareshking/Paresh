@@ -11,7 +11,7 @@ import argparse
 import json
 import re
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime, UTC
 from typing import Any
 
 from src.storage.r2 import R2Archive, R2Config
@@ -232,7 +232,7 @@ def main() -> int:
     args = parser.parse_args()
     archive = R2Archive(R2Config.from_env())
     result = inventory(archive)
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     result["freshness"] = freshness(result, today, args.max_age_days)
     try:
         result["storage"] = storage_report(archive, today)

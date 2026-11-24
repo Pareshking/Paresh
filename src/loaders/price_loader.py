@@ -11,7 +11,7 @@ still use: extract_ohlcv and the field helpers behind it.
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import pandas as pd
 import streamlit as st

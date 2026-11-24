@@ -24,7 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import pandas as pd
@@ -79,7 +79,7 @@ def build(close: pd.DataFrame) -> dict:
     n500 = benchmark_store.history(period="max", symbol=BENCHMARK_SYMBOL)
     n500.index = pd.DatetimeIndex(n500.index)
     out: dict = {"long_last_session": f"{close.index[-1]:%Y-%m-%d}",
-                 "built": f"{datetime.now(timezone.utc):%Y-%m-%d}", "rows": {}}
+                 "built": f"{datetime.now(UTC):%Y-%m-%d}", "rows": {}}
 
     runs = {"as_tested": (LIVE_RULE, 30.0), "monthly_reset": ({}, 30.0),
             "cost_60": (LIVE_RULE, 60.0), "cost_100": (LIVE_RULE, 100.0)}

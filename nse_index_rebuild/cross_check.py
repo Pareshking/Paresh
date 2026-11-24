@@ -13,7 +13,7 @@ def canon(sym, date):
 steps = {}
 for k, (st, sn) in res.items():
     seen = {}
-    for e, f, s in sn: seen.setdefault(e, set(s))
+    for e, _f, s in sn: seen.setdefault(e, set(s))
     dates = sorted(seen)
     steps[k] = (dates, seen, set(st))
 def state_at(k, d):
