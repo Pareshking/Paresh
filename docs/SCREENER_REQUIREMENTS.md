@@ -95,7 +95,8 @@ Order: Screener → Qualified: → What moved since → Data to
   the ranking's contract digest (it holds configuration constants; the digest change made
   CI's Stage-3 check refuse the live table on this PR), so the table published before the
   merge carries the old date until the next ranking run: run Daily sync after merging. The table shows the rank among the
-  ranked stocks 3M and 1M ago, and the qualified place 3M ago, 1M ago and now from the
+  ranked stocks 3M and 1M ago, and the qualified place now (3M and 1M ago left the Screener on 24 Nov 2026,
+  owner: "Qualified: Now only"; the Watchlist keeps them) from the
   Dashboard's own `rank_trails`: KOTAKBANK reads 65 (rank) and 54 (qualified) on 19 Oct
   on the Screener, 54 on the Dashboard.
 - **B, as built.** Top 50 here, every row; the Dashboard keeps its top-40 count.

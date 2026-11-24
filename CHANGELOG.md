@@ -4,6 +4,7 @@
 ## 2026-11-24 — Every page's sentences from the approved templates (S203)
 
 - Actions, Screener, Market, Indices, Sectors, Watchlist, Backtest, the stock page and the Guide now write their sentences from the templates drafted and approved on 24 Nov: counts as figures ("7 of 20 sectors"), up and down in words, the list named ("leads the 750"), no vendor names, every number filled from the data or the record's settings.
+- Screener (owner, 24 Nov): the qualified place 3M and 1M ago is gone from the table; near the top it repeated the rank before (71 and 70, 3 and 3). "Qualified #" now stands alone; the Watchlist keeps the 3M and 1M places.
 - Screener (owner, 24 Nov): the qualified "Now" column keeps one width on every system; on the Nifty 1000 one stock's reason for "Out", on a single line, had opened a 300 px gap in the table. The search box is narrower, so the presets and "Filters & columns" sit on one row on all four systems.
 - Fixes found on the way: Sectors printed "industrys"; a one-sector qualified list crashed its concentration line; "No sell rule can be checked" now says why ("the stock is not ranked today").
 

@@ -118,7 +118,9 @@ _RANK_KEYS = ("rank", "p3", "p1", "q3", "q1", "qrank")
 # TradingView groups columns by the question they answer): whether a stock passes is the reader's next
 # question after its place, and at 1400 px the filters sat about 3,100 px to the right.
 _QUANT_KEYS = (
-    ("rank", "stock", "price", "p3", "p1", "q3", "q1", "qrank", "score", "idx", "ind", "mcap",
+    # No qualified place 3M and 1M ago (owner, 24 Nov 2026: "Qualified: Now only"): near the top it repeated the
+    # rank before (71 and 70, 3 and 3) and differed only where a stock was "Out". The Watchlist keeps them.
+    ("rank", "stock", "price", "p3", "p1", "qrank", "score", "idx", "ind", "mcap",
      "hi", "ath", "ema", "vol", "above", "near", "athf", "nh1", "nh3")
     + tuple(f"{k}{w}" for w in PERIOD_WINDOWS for k in ("r", "sh", "dd"))
     + ("stop", "chand", "gap", "ffill", "hz", "spark")
@@ -200,6 +202,9 @@ def column_groups(keys: list[str]) -> list[tuple[str, int, bool]]:
 
     def label(k: str) -> str:
         g = group_of.get(k, "")
+        # The qualified place alone is headed "Qualified #": "Qualified" over it said it twice (as Score, S189 8).
+        if k == "qrank" and not ({"q3", "q1"} & set(keys)):
+            return ""
         if g in windowed and partial:
             return "Returns" if k.startswith("r") else "Risk"
         return g
