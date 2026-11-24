@@ -261,3 +261,7 @@ no month figure (dash.book.1 d); a fall prints "up −1.2 to 3.4%" (dash.book.3)
 systems. The case lists come from the branches in the code. Before the templates are built, each case
 needs a run on the system it names (for example the list's down month for dash.book.3, and a selling
 month for dash.flow.1).
+
+## 6. Owner's answers (24 Nov 2026)
+
+1. Losing months (dash.mom.1): **(a)**, name the months for a 2-month run ("has trailed in October and so far in November"), count them from 3 ("has trailed for 3 months and so far in November").
