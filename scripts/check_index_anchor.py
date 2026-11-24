@@ -18,7 +18,7 @@ import io
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import requests
@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
     history = json.loads(HISTORY.read_text(encoding="utf-8"))
-    today = datetime.now(timezone.utc).date().isoformat()
+    today = datetime.now(UTC).date().isoformat()
     records = []
     try:
         for index, fname in FILES.items():

@@ -570,7 +570,7 @@ def test_every_index_filter_option_matches_something():
     assert "[INDEX] NIFTY 500" not in labels, "the app loads no NIFTY 500 constituent file"
     for label, tag in labels.items():
         hit = universe["Indices"].apply(
-            lambda v: tag.upper() in [x.strip().upper() for x in v.split(",")]
+            lambda v: tag.upper() in [x.strip().upper() for x in v.split(",")]  # noqa: B023
         )
         assert hit.any(), f"{label} matches nothing"
 

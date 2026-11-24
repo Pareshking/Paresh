@@ -23,7 +23,7 @@ from src.core.config import BASE_DIR
 
 def _read(path: str) -> str | None:
     try:
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             return fh.read().strip()
     except OSError:
         return None

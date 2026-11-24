@@ -29,7 +29,7 @@ import json
 import random
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import pandas as pd
@@ -112,7 +112,7 @@ def load_manifest(out: Path) -> dict:
 
 def save(out: Path, store: pd.DataFrame, manifest: dict) -> dict[int, int]:
     sizes = ss.write_store(store, out)
-    manifest["updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    manifest["updated_at"] = datetime.now(UTC).isoformat(timespec="seconds")
     manifest["rows"] = int(len(store))
     manifest["bytes_by_year"] = {str(k): v for k, v in sorted(sizes.items())}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n",
@@ -196,7 +196,7 @@ def main(argv=None) -> int:
             manifest["symbols"][symbol] = {
                 "first": str(fresh["date"].min()), "last": str(fresh["date"].max()),
                 "rows_fetched": int(len(fresh)), "full_history": full, "more_available": bool(more),
-                "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
                 **({"refresh_reason": reason} if reason else {}),
             }
             manifest["failed"].pop(symbol, None)
@@ -261,7 +261,7 @@ def fetched_within(entry: dict | None, hours: float, now: datetime | None = None
         at = datetime.fromisoformat(str((entry or {})["fetched_at"]))
     except (KeyError, ValueError):
         return False
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     return (now - at).total_seconds() < hours * 3600
 
 

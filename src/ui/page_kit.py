@@ -13,7 +13,8 @@ import math
 from urllib.parse import quote
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterator, Literal
+from typing import Literal
+from collections.abc import Iterator
 
 import streamlit as st
 

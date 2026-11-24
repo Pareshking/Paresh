@@ -15,7 +15,10 @@ IS_STREAMLIT_CLOUD: Final[bool] = bool(
     or os.path.exists("/mount/src")
 )
 BASE_DIR: Final[str] = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DATA_DIR: Final[str] = "/tmp/data_cache" if IS_STREAMLIT_CLOUD else os.path.join(BASE_DIR, "data_cache")
+# UMIYA_DATA_DIR moves the download cache: the test suite points it at a temporary
+# directory (tests/conftest.py, S138 I7) so a run never reads or writes the working tree's cache.
+DATA_DIR: Final[str] = os.getenv("UMIYA_DATA_DIR") or (
+    "/tmp/data_cache" if IS_STREAMLIT_CLOUD else os.path.join(BASE_DIR, "data_cache"))
 os.makedirs(DATA_DIR, exist_ok=True)
 
 PRICES_FILE: Final[str] = os.path.join(DATA_DIR, "prices.parquet")

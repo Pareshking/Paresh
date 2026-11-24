@@ -34,7 +34,7 @@ def test_portfolio_copy_avoids_internal_accounting_language_in_primary_sections(
 
 
 def test_portfolio_table_variant_is_scoped_to_portfolio():
-    source = THEME.read_text(encoding="utf-8")
+    source = (THEME.read_text(encoding="utf-8") + THEME.with_name("page.css").read_text(encoding="utf-8"))
     assert 'variant: str = "default"' in source
     assert 'portfolio_class = "portfolio" if variant == "portfolio" else ""' in source
     assert ".saas-table-wrapper.portfolio" in source
@@ -54,7 +54,7 @@ def test_portfolio_sections_in_order_and_the_trade_history_hidden_in_one_place()
 
 
 def test_portfolio_pnl_cells_use_explicit_sign_semantics():
-    source = THEME.read_text(encoding="utf-8")
+    source = (THEME.read_text(encoding="utf-8") + THEME.with_name("page.css").read_text(encoding="utf-8"))
     assert 'portfolio_sign_class = "portfolio-pos" if val > 0' in source
     assert 'portfolio-neg' in source
     assert '.saas-table-wrapper.portfolio .portfolio-pos' in source
@@ -149,7 +149,7 @@ def test_desktop_bar_links_every_page_and_the_menu_serves_smaller_screens():
     # Owner, 7 Nov 2026: "a hamburger menu only", in the menu's old style.
     # Owner, 21 Nov 2026: every page in the bar on a desktop, the menu on a phone.
     components = (ROOT / "src/ui/components.py").read_text(encoding="utf-8")
-    theme = THEME.read_text(encoding="utf-8")
+    theme = (THEME.read_text(encoding="utf-8") + THEME.with_name("page.css").read_text(encoding="utf-8"))
     assert "app_toplinks" not in components and "app_toplinks" not in theme
     # Owner, 7 Nov 2026 (audit decision 6): quick links beside the menu on a
     # desktop, hidden below 1024 px; the menu still lists every page. 21 Nov: seven.
@@ -175,7 +175,7 @@ def test_one_word_for_one_thing_across_pages():
     assert '"Lead over the Nifty 500"' in backtest and "Ahead of the index" not in backtest
     assert '"🟢 BOUGHT", "🔴 SOLD"' not in backtest
     assert "Portfolio risk" not in backtest and "Filter " not in backtest
-    theme = THEME.read_text(encoding="utf-8")
+    theme = (THEME.read_text(encoding="utf-8") + THEME.with_name("page.css").read_text(encoding="utf-8"))
     # The words are the owner's (12 Oct); the emoji went with audit F46 (7 Nov).
     assert ">Bought<" in theme and ">Sold<" in theme and ">Held<" in theme
     assert "🟢 Bought" not in theme and "🔴 Sold" not in theme

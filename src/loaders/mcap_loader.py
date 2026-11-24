@@ -11,7 +11,7 @@ import io
 import os
 import zipfile
 from datetime import date, datetime
-from typing import Sequence
+from collections.abc import Sequence
 
 import pandas as pd
 import requests

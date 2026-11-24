@@ -94,7 +94,7 @@ def main(path: str) -> None:
     print("\nhistory by calendar year, %:")
     print(yr.round(1).to_string())
     print(f"\nyears the owner's rule beat the reset: {(yr['owner - reset'] > 0).sum()} of {len(yr)}")
-    rec = json.load(open(ROOT / "data" / "track_record.json"))["months"]
+    rec = json.loads((ROOT / "data" / "track_record.json").read_text(encoding="utf-8"))["months"]
     r = pd.DataFrame({"recorded": {k: v["strategy"] * 100 for k, v in rec.items()},
                       **{n: (months[("record", n)] * 100).set_axis(months[("record", n)].index.strftime("%Y-%m"))
                          for n in rules}})

@@ -42,7 +42,7 @@ out = []
 for k, fn in FILES.items():
     state, snaps = res[k]
     by_date = {}
-    for e, f, s in snaps: by_date.setdefault(e, set(s))
+    for e, _f, s in snaps: by_date.setdefault(e, set(s))
     dates = sorted(by_date)
     for t in TARGETS:
         url = f"niftyindices.com/IndexConstituent/{fn}"

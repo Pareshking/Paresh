@@ -15,7 +15,7 @@ spec.loader.exec_module(cd)
 
 def _history(labels):
     rows = [["title"] + [None] * 13, [None] * 14, [None] * 14]
-    for i, lab in enumerate(labels):
+    for _i, lab in enumerate(labels):
         # bank b/s, DFI b/s, insurance b/s, MF b/s, NPS b/s, total b/s, net
         rows.append([lab, 10, 20, 1, 1, 30, 10, 100, 50, 5, 0, 146, 81, 65])
     return pd.DataFrame(rows)

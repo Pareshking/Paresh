@@ -86,7 +86,7 @@ def test_every_stock_anchor_opens_in_place(case):
 
 def test_the_sandboxed_table_anchor_stays_free_of_a_target():
     """It navigates by script injection; a target would break or mislead."""
-    for path, lineno, line in _anchor_lines():
+    for path, lineno, _line in _anchor_lines():
         if path.name not in SANDBOXED_TABLE_ANCHORS:
             continue
         src = path.read_text()
@@ -99,7 +99,7 @@ def test_the_sandboxed_table_anchor_stays_free_of_a_target():
 
 
 def test_no_stock_anchor_asks_for_a_new_tab_explicitly():
-    for path, lineno, line in _anchor_lines():
+    for path, lineno, _line in _anchor_lines():
         src = path.read_text().splitlines()
         window = " ".join(src[max(0, lineno - 1):lineno + 2])
         assert 'target="_blank"' not in window, (

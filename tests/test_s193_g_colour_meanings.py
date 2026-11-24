@@ -15,7 +15,14 @@ from src.ui import tokens
 from src.ui.tokens import C, PALETTE, SERIES, LINE_CYCLE, series_colour, series_var
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = [p for p in (ROOT / "src").rglob("*.py") if p.name != "tokens.py"]
+
+
+def _code(d):
+    """The Python and the stylesheets under d: page.css is the page CSS since S138 I6."""
+    return sorted([*d.rglob("*.py"), *d.rglob("*.css")])
+
+
+SRC = [p for p in _code(ROOT / "src") if p.name != "tokens.py"]
 KIT = ROOT / "static" / "dash_charts.js"
 CAUTION = re.compile(r"caution|C\.caution|AMBER")
 
@@ -144,5 +151,5 @@ def test_the_app_is_light_only():
     import tomllib
     theme = tomllib.loads((ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8"))["theme"]
     assert theme.get("base") == "light"
-    assert "prefers-color-scheme: dark" not in (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
+    assert "prefers-color-scheme: dark" not in ((ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8") + (ROOT / "src" / "ui" / "page.css").read_text(encoding="utf-8"))
     assert tokens.SERIES  # imported for the module's side of the contract

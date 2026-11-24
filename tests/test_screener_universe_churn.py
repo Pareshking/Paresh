@@ -59,7 +59,7 @@ def _frame(symbols):
     values = []
     for _ in idx:
         row = []
-        for symbol in symbols:
+        for _symbol in symbols:
             row.extend([100.0, 1000.0])
         values.append(row)
     return pd.DataFrame(values, index=idx, columns=columns)

@@ -20,7 +20,7 @@ import os
 import threading
 import time
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 _LOCK = threading.Lock()
 
@@ -28,7 +28,7 @@ MODULE_IMPORT_MONOTONIC: float = time.monotonic()
 # When THIS MODULE was imported. On Streamlit Cloud a deploy can reload changed
 # modules into an already-running interpreter, so this is NOT proof that the
 # process restarted -- see process_identity() for that.
-MODULE_IMPORT_UTC: str = datetime.now(timezone.utc).isoformat(timespec="seconds")
+MODULE_IMPORT_UTC: str = datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def process_identity() -> dict:
@@ -40,11 +40,11 @@ def process_identity() -> dict:
     """
     info: dict[str, object] = {"pid": os.getpid()}
     try:
-        with open("/proc/self/stat", "r", encoding="utf-8") as fh:
+        with open("/proc/self/stat", encoding="utf-8") as fh:
             fields = fh.read().rsplit(") ", 1)[-1].split()
         starttime_ticks = float(fields[19])
         clk = os.sysconf("SC_CLK_TCK")
-        with open("/proc/uptime", "r", encoding="utf-8") as fh:
+        with open("/proc/uptime", encoding="utf-8") as fh:
             system_uptime = float(fh.read().split()[0])
         info["process_age_s"] = round(system_uptime - starttime_ticks / clk, 1)
         info["system_uptime_s"] = round(system_uptime, 1)

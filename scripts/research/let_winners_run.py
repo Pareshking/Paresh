@@ -79,7 +79,7 @@ def main(path: str) -> None:
             monthly[(label, name)] = m
             print(label, name, {k: round(v, 1) for k, v in s.items()}, flush=True)
     print("\n" + pd.DataFrame(rows).T.round(1).to_string())
-    rec = json.load(open(ROOT / "data" / "track_record.json"))["months"]
+    rec = json.loads((ROOT / "data" / "track_record.json").read_text(encoding="utf-8"))["months"]
     live = pd.Series({k: v["strategy"] * 100 for k, v in rec.items()})
     a, b = monthly[("record", "reset to 5%")], monthly[("record", f"run to {HOLD_CAP:.0%}")]
     t = pd.DataFrame({"recorded": live, "reset (rerun)": a.set_axis(a.index.strftime("%Y-%m")) * 100,

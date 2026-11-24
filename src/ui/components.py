@@ -28,7 +28,7 @@ def count_above_ema(rank_df: pd.DataFrame, column: str = "Above 50 EMA") -> int:
     return int(to_bool_mask(ema_col).sum())
 
 
-def to_bool_mask(values: "pd.Series | None") -> pd.Series:
+def to_bool_mask(values: pd.Series | None) -> pd.Series:
     """Coerce a qualification column to a real boolean mask.
 
     "Above 50 EMA" and "Near 52W High" carry tick marks rather than booleans.

@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from src.engine import momentum_health as mh
+from datetime import UTC
 
 
 def _spreads(n=36, last=0.5):
@@ -30,12 +31,12 @@ def test_an_unfinished_month_and_months_before_the_membership_are_left_out():
 
 def test_the_collector_refuses_a_row_that_does_not_add_up():
     import importlib.util
-    from datetime import datetime, timezone
+    from datetime import datetime
     from pathlib import Path
     spec = importlib.util.spec_from_file_location("c", Path(__file__).resolve().parents[1] / "scripts" / "collect_fii_dii.py")
     c = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(c)
-    now = datetime(2026, 11, 7, tzinfo=timezone.utc)
+    now = datetime(2026, 11, 7, tzinfo=UTC)
     ok = [{"category": "DII", "date": "06-Nov-2026", "buyValue": "10", "sellValue": "4", "netValue": "6"},
           {"category": "FII/FPI", "date": "06-Nov-2026", "buyValue": "1", "sellValue": "3", "netValue": "-2"}]
     assert c.parse(ok, now)[1] == []

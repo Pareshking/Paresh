@@ -96,9 +96,9 @@ def action_steps(actions: pd.DataFrame, nse_close: pd.DataFrame, nse_prev: pd.Da
         sym = a.symbol
 
         def at(frame, day):
-            if frame is None or day is None or day not in frame.index or sym not in frame.columns:
+            if frame is None or day is None or day not in frame.index or sym not in frame.columns:  # noqa: B023
                 return np.nan
-            return float(frame.at[day, sym])
+            return float(frame.at[day, sym])  # noqa: B023
 
         c_prev, c_ex, p_ex = at(nse_close, prev), at(nse_close, ex), at(nse_prev, ex)
         s_prev, y_prev = at(screener, prev), at(yahoo, prev)

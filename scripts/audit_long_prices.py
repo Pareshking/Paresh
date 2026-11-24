@@ -122,7 +122,7 @@ def big_moves(ours: pd.DataFrame, refs: dict[str, pd.DataFrame],
             # so ours is measured over the reference's own span, not one session.
             o = ours[sym].ffill()
             def span(a, b):
-                return (s.iloc[b] / s.iloc[a], o.get(s.index[b], np.nan) / o.get(s.index[a], np.nan))
+                return (s.iloc[b] / s.iloc[a], o.get(s.index[b], np.nan) / o.get(s.index[a], np.nan))  # noqa: B023
             r1, o1 = span(i - 1, i)
             r2, o2 = span(max(i - 2, 0), min(i + 1, len(s) - 1))
             row[f"{name}_move"] = float(r1)

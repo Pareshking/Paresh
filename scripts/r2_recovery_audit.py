@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, UTC
 from typing import Any
 
 from src.storage.r2 import R2Archive, R2Config
@@ -78,7 +78,7 @@ def audit_recovery(archive: R2Archive,
     """
     reader = R2DatasetReader(archive)
     keys = [k for k in archive.list_keys("archive/manifests/") if _in_scope(k, datasets)]
-    full = full_read_set(keys, today or datetime.now(timezone.utc).date(), full_days)
+    full = full_read_set(keys, today or datetime.now(UTC).date(), full_days)
     manifest_keys = sorted(
         key for key in keys
         if "/revisions/" in key and key.endswith(".json")

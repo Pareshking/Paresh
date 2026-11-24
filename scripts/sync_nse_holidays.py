@@ -34,7 +34,7 @@ import argparse
 import csv
 import io
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, UTC
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # src/ (nse_web), however the script is started
 
@@ -133,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
-    today = (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).date()   # IST
+    today = (datetime.now(UTC) + timedelta(hours=5, minutes=30)).date()   # IST
     new = parse(fetch(), today)
     rows, changes = merge(read(), new, today)
     years = sorted({r["date"][:4] for r in new})

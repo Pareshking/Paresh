@@ -11,7 +11,7 @@ the hash. Any other edit does, and CI (`--check`) then fails until the edit is r
 The freeze record is data/membership_history.freeze.json.
 """
 import argparse, hashlib, json, os, sys
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HISTORY = os.path.join(HERE, "..", "data", "membership_history.json")
@@ -78,7 +78,7 @@ def write(history: dict, freeze: dict | None, reason: str) -> dict:
     log = list((freeze or {}).get("changelog") or [])
     if freeze and freeze["sha256"] == new:
         return freeze
-    log.append({"date_utc": datetime.now(timezone.utc).date().isoformat(),
+    log.append({"date_utc": datetime.now(UTC).date().isoformat(),
                 "sha256_before": freeze["sha256"] if freeze else None, "sha256_after": new, "reason": reason})
     return {"frozen_through": FROZEN_THROUGH, "sha256": new, "indices": summary(history), "changelog": log,
             "note": "Hash covers each index's baseline and changes up to frozen_through, plus aliases, caveats, "

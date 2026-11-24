@@ -1,9 +1,27 @@
 # CI lint gate. Deliberately narrow: pyflakes (unused/undefined names,
 # duplicate definitions) and syntax errors -- the classes that hide real bugs,
-# such as a test defined twice so the first copy never runs. Widen it once the
-# wider rule sets (B, UP, SIM) have been cleaned up.
+# such as a test defined twice so the first copy never runs. Widened (S138, 24 Nov
+# 2026) to bugbear (B), pyupgrade (UP) and simplify (SIM), each hit fixed or exempted
+# below. SIM's style-only rules are off; the ones kept catch real faults (`x or True`,
+# a file opened and never closed in src/ or scripts/).
 # Matches .python-version (3.14), which CI and production run.
 target-version = "py314"
 
 [lint]
-select = ["F", "E9"]
+select = ["F", "E9", "B", "UP", "SIM"]
+ignore = [
+    "B905",   # zip() without strict=: adding it changes behaviour where lengths differ; 116 call sites
+    "B008",   # a call in a default argument: the cases are exit_watch's frozen Rules() and a test's len()
+    "UP031",  # printf-style formatting: style only
+    "UP042",  # StrEnum: changes what str() of a member returns
+    # SIM, style only (one way of writing the same thing; 16 sites, two in the record's code):
+    "SIM102", "SIM105", "SIM108", "SIM117", "SIM212", "SIM401",
+]
+# B023 (a closure reading a loop variable) is on: the 18 hits today are closures
+# called within the same iteration, each marked `noqa: B023` where it stands.
+
+[lint.per-file-ignores]
+# open() without a with block in tests and the one-off index rebuild scripts (70 sites):
+# the process ends straight after, so nothing leaks that matters there.
+"tests/**" = ["SIM115"]
+"nse_index_rebuild/**" = ["SIM115"]

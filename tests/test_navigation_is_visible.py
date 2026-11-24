@@ -48,7 +48,7 @@ def _page_titles() -> list[str]:
 
 def test_the_theme_still_hides_the_streamlit_header():
     """The premise. If this ever stops being true, revisit the rest."""
-    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
+    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8") + (ROOT / "src" / "ui" / "page.css").read_text(encoding="utf-8")
     assert re.search(r'\[data-testid="stHeader"\]', theme), (
         "the header is no longer hidden; `position=\"top\"` may be usable again, "
         "but re-check it against the live app before trusting it"
@@ -160,7 +160,7 @@ def test_navigation_marks_the_current_page_inside_the_popover():
         "outside a script run"
     )
 
-    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
+    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8") + (ROOT / "src" / "ui" / "page.css").read_text(encoding="utf-8")
     assert 'st-key-navon_' in theme, "nothing styles the active item"
     assert ".st-key-app_header_shell" in theme, "the header navigation shell is unstyled"
     assert "nav_pages=_PAGES" in src, "the hamburger is not attached to the header renderer"
@@ -169,7 +169,7 @@ def test_navigation_marks_the_current_page_inside_the_popover():
 
 def test_mobile_header_menu_is_anchored_to_the_right_and_date_line_removed():
     components = (ROOT / "src" / "ui" / "components.py").read_text(encoding="utf-8")
-    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
+    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8") + (ROOT / "src" / "ui" / "page.css").read_text(encoding="utf-8")
     assert "📅 {as_of_text}" not in components, "the snapshot date line is still rendered in the header"
     assert "position: absolute !important;" in theme, "hamburger is still participating in mobile layout flow"
     assert "right: 7px !important;" in theme, "hamburger is not anchored to the right edge"
@@ -177,7 +177,7 @@ def test_mobile_header_menu_is_anchored_to_the_right_and_date_line_removed():
 
 def test_the_navigation_row_is_not_styled_by_a_generated_class_hash():
     """Emotion class names are build artefacts, not an API."""
-    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8")
+    theme = (ROOT / "src" / "ui" / "theme.py").read_text(encoding="utf-8") + (ROOT / "src" / "ui" / "page.css").read_text(encoding="utf-8")
     nav_css = theme[theme.find(".st-key-app_nav"):]
     nav_css = nav_css[: nav_css.find("/* ── Command Bar")]
     assert "st-emotion-cache" not in nav_css, (

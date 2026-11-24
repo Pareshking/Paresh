@@ -20,7 +20,7 @@ import json
 import re
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 
 import requests
@@ -154,7 +154,7 @@ def main(argv: list[str] | None = None) -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     manifest_path = OUT / "MANIFEST.json"
     old_manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {"files": {}}
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     manifest = {"fetched_at_utc": now.isoformat(timespec="seconds"), "files": {}}
     changes: dict = {"fetched_at_utc": manifest["fetched_at_utc"], "new": {}, "touching_members": {}}
     members = membership_symbols()

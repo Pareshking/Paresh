@@ -1,5 +1,5 @@
 """Trading-day resolution and NSE archive fallback behaviour."""
-from datetime import date, datetime, timezone
+from datetime import date, datetime, UTC
 
 import pytest
 
@@ -14,7 +14,7 @@ def test_ist_date_can_differ_from_server_date(monkeypatch):
     """
     from src.core import market_time
 
-    utc_evening = datetime(2026, 8, 18, 19, 0, tzinfo=timezone.utc)
+    utc_evening = datetime(2026, 8, 18, 19, 0, tzinfo=UTC)
 
     class FrozenClock(datetime):
         @classmethod
@@ -97,7 +97,7 @@ def test_blocked_status_raises_rather_than_looking_like_a_missing_file(monkeypat
     from src.loaders import mcap_loader
 
     for status in (401, 403, 429):
-        monkeypatch.setattr(mcap_loader.requests, "get", lambda *a, **k: _Resp(status))
+        monkeypatch.setattr(mcap_loader.requests, "get", lambda *a, **k: _Resp(status))  # noqa: B023
         with pytest.raises(mcap_loader._NSEBlocked):
             mcap_loader._fetch_mcap_from_pr_zip(date(2026, 8, 18))
 

@@ -1,5 +1,5 @@
 """The SS store: exact paise, quality gate, refresh triggers, upsert, filters."""
-from datetime import date
+from datetime import date, UTC
 
 import numpy as np
 import pandas as pd
@@ -255,11 +255,11 @@ def test_a_block_stops_at_once_and_keeps_what_was_fetched(monkeypatch, tmp_path)
 
 
 def test_the_nightly_round_skips_what_tonight_already_updated():
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from scripts.sync_ss import fetched_within
 
-    now = datetime(2026, 10, 2, 20, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 10, 2, 20, 0, tzinfo=UTC)
     assert fetched_within({"fetched_at": "2026-10-02T17:30:00+00:00"}, 12, now)
     assert not fetched_within({"fetched_at": "2026-10-01T17:30:00+00:00"}, 12, now)
     assert not fetched_within(None, 12, now) and not fetched_within({}, 12, now)

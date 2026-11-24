@@ -23,7 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 WORKFLOWS = sorted((ROOT / ".github/workflows").glob("*.yml"))
 ALERT = ROOT / ".github/workflows/scheduled_failure_alert.yml"
 WATCHDOG = ROOT / ".github/workflows/schedule_watchdog.yml"
-UTC = dt.timezone.utc
+UTC = dt.UTC
 
 
 def _load(path):

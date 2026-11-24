@@ -39,10 +39,10 @@ def test_an_issue_at_or_above_the_market_price_changes_nothing():
 def _adanient():
     ex = pd.Timestamp("2025-11-17")
     raw = pd.Series(2516.8, index=DAYS)
-    raw[DAYS >= ex] = 2440.0
+    raw[ex <= DAYS] = 2440.0
     ss = pd.DataFrame({"ADANIENT": raw})
     screener = ss.copy()
-    screener.loc[DAYS < ex, "ADANIENT"] *= 0.96948                 # Screener adjusts rights
+    screener.loc[ex > DAYS, "ADANIENT"] *= 0.96948                 # Screener adjusts rights
     actions = pd.DataFrame({"symbol": ["ADANIENT"], "ex_date": [ex],
                             "purpose": ["RIGHTS 3:25@PRM RS 1799"]})
     return ss, screener, actions, ex
@@ -73,7 +73,7 @@ def test_ss_already_adjusted_is_left_alone():
 def test_ss_with_its_own_factor_is_kept_and_flagged():
     ss, _, actions, ex = _adanient()
     own = ss.copy()
-    own.loc[DAYS < ex, "ADANIENT"] *= 0.90                       # SS used some other factor
+    own.loc[ex > DAYS, "ADANIENT"] *= 0.90                       # SS used some other factor
     ev = rc.rights_events(actions, own, raw=ss)
     assert ev.iloc[0]["ss_basis"] == "own_factor" and not ev.iloc[0]["apply"]
     res = rc.reconcile(own, None, ss, actions)
@@ -103,7 +103,7 @@ def test_apply_factors_scales_only_the_closes_before_the_ex_date():
     ss, screener, actions, ex = _adanient()
     adj = rc.apply_factors(ss, rc.rights_events(actions, ss, raw=ss))
     assert np.allclose(adj["ADANIENT"], screener["ADANIENT"], rtol=1e-5)
-    assert (adj.loc[DAYS >= ex, "ADANIENT"] == ss.loc[DAYS >= ex, "ADANIENT"]).all()
+    assert (adj.loc[ex <= DAYS, "ADANIENT"] == ss.loc[ex <= DAYS, "ADANIENT"]).all()
 
 
 # ── The vote ─────────────────────────────────────────────────────────────────
@@ -233,10 +233,10 @@ def test_nse_raw_anchors_the_rights_check_for_a_stock_the_committed_set_lacks():
 def test_the_face_value_is_inferred_from_the_factor_ss_applied():
     """TIL, 2026-03-23: 11:64 at a Rs 155 premium; SS's factor fits a Rs 10 face value."""
     ex = pd.Timestamp("2025-11-17")
-    raw = pd.DataFrame({"TIL": np.where(DAYS < ex, 187.24, 170.0)}, index=DAYS)
+    raw = pd.DataFrame({"TIL": np.where(ex > DAYS, 187.24, 170.0)}, index=DAYS)
     f10 = rc.rights_factor(11, 64, 165, 187.24)
     ss = raw.copy()
-    ss.loc[DAYS < ex, "TIL"] *= f10
+    ss.loc[ex > DAYS, "TIL"] *= f10
     actions = pd.DataFrame({"symbol": ["TIL"], "ex_date": [ex], "purpose": ["RIGHTS 11:64 @PRM RS 155"]})
     row = rc.rights_events(actions, ss, raw=raw).iloc[0]
     assert row["face_value"] == 10 and not row["face_value_assumed"]

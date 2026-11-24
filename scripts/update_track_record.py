@@ -23,7 +23,7 @@ SHADOW_CONFIG, in data/track_record_shadow.json, from November 2026 (owner,
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 import io
 import os
 import subprocess
@@ -482,7 +482,7 @@ def main() -> int:
         # months, what they were struck under before, and what they are now.
         replaced = sorted({m.get("config") for m in prior_months.values() if m.get("config")})
         ledger.setdefault("rebuilds", []).append({
-            "on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "on": datetime.now(UTC).strftime("%Y-%m-%d"),
             "months": added,
             "replaced_configs": replaced,
             # `fingerprint` is per month since the forward-dated rules (audit,

@@ -34,7 +34,7 @@ import resource
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import pandas as pd
@@ -160,7 +160,7 @@ def compute(inputs: Path, out: Path) -> dict:
     stage("backtest_12m", t)
 
     summary = {
-        "computed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "computed_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "git_head": _git_head(),
         "data_dir_dirty": _data_dirty(),
         "python": sys.version.split()[0],
@@ -222,7 +222,7 @@ def main() -> int:
     if args.mode == "capture":
         print(f"Capturing inputs into {inputs}")
         files = capture_inputs(inputs)
-        manifest = {"captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        manifest = {"captured_at": datetime.now(UTC).isoformat(timespec="seconds"),
                     "git_head": _git_head(), "data_dir_dirty": _data_dirty(), "inputs": files}
         (base / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
         print("Computing frozen outputs")

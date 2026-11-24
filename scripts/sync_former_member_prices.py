@@ -22,7 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import pandas as pd
@@ -118,7 +118,7 @@ def main() -> int:
               f"{int(moved.any().sum())} names: {', '.join(c for c in shared if moved[c].any()) or 'none'}")
     adj.to_parquet(PRICES_FILE)
     META_FILE.write_text(json.dumps({
-        "fetched_on": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "fetched_on": datetime.now(UTC).strftime("%Y-%m-%d"),
         "source": "Screener closes; NSE closes (split/bonus adjusted) where Screener has none",
         "by_source": {k: sum(1 for s in usable if source.get(s) == k) for k in ("screener", "nse")},
         "symbols": len(usable),

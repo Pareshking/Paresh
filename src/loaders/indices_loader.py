@@ -9,7 +9,8 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 import pandas as pd
 import requests
@@ -207,7 +208,7 @@ def get_sync_metadata() -> dict[str, Any]:
     """Reads index sync metadata from disk."""
     if os.path.exists(SYNC_META_FILE):
         try:
-            with open(SYNC_META_FILE, "r", encoding="utf-8") as f:
+            with open(SYNC_META_FILE, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as exc:
             logger.warning("Unreadable %s (%s); treating as absent.", SYNC_META_FILE, type(exc).__name__)
@@ -371,7 +372,7 @@ def _fetch_indices_impl(
         if prefer_local and _committed_copy_is_fresh(idx_name, meta_now):
             local_path = INDICES_LOCAL.get(idx_name)
             try:
-                with open(local_path, "r", encoding="utf-8-sig", errors="replace") as f:
+                with open(local_path, encoding="utf-8-sig", errors="replace") as f:
                     csv_text = f.read()
                 logger.debug(f"{idx_name}: using the committed copy ({local_path})")
             except Exception as e:
@@ -402,7 +403,7 @@ def _fetch_indices_impl(
             local_path = INDICES_LOCAL.get(idx_name)
             if local_path and os.path.exists(local_path):
                 try:
-                    with open(local_path, "r", encoding="utf-8-sig", errors="replace") as f:
+                    with open(local_path, encoding="utf-8-sig", errors="replace") as f:
                         csv_text = f.read()
                     logger.info(f"{idx_name}: using local fallback ({local_path})")
                 except Exception as e:

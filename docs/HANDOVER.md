@@ -5,7 +5,7 @@ state, queue and dates sections); do not write a dated copy. Earlier dated
 handovers are in `docs/archive/HANDOVER_*.md`. Paste the prompt at the end as
 the first message of a fresh session.
 
-_Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsnhgFzzKddp8Wc (took over 14:00 IST)._
+_Last updated: 24 Nov 2026 ~12:15 IST, coordinating session session_016X4g5Y1bsnhgFzzKddp8Wc (took over 14:00 IST)._
 
 ## The owner's standing rules (unchanged)
 
@@ -19,9 +19,10 @@ _Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsn
 - **Verify every claim yourself.** Nothing is deleted without the owner's yes on
   each item; the `ref_*` release files always stay.
 - **Tests:** `python scripts/fetch_nse_closes.py` first, then
-  `python -m pytest tests -q` (serial; no `-n`), and `ruff check`. In a git
-  worktree run the fetch inside the worktree too (6 `test_nse_prices.py` errors
-  otherwise).
+  `python -m pytest tests -q -n 4 --dist worksteal` (as CI, S138 I8), and `ruff check`.
+  The suite's cache is a temporary directory (S138 I7); only the fetched closes are
+  copied in from the checkout's `data_cache/`, so in a git worktree run the fetch
+  inside the worktree too (6 `test_nse_prices.py` errors otherwise).
 - **Never `git checkout` in a checkout another agent is using;** use
   `git worktree`.
 - **Bring the owner** only decisions that are theirs, a few at a time, each with
@@ -37,6 +38,8 @@ _Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsn
   pattern to stop.
 
 ## State at handover
+
+**24 Nov ~06:45 UTC.** #665 and #666 merged; Production QA green on 9649964 (run 45340114559, served 9649964). S210, S136, S214 closed from the live site (S214: the live Backtest holds R2's current long-file revision, `r2:5ae3e494706e…`). Next PR (branch, open when its checks pass): S138 I2/I3 (markers), I6 (page CSS in `src/ui/page.css`), I7 (test cache in a temp dir), ruff B, UP and SIM, NEXT 8 (engine edge cases; a repeated or reversed date no longer crashes or empties the ranking). Left in S138: NEXT 2-7, research for the owner. The four 15-minute check-ins (`trig_01Lc8…`, `trig_01DiPA…`, `trig_01Q8Qj…`, `trig_01DGbs…`) run to 16:45 UTC and are then deleted.
 
 **24 Nov ~05:25 UTC.** #664 merged (d3f5def): the batch below plus the calendar 52-week high in the engine and "a year is the calendar year everywhere" (owner, 24 Nov), and S165 on the Dashboard. Next PR (branch, open when its checks pass): S164's two late figures (12-month tile names its finished months; DII tile adds NSE's provisional days), S173 (c) label fixes, S203 leftovers (pf.view.1 dropped, pf.err.3, "Out"). Work loops every 15 min to 16:45 UTC (`trig_01Lc8VcpwheKPuvE5jGmab9x`, `trig_01DiPAupW1m1NdtAUruteAum`, `trig_01Q8Qjyayj1FBgYRhSTfqDPR`, `trig_01DGbshARRgk12eRUeFTKM5V`; delete after).
 

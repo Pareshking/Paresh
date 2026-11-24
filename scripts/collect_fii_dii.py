@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import csv
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # src/ (nse_web), however the script is started
@@ -64,7 +64,7 @@ def parse(payload: list[dict], now: datetime) -> tuple[list[dict], list[str]]:
 
 
 def main() -> int:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     rows, bad = parse(fetch(), now)
     for b in bad:
         print(f"::error::{b}")

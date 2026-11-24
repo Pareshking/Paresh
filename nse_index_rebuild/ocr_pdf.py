@@ -8,7 +8,7 @@ def ocr_pdf(path, dpi=170):
         for img in sorted(glob.glob(f"{d}/p-*.png")):
             res, _ = engine(img)
             boxes = []
-            for box, text, conf in (res or []):
+            for box, text, _conf in (res or []):
                 ys = [p[1] for p in box]; xs = [p[0] for p in box]
                 boxes.append(((min(ys) + max(ys)) / 2, min(xs), text))
             boxes.sort()
@@ -16,7 +16,7 @@ def ocr_pdf(path, dpi=170):
             for y, x, t in boxes:
                 if rows and abs(rows[-1][0] - y) < 12: rows[-1][1].append((x, t))
                 else: rows.append([y, [(x, t)]])
-            for y, items in rows:
+            for _y, items in rows:
                 items.sort()
                 out.append("   ".join(t for x, t in items))
             out.append("")

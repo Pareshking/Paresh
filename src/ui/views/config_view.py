@@ -93,7 +93,7 @@ def _index_files_dialog() -> None:
             mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
                 "%-d %b %Y, %H:%M"
             )
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 lines = sum(1 for _ in f) - 1
             st.caption(
                 f"**{idx_name.title()}**: `{lines}` constituents ({size/1024:.1f} KB) · {mtime}"
@@ -446,7 +446,7 @@ def _section_momentum_signal() -> None:
         st.rerun()
 
     wc = st.columns(5, vertical_alignment="top")
-    for col, (label, key, default) in zip(wc, _WINDOWS):
+    for col, (label, key, _default) in zip(wc, _WINDOWS):
         # Hand the widget an EXPLICIT value. Relying on session state alone is
         # what produced the reported defect: measured against the live app on
         # 2026-09-11, these five were the only sliders in the whole DOM without

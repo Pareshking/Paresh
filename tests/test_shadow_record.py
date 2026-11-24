@@ -52,7 +52,7 @@ def test_the_shadow_has_its_own_fingerprint_ledger_and_start():
     assert SHADOW_LEDGER_PATH != LEDGER_PATH
     assert SHADOW_LEDGER_PATH.parent == LEDGER_PATH.parent
     assert SHADOW_LEDGER_PATH.name.startswith("track_record")  # the workflow's git add covers it
-    assert SHADOW_INCEPTION == pd.Period("2026-11", freq="M")
+    assert pd.Period("2026-11", freq="M") == SHADOW_INCEPTION
 
 
 def test_thirty_names_keep_the_hard_caps():

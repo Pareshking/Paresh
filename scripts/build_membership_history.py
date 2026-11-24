@@ -63,7 +63,7 @@ def _symbols_at(commit: str, path: str) -> list[str]:
     if not rows:
         return []
     key = next(
-        (k for k in rows[0].keys() if k.strip().lower() == "symbol"), None
+        (k for k in rows[0] if k.strip().lower() == "symbol"), None
     )
     if key is None:
         return []

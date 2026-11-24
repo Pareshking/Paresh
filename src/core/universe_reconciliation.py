@@ -7,7 +7,7 @@ ranking is rejected so the operator can see the exact missing/extra names.
 """
 
 from collections import Counter
-from typing import Iterable
+from collections.abc import Iterable
 
 from src.core.tickers import is_tradeable_symbol
 

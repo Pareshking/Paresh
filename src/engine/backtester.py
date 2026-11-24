@@ -10,7 +10,8 @@ Features:
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -916,7 +917,7 @@ def _calculate_backtest_metrics(
     # six-month window that is not a Calmar ratio in the sense anyone quotes,
     # because a half-year cannot contain a year's worth of drawdown. Reported
     # with the window attached so it is read as what it is.
-    calmar_ratio = float((cagr_net / abs(max_dd))) if abs(max_dd) > 0 else 0.0
+    calmar_ratio = float(cagr_net / abs(max_dd)) if abs(max_dd) > 0 else 0.0
     avg_turnover = float(monthly_df["Turnover %"].mean()) if not monthly_df.empty else 0.0
     tot_cost_drag = total_s_gross - total_s_net
 

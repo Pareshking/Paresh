@@ -20,7 +20,7 @@ import os
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
+from collections.abc import Iterator
 
 import boto3
 from botocore.exceptions import ClientError
@@ -70,7 +70,7 @@ class R2Config:
     bucket: str
 
     @classmethod
-    def from_env(cls) -> "R2Config":
+    def from_env(cls) -> R2Config:
         return cls.from_values({
             "account_id": os.getenv("R2_ACCOUNT_ID", ""),
             "access_key_id": os.getenv("R2_ACCESS_KEY_ID", ""),
@@ -80,7 +80,7 @@ class R2Config:
         })
 
     @classmethod
-    def from_values(cls, raw: dict[str, str]) -> "R2Config":
+    def from_values(cls, raw: dict[str, str]) -> R2Config:
         values = {k: str(raw.get(k) or "").strip() for k in
                   ("account_id", "access_key_id", "secret_access_key", "endpoint", "bucket")}
         values["endpoint"] = values["endpoint"].rstrip("/")

@@ -1,6 +1,30 @@
 """pytest session-wide fixtures."""
 
+import os as _os
+import tempfile as _tempfile
+
 import pytest
+
+# ── Cache isolation (S138 I7) ────────────────────────────────────────────────
+# src/core/config.py's DATA_DIR is the download cache (the long NSE file, NSE's
+# closes, market caps). Left at its default it is the working tree's data_cache/,
+# so a test could pass only because a developer's machine had downloaded a file
+# CI never has, and the suite wrote into the tree. Set before any src import; a
+# value already in the environment is kept, so a run can still point it somewhere.
+# One exception, named: NSE's published two-year closes, which tests on the real
+# prices read (test_nse_prices.py's `committed`, test_nse_closes_published.py).
+# They are not in git (S178); scripts/fetch_nse_closes.py puts them in the default
+# cache (CI runs it before pytest), and only those files are copied in.
+if "UMIYA_DATA_DIR" not in _os.environ:
+    import shutil as _shutil
+    from pathlib import Path as _Path
+
+    _tmp_cache = _tempfile.mkdtemp(prefix="umiya_test_cache_")
+    _default_cache = _Path(__file__).resolve().parents[1] / "data_cache"
+    for _name in ("nse_prices_closes.parquet", "nse_prices_closes.parquet.revision"):
+        if (_default_cache / _name).exists():
+            _shutil.copy2(_default_cache / _name, _tmp_cache)
+    _os.environ["UMIYA_DATA_DIR"] = _tmp_cache
 
 # ── Network isolation ────────────────────────────────────────────────────────
 # The suite used to reach the internet. A full run fetched the constituent CSVs
@@ -142,3 +166,40 @@ def _fresh_record_memo():
     model_record._RUN_MEMO.clear()
     yield
     model_record._RUN_MEMO.clear()
+
+
+# ── Markers (S138 I2, I3) ────────────────────────────────────────────────────
+# Set from what a test file does, not by hand, so a new file cannot fall outside
+# them: `live_data` for a file that reads the repository's data/ (which the nightly
+# sync rewrites: assert on past-dated facts or invariants, never the latest
+# value), `r2` for the R2 storage tests. `pytest -m "not live_data"` runs the
+# suite without them. The full suite still runs every test in CI.
+import re as _re
+from pathlib import Path as _MarkPath
+
+_READS_REPO_DATA = _re.compile(
+    r"REPO_DATA_DIR|INDICES_DIR|[\"']data/|/ [\"']data[\"']|parents\[1\] / [\"']data[\"']")
+_file_marks: dict[str, tuple[bool, bool]] = {}
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "live_data: reads the repository's data/, which the nightly sync rewrites")
+    config.addinivalue_line("markers", "r2: tests of the R2 storage layer (src/storage, r2/)")
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        path = str(item.fspath)
+        if path not in _file_marks:
+            try:
+                text = _MarkPath(path).read_text(encoding="utf-8")
+            except OSError:
+                text = ""
+            name = _MarkPath(path).name
+            _file_marks[path] = (bool(_READS_REPO_DATA.search(text)),
+                                 name.startswith("test_r2_") or "src.storage" in text)
+        live, r2 = _file_marks[path]
+        if live:
+            item.add_marker(pytest.mark.live_data)
+        if r2:
+            item.add_marker(pytest.mark.r2)

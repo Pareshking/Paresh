@@ -19,7 +19,8 @@ meets the index.
 """
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any
+from collections.abc import Iterable
 
 # The close that signals November 2026 (1 Nov is a Sunday): the record starts with the
 # November book, as the ₹2,000 Cr list is dated the session that signals its month.

@@ -13,7 +13,8 @@ out to Yahoo mid-calculation), and none paid for the surface area it cost.
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -31,6 +32,23 @@ from src.engine.calendar_momentum import (
     horizons_scored,
     latest_as_of_date,
 )
+
+
+def time_ordered(df: pd.DataFrame | None, name: str = "prices") -> pd.DataFrame | None:
+    """`df` with its dates ascending and each date once (the last copy kept), logged when it was not.
+
+    The engine reads a frame's last row as today and shifts by rows, so a frame
+    in the wrong order ranked nothing without saying why, and a repeated date
+    crashed the constructor (S138 NEXT 8). The loaders already hand over an
+    ascending index with one row per date; this only guards the input."""
+    if df is None or df.empty:
+        return df
+    dup = df.index.duplicated(keep="last")
+    if dup.any() or not df.index.is_monotonic_increasing:
+        logger.warning("%s: %d repeated dates dropped (last kept)%s.", name, int(dup.sum()),
+                       "" if df.index.is_monotonic_increasing else ", dates put in order")
+        df = df[~dup].sort_index()
+    return df
 
 
 def clean_holidays(df: pd.DataFrame | None) -> pd.DataFrame:
@@ -143,6 +161,10 @@ class MomentumEngine:
         weights: Sequence[float] | None = None,
         corporate_actions: list[dict] | None = None,
     ):
+        prices_df = time_ordered(prices_df)
+        high_df, low_df, close_df, volume_df = (
+            time_ordered(f, n) for f, n in ((high_df, "high"), (low_df, "low"), (close_df, "close"),
+                                            (volume_df, "volume")))
         self.ffill_pct: pd.Series = compute_ffill_pct(prices_df)
 
         # Clean holidays once from prices_df and share the resulting index across

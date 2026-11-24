@@ -78,7 +78,8 @@ def fetch(ts: str, src: str, folder: str) -> pd.DataFrame | None:
         _curl(f"https://web.archive.org/web/{ts}id_/https://{src}", dest)
     if not os.path.exists(dest):
         return None
-    raw = open(dest, "rb").read()
+    with open(dest, "rb") as fh:
+        raw = fh.read()
     if raw[:2] == b"\x1f\x8b":
         raw = gzip.decompress(raw)
     text = raw.decode("utf-8", "ignore")
