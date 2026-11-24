@@ -1,6 +1,11 @@
 # Changelog
 
 
+## 2026-11-24 — One name for each thing (S173), and two late figures named (S164)
+
+- Portfolio's growth chart names its lines in full (Nifty500 Momentum 50, Nifty Total Market) and heads its lower pane "Below its peak". Indices' table says "Max drawdown, relative", and its momentum heading reads "Momentum’s line against the Nifty 500 is 12.3% below its March 2025 peak". The Screener's index filter uses NSE's full index names. "Market cap" replaces "market value" for NSE's caps.
+- The Dashboard's 12-month momentum tile names its window ("finished months Nov 2025 to Oct 2026"). The domestic-institutions tile adds the days NSE's own file has not reached, from NSE's provisional all-exchange report, named as such.
+
 ## 2026-11-24 — One 52-week high: the calendar year, everywhere
 
 - The 52-week high is now the calendar year (from the session on or before the date a year back) on every page and in the engine: the Screener's "within 20% of the 52W high" filter, the Backtest, rank history, breadth's new highs and lows, the Dashboard's signal rows and the signal tests. It was the last 252 sessions in some places and only the sessions after the date in others.

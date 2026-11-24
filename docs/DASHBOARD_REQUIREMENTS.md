@@ -40,7 +40,7 @@ the owner's word, and note it in the Source column.
 | 22 | Each signal: what would flip it | v6 | §3 | What would flip it |
 | 23 | "Describing is not forecasting" | v6 (tipsheet) | §3 note | Describing is not forecasting |
 | 24 | FII data as its own section, with inference | Owner 20 Nov ("FII data is important") | §4 | Foreign investors have bought |
-| 25 | Foreign buying as a share of the 750's market value | v7 (tipsheet) | §4 | Against the 750’s market value |
+| 25 | Foreign buying as a share of the 750's market cap | v7 (tipsheet) | §4 | Against the 750’s market cap |
 | 26 | Domestic institutions beside foreign | v6 | §4 | Domestic institutions |
 | 27 | What heavy foreign buying has meant, tested | v6 | §4 | Better months for momentum next |
 | 28 | What the foreign and domestic figures are (confirmed vs provisional), no sources named (owner, 20 Nov) | v6; owner 20 Nov | §4 note | exchange and primary market |

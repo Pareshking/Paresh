@@ -33,55 +33,7 @@ def live_month_state(live_period: str | None, today: pd.Timestamp | None = None)
     return "mtd" if pd.Period(live_period, freq="M") >= now.to_period("M") else "closed"
 
 
-def _month_labels(live_period: str | None, state: str, today: pd.Timestamp | None = None) -> dict:
-    """The words for the marked month and for the month now running."""
-    now = pd.Timestamp(today if today is not None else ist_now().date())
-    marked = pd.Period(live_period, freq="M").strftime("%b") if live_period else ""
-    if state == "closed":
-        return {
-            "prefix": f"{marked} (closed)",
-            "badge": "CLOSED",
-            "next": f"{now.to_period('M').strftime('%b')} MTD",
-        }
-    return {"prefix": f"{marked} MTD" if marked else "MTD", "badge": "MTD", "next": ""}
-
-
-def tile_labels(fill_date, month_prefix: str) -> dict:
-    """Header-tile words that say which figure is the account's return.
-
-    Owner, 14 Nov 2026: "Since last rebalance" +7.8% and "MTD return" +7.4%
-    read as two answers to one question. The first is today's holdings since
-    the fill, before that fill's costs, the sold names' last day and cash; the
-    second is the whole account since the month began. The labels say so.
-    """
-    when = pd.to_datetime(fill_date, errors="coerce")
-    since = f"since {when:%-d %b}" if pd.notna(when) else "since rebalance"
-    return {
-        "holdings": f"Holdings {since}",
-        "holdings_note": "Today's stocks only, before costs",
-        "account_month": f"Portfolio · {month_prefix}",
-    }
-
-
-def basis_note(fill_date=None) -> str:
-    """What the Current book's rupee columns are based on, and what they are not.
-
-    The record keeps monthly returns (`data/track_record.json`) and, per
-    rebalance, a weight and a price; it keeps no rupee cost for a holding's life
-    and no per-lot basis. So the table marks today's shares at the fill where
-    they were set, and says so, rather than printing a cost basis it cannot
-    stand behind (S111, owner 8 Nov 2026).
-    """
-    when = pd.to_datetime(fill_date, errors="coerce")
-    where = f"{when:%-d %b %Y}" if pd.notna(when) else "the latest rebalance"
-    return (
-        f"Rupee figures are marked from the {where} fill, where today's share counts "
-        "were set. They are a mark, not a cost: the record keeps each month's return "
-        "and each rebalance's weights, never a holding's rupee cost, so no column here "
-        "is what a name cost when it was first bought. Return since Entry % is the "
-        "price's rise per share since its entry date — a winner trimmed at a rebalance "
-        "has already paid part of that gain into the account's return."
-    )
+# _month_labels, tile_labels and basis_note were removed 24 Nov 2026 (S203 pf.view.1: nothing called them).
 
 
 def build_portfolio_tracker(

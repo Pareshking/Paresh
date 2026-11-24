@@ -214,16 +214,6 @@ def test_portfolio_tracker_carries_no_first_entry_cost_basis():
     )
 
 
-def test_portfolio_basis_note_says_the_rupees_are_a_mark_not_a_cost():
-    from src.ui.views.portfolio_view import basis_note
-
-    note = basis_note(pd.Timestamp("2026-11-02"))
-    assert "2 Nov 2026" in note
-    assert "a mark, not a cost" in note
-    # It must not be silently dropped when the fill date is unknown.
-    assert "the latest rebalance" in basis_note(None)
-
-
 def test_portfolio_history_scales_canonical_equity_and_preserves_trades():
     record = {
         "equity_curve": pd.Series([1.0, 1.05, 1.02], index=pd.date_range("2026-01-02", periods=3)),

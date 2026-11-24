@@ -178,7 +178,7 @@ def momentum_lead(spreads: pd.DataFrame, mom_index: pd.Series | None, market: pd
         return (top - idx) * 100
 
     last = d.iloc[-1]["month"] if len(d) else None
-    out.append(("12 months", lead(d.tail(12)), "Top 100 of the ranking"))
+    out.append(("12 months", lead(d.tail(12)), "Top 100 of the ranking" + (f", finished months {_span(d.tail(12))}" if len(d) >= 12 else "")))
     out.append(("Last 3 months", lead(d.tail(3)), _span(d.tail(3))))
     out.append((pd.Period(last, freq="M").strftime("%B") if last else "Last month", lead(d.tail(1)), ""))
     if mom_index is not None:
@@ -192,6 +192,8 @@ def _span(rows: pd.DataFrame) -> str:
     if rows.empty:
         return ""
     first, last = pd.Period(rows.iloc[0]["month"], freq="M"), pd.Period(rows.iloc[-1]["month"], freq="M")
+    if first.year != last.year:   # "Nov 2025 to Oct 2026"; within one year "Aug to Oct"
+        return f"{first:%b %Y} to {last:%b %Y}"
     return f"{first:%b} to {last:%b}"
 
 
@@ -465,7 +467,8 @@ def rank_trail_word(trail: list[int | None], cut: int) -> tuple[str, str]:
     """(word, tone) for a holding's rank trail [3m, 1m, now]; None = did not pass."""
     a, b, c = trail
     if c is None:
-        return ("Fell out of the filters", "down") if (a is not None or b is not None) else ("Out of the filters", "down")
+        # "Out": the site's one word for a stock failing the filters (src/ui/missing_words.OUT; S203, S193 E R1).
+        return ("Fell out of the filters", "down") if (a is not None or b is not None) else ("Out", "down")
     if b is None:
         if a is not None and c > a:
             return f"Faded from #{a}", "down" if c > cut else "watch"

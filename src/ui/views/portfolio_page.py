@@ -555,7 +555,7 @@ def section_exposure(p: Page) -> list:
     # _head escapes its own text; `uni` is already escaped for the HTML below (S193 B6: "&gt;" showed).
     return _sec([_head("pf-exp", "Sector & size", f"now, against the {UNIVERSE_SHORT.get(p.system, '750')}, and at every rebalance {since}"),
                  f'<div class="dh-cap"><b>Sector exposure now</b><span>bar: the book’s weight · mark: the sector’s weight in the {uni} '
-                 'by market value</span></div>', '<div class="pf-ilist">' + head + body + '</div>',
+                 'by market cap</span></div>', '<div class="pf-ilist">' + head + body + '</div>',
                  '<div class="dh-pair"><div><div class="dh-cap"><b>The book by size, each rebalance</b>'
                  f'<span>{e(" · ".join(_fmt.size(k) for k in drawn))}</span></div>'
                  + srows + key + f'<p class="dh-note pf-gap">{e(note)}</p></div><div><div class="dh-cap"><b>Sectors, each rebalance</b>'

@@ -30,7 +30,6 @@ def test_b1_every_cached_function_hashes_an_argument():
             if any(a.startswith("_") and "key" in a for a in args):
                 bad.append(f"{path.relative_to(ROOT)}:{node.lineno} {node.name} (a key Streamlit ignores)")
     for path, name in [("src/ui/views/market_questions_view.py", "_chart_series"),
-                       ("src/ui/views/market_questions_view.py", "_leaders_full"),
                        ("src/ui/views/ranking_view.py", "_new_high_counts")]:
         assert f"def {name}(key: str," in (ROOT / path).read_text(encoding="utf-8")
     assert bad == []

@@ -149,7 +149,9 @@ def tiles(record: pd.DataFrame | None, mtd: float | None) -> list[tuple[str, flo
         return (top - bench) * 100
 
     last = d.iloc[-1]["month"] if len(d) else None
-    out = [("12 months", lead(d.tail(12), 12), "Top fifth of the ranking"),
+    # The note names the window: the tile ends at the last finished month, not today (S164, staleness audit #7).
+    out = [("12 months", lead(d.tail(12), 12),
+            "Top fifth of the ranking" + (f", finished months {_span(d.tail(12))}" if len(d) >= 12 else "")),
            ("Last 3 months", lead(d.tail(3), 3), _span(d.tail(3)) if len(d) >= 3 else ""),
            (pd.Period(last, freq="M").strftime("%B") if last else "Last month", lead(d.tail(1), 1), "")]
     out.append(("Month so far", mtd, "Top fifth, at the last month-end"))
@@ -158,6 +160,8 @@ def tiles(record: pd.DataFrame | None, mtd: float | None) -> list[tuple[str, flo
 
 def _span(rows: pd.DataFrame) -> str:
     first, last = pd.Period(rows.iloc[0]["month"], freq="M"), pd.Period(rows.iloc[-1]["month"], freq="M")
+    if first.year != last.year:   # "Nov 2025 to Oct 2026"; within one year "Aug to Oct"
+        return f"{first.strftime('%b %Y')} to {last.strftime('%b %Y')}"
     return f"{first.strftime('%b')} to {last.strftime('%b')}"
 
 
