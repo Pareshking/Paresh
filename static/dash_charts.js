@@ -149,6 +149,9 @@ function interact(card, panes, readout, rows, restIndex){
       readout.innerHTML=roHtml(rows(restIndex()),null); h=Math.max(h,readout.offsetHeight);
       readout.style.minHeight=h+'px'; render(cur); };
     if(window.ResizeObserver) new ResizeObserver(()=>{ const nw=readout.clientWidth; if(nw&&nw!==w){ w=nw; fit(); } }).observe(readout);
+    /* Measured again once the web fonts load: a first fit in the fallback font holds its height (S222:
+       DejaVu Sans on CI's runner wrapped a line IBM Plex keeps on one, 91 of 347 px). */
+    if(document.fonts){ document.fonts.addEventListener('loadingdone',()=>{ if(w) fit(); }); }
   }
   render(null);
 }
@@ -222,7 +225,9 @@ function rowsInteract(card, sel, read){
       let h = box._h; for (let j = 0; j < rows.length; j++) { read(j); h = Math.max(h, box.offsetHeight); }
       read(null); box._h = h = Math.max(h, box.offsetHeight); box.style.minHeight = h + 'px'; };
     fit(); if (window.ResizeObserver && !box._ro) { box._ro = new ResizeObserver(() => { if (box.clientWidth !== box._w) box._fit(); }); box._ro.observe(box); }
-    box._fit = fit; return; }
+    box._fit = fit;
+    if (document.fonts) document.fonts.addEventListener('loadingdone', () => { box._w = 0; fit(); });   // as in interact()
+    return; }
   read(null);
 }
 const ro = (card, date, items) => { $('.readout', card).innerHTML = `<span class="d">${date}</span>` + items.map(x =>

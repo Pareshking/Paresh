@@ -39,6 +39,8 @@ _Last updated: 24 Nov 2026 ~12:15 IST, coordinating session session_016X4g5Y1bsn
 
 ## State at handover
 
+**24 Nov ~08:05 UTC.** #669 merged (91af345) after its run 45350700763 passed the layout audit with the short zone words; main's validation (45352380590), Production QA (45352380424) and parity (45352380450) on 91af345 are running: green there closes S222 and #668. On the branch, no PR yet: the readouts measure again once the web fonts load (e3ee870, S222's second half; local layout audit clean on all ten pages). Owner asked for the waiting decisions one at a time: 1 of 4 (#638) put to the owner 24 Nov; then S138 NEXT 2-7, S166, the readout wording.
+
 **24 Nov ~07:40 UTC.** #667 merged (1fdd88d); Production QA green on 9649964 and 1fdd88d. **Main's validation is red since #666 (S222, issue #668)**: the Dashboard's flows readout crowds its chart at 412 px on the runner only; cause found 07:45: a readout line wraps in the runner's fallback font (DejaVu Sans), not in Inter; fix on #669 (short zone words, test pinned). Open: #669 (S168 benchmarks on NSE closes from 2012, owner OK 24 Nov; S191, S167 (b), S196, S175 recorded). Merge only once its validation is green.
 
 **24 Nov ~06:45 UTC.** #665 and #666 merged; Production QA green on 9649964 (run 45340114559, served 9649964). S210, S136, S214 closed from the live site (S214: the live Backtest holds R2's current long-file revision, `r2:5ae3e494706e…`). Next PR (branch, open when its checks pass): S138 I2/I3 (markers), I6 (page CSS in `src/ui/page.css`), I7 (test cache in a temp dir), ruff B, UP and SIM, NEXT 8 (engine edge cases; a repeated or reversed date no longer crashes or empties the ranking). Left in S138: NEXT 2-7, research for the owner. The four 15-minute check-ins (`trig_01Lc8…`, `trig_01DiPA…`, `trig_01Q8Qj…`, `trig_01DGbs…`) run to 16:45 UTC and are then deleted.
@@ -76,10 +78,12 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 
 **Open pull requests**
 - Merged 23 Nov: #650 (S193 C), #651 (S216), #652 (S217), #653 (since-start market from the fill), #654 (S213), #655 (S218). **S193 B** PR #656 (bugs B1-B9, the Guide, history from daily closes, wording per system; owner approved 23 Nov): merge when CI is green.
-- **#638 (S211, one date rule):** draft. Merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
+- **#638 (S211, one date rule):** draft. Owner, 24 Nov: option 1: after the 1 Dec fill, rebuild on main without its 52-week-high part, re-measure, one yes on the new figures, merge that day. Merge only after the 1 Dec fill **and the owner's explicit yes** (659 of 750
   published ranks move). It conflicts with main again: merge main into it once, just before merging. Reminder
   `trig_01MGhPjDNkLj9QptrreSjzZh` fires 1 Dec 13:30 UTC.
 - **#607** is parked by the owner (read-only R2 key).
+
+**Owner to confirm (24 Nov):** the Dashboard flows readout's zone words, "heavy buying" / "moderate buying" / "net selling" (were "a heavy-buying month" / "net buying, below the heavy line"), chosen to fit one line at 412 px in any fallback font (S222). Reversal: one dict in `_fpi_bars`, but the longer words wrap on a phone.
 
 **Waiting on the owner (24 Nov, laptop back):**
 - (a) Run the branch clean-up in TODO S212: tags for group C, then delete the merged branches. This session could
