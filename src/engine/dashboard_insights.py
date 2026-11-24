@@ -178,7 +178,7 @@ def momentum_lead(spreads: pd.DataFrame, mom_index: pd.Series | None, market: pd
         return (top - idx) * 100
 
     last = d.iloc[-1]["month"] if len(d) else None
-    out.append(("12 months", lead(d.tail(12)), "Top 100 of the ranking" + (f", {_span(d.tail(12))}" if len(d) >= 12 else "")))
+    out.append(("12 months", lead(d.tail(12)), "Top 100 of the ranking" + (f", finished months {_span(d.tail(12))}" if len(d) >= 12 else "")))
     out.append(("Last 3 months", lead(d.tail(3)), _span(d.tail(3))))
     out.append((pd.Period(last, freq="M").strftime("%B") if last else "Last month", lead(d.tail(1)), ""))
     if mom_index is not None:
