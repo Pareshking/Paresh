@@ -927,7 +927,7 @@ def section_trust(f: dict) -> list:
         checks.append(("The index before Feb 2012", "Nifty 500 closes before 21 Feb 2012 come from an outside dataset, not yet "
                                                     "checked against NSE’s own file (S167).", "Not checked"))
     checks.append(("A second source for the result", "None: the replay is our own engine. Prices pass the long file’s audits "
-                                                     "(other price histories, BSE, Screener).", "Not checked"))
+                                                     "(other price histories and BSE).", "Not checked"))
     tone = {"Checked": "dh-up", "Soft spot": "dh-watch", "Not checked": "dh-watch"}
     body = "".join(f'<tr><th scope="row">{e(a)}</th><td>{e(b)}</td><td class="bt-st {tone[c]}">{e(c)}</td></tr>' for a, b, c in checks)
     return ['<div class="dh-sec">', _kick("5", "Can it be trusted"),
