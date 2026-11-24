@@ -268,11 +268,12 @@ def no_buy_line(p: Plan) -> str:
 
 
 def amounts_line(p: Plan) -> str:
-    """What a buy's amount is a share of (S203 ac.buy.2), the money in the Cr and lakh forms."""
+    """What a buy's amount is a share of (S203 ac.buy.2). The book's value in whole rupees, the form Portfolio shows
+    for the same figure (S154, one form per figure; number audit rule 1), not the draft's "₹1.02 Cr"."""
     if p.source == "Model book":
         return ("Amounts are the record's target weight of the model book's value today"
-                + ("." if p.value is None else f", {_lakh(p.value)}."))
-    return ("Amounts are each buy's target weight" + ("" if p.value is None else f" of {_lakh(p.value)}")
+                + ("." if p.value is None else f", {inr(p.value)}."))
+    return ("Amounts are each buy's target weight" + ("" if p.value is None else f" of {inr(p.value)}")
             + ", the capital in the Kite basket box.")
 
 
@@ -281,7 +282,7 @@ def kite_caption(p: Plan) -> str:
     if p.source == "My holdings":
         return "Buy orders only, each at its target weight of the capital above; your share counts are not known."
     return ("The model book's sell orders, with its share counts, and its buy orders, each at the record's "
-            "target weight of the book's value today" + ("." if p.value is None else f", {_lakh(p.value)}."))
+            "target weight of the book's value today" + ("." if p.value is None else f", {inr(p.value)}."))
 
 
 def _gap_phrase(v: float, what: str) -> str:

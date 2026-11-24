@@ -293,9 +293,9 @@ def test_ac_buy_1():
 
 def test_ac_buy_2():
     assert ap.amounts_line(_plan(value=1.0234567e7)) == (
-        "Amounts are the record's target weight of the model book's value today, ₹1.02 Cr.")
+        "Amounts are the record's target weight of the model book's value today, ₹1,02,34,567.")
     assert ap.amounts_line(_plan(source="My holdings", value=2.5e6)) == (
-        "Amounts are each buy's target weight of ₹25.0 lakh, the capital in the Kite basket box.")
+        "Amounts are each buy's target weight of ₹25,00,000, the capital in the Kite basket box.")
 
 
 def test_ac_buy_3():
@@ -366,7 +366,7 @@ def test_ac_kite_1():
         "Buy orders only, each at its target weight of the capital above; your share counts are not known.")
     assert ap.kite_caption(_plan(value=1.0234567e7)) == (
         "The model book's sell orders, with its share counts, and its buy orders, each at the record's target weight "
-        "of the book's value today, ₹1.02 Cr.")
+        "of the book's value today, ₹1,02,34,567.")
 
 
 def test_ac_empty_1():
