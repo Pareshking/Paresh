@@ -45,7 +45,7 @@ _Last updated: 23 Nov 2026 ~15:00 IST, coordinating session session_016X4g5Y1bsn
 
 Production QA green on af15327. Open:
 - S220: live Backtest is about 11 s, with 40-44 s spikes; cause not found.
-- 24 Nov checks (B10, the all-time-high move, long-vs-Screener, breadth for 23 Nov) wait for the daily sync, not landed by 03:00 UTC.
+- 24 Nov checks (B10, the all-time-high move, long-vs-Screener, breadth, the S186 note): moved to 26 Nov 11:41 IST (owner, 24 Nov; a reminder is set).
 - S186 deploy note not yet seen.
 - Reminder set for the 1-5 Dec monthly run (2 Dec 04:41 UTC).
 

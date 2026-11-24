@@ -7,6 +7,9 @@ otherwise), and routes the pages through st.navigation.
 
 import concurrent.futures
 import json
+import time as _time
+
+_RUN_T0 = _time.perf_counter()  # S220: this rerun's start, for the Backtest stage timings
 import warnings
 
 import pandas as pd
@@ -1216,6 +1219,7 @@ def _page_market() -> None:
 
 
 def _page_backtest() -> None:
+    metrics.note("backtest_script_to_view_s", round(_time.perf_counter() - _RUN_T0, 2))  # S220
     # Research runs on NSE's long price file only (S174, owner 21 Nov 2026: the
     # "Live system" tab is gone; Portfolio owns the record). The system picker does
     # not apply: a run picks its own universe in the page's settings.

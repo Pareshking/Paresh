@@ -15,6 +15,7 @@ src/ui/dash_charts.py).
 from __future__ import annotations
 
 import hashlib
+from time import perf_counter as _perf
 import html
 import json
 import re
@@ -1074,6 +1075,17 @@ def _system_note() -> None:
 def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: float, weights: tuple[float, ...],
                          liquidity_floor_cr: float = 0.0) -> None:
     """One page of research runs on NSE's long price file (S174)."""
+    from src.core import startup_metrics as _metrics
+
+    stages: dict[str, float] = {}
+    clock = [_perf()]
+
+    def mark(name: str) -> None:   # S220: where a live Backtest's seconds go, in the hidden metrics div
+        now = _perf()
+        stages[name] = round(now - clock[0], 2)
+        clock[0] = now
+        _metrics.note("backtest_stages_s", dict(stages))
+
     st.html(f"<style>{HOME_CSS}{BT_CSS}</style>")
     # First on the page: the run's settings in one line, "Change the test" under it (S219-6), then the answer.
     line = st.container()
@@ -1084,6 +1096,7 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
     _system_note()
     top = st.container()
     h = _history_inputs(rank_df, s["history"], bounds)
+    mark("inputs")
     if h is None:
         return
     with line:
@@ -1094,6 +1107,7 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
         kit.note("The Nifty 500's closes are unavailable.", "Backtest stopped rather than compare against nothing.", kind="warning")
         return
     res = _run(s, h, bench, stock_cap, sector_cap)
+    mark("run")
     if res is None:
         kit.note("Not enough price history for this window.", "The rules need a 12M lookback before the first "
                  "month tested; pick a later start above.", kind="warning")
@@ -1104,11 +1118,13 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
         return
     default = is_default(s, h, stock_cap, sector_cap)
     f, spec = _derived(_derived_key(s, h, bench, stock_cap, sector_cap, default), res, s, h, bench, default)
+    mark("derived")
     with top:
         emit(head(f))
     emit(section_lead(f) + section_falls(f) + section_years(f) + section_depends(f) + section_trust(f)
          + section_trades_head(f))
     _download(res, s, h, stock_cap, sector_cap, eq)
+    mark("sections+download")
     with st.expander("Show the table · every trade and the rebalance log", expanded=False):
         emit([Chart("history", spec,
                     {"label": "Every trade and every rebalance line",
@@ -1116,6 +1132,7 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
                              "one stock’s action at one rebalance (bought, sold or kept). Signal is the close the rule read; "
                              "the fill is the next session’s close. Returns are before costs."})])
     emit([END] + foot(f))
+    mark("trade_log+foot")
 
 
 __all__ = ["render_backtest_view", "page_parts", "gather", "is_default", "rebalance_rule_kwargs", "engine_kwargs",
