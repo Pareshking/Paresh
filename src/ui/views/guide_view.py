@@ -215,7 +215,7 @@ leave.</dd>
 <dt>Why does a stock's rank differ from its qualified rank?</dt>
 <dd>The rank places it among all stocks in the universe; the qualified rank, among those passing both
 filters. The book and the buffer use the qualified rank.</dd>
-<dt>Does the market's trend change the model?</dt>
+<dt>Does Nifty Total Market's trend change the model?</dt>
 <dd>No. The header's "... % above its 200D EMA" (or below) compares the index it names with its 200D EMA, for context.
 The model holds {top_n} stocks whatever the index does and keeps no cash target.</dd>
 <dt>What does "pts" mean?</dt>

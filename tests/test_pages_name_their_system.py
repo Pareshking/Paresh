@@ -123,4 +123,5 @@ def test_header_regime_ends_on_the_prices_session(monkeypatch):
     assert pl.get_market_regime(end="2020-01-01").current_price == 0.0
     pl.get_market_regime.clear()
     src = _src("app.py")
-    assert 'regime_data = get_market_regime(end=f"{_last_px:%Y-%m-%d}")' in src
+    assert 'regime_data = get_market_regime(TOTAL_MARKET_REGIME, end=f"{_last_px:%Y-%m-%d}")' in src
+    assert "_pool.submit(get_market_regime, TOTAL_MARKET_REGIME)" in src
