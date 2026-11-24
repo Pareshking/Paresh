@@ -44,9 +44,27 @@ def correlation(adj_close: pd.DataFrame, syms: list[str]) -> tuple[pd.DataFrame 
 
 
 
+LEDE = "Best-ranked stocks passing both filters."   # S203 ac.qual.1
+
+
+def no_pass_lines(high_pct: float | None = None) -> tuple[str, str]:
+    """The empty list's title and way out (S203 ac.qual.2): the filters named, the 52-week line read from the
+    record's rules, not typed (rule 9)."""
+    if high_pct is None:
+        from src.engine.track_record import TRACK_RECORD_CONFIG
+        high_pct = float(TRACK_RECORD_CONFIG["high_pct"])
+    return ("No stock passes both filters today.",
+            f"They are a close above the 50D EMA and within {1 - high_pct:.0%} of the 52-week high.")
+
+
+def _sector_counts(df: pd.DataFrame) -> pd.Series:
+    """Stocks per sector, most first (glossary 2: NSE's column name is kept as the key)."""
+    return df["Industry"].fillna("Unclassified").value_counts()
+
+
 def industry_rows(df: pd.DataFrame) -> list[tuple[str, float, str, bool]]:
     """Top industries by count, the rest folded into one row."""
-    counts = df["Industry"].fillna("Unclassified").value_counts()
+    counts = _sector_counts(df)
     n = len(df)
     rows = [(str(k), float(v), f"{v} · {v / n * 100:.0f}%", False)
             for k, v in counts.iloc[:TOP_INDUSTRIES].items()]
@@ -69,7 +87,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
     top_n = int(st.session_state.get("qual_top_n", 30) or 30)
     actions = st.container(horizontal=True, vertical_alignment="center", key="qual_pool_bar")
     with actions:
-        kit.caption("Best-ranked stocks passing both filters.")
+        kit.caption(LEDE)
     view = passing.head(top_n).copy()
     # Place among the qualified, as on the Screener (audit, 8 Nov 2026: this table
     # showed "–" in Qualified # for every row).
@@ -85,10 +103,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
                            disabled=view.empty)
 
     if view.empty:
-        from src.engine.track_record import TRACK_RECORD_CONFIG
-        gap = 1 - float(TRACK_RECORD_CONFIG["high_pct"])   # read, not typed (S203 ac.qual.2, rule 9)
-        kit.empty("No stock passes both filters today.",
-                  f"They are a close above the 50D EMA and within {gap:.0%} of the 52-week high.")
+        kit.empty(*no_pass_lines())
         return
 
     with kit.card("The list", "qual_list"):
@@ -97,6 +112,19 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
     with kit.card("Where they come from", "qual_ind"):
         rows = industry_rows(view)
         st.html(kit.bar_list(rows, scale=max(r[1] for r in rows)))
-        top2 = sum(r[1] for r in rows[:2]) / len(view)
-        if top2 >= 0.4:
-            kit.caption(f"{rows[0][0]} and {rows[1][0]}: {top2:.0%} of the list.")
+        if line := concentration_line(view):
+            kit.caption(line)
+
+
+def concentration_line(df: pd.DataFrame) -> str:
+    """The two sectors that hold the most of the list, when they hold 40% or more (S203 ac.qual.3): "Banks and
+    Capital Goods hold 45% of the list." A tie for second names every sector tied: "A, B and C hold …"."""
+    if not len(df):
+        return ""
+    counts = _sector_counts(df)
+    if len(counts) < 2 or counts.iloc[:2].sum() / len(df) < 0.4:
+        return ""
+    named = [str(k) for k, v in counts.items() if v >= counts.iloc[1]]
+    share = counts.iloc[:len(named)].sum() / len(df)
+    who = ", ".join(named[:-1]) + " and " + named[-1]
+    return f"{who} hold {_fmt.fixed(share * 100, 0)}% of the list."
