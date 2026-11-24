@@ -644,7 +644,7 @@ def section_falls(f: dict) -> list:
     needs = (1 / (1 + now) - 1) if now < 0 else 0.0
     tiles = _kpis([
         ("Below its peak now", _pcs(now), "dh-down" if now < 0 else "", f"Nifty 500 {_pcs(bnow)}"),
-        ("Max drawdown", _pcs(big.depth) if big else "–", "dh-down",
+        ("Max DD", _pcs(big.depth) if big else "–", "dh-down",
          f"Nifty 500 {_pcs(n500_falls[0].depth)}" if n500_falls else ""),
         ("Days below its peak", f"{cur_days:,}" if now < 0 else "0", "dh-watch" if now < 0 else "",
          f"since {_d(f['current_peak'])}" if now < 0 else "at its peak"),
@@ -867,7 +867,7 @@ def section_depends(f: dict) -> list:
                       f'<td class="dh-num dh-down">{e(_pcs(dd))}</td></tr>')
     if trows:
         parts += ['<div class="dh-scroll"><table class="dh-tab bt-t"><thead><tr><th scope="col">Against what you could buy</th>'
-                  '<th scope="col" class="dh-num">A year</th><th scope="col" class="dh-num">Max drawdown</th></tr></thead>'
+                  '<th scope="col" class="dh-num">A year</th><th scope="col" class="dh-num">Max DD</th></tr></thead>'
                   f'<tbody>{trows}</tbody></table></div>',
                   '<p class="dh-note">NSE’s Nifty200 Momentum 30 is the nearest index a fund tracks; it is a price index too. '
                   + ("These windows are short and include this rule’s max drawdown." if _windows_cover_max_drawdown(f)

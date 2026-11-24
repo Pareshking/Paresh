@@ -111,7 +111,7 @@ def test_one_name_one_unit_on_the_page():
                    "Worst fall", "Calmar", "Live system", "Personal closes", "Recommendation: 30", "@st.fragment",
                    "render_data_quality_footer", "Zero Look-Ahead"):
         assert banned not in src, banned
-    for name in ('"A year, compounded"', '"Lead over the Nifty 500"', '"Max drawdown"',
+    for name in ('"A year, compounded"', '"Lead over the Nifty 500"', '"Max DD"',
                  '"Below its peak now"', '"Months ahead of the Nifty 500"', '"Days below its peak"'):
         assert name in src, name
 
@@ -164,7 +164,7 @@ def test_the_page_parts_carry_the_requirements_markers(monkeypatch):
     for marker in ("Backtest", "for the Nifty 500, before tax", "Price returns on both sides", "What was tested",
                    "A year, compounded", "Lead over the Nifty 500", "points a year", "calendar time",
                    "Why the Nifty 500 and not Nifty Total Market", "The two halves", "Show the table",
-                   "Below its peak now", "Max drawdown", "Days below its peak", "Back at the peak",
+                   "Below its peak now", "Max DD", "Days below its peak", "Back at the peak",
                    "Month by month", "Survivorship", "Look-ahead", "Not checked", "Rules chosen after looking",
                    "only 10 stocks passed the rules", "Trades closed", "Median trade", "Portfolio", "Data to", "prices to"):
         assert marker.lower() in text.lower(), marker

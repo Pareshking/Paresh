@@ -370,8 +370,8 @@ def returns_html(ws: list[sl.Window], as_of, uni, late: bool = False) -> list:
             f'<span><i class="tri"></i>{sl.MARKET}, same sessions</span></div>',
             '<div class="sp-tbox sp-ret"><table class="sp-t"><thead><tr><th scope="col">Window</th><th scope="col">Return</th>'
             '<th scope="col" class="n">Stock</th><th scope="col" class="n">Nifty Total Market</th><th scope="col" class="n sp-wide">Lead, pts</th>'
-            '<th scope="col" class="n sp-wide">Typical stock</th><th scope="col" class="n">Max drawdown</th>'
-            '<th scope="col" class="n sp-wide">Typical max drawdown</th><th scope="col" class="n sp-wide">Sharpe</th>'
+            '<th scope="col" class="n sp-wide">Typical stock</th><th scope="col" class="n">Max DD</th>'
+            '<th scope="col" class="n sp-wide">Typical max DD</th><th scope="col" class="n sp-wide">Sharpe</th>'
             f'<th scope="col" class="n sp-wide">Rank by return</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>',
             '<p class="sp-phone">On a wider screen: each window’s first day, the lead in pts, the typical stock’s '
             'return and fall, Sharpe, and rank by return.</p>',

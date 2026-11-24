@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-24 — "Max DD" in tables (owner)
+
+- Table headings and tiles write the worst fall from a peak as "Max DD" ("6M max DD"): the Screener's five window columns, Backtest, Portfolio, Indices and the stock page. Sentences keep "max drawdown", as tables write "52W" and sentences "52-week". The Guide says so where it defines the term.
+
 ## 2026-11-24 — Every page's sentences from the approved templates (S203)
 
 - Actions, Screener, Market, Indices, Sectors, Watchlist, Backtest, the stock page and the Guide now write their sentences from the templates drafted and approved on 24 Nov: counts as figures ("7 of 20 sectors"), up and down in words, the list named ("leads the 750"), no vendor names, every number filled from the data or the record's settings.
