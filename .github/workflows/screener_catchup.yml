@@ -47,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           busy=$(gh run list --repo "$REPO" --workflow screener_sync.yml --json status \
-                   -q '[.[] | select(.status=="queued" or .status=="in_progress" or .status=="waiting")] | length')
+                   -q '[.[] | select(.status=="queued" or .status=="in_progress" or .status=="waiting" or .status=="pending" or .status=="requested")] | length')
           if [ "$busy" != "0" ]; then
             echo "A Screener sync is already queued or running: nothing to catch up."
             exit 0
