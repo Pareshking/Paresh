@@ -32,6 +32,12 @@ def frozen_view(history: dict, through: str = FROZEN_THROUGH) -> dict:
                                 "changes": [c for c in entry["changes"] if c["date"] <= through]}
     for part in PARTS:
         view[part] = history.get(part)
+    # A rename that takes effect after the freeze date (ICICIPRULI -> ICICILIFE, 23 Oct 2026, S129)
+    # is not part of the frozen past: leaving it out keeps the hash of what WAS frozen unchanged.
+    aliases = view.get("aliases")
+    if isinstance(aliases, dict):
+        view["aliases"] = {k: v for k, v in aliases.items()
+                           if not (isinstance(v, dict) and str(v.get("effective", "")) > through)}
     return view
 
 
