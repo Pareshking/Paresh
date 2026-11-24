@@ -37,6 +37,8 @@ _Last updated: 24 Nov 2026 ~12:15 IST, coordinating session session_016X4g5Y1bsn
   handover PR ran the full validation six times for text edits: that is the
   pattern to stop.
 
+**Standing instruction (owner, 24 Nov ~09:05 UTC):** "Check what is already done or covered and work on them ... now onwards you will don't wait for my commands to start, start one by one and finish them." Work the TODO queue in order without asking; owner decisions (ranks, frozen record, model book, deletions) still go to the owner one at a time.
+
 ## State at handover
 
 **24 Nov ~08:05 UTC.** #669 merged (91af345) after its run 45350700763 passed the layout audit with the short zone words; main's validation (45352380590), Production QA (45352380424) and parity (45352380450) on 91af345 are running: green there closes S222 and #668. On the branch, no PR yet: the readouts measure again once the web fonts load (e3ee870, S222's second half; local layout audit clean on all ten pages). Owner asked for the waiting decisions one at a time: 1 of 4 (#638) put to the owner 24 Nov; then S138 NEXT 2-7, S166, the readout wording.
