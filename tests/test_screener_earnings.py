@@ -41,7 +41,7 @@ def test_merge_keeps_old_quarters_and_takes_this_weeks_restatement():
                          "sales": 2, "net_profit": 2, "other_income": 0, "tax_pct": 25, "fetched": "2026-11-21"}])
     new = [{"symbol": "A", "quarter_end": "2023-09-30", "basis": "consolidated", "sales_label": "Sales",
             "sales": 3, "net_profit": 3, "other_income": 0, "tax_pct": 25, "fetched": "2026-11-28"}]
-    out = m.merge(old, new)
+    out = m.current_rows(m.merge(old, new, "2026-11-28"))
     assert list(out["quarter_end"]) == ["2023-06-30", "2023-09-30"] and list(out["sales"]) == [1, 3]
 
 
@@ -126,3 +126,23 @@ def test_every_symbol_is_read_as_nse_lists_it_today():
                                     "ATLPP.E1", "BIRET.RR", "TCS", "SMESTOCK"], renames, listed)
     assert got == ["ABCIND", "BAJAJ-AUTO", "BOSCH-HCIL", "JSWDULUX", "SMESTOCK", "TCS", "UFBL"]
     assert why["ATLPP.E1"].startswith("a partly-paid or unit line") and why["AKZOINDIA"] == "read as JSWDULUX"
+
+
+def test_a_restated_quarter_takes_the_new_figures_and_keeps_the_old_reading(tmp_path):
+    m = _script()
+    row = {"symbol": "A", "quarter_end": "2026-06-30", "basis": "consolidated", "sales_label": "Sales", "sales": 100.0,
+           "operating_profit": 20.0, "pbt": 15.0, "net_profit": 10.0, "other_income": 1.0, "tax_pct": 25.0, "eps": 1.0,
+           "fetched": "2026-11-21"}
+    first = m.merge(None, [row], "2026-11-21")
+    same = m.merge(first, [{**row, "fetched": "2026-11-28"}], "2026-11-28")
+    assert len(same) == 1                                            # unchanged: no extra row
+    redone = m.merge(same, [{**row, "net_profit": 12.0, "fetched": "2027-02-13"}], "2027-02-13")
+    now = m.current_rows(redone)
+    assert len(now) == 1 and now["net_profit"].iloc[0] == 12.0      # the page reads the restated figure
+    old = redone[redone["superseded_on"].notna()]
+    assert old["net_profit"].tolist() == [10.0] and old["superseded_on"].tolist() == ["2027-02-13"]
+    path = tmp_path / "s.parquet"                                    # and it survives the R2 store
+    m.write_store(redone, str(path), "2027-02-13")
+    back = m.read_store(str(path), False, str(tmp_path / "x.csv"))
+    again = m.merge(back, [{**row, "net_profit": 12.0, "fetched": "2027-02-20"}], "2027-02-20")
+    assert len(again) == 2 and m.current_rows(again)["net_profit"].iloc[0] == 12.0

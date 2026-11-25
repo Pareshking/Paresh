@@ -121,14 +121,49 @@ def page_rows(cache: str, fetched: str, since: str = "") -> list[dict]:
     return out
 
 
-def merge(stored: pd.DataFrame | None, new: list[dict]) -> pd.DataFrame:
+FIGURES = ["sales", "operating_profit", "pbt", "net_profit", "other_income", "tax_pct", "eps"]
+
+
+def _differs(a: dict, b: dict) -> bool:
+    for c in FIGURES:
+        x, y = a.get(c), b.get(c)
+        if (pd.isna(x) != pd.isna(y)) or (not pd.isna(x) and abs(float(x) - float(y)) > 1e-9):
+            return True
+    return str(a.get("basis")) != str(b.get("basis"))
+
+
+def merge(stored: pd.DataFrame | None, new: list[dict], today: str | None = None) -> pd.DataFrame:
+    """This week's page wins for every quarter it shows (owner, 25 Nov 2026: "Screener do restatement when companies
+    does, so ensure we are saving updated one"). A quarter whose figures changed keeps its earlier reading as a row
+    with `superseded_on` set to the day it was replaced, so no restatement is lost; current rows have none."""
     fresh = pd.DataFrame(new, columns=QUARTER_COLS)
+    cols = QUARTER_COLS + ["superseded_on"]
     if stored is None or stored.empty:
-        both = fresh
-    else:
-        both = pd.concat([stored.reindex(columns=QUARTER_COLS), fresh], ignore_index=True)
-    both = both.drop_duplicates(["symbol", "quarter_end"], keep="last")
-    return both.sort_values(["symbol", "quarter_end"]).reset_index(drop=True)
+        out = fresh.assign(superseded_on=None)
+        return out.sort_values(["symbol", "quarter_end"]).reset_index(drop=True)[cols]
+    stored = stored.reindex(columns=cols)
+    sup = pd.to_datetime(stored["superseded_on"], errors="coerce")
+    stored = stored.assign(superseded_on=sup.dt.strftime("%Y-%m-%d").where(sup.notna(), None),
+                           quarter_end=pd.to_datetime(stored["quarter_end"]).dt.strftime("%Y-%m-%d"))
+    old_rows = stored[stored["superseded_on"].notna()]
+    current = stored[stored["superseded_on"].isna()]
+    by_key = {(r["symbol"], r["quarter_end"]): r for r in current.to_dict("records")}
+    replaced = []
+    for r in fresh.to_dict("records"):
+        before = by_key.get((r["symbol"], r["quarter_end"]))
+        if before is not None and _differs(before, r):
+            replaced.append({**before, "superseded_on": today or r["fetched"]})
+    kept = pd.concat([current, fresh.assign(superseded_on=None)], ignore_index=True)
+    kept = kept.drop_duplicates(["symbol", "quarter_end"], keep="last")
+    out = pd.concat([kept, old_rows, pd.DataFrame(replaced, columns=cols)], ignore_index=True)
+    return out.sort_values(["symbol", "quarter_end", "superseded_on"], na_position="first").reset_index(drop=True)[cols]
+
+
+def current_rows(quarters: pd.DataFrame) -> pd.DataFrame:
+    """The figures as the company reports them now: superseded readings left out."""
+    if "superseded_on" not in quarters.columns:
+        return quarters
+    return quarters[quarters["superseded_on"].isna()].drop(columns="superseded_on")
 
 
 def _values(quarters: pd.DataFrame) -> dict[tuple[str, str], dict]:
@@ -213,6 +248,8 @@ def write_store(quarters: pd.DataFrame, path: str, as_of: str) -> None:
     for c in ("symbol", "basis", "sales_label", "fetched"):
         out[c] = out[c].astype("category")
     out["quarter_end"] = pd.to_datetime(out["quarter_end"])
+    if "superseded_on" in out.columns:
+        out["superseded_on"] = pd.to_datetime(out["superseded_on"])
     out["as_of"] = pd.Timestamp(as_of)
     out.to_parquet(path, index=False, compression="zstd")
 
@@ -231,17 +268,21 @@ def build(cache: str, quarters_csv: str = QUARTERS_CSV, earnings_csv: str = EARN
     if not new:
         print("no pages parsed; nothing written")
         return 1
-    quarters = merge(stored, new)
+    quarters = merge(stored, new, today)
+    restated = quarters[quarters["superseded_on"].astype(str) == today]
+    print(f"restated this run: {len(restated)} company-quarter(s)" + (" (" + ", ".join(
+        f"{r.symbol} {r.quarter_end}" for r in restated.head(20).itertuples()) + ")" if len(restated) else ""))
     if store:
         write_store(quarters, store, today)
         print(f"wrote {store} ({os.path.getsize(store) / 1024:.0f} KB, every quarter kept)")
     # The pages' copy: the quarters the Stock page and the Indices build can use (13 back), not the whole history.
-    quarters[quarters["quarter_end"] >= since].to_csv(quarters_csv, index=False, quoting=csv.QUOTE_MINIMAL)
-    out, notes = earnings(quarters)
+    now = current_rows(quarters)
+    now[now["quarter_end"] >= since].to_csv(quarters_csv, index=False, quoting=csv.QUOTE_MINIMAL)
+    out, notes = earnings(now)
     out = out[out["complete"]].drop(columns="complete")
-    out["as_of"] = str(quarters["fetched"].max())
+    out["as_of"] = str(now["fetched"].max())
     out.to_csv(earnings_csv, index=False)
-    print(f"wrote {quarters_csv} ({len(quarters)} rows, {quarters['symbol'].nunique()} companies) and "
+    print(f"wrote {quarters_csv} ({len(now)} rows, {now['symbol'].nunique()} companies) and "
           f"{earnings_csv} ({len(out)} rows)")
     done = out["quarter"].unique().tolist()
     print(f"complete quarters (>= {COMPLETE_SHARE:.0%} of the Nifty 500's members): {', '.join(done)}")
