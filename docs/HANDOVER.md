@@ -265,6 +265,8 @@ In the first PR that touches `DASHBOARD_REQUIREMENTS.md` (S174):
 
 ## Dates to watch
 
+**Schedule (set 25 Nov ~21:00 UTC, owner: "plan your schedule and work on pending items"; stop at the first usage warning).** Four work loops (:05 :20 :35 :50) carry the work; each dated check below is its own scheduled task, so a stopped session loses none: 26 Nov 06:11 UTC data checks (B10, ATH, S188, S186); 26 Nov on, daily 06:11 UTC, S231 retry of NSE's review PDF (until 15 Dec); 27 Nov 04:53 Actions minutes (S142); 28 Nov 05:31 first weekly earnings run (S171); 29 Nov 05:50 backtest_reference and r2_retention; 1 Dec 05:43 page budgets (S193 L); 1 Dec 13:30 #638 (owner's yes); 2 Dec 03:43, 04:41, 09:30, 12:30 the monthly freeze checks (shadow books, S178/S188 g, S175, S95/S111/S154); 5 Dec S185 bundles; 15 Dec S137 holidays; 2 Jan shadow books; 4 Jan the January items (S227 rename, S226/S198 (e) sector switch, the Tata Q3 check); 2 Feb S220. Work order between them: the open batch PR and its live checks (S173); then S190 (Sectors' finer NSE indices), then S174 "1 a" (Dashboard data pass), each decided by benchmark, owner to confirm; owner questions one at a time (S212 follow-up first).
+
 - 24 Nov: the owner's branch clean-up and Streamlit log (S210 "accepted" for all three systems; no pyarrow "Replacing").
 - 27 Nov: Actions-minutes week ends; S142 (private repo) decided after. Also
   Friday's `ss_sync`: the first without the `reconcile_*` upload (should pass).
