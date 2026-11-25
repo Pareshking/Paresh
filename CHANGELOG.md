@@ -3,6 +3,7 @@
 
 ## 2026-11-25 — Indices: how many companies reported (S171)
 
+- Sectors: NSE's sector-index table now sets the 750's own stocks under each finer index: its 34 banks under Nifty Bank, 11 public-sector banks under Nifty PSU Bank, 11 hospitals under Nifty Hospitals, and so on for 12 indices.
 - Market: "Stocks above their 200D EMA" now gives one percentile in both tables (the 1000 read the 29th since Jul 2017 in one and the 31st since Mar 2018 in the other).
 - Configuration: the page's foot line now gives the prices' date ("Data to … · NSE"), as its Data health text says it does.
 - Indices earnings: the Nifty Total Market (the 750) joins the profit and revenue tables, with its members as they were each quarter (Q2 FY27: profit +30.5%, revenue +22.2%). The Nifty 1000 is in the latest-quarter table only, since only its current members are stored (Q2 FY27: profit +31.2%, 988 of 1,000 companies).

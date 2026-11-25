@@ -88,6 +88,7 @@ SX_CSS = """
 .sx-ix tr.sx-grp th{background:var(--c-fill);font-size:var(--fs-12);color:var(--c-text_2);font-weight:600;text-align:left}
 .sx-ix tr.sx-grp th span{font-weight:400;color:var(--c-muted);margin-left:6px}
 .sx-ix tr.sx-ours th{font-style:italic;font-weight:400}
+.sx-ix tr.sx-fin th{padding-left:1.4em}
 .sx-ix .sx-s{display:none}
 .sx-mo th[scope=row]{white-space:nowrap}
 @media (max-width:640px){.sx-ix .sx-f{display:none}.sx-ix .sx-s{display:inline}
@@ -173,7 +174,7 @@ def _model(key: str, _rank_df: pd.DataFrame, _prices: pd.DataFrame, col: str, _t
             f = f.until(ld.when)
             smap = sp.sector_map()
             counts = groups.dropna().astype(str).value_counts().to_dict()
-            out["nse"] = {"as_of": ld.when, "groups": sp.sector_indices(f, ld, smap, counts),
+            out["nse"] = {"as_of": ld.when, "groups": sp.sector_indices(f, ld, smap, counts, sp.finer_stocks(px, _rank_df, ld.when)),
                           "gaps": sp.broad_or_narrow(f, ld, smap), "pairs": sp.pair_series(f, ld, smap)}
     return out
 
@@ -453,8 +454,14 @@ def section_indices(ld: sp.Leads, nse: dict, sh, uni: str = "750") -> list:
             body += (f'<tr><th scope="row"><span class="sx-f">{e(x.name)}</span><span class="sx-s">{e(short)}</span>'
                      + ('<span class="dh-sub">for the sector</span>' if x.headline else "") + "</th>"
                      + cells(x.returns, x.from_high, x.pe, f"{x.live:%-d %b %Y}" if x.young else None) + "</tr>")
+            if x.ours is not None:
+                body += (f'<tr class="sx-ours sx-fin"><th scope="row">The {uni}’s {x.ours.stocks} {e(x.ours.noun)}'
+                         '<span class="dh-sub">equal-weighted</span></th>'
+                         + cells(x.ours.returns, x.ours.from_high, None, has_pe=False) + "</tr>")
     note = (f"All {len(allix)} of NSE’s sector indices, each under the sector it belongs to; the first line of each group is the "
             "sector’s ranked stocks, equal-weighted, for comparison, and “for the sector” marks the index set beside it above. "
+            f"Under a finer index, a line holds the {uni}’s ranked stocks that NSE’s classification files under it "
+            "(banks under Nifty Bank, hospitals under Nifty Hospitals), equal-weighted, when there are five or more. "
             f"Price returns; each window ends on {nse['as_of']:%-d %b %Y} and starts on the last session on or before the same date "
             "1, 3, 6, 9 and 12 months back. An index younger than 12 months shows its launch in NSE’s daily file. Themes, strategies "
             "and broad indices are on Indices.")
