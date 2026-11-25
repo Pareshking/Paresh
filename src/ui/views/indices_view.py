@@ -188,52 +188,58 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
     return parts
 
 
+PROFIT_WORDS = {"pat": "profit after tax as reported",
+                "pat_xoi": "profit after tax without other income (taken out after tax for companies other than banks "
+                           "and lenders, whose other income is part of the business)"}
+
+
 def earnings_headline(lt: er.Latest) -> str:
-    """The earnings heading (S171): the Nifty 500's profit growth in NSE's latest quarter, total and median company."""
+    """The earnings heading (S171): the Nifty 500's profit growth in the latest complete quarter, all companies and
+    the median company."""
     v = lt.values.get("Nifty 500", {})
     agg, med = v.get("pat_agg_yoy"), v.get("pat_median_yoy")
     q = er.quarter_label(lt.quarter)
     if agg is None:
-        return f"Profit growth in {q}, from NSE's earnings review."
+        return f"Profit growth in {q}."
     verb = "rose" if agg >= 0 else "fell"
     tail = ("" if med is None else
             f"; the median company's profit {'rose' if med >= 0 else 'fell'} {abs(med):.1f}%")
     return f"In {q} the Nifty 500's profit {verb} {abs(agg):.1f}% from a year earlier{tail}."
 
 
+def _source_note(q: str, as_of) -> str:
+    return (f"Our calculation from companies' reported results: each company's quarterly results on Screener.in, "
+            f"added up over the companies in the index at the quarter end, read {_dy(as_of)}. Profit is "
+            f"{PROFIT_WORDS[er.PROFIT]}. Tata Motors, demerged on 1 Oct 2025, is left out of the quarters it would "
+            "distort (Q2 and Q3 of FY26 and FY27).")
+
+
 def section_earnings(lt: er.Latest | None) -> list:
-    """Profit and revenue growth beside the P/E (S171 (3)): NSE's latest Corporate Performance Review, its own figures."""
+    """Profit and revenue growth beside the P/E (S171): our calculation from Screener's company results (owner,
+    25 Nov 2026: "We will use Screener data only")."""
     if lt is None:
         return []
     cols = [("pat_agg_yoy", "Profit, all companies"), ("pat_median_yoy", "Profit, median company"),
             ("sales_agg_yoy", "Revenue, all companies"), ("sales_median_yoy", "Revenue, median company")]
-    body, missing = "", False
-    for name in er.INDICES:
+    body = ""
+    for name in er.OUR_INDICES:
         v = lt.values.get(name, {})
-        cells = ""
-        for k, _ in cols:
-            missing |= v.get(k) is None
-            cells += f'<td class="dh-num">{e(sg(v.get(k), 1, "%"))}</td>'
+        cells = "".join(f'<td class="dh-num">{e(sg(v.get(k), 1, "%"))}</td>' for k, _ in cols)
         body += f'<tr><th scope="row">{e(_short(name))}</th>{cells}</tr>'
     q = er.quarter_label(lt.quarter)
-    note = (f"Year-on-year growth in {q} of profit after tax and of revenue (net sales), for the companies in each index "
-            f"at the quarter end: all companies added together, and the median company. NSE's figures, from its "
-            f"Corporate Performance Review for {q} (published {_dy(lt.published)}).")
-    if missing:
-        note += " NSE gives some of these figures only for some indices; a figure it did not publish reads –."
+    note = (f"Growth in {q} over the same quarter a year earlier: all companies added together, and the median "
+            f"company. " + _source_note(q, lt.published))
     return [f'<div class="dh-sec dh-sec-cont">{KICK.format("Earnings")}<h2 id="s-earnings" class="dh-h2">'
-            f'{e(earnings_headline(lt))}</h2><p class="dh-note">{e(note)} '
-            f'<a href="{e(lt.pdf_url)}" target="_blank" rel="noopener">NSE\'s review (PDF)</a></p>'
+            f'{e(earnings_headline(lt))}</h2><p class="dh-note">{e(note)}</p>'
             '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
             + "".join(f'<th scope="col" class="dh-num">{e(h)}</th>' for _, h in cols)
             + f'</tr></thead><tbody>{body}</tbody></table></div></div>'] + earnings_history()
 
 
 def earnings_history() -> list:
-    """Profit growth each quarter since Q1 FY22, Nifty 50 and Nifty 500 (S171; owner, 25 Nov 2026: the chart, with
-    Q3 FY26 ex-Tata Motors)."""
-    n50, n500 = er.history("Nifty 50", "pat_agg_yoy"), er.history("Nifty 500", "pat_agg_yoy")
-    s50, s500 = er.history("Nifty 50", "sales_agg_yoy"), er.history("Nifty 500", "sales_agg_yoy")
+    """Profit growth each quarter, Nifty 50 and Nifty 500, from our calculation (S171)."""
+    n50, n500 = er.ours_history("Nifty 50", "pat_agg_yoy"), er.ours_history("Nifty 500", "pat_agg_yoy")
+    s50, s500 = er.ours_history("Nifty 50", "sales_agg_yoy"), er.ours_history("Nifty 500", "sales_agg_yoy")
     idx = sorted(set(n50.index) | set(n500.index))
     if len(idx) < 4:
         return []
@@ -245,11 +251,13 @@ def earnings_history() -> list:
                                        {"name": "Nifty 500", "color": "s-n500", "values": vals(n500), "width": 2}],
                             "levels": [{"v": 0, "label": "", "color": "muted"}], "range": SIZE_RANGE},
                   {"label": f"Profit growth from a year earlier, each quarter, {first} to {last}",
-                   "note": "Each quarter, dated at the quarter end; NSE reviews a quarter about 2½ months after it ends"}),
-            how(f"Profit after tax of all the index's companies added together, against the same quarter a year earlier, "
-                f"each quarter from {first} to {last}, dated at the quarter end. NSE's figures; a quarter NSE published no "
-                "review for takes the figure from the next review. Q3 FY26 leaves out Tata Motors, demerged on 1 Oct 2025, "
-                "as NSE's own summary and its Q2 FY26 figures do.",
+                   "note": "Each quarter, dated at the quarter end; a quarter shows once nine in ten Nifty 500 "
+                           "companies have reported it"}),
+            how(f"All the index's companies added together, against the same quarter a year earlier, each quarter from "
+                f"{first} to {last}, dated at the quarter end. Profit is {PROFIT_WORDS[er.PROFIT]}. Each company's "
+                "quarterly results on Screener.in, read every Saturday; Screener shows 13 quarters, so the history "
+                "starts in " + first + " and grows a quarter at a time. Tata Motors is left out of Q2 and Q3 of FY26 "
+                "and FY27, around its demerger of 1 Oct 2025.",
                 "Above the zero line, profits grew on a year earlier; below it, they fell. Growth is over the same quarter "
                 "a year before, so a weak quarter a year ago lifts this one.",
                 ["Quarter", "Nifty 50 profit", "Nifty 500 profit", "Nifty 50 revenue", "Nifty 500 revenue"],
@@ -556,7 +564,7 @@ def page_parts(f: ip.Frames, system: str | None = None) -> list:
     every = ip.every_index(f)
     n = sum(len(v) for v in every.values())
     young = ip.young_valuation(f, SYSTEM_INDEX[system]) if system in SYSTEM_INDEX else None
-    return (head(vals, as_of) + section_valuation(f, vals, m1, m3, young) + section_earnings(er.latest()) + section_styles(sts, m1, m3) + section_lag(sts)
+    return (head(vals, as_of) + section_valuation(f, vals, m1, m3, young) + section_earnings(er.ours()) + section_styles(sts, m1, m3) + section_lag(sts)
             + section_years(sts, as_of) + section_size(ip.size_years(f), as_of) + section_every(f, every, as_of)
             + [f'<p class="dh-foot">{_fmt.data_to(as_of, "NSE")} · {n} broad, theme and strategy indices</p>'])
 

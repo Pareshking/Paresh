@@ -1,4 +1,4 @@
-"""NSE's quarterly earnings growth for the broad indices (S171), read from
+"""Quarterly earnings growth for the broad indices (S171). The page reads ours (`ours`, bottom); NSE's, read from
 `data/reference/nse_earnings_review.csv` (built by `scripts/nse_earnings_review.py`
 from NSE's Corporate Earnings Review PDFs; every figure carries its PDF, page and quote).
 
@@ -80,3 +80,41 @@ def history(index: str, measure: str, df: pd.DataFrame | None = None) -> pd.Seri
     rows = df[(df["index"] == index) & (df["measure"] == measure)].dropna(subset=["value_pct"])
     out = pd.Series({quarter_end(q): float(v) for q, v in zip(rows["quarter"], rows["value_pct"])}, dtype=float)
     return out.sort_index()
+
+
+# ── Ours: Screener's company results added up (S171 (2); owner, 25 Nov 2026: "We will use Screener data only") ──
+
+OURS_PATH = PATH.parent / "screener_earnings.csv"     # built weekly by scripts/screener_earnings.py
+OUR_INDICES = INDICES[:4] + ("Nifty Microcap 250", "Nifty 500")
+# The profit the page shows: "pat" is net profit as companies report it; "pat_xoi" leaves out other income after tax
+# for companies other than banks and lenders (the one-off gains sit there: Vodafone Idea Mar 2026, Tata Motors Sep 2025).
+PROFIT = "pat_xoi"
+
+
+def _measure(m: str) -> str:
+    """The page's measure name ("pat_agg_yoy") as the Screener file stores it."""
+    return m.replace("pat_", f"{PROFIT}_", 1) if m.startswith("pat_") else m
+
+
+def ours(df: pd.DataFrame | None = None) -> Latest | None:
+    """The newest complete quarter of our calculation, with the date its pages were read."""
+    df = load(OURS_PATH) if df is None else df
+    if df is None or df.empty:
+        return None
+    q = max(df["quarter"].unique(), key=_order)
+    rows = df[df["quarter"] == q]
+    vals = {i: {m: None for m in MEASURES} for i in OUR_INDICES}
+    for i in OUR_INDICES:
+        for m in MEASURES:
+            hit = rows[(rows["index"] == i) & (rows["measure"] == _measure(m))]["value_pct"].dropna()
+            if len(hit):
+                vals[i][m] = float(hit.iloc[0])
+    return Latest(quarter=q, published=pd.Timestamp(rows["as_of"].iloc[0]), pdf_url="", values=vals)
+
+
+def ours_history(index: str, measure: str, df: pd.DataFrame | None = None) -> pd.Series:
+    """Our figure each quarter, oldest first, indexed by quarter end."""
+    df = load(OURS_PATH) if df is None else df
+    if df is None or df.empty:
+        return pd.Series(dtype=float)
+    return history(index, _measure(measure), df)

@@ -1,0 +1,74 @@
+name: Screener earnings (weekly, Saturday)
+
+# Earnings growth for the broad indices, our calculation from companies' reported results (S171; owner,
+# 25 Nov 2026: "We will use Screener data only", weekly on Saturday). Reads each member's Screener.in
+# company page (~930 pages, 1.5 s apart, ~30 min) for every index member on the last 13 quarter ends,
+# then writes data/reference/screener_quarters.csv and data/reference/screener_earnings.csv
+# (scripts/screener_earnings.py). Reader: the Indices page's Earnings section (src/engine/earnings_review.py).
+# The run log prints each quarter where our Nifty 50 or Nifty 500 figure is more than 5 points from NSE's
+# published one: a report, not a gate.
+on:
+  schedule:
+    - cron: '23 4 * * 6'    # Saturday 04:23 UTC (09:53 IST)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screener-earnings
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Pages are untrusted input: kept outside the checkout, read with python -I.
+      - name: Read the company pages from Screener.in
+        env:
+          PYTHONPATH: .
+        run: python -I scripts/screener_earnings.py fetch --cache "$RUNNER_TEMP/screener_pages"
+
+      - name: Build the earnings files and the NSE check
+        env:
+          PYTHONPATH: .
+        run: python -I scripts/screener_earnings.py build --cache "$RUNNER_TEMP/screener_pages"
+
+      - name: Commit and push the earnings files
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          files="data/reference/screener_quarters.csv data/reference/screener_earnings.csv"
+          git add $files
+          if git diff --staged --quiet; then
+            echo "No earnings changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(data): Screener earnings, weekly [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt; rebasing onto origin/main."
+            git fetch origin main
+            git rebase origin/main || {
+              git checkout --theirs -- $files 2>/dev/null || true
+              git add $files
+              GIT_EDITOR=true git rebase --continue || git rebase --abort
+            }
+            sleep $((attempt * 3))
+          done
+          echo "::error::Could not push the earnings files after 5 attempts."
+          exit 1

@@ -10,6 +10,9 @@ interest is taken out). The sub-heading under the title names the basis, "Consol
 standalone one and marks its header "Sep 2024 (S)"; a page with only such columns has no
 "Consolidated" in its sub-heading. Each quarter therefore carries its own basis.
 
+"Other Income +" and "Tax %" are read too: the profit measure without other income (S171) takes
+other income out after tax at the quarter's own rate.
+
 ``parse_quarters`` reads only that section and returns None when the page has none (a company
 with no consolidated accounts, a 404 page). Nothing here fetches; the page text is treated as
 untrusted input and only numbers and dates come out of it.
@@ -22,6 +25,8 @@ from dataclasses import dataclass, field
 
 SALES_LABELS = ("sales", "revenue")
 PROFIT_LABELS = ("net profit",)
+OTHER_INCOME_LABELS = ("other income",)
+TAX_LABELS = ("tax %",)
 
 _SECTION = re.compile(r'<section[^>]*\bid="quarters"[^>]*>(.*?)</section>', re.S | re.I)
 _ROW = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S | re.I)
@@ -68,7 +73,7 @@ def _basis(head: str) -> str:
 
 
 def parse_quarters(page: str) -> Quarters | None:
-    """quarter end -> {"sales", "net_profit"} in Rs crore, from the page's Quarters table; None without one."""
+    """quarter end -> {"sales", "net_profit", "other_income", "tax_pct", "basis"} (Rs crore; tax in %), from the page's Quarters table; None without one."""
     found = _SECTION.search(page or "")
     if not found:
         return None
@@ -79,7 +84,7 @@ def parse_quarters(page: str) -> Quarters | None:
     if not dates:
         return None
     marked = {d: "(S)" in _text(c) for d, c in zip(_DATE_KEY.findall(header), _CELL.findall(header)[1:])}
-    sales = profit = None
+    sales = profit = other = tax = None
     sales_label = ""
     for row in _ROW.findall(section):
         cells = [_text(c) for c in _CELL.findall(row)]
@@ -90,11 +95,17 @@ def parse_quarters(page: str) -> Quarters | None:
             sales, sales_label = cells[1:], cells[0].rstrip("+").strip()
         elif profit is None and name in PROFIT_LABELS:
             profit = cells[1:]
+        elif other is None and name in OTHER_INCOME_LABELS:
+            other = cells[1:]
+        elif tax is None and name in TAX_LABELS:
+            tax = cells[1:]
     if sales is None and profit is None:
         return None
     out = Quarters(basis=basis, sales_label=sales_label)
     for i, d in enumerate(dates):
         out.rows[d] = {"sales": _number(sales[i]) if sales else None,
                        "net_profit": _number(profit[i]) if profit else None,
+                       "other_income": _number(other[i]) if other else None,
+                       "tax_pct": _number(tax[i].rstrip("%")) if tax else None,
                        "basis": "standalone" if marked.get(d) else (basis or "standalone")}
     return out

@@ -1,6 +1,13 @@
 # Changelog
 
 
+## 2026-11-25 — Indices: earnings growth is now our own calculation from Screener (S171)
+
+- Indices: the Earnings section and its quarterly chart now show our calculation from companies' reported results: each company's quarterly results on Screener.in, added up over the companies in each index at the quarter end, for six indices (the Microcap 250 is new). NSE's figures no longer appear on the page (owner, 25 Nov 2026: "We will use Screener data only").
+- The latest quarter is now Q2 FY27 (Sep 2026), shown once nine in ten Nifty 500 companies have reported. The history starts at Q2 FY25, since Screener shows 13 quarters, and grows a quarter at a time.
+- Profit leaves out other income after tax for companies other than banks and lenders, where one-off gains sit (Vodafone Idea's Mar 2026 quarter, Tata Motors' Sep 2025 demerger). Tata Motors is left out of Q2 and Q3 of FY26 and FY27.
+- A new weekly job, every Saturday (`screener_earnings.yml`), reads the pages and checks our figures against NSE's published ones in its log.
+
 ## 2026-11-25 — Indices: profit growth each quarter since Q1 FY22 (S171)
 
 - Indices: under the Earnings table, a chart of the Nifty 50's and Nifty 500's profit growth from a year earlier, each quarter from Q1 FY22 to Q1 FY27, with a table that adds revenue growth. Q3 FY26 leaves out Tata Motors (demerged 1 Oct 2025), as NSE's own summary does: the Nifty 500's profit growth that quarter reads 18.2%, not the 15.9% with it (owner).
