@@ -10,7 +10,7 @@ interest is taken out). The sub-heading under the title names the basis, "Consol
 standalone one and marks its header "Sep 2024 (S)"; a page with only such columns has no
 "Consolidated" in its sub-heading. Each quarter therefore carries its own basis.
 
-"Other Income +" and "Tax %" are read too: the profit measure without other income (S171) takes
+"Other Income +" and the tax row (Tax, in %) are read too: the profit measure without other income (S171) takes
 other income out after tax at the quarter's own rate.
 
 ``parse_quarters`` reads only that section and returns None when the page has none (a company
@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 SALES_LABELS = ("sales", "revenue")
 PROFIT_LABELS = ("net profit",)
 OTHER_INCOME_LABELS = ("other income",)
-TAX_LABELS = ("tax %",)
+TAX_PREFIX = "tax"            # the row Tax, in %
 
 _SECTION = re.compile(r'<section[^>]*\bid="quarters"[^>]*>(.*?)</section>', re.S | re.I)
 _ROW = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S | re.I)
@@ -97,7 +97,7 @@ def parse_quarters(page: str) -> Quarters | None:
             profit = cells[1:]
         elif other is None and name in OTHER_INCOME_LABELS:
             other = cells[1:]
-        elif tax is None and name in TAX_LABELS:
+        elif tax is None and name.startswith(TAX_PREFIX):
             tax = cells[1:]
     if sales is None and profit is None:
         return None
