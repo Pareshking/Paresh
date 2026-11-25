@@ -254,15 +254,10 @@ Each only with CI green on the PR's current head, squash merge, nothing deleted,
    other than D still need the owner one at a time; prepare them (examples, recommendation, opposite view)
    but do not apply. S203 templates: draft, do not apply. Not S197/S198 (after the 1-5 Dec freeze).
 
-## Owner decisions of 22 Nov still to record
+## Owner decisions of 22 Nov (S174 "1 a")
 
-In the first PR that touches `DASHBOARD_REQUIREMENTS.md` (S174):
-- Keep the Nifty 500 before 2012, labelled "unchecked (Kaggle)", and also show
-  each test from 2012.
-- The track-record ledger stays in git, with a nightly R2 copy and a check that
-  the two match.
-- When R2 is unreachable, fall back to the repo copy, with a footer note and
-  the date in **red** when it is more than one trading day old.
+Recorded 25 Nov in `DASHBOARD_REQUIREMENTS.md` "Data pass decisions" D1-D3. D3 (the backup-copy foot line) is
+built; D1's from-2012 figures and D2's nightly ledger copy and match check are open.
 
 ## Dates to watch
 

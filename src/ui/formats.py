@@ -185,10 +185,45 @@ PTS_NOTE = "pts = percentage points: 12% − 8% = 4 pts."   # where a reader fir
 PRICES_SOURCE = "NSE"   # the exchange the closes are from; the vendor is not named on a page (owner, 20-21 Nov 2026: "Let's not show source")
 
 
+BACKUP_NOTE = " (the backup copy: R2 could not be reached)"
+
+
+def _from_backup() -> bool:
+    """True when R2 was configured but did not serve a published file (src/loaders/app_source.UNREACHED)."""
+    try:
+        from src.loaders import app_source
+    except Exception:  # noqa: BLE001 - a footer never fails a page
+        return False
+    return app_source.unreachable()
+
+
 def data_to(as_of, source: str = PRICES_SOURCE) -> str:
     """A page's footer line: "Data to 20 Nov 2026 · NSE" (S173 rule 7); "Data from NSE" when the date is
-    missing, never "Data to None" (S193 E)."""
-    return f"Data from {source}" if _missing(as_of) else f"Data to {date(as_of)} · {source}"
+    missing, never "Data to None" (S193 E). When R2 could not be reached the line says the data is the
+    backup copy (owner, 22 Nov 2026, S174 "1 a")."""
+    line = f"Data from {source}" if _missing(as_of) else f"Data to {date(as_of)} · {source}"
+    return line + (BACKUP_NOTE if _from_backup() else "")
+
+
+def data_to_html(as_of, source: str = PRICES_SOURCE) -> str:
+    """`data_to`, escaped for HTML, with the date in red when the backup copy is more than one trading day
+    old (owner, 22 Nov 2026)."""
+    import html as _html
+
+    text = _html.escape(data_to(as_of, source))
+    if _missing(as_of) or not _from_backup():
+        return text
+    try:
+        import pandas as pd
+
+        from src.core.market_time import trading_days_behind
+        behind = trading_days_behind(pd.Timestamp(as_of).date())
+    except Exception:  # noqa: BLE001
+        behind = None
+    if behind is not None and behind <= 1:
+        return text
+    d = _html.escape(date(as_of))
+    return text.replace(d, f'<span class="dh-down" style="color:var(--c-down)">{d}</span>', 1)
 
 
 def foot_line(rank_df, as_of) -> str:

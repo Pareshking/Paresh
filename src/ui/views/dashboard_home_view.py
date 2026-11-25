@@ -1163,7 +1163,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     if not symbols:
         # The page with no data: h1, one lede, the footer (S193 E, R4); the sentence Actions and Portfolio use (R5).
         kit.page_head(mw.NO_MODEL_BOOK, mw.NO_MODEL_BOOK_WHY, kicker="Dashboard")
-        st.html(f'<p class="dh-foot">{e(_fmt.data_to(as_of))}.</p>')
+        st.html(f'<p class="dh-foot">{_fmt.data_to_html(as_of)}.</p>')
         return
     meta = (record or {}).get("live_meta") or {}
     ledger = load_ledger(ledger_path(system), inception(system))
@@ -1351,7 +1351,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
     parts += section_glance(_glance(closes, idx_end, hist, risk, n500, record_risk, book_sessions) + _indices_glance(idx_end), breadth,
                             UNIVERSE_SHORT.get(system, "750"), system == SYSTEM_750)
     # Owner, 20 Nov 2026: the data date only; sources are not shown on the page.
-    parts.append(f'<p class="dh-foot">{_fmt.data_to(as_of)}.</p>')
+    parts.append(f'<p class="dh-foot">{_fmt.data_to_html(as_of)}.</p>')
     emit(parts)
 
 

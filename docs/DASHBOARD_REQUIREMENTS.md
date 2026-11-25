@@ -72,3 +72,11 @@ the owner's word, and note it in the Source column.
 - 36 · The book's holdings marked in leadership (§7). The space is kept for the Indices page (S170). Used 21 Nov: row 42 (the "Valuation and styles" card in At a glance).
 
 Order: 1 · The book, month so far → 2 · What happens on → 3 · Is momentum still working? → 4 · Money flows → 5 · Size, and where momentum works → 6 · Where the book is strong and weak → At a glance
+
+## Data pass decisions (owner, 22 Nov 2026, S174 "1 a")
+
+| # | Decision | State |
+| --- | --- | --- |
+| D1 | Keep the Nifty 500 before 2012, labelled "unchecked (Kaggle)", and also show each test from 2012 | Label: Backtest's trust table reads "Not checked" for closes before 21 Feb 2012 (S167). **Open:** each test's figure from Feb 2012 |
+| D2 | The track-record ledger stays in git, with a nightly R2 copy and a check that the two match | **Open** |
+| D3 | When R2 cannot be reached, fall back to the repo copy, with a footer note and the date in red when it is more than one trading day old | Built 25 Nov: the fallback to the release files existed (`app_source`); every page's foot line now adds "(the backup copy: R2 could not be reached)" and its date turns red past one trading day (`formats.data_to_html`). A local or CI run without keys is not counted. The flag is per process, so one file missing R2 marks every page |

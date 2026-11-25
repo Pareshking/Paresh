@@ -963,7 +963,7 @@ def section_trades_head(f: dict) -> list:
 def foot(f: dict) -> list:
     sm = f["summary"]
     idx = f" · indices to {_d(f['indices_as_of'])}" if f.get("indices_as_of") is not None else ""
-    return [f'<p class="dh-foot">{_fmt.data_to(sm.last, "NSE’s long price file")}, the last completed month · prices to {_d(f["long_last"])}{idx}.</p>']
+    return [f'<p class="dh-foot">{_fmt.data_to_html(sm.last, "NSE’s long price file")}, the last completed month · prices to {_d(f["long_last"])}{idx}.</p>']
 
 
 # ── Gathering ─────────────────────────────────────────────────────────────────

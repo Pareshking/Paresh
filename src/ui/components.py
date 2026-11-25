@@ -633,7 +633,7 @@ def render_data_quality_footer(
     if not details:
         # A page without its own foot line passes `as_of` for "Data to <date> · NSE" (S173 rule 7).
         from src.ui import formats as _fmt
-        when = (f'<span style="color: var(--c-muted);">{html.escape(_fmt.data_to(as_of))}</span>'
+        when = (f'<span style="color: var(--c-muted);">{_fmt.data_to_html(as_of)}</span>'
                 if as_of is not None else "")
         st.html('<div style="display: flex; padding: 6px 0 24px; font-family: var(--font-ui); font-size: var(--fs-12);">'
                 f'{when}<span style="margin-left: auto; color: var(--c-text_2);">© Paresh Patel</span></div>')

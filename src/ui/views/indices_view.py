@@ -645,7 +645,7 @@ def page_parts(f: ip.Frames, system: str | None = None) -> list:
     young = ip.young_valuation(f, SYSTEM_INDEX[system]) if system in SYSTEM_INDEX else None
     return (head(vals, as_of) + section_valuation(f, vals, m1, m3, young) + section_earnings(er.ours(), er.partial()) + section_styles(sts, m1, m3) + section_lag(sts)
             + section_years(sts, as_of) + section_size(ip.size_years(f), as_of) + section_every(f, every, as_of)
-            + [f'<p class="dh-foot">{_fmt.data_to(as_of, "NSE")} · {n} broad, theme and strategy indices</p>'])
+            + [f'<p class="dh-foot">{_fmt.data_to_html(as_of, "NSE")} · {n} broad, theme and strategy indices</p>'])
 
 
 def render_indices_view() -> None:
