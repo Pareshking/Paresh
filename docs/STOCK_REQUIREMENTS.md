@@ -15,7 +15,7 @@ owner's word. Rows 22-46 were proposed with the mock-ups and approved with mock-
 `/stock?stock=SANSERA`, with `scripts/layout_audit.mjs` at 412 and 1400 px and
 `scripts/chart_hover_audit.mjs` for row 48.
 
-Order: 1 · Rank → 2 · Filters and sell rules → 3 · Returns and falls → 4 · Price → 5 · Sector → 6 · Data → Data to
+Order: 1 · Rank → 2 · Filters and sell rules → 3 · Returns and falls → 4 · Price → 5 · Results → 6 · Sector → 7 · Data → Data to
 
 Scope: `/?stock=SYMBOL`, a route of the Screener view (`ranking_view.py:272`), for every
 system (750, > ₹2,000 Cr, Combined). The Screener list itself is `SCREENER_REQUIREMENTS.md`.

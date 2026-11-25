@@ -186,7 +186,7 @@ def fetch(cache: str, pause: float, limit: int | None) -> None:
                 _save(cache, sym, "consolidated", resp.text)
                 entry["consolidated_url"] = resp.url
                 parsed = parse_quarters(resp.text)
-            if resp is not None and resp.status_code == 200 and (parsed is None or parsed.mixed()):
+            if resp is not None and resp.status_code == 200 and (parsed is None or parsed.mixed() or stale(parsed)):
                 time.sleep(pause)
                 url = resp.url.replace("/consolidated/", "/")
                 alone = _get(url, requests.get, pause)
@@ -215,11 +215,25 @@ def _read(cache: str, sym: str, kind: str) -> Quarters | None:
         return parse_quarters(fh.read())
 
 
+def stale(q: Quarters | None) -> bool:
+    """A consolidated table that ends more than a year before the newest quarter end: the company stopped
+    consolidating (TATAELXSI's ends in Mar 2015, 3MINDIA's in Jun 2024) and reports standalone only."""
+    if q is None or not q.rows:
+        return False
+    newest = QUARTER_ENDS[-1] if QUARTER_ENDS else max(q.rows)
+    return max(q.rows) < f"{int(newest[:4]) - 1}{newest[4:]}"
+
+
 def company_data(cache: str, manifest: dict) -> tuple[dict[str, Quarters], dict[str, str]]:
     """symbol -> its quarters on one basis, and symbol -> basis or the reason it has none."""
     data, basis = {}, {}
     for sym in manifest:
         cons = _read(cache, sym, "consolidated")
+        if cons is not None and stale(cons):
+            alone = _read(cache, sym, "standalone")
+            if alone is not None and alone.rows and max(alone.rows) > max(cons.rows):
+                data[sym], basis[sym] = alone, "standalone (consolidated table stopped)"
+                continue
         if cons is not None and not cons.mixed():
             data[sym], basis[sym] = cons, next(iter(cons.rows.values()))["basis"]
             continue

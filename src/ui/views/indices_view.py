@@ -31,6 +31,7 @@ IX_CSS = """
 .dh-how-t td:first-child{white-space:nowrap}
 .ix-every th[scope=row]{font-weight:500;white-space:normal;min-width:170px}
 .ix-every .dh-sub{white-space:nowrap}
+.ix-q td.up{color:var(--c-up)}.ix-q td.down{color:var(--c-down)}.ix-q th[scope=row]{min-width:0;white-space:nowrap}.ix-q thead th{white-space:normal}
 .ix-fam{margin:8px 0 0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;line-height:1.3!important}
 @media (max-width:640px){.ix-every th[scope=row],.ix-every thead th:first-child{white-space:nowrap;min-width:0;position:sticky;left:0;background:var(--c-white);z-index:1;box-shadow:1px 0 0 var(--c-rule_soft);padding-right:10px!important}.ix-every th,.ix-every td{padding:6px 4px 6px 0!important;font-size:var(--fs-12)}
 .ix-hide-s{display:none}}
@@ -203,15 +204,21 @@ def earnings_headline(lt: er.Latest) -> str:
         return f"Profit growth in {q}."
     verb = "rose" if agg >= 0 else "fell"
     tail = ("" if med is None else
-            f"; the median company's profit {'rose' if med >= 0 else 'fell'} {abs(med):.1f}%")
-    return f"In {q} the Nifty 500's profit {verb} {abs(agg):.1f}% from a year earlier{tail}."
+            f"; the median company's profit {'rose' if med >= 0 else 'fell'} {_pc(abs(med))}")
+    return f"In {q} the Nifty 500's profit {verb} {_pc(abs(agg))} from a year earlier{tail}."
+
+
+def _pc(v: float) -> str:
+    """One decimal, rounded half up as every table cell is (30.25 reads 30.3% in the heading and the table alike)."""
+    return f"{_fmt.half_up(v, 1)}%"
 
 
 def _source_note(q: str, as_of) -> str:
-    return (f"Our calculation from companies' reported results: each company's quarterly results on Screener.in, "
-            f"added up over the companies in the index at the quarter end, read {_dy(as_of)}. Profit is "
+    return (f"Our calculation from companies' reported results: each company's quarterly results, added up over the "
+            f"companies in the index at the quarter end; last updated {_dy(as_of)}. Profit is "
             f"{PROFIT_WORDS[er.PROFIT]}. Tata Motors, demerged on 1 Oct 2025, is left out of the quarters it would "
-            "distort (Q2 and Q3 of FY26 and FY27).")
+            "distort (Q2 and Q3 of FY26 and FY27), and Rajesh Exports from every index: its reported revenue, about a third "
+            "of the Nifty Microcap 250's, would alone set that index's growth.")
 
 
 def section_earnings(lt: er.Latest | None) -> list:
@@ -233,7 +240,36 @@ def section_earnings(lt: er.Latest | None) -> list:
             f'{e(earnings_headline(lt))}</h2><p class="dh-note">{e(note)}</p>'
             '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
             + "".join(f'<th scope="col" class="dh-num">{e(h)}</th>' for _, h in cols)
-            + f'</tr></thead><tbody>{body}</tbody></table></div></div>'] + earnings_history()
+            + f'</tr></thead><tbody>{body}</tbody></table></div></div>'] + earnings_quarters() + earnings_history()
+
+
+QUARTER_HEADS = {i: i for i in er.OUR_INDICES}       # the glossary's full names (G3), headings may wrap
+
+
+def earnings_quarters() -> list:
+    """Each index's growth every quarter, newest first (owner, 25 Nov 2026: "a good table to see 8-10 quarter growth for
+    Indices"): profit, then revenue, all companies added together, against the same quarter a year earlier."""
+    out = []
+    for measure, title in (("pat_agg_yoy", "Profit"), ("sales_agg_yoy", "Revenue")):
+        hist = {i: er.ours_history(i, measure) for i in er.OUR_INDICES}
+        idx = sorted({d for h in hist.values() for d in h.index}, reverse=True)
+        if len(idx) < 2:
+            return []
+        rows = ""
+        for d, q in zip(idx, _quarters(idx)):
+            cells = "".join(
+                f'<td class="dh-num {"" if (v := hist[i].get(d)) is None or _fmt.half_up(v, 1) == 0 else ("up" if v > 0 else "down")}">'
+                f'{e(sg(hist[i].get(d), 1, "%"))}</td>' for i in er.OUR_INDICES)
+            rows += f'<tr><th scope="row">{e(er.quarter_label(q))}</th>{cells}</tr>'
+        out.append(f'<div class="dh-sec dh-sec-cont"><h3 class="dh-h3">{title} growth, each quarter</h3>'
+                   '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every ix-q"><thead><tr><th scope="col">Quarter</th>'
+                   + "".join(f'<th scope="col" class="dh-num">{e(QUARTER_HEADS[i])}</th>' for i in er.OUR_INDICES)
+                   + f'</tr></thead><tbody>{rows}</tbody></table></div></div>')
+    if out:
+        out[-1] = out[-1].replace("</table></div></div>", '</table></div><p class="dh-note">All the index\'s companies '
+                                  "added together, each quarter against the same quarter a year earlier; the first row is "
+                                  "the latest quarter. Profit as in the table above.</p></div>")
+    return out
 
 
 def earnings_history() -> list:
@@ -243,7 +279,7 @@ def earnings_history() -> list:
     idx = sorted(set(n50.index) | set(n500.index))
     if len(idx) < 4:
         return []
-    vals = lambda x: [None if d not in x.index else round(float(x[d]), 1) for d in idx]   # noqa: E731
+    vals = lambda x: [None if d not in x.index else float(_fmt.half_up(float(x[d]), 1)) for d in idx]   # noqa: E731
     quarter = {d: er.quarter_label(q) for q in _quarters(idx) for d in [er.quarter_end(q)]}
     first, last = quarter[idx[0]], quarter[idx[-1]]
     return [Chart("lines", {"dates": [f"{d:%Y-%m-%d}" for d in idx], "yfmt": "growth",
@@ -254,9 +290,8 @@ def earnings_history() -> list:
                    "note": "Each quarter, dated at the quarter end; a quarter shows once nine in ten Nifty 500 "
                            "companies have reported it"}),
             how(f"All the index's companies added together, against the same quarter a year earlier, each quarter from "
-                f"{first} to {last}, dated at the quarter end. Profit is {PROFIT_WORDS[er.PROFIT]}. Each company's "
-                "quarterly results on Screener.in, read every Saturday; Screener shows 13 quarters, so the history "
-                "starts in " + first + " and grows a quarter at a time. Tata Motors is left out of Q2 and Q3 of FY26 "
+                f"{first} to {last}, dated at the quarter end. Profit is {PROFIT_WORDS[er.PROFIT]}. Our calculation "
+                "from companies' reported results; the history starts in " + first + " and grows a quarter at a time. Tata Motors is left out of Q2 and Q3 of FY26 "
                 "and FY27, around its demerger of 1 Oct 2025.",
                 "Above the zero line, profits grew on a year earlier; below it, they fell. Growth is over the same quarter "
                 "a year before, so a weak quarter a year ago lifts this one.",
