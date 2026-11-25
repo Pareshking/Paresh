@@ -7,7 +7,9 @@ data/membership_history.json. Each company's "Quarterly Results" table on its Sc
     python -I scripts/screener_earnings.py fetch --cache DIR     # every member's page, >= 1.5 s apart
     python -I scripts/screener_earnings.py build --cache DIR     # the two files below, and the NSE check
 
-Writes (reader: the Indices page's Earnings section, src/engine/earnings_review.py):
+Pages are read for every index member on those quarter ends and every stock the site lists (~2,400, ~2 h at ~3 s a page).
+
+Writes (readers: the Indices page's Earnings section and the Stock page's results table, src/engine/earnings_review.py):
 - data/reference/screener_quarters.csv: one row per company and quarter (Rs crore), merged into
   what earlier runs kept, so the history grows past the 13 quarters a page shows. A quarter on
   this week's page replaces the stored one (Screener restates).
@@ -195,6 +197,15 @@ def build(cache: str, quarters_csv: str = QUARTERS_CSV, earnings_csv: str = EARN
     return 0
 
 
+def widen_to_every_listed_stock() -> None:
+    """Pages for every stock the site lists, not only the index members (owner, 25 Nov 2026: the Stock page's results
+    table, "Go ahead"): the indices still add up their own members only."""
+    from scripts.nse_classification import universe as listed
+    members_only, names_only = research.universe, research.names
+    research.universe = lambda: sorted(set(members_only()) | set(listed()))
+    research.names = lambda: {**{s: n for s, n in listed().items() if n}, **names_only()}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("step", choices=["fetch", "build"])
@@ -205,6 +216,7 @@ def main(argv=None) -> int:
     if os.path.abspath(args.cache).startswith(ROOT + os.sep):
         ap.error("--cache must be outside the repository")
     research.QUARTER_ENDS = quarter_ends(date.today())
+    widen_to_every_listed_stock()
     if args.step == "fetch":
         research.fetch(args.cache, max(args.pause, 1.5), args.limit)
         if args.limit:

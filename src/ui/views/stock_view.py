@@ -417,7 +417,7 @@ def results_html(res) -> list:
                     f'<td class="n sp-wide">{eps(v["eps"])}</td>{yoy(gr["eps"], "sp-wide")}</tr>')
     dash = any(x is None for q in res.quarters for x in q.growth.values())
     note = (f"The company's reported results, {res.basis}, in ₹ crore (EPS in ₹), each quarter against the same quarter "
-            f"a year earlier; read {formats.date(res.read)}, every Saturday."
+            f"a year earlier; last updated {formats.date(res.read)}."
             + (" Growth reads – where the year-earlier figure is nil or a loss." if dash else "")
             + (" For a bank or lender, profit before tax stands in for operating profit." if res.lender else ""))
     return ['<section class="dh-sec sp-sec">', _kick("5 · Results"), head,

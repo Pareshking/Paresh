@@ -1,6 +1,13 @@
 # Changelog
 
 
+## 2026-11-25 — Stock page: the company's last eight quarters (S171)
+
+- Stock page: a new "5 · Results" section after Price shows the company's last eight reported quarters, newest first: sales, operating profit, net profit and EPS, each with its growth on the same quarter a year earlier, under a one-sentence heading on the latest quarter. Banks and lenders show revenue and profit before tax. Growth reads "–" where the year-earlier figure is nil or a loss. Sector and Data move to 6 and 7.
+- Amounts are exact crore (95,132), EPS to two decimals (₹17.31), as the owner approved. The note says when the figures were last updated and names no source.
+- Indices: the Earnings note says "last updated" and no longer names its source or its schedule; the heading now rounds as the table does (30.25 read 30.2% in the heading and +30.3% in the table).
+- The weekly Saturday job now reads every stock the site lists (~2,400 pages), not only index members.
+
 ## 2026-11-25 — Indices: earnings growth is now our own calculation from Screener (S171)
 
 - Indices: the Earnings section and its quarterly chart now show our calculation from companies' reported results: each company's quarterly results on Screener.in, added up over the companies in each index at the quarter end, for six indices (the Microcap 250 is new). NSE's figures no longer appear on the page (owner, 25 Nov 2026: "We will use Screener data only").

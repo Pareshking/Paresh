@@ -34,7 +34,8 @@ def test_the_section_shows_our_calculation_for_six_indices_and_names_its_source(
     assert lt is not None and set(lt.values) == set(er.OUR_INDICES)
     html = iv.section_earnings(lt)[0]
     q = er.quarter_label(lt.quarter)
-    assert q in html and "Our calculation from companies&#x27; reported results" in html and "Screener.in" in html
+    assert q in html and "Our calculation from companies&#x27; reported results" in html and "last updated" in html
+    assert "Screener" not in html and "Saturday" not in html          # owner, 25 Nov 2026: no source, no schedule
     assert "Microcap 250" in html and "NSE" not in html and "PDF" not in html
     assert iv.earnings_headline(lt).startswith(f"In {q} the Nifty 500's profit ")
 
@@ -67,4 +68,12 @@ def test_the_history_chart_reads_our_quarters():
     h = er.ours_history("Nifty 500", "pat_agg_yoy")
     first, last = er.quarter_label(iv._quarters([h.index[0]])[0]), er.quarter_label(iv._quarters([h.index[-1]])[0])
     how = str(parts[1])
-    assert f"{first} to {last}" in how and "Tata Motors" in how and "Screener.in" in how
+    assert f"{first} to {last}" in how and "Tata Motors" in how and "Screener" not in how and "Saturday" not in how
+
+
+def test_the_heading_rounds_as_the_table_does():
+    # Live, 25 Nov 2026: 30.25 read "30.2%" in the heading and "+30.3%" in the table.
+    df = pd.DataFrame([{"quarter": "Q2FY27", "index": "Nifty 500", "measure": m, "value_pct": v, "as_of": "2026-11-25"}
+                       for m, v in ((f"{er.PROFIT}_agg_yoy", 30.25), (f"{er.PROFIT}_median_yoy", 20.95))])
+    assert iv.earnings_headline(er.ours(df)) == ("In Q2 FY27 the Nifty 500's profit rose 30.3% from a year earlier; "
+                                                 "the median company's profit rose 21.0%.")

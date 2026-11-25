@@ -203,13 +203,18 @@ def earnings_headline(lt: er.Latest) -> str:
         return f"Profit growth in {q}."
     verb = "rose" if agg >= 0 else "fell"
     tail = ("" if med is None else
-            f"; the median company's profit {'rose' if med >= 0 else 'fell'} {abs(med):.1f}%")
-    return f"In {q} the Nifty 500's profit {verb} {abs(agg):.1f}% from a year earlier{tail}."
+            f"; the median company's profit {'rose' if med >= 0 else 'fell'} {_pc(abs(med))}")
+    return f"In {q} the Nifty 500's profit {verb} {_pc(abs(agg))} from a year earlier{tail}."
+
+
+def _pc(v: float) -> str:
+    """One decimal, rounded half up as every table cell is (30.25 reads 30.3% in the heading and the table alike)."""
+    return f"{_fmt.half_up(v, 1)}%"
 
 
 def _source_note(q: str, as_of) -> str:
-    return (f"Our calculation from companies' reported results: each company's quarterly results on Screener.in, "
-            f"added up over the companies in the index at the quarter end, read {_dy(as_of)}. Profit is "
+    return (f"Our calculation from companies' reported results: each company's quarterly results, added up over the "
+            f"companies in the index at the quarter end; last updated {_dy(as_of)}. Profit is "
             f"{PROFIT_WORDS[er.PROFIT]}. Tata Motors, demerged on 1 Oct 2025, is left out of the quarters it would "
             "distort (Q2 and Q3 of FY26 and FY27).")
 
@@ -243,7 +248,7 @@ def earnings_history() -> list:
     idx = sorted(set(n50.index) | set(n500.index))
     if len(idx) < 4:
         return []
-    vals = lambda x: [None if d not in x.index else round(float(x[d]), 1) for d in idx]   # noqa: E731
+    vals = lambda x: [None if d not in x.index else float(_fmt.half_up(float(x[d]), 1)) for d in idx]   # noqa: E731
     quarter = {d: er.quarter_label(q) for q in _quarters(idx) for d in [er.quarter_end(q)]}
     first, last = quarter[idx[0]], quarter[idx[-1]]
     return [Chart("lines", {"dates": [f"{d:%Y-%m-%d}" for d in idx], "yfmt": "growth",
@@ -254,9 +259,8 @@ def earnings_history() -> list:
                    "note": "Each quarter, dated at the quarter end; a quarter shows once nine in ten Nifty 500 "
                            "companies have reported it"}),
             how(f"All the index's companies added together, against the same quarter a year earlier, each quarter from "
-                f"{first} to {last}, dated at the quarter end. Profit is {PROFIT_WORDS[er.PROFIT]}. Each company's "
-                "quarterly results on Screener.in, read every Saturday; Screener shows 13 quarters, so the history "
-                "starts in " + first + " and grows a quarter at a time. Tata Motors is left out of Q2 and Q3 of FY26 "
+                f"{first} to {last}, dated at the quarter end. Profit is {PROFIT_WORDS[er.PROFIT]}. Our calculation "
+                "from companies' reported results; the history starts in " + first + " and grows a quarter at a time. Tata Motors is left out of Q2 and Q3 of FY26 "
                 "and FY27, around its demerger of 1 Oct 2025.",
                 "Above the zero line, profits grew on a year earlier; below it, they fell. Growth is over the same quarter "
                 "a year before, so a weak quarter a year ago lifts this one.",

@@ -1,10 +1,11 @@
 name: Screener earnings (weekly, Saturday)
 
 # Earnings growth for the broad indices, our calculation from companies' reported results (S171; owner,
-# 25 Nov 2026: "We will use Screener data only", weekly on Saturday). Reads each member's Screener.in
-# company page (~930 pages, 1.5 s apart, ~30 min) for every index member on the last 13 quarter ends,
+# 25 Nov 2026: "We will use Screener data only", weekly on Saturday), and each stock's results table. Reads
+# the Screener.in company page (~2,400, 1.5 s apart, ~2 h at ~3 s a page) of every index member on the last 13 quarter
+# ends and every stock the site lists,
 # then writes data/reference/screener_quarters.csv and data/reference/screener_earnings.csv
-# (scripts/screener_earnings.py). Reader: the Indices page's Earnings section (src/engine/earnings_review.py).
+# (scripts/screener_earnings.py). Readers: the Indices page's Earnings section and the Stock page's results table.
 # The run log prints each quarter where our Nifty 50 or Nifty 500 figure is more than 5 points from NSE's
 # published one: a report, not a gate.
 on:
@@ -22,7 +23,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 200
     steps:
       - uses: actions/checkout@v7
 
