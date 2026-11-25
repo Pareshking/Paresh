@@ -5,7 +5,7 @@
 > the RRG instead? And must focus our energy on sector page"): the JdK formula is not published,
 > and our reconstruction put NSE's sector indices in StockCharts' quadrant on 35% of index-weeks
 > (25% by chance); it also read 10 of 19 industries differently from Sectors
-> (`docs/RRG_ANALYSIS_2026-11-21.md`). What went: `src/ui/views/rrg_view.py`, `compute_rrg_data`,
+> (`docs/archive/RRG_ANALYSIS_2026-11-21.md`). What went: `src/ui/views/rrg_view.py`, `compute_rrg_data`,
 > the menu entry, the Guide's rotation-graph section, the Dashboard's section 7 and the quadrant
 > badges on its section 6 (`docs/DASHBOARD_REQUIREMENTS.md`, rows 34-36 dropped). Industry
 > leadership is on Sectors. `/rrg` is not redirected (owner: "not required"): it is neither a page
@@ -15,9 +15,9 @@ Started 21 Nov 2026, before any change, from four places: every item on the live
 day (`src/ui/views/rrg_view.py`, `src/ui/charts.py` `render_rrg_chart`), the owner's decisions
 about RRG recorded in `CHANGELOG.md` (dated below), the rules learned on Dashboard, Portfolio,
 Actions, Breadth, Sectors and Screener (`docs/PAGE_DESIGN.md`), and the data and method check
-`docs/RRG_ANALYSIS_2026-11-21.md`. Checked with:
+`docs/archive/RRG_ANALYSIS_2026-11-21.md`. Checked with:
 
-    node scripts/check_dashboard_requirements.mjs <url> docs/RRG_REQUIREMENTS.md
+    node scripts/check_dashboard_requirements.mjs <url> docs/archive/RRG_REQUIREMENTS.md
 
 Each row's **Marker** is text that must appear on the rendered page (see
 `docs/ACTIONS_REQUIREMENTS.md` for the syntax: ` + ` joins texts that must all appear, `\|`

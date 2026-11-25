@@ -318,7 +318,7 @@ Guide follow later.
 | Sectors | Made over 21-22 Nov (#593): 13 owner decisions, NSE's sector indices mapped (`SECTORS_INDEX_MAP_PROPOSAL.md`), leadership map kept; first pass #583 | `SECTORS_REQUIREMENTS.md` | Yes |
 | Screener | Done 21 Nov (#584) | `SCREENER_REQUIREMENTS.md` | Yes |
 | Indices | New page, done 21 Nov (#587) | `INDICES_REQUIREMENTS.md` | Yes |
-| RRG | Removed 21 Nov (#587, S169); `/rrg` is not redirected (owner: "not required") | `RRG_REQUIREMENTS.md`, kept as history | — |
+| RRG | Removed 21 Nov (#587, S169); `/rrg` is not redirected (owner: "not required") | `archive/RRG_REQUIREMENTS.md`, kept as history | — |
 | **Stock page** | Mock-up v1 (artifact `KXDKW9mkJUVJWANSzAS3gH`) reviewed 22 Nov: keep today's price chart with its relative-strength pane, and its readout must not jump on hover; v2 to follow. Prices checked against NSE and BSE (S182) | `STOCK_REQUIREMENTS.md` | No |
 | **Watchlist** | **Built 22 Nov** from mock-up v1 (owner: "Watchlist approved"; artifact `3FST6Ls42b3u8kTHF8RbSt`; S182) | `WATCHLIST_REQUIREMENTS.md` | Yes |
 | Backtest | Made over 21-22 Nov (#593): 7 owner decisions, mock-up v1 approved; the track record is on Portfolio | `BACKTEST_REQUIREMENTS.md` | Yes |

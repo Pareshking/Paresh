@@ -2,7 +2,7 @@
 
 > **Part 1 of S163** (section 1, and 2 (a) and (b)); (c)-(f) and section 3 to follow. **Checked by the coordinator, 24 Nov 2026:** gap 4 confirmed (7 NSE weekend sessions missing from `nse_total_market.csv`) and **fixed by rule** the same day (`collect_nse_total_market.py` asks for the weekend sessions NSE's index history holds; the 7 closes equal it); the `DATA_CATALOGUE.md` writer of `signal_tests.json` corrected. R2 content not checked (no keys in this container).
 
-Draft by Claude, 24 Nov 2026, read from main `4048427` (24 Nov 08:56 UTC). It follows `docs/DATA_AUDIT_PLAN.md`
+Draft by Claude, 24 Nov 2026, read from main `4048427` (24 Nov 08:56 UTC). It follows `docs/archive/DATA_AUDIT_PLAN.md`
 section 1 (one table per page, one row per element) and section 2 (a) and (b). It does not cover 2 (c) to (f).
 `docs/FIGURE_INVENTORY.md` (S154) is reused as it stands: the figures it already lists are named here once, with the
 columns it lacks (original source, where kept, writing job, end date). Nothing in the repository was changed.

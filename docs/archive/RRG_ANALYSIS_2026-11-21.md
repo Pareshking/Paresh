@@ -2,7 +2,7 @@
 
 Owner, 21 Nov 2026: "Next ... is RRG, check to do list also as it shows wrong information ... you need to
 have detailed analysis, check other website to validate our data and so on including formula,
-calculations etc". Read with `docs/RRG_REQUIREMENTS.md` (the list the redesign is built and checked
+calculations etc". Read with `docs/archive/RRG_REQUIREMENTS.md` (the list the redesign is built and checked
 against) and TODO S147 (reopened today), S151, S154, S164, S165, S166.
 
 **Data date: closes of 20 Nov 2026 (a Friday), on every figure below.**

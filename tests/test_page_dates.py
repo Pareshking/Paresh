@@ -5,7 +5,7 @@ The check itself is `scripts/_page_dates.mjs`. CI runs it on the running app, re
 the layout audit step of `.github/workflows/v1-full-validation.yml`: `number_format_audit.mjs` (rule 9) on the pages it
 reads and `glossary_audit.mjs` on the ones only it opens (Configuration, the Nano Cap pages). The live site is checked
 with `node scripts/page_dates_audit.mjs <url> ...`. This file tests the rules on fixtures (the 20 Nov 2026 cases of
-docs/STALENESS_AUDIT_2026-11-21.md), that every allowed end names its reason and a TODO id, the wiring, and
+docs/archive/STALENESS_AUDIT_2026-11-21.md), that every allowed end names its reason and a TODO id, the wiring, and
 Configuration's table of files (extends S154 (c), S148: a series a page reads ends on the page's data date or the
 page names its date).
 

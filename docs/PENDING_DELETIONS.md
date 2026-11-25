@@ -43,8 +43,8 @@ and `tests/test_rrg_centre_is_the_benchmark.py` and
 the ranking's prices and `fetch_benchmark_history`, so there is no R2 prefix,
 release asset or `data/` file to remove for it.
 
-Kept on purpose, as the evidence for the removal: `docs/RRG_ANALYSIS_2026-11-21.md`,
-`docs/RRG_REQUIREMENTS.md` (marked superseded), `scripts/research/rrg_vs_stockcharts.py`
+Kept on purpose, as the evidence for the removal: `docs/archive/RRG_ANALYSIS_2026-11-21.md`,
+`docs/archive/RRG_REQUIREMENTS.md` (marked superseded), `scripts/research/rrg_vs_stockcharts.py`
 and `scripts/research/fetch_sector_index_closes.py`.
 
 Left in the code (a tidy-up, not a deletion for the owner; checked 22 Nov): the

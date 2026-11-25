@@ -1,8 +1,8 @@
 # Indices requirements: everything proposed, in one list
 
 Started 21 Nov 2026 for S170, before any code, from:
-- the three research briefs (`docs/INDICES_RESEARCH_LITERATURE_2026-11-21.md`,
-  `docs/INDICES_RESEARCH_DATA_2026-11-21.md`, `docs/INDICES_RESEARCH_DESIGN_2026-11-21.md`);
+- the three research briefs (`docs/archive/INDICES_RESEARCH_LITERATURE_2026-11-21.md`,
+  `docs/INDICES_RESEARCH_DATA_2026-11-21.md`, `docs/archive/INDICES_RESEARCH_DESIGN_2026-11-21.md`);
 - the owner's decisions of 21 Nov (a separate page; total return where NSE publishes
   TRI, otherwise price with a note);
 - the S168 store of every NSE index, built here the same day (3,644 sessions,

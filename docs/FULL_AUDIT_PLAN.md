@@ -9,7 +9,7 @@ _Status: plan only, 25 Nov 2026. Nothing below has been run. Phasing (section 3)
 
 | Already done or planned | Where | State on 25 Nov |
 |---|---|---|
-| Data audit part 1: inventory of every page element, R2 gaps, outside addresses, pipelines, costs | `DATA_AUDIT_PLAN.md` (S163), `DATA_AUDIT_2026-11-24.md` | (c) pipelines, (d) dates, (e) one source per figure done; (a) R2 copies and (f) R2 operations open |
+| Data audit part 1: inventory of every page element, R2 gaps, outside addresses, pipelines, costs | `DATA_AUDIT_2026-11-24.md` (S163's checklist, `archive/DATA_AUDIT_PLAN.md`, is folded into section 4a below and archived) | (c) pipelines, (d) dates, (e) one source per figure done; (a) R2 copies and (f) R2 operations open |
 | Cost, speed, resources in blocks 0-9 | `AUDIT_PLAN.md` (A-numbers) | A1, A3 open |
 | Methods against industry practice | `METHODS_REVIEW_2026-11-24.md` (S166, S223) | closed |
 | Findings already explained | `DATA_CORRECTNESS.md` section 5 | **not re-investigated**; an audit line that matches a row there is cited, not reopened |
@@ -135,9 +135,51 @@ rows quoting a run ID that no longer matches. Already seen while planning: `DATA
 `nse_long_close_revision`) and Production QA's output on the audited commit. *Check:* every page's date against its
 session; the deployed SHA equals `main`'s. *Not checked going in:* what a reader sees on a slow connection.
 
+## 4a. Carried over from S163's checklist (`archive/DATA_AUDIT_PLAN.md`, archived 25 Nov 2026)
+
+Only what was still open on 25 Nov. Everything else in that checklist was ticked with its finding in
+`DATA_AUDIT_2026-11-24.md`.
+
+- [ ] **R2 copies (area F, S224 a-c):** track record and frozen months, `book_exposure.csv`, `breadth_history.csv`,
+      `signal_tests.json`, `momentum_health*.csv`, the membership timelines other than Total Market and Nifty 1000's list,
+      `fii_dii_flows.csv`, `nse_dii.csv`, `results_calendar.csv`, `nsdl_fpi_daily.csv`, `nse_total_market.csv`,
+      `ind_nifty1000_list.csv` and `indices.nifty_1000` (point in time: a missed night is lost). Each with a keep-for
+      period and a restore test; needs R2 keys, so by the `s224_r2_copies.py` job
+- [ ] **Stored twice (S172):** the index store in R2 `indices/nse_close_all` and in git (`nse_indices_history.parquet`,
+      `nse_indices_recent.csv`): decide which the page reads
+- [ ] **Costs (S142):** R2 operations, Streamlit memory, billed minutes from the owner's billing page
+- [ ] **Licence and terms** for Screener, NSE's archives and any feed; **reachability** (which figures depend on a host
+      only the runners, or only the app, can reach)
+- [ ] **Data dictionary:** each file's columns, units, start date and writer, beside `DATA_CATALOGUE.md`
+- [ ] **First runs of the 21 Nov jobs:** the 1-5 Dec freeze of `data/track_record_1000.json` is the one left (by date)
+- [ ] **Pages added 21-22 Nov, area E:** Indices (every figure traced to the store; P/E basis break at 31 Mar 2021; "derived"
+      sessions shown as such), the S168 store's guard and reference tables, Nifty 1000 under every page, "> ₹2,000 Cr"
+      label and `?sys=nano` links, Market's `/breadth` redirect keeping `?system=`
+
+## 4b. Documents to merge or archive next (proposed 25 Nov; owner's yes per group, nothing deleted)
+
+Round 1 (done 25 Nov, S227): six files moved to `archive/` (list in `archive/README.md`); links checked. Judged from
+headings, dates and who reads each file, **not** from reading every page for overlap. Per-page `*_REQUIREMENTS.md`,
+`PAGE_DESIGN`, `GLOSSARY`, `FIGURE_INVENTORY`, `DATA_CORRECTNESS`, `PRICE_PIPELINE`, `DATA_CATALOGUE`, `TODO`, `HANDOVER`
+stay: CI, tests or the rules name them.
+
+| Group | Files | Proposal | Touches |
+|---|---|---|---|
+| Site and UI | `UI_ARCHITECTURE` (637 lines, Sept history, section 11 current), `THEME` (96) beside `PAGE_DESIGN` section 2a | keep section 11 and the theme's rules in `PAGE_DESIGN`; archive the rest | README cites UI_ARCHITECTURE twice |
+| Root `README.md` | ~380 lines, status text of 23-30 Sep, points at archived files | cut to what the site is, how to run, where the docs are | links only |
+| Price basis | `NSE_PRICE_BASIS` (75), `PRICE_SOURCES_AUDIT_2026-11-21` (70; S167 open) | first into `PRICE_PIPELINE`; second into `DATA_CORRECTNESS` section 2 when S167 closes | none |
+| Track record | `track_record_portfolio_architecture` (390, Sept design), `MONTHS_THAT_DIFFER` | keep `TRACK_RECORD` and `THREE_SYSTEMS`; archive both after a pointer paragraph | README line 197 |
+| Cost and storage | `AUDIT_PLAN` (Block 0 numbers), `CALL_AND_STORAGE_AUDIT`, `RESOURCES` (S195), `DATA_AUDIT_2026-11-24` section 7 | one living `RESOURCES`; dated measurements archived | 8 code comments cite the call audit; 2 script docstrings cite `AUDIT_PLAN` |
+| R2 specs | `MARKET_DATA_ARCHIVE_R2_SPEC` (1,568 lines), `R2_ENGINEERING_LOOP`, `R2_HISTORICAL_EVIDENCE_SPEC` (all Sept), `PENDING_DELETIONS` (246) | keep `R2_RECOVERY_AND_RETENTION` and `DATA_CATALOGUE`; archive the three specs with a one-page current contract; trim `PENDING_DELETIONS` | **CI**: four workflows filter on the spec's path and `r2-focused-validation.yml` reads the loop file, so a full run |
+| Research notes | `MOMENTUM_ABC`, `RISK_OVERLAYS`, `MOMENTUM_HEALTH`, `INDICES_RESEARCH_DATA`, `SECTORS_INDEX_MAP_PROPOSAL` | a `docs/research/` folder, or archive; each is cited by code or a requirements doc | 6 code comments |
+
+Order: site and README, price basis, track record first (no code or CI); cost and R2 last.
+
 ## 5. To do
 
 **Phase 0 (25 Nov)**
+- [x] Round 1 of the document clean-up (section 4b): six files archived, links and tests checked
+- [ ] Owner's yes or no per group in section 4b; then round 2 in one PR
 - [ ] Owner confirms or changes the phasing (section 3) and the two suggestions below
 - [ ] Capture `scripts/audit_baseline.py` baseline; write the commit under audit and the pass rules into the report's header
 - [ ] Build the sweep table (section 2) from the rows; list the 28 undated rows

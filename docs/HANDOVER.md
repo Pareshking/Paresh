@@ -5,7 +5,7 @@ state, queue and dates sections); do not write a dated copy. Earlier dated
 handovers are in `docs/archive/HANDOVER_*.md`. Paste the prompt at the end as
 the first message of a fresh session.
 
-_Last updated: 24 Nov 2026 ~17:00 IST, coordinating session session_016X4g5Y1bsnhgFzzKddp8Wc (took over 14:00 IST)._
+_Last updated: 25 Nov 2026 (audit plan note); state below from 24 Nov ~17:00 IST, coordinating session session_016X4g5Y1bsnhgFzzKddp8Wc (took over 14:00 IST)._
 
 ## The owner's standing rules (unchanged)
 

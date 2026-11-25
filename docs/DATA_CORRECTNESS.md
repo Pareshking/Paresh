@@ -6,7 +6,7 @@ It is the map; the detail is in `docs/PRICE_PIPELINE.md` (rules and audits),
 `docs/DATA_CATALOGUE.md` (every dataset), `docs/MEMBERSHIP_FROM_NOTICES.md`
 (membership) and `docs/TODO.md` (what is open, S-numbers).
 
-_Last updated: 2026-10-07_
+_Last updated: 2026-11-24_
 
 ## 1. Evidence standard (owner's rules)
 
