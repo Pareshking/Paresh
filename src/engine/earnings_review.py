@@ -97,10 +97,31 @@ def _measure(m: str) -> str:
     return m.replace("pat_", f"{PROFIT}_", 1) if m.startswith("pat_") else m
 
 
+def _done(df: pd.DataFrame, complete: bool = True) -> pd.DataFrame:
+    """Complete quarters (nine in ten Nifty 500 companies reported), or the one still coming in."""
+    if "complete" not in df.columns:
+        return df if complete else df.iloc[0:0]
+    flag = df["complete"].astype(str).str.lower().isin(("true", "1"))
+    return df[flag] if complete else df[~flag]
+
+
+def partial(df: pd.DataFrame | None = None) -> Latest | None:
+    """The quarter still coming in, "so far" (owner, 25 Nov 2026: "Show partial one"): each company that has reported
+    against its own quarter a year earlier; None between results seasons."""
+    df = load(OURS_PATH) if df is None else df
+    if df is None or df.empty:
+        return None
+    rest = _done(df, complete=False)
+    return ours(rest.assign(complete=True)) if len(rest) else None
+
+
 def ours(df: pd.DataFrame | None = None) -> Latest | None:
     """The newest complete quarter of our calculation, with the date its pages were read."""
     df = load(OURS_PATH) if df is None else df
     if df is None or df.empty:
+        return None
+    df = _done(df)
+    if df.empty:
         return None
     q = max(df["quarter"].unique(), key=_order)
     rows = df[df["quarter"] == q]
@@ -124,7 +145,7 @@ def ours_history(index: str, measure: str, df: pd.DataFrame | None = None) -> pd
     df = load(OURS_PATH) if df is None else df
     if df is None or df.empty:
         return pd.Series(dtype=float)
-    return history(index, _measure(measure), df)
+    return history(index, _measure(measure), _done(df))
 
 
 # ── One company's quarters, for the Stock page's results table ───────────────

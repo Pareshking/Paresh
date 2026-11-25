@@ -60,6 +60,7 @@ from scripts import screener_earnings_measure as research  # noqa: E402
 QUARTERS_CSV = os.path.join(ROOT, "data", "reference", "screener_quarters.csv")
 EARNINGS_CSV = os.path.join(ROOT, "data", "reference", "screener_earnings.csv")
 COMPLETE_SHARE = 0.90
+PARTIAL_SHARE = 0.10      # the quarter still coming in shows "so far" from one in ten Nifty 500 companies (owner, 25 Nov 2026)
 GROSS_PTS = 5.0
 FIELDS = ("sales", "pat", "pat_xoi")
 QUARTER_COLS = ["symbol", "quarter_end", "basis", "sales_label", "sales", "operating_profit", "pbt", "net_profit",
@@ -255,6 +256,22 @@ def write_store(quarters: pd.DataFrame, path: str, as_of: str) -> None:
     out.to_parquet(path, index=False, compression="zstd")
 
 
+def publishable(out: pd.DataFrame) -> pd.DataFrame:
+    """Complete quarters, and the newest one after them while it comes in (owner, 25 Nov 2026: "Show partial one"),
+    once one in ten Nifty 500 companies have reported it."""
+    if out.empty:
+        return out
+    done_q = out[out["complete"]]["quarter_end"].max() if out["complete"].any() else ""
+    later = out[(~out["complete"]) & (out["quarter_end"] > done_q)]
+    if not len(later):
+        return out[out["complete"]]
+    newest = later["quarter_end"].max()
+    n500 = later[(later["quarter_end"] == newest) & (later["index"] == "Nifty 500") & (later["measure"] == "sales_agg_yoy")]
+    if len(n500) and n500["used"].iloc[0] >= PARTIAL_SHARE * n500["size"].iloc[0]:
+        return out[out["complete"] | (out["quarter_end"] == newest)]
+    return out[out["complete"]]
+
+
 def build(cache: str, quarters_csv: str = QUARTERS_CSV, earnings_csv: str = EARNINGS_CSV, store: str | None = None,
           from_r2: bool = False) -> int:
     today = date.today().isoformat()
@@ -280,7 +297,7 @@ def build(cache: str, quarters_csv: str = QUARTERS_CSV, earnings_csv: str = EARN
     now = current_rows(quarters)
     now[now["quarter_end"] >= since].to_csv(quarters_csv, index=False, quoting=csv.QUOTE_MINIMAL)
     out, notes = earnings(now)
-    out = out[out["complete"]].drop(columns="complete")
+    out = publishable(out)
     out["as_of"] = str(now["fetched"].max())
     out.to_csv(earnings_csv, index=False)
     print(f"wrote {quarters_csv} ({len(now)} rows, {now['symbol'].nunique()} companies) and "

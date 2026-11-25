@@ -88,3 +88,22 @@ def test_the_latest_table_counts_companies_reported_against_the_index_size():
     assert size == 50 and 0 < used <= 50                              # the index's size, before Tata Motors is left out
     html = iv.section_earnings(lt)[0]
     assert "Companies reported" in html and f"{used} of 50" in html
+
+
+def test_the_quarter_coming_in_has_its_own_block_and_stays_out_of_the_finished_tables():
+    df = pd.DataFrame([{"quarter": q, "quarter_end": qe, "index": "Nifty 500", "measure": m, "value_pct": v,
+                        "members": 500, "size": 500, "used": u, "complete": c, "as_of": "2027-01-23"}
+                       for q, qe, u, c in (("Q2FY27", "2026-09-30", 495, True), ("Q3FY27", "2026-12-31", 212, False))
+                       for m, v in ((f"{er.PROFIT}_agg_yoy", 12.0), ("sales_agg_yoy", 9.0))])
+    assert er.ours(df).quarter == "Q2FY27" and er.partial(df).quarter == "Q3FY27"
+    html = iv.section_partial(er.partial(df))
+    assert "Q3 FY27 so far: 212 of 500 Nifty 500 companies have reported." in html and "move as the rest report" in html
+    assert er.partial(df[df["complete"]]) is None and iv.section_partial(None) == ""
+    assert list(er.ours_history("Nifty 500", "pat_agg_yoy", df).index) == [pd.Timestamp("2026-09-30")]
+
+
+def test_an_index_with_too_few_reported_reads_a_dash_so_far():
+    pt = er.Latest(quarter="Q3FY27", published=pd.Timestamp("2027-01-23"), pdf_url="",
+                   values={"Nifty 50": {"pat_agg_yoy": 40.0, "sales_agg_yoy": 20.0}}, reported={"Nifty 50": (3, 50)})
+    html = iv.section_partial(pt)
+    assert "+40.0%" not in html and "3 of 50" in html

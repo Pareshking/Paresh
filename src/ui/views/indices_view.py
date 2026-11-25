@@ -221,7 +221,33 @@ def _source_note(q: str, as_of) -> str:
             "of the Nifty Microcap 250's, would alone set that index's growth.")
 
 
-def section_earnings(lt: er.Latest | None) -> list:
+def section_partial(pt: er.Latest | None) -> str:
+    """The quarter still coming in (owner, 25 Nov 2026: "Show partial one"): shown from one in ten Nifty 500 companies
+    reported until nine in ten, when it joins the tables below."""
+    if pt is None:
+        return ""
+    q = er.quarter_label(pt.quarter)
+    rows = ""
+    for name in er.OUR_INDICES:
+        v, got = pt.values.get(name, {}), pt.reported.get(name)
+        if got and got[0] < 0.1 * got[1]:
+            v = {}                      # fewer than one in ten of the index: too few to say anything yet
+        rows += (f'<tr><th scope="row">{e(_short(name))}</th>'
+                 f'<td class="dh-num">{e(sg(v.get("pat_agg_yoy"), 1, "%"))}</td>'
+                 f'<td class="dh-num">{e(sg(v.get("sales_agg_yoy"), 1, "%"))}</td>'
+                 f'<td class="dh-num">{e(f"{got[0]} of {got[1]}" if got else "–")}</td></tr>')
+    n500 = pt.reported.get("Nifty 500")
+    lede = f"{q} so far" + (f": {n500[0]} of {n500[1]} Nifty 500 companies have reported." if n500 else ".")
+    return (f'<h3 class="dh-h3">{e(lede)}</h3><div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr>'
+            '<th scope="col">Index</th><th scope="col" class="dh-num">Profit, all companies</th>'
+            '<th scope="col" class="dh-num">Revenue, all companies</th><th scope="col" class="dh-num">Companies reported</th>'
+            f'</tr></thead><tbody>{rows}</tbody></table></div><p class="dh-note">Each company that has reported, against its '
+            f"own quarter a year earlier. The larger companies tend to report first, so these figures move as the rest "
+            f"report; an index shows – until one in ten of its companies have. {q} joins the tables below once nine in ten "
+            f"Nifty 500 companies have reported.</p>")
+
+
+def section_earnings(lt: er.Latest | None, pt: er.Latest | None = None) -> list:
     """Profit and revenue growth beside the P/E (S171): our calculation from Screener's company results (owner,
     25 Nov 2026: "We will use Screener data only")."""
     if lt is None:
@@ -244,7 +270,7 @@ def section_earnings(lt: er.Latest | None) -> list:
             '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
             + "".join(f'<th scope="col" class="dh-num">{e(h)}</th>' for _, h in cols)
             + '<th scope="col" class="dh-num">Companies reported</th>'
-            + f'</tr></thead><tbody>{body}</tbody></table></div></div>'] + earnings_quarters() + earnings_history()
+            + f'</tr></thead><tbody>{body}</tbody></table></div>' + section_partial(pt) + '</div>'] + earnings_quarters() + earnings_history()
 
 
 QUARTER_HEADS = {i: i for i in er.OUR_INDICES}       # the glossary's full names (G3), headings may wrap
@@ -603,7 +629,7 @@ def page_parts(f: ip.Frames, system: str | None = None) -> list:
     every = ip.every_index(f)
     n = sum(len(v) for v in every.values())
     young = ip.young_valuation(f, SYSTEM_INDEX[system]) if system in SYSTEM_INDEX else None
-    return (head(vals, as_of) + section_valuation(f, vals, m1, m3, young) + section_earnings(er.ours()) + section_styles(sts, m1, m3) + section_lag(sts)
+    return (head(vals, as_of) + section_valuation(f, vals, m1, m3, young) + section_earnings(er.ours(), er.partial()) + section_styles(sts, m1, m3) + section_lag(sts)
             + section_years(sts, as_of) + section_size(ip.size_years(f), as_of) + section_every(f, every, as_of)
             + [f'<p class="dh-foot">{_fmt.data_to(as_of, "NSE")} · {n} broad, theme and strategy indices</p>'])
 

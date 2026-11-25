@@ -3,6 +3,7 @@
 
 ## 2026-11-25 — Indices: how many companies reported (S171)
 
+- Indices: during results season, a "so far" block shows the quarter still coming in, from one in ten Nifty 500 companies reported until nine in ten, when it joins the tables; an index shows – until one in ten of its companies have reported (owner, 25 Nov 2026: "Show partial one").
 - Indices: the latest-quarter earnings table gains a "Companies reported" column, counted against each index's size (Q2 FY27: Nifty 50 49 of 50, Nifty 500 493 of 500), and the note says a quarter shows once nine in ten Nifty 500 companies have reported it.
 
 ## 2026-11-25 — Stock page: the company's last eight quarters (S171)
