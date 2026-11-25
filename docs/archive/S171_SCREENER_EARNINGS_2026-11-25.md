@@ -107,3 +107,28 @@ Known reasons for the smaller gaps:
 - NSE's member set for each quarter against ours.
 - Whether Screener's quarterly figures have been restated since NSE's issue.
 - The six tickers with "&" (M&M, M&MFIN, J&KBANK, ARE&M, GMRP&UI, GVT&D): we did not check by hand that each page is the right company. All six returned HTTP 200 on their own URL.
+
+## Lead tested 25 Nov ~08:30 UTC: profit without other income (non-financial companies)
+
+A rule tried **after** the results above were seen, so it is a lead and not a validated measure. For each
+non-financial company (Screener's first row "Sales"; banks and lenders, whose row is "Revenue", kept as
+reported), profit = Net Profit − Other Income × (1 − Tax %), Tax % from the same table (25% when missing or
+outside 0-60%). Same 933 cached pages, same point-in-time members.
+
+| Quarter | N50 NSE / as reported / ex other income | N500 NSE / as reported / ex other income |
+|---|---|---|
+| Q2 FY25 | 0.8 / 4.3 / -1.0 | -4.1 / 1.2 / -3.5 |
+| Q3 FY25 | 9.5 / 14.4 / 11.3 | 11.1 / 15.4 / 11.3 |
+| Q4 FY25 | 0.8 / 11.3 / 1.1 | 9.5 / 15.5 / 12.7 |
+| Q1 FY26 | 14.8 / 9.3 / **5.6** | 13.2 / 8.7 / **7.3** |
+| Q2 FY26 | 7.9 / 10.8 / 11.1 | 18.0 / 17.4 / 21.6 |
+| Q3 FY26 | 12.8 / 4.7 / 9.9 | 18.2 / 10.8 / 17.3 |
+| Q4 FY26 | 8.2 / 3.5 / 6.5 | 15.3 / 25.1 / 14.1 |
+| Q1 FY27 | 11.8 / 4.8 / 10.9 | 11.1 / 8.6 / 11.4 |
+
+Flags over 5 points: 8 as reported, 2 this way (both Q1 FY26). Applying it to banks too makes it worse
+(13 flags: their other income is fees and treasury, the business itself). What it gives up: recurring
+other income (treasury, rent, dividends) is removed with the one-offs, so it is not NSE's exact
+measure. Not yet checked: a quarter outside these 8 (Screener shows 13 quarters; the first out-of-sample
+test is Q2 FY27, when NSE publishes it), and Q1 FY26's 9-point gap. The test script is
+`oi_test.py` in the session scratchpad, not committed.
