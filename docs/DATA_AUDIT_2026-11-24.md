@@ -511,6 +511,29 @@ What each source's own published terms say, quoted; each quote checked against t
 
 **Finding for the owner (S228).** Every source's terms restrict what this site does: the jobs collect automatically from all six, and the public pages show NSE's prices and indices, Screener's quarterly results (S171) and NSDL's flows. None names a free tier for a personal public site; written permission or a data licence (NSE Data, NSE Indices' licensing) is the route each names. Not checked: NSE's data-sharing PDF on nsearchives, NSE Indices' licensing pages, the sites' robots.txt, and whether the site's own numbers (ranks, growth sums) count as the source's "data".
 
+## 5b. Reachability: who can reach each source (section 3 of the plan; 25 Nov 2026)
+
+Three places call out: GitHub's runners (the jobs), the app on Streamlit Cloud, and a working session like this
+one. Read from section 5's callers; the runner column is the jobs' last success above.
+
+| Source | Runners (jobs) | The app at run time | A working session (25 Nov) |
+|---|---|---|---|
+| NSE (`www.nseindia.com` API) | yes, every job above | no call | refused (session policy; NSE's quote API not read) |
+| NSE archives | yes | no call | answered for public PDFs until 25 Nov evening, then 503 |
+| niftyindices.com | yes | Configuration only | not tried |
+| Screener | yes | no call (reads R2's copy) | answered (company pages, 24-25 Nov) |
+| BSE | yes (weekly) | no call | refused earlier (FII/DII pages), so the halt check runs only on runners |
+| NSDL | yes | no call | not tried |
+| TradingView scanner | yes | no call | not tried |
+| R2 | yes (secrets) | yes (secrets) | no: no keys in the container (S172, S187) |
+| GitHub releases (`data-latest`) | yes | yes, fallback | yes, public |
+
+**What it means.** Every figure on the site depends on a runner having fetched its source: the app calls no
+data source but R2 and the release fallback, and niftyindices.com on one page. So a source that blocks GitHub's
+runners stops that figure going forward; the committed file then ages and the page's date rule (S148) says so.
+A session cannot re-fetch NSE, BSE or R2 to check a figure; it checks against the committed files, the public
+release, and the jobs' logs. **Not checked:** NSDL, niftyindices.com and TradingView from a session.
+
 ## 6. Pipelines (section 2 (c) of the plan; 24 Nov 2026)
 
 Run figures for 25 Oct to 24 Nov 2026 read by a second agent from GitHub's API (`list workflow runs`, branch main); median = updated_at − run_started_at. All 30 scheduled workflows are on the alert's watched list (`scheduled_failure_alert.yml:21-52`), and every commit step checks `git diff --staged --quiet` first. The coordinator checked findings 1, 2 and 7 in the files; the run counts are the agent's.

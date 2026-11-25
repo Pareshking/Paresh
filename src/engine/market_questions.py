@@ -152,6 +152,18 @@ def _first_date(series) -> pd.Timestamp | None:
     return pd.Timestamp(s.index[0]) if len(s) else None
 
 
+def share_history(series: pd.Series | None, warm: int, past) -> pd.Series | None:
+    """The history a share-above-EMA measure is ranked in, the same in every table that shows it: the readings
+    on the members of each date when `past` joins them, else today's members' readings after the EMA's `warm`
+    sessions. The breadth and trend tables built it two ways (one with blanks kept, one without, the trend
+    skipping the warm-up even on the members of the day), so one reading read the 26th and the 28th percentile
+    on the 1000's Market page (S193 B, found 23 Nov 2026)."""
+    if series is None:
+        return None
+    s = pd.to_numeric(series, errors="coerce").dropna()
+    return s if past is not None else s.iloc[warm:]
+
+
 def _measure(name, unit, values, up_at, down_at, rule, primary=False, history=None) -> Measure:
     now, month, year = values
     return Measure(name, unit, now, month, year, _vote(now, up_at, down_at), rule,
@@ -298,11 +310,11 @@ def breadth_answer(prices: pd.DataFrame, bench: pd.Series, past: pd.DataFrame | 
         beat_gap = daily_gap.reindex(beat_share.index)
     ms = [
         _measure("Stocks above their 200D EMA", "pct", [at(a200, k) for k in d], 60, 40,
-                 "60% or more is broad, 40% or less is narrow", primary=True, history=a200 if past is not None else a200.iloc[200:]),
+                 "60% or more is broad, 40% or less is narrow", primary=True, history=share_history(a200, 200, past)),
         _measure(f"Stocks ahead of {market} over 12 months", "pct", [beat[k][0] for k in d], 55, 45,
                  "55% or more is broad, 45% or less is narrow", primary=True, history=beat_share),
         _measure("Stocks above their 50D EMA", "pct", [at(a50, k) for k in d], 60, 40,
-                 "60% or more is broad, 40% or less is narrow", history=a50 if past is not None else a50.iloc[50:]),
+                 "60% or more is broad, 40% or less is narrow", history=share_history(a50, 50, past)),
         _measure("Net new 52W highs this week, share of stocks", "pts", [at(nnh, k) for k in d], 5, -5,
                  "+5 or more is broad, −5 or less is narrow", history=nnh),
         _measure(f"Median stock less {market}, 12M", "pts", [beat[k][1] for k in d], 3, -3,
@@ -455,7 +467,7 @@ def _from_high_series(close: pd.Series, min_sessions: int = 200) -> pd.Series:
 
 
 def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
-                 share_above_200: pd.Series | None, index_name: str = EARLIER) -> Answer | None:
+                 share_above_200: pd.Series | None, index_name: str = EARLIER, past=None) -> Answer | None:
     """`index_name` names the index `bench` holds, in each measure and in the question."""
     if bench is None or bench.dropna().empty:
         return None
@@ -482,7 +494,8 @@ def trend_answer(bench: pd.Series, size_closes: dict[str, pd.Series] | None,
         ms.append(_measure("Stocks above their 200D EMA", "pct",
                            [_f(s.get(_on_or_before(s.index, d[k]))) if d[k] is not None and
                             _on_or_before(s.index, d[k]) is not None else None for k in keys],
-                           60, 40, "60% or more is up, 40% or less is down", history=s.iloc[200:]))
+                           60, 40, "60% or more is up, 40% or less is down",
+                           history=share_history(share_above_200, 200, past)))
     return _answer(f"Is {'the ' if index_name == EARLIER else ''}{index_name} in an uptrend?", ms,
                    ("Strong downtrend", "Downtrend", "No clear trend", "Uptrend", "Strong uptrend"),
                    lambda word, m: _trend_sentence(word, ms))

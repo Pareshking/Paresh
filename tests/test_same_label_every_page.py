@@ -377,3 +377,18 @@ def test_total_market_keeps_nse_weekend_sessions_the_archive_lacks(monkeypatch, 
     tm = mqv.total_market()
     assert pd.Timestamp("2026-11-08") in tm.index
     assert tm.index.is_monotonic_increasing and not tm.index.duplicated().any()
+
+
+def test_one_reading_one_percentile_in_the_breadth_and_trend_tables():
+    """S193 B (23 Nov 2026): the 1000's Market page gave "Stocks above their 200D EMA" the 26th percentile in one
+    table and the 28th in the other; both now rank the reading in one history."""
+    import numpy as np
+
+    idx = pd.bdate_range("2019-01-01", periods=1200)
+    rng = np.random.default_rng(7)
+    share = pd.Series(np.r_[[np.nan] * 30, rng.uniform(20, 80, 1170)], index=idx)
+    for past in (None, object()):
+        h = mq.share_history(share, 200, past)
+        assert h.isna().sum() == 0
+        assert len(h) == (1170 if past is not None else 970)
+        assert h.equals(mq.share_history(share.copy(), 200, past))

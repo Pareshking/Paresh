@@ -1,0 +1,13 @@
+index_key,level,labels,noun,reason
+nifty_bank,NSE_Industry,Banks,banks,"NSE's Banks industry: private, public-sector and other banks"
+nifty_private_bank,NSE_Basic_Industry,Private Sector Bank,private banks,NSE's basic industry of the same name
+nifty_psu_bank,NSE_Basic_Industry,Public Sector Bank,public-sector banks,NSE's basic industry of the same name
+nifty_nbfc,NSE_Basic_Industry,Non Banking Financial Company (NBFC),NBFCs,NSE's basic industry of the same name; housing and microfinance lenders have their own
+nifty_housing_finance,NSE_Basic_Industry,Housing Finance Company,housing finance companies,NSE's basic industry of the same name
+nifty_capital_markets,NSE_Industry,Capital Markets,capital-market companies,"NSE's Capital Markets industry: exchanges, brokers, asset managers, depositories, ratings"
+nifty_insurance,NSE_Industry,Insurance,insurers,"NSE's Insurance industry: life, general and distributors"
+nifty_small_finance_banks_microfinance_institutions,NSE_Basic_Industry,Other Bank;Microfinance Institutions,small finance banks and microfinance lenders,"NSE files small finance banks under Other Bank (with one payments bank, FINOPB) and microfinance lenders under their own basic industry"
+nifty_pharma,NSE_Industry,Pharmaceuticals & Biotechnology,pharma and biotech companies,NSE's Pharmaceuticals & Biotechnology industry
+nifty_hospitals,NSE_Basic_Industry,Hospital,hospitals,NSE's basic industry of the same name
+nifty_retail,NSE_Industry,Retailing,retailers,NSE's Retailing industry
+nifty_sugar_ethanol,NSE_Basic_Industry,Sugar,sugar makers,NSE's Sugar basic industry; distillers are not included

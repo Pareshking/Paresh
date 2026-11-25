@@ -24,6 +24,8 @@ from src.engine import market_questions as mq
 from src.engine import peer_index as pi
 
 MAP_FILE = Path(__file__).resolve().parents[2] / "data" / "reference" / "nse_sector_index_map.csv"
+# Each finer NSE index paired with the ranked stocks of its NSE industry or basic industry (S190).
+FINER_FILE = MAP_FILE.with_name("nse_finer_index_stocks.csv")
 MIN_STOCKS = 5                  # one count for every section: five or more ranked stocks
 WINDOWS = ip.WINDOWS            # 1, 3, 6, 9, 12 months, as on Indices
 GROUPS = ("ahead on both", "gaining", "fading", "behind on both")
@@ -159,10 +161,49 @@ class IndexLine:
     from_high: float | None
     pe: float | None
     late: pd.Timestamp | None = None     # its last close, when NSE's close for the page's session is not in yet
+    ours: Finer | None = None            # a finer index's own ranked stocks, equal-weighted (S190)
 
     @property
     def young(self) -> bool:
         return self.late is None and self.returns.get(12) is None
+
+
+@dataclass
+class Finer:
+    """The ranked stocks of a finer index's NSE industry or basic industry, equal-weighted (S190)."""
+    noun: str
+    stocks: int
+    returns: dict[int, float | None]
+    from_high: float | None
+
+
+def finer_map(path: Path | None = None) -> pd.DataFrame:
+    """index_key, level (an NSE level column), labels (";"-separated), noun, reason."""
+    try:
+        return pd.read_csv(path or FINER_FILE, dtype=str).fillna("")
+    except OSError:
+        return pd.DataFrame(columns=["index_key", "level", "labels", "noun", "reason"])
+
+
+def finer_stocks(prices: pd.DataFrame, rank_df: pd.DataFrame, when: pd.Timestamp,
+                 fmap: pd.DataFrame | None = None) -> dict[str, Finer]:
+    """{index_key: Finer} for each finer index whose industry holds MIN_STOCKS or more ranked stocks; a level
+    the ranking does not carry pairs nothing."""
+    fmap = finer_map() if fmap is None else fmap
+    if prices is None or prices.empty or rank_df is None or "Symbol" not in rank_df:
+        return {}
+    rd = rank_df.drop_duplicates("Symbol").set_index("Symbol")
+    out: dict[str, Finer] = {}
+    for r in fmap.itertuples():
+        if r.level not in rd:
+            continue
+        labels = {x.strip() for x in r.labels.split(";") if x.strip()}
+        syms = [s for s in rd.index[rd[r.level].astype(str).isin(labels)] if s in prices.columns]
+        if len(syms) < MIN_STOCKS:
+            continue
+        level = pi.equal_weight_level(prices[syms].sort_index())
+        out[r.index_key] = Finer(r.noun, len(syms), {m: ew_return(level, m, when) for m in WINDOWS}, from_high(level, when))
+    return out
 
 
 @dataclass
@@ -173,7 +214,8 @@ class SectorGroup:
     indices: list[IndexLine]
 
 
-def sector_indices(f: ip.Frames, ld: Leads, smap: pd.DataFrame, all_counts: dict[str, int]) -> list[SectorGroup]:
+def sector_indices(f: ip.Frames, ld: Leads, smap: pd.DataFrame, all_counts: dict[str, int],
+                   finer: dict[str, Finer] | None = None) -> list[SectorGroup]:
     """Every "Sector" index under the sector the map places it in, in the order of the lead table;
     the headline index first, then the rest by 1-year return, those younger than a year last."""
     # Read on the page's session, the ranking's (S193 E): an index without its close reads "–".
@@ -184,7 +226,8 @@ def sector_indices(f: ip.Frames, ld: Leads, smap: pd.DataFrame, all_counts: dict
         if x is None:
             continue
         by_sector.setdefault(r.sector, []).append(
-            IndexLine(x.key, x.name, r.role == "headline", x.live, x.returns, x.from_high, x.pe, x.late))
+            IndexLine(x.key, x.name, r.role == "headline", x.live, x.returns, x.from_high, x.pe, x.late,
+                      None if r.role == "headline" else (finer or {}).get(r.index_key)))
     ours = {r.name: r for r in ld.rows}
     order = [r.name for r in ld.rows] + sorted(s for s in by_sector if s not in ours)
     out = []

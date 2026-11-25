@@ -13,10 +13,22 @@
 
 const poll = (p, ms) => p.waitForTimeout(ms);
 
+// The frame that holds the app: the page itself locally and in CI, an inner frame on the live site, where
+// streamlit.app wraps the app in an iframe. Read only on the page, a live audit found no app, counted it busy
+// to the 240 s ceiling on every settle and ran past its time limit (found 25 Nov 2026, S173).
+export async function appFrame(p) {
+  for (const f of [p.mainFrame(), ...p.frames()]) {
+    const has = await f.evaluate(() => !!document.querySelector('[data-testid="stApp"]')).catch(() => false);
+    if (has) return f;
+  }
+  return p.mainFrame();
+}
+
 export async function runFinished(p, { quiet = 4, every = 250, maxMs = 240000 } = {}) {
-  let q = 0;
+  let q = 0, f = await appFrame(p);
   for (const t0 = Date.now(); q < quiet && Date.now() - t0 < maxMs;) {
-    const busy = await p.evaluate(() => {
+    if (f.isDetached()) f = await appFrame(p);
+    const busy = await f.evaluate(() => {
       const app = document.querySelector('[data-testid="stApp"]');
       return !app || app.getAttribute('data-test-script-state') !== 'notRunning'
         || !!document.querySelector('[data-testid="stStatusWidget"]');
@@ -27,7 +39,8 @@ export async function runFinished(p, { quiet = 4, every = 250, maxMs = 240000 } 
 }
 
 async function frameSizes(p) {
-  return p.evaluate(() => {
+  const f = await appFrame(p);
+  return f.evaluate(() => {
     const main = document.querySelector('[data-testid="stMain"]') || document.scrollingElement;
     return [main.scrollHeight, ...[...document.querySelectorAll('iframe')]
       .map(f => { const r = f.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; })].join(',');

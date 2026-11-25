@@ -121,7 +121,7 @@ def _answers(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.
     breadth = (mq.breadth_answer(_prices, tm, past, market=mq.MARKET) if len(tm)
                else mq.breadth_answer(_prices, _bench, past, market=f"the {mq.EARLIER}"))
     share = pit_breadth.splice(mq._share_above_ema(_prices, 200), past, "above_200")
-    trend = mq.trend_answer(_bench, _size, share, name)
+    trend = mq.trend_answer(_bench, _size, share, name, past=past)   # one history with breadth (S193 B)
     leaders = mq.leaders_answer(_prices, _industry, _bench, _size, market_name=the(name))
     return breadth, trend, leaders
 
