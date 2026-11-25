@@ -41,6 +41,8 @@ _Last updated: 24 Nov 2026 ~17:00 IST, coordinating session session_016X4g5Y1bsn
 
 ## State at handover
 
+**25 Nov 2026.** Full audit planned (TODO S227, `docs/FULL_AUDIT_PLAN.md`), nothing run. Waiting on the owner: confirm the two-pass order (26-29 Nov, hold 30 Nov - 5 Dec, 6-8 Dec) and `Due:` dates in TODO rows. Until then the window's rule stands: no fix that touches the record before 5 Dec except a live fault.
+
 **24 Nov ~13:15 UTC.** #674 merged (6a613a5; S203 wrong-today sentences, S189 items 3 and 8, S223, S224 notes, S163 §5-6). On the branch, opened as one PR: S225, all ten pipeline follow-ups. The owner answered (1) "Hold back on Saturday", (2) "Drop schedule only", (8) "Drop 02:00"; built (3) conflict warnings, (4) every green run scanned, (5) push alerts for Production QA and Full Validation, (9) pip cache; (6) and (10) explained. The nightly hold after a Saturday breach is pending approval (above). Next: Production QA on 6a613a5, merge the S225 PR on green, then S203's per-sentence tests, S189 item 6 (a), S163 2 (f).
 
 **24 Nov ~11:30 UTC.** #671 merged (cb0e825); Production QA, parity, R2 gate and lint green on it. On the branch, no PR yet: S203's wrong-today sentences on eight pages; the owner's five S203 answers (all "recommended", one at a time) built; S189 item 3 (the Screener key folds on a phone). Next: run CI's checks locally, open one draft PR, merge on green.
