@@ -156,7 +156,8 @@ def _yoy(now, base) -> float | None:
 
 def company(symbol: str, df: pd.DataFrame | None = None, rows: int = RESULT_ROWS) -> Results | None:
     """The last `rows` quarters, newest first, each with its year-earlier quarter on the same basis; the run stops at
-    the first quarter without one, so the table has no gaps and one basis. A lender's
+    the first quarter without one, so the table has no gaps and one basis; a new listing (fewer than five quarters)
+    shows the quarters it has, its growth "–". A lender's
     "Financing Profit" (revenue less interest and every expense, provisions included, before other income) is no
     operating profit a reader knows, so a lender shows profit before tax in its place."""
     df = load(QUARTERS_PATH) if df is None else df
@@ -172,8 +173,11 @@ def company(symbol: str, df: pd.DataFrame | None = None, rows: int = RESULT_ROWS
     out = []
     for d in sorted(by, reverse=True):
         base = by.get(d - pd.DateOffset(years=1) + pd.offsets.MonthEnd(0))
-        if base is None or base["basis"] != by[d]["basis"]:
-            break                       # a run of quarters, no gaps: stop at the first that cannot be compared
+        if base is not None and base["basis"] != by[d]["basis"]:
+            break                       # one basis in the table: stop at the first quarter compared across bases
+        if base is None and len(by) >= 5:
+            break                       # a year-earlier quarter we should have and do not: no gaps in the table
+        base = base or {}               # a new listing: its quarters, growth "–" until a year has passed
         now = by[d]
         val = {k: (None if pd.isna(now.get(c)) else float(now.get(c))) for k, c in keys.items()}
         out.append(Quarter(end=d, label=_label_of(d), values=val,

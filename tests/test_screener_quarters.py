@@ -97,3 +97,21 @@ def test_tata_motors_left_out_of_q2_and_q3_fy26():
     assert "TMPV" not in m.members("nifty_50", "2025-12-31")
     assert "TMPV" not in m.members("nifty_50", "2025-09-30")
     assert "TMPV" in m.members("nifty_50", "2026-06-30")
+
+
+def test_a_consolidated_table_that_stopped_gives_way_to_the_standalone_one(tmp_path, monkeypatch):
+    # TATAELXSI, 25 Nov 2026: its consolidated table ends in Mar 2015; its results are on the standalone page.
+    m = _script()
+    monkeypatch.setattr(m, "QUARTER_ENDS", ["2025-09-30", "2026-09-30"])
+
+    def page(dates):
+        head = "".join(f'<th data-date-key="{d}">{d}</th>' for d in dates)
+        cells = "".join("<td>10</td>" for _ in dates)
+        return _page(head, f"<tr><td>Sales +</td>{cells}</tr><tr><td>Net Profit +</td>{cells}</tr>")
+
+    (tmp_path / "X__consolidated.html").write_text(page(["2014-03-31", "2015-03-31"]), encoding="utf-8")
+    (tmp_path / "X__standalone.html").write_text(page(["2025-09-30", "2026-09-30"]), encoding="utf-8")
+    assert m.stale(parse_quarters(page(["2014-03-31", "2015-03-31"])))
+    assert not m.stale(parse_quarters(page(["2025-09-30", "2026-09-30"])))
+    data, basis = m.company_data(str(tmp_path), {"X": {"status": 200}})
+    assert list(data["X"].rows) == ["2025-09-30", "2026-09-30"] and basis["X"] == "standalone (consolidated table stopped)"

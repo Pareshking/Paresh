@@ -38,7 +38,7 @@ def test_a_lender_shows_profit_before_tax_and_a_loss_base_reads_a_dash():
     assert r.quarters[0].growth["net_profit"] is None
     html = "".join(sv.results_html(r))
     assert "Revenue, Cr" in html and "Profit before tax, Cr" in html and "Operating profit" not in html
-    assert "Growth reads – where the year-earlier figure is nil or a loss." in html
+    assert "Growth reads – where the year-earlier figure is nil, a loss, or not yet reported" in html
 
 
 def test_the_note_says_last_updated_and_names_no_source_or_schedule():
@@ -65,3 +65,9 @@ def test_sansera_matches_its_own_page():
     q = r.quarters[0]
     if q.label == "Q2 FY27":
         assert q.values["sales"] == 1091 and q.values["net_profit"] == 109 and q.values["eps"] == 17.31
+
+
+def test_a_new_listing_shows_its_quarters_with_growth_dashed():
+    r = er.company("NEW", _frame(_quarters("NEW", "Sales", n=3, start="2026-03-31")))
+    assert [q.label for q in r.quarters] == ["Q2 FY27", "Q1 FY27", "Q4 FY26"]
+    assert all(v is None for q in r.quarters for v in q.growth.values())
