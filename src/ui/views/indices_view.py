@@ -224,7 +224,7 @@ def section_earnings(lt: er.Latest | None) -> list:
     return [f'<div class="dh-sec dh-sec-cont">{KICK.format("Earnings")}<h2 id="s-earnings" class="dh-h2">'
             f'{e(earnings_headline(lt))}</h2><p class="dh-note">{e(note)} '
             f'<a href="{e(lt.pdf_url)}" target="_blank" rel="noopener">NSE\'s review (PDF)</a></p>'
-            '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Index</th>'
+            '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
             + "".join(f'<th scope="col" class="dh-num">{e(h)}</th>' for _, h in cols)
             + f'</tr></thead><tbody>{body}</tbody></table></div></div>']
 
