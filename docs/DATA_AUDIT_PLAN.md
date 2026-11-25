@@ -55,7 +55,7 @@ An element is every figure, chart series, table column and number in a label or 
 ## 3. Added by Claude (owner: "add your thoughts and improvements")
 
 - [ ] **Restore drill:** rebuild one page from R2 alone on a clean machine, timed; every missing input is a finding.
-- [ ] **Every outside address** the jobs and the app call, with the date each last answered and what breaks if it stops.
+- [x] **Every outside address** (done 25 Nov 2026, `DATA_AUDIT_2026-11-24.md` §5) the jobs and the app call, with the date each last answered and what breaks if it stops.
 - [ ] **The date test in CI on every page** (the S154 (c) test, which now covers four pages).
 - [ ] **Licence and terms** for each third-party source (Screener, NSE's terms for its archives, any feed like IndiaDataHub).
 - [ ] **Reachability:** which figures depend on a source that only GitHub's runners, or only the app, can reach (BSE's FII/DII pages refused this container; R2 was not reachable locally).

@@ -187,7 +187,8 @@ DAILY_DATASETS = (
     "snapshots/rankings_1000",
     "snapshots/rankings_nano",
     "snapshots/rankings_combined",
-    "market_caps/nse_history",
+    # market_caps/nse_history left on 25 Nov 2026: retired by the owner 24 Nov (S224 (d)),
+    # its R2 copy deleted by r2_retention.yml, so checking it failed every run.
     "indices/membership/nifty_total_market",
     "universes/point_in_time",
     # Every NSE index, daily (S168): backfilled 21 Nov 2026, extended each evening by nse_indices.yml.
