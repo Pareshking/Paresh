@@ -232,14 +232,18 @@ def section_earnings(lt: er.Latest | None) -> list:
     for name in er.OUR_INDICES:
         v = lt.values.get(name, {})
         cells = "".join(f'<td class="dh-num">{e(sg(v.get(k), 1, "%"))}</td>' for k, _ in cols)
+        got = lt.reported.get(name)
+        cells += f'<td class="dh-num">{e(f"{got[0]} of {got[1]}" if got else "–")}</td>'
         body += f'<tr><th scope="row">{e(_short(name))}</th>{cells}</tr>'
     q = er.quarter_label(lt.quarter)
     note = (f"Growth in {q} over the same quarter a year earlier: all companies added together, and the median "
-            f"company. " + _source_note(q, lt.published))
+            f"company; companies reported counts those with both quarters, against the index's size. A quarter shows "
+            f"once nine in ten Nifty 500 companies have reported it. " + _source_note(q, lt.published))
     return [f'<div class="dh-sec dh-sec-cont">{KICK.format("Earnings")}<h2 id="s-earnings" class="dh-h2">'
             f'{e(earnings_headline(lt))}</h2><p class="dh-note">{e(note)}</p>'
             '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
             + "".join(f'<th scope="col" class="dh-num">{e(h)}</th>' for _, h in cols)
+            + '<th scope="col" class="dh-num">Companies reported</th>'
             + f'</tr></thead><tbody>{body}</tbody></table></div></div>'] + earnings_quarters() + earnings_history()
 
 

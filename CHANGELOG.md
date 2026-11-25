@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-25 — Indices: how many companies reported (S171)
+
+- Indices: the latest-quarter earnings table gains a "Companies reported" column, counted against each index's size (Q2 FY27: Nifty 50 49 of 50, Nifty 500 493 of 500), and the note says a quarter shows once nine in ten Nifty 500 companies have reported it.
+
 ## 2026-11-25 — Stock page: the company's last eight quarters (S171)
 
 - Stock page: a new "5 · Results" section after Price shows the company's last eight reported quarters, newest first: sales, operating profit, net profit and EPS, each with its growth on the same quarter a year earlier, under a one-sentence heading on the latest quarter. Banks and lenders show revenue and profit before tax. Growth reads "–" where the year-earlier figure is nil or a loss. Sector and Data move to 6 and 7.

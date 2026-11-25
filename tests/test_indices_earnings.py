@@ -78,3 +78,13 @@ def test_the_heading_rounds_as_the_table_does():
                        for m, v in ((f"{er.PROFIT}_agg_yoy", 30.25), (f"{er.PROFIT}_median_yoy", 20.95))])
     assert iv.earnings_headline(er.ours(df)) == ("In Q2 FY27 the Nifty 500's profit rose 30.3% from a year earlier; "
                                                  "the median company's profit rose 21.0%.")
+
+
+def test_the_latest_table_counts_companies_reported_against_the_index_size():
+    # Owner, 25 Nov 2026: "we can show how many companies out of universe reported".
+    lt = er.ours()
+    assert set(lt.reported) == set(er.OUR_INDICES)
+    used, size = lt.reported["Nifty 50"]
+    assert size == 50 and 0 < used <= 50                              # the index's size, before Tata Motors is left out
+    html = iv.section_earnings(lt)[0]
+    assert "Companies reported" in html and f"{used} of 50" in html

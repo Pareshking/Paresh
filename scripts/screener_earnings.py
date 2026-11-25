@@ -206,12 +206,13 @@ def earnings(quarters: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
             syms = members(key, qe)
             if not syms:
                 continue
+            size = len(research.members_on(research.index_history(key), qe, canonical=True) or ())
             for field in FIELDS:
                 g = growth(values, syms, qe, field)
                 for stat in ("agg", "median"):
                     v = g[stat]
                     rows.append({"quarter": q, "quarter_end": qe, "index": label, "measure": f"{field}_{stat}_yoy",
-                                 "value_pct": None if v is None else round(v, 2), "members": len(syms),
+                                 "value_pct": None if v is None else round(v, 2), "members": len(syms), "size": size,
                                  "used": g["used"], "complete": complete})
                 theirs = nse.get((q, label, f"{'pat' if field != 'sales' else 'sales'}_agg_yoy"))
                 if complete and label in research.GATED and theirs is not None and g["agg"] is not None \

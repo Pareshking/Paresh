@@ -24,6 +24,7 @@ class Latest:
     published: pd.Timestamp
     pdf_url: str
     values: dict[str, dict[str, float | None]] = field(default_factory=dict)   # index -> measure -> % YoY
+    reported: dict[str, tuple[int, int]] = field(default_factory=dict)        # index -> (companies counted, index size)
 
 
 def quarter_label(q: str) -> str:
@@ -109,7 +110,13 @@ def ours(df: pd.DataFrame | None = None) -> Latest | None:
             hit = rows[(rows["index"] == i) & (rows["measure"] == _measure(m))]["value_pct"].dropna()
             if len(hit):
                 vals[i][m] = float(hit.iloc[0])
-    return Latest(quarter=q, published=pd.Timestamp(rows["as_of"].iloc[0]), pdf_url="", values=vals)
+    rep = {}
+    if {"used", "size"} <= set(rows.columns):
+        for i in OUR_INDICES:
+            hit = rows[(rows["index"] == i) & (rows["measure"] == "sales_agg_yoy")]
+            if len(hit) and pd.notna(hit["size"].iloc[0]):
+                rep[i] = (int(hit["used"].iloc[0]), int(hit["size"].iloc[0]))
+    return Latest(quarter=q, published=pd.Timestamp(rows["as_of"].iloc[0]), pdf_url="", values=vals, reported=rep)
 
 
 def ours_history(index: str, measure: str, df: pd.DataFrame | None = None) -> pd.Series:
