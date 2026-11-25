@@ -578,11 +578,14 @@ R.lmap = (card, s) => {
   // A click (or tap, or Enter) on a sector picks it out and fades the rest; a second click on it shows all again, as the
   // map did before the 22 Nov rebuild (S229; owner, 25 Nov 2026). The picker follows, so the two never disagree.
   const toggle = r => { if (!r) return; focus = focus === r.name ? '' : r.name; pick.value = focus; draw(); example(); };
-  // On pointerup, not click: pointerdown redraws the svg, and a browser sends no click once the pressed node is gone.
-  let downAt = null;
+  // pointerdown redraws the svg, so the pressed node is gone by the release: a mouse then sends pointerup but no click,
+  // a touch sends click but no pointerup (checked live, 25 Nov 2026). Both are heard; the second within 500 ms is not.
+  let downAt = null, done = 0;
+  const pickAt = e => { if (Date.now() - done < 500) return; done = Date.now(); near(e); toggle(hover); };
   el.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
   el.addEventListener('pointerup', e => { if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 10) return;
-    downAt = null; near(e); toggle(hover); });
+    downAt = null; pickAt(e); });
+  el.addEventListener('click', pickAt);
   el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(hover || ends()[0]); return; }
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; e.preventDefault();
     const srt = rows().slice().sort((a, b) => a.x1 - b.x1), i = srt.indexOf(hover || ends()[0]);

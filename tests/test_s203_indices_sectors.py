@@ -740,7 +740,7 @@ def test_s229_a_click_on_the_map_picks_a_sector_out():
     """S229 (owner, 25 Nov 2026): a click faded the others before the 22 Nov rebuild; the rebuild kept only the list."""
     js = (Path(__file__).resolve().parents[1] / "static" / "dash_charts.js").read_text(encoding="utf-8")
     lmap = js[js.index("R.lmap ="):js.index("R.stable =")]
-    assert "el.addEventListener('pointerup'" in lmap and "pick.value = focus" in lmap
+    assert "el.addEventListener('pointerup'" in lmap and "el.addEventListener('click', pickAt)" in lmap   # mouse and touch and "pick.value = focus" in lmap
     assert "opacity: on(r) ? 1 : .22" in lmap
 
 
