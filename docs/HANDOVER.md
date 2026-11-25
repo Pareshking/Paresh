@@ -15,7 +15,7 @@ _Last updated: 24 Nov 2026 ~17:00 IST, coordinating session session_016X4g5Y1bsn
   **current head** and it merges cleanly with `main`. Squash-merge with
   `expectedHeadSha`. After a squash merge, restart your branch from `main`.
 - **Before taking an S-number,** check open PRs as well as `main`. Next free:
-  **S227** (TODO's header lists what is reserved).
+  **S229** (TODO's header lists what is reserved).
 - **Verify every claim yourself.** Nothing is deleted without the owner's yes on
   each item; the `ref_*` release files always stay.
 - **Tests:** `python scripts/fetch_nse_closes.py` first, then
@@ -100,7 +100,7 @@ Production QA green on af15327. Open:
 
 - **Built (owner, 25 Nov: "Show partial one"; "show partial also by showing how many companies out of universe reported"):** also the top row "<quarter> so far, N of 500 reported" in both quarterly tables; the quarter still coming in shows as "<quarter> so far" under the latest table from one in ten Nifty 500 companies reported (`PARTIAL_SHARE`) until nine in ten; an index under one in ten of its own companies reads –. Thresholds decided by rule, owner to confirm. First real one: Q3 FY27, mid-January 2027.
 
-**25 Nov ~12:40 UTC (state).** #689 merged (06be1d5, QA 45605237656 green): Indices "Companies reported" column and the quarter coming in as "so far". The R2 inventory failed on 25 Nov (45605511334): its freshness list still held `market_caps/nse_history`, retired 24 Nov (S224 (d)); fixed in the next PR with a test. S163 section 3 outside addresses: when each last answered added (§5). Next: 28 Nov 04:23 UTC first `screener_earnings` run (log: pages chosen, restated, NSE check; first R2 publish).
+**25 Nov ~12:40 UTC (state).** #689 merged (06be1d5, QA 45605237656 green): Indices "Companies reported" column and the quarter coming in as "so far". The R2 inventory failed on 25 Nov (45605511334): its freshness list still held `market_caps/nse_history`, retired 24 Nov (S224 (d)); fixed in the next PR with a test. S163 section 3 outside addresses: when each last answered added (§5); licence and terms quoted (§5a), finding S228 for the owner (on the branch, no PR yet). Next: 28 Nov 04:23 UTC first `screener_earnings` run (log: pages chosen, restated, NSE check; first R2 publish).
 
 **25 Nov ~10:40 UTC (state).** #686 (5f5b322, QA 45584701444) and #688 (184ce7d, QA 45595793084) merged, both green and seen live: Indices earnings from our Screener calculation with quarterly tables for six indices; the Stock page "5 · Results". First Saturday run of `screener_earnings.yml` 28 Nov 04:23 UTC: first R2 publish of `fundamentals/screener_quarters`, check its log (pages chosen, restated, NSE check). Waiting on the owner: S227 (Nano list ticker), and the three S171 rules marked owner to confirm. Work loops stay on.
 

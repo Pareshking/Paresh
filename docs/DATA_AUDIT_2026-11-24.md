@@ -496,6 +496,21 @@ Two callers the table above missed: the price endpoint kept in a secret (`SS_BAS
 Every host answered within its job's schedule. Not checked: hosts built from variables other than `SS_BASE_URL`; the app's own calls (R2, GitHub releases as fallback, jsDelivr as fallback, niftyindices.com only from the Configuration page's sync button), which no job records.
 
 
+## 5a. Licence and terms of each source (section 3 of the plan; read 25 Nov 2026)
+
+What each source's own published terms say, quoted; each quote checked against the page fetched 25 Nov 2026. A lead for the owner, not legal advice.
+
+| Source (page read) | Automated access | Showing the data on another site | Use |
+|---|---|---|---|
+| Screener ([terms](https://www.screener.in/guides/terms/), updated 1 Aug 2018) | not addressed | not to use the materials "for any public display (commercial or non-commercial)" | "personal, non-commercial transitory viewing only" |
+| NSE ([terms of use](https://www.nseindia.com/static/nse-terms-of-use), [data policy](https://www.nseindia.com/static/market-data/nse-data-policy)) | "prohibited to conduct any systematic or automated data collection activities (including scraping ...)" | not to be "disseminated, distributed, displayed ... published ... without prior written permission of NSE" | data policy: Market Data used "to create any financial index, whether custom or otherwise" needs a licence |
+| NSE Indices ([terms](https://www.niftyindices.com/terms-of-use)) | "may not conduct any systematic or automated data collection ... without our express written consent" | no material "republished ... or distributed in any form without prior written permission" | "personal, non-commercial use only" |
+| BSE ([terms](https://www.bseindia.com/termsofuse.html), read from the site's script) | "should not conduct any systematic or automated data collection ... without our express written consent" | not "reproduced on or transmitted to or stored in any other website ... without due permission" | personal, non-commercial use "provided full acknowledgement that the information originated from BSE's website is given" |
+| NSDL FPI ([home page](https://www.fpi.nsdl.co.in/)) | not addressed | "Reproduction, redistribution and transmission of any information contained on the website are strictly prohibited." | not addressed |
+| TradingView ([terms](https://www.tradingview.com/policies/), s.3, 4, 12) | no automated means "including by accessing or querying internal or undocumented endpoints" (`scanner.tradingview.com` is one) | data "licensed for exclusive display-only use" | "we do not permit commercial usage of any of our services or APIs" |
+
+**Finding for the owner (S228).** Every source's terms restrict what this site does: the jobs collect automatically from all six, and the public pages show NSE's prices and indices, Screener's quarterly results (S171) and NSDL's flows. None names a free tier for a personal public site; written permission or a data licence (NSE Data, NSE Indices' licensing) is the route each names. Not checked: NSE's data-sharing PDF on nsearchives, NSE Indices' licensing pages, the sites' robots.txt, and whether the site's own numbers (ranks, growth sums) count as the source's "data".
+
 ## 6. Pipelines (section 2 (c) of the plan; 24 Nov 2026)
 
 Run figures for 25 Oct to 24 Nov 2026 read by a second agent from GitHub's API (`list workflow runs`, branch main); median = updated_at − run_started_at. All 30 scheduled workflows are on the alert's watched list (`scheduled_failure_alert.yml:21-52`), and every commit step checks `git diff --staged --quiet` first. The coordinator checked findings 1, 2 and 7 in the files; the run counts are the agent's.
