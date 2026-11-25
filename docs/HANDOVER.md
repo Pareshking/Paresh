@@ -213,7 +213,7 @@ Done 23 Nov and gone from the queue: S185 replay step (#625), S199, S201 (#625),
 S194 L3/L4 and S202 (#627).
 
 ## Found, not fixed (recorded so it is not rediscovered)
-- 25 Nov: Configuration at 1400 px has three 56 px empty bands (layout audit; on main too); the page is not in CI's layout list. Configuration also had no foot line, fixed in this batch.
+- 25 Nov: Configuration at 1400 px shows three 56 px "empty bands" in the layout audit: they are its section breaks (space, a rule drawn as a border, the next numbered section; screenshot checked), which the audit does not count as drawn. Intended, not fixed; the page is not in CI's layout list. Its missing foot line was fixed in #694.
 
 - **Layout audit, Dashboard at 412 px, 25 Nov:** "segbar frame taller than its drawing 39 px spare" failed #692's validate (run 45621877248, attempt 1) on a docs-only change; the same code passed on #689, #691 and locally, and the one re-run passed. Lead: the frame keeps its fallback-font height past the audit's second reading. If it recurs, wait for `document.fonts.ready` inside the frame before measuring.
 
