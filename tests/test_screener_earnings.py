@@ -146,3 +146,17 @@ def test_a_restated_quarter_takes_the_new_figures_and_keeps_the_old_reading(tmp_
     back = m.read_store(str(path), False, str(tmp_path / "x.csv"))
     again = m.merge(back, [{**row, "net_profit": 12.0, "fetched": "2027-02-20"}], "2027-02-20")
     assert len(again) == 2 and m.current_rows(again)["net_profit"].iloc[0] == 12.0
+
+
+def test_the_quarter_coming_in_shows_from_one_in_ten_and_not_before():
+    m = _script()
+
+    def frame(used):
+        rows = [{"quarter": "Q1FY27", "quarter_end": "2026-06-30", "index": "Nifty 500", "measure": "sales_agg_yoy",
+                 "value_pct": 19.0, "members": 500, "size": 500, "used": 495, "complete": True},
+                {"quarter": "Q2FY27", "quarter_end": "2026-09-30", "index": "Nifty 500", "measure": "sales_agg_yoy",
+                 "value_pct": 24.7, "members": 500, "size": 500, "used": used, "complete": False}]
+        return pd.DataFrame(rows)
+
+    assert list(m.publishable(frame(149))["quarter"]) == ["Q1FY27", "Q2FY27"]       # 149 of 500 reported: shown
+    assert list(m.publishable(frame(30))["quarter"]) == ["Q1FY27"]                  # 30: too few to say anything
