@@ -14,7 +14,7 @@ from src.ui import formats as _fmt
 
 
 
-TICK_TRUE = frozenset({"✅", "TRUE", "1", "YES", "Y"})
+TICK_TRUE = frozenset({"✅", "✓", "TRUE", "1", "YES", "Y"})  # the same set as exit_watch._flag (S154)
 
 
 def is_tick_true(value) -> bool:

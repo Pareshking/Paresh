@@ -118,8 +118,12 @@ names saved, so every column is the Screener's; its plan lines are `ui.model_pla
 
 ### Undocumented differences found 24 Nov 2026 (not fixed; for the owner to route)
 
-1-4 are strict xfails in `tests/test_same_label_every_page.py`: the test fails the day the pages
-agree, and the marker comes off then.
+**Status 25 Nov 2026: 1-5 closed.** 5: `nse_total_market.csv` now holds the seven weekend sessions (S163, fixed by rule 24 Nov; checked 25 Nov: 12 Nov 2023 9,757.10, 8 Nov 2026 13,251.55). **1-4 closed, each by a rule already settled, so no marker is left.** 1: the
+Dashboard reads the calendar year too (`_from_high_series`, owner 24 Nov: "Use calendar date
+everywhere"). 2: Sectors prints with `formats` (glossary 12). 3: "All ranked stocks" counts every
+ranked stock (`test_a_ranked_stock_without_an_industry_counts_on_every_page`). 4: `exit_watch._flag`
+and `theme.is_tick_true` read the same ticks, "✓" and "✅" (the test runs both). The text below is
+the finding as written on 24 Nov.
 
 1. **Nifty 500 from its 52W high, Dashboard against Market.** The Dashboard's "Sharp rebound" row
    (`dashboard_home_view.py:1563`) reads `market_questions._from_high_series`, a 252-session window

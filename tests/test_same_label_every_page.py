@@ -275,16 +275,12 @@ def _ranking(flags) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-@pytest.mark.parametrize("yes,no", [(True, False), (np.True_, np.False_), ("True", "False"), ("✅", "")])
+@pytest.mark.parametrize("yes,no", [(True, False), (np.True_, np.False_), ("True", "False"), ("✅", ""), ("✓", "")])
 def test_the_qualified_count_and_place_agree_on_screener_stock_page_and_sectors(yes, no):
     from src.ui.components import to_bool_mask
     from src.ui.views.ranking_view import with_book_columns
     flags = [(yes, yes), (no, yes), (yes, yes), (yes, no), (yes, yes), (yes, yes)]
     rank_df = _ranking(flags)
-    if yes == "✅":
-        pytest.xfail("Undocumented, not live (the engine writes booleans): exit_watch._flag reads '✓' but not "
-                     "'✅'; theme.is_tick_true reads '✅' but not '✓'. The Screener's count and the qualified "
-                     "place would part on a ticked table.")
     passes = to_bool_mask(rank_df["Above 50 EMA"]) & to_bool_mask(rank_df["Near 52W High"])
     screener_count = int(passes.sum())                                 # "Pass both filters" (ranking_view.py:392)
     q = qualified_ranks(rank_df)                                        # stock page n_q, Sectors, Actions
