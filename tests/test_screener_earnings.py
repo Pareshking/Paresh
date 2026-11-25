@@ -69,3 +69,20 @@ def test_the_built_file_holds_complete_quarters_for_six_indices():
     n500 = df[(df["index"] == "Nifty 500") & (df["measure"] == "sales_agg_yoy")]
     assert (n500["used"] >= 0.9 * n500["members"]).all()
     assert {"pat_agg_yoy", "pat_xoi_agg_yoy", "sales_median_yoy"} <= set(df["measure"])
+
+
+def test_the_r2_store_keeps_every_quarter_and_round_trips(tmp_path):
+    m = _script()
+    q = pd.DataFrame([{"symbol": "A", "quarter_end": qe, "basis": "consolidated", "sales_label": "Sales", "sales": 1.0,
+                       "operating_profit": 1.0, "pbt": 1.0, "net_profit": 1.0, "other_income": 0.0, "tax_pct": 25.0,
+                       "eps": 1.0, "fetched": "2026-11-28"} for qe in ("2019-03-31", "2026-09-30")])
+    path = tmp_path / "store.parquet"
+    m.write_store(q, str(path), "2026-11-28")
+    back = m.read_store(str(path), False, str(tmp_path / "none.csv"))
+    assert len(back) == 2 and "as_of" not in back.columns            # 2019 kept: R2 holds the whole history
+    assert pd.read_parquet(path)["as_of"].iloc[0] == pd.Timestamp("2026-11-28")
+
+
+def test_the_weekly_job_publishes_the_store_to_r2():
+    text = (ROOT / ".github" / "workflows" / "screener_earnings.yml").read_text(encoding="utf-8")
+    assert "--from-r2" in text and "--dataset fundamentals/screener_quarters" in text and "--skip-if-published" in text

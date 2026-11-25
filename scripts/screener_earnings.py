@@ -9,10 +9,13 @@ data/membership_history.json. Each company's "Quarterly Results" table on its Sc
 
 Pages are read for every index member on those quarter ends and every stock the site lists (~2,400, ~2 h at ~3 s a page).
 
+Keeps (owner, 25 Nov 2026: "storing in R2 so we can have own history getting build up, use correct R2 format to save
+a space"): every quarter ever read, in R2 dataset fundamentals/screener_quarters (parquet, zstd), one immutable
+revision a week; each run starts from it, so the history outlives the 13 quarters a page shows.
+
 Writes (readers: the Indices page's Earnings section and the Stock page's results table, src/engine/earnings_review.py):
-- data/reference/screener_quarters.csv: one row per company and quarter (Rs crore), merged into
-  what earlier runs kept, so the history grows past the 13 quarters a page shows. A quarter on
-  this week's page replaces the stored one (Screener restates).
+- data/reference/screener_quarters.csv: the pages' copy, one row per company and quarter (Rs crore)
+  for the last 13 quarters. A quarter on this week's page replaces the stored one (Screener restates).
 - data/reference/screener_earnings.csv: per quarter, index and measure, the growth from a year
   earlier, with members, companies used and coverage.
 
@@ -175,14 +178,54 @@ def earnings(quarters: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     return pd.DataFrame(rows), notes
 
 
-def build(cache: str, quarters_csv: str = QUARTERS_CSV, earnings_csv: str = EARNINGS_CSV) -> int:
-    stored = pd.read_csv(quarters_csv) if os.path.exists(quarters_csv) else None
-    new = page_rows(cache, date.today().isoformat(), since=quarter_ends(date.today())[0])
+R2_DATASET = "fundamentals/screener_quarters"   # the full history; the repo keeps the pages' copy only
+
+
+def read_store(path: str | None, from_r2: bool, quarters_csv: str) -> pd.DataFrame | None:
+    """Every quarter kept so far: R2's published store first (owner, 25 Nov 2026: "storing in R2 so we can have own
+    history getting build up"), else a local store, else the repo's copy (the first run seeds R2 from it)."""
+    if from_r2:
+        try:
+            from src.storage.r2 import R2Archive, R2Config
+            from src.storage.reader import R2DatasetReader
+            reader = R2DatasetReader(R2Archive(R2Config.from_env()))
+            got = reader.read_parquet(reader.resolve_current(R2_DATASET))
+            print(f"R2 {R2_DATASET}: {len(got)} rows, {got['symbol'].nunique()} companies")
+            return got.drop(columns=["as_of"], errors="ignore")
+        except FileNotFoundError:
+            print(f"R2 {R2_DATASET}: nothing published yet; starting from the repo's copy")
+    if path and os.path.exists(path):
+        return pd.read_parquet(path).drop(columns=["as_of"], errors="ignore")
+    return pd.read_csv(quarters_csv) if os.path.exists(quarters_csv) else None
+
+
+def write_store(quarters: pd.DataFrame, path: str, as_of: str) -> None:
+    """Parquet, zstd, text columns as categories: about a fifth of the CSV's size. `as_of` dates the R2 revision."""
+    out = quarters.copy()
+    for c in ("symbol", "basis", "sales_label", "fetched"):
+        out[c] = out[c].astype("category")
+    out["quarter_end"] = pd.to_datetime(out["quarter_end"])
+    out["as_of"] = pd.Timestamp(as_of)
+    out.to_parquet(path, index=False, compression="zstd")
+
+
+def build(cache: str, quarters_csv: str = QUARTERS_CSV, earnings_csv: str = EARNINGS_CSV, store: str | None = None,
+          from_r2: bool = False) -> int:
+    today = date.today().isoformat()
+    stored = read_store(store, from_r2, quarters_csv)
+    if stored is not None:
+        stored = stored.assign(quarter_end=pd.to_datetime(stored["quarter_end"]).dt.strftime("%Y-%m-%d"))
+    since = quarter_ends(date.today())[0]
+    new = page_rows(cache, today, since=since)
     if not new:
         print("no pages parsed; nothing written")
         return 1
     quarters = merge(stored, new)
-    quarters.to_csv(quarters_csv, index=False, quoting=csv.QUOTE_MINIMAL)
+    if store:
+        write_store(quarters, store, today)
+        print(f"wrote {store} ({os.path.getsize(store) / 1024:.0f} KB, every quarter kept)")
+    # The pages' copy: the quarters the Stock page and the Indices build can use (13 back), not the whole history.
+    quarters[quarters["quarter_end"] >= since].to_csv(quarters_csv, index=False, quoting=csv.QUOTE_MINIMAL)
     out, notes = earnings(quarters)
     out = out[out["complete"]].drop(columns="complete")
     out["as_of"] = str(quarters["fetched"].max())
@@ -212,6 +255,8 @@ def main(argv=None) -> int:
     ap.add_argument("--cache", required=True, help="a directory outside the repository for the raw pages")
     ap.add_argument("--pause", type=float, default=1.5)
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--store", help="build: the full-history parquet to read and write (published to R2)")
+    ap.add_argument("--from-r2", action="store_true", help="build: start from R2's published store")
     args = ap.parse_args(argv)
     if os.path.abspath(args.cache).startswith(ROOT + os.sep):
         ap.error("--cache must be outside the repository")
@@ -227,7 +272,7 @@ def main(argv=None) -> int:
         print(f"{ok} of {want} pages read")
         # Screener stopped the run (403, or a 429 that did not clear): build nothing, show red.
         return 0 if ok >= COMPLETE_SHARE * want else 1
-    return build(args.cache)
+    return build(args.cache, store=args.store, from_r2=args.from_r2)
 
 
 if __name__ == "__main__":

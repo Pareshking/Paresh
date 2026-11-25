@@ -6,6 +6,8 @@ name: Screener earnings (weekly, Saturday)
 # ends and every stock the site lists,
 # then writes data/reference/screener_quarters.csv and data/reference/screener_earnings.csv
 # (scripts/screener_earnings.py). Readers: the Indices page's Earnings section and the Stock page's results table.
+# Every quarter read is kept in R2 (fundamentals/screener_quarters, parquet), one revision a week; the repo keeps
+# only the pages' copy of the last 13 quarters.
 # The run log prints each quarter where our Nifty 50 or Nifty 500 figure is more than 5 points from NSE's
 # published one: a report, not a gate.
 on:
@@ -24,6 +26,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 200
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
     steps:
       - uses: actions/checkout@v7
 
@@ -41,10 +49,26 @@ jobs:
           PYTHONPATH: .
         run: python -I scripts/screener_earnings.py fetch --cache "$RUNNER_TEMP/screener_pages"
 
+      # Starts from R2's published store, so every quarter read since the first run is kept.
       - name: Build the earnings files and the NSE check
         env:
           PYTHONPATH: .
-        run: python -I scripts/screener_earnings.py build --cache "$RUNNER_TEMP/screener_pages"
+        run: |
+          python -I scripts/screener_earnings.py build --cache "$RUNNER_TEMP/screener_pages" \
+            --store screener_quarters.parquet --from-r2
+
+      - name: Publish the full history to R2
+        env:
+          PYTHONPATH: .
+        run: |
+          python scripts/r2_publish.py \
+            --skip-if-published \
+            --path screener_quarters.parquet \
+            --dataset fundamentals/screener_quarters \
+            --source screener_company_quarters \
+            --key-root archive/fundamentals/screener_quarters \
+            --pipeline-version "screener_quarters_v1" \
+            --release-tag data-latest
 
       - name: Commit and push the earnings files
         run: |
