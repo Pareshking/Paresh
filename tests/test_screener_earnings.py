@@ -68,10 +68,10 @@ def test_tata_motors_is_in_q3_fy27_whose_base_is_after_the_demerger():
     assert "Q3FY27" not in m.EX_TATA and "Q2FY27" in m.EX_TATA
 
 
-def test_the_built_file_holds_complete_quarters_for_six_indices():
+def test_the_built_file_holds_complete_quarters_for_seven_indices():
     df = pd.read_csv(ROOT / "data" / "reference" / "screener_earnings.csv")
     assert set(df["index"]) == {"Nifty 50", "Nifty Next 50", "Nifty Midcap 150", "Nifty Smallcap 250",
-                                "Nifty Microcap 250", "Nifty 500"}
+                                "Nifty Microcap 250", "Nifty 500", "Nifty Total Market"}   # the 750: S230
     n500 = df[(df["index"] == "Nifty 500") & (df["measure"] == "sales_agg_yoy")]
     assert (n500["used"] >= 0.9 * n500["members"]).all()
     assert {"pat_agg_yoy", "pat_xoi_agg_yoy", "sales_median_yoy"} <= set(df["measure"])

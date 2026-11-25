@@ -86,7 +86,7 @@ def history(index: str, measure: str, df: pd.DataFrame | None = None) -> pd.Seri
 # ── Ours: Screener's company results added up (S171 (2); owner, 25 Nov 2026: "We will use Screener data only") ──
 
 OURS_PATH = PATH.parent / "screener_earnings.csv"     # built weekly by scripts/screener_earnings.py
-OUR_INDICES = INDICES[:4] + ("Nifty Microcap 250", "Nifty 500")
+OUR_INDICES = INDICES[:4] + ("Nifty Microcap 250", "Nifty 500", "Nifty Total Market")   # the 750: S230
 # The profit the page shows: "pat" is net profit as companies report it; "pat_xoi" leaves out other income after tax
 # for companies other than banks and lenders (the one-off gains sit there: Vodafone Idea Mar 2026, Tata Motors Sep 2025).
 PROFIT = "pat_xoi"

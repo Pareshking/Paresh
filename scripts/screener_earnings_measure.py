@@ -77,6 +77,8 @@ INDICES = {
     "nifty_smallcap_250": "Nifty Smallcap 250",
     "nifty_microcap_250": "Nifty Microcap 250",
     "nifty_500": "Nifty 500",
+    # The 750 the site ranks (owner, 25 Nov 2026: "No Nifty 750 ... in earnings"; S230). Point-in-time members.
+    "nifty_total_market": "Nifty Total Market",
 }
 # Quarter ends with a year-earlier quarter in Screener's 13 columns (Sep 2023 to Sep 2026).
 QUARTER_ENDS = ["2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30", "2025-09-30",
