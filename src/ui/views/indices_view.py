@@ -217,7 +217,8 @@ def _source_note(q: str, as_of) -> str:
     return (f"Our calculation from companies' reported results: each company's quarterly results, added up over the "
             f"companies in the index at the quarter end; last updated {_dy(as_of)}. Profit is "
             f"{PROFIT_WORDS[er.PROFIT]}. Tata Motors, demerged on 1 Oct 2025, is left out of the quarters it would "
-            "distort (Q2 and Q3 of FY26 and FY27).")
+            "distort (Q2 and Q3 of FY26 and FY27), and Rajesh Exports from every index: its reported revenue, about a third "
+            "of the Microcap 250's, would alone set that index's growth.")
 
 
 def section_earnings(lt: er.Latest | None) -> list:

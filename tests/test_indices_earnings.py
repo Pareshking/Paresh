@@ -36,6 +36,7 @@ def test_the_section_shows_our_calculation_for_six_indices_and_names_its_source(
     q = er.quarter_label(lt.quarter)
     assert q in html and "Our calculation from companies&#x27; reported results" in html and "last updated" in html
     assert "Screener" not in html and "Saturday" not in html          # owner, 25 Nov 2026: no source, no schedule
+    assert "Rajesh Exports" in html and "fraud" not in html            # left out, named; the page states no charge
     assert "Microcap 250" in html and "NSE" not in html and "PDF" not in html
     assert iv.earnings_headline(lt).startswith(f"In {q} the Nifty 500's profit ")
 

@@ -78,8 +78,15 @@ def quarter_ends(today: date, years: int = 3) -> list[str]:
 EX_TATA = {"Q2FY26", "Q3FY26", "Q2FY27", "Q3FY27"}
 
 
+# Left out of every index sum, with the owner's reason; the company's own Stock page still shows what it reported.
+LEFT_OUT = {
+    "RAJESHEXPO": "owner, 25 Nov 2026: \"It's fraud company, leave it\"; its reported revenue (Rs 2.9 lakh crore in the "
+                  "Sep 2026 quarter, above Reliance's) is ~31% of the Microcap 250's and alone adds 27-40 pts to its growth",
+}
+
+
 def members(key: str, qe: str) -> set[str]:
-    out = research.members_on(research.index_history(key), qe, canonical=True) or set()
+    out = (research.members_on(research.index_history(key), qe, canonical=True) or set()) - set(LEFT_OUT)
     return out - research.TATA if research.quarter_label(qe) in EX_TATA else out
 
 
@@ -240,6 +247,59 @@ def build(cache: str, quarters_csv: str = QUARTERS_CSV, earnings_csv: str = EARN
     return 0
 
 
+# ── Which pages this week (owner, 25 Nov 2026: "keep our weekly run intelligent ... if it have latest Q results,
+#    don't fetch it again and again every Saturday") ──────────────────────────────────────────────────────────────
+
+CALENDAR_CSV = os.path.join(ROOT, "data", "results_calendar.csv")   # NSE's board meetings, nightly
+
+
+def due_quarter(today: date) -> tuple[str, date]:
+    """The latest quarter end before today, and its filing deadline: SEBI LODR Reg 33 gives 45 days after a quarter,
+    60 after the March quarter (the year's audited results)."""
+    qe = quarter_ends(today, years=1)[-1]
+    end = date.fromisoformat(qe)
+    return qe, end + pd.Timedelta(days=60 if end.month == 3 else 45)
+
+
+def pages_to_read(candidates: list[str], stored: pd.DataFrame | None, calendar: pd.DataFrame | None,
+                  today: date) -> tuple[list[str], dict[str, int]]:
+    """A stock's page is read when:
+    (1) we hold nothing for it;
+    (2) it lacks the due quarter and NSE's calendar shows a results meeting since we last read it;
+    (3) it lacks the due quarter, the calendar has no results meeting for it, and the filing window is open;
+    (4) once a quarter, the first run after the filing deadline, if we last read it before then: restated quarters
+        and late filers are caught.
+    Otherwise it is skipped: it already has the due quarter, or it has no results to give yet."""
+    qe, deadline = due_quarter(today)
+    last, latest = {}, {}
+    if stored is not None and len(stored):
+        g = stored.groupby("symbol")
+        last = g["fetched"].max().astype(str).to_dict()
+        latest = g["quarter_end"].max().astype(str).str[:10].to_dict()
+    meetings: dict[str, list[str]] = {}
+    if calendar is not None and len(calendar):
+        held = calendar[(calendar["results"] == 1) & (calendar["date"] <= today.isoformat())]
+        for sym, d in zip(held["symbol"], held["date"]):
+            meetings.setdefault(str(sym), []).append(str(d))
+    out, why = [], {"new": 0, "results announced": 0, "window, no calendar": 0, "quarterly refresh": 0, "skipped": 0}
+    for sym in candidates:
+        seen = last.get(sym)
+        if seen is None:
+            reason = "new"
+        elif today >= deadline and seen < deadline.isoformat():
+            reason = "quarterly refresh"
+        elif latest.get(sym, "") < qe and any(d >= seen for d in meetings.get(sym, [])):
+            reason = "results announced"
+        elif latest.get(sym, "") < qe and sym not in meetings and today <= deadline:
+            reason = "window, no calendar"
+        else:
+            why["skipped"] += 1
+            continue
+        why[reason] += 1
+        out.append(sym)
+    return out, why
+
+
 def widen_to_every_listed_stock() -> None:
     """Pages for every stock the site lists, not only the index members (owner, 25 Nov 2026: the Stock page's results
     table, "Go ahead"): the indices still add up their own members only."""
@@ -257,12 +317,21 @@ def main(argv=None) -> int:
     ap.add_argument("--limit", type=int)
     ap.add_argument("--store", help="build: the full-history parquet to read and write (published to R2)")
     ap.add_argument("--from-r2", action="store_true", help="build: start from R2's published store")
+    ap.add_argument("--all", action="store_true", help="fetch: every page, not only those due (pages_to_read)")
     args = ap.parse_args(argv)
     if os.path.abspath(args.cache).startswith(ROOT + os.sep):
         ap.error("--cache must be outside the repository")
     research.QUARTER_ENDS = quarter_ends(date.today())
     widen_to_every_listed_stock()
     if args.step == "fetch":
+        if not args.all:
+            stored = pd.read_csv(QUARTERS_CSV) if os.path.exists(QUARTERS_CSV) else None
+            cal = pd.read_csv(CALENDAR_CSV) if os.path.exists(CALENDAR_CSV) else None
+            every = research.universe()
+            chosen, why = pages_to_read(every, stored, cal, date.today())
+            print(f"due quarter {due_quarter(date.today())[0]}, deadline {due_quarter(date.today())[1]}: "
+                  f"{len(chosen)} of {len(every)} pages to read; " + ", ".join(f"{k} {v}" for k, v in why.items()))
+            research.universe = lambda: chosen
         research.fetch(args.cache, max(args.pause, 1.5), args.limit)
         if args.limit:
             return 0
@@ -270,6 +339,8 @@ def main(argv=None) -> int:
         ok = sum(1 for v in got.values() if v.get("status") == 200)
         want = len(research.universe())
         print(f"{ok} of {want} pages read")
+        if want == 0:
+            return 0
         # Screener stopped the run (403, or a 429 that did not clear): build nothing, show red.
         return 0 if ok >= COMPLETE_SHARE * want else 1
     return build(args.cache, store=args.store, from_r2=args.from_r2)

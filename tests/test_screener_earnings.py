@@ -86,3 +86,32 @@ def test_the_r2_store_keeps_every_quarter_and_round_trips(tmp_path):
 def test_the_weekly_job_publishes_the_store_to_r2():
     text = (ROOT / ".github" / "workflows" / "screener_earnings.yml").read_text(encoding="utf-8")
     assert "--from-r2" in text and "--dataset fundamentals/screener_quarters" in text and "--skip-if-published" in text
+
+
+def test_a_page_is_read_only_when_it_can_have_something_new():
+    m = _script()
+    stored = pd.DataFrame([
+        {"symbol": "HAS", "quarter_end": "2026-09-30", "fetched": "2026-11-21"},     # has the Sep quarter
+        {"symbol": "WAIT", "quarter_end": "2026-06-30", "fetched": "2026-11-21"},    # results meeting 25 Nov
+        {"symbol": "LATE", "quarter_end": "2026-06-30", "fetched": "2026-11-21"},    # no meeting yet, window closed
+    ])
+    cal = pd.DataFrame([{"symbol": "WAIT", "date": "2026-11-25", "results": 1}])
+    got, why = m.pages_to_read(["HAS", "WAIT", "LATE", "NEW"], stored, cal, date(2026, 11, 28))
+    assert sorted(got) == ["NEW", "WAIT"] and why["skipped"] == 2
+
+
+def test_once_a_quarter_after_the_filing_deadline_every_page_is_read_again():
+    m = _script()
+    assert m.due_quarter(date(2027, 1, 9)) == ("2026-12-31", date(2027, 2, 14))     # 45 days
+    assert m.due_quarter(date(2027, 4, 10)) == ("2027-03-31", date(2027, 5, 30))    # 60 after March: annual results
+    stored = pd.DataFrame([{"symbol": "HAS", "quarter_end": "2026-12-31", "fetched": "2027-02-06"}])
+    assert m.pages_to_read(["HAS"], stored, None, date(2027, 2, 20))[0] == ["HAS"]   # first run after 14 Feb
+    stored["fetched"] = "2027-02-20"
+    assert m.pages_to_read(["HAS"], stored, None, date(2027, 2, 27))[0] == []        # then not again
+
+
+def test_rajesh_exports_is_left_out_of_every_index_sum():
+    m = _script()
+    assert "RAJESHEXPO" in m.LEFT_OUT
+    for key in m.research.INDICES:
+        assert "RAJESHEXPO" not in m.members(key, "2025-09-30")

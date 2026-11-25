@@ -1,9 +1,13 @@
 name: Screener earnings (weekly, Saturday)
 
 # Earnings growth for the broad indices, our calculation from companies' reported results (S171; owner,
-# 25 Nov 2026: "We will use Screener data only", weekly on Saturday), and each stock's results table. Reads
-# the Screener.in company page (~2,400, 1.5 s apart, ~2 h at ~3 s a page) of every index member on the last 13 quarter
-# ends and every stock the site lists,
+# 25 Nov 2026: "We will use Screener data only", weekly on Saturday), and each stock's results table. Of the
+# ~2,400 stocks the site lists and index members on the last 13 quarter ends, it reads only the pages that can
+# have something new (owner, 25 Nov: "keep our weekly run intelligent"; scripts/screener_earnings.py
+# pages_to_read): a stock lacking the latest quarter whose results meeting NSE's calendar shows since we last
+# read it, or, with no calendar entry, any stock lacking it while the filing window is open (45 days, 60 after
+# March, SEBI LODR Reg 33); and every page once a quarter, on the first run after the deadline (restatements,
+# late filers; ~2 h at ~2.5 s a page). Dispatch with all=true for every page.
 # then writes data/reference/screener_quarters.csv and data/reference/screener_earnings.csv
 # (scripts/screener_earnings.py). Readers: the Indices page's Earnings section and the Stock page's results table.
 # Every quarter read is kept in R2 (fundamentals/screener_quarters, parquet), one revision a week; the repo keeps
@@ -14,6 +18,11 @@ on:
   schedule:
     - cron: '23 4 * * 6'    # Saturday 04:23 UTC (09:53 IST)
   workflow_dispatch:
+    inputs:
+      all:
+        description: "Read every page, not only those that can have something new"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -47,7 +56,9 @@ jobs:
       - name: Read the company pages from Screener.in
         env:
           PYTHONPATH: .
-        run: python -I scripts/screener_earnings.py fetch --cache "$RUNNER_TEMP/screener_pages"
+        run: |
+          python -I scripts/screener_earnings.py fetch --cache "$RUNNER_TEMP/screener_pages" \
+            ${{ inputs.all && '--all' || '' }}
 
       # Starts from R2's published store, so every quarter read since the first run is kept.
       - name: Build the earnings files and the NSE check
