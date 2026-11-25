@@ -186,8 +186,9 @@ def with_nse_levels(frame: pd.DataFrame, system: str, sectors: dict[str, str] | 
     out.attrs["nse_sectors"] = system == xu.SYSTEM_750 or coverage(frame, sectors) >= min_coverage
     sym = out["Symbol"].astype(str).str.upper()
     theirs = sym.map(file_sector)
-    conflict = theirs.notna() & out["Industry"].notna() & (theirs != out["Industry"].astype(str))
-    if not out.attrs["nse_sectors"]:
+    shown = out["Industry"] if "Industry" in out else pd.Series(index=out.index, dtype=object)
+    conflict = theirs.notna() & shown.notna() & (theirs != shown.astype(str))
+    if not out.attrs["nse_sectors"] or "Industry" not in out:
         conflict[:] = False                          # the sector is not NSE's yet: nothing to check against
     missing: dict[str, int] = {}
     for col in LEVEL_COLUMNS:

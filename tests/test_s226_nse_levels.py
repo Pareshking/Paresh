@@ -281,3 +281,11 @@ def test_the_committed_file_conflicts_only_where_found():
     out = nc.with_nse_levels(rank, xu.SYSTEM_750, nc.sector_map(), nc.levels_map(), min_coverage=0.0)
     assert out.attrs["nse_level_conflicts"] == ["BUILDPRO", "CMPDI", "INA", "SUDEEPPHRM"]
     assert out.loc[4, "NSE_Industry"] != nc.UNCLASSIFIED
+
+
+def test_a_frame_without_a_sector_column_still_gets_its_levels():
+    rank = _rank().drop(columns="Industry")
+    syms = list(rank["Symbol"])
+    levels = {**_levels(syms), nc.FILE_SECTOR: {s: "Construction" for s in syms}}
+    out = nc.with_nse_levels(rank, xu.SYSTEM_750, {}, levels)
+    assert out["NSE_Industry"].eq("Banks").all() and out.attrs["nse_level_conflicts"] == []
