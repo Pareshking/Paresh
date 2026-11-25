@@ -62,3 +62,21 @@ def latest(df: pd.DataFrame | None = None) -> Latest | None:
             vals[r.index][r.measure] = float(r.value_pct)
     return Latest(quarter=q, published=pd.Timestamp(rows["published"].iloc[0]),
                   pdf_url=str(rows["pdf_url"].iloc[0]), values=vals)
+
+
+def quarter_end(q: str) -> pd.Timestamp:
+    """"Q1FY27" -> 30 Jun 2026 (India's fiscal year starts in April)."""
+    n, fy = int(q[1]), 2000 + int(q[4:])
+    month, year = {1: (6, fy - 1), 2: (9, fy - 1), 3: (12, fy - 1), 4: (3, fy)}[n]
+    return pd.Timestamp(year, month, 1) + pd.offsets.MonthEnd(0)
+
+
+def history(index: str, measure: str, df: pd.DataFrame | None = None) -> pd.Series:
+    """One figure per quarter, oldest first, indexed by quarter end. A quarter NSE skipped carries the next
+    issue's figure for it; Q3 FY26 excludes Tata Motors (owner, 25 Nov 2026), as the file stores it."""
+    df = load() if df is None else df
+    if df is None or df.empty:
+        return pd.Series(dtype=float)
+    rows = df[(df["index"] == index) & (df["measure"] == measure)].dropna(subset=["value_pct"])
+    out = pd.Series({quarter_end(q): float(v) for q, v in zip(rows["quarter"], rows["value_pct"])}, dtype=float)
+    return out.sort_index()

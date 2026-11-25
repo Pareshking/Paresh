@@ -38,3 +38,19 @@ def test_the_section_names_the_quarter_source_and_shows_a_dash_for_a_figure_nse_
 
 def test_no_file_no_section():
     assert iv.section_earnings(None) == []
+
+
+def test_history_runs_every_quarter_from_q1_fy22_with_q3_fy26_ex_tata_motors():
+    h = er.history("Nifty 500", "pat_agg_yoy")
+    assert len(h) == 21 and h.index[0] == pd.Timestamp("2021-06-30") and h.index[-1] == pd.Timestamp("2026-06-30")
+    assert h[pd.Timestamp("2025-12-31")] == 18.2                     # ex-Tata Motors (owner, 25 Nov 2026); 15.9 with it
+    assert er.history("Nifty 50", "pat_agg_yoy")[pd.Timestamp("2025-12-31")] == 12.8
+    assert er.quarter_end("Q4FY26") == pd.Timestamp("2026-03-31") and er.quarter_end("Q3FY26") == pd.Timestamp("2025-12-31")
+
+
+def test_the_history_chart_names_its_span_and_the_tata_motors_basis():
+    parts = iv.earnings_history()
+    assert len(parts) == 2
+    how = str(parts[1])
+    assert "Q1 FY22 to Q1 FY27" in how and "leaves out Tata Motors" in how and "Q3 FY26" in how
+    assert "+18.2%" in how and "+11.1%" in how
