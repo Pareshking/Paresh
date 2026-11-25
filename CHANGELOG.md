@@ -3,6 +3,7 @@
 
 ## 2026-11-25 — Indices: how many companies reported (S171)
 
+- Backtest: section 4 gives each stored test from Mar 2012 too, on NSE's own Nifty 500 closes only (as tested 19.8% a year, the Nifty 500 11.8%); the closes before 21 Feb 2012 come from an outside dataset not checked against NSE's.
 - Every page: when R2 cannot be reached, the foot line says the figures are the backup copy, with the date in red once that copy is more than one trading day old.
 - Sectors: NSE's sector-index table now sets the 750's own stocks under each finer index: its 34 banks under Nifty Bank, 11 public-sector banks under Nifty PSU Bank, 11 hospitals under Nifty Hospitals, and so on for 12 indices.
 - Market: "Stocks above their 200D EMA" now gives one percentile in both tables (the 1000 read the 29th since Jul 2017 in one and the 31st since Mar 2018 in the other).

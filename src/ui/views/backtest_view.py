@@ -826,21 +826,34 @@ def section_depends(f: dict) -> list:
                         "Costs matter more than the rebalance rule." if cost_hit > rule_hit else
                         "The rebalance rule matters more than costs.")
         h2 = " ".join(bits) if bits else "The stored tests for the default run are not in yet."
-        items = [("As tested", "six-monthly reset, 30 bps", sm.a_year, True),
-                 ("Monthly reset", "the record’s rule to Oct 2026", r.get("monthly_reset"), False),
-                 ("Costs 60 bps", "a round trip", r.get("cost_60"), False),
-                 ("Costs 100 bps", "a round trip", r.get("cost_100"), False),
-                 ("After tax", "estimate, sold at the end, no other gains", at.get("rule"), False),
-                 ("Nifty 500", "price index", sm.bench_a_year, False),
-                 ("Nifty 500 after tax", "bought at the start, sold at the end", at.get("nifty_500"), False)]
+        # Each test again from Mar 2012, on NSE's own Nifty 500 closes only (owner, 22 Nov 2026, S174 "1 a" D1);
+        # shown when the weekly run has stored it and this run starts before it.
+        late = ref.get("from_2012") or {}
+        late = late if late.get("as_tested") is not None and sm.first < pd.Timestamp("2012-02-21") else {}
+        items = [("As tested", "six-monthly reset, 30 bps", sm.a_year, True, "as_tested"),
+                 ("Monthly reset", "the record’s rule to Oct 2026", r.get("monthly_reset"), False, "monthly_reset"),
+                 ("Costs 60 bps", "a round trip", r.get("cost_60"), False, "cost_60"),
+                 ("Costs 100 bps", "a round trip", r.get("cost_100"), False, "cost_100"),
+                 ("After tax", "estimate, sold at the end, no other gains", at.get("rule"), False, None),
+                 ("Nifty 500", "price index", sm.bench_a_year, False, "nifty_500"),
+                 ("Nifty 500 after tax", "bought at the start, sold at the end", at.get("nifty_500"), False, None)]
         items = [x for x in items if x[2] is not None]
-        hi_v = max(v for *_, v, _b in items) * 100
+        hi_v = max(x[2] for x in items) * 100
         step = _step(0, hi_v)
         hi = float(np.ceil(hi_v / step) * step)
-        for name, sub, v, base in items:
-            rows.append({"name": name, "sub": sub, "bar": round(v * 100, 2), "vals": [_pc(v)], "cls": ["b" if base else ""],
-                         "read": [[_pc(v), name.lower() + ", a year"]]})
-        spec = {"label": f"{_d(sm.first)} – {_d(sm.last)}", "barHead": f"A year, 0 to {hi:g}%", "head": ["A year"],
+        from_late = f"From {_d(pd.Timestamp(late['window'][0]))}" if late.get("window") else "From Mar 2012"
+        for name, sub, v, base, key in items:
+            row = {"name": name, "sub": sub, "bar": round(v * 100, 2), "vals": [_pc(v)], "cls": ["b" if base else ""],
+                   "read": [[_pc(v), name.lower() + ", a year"]]}
+            if late:
+                lv = late.get(key) if key else None
+                row["vals"].append(_pc(lv) if lv is not None else "–")
+                row["cls"].append("")
+                if lv is not None:
+                    row["read"].append([_pc(lv), "f" + from_late[1:] + ", a year"])
+            rows.append(row)
+        spec = {"label": f"{_d(sm.first)} – {_d(sm.last)}", "barHead": f"A year, 0 to {hi:g}%",
+                "head": ["A year"] + ([f"{from_late}, a year"] if late else []),
                 "rows": rows, "lo": 0.0, "hi": hi, "step": step, "lines": [round(sm.bench_a_year * 100, 2)] if sm.bench_a_year else [],
                 "rest": "As tested"}
         stale = "" if ref.get("long_last_session") == f"{f['long_last']:%Y-%m-%d}" else (
@@ -853,7 +866,10 @@ def section_depends(f: dict) -> list:
                   f'<p class="dh-note">The rows other than “As tested” '
                   f'and “Nifty 500” are re-run once a week on the default settings only (run of {_d(ref["built"])}). After tax: '
                   f'{e(at.get("rates", ""))}, for an investor with no other gains; the index position is taxed once, long term, '
-                  f'when sold.{e(stale)}</p>']
+                  f'when sold.{e(stale)}'
+                  + (f' {e(from_late)}: each test re-run from that month, on NSE’s own Nifty 500 closes only (those '
+                     'before 21 Feb 2012 come from an outside dataset not checked against NSE’s); not run after tax.'
+                     if late else "") + '</p>']
     else:
         parts += ['<h2 id="s-depends" class="dh-h2">Costs, the rebalance rule and tax are tested for the default run only.</h2>',
                   '<p class="dh-note">These settings are not the default, so the stored tests (60 and 100 bps, the monthly reset, '
@@ -925,7 +941,10 @@ def section_trust(f: dict) -> list:
     ]
     if sm.first < pd.Timestamp("2012-02-21"):
         checks.append(("The index before Feb 2012", "Nifty 500 closes before 21 Feb 2012 come from an outside dataset, not yet "
-                                                    "checked against NSE’s own file (S167).", "Not checked"))
+                                                    "checked against NSE’s own file (S167)"
+                                                    + ("; section 4 gives each stored test from Mar 2012 as well."
+                                                       if (f.get("reference") or {}).get("from_2012") else "."),
+                       "Not checked"))
     checks.append(("A second source for the result", "None: the replay is our own engine. Prices pass the long file’s audits "
                                                      "(other price histories and BSE).", "Not checked"))
     tone = {"Checked": "dh-up", "Soft spot": "dh-watch", "Not checked": "dh-watch"}

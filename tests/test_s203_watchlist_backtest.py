@@ -816,3 +816,19 @@ def test_bt_err_1(monkeypatch):
     src = bv.Path(bv.__file__).read_text(encoding="utf-8")
     assert '"The rules need 12 months of prices before the first "\n                 "month tested; pick a later start above."' in src
     assert "12M lookback" not in src
+
+
+def test_bt_dep_from_2012_column():
+    """S174 "1 a" D1 (owner, 22 Nov 2026): each stored test also from Mar 2012, NSE's own index closes only."""
+    late = {"as_tested": 0.198, "monthly_reset": 0.201, "cost_60": 0.183, "cost_100": 0.162, "nifty_500": 0.118,
+            "window": ["2012-03-01", "2026-10-30"]}
+    parts = bv.section_depends(_f(reference={**_ref(), "from_2012": late}))
+    assert "From 1 Mar 2012: each test re-run from that month, on NSE’s own Nifty 500 closes only" in html_of(parts)
+    spec = next(p.spec for p in parts if getattr(p, "kind", "") == "trows")
+    assert spec["head"] == ["A year", "From 1 Mar 2012, a year"]
+    vals = {r["name"]: r["vals"] for r in spec["rows"]}
+    assert vals["As tested"][1] == "19.8%" and vals["Nifty 500"][1] == "11.8%" and vals["After tax"][1] == "–"
+
+def test_bt_dep_no_from_2012_column_before_the_weekly_run_stores_it():
+    doc = html_of(bv.section_depends(_f(reference=_ref())))
+    assert "From 1 Mar 2012" not in doc and "From Mar 2012" not in doc

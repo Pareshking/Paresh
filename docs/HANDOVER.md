@@ -256,8 +256,8 @@ Each only with CI green on the PR's current head, squash merge, nothing deleted,
 
 ## Owner decisions of 22 Nov (S174 "1 a")
 
-Recorded 25 Nov in `DASHBOARD_REQUIREMENTS.md` "Data pass decisions" D1-D3. D3 (the backup-copy foot line) and D2
-(the ledger's nightly R2 copy, checked against git) are built; D1's from-2012 figures are open. Check after the
+Recorded 25 Nov in `DASHBOARD_REQUIREMENTS.md` "Data pass decisions" D1-D3. All three are built: D3 the backup-copy foot line, D2
+the ledger's nightly R2 copy checked against git, D1 each Backtest test from Mar 2012. Check after the
 merge: the first `daily_sync` logs "R2 copy matches git" three times.
 
 ## Dates to watch

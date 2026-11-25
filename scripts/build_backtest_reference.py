@@ -9,6 +9,7 @@ last session so the page can say which file they belong to:
 
   - the monthly reset, 60 and 100 bps a round trip (the same window);
   - the rule on the Nifty Total Market universe from Nov 2021, against that index;
+  - the default run and those three again from Mar 2012, the first month on NSE's own Nifty 500 closes;
   - after tax, sold at the end: the share-lot replay of
     scripts/research/rebalance_rules_after_tax.py (STCG 20.8%, LTCG 13% above
     Rs 1.25 lakh, today's rates for every year, an investor with no other gains),
@@ -74,6 +75,9 @@ def _r(v, d=4):
     return None if v is None else round(float(v), d)
 
 
+FROM_2012 = pd.Period("2012-03", "M")
+
+
 def build(close: pd.DataFrame) -> dict:
     close.index = pd.DatetimeIndex(close.index)
     n500 = benchmark_store.history(period="max", symbol=BENCHMARK_SYMBOL)
@@ -92,6 +96,20 @@ def build(close: pd.DataFrame) -> dict:
             out["window"] = [f"{eq.index[0]:%Y-%m-%d}", f"{eq.index[-1]:%Y-%m-%d}"]
             out["rows"]["nifty_500"] = _r(bp.a_year(bp.on_calendar(n500, eq.index)))
         print(name, out["rows"][name], flush=True)
+
+    # Each test again from Mar 2012, the first month after NSE's own Nifty 500 file begins (21 Feb 2012):
+    # the closes before it are an outside dataset not checked against NSE's (owner, 22 Nov 2026, S174
+    # "1 a" D1: keep the history, labelled, and also show each test from 2012). Fresh runs, not a slice
+    # of the 2010 curve, so no holding bought on the unchecked closes carries in.
+    late: dict = {}
+    for name, (rule, cost) in runs.items():
+        eq = _curve(_run(close, bp.DEFAULT_INDEX, n500, FROM_2012, rule, cost))
+        late[name] = _r(bp.a_year(eq))
+        if name == "as_tested":
+            late["window"] = [f"{eq.index[0]:%Y-%m-%d}", f"{eq.index[-1]:%Y-%m-%d}"]
+            late["nifty_500"] = _r(bp.a_year(bp.on_calendar(n500, eq.index)))
+        print(name, "from 2012", late[name], flush=True)
+    out["from_2012"] = late
 
     # The rule on the Total Market universe, against Nifty Total Market (NSE's file).
     from src.loaders import nse_indices as ni
