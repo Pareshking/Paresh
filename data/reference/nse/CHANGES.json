@@ -1,9 +1,33 @@
 {
- "fetched_at_utc": "2026-11-24T12:57:14+00:00",
+ "fetched_at_utc": "2026-11-25T11:44:14+00:00",
  "new": {
-  "symbolchange.csv": [],
+  "symbolchange.csv": [
+   {
+    "company": "REC Limited",
+    "old_symbol": "789REC36",
+    "new_symbol": "789RECL36",
+    "date": "25-NOV-2026"
+   },
+   {
+    "company": "REC Limited",
+    "old_symbol": "789RECL36",
+    "new_symbol": "789RECL36",
+    "date": "25-NOV-2026"
+   }
+  ],
   "namechange.csv": [],
-  "equity_l.csv": [],
+  "equity_l.csv": [
+   {
+    "SYMBOL": "OLIL",
+    "NAME OF COMPANY": "Oneclick Logistics India Limited",
+    "SERIES": "EQ",
+    "DATE OF LISTING": "26-NOV-2026",
+    "PAID UP VALUE": "10",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE0OPS01011",
+    "FACE VALUE": "10"
+   }
+  ],
   "corporate_actions": []
  },
  "touching_members": {}
