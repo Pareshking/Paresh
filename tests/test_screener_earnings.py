@@ -115,3 +115,14 @@ def test_rajesh_exports_is_left_out_of_every_index_sum():
     assert "RAJESHEXPO" in m.LEFT_OUT
     for key in m.research.INDICES:
         assert "RAJESHEXPO" not in m.members(key, "2025-09-30")
+
+
+def test_every_symbol_is_read_as_nse_lists_it_today():
+    # The nine 404s of 25 Nov 2026: each is a company Screener has, under another ticker or as its parent's line.
+    m = _script()
+    listed = {"JSWDULUX", "UFBL", "ABCIND", "BAJAJ-AUTO", "BOSCH-HCIL", "AARTISURF", "BIRET", "TCS"}
+    renames = {"AKZOINDIA": "JSWDULUX", "BARBEQUE": "UFBL", "ABCOTS": "ABCIND"}
+    got, why = m.canonical_symbols(["AKZOINDIA", "BARBEQUE", "ABCOTS", "BAJAJ_AUTO", "BOSCH_HCIL", "AARTISURF.P1",
+                                    "ATLPP.E1", "BIRET.RR", "TCS", "SMESTOCK"], renames, listed)
+    assert got == ["ABCIND", "BAJAJ-AUTO", "BOSCH-HCIL", "JSWDULUX", "SMESTOCK", "TCS", "UFBL"]
+    assert why["ATLPP.E1"].startswith("a partly-paid or unit line") and why["AKZOINDIA"] == "read as JSWDULUX"

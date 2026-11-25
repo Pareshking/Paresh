@@ -44,6 +44,7 @@ from __future__ import annotations
 import argparse
 import csv
 import os
+import re
 import statistics
 import sys
 from datetime import date
@@ -300,13 +301,52 @@ def pages_to_read(candidates: list[str], stored: pd.DataFrame | None, calendar: 
     return out, why
 
 
+SERIES_SUFFIX = re.compile(r"\.[A-Z0-9]{1,3}$")     # ATLPP.E1, AARTISURF.P1, BIRET.RR: a partly-paid or unit line
+
+
+def canonical_symbols(symbols, renames: dict[str, str], listed: set[str]) -> tuple[list[str], dict[str, str]]:
+    """Each symbol as NSE lists it today, so every company has a page (owner, 25 Nov 2026: "check screener website with
+    company names etc first"): a renamed ticker follows NSE's symbol-change file (AKZOINDIA -> JSWDULUX, BARBEQUE ->
+    UFBL, ABCOTS -> ABCIND); a TradingView spelling takes NSE's (BAJAJ_AUTO -> BAJAJ-AUTO); a partly-paid or unit line
+    (.P1, .E1, .RR) is the same company as its parent, whose page is read anyway. Returns the symbols and why each
+    one changed or went."""
+    out, why = set(), {}
+    for sym in symbols:
+        s = sym
+        if SERIES_SUFFIX.search(s):
+            why[sym] = "a partly-paid or unit line of " + SERIES_SUFFIX.sub("", s)
+            continue
+        if "_" in s and s.replace("_", "-") in listed:
+            s = s.replace("_", "-")
+        if s not in listed and renames.get(s) in listed:
+            s = renames[s]
+        if s != sym:
+            why[sym] = f"read as {s}"
+        out.add(s)
+    return sorted(out), why
+
+
 def widen_to_every_listed_stock() -> None:
     """Pages for every stock the site lists, not only the index members (owner, 25 Nov 2026: the Stock page's results
-    table, "Go ahead"): the indices still add up their own members only."""
-    from scripts.nse_classification import universe as listed
+    table, "Go ahead"): the indices still add up their own members only. Names come from NSE's equity list too, so a
+    symbol whose page is not at its ticker is found by name."""
+    from scripts.nse_classification import universe as listed_by_site
+    from src.loaders import nse_identity as ni
+    equity = pd.read_csv(ni.EQUITY_L)
+    equity.columns = [c.strip() for c in equity.columns]
+    nse_names = dict(zip(equity["SYMBOL"].str.strip(), equity["NAME OF COMPANY"].str.strip()))
+    res = ni.resolve()
+    renames = dict(zip(res["old"], res["new"]))
     members_only, names_only = research.universe, research.names
-    research.universe = lambda: sorted(set(members_only()) | set(listed()))
-    research.names = lambda: {**{s: n for s, n in listed().items() if n}, **names_only()}
+
+    def universe():
+        syms, why = canonical_symbols(set(members_only()) | set(listed_by_site()), renames, set(nse_names))
+        if why:
+            print(f"{len(why)} symbol(s) read another way: " + "; ".join(f"{k} {v}" for k, v in sorted(why.items())))
+        return syms
+
+    research.universe = universe
+    research.names = lambda: {**nse_names, **{s: n for s, n in listed_by_site().items() if n}, **names_only()}
 
 
 def main(argv=None) -> int:
