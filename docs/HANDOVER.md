@@ -212,6 +212,8 @@ S194 L3/L4 and S202 (#627).
 
 ## Found, not fixed (recorded so it is not rediscovered)
 
+- **Layout audit, Dashboard at 412 px, 25 Nov:** "segbar frame taller than its drawing 39 px spare" failed #692's validate (run 45621877248, attempt 1) on a docs-only change; the same code passed on #689, #691 and locally, and the one re-run passed. Lead: the frame keeps its fallback-font height past the audit's second reading. If it recurs, wait for `document.fonts.ready` inside the frame before measuring.
+
 - **Fixed 23 Nov: `test_zeroed_weight_session_recovers.py` failed only in a full run.** Cause: past
   1,800 MB resident (`memory.GUARD_MB`), `app.py` drops every `src.*` module, so the test read a stale
   `startup_metrics`. Reproduced with `UMIYA_MEMORY_GUARD_MB=1` (fails), fixed by reading the live module.
