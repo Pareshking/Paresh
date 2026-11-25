@@ -78,5 +78,5 @@ Order: 1 · The book, month so far → 2 · What happens on → 3 · Is momentum
 | # | Decision | State |
 | --- | --- | --- |
 | D1 | Keep the Nifty 500 before 2012, labelled "unchecked (Kaggle)", and also show each test from 2012 | Label: Backtest's trust table reads "Not checked" for closes before 21 Feb 2012 (S167). **Open:** each test's figure from Feb 2012 |
-| D2 | The track-record ledger stays in git, with a nightly R2 copy and a check that the two match | **Open** |
+| D2 | The track-record ledger stays in git, with a nightly R2 copy and a check that the two match | Built 25 Nov: `scripts/track_record_r2_copy.py`, the second-last step of `daily_sync`, writes `record/ledger/<file>` only when git's bytes changed, reads it back and fails the run on a mismatch. Done when the first nightly run logs "R2 copy matches git" for all three files |
 | D3 | When R2 cannot be reached, fall back to the repo copy, with a footer note and the date in red when it is more than one trading day old | Built 25 Nov: the fallback to the release files existed (`app_source`); every page's foot line now adds "(the backup copy: R2 could not be reached)" and its date turns red past one trading day (`formats.data_to_html`). A local or CI run without keys is not counted. The flag is per process, so one file missing R2 marks every page |

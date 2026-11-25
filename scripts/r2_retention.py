@@ -144,6 +144,7 @@ PROTECTED_DATASETS: tuple[str, ...] = (
     "classifications/",
     "snapshots/rankings*",              # rankings, rankings_nano, rankings_combined, rankings_1000
     "record/freezes/",                  # each frozen month's evidence bundle (S185): every revision kept
+    "record/ledger/",                   # the track-record ledger's nightly copy of git (S174 "1 a" D2)
 )
 
 # Protected datasets the owner allowed to be thinned to their newest copies,
