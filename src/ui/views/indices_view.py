@@ -31,7 +31,7 @@ IX_CSS = """
 .dh-how-t td:first-child{white-space:nowrap}
 .ix-every th[scope=row]{font-weight:500;white-space:normal;min-width:170px}
 .ix-every .dh-sub{white-space:nowrap}
-.ix-q td.up{color:var(--c-up)}.ix-q td.down{color:var(--c-down)}.ix-q th[scope=row]{min-width:0;white-space:nowrap}
+.ix-q td.up{color:var(--c-up)}.ix-q td.down{color:var(--c-down)}.ix-q th[scope=row]{min-width:0;white-space:nowrap}.ix-q thead th{white-space:normal}
 .ix-fam{margin:8px 0 0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;line-height:1.3!important}
 @media (max-width:640px){.ix-every th[scope=row],.ix-every thead th:first-child{white-space:nowrap;min-width:0;position:sticky;left:0;background:var(--c-white);z-index:1;box-shadow:1px 0 0 var(--c-rule_soft);padding-right:10px!important}.ix-every th,.ix-every td{padding:6px 4px 6px 0!important;font-size:var(--fs-12)}
 .ix-hide-s{display:none}}
@@ -218,7 +218,7 @@ def _source_note(q: str, as_of) -> str:
             f"companies in the index at the quarter end; last updated {_dy(as_of)}. Profit is "
             f"{PROFIT_WORDS[er.PROFIT]}. Tata Motors, demerged on 1 Oct 2025, is left out of the quarters it would "
             "distort (Q2 and Q3 of FY26 and FY27), and Rajesh Exports from every index: its reported revenue, about a third "
-            "of the Microcap 250's, would alone set that index's growth.")
+            "of the Nifty Microcap 250's, would alone set that index's growth.")
 
 
 def section_earnings(lt: er.Latest | None) -> list:
@@ -243,8 +243,7 @@ def section_earnings(lt: er.Latest | None) -> list:
             + f'</tr></thead><tbody>{body}</tbody></table></div></div>'] + earnings_quarters() + earnings_history()
 
 
-QUARTER_HEADS = {"Nifty 50": "Nifty 50", "Nifty Next 50": "Next 50", "Nifty Midcap 150": "Midcap 150",
-                 "Nifty Smallcap 250": "Smallcap 250", "Nifty Microcap 250": "Microcap 250", "Nifty 500": "Nifty 500"}
+QUARTER_HEADS = {i: i for i in er.OUR_INDICES}       # the glossary's full names (G3), headings may wrap
 
 
 def earnings_quarters() -> list:
