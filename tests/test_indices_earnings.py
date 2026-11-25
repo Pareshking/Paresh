@@ -107,3 +107,14 @@ def test_an_index_with_too_few_reported_reads_a_dash_so_far():
                    values={"Nifty 50": {"pat_agg_yoy": 40.0, "sales_agg_yoy": 20.0}}, reported={"Nifty 50": (3, 50)})
     html = iv.section_partial(pt)
     assert "+40.0%" not in html and "3 of 50" in html
+
+
+def test_the_quarter_coming_in_is_the_top_row_of_the_quarterly_tables(monkeypatch):
+    pt = er.Latest(quarter="Q3FY27", published=pd.Timestamp("2027-01-23"), pdf_url="",
+                   values={i: {"pat_agg_yoy": 12.0, "sales_agg_yoy": 9.0} for i in er.OUR_INDICES},
+                   reported={**{i: (40, 50) for i in er.OUR_INDICES}, "Nifty 500": (212, 500), "Nifty 50": (3, 50)})
+    monkeypatch.setattr(er, "partial", lambda df=None: pt)
+    html = iv.earnings_quarters()[0]
+    first = html.split("<tbody>")[1].split("</tr>")[0]
+    assert "Q3 FY27 so far" in first and "212 of 500 reported" in first and "+12.0%" in first
+    assert first.count("–") == 1                                       # the Nifty 50, 3 of 50: too few yet

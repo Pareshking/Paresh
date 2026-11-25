@@ -286,6 +286,17 @@ def earnings_quarters() -> list:
         if len(idx) < 2:
             return []
         rows = ""
+        pt = er.partial()
+        if pt is not None:              # the quarter coming in, top row (owner, 25 Nov 2026: "show partial also")
+            got = pt.reported.get("Nifty 500")
+            cells = ""
+            for i in er.OUR_INDICES:
+                n, v = pt.reported.get(i), pt.values.get(i, {}).get(measure)
+                v = None if n and n[0] < 0.1 * n[1] else v
+                cls = "" if v is None or _fmt.half_up(v, 1) == 0 else ("up" if v > 0 else "down")
+                cells += f'<td class="dh-num {cls}">{e(sg(v, 1, "%"))}</td>'
+            sub = f'<span class="dh-sub">{got[0]} of {got[1]} reported</span>' if got else ""
+            rows += f'<tr><th scope="row">{e(er.quarter_label(pt.quarter))} so far{sub}</th>{cells}</tr>'
         for d, q in zip(idx, _quarters(idx)):
             cells = "".join(
                 f'<td class="dh-num {"" if (v := hist[i].get(d)) is None or _fmt.half_up(v, 1) == 0 else ("up" if v > 0 else "down")}">'
@@ -298,7 +309,9 @@ def earnings_quarters() -> list:
     if out:
         out[-1] = out[-1].replace("</table></div></div>", '</table></div><p class="dh-note">All the index\'s companies '
                                   "added together, each quarter against the same quarter a year earlier; the first row is "
-                                  "the latest quarter. Profit as in the table above.</p></div>")
+                                  "the latest quarter. A quarter still coming in reads \"so far\", with how many Nifty 500 "
+                                  "companies have reported; an index shows – until one in ten of its companies have. "
+                                  "Profit as in the table above.</p></div>")
     return out
 
 
