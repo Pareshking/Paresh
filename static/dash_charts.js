@@ -575,7 +575,16 @@ R.lmap = (card, s) => {
     hover = best; draw(); };
   el.addEventListener('pointermove', near); el.addEventListener('pointerdown', near);
   el.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') { hover = null; draw(); } });
-  el.addEventListener('keydown', e => { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; e.preventDefault();
+  // A click (or tap, or Enter) on a sector picks it out and fades the rest; a second click on it shows all again, as the
+  // map did before the 22 Nov rebuild (S229; owner, 25 Nov 2026). The picker follows, so the two never disagree.
+  const toggle = r => { if (!r) return; focus = focus === r.name ? '' : r.name; pick.value = focus; draw(); example(); };
+  // On pointerup, not click: pointerdown redraws the svg, and a browser sends no click once the pressed node is gone.
+  let downAt = null;
+  el.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
+  el.addEventListener('pointerup', e => { if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 10) return;
+    downAt = null; near(e); toggle(hover); });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(hover || ends()[0]); return; }
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; e.preventDefault();
     const srt = rows().slice().sort((a, b) => a.x1 - b.x1), i = srt.indexOf(hover || ends()[0]);
     hover = srt[Math.max(0, Math.min(srt.length - 1, i + (e.key === 'ArrowLeft' ? -1 : 1)))]; draw(); });
   const sw = (box, set) => box.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return;

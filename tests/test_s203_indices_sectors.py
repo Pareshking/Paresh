@@ -640,8 +640,8 @@ def test_se_map_2():
     assert _note(sv.section_map(views, SH, "sector", "1000")) == (
         "Across: the sector’s lead over the 1000 over the period, both equal-weighted, in pts (for 1M, the one-month lead "
         "above). Up: the share of its stocks above the EMA. The hollow dot is the reading a period ago, the filled dot "
-        "today. The leader is blue, the laggard rust, the rest grey; pick one to pick it out. Today’s members, five or "
-        "more stocks each.")
+        "today. The leader is blue, the laggard rust, the rest grey; click one, or choose it in the list, to fade the rest, "
+        "and click it again to show all. Today’s members, five or more stocks each.")
 
 
 @pytest.mark.parametrize("uni", UNIS)
@@ -734,3 +734,11 @@ def test_se_uni_1_the_whole_page_names_the_systems_list(uni):
     assert f"the {uni}" in text and f"The {uni} against Nifty Total Market" in text
     for h in re.findall(r"<h[12][^>]*>(.*?)</h[12]>", html_of(parts), re.S):
         _clean(h)
+
+
+def test_s229_a_click_on_the_map_picks_a_sector_out():
+    """S229 (owner, 25 Nov 2026): a click faded the others before the 22 Nov rebuild; the rebuild kept only the list."""
+    js = (Path(__file__).resolve().parents[1] / "static" / "dash_charts.js").read_text(encoding="utf-8")
+    lmap = js[js.index("R.lmap ="):js.index("R.stable =")]
+    assert "el.addEventListener('pointerup'" in lmap and "pick.value = focus" in lmap
+    assert "opacity: on(r) ? 1 : .22" in lmap

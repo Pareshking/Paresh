@@ -3,6 +3,7 @@
 
 ## 2026-11-25 — Indices: how many companies reported (S171)
 
+- Sectors: on the leadership map, a click on a sector picks it out again and fades the rest (as before the 22 Nov rebuild); a second click shows all. The list follows the click.
 - Screener, Sectors, Watchlist: four stocks whose NSE list sector and NSE industry disagree (CMPDI, INA, SUDEEPPHRM, BUILDPRO) no longer show an industry from another sector; they read Unclassified below the sector until the sources agree.
 - Stock page and search: SHUKRAMED (NSE's new ticker for SHUKRAPHAR since 20 Nov 2026) opens the stock's page, with a line saying the ranking files it under SHUKRAPHAR until January.
 - Indices earnings: Tata Motors is left out of Q2 FY27 only (its base holds the demerger gain); Q3 FY27, whose base is after the demerger, counts it. The note says "Q2 and Q3 FY26, Q2 FY27".

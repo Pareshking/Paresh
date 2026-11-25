@@ -601,7 +601,7 @@ def section_map(views: dict, sh, noun: str, uni: str = "750") -> list:
     return [f'<div class="dh-sec">{KICK.format("Sector leadership map")}<h2 id="s-map" class="dh-h2">{h2}</h2>'
             f'<p class="dh-note">Across: the {noun}’s lead over the {uni} over the period, both equal-weighted, in pts (for 1M, '
             f'the one-month lead above). Up: the share of its stocks above the EMA. The hollow dot is the reading a period ago, the '
-            'filled dot today. The leader is blue, the laggard rust, the rest grey; pick one to pick it out. Today’s members, '
+            'filled dot today. The leader is blue, the laggard rust, the rest grey; click one, or choose it in the list, to fade the rest, and click it again to show all. Today’s members, '
             'five or more stocks each.</p></div>',
             Chart("lmap", {"views": views, "spans": list(sp.EMA_SPANS), "periods": list(sp.MAP_PERIODS), "start": [200, 1],
                            "short": short, "text": text},
