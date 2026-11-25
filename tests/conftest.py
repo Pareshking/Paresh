@@ -166,6 +166,16 @@ def offline_market_data(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _r2_reached():
+    """A test that fails an R2 read on purpose must not leave the next test's foot lines saying
+    "the backup copy" (src/loaders/app_source.UNREACHED, S174 "1 a")."""
+    from src.loaders import app_source
+    app_source.UNREACHED.clear()
+    yield
+    app_source.UNREACHED.clear()
+
+
+@pytest.fixture(autouse=True)
 def _fresh_record_memo():
     """record_run's per-render memo (model_record._RUN_MEMO) starts empty in every test."""
     from src.engine import model_record

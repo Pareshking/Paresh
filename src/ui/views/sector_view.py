@@ -793,7 +793,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     render_screener_table(members, adj_close, "Core")
 
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
-    st.html(f'<div class="dh"><p class="dh-foot">{_fmt.data_to(ld.when)}. {len(rank_df)} stocks ranked; '
+    st.html(f'<div class="dh"><p class="dh-foot">{_fmt.data_to_html(ld.when)}. {len(rank_df)} stocks ranked; '
             f'{gap_count(rank_df)} with a price gap, {short_n} with a short history.</p></div>')
     render_data_quality_footer(total_stocks=len(rank_df), gap_count=gap_count(rank_df), short_count=short_n)
 

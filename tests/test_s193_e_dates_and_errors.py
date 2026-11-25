@@ -101,7 +101,7 @@ def test_dashboard_says_when_index_figures_end_a_session_early():
     assert note.startswith("Nifty Total Market to 19 Nov: NSE’s closes for 20 Nov are not in yet")
     assert note.endswith("the book’s are to 20 Nov.") and note.count(".") == 1
     src = (ROOT / "src/ui/views/dashboard_home_view.py").read_text()
-    assert "data_to(idx_end)" not in src and "_fmt.data_to(as_of)}.</p>" in src   # footer = header's session
+    assert "data_to(idx_end)" not in src and "_fmt.data_to_html(as_of)}.</p>" in src   # footer = header's session
     assert "book_month(ledger.get(\"months\", {}), book_mtd, market, momentum, as_of" in src
 
 

@@ -107,12 +107,23 @@ def fetch_latest(dataset: str, label: str, *, archive=None) -> bytes | None:
     except Exception as exc:
         logger.info("R2 %s unavailable (%s: %s); using the release file.",
                     label, type(exc).__name__, exc)
+        UNREACHED.add(label)
         metrics.note(f"r2_{label}", type(exc).__name__)
         return None
     metrics.note(f"r2_{label}", "ok")
     metrics.note(f"r2_{label}_as_of", ref.as_of)
     metrics.note(f"r2_{label}_s", round(time.perf_counter() - started, 2))
     return body
+
+
+# Labels R2 was configured for but did not serve (unreachable, or a failed integrity check): the pages'
+# foot lines say the data is the backup copy (owner, 22 Nov 2026, S174 "1 a"). No keys is not counted:
+# a local or CI run never asks R2.
+UNREACHED: set[str] = set()
+
+
+def unreachable() -> bool:
+    return bool(UNREACHED)
 
 
 def record(label: str, source: str) -> None:

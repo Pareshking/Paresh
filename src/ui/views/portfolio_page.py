@@ -1106,7 +1106,7 @@ def page_parts(p: Page) -> list:
               f'<p class="dh-note">{_frozen_note(p)}Momentum 50 is NSE’s Nifty500 Momentum 50, a '
               'momentum index to judge the strategy by.</p></section>', END]
     parts += day_section(p) + section_trades_top(p, s) + ["</section>"]
-    parts += section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to(p.as_of)}.</p>']
+    parts += section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to_html(p.as_of)}.</p>']
     return parts
 
 
@@ -1186,7 +1186,7 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
         with b:
             st.download_button(f"Export CSV · {n_lines} lines", tb.to_csv(index=False).encode() if n_lines else b"",
                                f"model_book_rebalances_{p.as_of:%Y%m%d}.csv", "text/csv", key="pf_dl_lines")
-    emit([END] + section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to(p.as_of)}.</p>'])
+    emit([END] + section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to_html(p.as_of)}.</p>'])
 
 
 __all__ = ["render", "gather", "page_parts", "html_of", "Page"]

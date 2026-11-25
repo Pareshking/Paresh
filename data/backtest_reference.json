@@ -1,17 +1,28 @@
 {
- "long_last_session": "2026-11-20",
- "built": "2026-11-22",
+ "long_last_session": "2026-11-23",
+ "built": "2026-11-25",
  "rows": {
-  "as_tested": 0.1875,
+  "as_tested": 0.1873,
   "nifty_500": 0.1006,
-  "monthly_reset": 0.1907,
-  "cost_60": 0.1719,
-  "cost_100": 0.1513
+  "monthly_reset": 0.1904,
+  "cost_60": 0.1717,
+  "cost_100": 0.1511
  },
  "window": [
   "2010-01-04",
   "2026-10-30"
  ],
+ "from_2012": {
+  "as_tested": 0.1982,
+  "window": [
+   "2012-03-01",
+   "2026-10-30"
+  ],
+  "nifty_500": 0.1184,
+  "monthly_reset": 0.2014,
+  "cost_60": 0.1825,
+  "cost_100": 0.1617
+ },
  "total_market_universe": {
   "from": "2021-11-01",
   "to": "2026-10-30",
@@ -29,13 +40,13 @@
   ]
  },
  "after_tax": {
-  "rule": 0.1523,
+  "rule": 0.1521,
   "nifty_500": 0.0935,
-  "replay_before_tax": 0.1875,
+  "replay_before_tax": 0.1873,
   "rates": "STCG 20.8%, LTCG 13% above Rs 1.25 lakh, today's rates for every year",
   "replay_gap_pts": 0.0
  },
  "check": {
-  "as_tested_total": 17.0083
+  "as_tested_total": 16.9444
  }
 }
