@@ -271,15 +271,6 @@ def metric_tile(m: Metric) -> None:
               border=True)
 
 
-def metric_row(tiles: list[Metric], key: str) -> None:
-    """A row of bordered figures, aligned to one baseline. The row wraps on a
-    phone instead of squeezing four columns into 360px."""
-    with st.container(horizontal=True, gap="small", vertical_alignment="top",
-                      key=f"mrow_{key}"):
-        for m in tiles:
-            metric_tile(m)
-
-
 def callout(title: str, body: str = "", tone: str = "muted") -> None:
     """A bordered, tinted block for a result that needs a word of explanation.
     Tones: "up", "down", "warn" or "muted". Text is escaped."""
@@ -358,24 +349,6 @@ def equity_chart(
             {"name": "Drawdown", "type": "baseline", "color": lw.RED, "negColor": lw.RED,
              "fmt": "pct", "data": lw.series_points(dates, drawdown, scale=100.0)}]})
     lw.render(panes, key=key)
-
-
-def growth_chart(
-    dates,
-    strategy: list[float],
-    benchmark: list[float] | None,
-    names: tuple[str, str] = ("Strategy", "Nifty 500"),
-    key: str = "growth",
-) -> None:
-    """Growth of 100: `strategy` and `benchmark` are growth factors (1.0 = the
-    start), re-based to a start of 100 and drawn by equity_chart so the two
-    charts cannot drift apart."""
-    equity_chart(
-        dates,
-        [float(v) * 100.0 for v in strategy],
-        None if not benchmark else [float(v) * 100.0 for v in benchmark],
-        names=names, key=f"growth_{key}", fmt="num",
-    )
 
 
 # ── Editorial type (owner, 7 Nov) ──────────────────────────────────────────
