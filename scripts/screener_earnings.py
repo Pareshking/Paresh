@@ -88,8 +88,25 @@ LEFT_OUT = {
 }
 
 
+# The Nifty 1000: only today's list is stored, so it is added up for the newest quarters only, where today's members
+# are the right ones (owner, 25 Nov 2026: "Latest quarter only"; S230). On the 750, where both exist, today's members
+# against the members it had then moved Q2 FY25's profit growth by 1.1 pts and Q2 FY27's by none.
+LATEST_ONLY = {"Nifty 1000": os.path.join(ROOT, "data", "indices", "ind_nifty1000_list.csv")}
+
+
+def today_list(path: str) -> set[str]:
+    try:
+        syms = pd.read_csv(path)["Symbol"].astype(str).str.strip().str.upper()
+    except (OSError, KeyError, ValueError):
+        return set()
+    return {s for s in syms if s and s != "NAN" and not s.startswith("DUMMY")}
+
+
 def members(key: str, qe: str) -> set[str]:
-    out = (research.members_on(research.index_history(key), qe, canonical=True) or set()) - set(LEFT_OUT)
+    if key in LATEST_ONLY:
+        out = today_list(LATEST_ONLY[key]) - set(LEFT_OUT)
+    else:
+        out = (research.members_on(research.index_history(key), qe, canonical=True) or set()) - set(LEFT_OUT)
     return out - research.TATA if research.quarter_label(qe) in EX_TATA else out
 
 
@@ -204,11 +221,12 @@ def earnings(quarters: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         n500 = members("nifty_500", qe)
         used500 = growth(values, n500, qe, "sales")["used"] if n500 else 0
         complete = bool(n500) and used500 >= COMPLETE_SHARE * len(n500)
-        for key, label in research.INDICES.items():
+        for key, label in [*research.INDICES.items(), *((k, k) for k in LATEST_ONLY)]:
             syms = members(key, qe)
             if not syms:
                 continue
-            size = len(research.members_on(research.index_history(key), qe, canonical=True) or ())
+            size = (len(today_list(LATEST_ONLY[key])) if key in LATEST_ONLY else
+                    len(research.members_on(research.index_history(key), qe, canonical=True) or ()))
             for field in FIELDS:
                 g = growth(values, syms, qe, field)
                 for stat in ("agg", "median"):
@@ -221,7 +239,11 @@ def earnings(quarters: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
                         and abs(g["agg"] - theirs) > GROSS_PTS:
                     notes.append(f"{q} {label} {field}: ours {g['agg']:.1f} NSE {theirs:.1f} | " +
                                  "; ".join(f"{s} {b:.0f}->{n:.0f} ({c:+.2f})" for s, n, b, c in g["top"]))
-    return pd.DataFrame(rows), notes
+    out = pd.DataFrame(rows)
+    if len(out) and out["complete"].any():          # a latest-only index: the newest complete quarter and after
+        newest = out[out["complete"]]["quarter_end"].max()
+        out = out[~(out["index"].isin(LATEST_ONLY) & (out["quarter_end"] < newest))].reset_index(drop=True)
+    return out, notes
 
 
 R2_DATASET = "fundamentals/screener_quarters"   # the full history; the repo keeps the pages' copy only

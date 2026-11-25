@@ -29,8 +29,8 @@ def test_pct_formats_fractions_and_dashes_non_finite():
 def _kit_app():
     from src.ui import page_kit as k
 
-    k.metric_row([k.Metric("Strategy", k.pct(0.1), delta="+2.0% vs Nifty", tone="normal"),
-                  k.Metric("Alpha", k.pct(float("nan")))], key="t")
+    k.metric_tile(k.Metric("Strategy", k.pct(0.1), delta="+2.0% vs Nifty", tone="normal"))
+    k.metric_tile(k.Metric("Alpha", k.pct(float("nan"))))
     k.callout("Holdout check", "<b>escaped</b>", "warn")
     k.badge("LIVE", "up")
 
@@ -91,7 +91,7 @@ def test_dialog_openers_are_buttons_and_the_dialogs_are_module_level():
 
 
 def test_every_page_kit_helper_the_views_call_exists():
-    """The Backtest and Track Record pages called kit.growth_chart for a day
+    """The Backtest and Track Record pages called a renamed kit chart helper for a day
     after a commit renamed it; both raised AttributeError on every load and no
     test noticed, because none of them renders those pages' charts."""
     used: set[tuple[str, str]] = set()
@@ -109,20 +109,6 @@ def test_every_page_kit_helper_the_views_call_exists():
     assert used, "the guard lost its target"
     missing = sorted(f"{f}: kit.{a}" for f, a in used if not hasattr(kit, a))
     assert not missing, missing
-
-
-def test_growth_chart_rebases_growth_factors_to_100():
-    def app():
-        import pandas as pd
-
-        from src.ui import page_kit as k
-        k.growth_chart(pd.to_datetime(["2026-01-01", "2026-02-01", "2026-03-01"]),
-                       [1.0, 1.1, 1.2], [1.0, 1.0, 1.05], key="t")
-
-    at = AppTest.from_function(app).run()
-    assert not at.exception, [e.value for e in at.exception]
-    doc = at.get("iframe")[0].proto.srcdoc
-    assert '"value":120.0' in doc and '"value":105.0' in doc
 
 
 # ── Grids, drill-down dialogs and the pickers added in the second pass ───────

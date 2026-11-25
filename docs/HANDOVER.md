@@ -15,7 +15,7 @@ _Last updated: 24 Nov 2026 ~17:00 IST, coordinating session session_016X4g5Y1bsn
   **current head** and it merges cleanly with `main`. Squash-merge with
   `expectedHeadSha`. After a squash merge, restart your branch from `main`.
 - **Before taking an S-number,** check open PRs as well as `main`. Next free:
-  **S229** (TODO's header lists what is reserved).
+  **S232** (TODO's header lists what is reserved).
 - **Verify every claim yourself.** Nothing is deleted without the owner's yes on
   each item; the `ref_*` release files always stay.
 - **Tests:** `python scripts/fetch_nse_closes.py` first, then
@@ -213,6 +213,7 @@ Done 23 Nov and gone from the queue: S185 replay step (#625), S199, S201 (#625),
 S194 L3/L4 and S202 (#627).
 
 ## Found, not fixed (recorded so it is not rediscovered)
+- 25 Nov: Configuration at 1400 px has three 56 px empty bands (layout audit; on main too); the page is not in CI's layout list. Configuration also had no foot line, fixed in this batch.
 
 - **Layout audit, Dashboard at 412 px, 25 Nov:** "segbar frame taller than its drawing 39 px spare" failed #692's validate (run 45621877248, attempt 1) on a docs-only change; the same code passed on #689, #691 and locally, and the one re-run passed. Lead: the frame keeps its fallback-font height past the audit's second reading. If it recurs, wait for `document.fonts.ready` inside the frame before measuring.
 
