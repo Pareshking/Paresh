@@ -474,7 +474,26 @@ Hosts named in `src/`, `scripts/`, `app.py` and the workflows. When each last an
 | `faculty.iima.ac.in` | `scripts/research/residual_momentum.py` (research) | IIMA's factor data | Research only |
 | R2 (Cloudflare; endpoint from secrets) | the app and most jobs (`src/storage`) | The stores | See section 0 |
 
-Not checked: the date each host last answered (the pipelines review reads the runs), and hosts built from variables rather than written out.
+Two callers the table above missed: the price endpoint kept in a secret (`SS_BASE_URL`, `src/loaders/ss_prices.py`, `ss_sync.yml`, Fridays) and, from 25 Nov, `scripts/screener_earnings.py` (`screener_earnings.yml`, Saturdays) on `www.screener.in`.
+
+**When each last answered** (25 Nov 2026, the last successful run of the job that calls it, from GitHub's run history):
+
+| Job | Hosts | Last success (UTC) | Run |
+|---|---|---|---|
+| `daily_sync` | NSE archives, niftyindices.com, TradingView scanner, R2 | 25 Nov 02:06 | 45530515349 |
+| `fii_dii` | NSE, NSE archives (DII), NSDL | 25 Nov 01:38 | 45527201421 |
+| `nsdl_fpi` | NSDL | 24 Nov 22:59 | 45505998029 |
+| `nse_reference_sync` | NSE, NSE archives, niftyindices.com | 25 Nov 11:44 | 45607165352 |
+| `results_calendar` | NSE | 25 Nov 00:52 | 45521484883 |
+| `nse_indices` | NSE archives, R2 | 24 Nov 23:27 | 45510179408 |
+| `nse_collect`, `nse_long_prices` | NSE archives, R2 | 25 Nov 00:37, 02:09 | 45519579787, 45530868619 |
+| `screener_sync` | Screener, R2 | 25 Nov 01:23 | 45525359771 |
+| `bse_daily` (weekly) | BSE | 21 Nov 01:37 | 44851245582 |
+| `ss_sync` (Fridays) | the secret endpoint | 20 Nov 22:46 | 44831607703 |
+| `nse_classification` (manual so far) | NSE | 24 Nov 17:59 | 45454637779 |
+| `screener_earnings` (Saturdays) | Screener, R2 | first run 28 Nov | - |
+
+Every host answered within its job's schedule. Not checked: hosts built from variables other than `SS_BASE_URL`; the app's own calls (R2, GitHub releases as fallback, jsDelivr as fallback, niftyindices.com only from the Configuration page's sync button), which no job records.
 
 
 ## 6. Pipelines (section 2 (c) of the plan; 24 Nov 2026)

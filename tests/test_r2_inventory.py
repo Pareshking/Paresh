@@ -149,3 +149,10 @@ def test_every_systems_ranking_is_held_to_a_daily_age():
     for d in ("snapshots/rankings", "snapshots/rankings_1000", "snapshots/rankings_nano",
               "snapshots/rankings_combined"):
         assert d in r2_inventory.DAILY_DATASETS
+
+
+def test_no_retired_dataset_is_checked_for_freshness():
+    # S224 (d), 24 Nov 2026: a retired dataset is deleted from R2, so a daily check on it
+    # failed the inventory the next morning (run 45605511334, 25 Nov 2026).
+    from scripts.r2_retention import RETIRED_BY_OWNER
+    assert not set(r2_inventory.DAILY_DATASETS) & RETIRED_BY_OWNER
