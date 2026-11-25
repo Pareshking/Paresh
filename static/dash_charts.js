@@ -416,8 +416,8 @@ R.history = (card, s) => {
    color: token name, dash}], yfmt "num" | "pct" | "pts", levels [{v, label, color}], range [lo, hi], height, chips [[label, sessions]]. */
 R.lines = (card, s) => {
   const el = $('.chart', card), head = $('.ph', card);
-  const fmt = {num: v => grp(v, 0), pct: v => fx(v, 0) + '%', pts: v => sg(v, 1)}[s.yfmt || 'num'];
-  const show = {num: v => grp(v, 1), pct: v => fx(v, 0) + '%', pts: v => sg(v, 1)}[s.yfmt || 'num'];
+  const fmt = {num: v => grp(v, 0), pct: v => fx(v, 0) + '%', pts: v => sg(v, 1), growth: v => sg(v, 0) + '%'}[s.yfmt || 'num'];
+  const show = {num: v => grp(v, 1), pct: v => fx(v, 0) + '%', pts: v => sg(v, 1), growth: v => sg(v, 1) + '%'}[s.yfmt || 'num'];
   head.innerHTML = '<span class="d"></span>' + s.series.map((x, i) => `<span><i class="${x.dash ? 'dash' : ''}" style="color:${css('--' + x.color)}"></i>${esc(x.name)} <b data-v="${i}"></b></span>`).join('');
   let from = 0, pane;
   const yr = Array.isArray(s.range) ? s.range : s.yrange;

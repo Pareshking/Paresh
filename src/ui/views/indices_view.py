@@ -226,7 +226,44 @@ def section_earnings(lt: er.Latest | None) -> list:
             f'<a href="{e(lt.pdf_url)}" target="_blank" rel="noopener">NSE\'s review (PDF)</a></p>'
             '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
             + "".join(f'<th scope="col" class="dh-num">{e(h)}</th>' for _, h in cols)
-            + f'</tr></thead><tbody>{body}</tbody></table></div></div>']
+            + f'</tr></thead><tbody>{body}</tbody></table></div></div>'] + earnings_history()
+
+
+def earnings_history() -> list:
+    """Profit growth each quarter since Q1 FY22, Nifty 50 and Nifty 500 (S171; owner, 25 Nov 2026: the chart, with
+    Q3 FY26 ex-Tata Motors)."""
+    n50, n500 = er.history("Nifty 50", "pat_agg_yoy"), er.history("Nifty 500", "pat_agg_yoy")
+    s50, s500 = er.history("Nifty 50", "sales_agg_yoy"), er.history("Nifty 500", "sales_agg_yoy")
+    idx = sorted(set(n50.index) | set(n500.index))
+    if len(idx) < 4:
+        return []
+    vals = lambda x: [None if d not in x.index else round(float(x[d]), 1) for d in idx]   # noqa: E731
+    quarter = {d: er.quarter_label(q) for q in _quarters(idx) for d in [er.quarter_end(q)]}
+    first, last = quarter[idx[0]], quarter[idx[-1]]
+    return [Chart("lines", {"dates": [f"{d:%Y-%m-%d}" for d in idx], "yfmt": "growth",
+                            "series": [{"name": "Nifty 50", "color": "ink", "values": vals(n50), "width": 2},
+                                       {"name": "Nifty 500", "color": "s-n500", "values": vals(n500), "width": 2}],
+                            "levels": [{"v": 0, "label": "", "color": "muted"}], "range": SIZE_RANGE},
+                  {"label": f"Profit growth from a year earlier, each quarter, {first} to {last}",
+                   "note": "Each quarter, dated at the quarter end; NSE reviews a quarter about 2½ months after it ends"}),
+            how(f"Profit after tax of all the index's companies added together, against the same quarter a year earlier, "
+                f"each quarter from {first} to {last}, dated at the quarter end. NSE's figures; a quarter NSE published no "
+                "review for takes the figure from the next review. Q3 FY26 leaves out Tata Motors, demerged on 1 Oct 2025, "
+                "as NSE's own summary and its Q2 FY26 figures do.",
+                "Above the zero line, profits grew on a year earlier; below it, they fell. Growth is over the same quarter "
+                "a year before, so a weak quarter a year ago lifts this one.",
+                ["Quarter", "Nifty 50 profit", "Nifty 500 profit", "Nifty 50 revenue", "Nifty 500 revenue"],
+                [[quarter[d]] + [sg(x.get(d), 1, "%") for x in (n50, n500, s50, s500)] for d in reversed(idx)])]
+
+
+def _quarters(idx) -> list[str]:
+    """The quarter labels ("Q1FY27") for quarter-end dates."""
+    out = []
+    for d in idx:
+        n = {6: 1, 9: 2, 12: 3, 3: 4}[d.month]
+        fy = d.year + (0 if n == 4 else 1)
+        out.append(f"Q{n}FY{fy % 100:02d}")
+    return out
 
 
 def _and(names: list[str]) -> str:

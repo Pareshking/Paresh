@@ -55,7 +55,7 @@ KNOWN = [
     ("Q2FY23", "Nifty 500", "pat_agg_yoy", -8.4),
     ("Q4FY23", "Nifty 50", "pat_agg_yoy", 11.3),
     ("Q2FY24", "Nifty 500", "pat_median_yoy", 16.9),
-    ("Q3FY26", "Nifty 50", "sales_agg_yoy", 9.2),
+    ("Q3FY26", "Nifty 50", "sales_agg_yoy", 12.5),   # ex-Tata Motors (owner, 25 Nov 2026)
     # gap quarters, read from the next issue's previous-quarter column
     ("Q4FY26", "Nifty 50", "sales_agg_yoy", 11.2),
     ("Q4FY26", "Nifty 500", "pat_agg_yoy", 15.3),
@@ -108,8 +108,17 @@ def test_the_known_disagreements_inside_an_issue_are_recorded():
     assert "p1 prose says 11.1" in r["cross_check"]
     _, r = _value("Q4FY22", "Nifty 500", "pat_agg_yoy")
     assert "p1 prose says 24.6" in r["cross_check"] and "p2 prose agrees" in r["cross_check"]
-    _, r = _value("Q3FY26", "Nifty 50", "sales_agg_yoy")    # the summary is ex-Tata Motors
-    assert "on another basis" in r["cross_check"] and "ex-Tata Motors' row gives 12.5" in r["quote"]
+
+
+def test_q3_fy26_aggregates_exclude_tata_motors_as_the_owner_decided():
+    """Owner, 25 Nov 2026: Q3 FY26 reads the 'ex-Tata Motors' rows (Tata Motors demerged 1 Oct 2025), as Q2 FY26's
+    index row and NSE's own summary do. Pinned against the Q3 FY26 PDF, Dec-25 YoY column: Tables 1, 7, 11, 24."""
+    for index, measure, value, with_tata in (("Nifty 50", "sales_agg_yoy", 12.5, 9.2), ("Nifty 50", "pat_agg_yoy", 12.8, 8.9),
+                                             ("Nifty 500", "sales_agg_yoy", 11.1, 9.6), ("Nifty 500", "pat_agg_yoy", 18.2, 15.9)):
+        _, r = _value("Q3FY26", index, measure)
+        assert float(r["value_pct"]) == value
+        assert f"{index} ex-Tata Motors" in r["quote"] and f"with Tata Motors gives {with_tata:g}" in r["quote"]
+    assert "Q3FY26" in ner.EX_TATA_QUARTERS
 
 
 def test_month_labels_and_numbers():

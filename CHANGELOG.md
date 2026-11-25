@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-25 — Indices: profit growth each quarter since Q1 FY22 (S171)
+
+- Indices: under the Earnings table, a chart of the Nifty 50's and Nifty 500's profit growth from a year earlier, each quarter from Q1 FY22 to Q1 FY27, with a table that adds revenue growth. Q3 FY26 leaves out Tata Motors (demerged 1 Oct 2025), as NSE's own summary does: the Nifty 500's profit growth that quarter reads 18.2%, not the 15.9% with it (owner).
+
 ## 2026-11-25 — Indices: earnings growth beside the P/E (S171)
 
 - Indices: a new "Earnings" section after Valuation gives NSE's own figures for its latest quarter (Q1 FY27, published 16 Sep 2026): year-on-year growth in profit after tax and in revenue, for all companies together and for the median company, for the Nifty 50, Next 50, Midcap 150, Smallcap 250 and Nifty 500, with a link to NSE's review. A figure NSE did not publish reads –.

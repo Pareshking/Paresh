@@ -229,11 +229,11 @@ PROSE = [
      "Nifty 50 profits rose 7.9% YoY"),
     ("Q2FY26", "Nifty 500", "sales_agg_yoy", 6.6, 1, "check",
      "topline growth improved to a four/six quarter high of 6.6% YoY"),
-    ("Q3FY26", "Nifty 50", "sales_agg_yoy", 12.5, 1, "basis",
+    ("Q3FY26", "Nifty 50", "sales_agg_yoy", 12.5, 1, "check",
      "Nifty 50 net sales (ex-Tata Motors) rose 12.5% YoY in Q3 FY26"),
-    ("Q3FY26", "Nifty 500", "sales_agg_yoy", 11.1, 1, "basis",
+    ("Q3FY26", "Nifty 500", "sales_agg_yoy", 11.1, 1, "check",
      "The broader Nifty 500 also delivered 11.1% YoY revenue growth"),
-    ("Q3FY26", "Nifty 50", "pat_agg_yoy", 12.8, 1, "basis",
+    ("Q3FY26", "Nifty 50", "pat_agg_yoy", 12.8, 1, "check",
      "Nifty 50 aggregate PAT increased 12.8% YoY and 10.6% QoQ"),
     ("Q1FY27", "Nifty 500", "pat_agg_yoy", 11.1, 29, "check",
      "Aggregate PAT of Nifty 500 companies rose 11.1% YoY to Rs. 4.67 lakh crore in Q1FY27,"),
@@ -353,6 +353,9 @@ AGG_TABLES = [
 ]
 # Rows some tables add beside the index row; their YoY figure goes into the quote, as a different basis.
 COMPANION_ROWS = ("ex-Tata Motors", "excl HDFCBK")
+# Quarters whose aggregate is read from the index's "ex-Tata Motors" row (owner, 25 Nov 2026: Q3 FY26 excludes
+# Tata Motors, demerged 1 Oct 2025, as Q2 FY26's index row already does and as NSE's own summary reports it).
+EX_TATA_QUARTERS = frozenset({"Q3FY26"})
 
 
 def _index_row(window: list[str], label: str) -> tuple[int, list[str]] | None:
@@ -391,14 +394,23 @@ def aggregate_rows(issue: str, pgs: list[str]) -> list[dict]:
             for col, quarter in ((5, issue), (4, month_quarter(months[4]))):
                 if col == 4 and quarter not in GAPS:
                     continue   # the previous quarter is kept only where it has no issue of its own
-                quote = base + f" | value: YoY {months[col]}"
-                for extra in COMPANION_ROWS:
-                    other = _index_row(window, f"{index} {extra}")
-                    if other:
-                        quote += f" | the table's '{index} {extra}' row gives {number(other[1][col]):g} for {months[col]}"
-                out.append({"quarter": quarter, "index": index, "measure": measure, "value_pct": number(nums[col]),
+                value, row_pos = number(nums[col]), pos
+                ex = _index_row(window, f"{index} ex-Tata Motors") if quarter in EX_TATA_QUARTERS else None
+                if quarter in EX_TATA_QUARTERS and ex is None:
+                    raise ValueError(f"{issue} {caption}: no '{index} ex-Tata Motors' row for {quarter}")
+                if ex is not None:
+                    value, row_pos = number(ex[1][col]), ex[0]
+                    quote = (base + f" | value: YoY {months[col]} from the row '{squash(window[ex[0]])}' (ex-Tata Motors,"
+                             f" owner 25 Nov 2026); the index row with Tata Motors gives {number(nums[col]):g}")
+                else:
+                    quote = base + f" | value: YoY {months[col]}"
+                    for extra in COMPANION_ROWS:
+                        other = _index_row(window, f"{index} {extra}")
+                        if other:
+                            quote += f" | the table's '{index} {extra}' row gives {number(other[1][col]):g} for {months[col]}"
+                out.append({"quarter": quarter, "index": index, "measure": measure, "value_pct": value,
                             "source": "table" if quarter == issue else "table, later issue", "issue": issue,
-                            "page": _page_of(pgs, page, li + 1 + pos), "quote": quote})
+                            "page": _page_of(pgs, page, li + 1 + row_pos), "quote": quote})
             found = True
             break
         if not found:

@@ -35,6 +35,9 @@ export const RULES = {
 // where (a URL pattern, or null for every page), re (matched on the element's text), todo, why. A fault is listed
 // with its TODO id and comes out when it is fixed; never add one silently.
 export const ALLOW = [
+  { where: /\/indices/, re: /^Latest · \d{1,2} \w+ 20\d\d\nNifty 50\n[+−-]?[\d.]+%\nNifty 500\n[+−-]?[\d.]+%\n/, todo: 'S171',
+    why: 'rule shown: company profits by quarter, from NSE’s latest earnings review (about 2½ months after the quarter); ' +
+      'the chart’s label and note say "each quarter, dated at the quarter end", and the Earnings table above names the quarter and its publication date' },
   { where: null, re: /Domestic institutions, \d{1,2} to \d{1,2} \w+, on NSE/, todo: 'S164',
     why: 'open: NSE posts its category workbook about two sessions late (scripts/collect_nse_dii.py); the tile ' +
       'names its end, but the provisional all-exchange figures to the session (data/fii_dii_flows.csv) are not shown' },
