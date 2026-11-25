@@ -1,10 +1,4 @@
 symbol,date,purpose,results,detail,source
-AEQUS,2026-09-25,Fund Raising,0,"Prior Intimation of Board Meeting scheduled to be held on September 25, 2026, Inter alia 1. To consider and evaluate the proposal of prefere",held
-AGIIL,2026-09-25,Fund Raising,0,To consider Fund Raising,held
-FORCEMOT,2026-09-25,Other business matters,0,Board Meeting intimation to consider other business matter related to consideration and approval of the proposal of removal of restriction o,held
-NATCOPHARM,2026-09-25,Fund Raising,0,"to consider, discuss and decide various matters in connection with the Rights Issue, including the specific terms of the Rights Issue, such ",held
-RSYSTEMS,2026-09-25,Dividend,0,We wish to inform you that a meeting of the Board of Directors of R Systems International Limited ( the Company ) is scheduled to be held on,held
-VGL,2026-09-25,Stock Split,0,To consider stock split of equity shares,held
 POWERGRID,2026-09-26,Fund Raising,0,To consider proposal for Raising of funds through Unsecured Rupee Term Loan/Line of Credit (Bank Facility) .,held
 AEGISLOG,2026-09-28,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
 DEEPA,2026-09-28,Financial Results,1,"To consider and approve the financial results for the period ended June 30, 2026",held
@@ -2308,6 +2302,7 @@ NATCOPHARM,2026-11-13,Financial Results/Dividend,1,"To consider and approve the 
 NDGL,2026-11-13,Financial Results,1,"To consider and approve the un-audited financial results for the quarter and half year ended September 30, 2026",held
 NDLVENTURE,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 NIRAJ,2026-11-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
+OLIL,2026-11-13,Financial Results,1,Oneclick Logistics India Limited has informed the Exchange about Board Meeting to be held on 13-Nov-2026 to inter-alia consider and approve ,held
 OMFREIGHT,2026-11-13,Financial Results,1,To consider and approve the Unaudited Standalone and Consolidated Financial Statements of the Company along with limited Review report for t,held
 OMKARCHEM,2026-11-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 ONELIFECAP,2026-11-13,Financial Results/Fund Raising,1,"To consider and approve the financial results for the period ended September 30, 2026 and Fund Raising trough Right Issue",held
@@ -2628,18 +2623,22 @@ HEADSUP,2026-11-24,Financial Results,1,"To consider and approve the financial re
 LEXUS,2026-11-24,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
 MKJEWELS,2026-11-24,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 SETCO,2026-11-24,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
-ENRIN,2026-11-25,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and dividend, if any.",calendar
-RAJRATAN,2026-11-25,Other business matters,0,To consider other business matters,calendar
-SATIN,2026-11-25,Fund Raising,0,"Working Committee Meeting is scheduled on 25/11/2026 ,inter alia, to consider and approve for Issuance Of Listed, Secured/Unsecured, Non-Con",calendar
-SIMBHALS,2026-11-25,Financial Results,1,Simbhaoli Sugars Limited has informed the Exchange about IRP Convened Meeting scheduled to be held on 25 November 2026 inter-alia to conside,calendar
+ENRIN,2026-11-25,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and dividend, if any.",held
+RAJRATAN,2026-11-25,Other business matters,0,To consider other business matters,held
+SATIN,2026-11-25,Fund Raising,0,"Working Committee Meeting is scheduled on 25/11/2026 ,inter alia, to consider and approve for Issuance Of Listed, Secured/Unsecured, Non-Con",held
+SIMBHALS,2026-11-25,Financial Results,1,Simbhaoli Sugars Limited has informed the Exchange about IRP Convened Meeting scheduled to be held on 25 November 2026 inter-alia to conside,held
 COMSYN,2026-11-26,Other business matters,0,"To consider related to allotment of upto 3,25,000 warrants.",calendar
 DAVANGERE,2026-11-26,Other business matters,0,To consider and discuss the revision in the conversion price of the outstanding Foreign Currency Convertible Bonds (FCCBs).,calendar
 MINDACORP,2026-11-26,Fund Raising,0,To consider Fund Raising,calendar
 PATANJALI,2026-11-26,Dividend,0,"To consider, approve and declare 2nd Interim Dividend for the financial year 2026-27 to the shareholders of the Company.",calendar
 SGMART,2026-11-26,Fund Raising,0,To consider Fund Raising,calendar
 TEAMGTY,2026-11-26,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,calendar
+CCCL,2026-11-27,Other business matters,0,To consider other business matters,calendar
+GUJTHEM,2026-11-27,Fund Raising,0,Intimation for Board Meeting pursuant to the SEBI (Listing Obligations and Disclosure Requirements) Regulations 2015.,calendar
 INDIANB,2026-11-27,Fund Raising,0,Prior Intimation of Meeting of Committee of Directors (Capital Raising) -Updates on Capital Raising Plan of the Bank,calendar
 SETCO,2026-11-27,Financial Results/Other business matters,1,"SETCO : 27-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 24, 2026 has been re-scheduled. Furt",calendar
+STEELCITY,2026-11-27,Dividend,0,To consider dividend,calendar
+VAISHALI,2026-11-27,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,calendar
 BRNL,2026-11-28,Financial Results,1,"BRNL : 28-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 14, 2026 has been re-scheduled. Furth",calendar
 ORTINGLOBE,2026-11-28,Fund Raising/Other business matters,0,1. The approval of increase in authorised share capital of the company subject to the approval of the members.2. To consider the proposal to,calendar
 SUKHJITS,2026-12-02,Buyback,0,"SUKHJITS : 02-Dec-2026 : The Company has informed the Exchange that a Board meeting to be held on November 20, 2026 has been re-scheduled. F",calendar
