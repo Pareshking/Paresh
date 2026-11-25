@@ -31,6 +31,7 @@ IX_CSS = """
 .dh-how-t td:first-child{white-space:nowrap}
 .ix-every th[scope=row]{font-weight:500;white-space:normal;min-width:170px}
 .ix-every .dh-sub{white-space:nowrap}
+.ix-q td.up{color:var(--c-up)}.ix-q td.down{color:var(--c-down)}.ix-q th[scope=row]{min-width:0;white-space:nowrap}
 .ix-fam{margin:8px 0 0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;line-height:1.3!important}
 @media (max-width:640px){.ix-every th[scope=row],.ix-every thead th:first-child{white-space:nowrap;min-width:0;position:sticky;left:0;background:var(--c-white);z-index:1;box-shadow:1px 0 0 var(--c-rule_soft);padding-right:10px!important}.ix-every th,.ix-every td{padding:6px 4px 6px 0!important;font-size:var(--fs-12)}
 .ix-hide-s{display:none}}
@@ -238,7 +239,37 @@ def section_earnings(lt: er.Latest | None) -> list:
             f'{e(earnings_headline(lt))}</h2><p class="dh-note">{e(note)}</p>'
             '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
             + "".join(f'<th scope="col" class="dh-num">{e(h)}</th>' for _, h in cols)
-            + f'</tr></thead><tbody>{body}</tbody></table></div></div>'] + earnings_history()
+            + f'</tr></thead><tbody>{body}</tbody></table></div></div>'] + earnings_quarters() + earnings_history()
+
+
+QUARTER_HEADS = {"Nifty 50": "Nifty 50", "Nifty Next 50": "Next 50", "Nifty Midcap 150": "Midcap 150",
+                 "Nifty Smallcap 250": "Smallcap 250", "Nifty Microcap 250": "Microcap 250", "Nifty 500": "Nifty 500"}
+
+
+def earnings_quarters() -> list:
+    """Each index's growth every quarter, newest first (owner, 25 Nov 2026: "a good table to see 8-10 quarter growth for
+    Indices"): profit, then revenue, all companies added together, against the same quarter a year earlier."""
+    out = []
+    for measure, title in (("pat_agg_yoy", "Profit"), ("sales_agg_yoy", "Revenue")):
+        hist = {i: er.ours_history(i, measure) for i in er.OUR_INDICES}
+        idx = sorted({d for h in hist.values() for d in h.index}, reverse=True)
+        if len(idx) < 2:
+            return []
+        rows = ""
+        for d, q in zip(idx, _quarters(idx)):
+            cells = "".join(
+                f'<td class="dh-num {"" if (v := hist[i].get(d)) is None or _fmt.half_up(v, 1) == 0 else ("up" if v > 0 else "down")}">'
+                f'{e(sg(hist[i].get(d), 1, "%"))}</td>' for i in er.OUR_INDICES)
+            rows += f'<tr><th scope="row">{e(er.quarter_label(q))}</th>{cells}</tr>'
+        out.append(f'<div class="dh-sec dh-sec-cont"><h3 class="dh-h3">{title} growth, each quarter</h3>'
+                   '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every ix-q"><thead><tr><th scope="col">Quarter</th>'
+                   + "".join(f'<th scope="col" class="dh-num">{e(QUARTER_HEADS[i])}</th>' for i in er.OUR_INDICES)
+                   + f'</tr></thead><tbody>{rows}</tbody></table></div></div>')
+    if out:
+        out[-1] = out[-1].replace("</table></div></div>", '</table></div><p class="dh-note">All the index\'s companies '
+                                  "added together, each quarter against the same quarter a year earlier; the first row is "
+                                  "the latest quarter. Profit as in the table above.</p></div>")
+    return out
 
 
 def earnings_history() -> list:
