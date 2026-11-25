@@ -30,7 +30,7 @@ An element is every figure, chart series, table column and number in a label or 
 
 ## 2. Across all rows
 
-- [ ] **(a) Missing from R2.** Everything we could not download again, with a plan to add it, how long to keep it, and a restore test. At least:
+- [~] **(a) Missing from R2.** Everything we could not download again, with a plan to add it, how long to keep it, and a restore test. **Audited 24 Nov** (`DATA_AUDIT_2026-11-24.md` §1 rows a1-a7, §3 gaps 1-3); **re-checked 25 Nov** against the R2 inventory (run 45615294472): none of the files below has an R2 prefix, and there is no `indices/membership/nifty_1000`. Left: the plan to add them (the frozen months go with S185's bundles, first on 1-5 Dec; the rest is a new R2 copy, whose reader is the restore drill, for the owner) and the restore test. At least:
   - [ ] NSE's provisional FII/DII report (`data/fii_dii_flows.csv`): NSE keeps no history
   - [ ] NSE's category-wise turnover and its DII history (`data/nse_dii.csv`, added 21 Nov)
   - [ ] Nifty Total Market daily from NSE (`data/nse_total_market.csv`, added 21 Nov)
@@ -56,7 +56,7 @@ An element is every figure, chart series, table column and number in a label or 
 
 - [ ] **Restore drill:** rebuild one page from R2 alone on a clean machine, timed; every missing input is a finding.
 - [x] **Every outside address** (done 25 Nov 2026, `DATA_AUDIT_2026-11-24.md` §5) the jobs and the app call, with the date each last answered and what breaks if it stops.
-- [ ] **The date test in CI on every page** (the S154 (c) test, which now covers four pages).
+- [x] **The date test in CI on every page** (the S154 (c) test, which now covers four pages). **Done** (checked 25 Nov): `_page_dates.mjs` runs inside CI's number and glossary audits on all 11 pages (`v1-full-validation.yml`), plus Nano for the Dashboard, Portfolio and Actions. The Nifty 1000's Dashboard (`?sys=1000`) added to CI's glossary audit 25 Nov (local run clean, 412 and 1400).
 - [x] **Licence and terms** (done 25 Nov 2026, `DATA_AUDIT_2026-11-24.md` §5a; finding S228 for the owner) for each third-party source (Screener, NSE's terms for its archives, any feed like IndiaDataHub).
 - [ ] **Reachability:** which figures depend on a source that only GitHub's runners, or only the app, can reach (BSE's FII/DII pages refused this container; R2 was not reachable locally).
 - [~] **First runs of the jobs added on 21 Nov** (checked 24 Nov from the repository: `data/nse_indices_recent.csv` 148 rows to 23 Nov, committed by the scheduled job on 24 Nov; `data/indices/ind_nifty1000_list.csv` and `indices.nifty_1000` present; Total Market to 23 Nov. Left: the 1-5 Dec freeze of `data/track_record_1000.json`, by date): the NSE DII step in `fii_dii.yml` and the Total Market collector, checked on GitHub;

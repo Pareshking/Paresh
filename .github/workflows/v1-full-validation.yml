@@ -186,7 +186,7 @@ jobs:
             http://localhost:8501/backtest http://localhost:8501/guide http://localhost:8501/configuration \
             "http://localhost:8501/watchlist?wl=CUPID,KOTAKBANK,GLAND,EMCURE,AUROPHARMA,DIACABS,SYRMA,TCS,SPECTRUM,TATAMOTORS" \
             "http://localhost:8501/stock?stock=SANSERA" "http://localhost:8501/?sys=nano" "http://localhost:8501/portfolio?sys=nano" \
-            "http://localhost:8501/actions?sys=nano"
+            "http://localhost:8501/actions?sys=nano" "http://localhost:8501/?sys=1000"
           # CI's browser has no saved list: the Watchlist reads the list its requirements were written on (S182).
           WL="http://localhost:8501/watchlist?wl=CUPID,KOTAKBANK,GLAND,EMCURE,AUROPHARMA,DIACABS,SYRMA,TCS,SPECTRUM,TATAMOTORS"
           node scripts/layout_audit.mjs "$WL" 412,1400
