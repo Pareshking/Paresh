@@ -44,7 +44,7 @@ def test_stock_param_opens_the_detail_page():
 
 @pytest.mark.parametrize("section", [
     "1 · Rank", "2 · Filters and sell rules", "3 · Returns and falls", "4 · Price",
-    "Price and relative strength", "6 · Data",
+    "Price and relative strength", "7 · Data",
 ])
 def test_every_section_of_the_page_renders(section):
     at = _app(stock="S3")

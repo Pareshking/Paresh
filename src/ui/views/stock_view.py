@@ -379,6 +379,58 @@ def returns_html(ws: list[sl.Window], as_of, uni, late: bool = False) -> list:
             + (f" {e(formats.closes_not_in([sl.MARKET], as_of))}" if late else "") + '</p>', "</section>"]
 
 
+def results_html(res) -> list:
+    """5 · Results (owner, 25 Nov 2026: "one table showing last 8-10 quarter key numbers and % growth"): the
+    company's last eight reported quarters, each against the same quarter a year earlier."""
+    from src.engine.earnings_review import Results
+    if not isinstance(res, Results) or not res.quarters:
+        return []
+    q0 = res.quarters[0]
+    g = q0.growth
+    lead = "Profit before tax" if res.lender else "Operating profit"
+    sales = "Revenue" if res.lender else "Sales"
+    if g.get("net_profit") is not None:
+        verb = "rose" if g["net_profit"] >= 0 else "fell"
+        tail = f" on {sales.lower()} {'up' if (g.get('sales') or 0) >= 0 else 'down'} {abs(g['sales']):.1f}%." \
+            if g.get("sales") is not None else "."
+        head = _h2(f"In {q0.label} net profit {verb} ", formats.pct(abs(g["net_profit"]), signed_=False, fraction=False),
+                   f" from a year earlier{tail}", "up" if g["net_profit"] >= 0 else "down")
+    else:
+        head = _h2(f"{sales} and profit in the last {len(res.quarters)} quarters.")
+
+    def cr(v):
+        return formats.DASH if v is None else ("−" if v < 0 else "") + formats.indian_group(round(abs(v)))
+
+    def eps(v):
+        return formats.DASH if v is None else formats.signed(v, 2, plus=False)
+
+    def yoy(v, wide=""):
+        return f'<td class="n {wide} {_num_cls(v)}">{formats.pct(v, fraction=False)}</td>'
+
+    body = []
+    for q in res.quarters:
+        v, gr = q.values, q.growth
+        body.append(f'<tr><th scope="row">{e(q.label)}</th>'
+                    f'<td class="n">{cr(v["sales"])}</td>{yoy(gr["sales"])}'
+                    f'<td class="n sp-wide">{cr(v["profit"])}</td>{yoy(gr["profit"], "sp-wide")}'
+                    f'<td class="n">{cr(v["net_profit"])}</td>{yoy(gr["net_profit"])}'
+                    f'<td class="n sp-wide">{eps(v["eps"])}</td>{yoy(gr["eps"], "sp-wide")}</tr>')
+    dash = any(x is None for q in res.quarters for x in q.growth.values())
+    note = (f"The company's reported results, {res.basis}, in ₹ crore (EPS in ₹), each quarter against the same quarter "
+            f"a year earlier; read {formats.date(res.read)}, every Saturday."
+            + (" Growth reads – where the year-earlier figure is nil or a loss." if dash else "")
+            + (" For a bank or lender, profit before tax stands in for operating profit." if res.lender else ""))
+    return ['<section class="dh-sec sp-sec">', _kick("5 · Results"), head,
+            '<div class="sp-tbox"><table class="sp-t"><thead><tr><th scope="col">Quarter</th>'
+            f'<th scope="col" class="n">{sales}, Cr</th><th scope="col" class="n">YoY</th>'
+            f'<th scope="col" class="n sp-wide">{lead}, Cr</th><th scope="col" class="n sp-wide">YoY</th>'
+            '<th scope="col" class="n">Net profit, Cr</th><th scope="col" class="n">YoY</th>'
+            '<th scope="col" class="n sp-wide">EPS, ₹</th><th scope="col" class="n sp-wide">YoY</th>'
+            f'</tr></thead><tbody>{"".join(body)}</tbody></table></div>',
+            f'<p class="sp-phone">On a wider screen: {lead.lower()} and EPS, with their growth.</p>',
+            f'<p class="dh-note">{e(note)}</p>', "</section>"]
+
+
 def industry_html(row, shown: pd.DataFrame, in_ind: pd.DataFrame, as_of) -> list:
     from src.ui.industry_names import short_industry
     from src.ui.system_param import stock_href, suffix
@@ -402,7 +454,7 @@ def industry_html(row, shown: pd.DataFrame, in_ind: pd.DataFrame, as_of) -> list
     ind_full = str(row.get("Industry") or "")
     ind = short_industry(ind_full)
     href = f"screener?ind={quote(ind_full, safe='')}{suffix()}"
-    return ['<section class="dh-sec sp-sec">', _kick("5 · Sector"), _h2(sl.industry_heading(row, in_ind)),
+    return ['<section class="dh-sec sp-sec">', _kick("6 · Sector"), _h2(sl.industry_heading(row, in_ind)),
             '<div class="sp-tbox"><table class="sp-t"><thead><tr><th scope="col" class="n">Rank</th>'
             '<th scope="col" class="n">Qualified</th><th scope="col">Stock</th><th scope="col" class="n">Price</th>'
             '<th scope="col" class="n">1M</th><th scope="col" class="n">3M</th><th scope="col" class="n">6M</th>'
@@ -419,7 +471,7 @@ def data_html(dc: sl.DataChecks) -> list:
     note = ('<p class="dh-note">Corporate actions are read from NSE’s own lists; the prices before an ex-date are '
             'scaled by its factor, so the step is not counted as a gain or a fall in the ranking or the record.</p>'
             if dc.actions else "")
-    return ['<section class="dh-sec sp-sec">', _kick("6 · Data"), _h2(sl.data_heading(dc)),
+    return ['<section class="dh-sec sp-sec">', _kick("7 · Data"), _h2(sl.data_heading(dc)),
             f'<ul class="sp-checks">{lis}</ul>', note, "</section>"]
 
 
@@ -600,7 +652,8 @@ def render_stock_view(
     shown, in_ind = sl.peers(full, row)
     actions_df, actions_from = _nse_action_list()
     dc = sl.data_checks(row, as_of, sl.nse_actions(actions_df, sym), actions_from)
-    _emit((industry_html(row, shown, in_ind, as_of) if len(in_ind) else [])
+    from src.engine.earnings_review import company
+    _emit(results_html(company(sym)) + (industry_html(row, shown, in_ind, as_of) if len(in_ind) else [])
           + data_html(dc) + [f'<p class="dh-foot">{e(sl.foot(as_of))}</p>'])
     render_data_quality_footer(
         total_stocks=len(rank_df),

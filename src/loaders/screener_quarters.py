@@ -10,7 +10,8 @@ interest is taken out). The sub-heading under the title names the basis, "Consol
 standalone one and marks its header "Sep 2024 (S)"; a page with only such columns has no
 "Consolidated" in its sub-heading. Each quarter therefore carries its own basis.
 
-"Other Income +" and the tax row (Tax, in %) are read too: the profit measure without other income (S171) takes
+"Other Income +" and the tax row (Tax, in %) are read too, and for the Stock page's results table
+"Operating Profit" ("Financing Profit" for banks), "Profit before tax" and "EPS in Rs": the profit measure without other income (S171) takes
 other income out after tax at the quarter's own rate.
 
 ``parse_quarters`` reads only that section and returns None when the page has none (a company
@@ -26,6 +27,9 @@ from dataclasses import dataclass, field
 SALES_LABELS = ("sales", "revenue")
 PROFIT_LABELS = ("net profit",)
 OTHER_INCOME_LABELS = ("other income",)
+OPERATING_LABELS = ("operating profit", "financing profit")   # "Financing Profit" for banks and lenders
+PBT_LABELS = ("profit before tax",)
+EPS_LABELS = ("eps in rs",)
 TAX_PREFIX = "tax"            # the row Tax, in %
 
 _SECTION = re.compile(r'<section[^>]*\bid="quarters"[^>]*>(.*?)</section>', re.S | re.I)
@@ -84,7 +88,7 @@ def parse_quarters(page: str) -> Quarters | None:
     if not dates:
         return None
     marked = {d: "(S)" in _text(c) for d, c in zip(_DATE_KEY.findall(header), _CELL.findall(header)[1:])}
-    sales = profit = other = tax = None
+    sales = profit = other = tax = op = pbt = eps = None
     sales_label = ""
     for row in _ROW.findall(section):
         cells = [_text(c) for c in _CELL.findall(row)]
@@ -95,6 +99,12 @@ def parse_quarters(page: str) -> Quarters | None:
             sales, sales_label = cells[1:], cells[0].rstrip("+").strip()
         elif profit is None and name in PROFIT_LABELS:
             profit = cells[1:]
+        elif op is None and name in OPERATING_LABELS:
+            op = cells[1:]
+        elif pbt is None and name in PBT_LABELS:
+            pbt = cells[1:]
+        elif eps is None and name in EPS_LABELS:
+            eps = cells[1:]
         elif other is None and name in OTHER_INCOME_LABELS:
             other = cells[1:]
         elif tax is None and name.startswith(TAX_PREFIX):
@@ -107,5 +117,8 @@ def parse_quarters(page: str) -> Quarters | None:
                        "net_profit": _number(profit[i]) if profit else None,
                        "other_income": _number(other[i]) if other else None,
                        "tax_pct": _number(tax[i].rstrip("%")) if tax else None,
+                       "operating_profit": _number(op[i]) if op else None,
+                       "pbt": _number(pbt[i]) if pbt else None,
+                       "eps": _number(eps[i]) if eps else None,
                        "basis": "standalone" if marked.get(d) else (basis or "standalone")}
     return out

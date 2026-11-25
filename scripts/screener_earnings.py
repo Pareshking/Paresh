@@ -56,8 +56,8 @@ EARNINGS_CSV = os.path.join(ROOT, "data", "reference", "screener_earnings.csv")
 COMPLETE_SHARE = 0.90
 GROSS_PTS = 5.0
 FIELDS = ("sales", "pat", "pat_xoi")
-QUARTER_COLS = ["symbol", "quarter_end", "basis", "sales_label", "sales", "net_profit", "other_income",
-                "tax_pct", "fetched"]
+QUARTER_COLS = ["symbol", "quarter_end", "basis", "sales_label", "sales", "operating_profit", "pbt", "net_profit",
+                "other_income", "tax_pct", "eps", "fetched"]
 
 
 def quarter_ends(today: date, years: int = 3) -> list[str]:
@@ -103,7 +103,8 @@ def page_rows(cache: str, fetched: str, since: str = "") -> list[dict]:
                 continue
             out.append({"symbol": sym, "quarter_end": qe, "basis": r["basis"], "sales_label": q.sales_label,
                         "sales": r["sales"], "net_profit": r["net_profit"], "other_income": r.get("other_income"),
-                        "tax_pct": r.get("tax_pct"), "fetched": fetched})
+                        "tax_pct": r.get("tax_pct"), "operating_profit": r.get("operating_profit"),
+                        "pbt": r.get("pbt"), "eps": r.get("eps"), "fetched": fetched})
     return out
 
 
@@ -112,7 +113,7 @@ def merge(stored: pd.DataFrame | None, new: list[dict]) -> pd.DataFrame:
     if stored is None or stored.empty:
         both = fresh
     else:
-        both = pd.concat([stored[QUARTER_COLS], fresh], ignore_index=True)
+        both = pd.concat([stored.reindex(columns=QUARTER_COLS), fresh], ignore_index=True)
     both = both.drop_duplicates(["symbol", "quarter_end"], keep="last")
     return both.sort_values(["symbol", "quarter_end"]).reset_index(drop=True)
 

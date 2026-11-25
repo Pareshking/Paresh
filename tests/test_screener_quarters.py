@@ -27,8 +27,8 @@ def test_tcs_fixture_reads_13_quarters_of_sales_and_profit():
     assert q is not None and q.basis == "consolidated" and q.sales_label == "Sales"
     assert len(q.rows) == 13
     assert list(q.rows)[0] == "2023-09-30" and list(q.rows)[-1] == "2026-09-30"
-    assert q.rows["2023-09-30"] == {"sales": 59692.0, "net_profit": 11380.0, "other_income": None, "tax_pct": None, "basis": "consolidated"}
-    assert q.rows["2026-09-30"] == {"sales": 73188.0, "net_profit": 13934.0, "other_income": None, "tax_pct": None, "basis": "consolidated"}
+    assert q.rows["2023-09-30"] == {"sales": 59692.0, "net_profit": 11380.0, "other_income": None, "tax_pct": None, "operating_profit": None, "pbt": None, "eps": None, "basis": "consolidated"}
+    assert q.rows["2026-09-30"] == {"sales": 73188.0, "net_profit": 13934.0, "other_income": None, "tax_pct": None, "operating_profit": None, "pbt": None, "eps": None, "basis": "consolidated"}
     assert not q.mixed()
 
 

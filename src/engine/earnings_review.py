@@ -118,3 +118,69 @@ def ours_history(index: str, measure: str, df: pd.DataFrame | None = None) -> pd
     if df is None or df.empty:
         return pd.Series(dtype=float)
     return history(index, _measure(measure), df)
+
+
+# ── One company's quarters, for the Stock page's results table ───────────────
+
+QUARTERS_PATH = PATH.parent / "screener_quarters.csv"   # built weekly by scripts/screener_earnings.py
+RESULT_ROWS = 8
+
+
+@dataclass(frozen=True)
+class Quarter:
+    end: pd.Timestamp
+    label: str                          # "Q2 FY27"
+    values: dict[str, float | None]     # sales, profit (operating, or before tax for a lender), net_profit, eps
+    growth: dict[str, float | None]     # the same keys, % on the same quarter a year earlier; None on a base <= 0
+
+
+@dataclass(frozen=True)
+class Results:
+    symbol: str
+    lender: bool                        # Screener's first row is "Revenue": banks and lenders
+    basis: str                          # "consolidated", "standalone" or "consolidated and standalone"
+    read: pd.Timestamp
+    quarters: list[Quarter]             # newest first
+
+
+def _label_of(d: pd.Timestamp) -> str:
+    n = {6: 1, 9: 2, 12: 3, 3: 4}[d.month]
+    return f"Q{n} FY{(d.year + (0 if n == 4 else 1)) % 100:02d}"
+
+
+def _yoy(now, base) -> float | None:
+    if now is None or base is None or pd.isna(now) or pd.isna(base) or base <= 0:
+        return None
+    return (float(now) / float(base) - 1) * 100
+
+
+def company(symbol: str, df: pd.DataFrame | None = None, rows: int = RESULT_ROWS) -> Results | None:
+    """The last `rows` quarters with a year-earlier quarter on the same basis, newest first. A lender's
+    "Financing Profit" (revenue less interest and every expense, provisions included, before other income) is no
+    operating profit a reader knows, so a lender shows profit before tax in its place."""
+    df = load(QUARTERS_PATH) if df is None else df
+    if df is None or df.empty:
+        return None
+    mine = df[df["symbol"] == symbol]
+    if mine.empty:
+        return None
+    lender = str(mine["sales_label"].iloc[-1]).lower().startswith("revenue")
+    by = {pd.Timestamp(r["quarter_end"]): r for r in mine.to_dict("records")}
+    keys = {"sales": "sales", "profit": "pbt" if lender else "operating_profit", "net_profit": "net_profit",
+            "eps": "eps"}
+    out = []
+    for d in sorted(by, reverse=True):
+        base = by.get(d - pd.DateOffset(years=1) + pd.offsets.MonthEnd(0))
+        if base is None or base["basis"] != by[d]["basis"]:
+            continue
+        now = by[d]
+        val = {k: (None if pd.isna(now.get(c)) else float(now.get(c))) for k, c in keys.items()}
+        out.append(Quarter(end=d, label=_label_of(d), values=val,
+                           growth={k: _yoy(now.get(c), base.get(c)) for k, c in keys.items()}))
+        if len(out) == rows:
+            break
+    if not out:
+        return None
+    bases = sorted({str(by[q.end]["basis"]) for q in out})
+    return Results(symbol=symbol, lender=lender, basis=" and ".join(bases), read=pd.Timestamp(mine["fetched"].max()),
+                   quarters=out)
