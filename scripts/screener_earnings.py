@@ -7,7 +7,7 @@ data/membership_history.json. Each company's "Quarterly Results" table on its Sc
     python -I scripts/screener_earnings.py fetch --cache DIR     # every member's page, >= 1.5 s apart
     python -I scripts/screener_earnings.py build --cache DIR     # the two files below, and the NSE check
 
-Pages are read for every index member on those quarter ends and every stock the site lists (~2,400, ~2 h at ~3 s a page).
+Pages are read for every index member on those quarter ends and every stock the site lists (~1,250, NSE's lists only).
 
 Keeps (owner, 25 Nov 2026: "storing in R2 so we can have own history getting build up, use correct R2 format to save
 a space"): every quarter ever read, in R2 dataset fundamentals/screener_quarters (parquet, zstd), one immutable
@@ -225,6 +225,9 @@ def build(cache: str, quarters_csv: str = QUARTERS_CSV, earnings_csv: str = EARN
         stored = stored.assign(quarter_end=pd.to_datetime(stored["quarter_end"]).dt.strftime("%Y-%m-%d"))
     since = quarter_ends(date.today())[0]
     new = page_rows(cache, today, since=since)
+    if research.universe.__name__ == "universe":         # widened: keep the stocks the site shows and index members
+        keep = set(research.universe())
+        new = [r for r in new if r["symbol"] in keep]
     if not new:
         print("no pages parsed; nothing written")
         return 1
@@ -326,11 +329,23 @@ def canonical_symbols(symbols, renames: dict[str, str], listed: set[str]) -> tup
     return sorted(out), why
 
 
+def site_lists() -> set[str]:
+    """The stocks the site ranks and shows, from NSE's own index files (the 750, the Nifty 1000) and the Nano list
+    built from NSE's: not TradingView's classification file, whose old tickers and spellings (AKZOINDIA, BAJAJ_AUTO,
+    ATLPP.E1) were 315 of its 2,404 symbols (owner, 25 Nov 2026: "If you are using NSE CSV to build latest universe,
+    this issue would not be there"). NSE's placeholder rows (DUMMYHEG) are not companies."""
+    from scripts.nse_classification import LISTS
+    out: set[str] = set()
+    for path in LISTS.values():
+        if os.path.exists(path):
+            out |= set(pd.read_csv(path)["Symbol"].astype(str).str.strip().str.upper())
+    return {s for s in out if s and s != "NAN" and not s.startswith("DUMMY")}
+
+
 def widen_to_every_listed_stock() -> None:
     """Pages for every stock the site lists, not only the index members (owner, 25 Nov 2026: the Stock page's results
-    table, "Go ahead"): the indices still add up their own members only. Names come from NSE's equity list too, so a
-    symbol whose page is not at its ticker is found by name."""
-    from scripts.nse_classification import universe as listed_by_site
+    table, "Go ahead"): the indices still add up their own members only. Each symbol is read as NSE lists it today
+    (a past member renamed since, BARBEQUE -> UFBL), and names come from NSE's equity list for the name search."""
     from src.loaders import nse_identity as ni
     equity = pd.read_csv(ni.EQUITY_L)
     equity.columns = [c.strip() for c in equity.columns]
@@ -338,15 +353,16 @@ def widen_to_every_listed_stock() -> None:
     res = ni.resolve()
     renames = dict(zip(res["old"], res["new"]))
     members_only, names_only = research.universe, research.names
+    shown = site_lists()
 
     def universe():
-        syms, why = canonical_symbols(set(members_only()) | set(listed_by_site()), renames, set(nse_names))
+        syms, why = canonical_symbols(set(members_only()) | shown, renames, set(nse_names))
         if why:
             print(f"{len(why)} symbol(s) read another way: " + "; ".join(f"{k} {v}" for k, v in sorted(why.items())))
         return syms
 
     research.universe = universe
-    research.names = lambda: {**nse_names, **{s: n for s, n in listed_by_site().items() if n}, **names_only()}
+    research.names = lambda: {**nse_names, **names_only()}
 
 
 def main(argv=None) -> int:
@@ -383,7 +399,7 @@ def main(argv=None) -> int:
             return 0
         # Screener stopped the run (403, or a 429 that did not clear): build nothing, show red.
         return 0 if ok >= COMPLETE_SHARE * want else 1
-    return build(args.cache, store=args.store, from_r2=args.from_r2)
+    return build(args.cache, store=args.store, from_r2=args.from_r2)  # widen_to_every_listed_stock() ran above
 
 
 if __name__ == "__main__":
