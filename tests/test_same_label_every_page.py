@@ -250,17 +250,17 @@ def test_the_12m_beat_share_and_median_lead_agree_when_every_stock_has_both_clos
     _one([gap_m, gap_d])
 
 
-def test_the_12m_figures_differ_by_the_recorded_gap_rule_when_a_close_is_missing():
-    """S193 A11 (cause confirmed in the code, 23 Nov 2026; owner to decide once settled): Market's
-    `_beat_index_12m` takes each stock's last close in the week to each date; the Dashboard's
-    `typical_stock` takes the exact session and drops the stock. They part only when a close is missing."""
+def test_the_12m_figures_agree_when_a_close_is_missing():
+    """S193 A11 (owner, 25 Nov 2026: "1"): the Dashboard reads each stock's last close in the week, as
+    Market's `_beat_index_12m` does, so a stock that missed the start session is kept on both pages."""
     px, tm = _prices(n=40), _total_market()
     start = di.on_or_before(px.index, AS_OF - pd.DateOffset(months=12))
     px.loc[start, px.columns[:8]] = np.nan                            # eight stocks miss the start session
     (share_m, gap_m), (share_d, gap_d) = _beat_both(px, tm)
-    assert (share_m, gap_m) != pytest.approx((share_d, gap_d))
+    assert share_m == pytest.approx(share_d) and f"{share_m:.0f}" == f"{share_d:.0f}"
+    _one([gap_m, gap_d])
     full = _beat_both(_prices(n=40), tm)[0]
-    assert share_m == pytest.approx(full[0], abs=15)                   # Market keeps the eight on a near close
+    assert share_m == pytest.approx(full[0], abs=15)                   # the eight kept on a near close
 
 
 # ── A stock: qualified place, qualified count, 12M return, distance from the high ─
@@ -275,16 +275,12 @@ def _ranking(flags) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-@pytest.mark.parametrize("yes,no", [(True, False), (np.True_, np.False_), ("True", "False"), ("✅", "")])
+@pytest.mark.parametrize("yes,no", [(True, False), (np.True_, np.False_), ("True", "False"), ("✅", ""), ("✓", "")])
 def test_the_qualified_count_and_place_agree_on_screener_stock_page_and_sectors(yes, no):
     from src.ui.components import to_bool_mask
     from src.ui.views.ranking_view import with_book_columns
     flags = [(yes, yes), (no, yes), (yes, yes), (yes, no), (yes, yes), (yes, yes)]
     rank_df = _ranking(flags)
-    if yes == "✅":
-        pytest.xfail("Undocumented, not live (the engine writes booleans): exit_watch._flag reads '✓' but not "
-                     "'✅'; theme.is_tick_true reads '✅' but not '✓'. The Screener's count and the qualified "
-                     "place would part on a ticked table.")
     passes = to_bool_mask(rank_df["Above 50 EMA"]) & to_bool_mask(rank_df["Near 52W High"])
     screener_count = int(passes.sum())                                 # "Pass both filters" (ranking_view.py:392)
     q = qualified_ranks(rank_df)                                        # stock page n_q, Sectors, Actions

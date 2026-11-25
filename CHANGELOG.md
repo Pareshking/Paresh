@@ -1,6 +1,11 @@
 # Changelog
 
 
+## 2026-11-25 — The Dashboard's 12M share and median lead follow Market's rule
+
+- Dashboard: "three ways" reads each stock's last close in the week to each date, as Market does, so a stock that missed a session is kept and the two pages show the same 12M share beating Nifty Total Market and the same median lead (S193 A11, owner). Over the last 271 sessions they differed only on 6, by 0.1 pt. No rank moves.
+- The qualified count and the qualified place read the same tick marks ("✓" and "✅"); not seen live, as the engine writes true and false.
+
 ## 2026-11-25 — NSE's four levels for filtering (S226, the safe part)
 
 - Screener: the search will offer NSE's macro sector, industry and basic industry beside its sector, in place of TradingView's sector and industry. Sectors: the grouping picker will offer the same four NSE levels on every system, and on > ₹2,000 Cr and Combined sets NSE's sector indices beside NSE's sectors. Each level appears once the classification file covers 90% of a system's stocks; until then both pages stay as they are. A stock the file lacks reads "Unclassified" at that level.

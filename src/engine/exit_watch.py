@@ -45,7 +45,7 @@ class Rules:
 def _flag(series: pd.Series | None, index) -> pd.Series:
     if series is None:
         return pd.Series(False, index=index)
-    return series.map(lambda v: str(v).strip().lower() in ("true", "1", "yes", "✓", "y")
+    return series.map(lambda v: str(v).strip().lower() in ("true", "1", "yes", "✓", "✅", "y")
                       if not isinstance(v, (bool, np.bool_)) else bool(v)).astype(bool)
 
 

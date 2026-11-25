@@ -71,7 +71,7 @@ frames come from R2 and end on the published ranking's session (20 Nov on the li
 | Nifty 500 against its 10-month average; the month-end reading | `ten_month_today`; `ten_month_gap`, `last_month_end` | the same | Dashboard signal row | `test_nifty500_against_its_10_month_average...` |
 | Nifty 500 and size indices from the 52W high | `market_questions.from_high` (a calendar year) | the same; sizes from `benchmark_indices.csv` | Indices "From 12M high"; Dashboard "Sharp rebound" | `test_from_the_52w_high_agrees...`; Dashboard: strict xfail (difference 1) |
 | Share above the 200D and 50D EMA; net new highs | `pit_breadth.splice(market_questions._share_above_ema / _net_new_highs)` | ranking frame on `rank_df`'s symbols; `breadth_history.csv` | Dashboard, header (50D count), Sectors | `tests/test_pit_breadth.py`, `test_share_above_the_200d_ema...` |
-| Share beating Nifty Total Market over 12M; median stock less it | `market_questions._beat_index_12m` (last close in the week to each date) | ranking frame, `total_market()` | Dashboard "three ways" (`typical_stock`, the exact session) | `test_the_12m_beat_share...`, `test_the_12m_figures_differ...` (S193 A11, open for the owner) |
+| Share beating Nifty Total Market over 12M; median stock less it | `market_questions._beat_index_12m` (last close in the week to each date) | ranking frame, `total_market()` | Dashboard "three ways" (`typical_stock`, the exact session) | `test_the_12m_beat_share...`, `test_the_12m_figures_agree_when_a_close_is_missing` (S193 A11, owner 25 Nov 2026: both read each stock's last close in the week, `market_questions.last_close_in_week`) |
 | Which sectors lead | `market_questions.leaders_answer` | ranking frame, Nifty 500 | Sectors (`sectors_page.leads`, against the 750) | not compared: another benchmark, named on each page |
 
 ### Indices
@@ -118,8 +118,12 @@ names saved, so every column is the Screener's; its plan lines are `ui.model_pla
 
 ### Undocumented differences found 24 Nov 2026 (not fixed; for the owner to route)
 
-1-4 are strict xfails in `tests/test_same_label_every_page.py`: the test fails the day the pages
-agree, and the marker comes off then.
+**Status 25 Nov 2026: 1-5 closed.** 5: `nse_total_market.csv` now holds the seven weekend sessions (S163, fixed by rule 24 Nov; checked 25 Nov: 12 Nov 2023 9,757.10, 8 Nov 2026 13,251.55). **1-4 closed, each by a rule already settled, so no marker is left.** 1: the
+Dashboard reads the calendar year too (`_from_high_series`, owner 24 Nov: "Use calendar date
+everywhere"). 2: Sectors prints with `formats` (glossary 12). 3: "All ranked stocks" counts every
+ranked stock (`test_a_ranked_stock_without_an_industry_counts_on_every_page`). 4: `exit_watch._flag`
+and `theme.is_tick_true` read the same ticks, "✓" and "✅" (the test runs both). The text below is
+the finding as written on 24 Nov.
 
 1. **Nifty 500 from its 52W high, Dashboard against Market.** The Dashboard's "Sharp rebound" row
    (`dashboard_home_view.py:1563`) reads `market_questions._from_high_series`, a 252-session window
