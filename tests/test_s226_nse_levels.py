@@ -62,7 +62,7 @@ def test_the_750_keeps_its_industry_and_gains_the_levels():
 
 def test_levels_map_reads_the_committed_file():
     got = nc.levels_map()
-    assert set(got) == set(nc.LEVEL_COLUMNS)
+    assert set(got) == set(nc.LEVEL_COLUMNS) | {nc.FILE_SECTOR}
     assert got["NSE_Basic_Industry"]["ABSLAMC"] == "Asset Management Company"
     assert got["NSE_Industry"]["ABSLAMC"] == "Capital Markets"
 
@@ -261,3 +261,23 @@ def test_a_former_member_falls_back_to_the_historical_file(tmp_path, monkeypatch
     m = nc.sector_map(str(cls), str(tmp_path / "none.csv"), str(tmp_path / "none.csv"))
     assert m["ANDHRABANK"] == "Financial Services"
     assert m["SANSERA"] == "Automobile and Auto Components"
+
+
+def test_a_row_whose_sector_and_levels_disagree_shows_no_levels():
+    # S189: CMPDI's sector is "Services" in NSE's list, its file levels say Construction (24 Nov 2026).
+    rank = _rank()
+    syms = list(rank["Symbol"])
+    levels = {**_levels(syms), nc.FILE_SECTOR: {s: "Financial Services" for s in syms} | {"S0": "Construction"}}
+    out = nc.with_nse_levels(rank, xu.SYSTEM_NANO, {s: "Financial Services" for s in syms}, levels)
+    assert out["Industry"].iloc[0] == "Financial Services"
+    assert out.loc[0, ["NSE_Macro", "NSE_Industry", "NSE_Basic_Industry"]].eq(nc.UNCLASSIFIED).all()
+    assert out["NSE_Industry"].iloc[1:].eq("Banks").all()
+    assert out.attrs["nse_level_conflicts"] == ["S0"]
+
+
+def test_the_committed_file_conflicts_only_where_found():
+    rank = pd.DataFrame({"Symbol": ["CMPDI", "INA", "SUDEEPPHRM", "BUILDPRO", "RELIANCE"]})
+    rank["Industry"] = rank["Symbol"].map(nc.sector_map())
+    out = nc.with_nse_levels(rank, xu.SYSTEM_750, nc.sector_map(), nc.levels_map(), min_coverage=0.0)
+    assert out.attrs["nse_level_conflicts"] == ["BUILDPRO", "CMPDI", "INA", "SUDEEPPHRM"]
+    assert out.loc[4, "NSE_Industry"] != nc.UNCLASSIFIED

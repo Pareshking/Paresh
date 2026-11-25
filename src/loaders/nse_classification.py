@@ -120,6 +120,8 @@ LEVEL_COLUMNS = {"NSE_Macro": "Macro", "NSE_Industry": "Industry", "NSE_Basic_In
 LEVEL_NAMES = {"Industry": "NSE sector", "NSE_Macro": "NSE macro sector", "NSE_Industry": "NSE industry",
                "NSE_Basic_Industry": "NSE basic industry"}
 UNCLASSIFIED = xu.UNCLASSIFIED
+# The file's own sector, carried in levels_map so a row's levels can be checked against the sector it shows.
+FILE_SECTOR = "_file_sector"
 
 
 def levels_map(classification_path: str = CLASSIFICATION_PATH) -> dict[str, dict[str, str]]:
@@ -137,6 +139,10 @@ def levels_map(classification_path: str = CLASSIFICATION_PATH) -> dict[str, dict
             continue
         out[col] = {**_historical(level),
                     **{s: " ".join(str(v).split()) for s, v in zip(syms, cls[level]) if str(v).strip()}}
+    if "Sector" in cls:
+        from src.loaders.extra_universe_loader import nse_industry
+        out[FILE_SECTOR] = {s: nse_industry(" ".join(str(v).split())) for s, v in zip(syms, cls["Sector"])
+                            if str(v).strip()}
     return out
 
 
@@ -163,25 +169,37 @@ def with_nse_levels(frame: pd.DataFrame, system: str, sectors: dict[str, str] | 
     mixed into NSE's levels. `attrs["nse_sectors"]` is True when "Industry" holds NSE's sector
     (always on the 750, on the others when the sector passed the coverage guard). The input frame
     is never changed.
+
+    The levels come from the classification file and the sector from NSE's own lists first, so the two
+    can disagree (24 Nov 2026: CMPDI "Services" in the Nifty 1000's list, "Construction" in the file;
+    4 of 2,385, all listed in the last 12 months). Such a row reads UNCLASSIFIED at every level rather
+    than show an industry from another sector; `attrs["nse_level_conflicts"]` names them (S189).
     """
     if frame is None or frame.empty or "Symbol" not in frame:
         return frame
     sectors = fetch_sector_map() if sectors is None else sectors
     levels = fetch_levels_map() if levels is None else levels
+    file_sector = levels.get(FILE_SECTOR) or {}
     out = with_nse_sectors(frame, system, sectors, min_coverage)
     out = frame.copy() if out is frame else out
     out.attrs = dict(frame.attrs)
     out.attrs["nse_sectors"] = system == xu.SYSTEM_750 or coverage(frame, sectors) >= min_coverage
     sym = out["Symbol"].astype(str).str.upper()
+    theirs = sym.map(file_sector)
+    conflict = theirs.notna() & out["Industry"].notna() & (theirs != out["Industry"].astype(str))
+    if not out.attrs["nse_sectors"]:
+        conflict[:] = False                          # the sector is not NSE's yet: nothing to check against
     missing: dict[str, int] = {}
     for col in LEVEL_COLUMNS:
         labels = levels.get(col) or {}
         mapped = sym.map(labels)
         if mapped.notna().mean() < min_coverage:
             continue
+        mapped = mapped.mask(conflict)
         missing[col] = int(mapped.isna().sum())
         out[col] = mapped.fillna(UNCLASSIFIED)
     out.attrs["nse_unclassified"] = missing
+    out.attrs["nse_level_conflicts"] = sorted(sym[conflict])
     return out
 
 
