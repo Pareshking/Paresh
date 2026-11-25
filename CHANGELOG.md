@@ -5,7 +5,7 @@
 
 - Configuration: the page's foot line now gives the prices' date ("Data to … · NSE"), as its Data health text says it does.
 - Indices earnings: the Nifty Total Market (the 750) joins the profit and revenue tables, with its members as they were each quarter (Q2 FY27: profit +30.5%, revenue +22.2%). The Nifty 1000 is in the latest-quarter table only, since only its current members are stored (Q2 FY27: profit +31.2%, 988 of 1,000 companies).
-- Sectors: on the leadership map, a click on a sector picks it out again and fades the rest (as before the 22 Nov rebuild); a second click shows all. The list follows the click.
+- Sectors: on the leadership map, a click on a sector picks it out again and fades the rest (as before the 22 Nov rebuild); a second click shows all. The list follows the click. A tap on a phone does the same.
 - Screener, Sectors, Watchlist: four stocks whose NSE list sector and NSE industry disagree (CMPDI, INA, SUDEEPPHRM, BUILDPRO) no longer show an industry from another sector; they read Unclassified below the sector until the sources agree.
 - Stock page and search: SHUKRAMED (NSE's new ticker for SHUKRAPHAR since 20 Nov 2026) opens the stock's page, with a line saying the ranking files it under SHUKRAPHAR until January.
 - Indices earnings: Tata Motors is left out of Q2 FY27 only (its base holds the demerger gain); Q3 FY27, whose base is after the demerger, counts it. The note says "Q2 and Q3 FY26, Q2 FY27".
