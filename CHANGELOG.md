@@ -3,6 +3,7 @@
 
 ## 2026-11-25 — Indices: how many companies reported (S171)
 
+- Market: "Stocks above their 200D EMA" now gives one percentile in both tables (the 1000 read the 29th since Jul 2017 in one and the 31st since Mar 2018 in the other).
 - Configuration: the page's foot line now gives the prices' date ("Data to … · NSE"), as its Data health text says it does.
 - Indices earnings: the Nifty Total Market (the 750) joins the profit and revenue tables, with its members as they were each quarter (Q2 FY27: profit +30.5%, revenue +22.2%). The Nifty 1000 is in the latest-quarter table only, since only its current members are stored (Q2 FY27: profit +31.2%, 988 of 1,000 companies).
 - Sectors: on the leadership map, a click on a sector picks it out again and fades the rest (as before the 22 Nov rebuild); a second click shows all. The list follows the click. A tap on a phone does the same.
