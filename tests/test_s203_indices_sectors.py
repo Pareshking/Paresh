@@ -742,3 +742,11 @@ def test_s229_a_click_on_the_map_picks_a_sector_out():
     lmap = js[js.index("R.lmap ="):js.index("R.stable =")]
     assert "el.addEventListener('pointerup'" in lmap and "pick.value = focus" in lmap
     assert "opacity: on(r) ? 1 : .22" in lmap
+
+
+def test_configuration_carries_the_foot_line_its_text_points_to():
+    """Data health says the prices' date "is in the line at the foot of the page"; the page had no such line, so with a
+    late source (the pill then drops "closes of") it named no session (found 25 Nov 2026)."""
+    src = (Path(__file__).resolve().parents[1] / "src" / "ui" / "views" / "config_view.py").read_text(encoding="utf-8")
+    assert "in the line at the foot of the page" in src
+    assert 'as_of=prices.get("date") if prices else None' in src

@@ -704,8 +704,13 @@ def render_config_view(rank_df: pd.DataFrame) -> None:
     with _section(3):
         _section_data_health(rank_df)
 
+    # The page says the prices' date "is in the line at the foot of the page" (Data health), so it carries one:
+    # the prices' date the header pill reads, "Data to <date> · NSE" (S173 rule 7). It had none (found 25 Nov 2026:
+    # with a late source the pill drops "closes of", and the page then named no session at all).
+    prices = next((i for i in data_freshness() if i.get("label") == "Prices"), None)
     render_data_quality_footer(
         total_stocks=len(rank_df),
         gap_count=gap_count(rank_df),
         short_count=int((rank_df.get("Short History", pd.Series()) == "Yes").sum()),
+        as_of=prices.get("date") if prices else None,
     )
