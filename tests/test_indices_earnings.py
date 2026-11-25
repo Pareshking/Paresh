@@ -1,4 +1,5 @@
-"""S171 (3): the Indices page shows NSE's latest earnings review figures beside the P/E."""
+"""S171: NSE's earnings review file (kept for the weekly check), and the Indices page, which shows our calculation
+from Screener's company results (owner, 25 Nov 2026: "We will use Screener data only")."""
 from __future__ import annotations
 
 import pandas as pd
@@ -28,12 +29,24 @@ def test_a_quarter_filled_from_a_later_issue_is_not_the_latest():
     assert er.latest(df).quarter == "Q1FY27"
 
 
-def test_the_section_names_the_quarter_source_and_shows_a_dash_for_a_figure_nse_did_not_publish():
-    html = iv.section_earnings(er.latest())[0]
-    assert "Q1 FY27" in html and "16 Sep 2026" in html and "nsearchives.nseindia.com" in html
-    assert "+33.9%" in html and "–" in html and "did not publish" in html
-    assert iv.earnings_headline(er.latest()) == (
-        "In Q1 FY27 the Nifty 500's profit rose 11.1% from a year earlier; the median company's profit rose 18.8%.")
+def test_the_section_shows_our_calculation_for_six_indices_and_names_its_source():
+    lt = er.ours()
+    assert lt is not None and set(lt.values) == set(er.OUR_INDICES)
+    html = iv.section_earnings(lt)[0]
+    q = er.quarter_label(lt.quarter)
+    assert q in html and "Our calculation from companies&#x27; reported results" in html and "Screener.in" in html
+    assert "Microcap 250" in html and "NSE" not in html and "PDF" not in html
+    assert iv.earnings_headline(lt).startswith(f"In {q} the Nifty 500's profit ")
+
+
+def test_the_page_profit_is_the_chosen_measure():
+    df = pd.DataFrame([
+        {"quarter": "Q2FY27", "index": "Nifty 500", "measure": m, "value_pct": v, "as_of": "2026-11-28"}
+        for m, v in (("pat_agg_yoy", 7.3), ("pat_xoi_agg_yoy", 30.3), ("sales_agg_yoy", 22.3))])
+    lt = er.ours(df)
+    want = {"pat": 7.3, "pat_xoi": 30.3}[er.PROFIT]
+    assert lt.values["Nifty 500"]["pat_agg_yoy"] == want and lt.values["Nifty 500"]["sales_agg_yoy"] == 22.3
+    assert lt.published == pd.Timestamp("2026-11-28")
 
 
 def test_no_file_no_section():
@@ -48,9 +61,10 @@ def test_history_runs_every_quarter_from_q1_fy22_with_q3_fy26_ex_tata_motors():
     assert er.quarter_end("Q4FY26") == pd.Timestamp("2026-03-31") and er.quarter_end("Q3FY26") == pd.Timestamp("2025-12-31")
 
 
-def test_the_history_chart_names_its_span_and_the_tata_motors_basis():
+def test_the_history_chart_reads_our_quarters():
     parts = iv.earnings_history()
     assert len(parts) == 2
+    h = er.ours_history("Nifty 500", "pat_agg_yoy")
+    first, last = er.quarter_label(iv._quarters([h.index[0]])[0]), er.quarter_label(iv._quarters([h.index[-1]])[0])
     how = str(parts[1])
-    assert "Q1 FY22 to Q1 FY27" in how and "leaves out Tata Motors" in how and "Q3 FY26" in how
-    assert "+18.2%" in how and "+11.1%" in how
+    assert f"{first} to {last}" in how and "Tata Motors" in how and "Screener.in" in how
