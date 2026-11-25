@@ -14,6 +14,7 @@ from src.ui import formats as _fmt
 from src.ui import missing_words as mw
 from src.ui import page_kit as kit
 
+from src.engine import earnings_review as er
 from src.engine import indices_page as ip
 from src.ui import indices_data
 from src.ui.views.dashboard_home_view import HOME_CSS, Chart, Cols, emit, how, html_of, sg, tone
@@ -185,6 +186,47 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
                       [[v.name, f"{v.pe_now:.2f}", f"{v.pb_now:.2f}", f"{v.dy_now:.1f}%", f"{v.pct_now:.0f}",
                         f"{v.pct_1m:.0f}", f"{v.pct_3m:.0f}"] for v in vals] + ([young_table] if young_table else []))]
     return parts
+
+
+def earnings_headline(lt: er.Latest) -> str:
+    """The earnings heading (S171): the Nifty 500's profit growth in NSE's latest quarter, total and median company."""
+    v = lt.values.get("Nifty 500", {})
+    agg, med = v.get("pat_agg_yoy"), v.get("pat_median_yoy")
+    q = er.quarter_label(lt.quarter)
+    if agg is None:
+        return f"Profit growth in {q}, from NSE's earnings review."
+    verb = "rose" if agg >= 0 else "fell"
+    tail = ("" if med is None else
+            f"; the median company's profit {'rose' if med >= 0 else 'fell'} {abs(med):.1f}%")
+    return f"In {q} the Nifty 500's profit {verb} {abs(agg):.1f}% from a year earlier{tail}."
+
+
+def section_earnings(lt: er.Latest | None) -> list:
+    """Profit and revenue growth beside the P/E (S171 (3)): NSE's latest Corporate Performance Review, its own figures."""
+    if lt is None:
+        return []
+    cols = [("pat_agg_yoy", "Profit, all companies"), ("pat_median_yoy", "Profit, median company"),
+            ("sales_agg_yoy", "Revenue, all companies"), ("sales_median_yoy", "Revenue, median company")]
+    body, missing = "", False
+    for name in er.INDICES:
+        v = lt.values.get(name, {})
+        cells = ""
+        for k, _ in cols:
+            missing |= v.get(k) is None
+            cells += f'<td class="dh-num">{e(sg(v.get(k), 1, "%"))}</td>'
+        body += f'<tr><th scope="row">{e(_short(name))}</th>{cells}</tr>'
+    q = er.quarter_label(lt.quarter)
+    note = (f"Year-on-year growth in {q} of profit after tax and of revenue (net sales), for the companies in each index "
+            f"at the quarter end: all companies added together, and the median company. NSE's figures, from its "
+            f"Corporate Performance Review for {q} (published {_dy(lt.published)}).")
+    if missing:
+        note += " NSE gives some of these figures only for some indices; a figure it did not publish reads –."
+    return [f'<div class="dh-sec dh-sec-cont">{KICK.format("Earnings")}<h2 id="s-earnings" class="dh-h2">'
+            f'{e(earnings_headline(lt))}</h2><p class="dh-note">{e(note)} '
+            f'<a href="{e(lt.pdf_url)}" target="_blank" rel="noopener">NSE\'s review (PDF)</a></p>'
+            '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Index</th>'
+            + "".join(f'<th scope="col" class="dh-num">{e(h)}</th>' for _, h in cols)
+            + f'</tr></thead><tbody>{body}</tbody></table></div></div>']
 
 
 def _and(names: list[str]) -> str:
@@ -477,7 +519,7 @@ def page_parts(f: ip.Frames, system: str | None = None) -> list:
     every = ip.every_index(f)
     n = sum(len(v) for v in every.values())
     young = ip.young_valuation(f, SYSTEM_INDEX[system]) if system in SYSTEM_INDEX else None
-    return (head(vals, as_of) + section_valuation(f, vals, m1, m3, young) + section_styles(sts, m1, m3) + section_lag(sts)
+    return (head(vals, as_of) + section_valuation(f, vals, m1, m3, young) + section_earnings(er.latest()) + section_styles(sts, m1, m3) + section_lag(sts)
             + section_years(sts, as_of) + section_size(ip.size_years(f), as_of) + section_every(f, every, as_of)
             + [f'<p class="dh-foot">{_fmt.data_to(as_of, "NSE")} · {n} broad, theme and strategy indices</p>'])
 

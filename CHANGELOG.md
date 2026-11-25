@@ -1,6 +1,11 @@
 # Changelog
 
 
+## 2026-11-25 — Indices: earnings growth beside the P/E (S171)
+
+- Indices: a new "Earnings" section after Valuation gives NSE's own figures for its latest quarter (Q1 FY27, published 16 Sep 2026): year-on-year growth in profit after tax and in revenue, for all companies together and for the median company, for the Nifty 50, Next 50, Midcap 150, Smallcap 250 and Nifty 500, with a link to NSE's review. A figure NSE did not publish reads –.
+- The figures come from a new table of NSE's Corporate Earnings Review issues since Q1 FY22 (`data/reference/nse_earnings_review.csv`), each with its PDF, page and quoted line.
+
 ## 2026-11-25 — The Dashboard's 12M share and median lead follow Market's rule
 
 - Dashboard: "three ways" reads each stock's last close in the week to each date, as Market does, so a stock that missed a session is kept and the two pages show the same 12M share beating Nifty Total Market and the same median lead (S193 A11, owner). Over the last 271 sessions they differed only on 6, by 0.1 pt. No rank moves.
