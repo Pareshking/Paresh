@@ -230,6 +230,14 @@ def _beat_series(prices: pd.DataFrame, bench: pd.Series,
     return pd.Series(share, dtype=float), pd.Series(gap, dtype=float)
 
 
+def last_close_in_week(prices: pd.DataFrame, when: pd.Timestamp) -> pd.Series:
+    """Each stock's last close in the week to `when` (NaN if none): the history holds dates on which
+    few or no stocks have a price (4 Nov 2024 has none). Market and the Dashboard read window returns
+    this way (owner, 25 Nov 2026, S193 A11: "1"), so a stock that missed one session is kept."""
+    w = prices.loc[pd.Timestamp(when) - pd.Timedelta(days=7):when]
+    return w.ffill().iloc[-1] if len(w) else pd.Series(np.nan, index=prices.columns)
+
+
 def _beat_index_12m(prices: pd.DataFrame, bench: pd.Series, when: pd.Timestamp | None,
                     members: pd.DataFrame | None = None) -> tuple[float | None, float | None]:
     """Share of stocks ahead of the Nifty 500 over the year to `when`, and the
@@ -251,11 +259,7 @@ def _beat_index_12m(prices: pd.DataFrame, bench: pd.Series, when: pd.Timestamp |
     if b0 is None or b1 is None:
         return None, None
     rb = float(b.loc[b1] / b.loc[b0] - 1)
-    # Each stock's last price in the week to each date: the history holds
-    # dates on which few or no stocks have a price (4 Nov 2024 has none).
-    week = pd.Timedelta(days=7)
-    p1 = prices.loc[when - week:when].ffill().iloc[-1]
-    p0 = prices.loc[start - week:start].ffill().iloc[-1]
+    p1, p0 = last_close_in_week(prices, when), last_close_in_week(prices, start)
     r = (p1 / p0 - 1).dropna()
     if len(r) < max(min(100, 0.5 * prices.shape[1]), 0.2 * prices.shape[1]):
         return None, None

@@ -528,7 +528,7 @@ def typical_stock(prices: pd.DataFrame, market: pd.Series, as_of: pd.Timestamp,
                   windows=(1, 3, 6, 12)) -> dict[str, list[float | None]] | None:
     """The 750 three ways against the market, percent: equal-weighted,
     median stock, and the share of stocks ahead of the market."""
-    from src.engine import peer_index as pi
+    from src.engine import market_questions as mq, peer_index as pi
     if prices is None or prices.empty or market is None or market.empty:
         return None
     px = prices.loc[:as_of]
@@ -539,7 +539,9 @@ def typical_stock(prices: pd.DataFrame, market: pd.Series, as_of: pd.Timestamp,
         mk = window_return(market, start, as_of)
         e_ = pi.window_return(ew, start, as_of)
         d0, d1 = on_or_before(px.index, start), on_or_before(px.index, as_of)
-        r = ((px.loc[d1] / px.loc[d0] - 1) * 100).dropna() if d0 is not None and d1 is not None else pd.Series(dtype=float)
+        # Each stock's last close in the week to each date, as Market reads it (S193 A11, owner 25 Nov 2026).
+        r = ((mq.last_close_in_week(px, d1) / mq.last_close_in_week(px, d0) - 1) * 100).dropna() \
+            if d0 is not None and d1 is not None else pd.Series(dtype=float)
         out["market"].append(mk)
         out["equal_weight"].append(None if e_ is None else e_ * 100)
         out["median"].append(float(r.median()) if len(r) else None)
