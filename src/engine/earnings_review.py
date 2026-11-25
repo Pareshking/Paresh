@@ -87,6 +87,8 @@ def history(index: str, measure: str, df: pd.DataFrame | None = None) -> pd.Seri
 
 OURS_PATH = PATH.parent / "screener_earnings.csv"     # built weekly by scripts/screener_earnings.py
 OUR_INDICES = INDICES[:4] + ("Nifty Microcap 250", "Nifty 500", "Nifty Total Market")   # the 750: S230
+# In the latest-quarter tables only: today's members (owner, 25 Nov 2026: "Latest quarter only"; S230).
+LATEST_INDICES = OUR_INDICES + ("Nifty 1000",)
 # The profit the page shows: "pat" is net profit as companies report it; "pat_xoi" leaves out other income after tax
 # for companies other than banks and lenders (the one-off gains sit there: Vodafone Idea Mar 2026, Tata Motors Sep 2025).
 PROFIT = "pat_xoi"
@@ -125,15 +127,15 @@ def ours(df: pd.DataFrame | None = None) -> Latest | None:
         return None
     q = max(df["quarter"].unique(), key=_order)
     rows = df[df["quarter"] == q]
-    vals = {i: {m: None for m in MEASURES} for i in OUR_INDICES}
-    for i in OUR_INDICES:
+    vals = {i: {m: None for m in MEASURES} for i in LATEST_INDICES}
+    for i in LATEST_INDICES:
         for m in MEASURES:
             hit = rows[(rows["index"] == i) & (rows["measure"] == _measure(m))]["value_pct"].dropna()
             if len(hit):
                 vals[i][m] = float(hit.iloc[0])
     rep = {}
     if {"used", "size"} <= set(rows.columns):
-        for i in OUR_INDICES:
+        for i in LATEST_INDICES:
             hit = rows[(rows["index"] == i) & (rows["measure"] == "sales_agg_yoy")]
             if len(hit) and pd.notna(hit["size"].iloc[0]):
                 rep[i] = (int(hit["used"].iloc[0]), int(hit["size"].iloc[0]))

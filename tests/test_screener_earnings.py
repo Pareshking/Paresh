@@ -71,7 +71,7 @@ def test_tata_motors_is_in_q3_fy27_whose_base_is_after_the_demerger():
 def test_the_built_file_holds_complete_quarters_for_seven_indices():
     df = pd.read_csv(ROOT / "data" / "reference" / "screener_earnings.csv")
     assert set(df["index"]) == {"Nifty 50", "Nifty Next 50", "Nifty Midcap 150", "Nifty Smallcap 250",
-                                "Nifty Microcap 250", "Nifty 500", "Nifty Total Market"}   # the 750: S230
+                                "Nifty Microcap 250", "Nifty 500", "Nifty Total Market", "Nifty 1000"}   # S230
     n500 = df[(df["index"] == "Nifty 500") & (df["measure"] == "sales_agg_yoy")]
     assert (n500["used"] >= 0.9 * n500["members"]).all()
     assert {"pat_agg_yoy", "pat_xoi_agg_yoy", "sales_median_yoy"} <= set(df["measure"])
@@ -166,3 +166,15 @@ def test_the_quarter_coming_in_shows_from_one_in_ten_and_not_before():
 
     assert list(m.publishable(frame(149))["quarter"]) == ["Q1FY27", "Q2FY27"]       # 149 of 500 reported: shown
     assert list(m.publishable(frame(30))["quarter"]) == ["Q1FY27"]                  # 30: too few to say anything
+
+
+def test_the_nifty_1000_is_in_the_latest_quarter_only():
+    # S230 (owner, 25 Nov 2026: "Latest quarter only"): only today's list is stored, right for the newest quarter.
+    from src.engine import earnings_review as er
+    df = pd.read_csv(ROOT / "data" / "reference" / "screener_earnings.csv")
+    k = df[df["index"] == "Nifty 1000"]
+    newest = df[df["complete"].astype(str).str.lower().isin(("true", "1"))]["quarter_end"].max()
+    assert len(k) and (k["quarter_end"] >= newest).all()
+    assert "Nifty 1000" in er.LATEST_INDICES and "Nifty 1000" not in er.OUR_INDICES
+    assert er.ours().values["Nifty 1000"]["pat_agg_yoy"] is not None
+    assert er.ours_history("Nifty Total Market", "pat_agg_yoy").size >= 8

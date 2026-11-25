@@ -377,3 +377,9 @@ Q2FY27,2026-09-30,Nifty Total Market,pat_agg_yoy,27.37,748,750,742,True,2026-11-
 Q2FY27,2026-09-30,Nifty Total Market,pat_median_yoy,19.97,748,750,742,True,2026-11-25
 Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_agg_yoy,30.5,748,750,742,True,2026-11-25
 Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_median_yoy,22.42,748,750,742,True,2026-11-25
+Q2FY27,2026-09-30,Nifty 1000,sales_agg_yoy,22.31,998,1000,988,True,2026-11-25
+Q2FY27,2026-09-30,Nifty 1000,sales_median_yoy,20.76,998,1000,988,True,2026-11-25
+Q2FY27,2026-09-30,Nifty 1000,pat_agg_yoy,28.31,998,1000,988,True,2026-11-25
+Q2FY27,2026-09-30,Nifty 1000,pat_median_yoy,20.73,998,1000,988,True,2026-11-25
+Q2FY27,2026-09-30,Nifty 1000,pat_xoi_agg_yoy,31.22,998,1000,988,True,2026-11-25
+Q2FY27,2026-09-30,Nifty 1000,pat_xoi_median_yoy,23.21,998,1000,988,True,2026-11-25

@@ -31,7 +31,7 @@ def test_a_quarter_filled_from_a_later_issue_is_not_the_latest():
 
 def test_the_section_shows_our_calculation_for_six_indices_and_names_its_source():
     lt = er.ours()
-    assert lt is not None and set(lt.values) == set(er.OUR_INDICES)
+    assert lt is not None and set(lt.values) == set(er.LATEST_INDICES)
     html = iv.section_earnings(lt)[0]
     q = er.quarter_label(lt.quarter)
     assert q in html and "Our calculation from companies&#x27; reported results" in html and "last updated" in html
@@ -83,7 +83,7 @@ def test_the_heading_rounds_as_the_table_does():
 def test_the_latest_table_counts_companies_reported_against_the_index_size():
     # Owner, 25 Nov 2026: "we can show how many companies out of universe reported".
     lt = er.ours()
-    assert set(lt.reported) == set(er.OUR_INDICES)
+    assert set(lt.reported) == set(er.LATEST_INDICES)
     used, size = lt.reported["Nifty 50"]
     assert size == 50 and 0 < used <= 50                              # the index's size, before Tata Motors is left out
     html = iv.section_earnings(lt)[0]

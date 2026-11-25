@@ -228,14 +228,14 @@ def section_partial(pt: er.Latest | None) -> str:
         return ""
     q = er.quarter_label(pt.quarter)
     rows = ""
-    for name in er.OUR_INDICES:
+    for name in er.LATEST_INDICES:
         v, got = pt.values.get(name, {}), pt.reported.get(name)
         if got and got[0] < 0.1 * got[1]:
             v = {}                      # fewer than one in ten of the index: too few to say anything yet
         rows += (f'<tr><th scope="row">{e(_short(name))}</th>'
                  f'<td class="dh-num">{e(sg(v.get("pat_agg_yoy"), 1, "%"))}</td>'
                  f'<td class="dh-num">{e(sg(v.get("sales_agg_yoy"), 1, "%"))}</td>'
-                 f'<td class="dh-num">{e(f"{got[0]} of {got[1]}" if got else "–")}</td></tr>')
+                 f'<td class="dh-num">{e(f"{got[0]:,} of {got[1]:,}" if got else "–")}</td></tr>')
     n500 = pt.reported.get("Nifty 500")
     lede = f"{q} so far" + (f": {n500[0]} of {n500[1]} Nifty 500 companies have reported." if n500 else ".")
     return (f'<h3 class="dh-h3">{e(lede)}</h3><div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr>'
@@ -255,16 +255,17 @@ def section_earnings(lt: er.Latest | None, pt: er.Latest | None = None) -> list:
     cols = [("pat_agg_yoy", "Profit, all companies"), ("pat_median_yoy", "Profit, median company"),
             ("sales_agg_yoy", "Revenue, all companies"), ("sales_median_yoy", "Revenue, median company")]
     body = ""
-    for name in er.OUR_INDICES:
+    for name in er.LATEST_INDICES:
         v = lt.values.get(name, {})
         cells = "".join(f'<td class="dh-num">{e(sg(v.get(k), 1, "%"))}</td>' for k, _ in cols)
         got = lt.reported.get(name)
-        cells += f'<td class="dh-num">{e(f"{got[0]} of {got[1]}" if got else "–")}</td>'
+        cells += f'<td class="dh-num">{e(f"{got[0]:,} of {got[1]:,}" if got else "–")}</td>'
         body += f'<tr><th scope="row">{e(_short(name))}</th>{cells}</tr>'
     q = er.quarter_label(lt.quarter)
     note = (f"Growth in {q} over the same quarter a year earlier: all companies added together, and the median "
             f"company; companies reported counts those with both quarters, against the index's size. A quarter shows "
-            f"once nine in ten Nifty 500 companies have reported it. " + _source_note(q, lt.published))
+            f"once nine in ten Nifty 500 companies have reported it. The Nifty 1000 is here only: its members are today's, "
+            f"which are right for the latest quarter but not for earlier ones. " + _source_note(q, lt.published))
     return [f'<div class="dh-sec dh-sec-cont">{KICK.format("Earnings")}<h2 id="s-earnings" class="dh-h2">'
             f'{e(earnings_headline(lt))}</h2><p class="dh-note">{e(note)}</p>'
             '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
