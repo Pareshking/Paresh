@@ -27,9 +27,10 @@ without other income ("pat_xoi": for companies whose first row is "Sales", net p
 income after tax at the quarter's Tax %, 25% when it is missing or outside 0-60%; banks and
 lenders as reported, their other income being fees and treasury). Tata Motors (TATAMOTORS, TMPV,
 TMCV) is left out of every quarter whose own or year-earlier quarter is Q2 or Q3 FY26: Q2 and Q3 FY26
-as NSE's issues do (owner, 25 Nov 2026), and Q2 and Q3 FY27, whose base holds the demerger (1 Oct
-2025; TMPV's Sep 2025 net profit is Rs 76,248 crore, 16 points of the Nifty 500's growth alone).
-Q2 and Q3 FY27 are decided by rule, owner to confirm.
+as NSE's issues do (owner, 25 Nov 2026), and Q2 FY27, whose base holds the demerger (1 Oct 2025;
+TMPV's Sep 2025 net profit is Rs 76,248 crore, 16 points of the Nifty 500's growth alone). Q3 FY27
+is in unless its Dec 2025 base shows a one-off, checked when its results arrive (owner, 25 Nov 2026:
+"Q2 out, Q3 on data"; TODO S171).
 
 A quarter is complete when at least COMPLETE_SHARE of the Nifty 500's members have both
 quarters; the page shows complete quarters only (decided by rule 25 Nov 2026, owner to confirm).
@@ -77,7 +78,7 @@ def quarter_ends(today: date, years: int = 3) -> list[str]:
     return out[-(4 * years + 1):]
 
 
-EX_TATA = {"Q2FY26", "Q3FY26", "Q2FY27", "Q3FY27"}
+EX_TATA = {"Q2FY26", "Q3FY26", "Q2FY27"}
 
 
 # Left out of every index sum, with the owner's reason; the company's own Stock page still shows what it reported.

@@ -395,6 +395,11 @@ def render_ranking_view(
         f"[STOCK] {sym} — {ind}" for sym, ind in zip(_symbols, _industries)
     ]
 
+    # A stock NSE has renamed since the list was built is found under its new ticker too (S227).
+    from src.ui import stock_lines as _sl
+    _ind = dict(zip(_symbols, _industries))
+    stock_opts += [f"[STOCK] {new} — {_ind.get(old, '')}"
+                   for new, (old, _d) in _sl.renamed_on_nse(frozenset(map(str, _symbols))).items()]
     search_options = stock_opts + idx_opts + ind_opts + nse_opts + sec_opts + tv_ind_opts
 
     # ── Page header ──────────────────────────────────────────────────────────

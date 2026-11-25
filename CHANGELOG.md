@@ -3,6 +3,8 @@
 
 ## 2026-11-25 — Indices: how many companies reported (S171)
 
+- Stock page and search: SHUKRAMED (NSE's new ticker for SHUKRAPHAR since 20 Nov 2026) opens the stock's page, with a line saying the ranking files it under SHUKRAPHAR until January.
+- Indices earnings: Tata Motors is left out of Q2 FY27 only (its base holds the demerger gain); Q3 FY27, whose base is after the demerger, counts it. The note says "Q2 and Q3 FY26, Q2 FY27".
 - Indices: during results season, a "so far" block shows the quarter still coming in, from one in ten Nifty 500 companies reported until nine in ten, when it joins the tables, and the same quarter heads the two quarterly tables as "so far" with how many Nifty 500 companies have reported; an index shows – until one in ten of its companies have reported (owner, 25 Nov 2026: "Show partial one").
 - Indices: the latest-quarter earnings table gains a "Companies reported" column, counted against each index's size (Q2 FY27: Nifty 50 49 of 50, Nifty 500 493 of 500), and the note says a quarter shows once nine in ten Nifty 500 companies have reported it.
 

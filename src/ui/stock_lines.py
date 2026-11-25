@@ -15,6 +15,7 @@ The view is `src/ui/views/stock_view.py`; the agreed list is
 """
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -34,6 +35,29 @@ _EMA_MIN = int(EMA_MIN_PRINTS)
 
 
 # ── Small words ──────────────────────────────────────────────────────────────
+
+@functools.lru_cache(maxsize=8)
+def renamed_on_nse(ranked: frozenset[str]) -> dict[str, tuple[str, str]]:
+    """{new ticker: (the ticker the ranking files it under, the day NSE changed it)} for ranked stocks NSE
+    has renamed since their list was built (S227: SHUKRAPHAR -> SHUKRAMED, 20 Nov 2026). Display only:
+    the ranking, its prices and the model book keep the old ticker until the list is rebuilt (owner,
+    25 Nov 2026: "Redirect now, rename in Jan")."""
+    from src.loaders import nse_identity as ni
+    try:
+        renames = ni.auto_renames(set(ranked))
+        changes = ni.symbol_changes()
+    except Exception:  # a missing reference file: no redirect, never an error on the page
+        return {}
+    out = {}
+    for old, a in renames.items():
+        new = a["new_symbol"]
+        if new in ranked:
+            continue
+        hit = changes[(changes["old"] == old) & (changes["new"] == new)]
+        when = hit["date"].iloc[-1] if len(hit) and pd.notna(hit["date"].iloc[-1]) else None
+        out[new] = (old, f"{when.day} {when:%b %Y}" if when is not None else "")
+    return out
+
 
 def num(v) -> float | None:
     try:

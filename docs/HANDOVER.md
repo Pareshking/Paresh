@@ -100,6 +100,8 @@ Production QA green on af15327. Open:
 
 - **Built (owner, 25 Nov: "Show partial one"; "show partial also by showing how many companies out of universe reported"):** also the top row "<quarter> so far, N of 500 reported" in both quarterly tables; the quarter still coming in shows as "<quarter> so far" under the latest table from one in ten Nifty 500 companies reported (`PARTIAL_SHARE`) until nine in ten; an index under one in ten of its own companies reads –. Thresholds decided by rule, owner to confirm. First real one: Q3 FY27, mid-January 2027.
 
+**25 Nov ~15:45 UTC (state).** #692 merged (b2253f5, QA 45625108822). Owner back, five decisions one at a time: (1) profit without other income, confirmed; (2) Tata Motors out of Q2 FY27, Q3 FY27 on data (built on the branch, check in Jan-Feb); (3) "so far" from 1 in 10, confirmed; (4) S227 "Fix now", but the premise I gave was wrong (the stock is current, 1st in the Nano list and held in the model book), the fix reverted unshipped; asked again, "Redirect now, rename in Jan": the redirect built (display only), the rename dated to the January rebuild; (5) S228 leave as is.
+
 **25 Nov ~12:40 UTC (state).** #689 merged (06be1d5, QA 45605237656 green): Indices "Companies reported" column and the quarter coming in as "so far". The R2 inventory failed on 25 Nov (45605511334): its freshness list still held `market_caps/nse_history`, retired 24 Nov (S224 (d)); fixed in the next PR with a test. S163 section 3 outside addresses: when each last answered added (§5); licence and terms quoted (§5a), finding S228 for the owner (on the branch, no PR yet). Next: 28 Nov 04:23 UTC first `screener_earnings` run (log: pages chosen, restated, NSE check; first R2 publish).
 
 **25 Nov ~10:40 UTC (state).** #686 (5f5b322, QA 45584701444) and #688 (184ce7d, QA 45595793084) merged, both green and seen live: Indices earnings from our Screener calculation with quarterly tables for six indices; the Stock page "5 · Results". First Saturday run of `screener_earnings.yml` 28 Nov 04:23 UTC: first R2 publish of `fundamentals/screener_quarters`, check its log (pages chosen, restated, NSE check). Waiting on the owner: S227 (Nano list ticker), and the three S171 rules marked owner to confirm. Work loops stay on.
@@ -211,6 +213,8 @@ Done 23 Nov and gone from the queue: S185 replay step (#625), S199, S201 (#625),
 S194 L3/L4 and S202 (#627).
 
 ## Found, not fixed (recorded so it is not rediscovered)
+
+- **Layout audit, Dashboard at 412 px, 25 Nov:** "segbar frame taller than its drawing 39 px spare" failed #692's validate (run 45621877248, attempt 1) on a docs-only change; the same code passed on #689, #691 and locally, and the one re-run passed. Lead: the frame keeps its fallback-font height past the audit's second reading. If it recurs, wait for `document.fonts.ready` inside the frame before measuring.
 
 - **Fixed 23 Nov: `test_zeroed_weight_session_recovers.py` failed only in a full run.** Cause: past
   1,800 MB resident (`memory.GUARD_MB`), `app.py` drops every `src.*` module, so the test read a stale
