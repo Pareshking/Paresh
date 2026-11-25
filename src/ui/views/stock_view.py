@@ -569,6 +569,12 @@ def render_stock_view(
     st.html(f"<style>{HOME_CSS}{SP_CSS}</style>")
 
     match = rank_df[rank_df["Symbol"].astype(str).str.upper() == str(symbol).upper()]
+    renamed = None
+    if match.empty:   # a ticker NSE changed after the list was built opens the stock's page (S227)
+        hit = sl.renamed_on_nse(frozenset(rank_df["Symbol"].astype(str).str.upper())).get(str(symbol).upper())
+        if hit:
+            renamed = (str(symbol).upper(), *hit)
+            match = rank_df[rank_df["Symbol"].astype(str).str.upper() == hit[0]]
     if match.empty:
         _render_not_ranked(str(symbol).upper(), rank_df, uni, as_of, on_back,
                            members=members, other_rankings=other_rankings)
@@ -603,6 +609,10 @@ def render_stock_view(
     events, last_res = _calendar(sym, as_of, fill if fill is not None else check)
     holding = _holding(sym, prices, rank_df, system) if held else None
 
+    if renamed:
+        since = f" since {renamed[2]}" if renamed[2] else ""
+        st.html(f'<p class="dh-sub">NSE has listed {e(renamed[1])} as {e(renamed[0])}{e(since)}; '
+                f'the ranking files it under {e(renamed[1])} until the list is rebuilt in January.</p>')
     market = _market()
     if market is not None:
         market = market[market.index <= as_of]     # one session for the whole page (S148)
