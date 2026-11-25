@@ -62,6 +62,12 @@ def test_tata_motors_out_of_the_demerger_quarters_and_their_year_after():
     assert "TMPV" in m.members("nifty_50", "2026-06-30")
 
 
+def test_tata_motors_is_in_q3_fy27_whose_base_is_after_the_demerger():
+    # Owner, 25 Nov 2026: "Q2 out, Q3 on data": Q3 FY27 is in unless its Dec 2025 base shows a one-off.
+    m = _script()
+    assert "Q3FY27" not in m.EX_TATA and "Q2FY27" in m.EX_TATA
+
+
 def test_the_built_file_holds_complete_quarters_for_six_indices():
     df = pd.read_csv(ROOT / "data" / "reference" / "screener_earnings.csv")
     assert set(df["index"]) == {"Nifty 50", "Nifty Next 50", "Nifty Midcap 150", "Nifty Smallcap 250",
