@@ -5,7 +5,7 @@ state, queue and dates sections); do not write a dated copy. Earlier dated
 handovers are in `docs/archive/HANDOVER_*.md`. Paste the prompt at the end as
 the first message of a fresh session.
 
-_Last updated: 24 Nov 2026 ~17:00 IST, coordinating session session_016X4g5Y1bsnhgFzzKddp8Wc (took over 14:00 IST)._
+_Last updated: 26 Nov 2026 ~15:45 IST, coordinating session session_016X4g5Y1bsnhgFzzKddp8Wc (took over 14:00 IST)._
 
 ## The owner's standing rules (unchanged)
 
@@ -15,7 +15,7 @@ _Last updated: 24 Nov 2026 ~17:00 IST, coordinating session session_016X4g5Y1bsn
   **current head** and it merges cleanly with `main`. Squash-merge with
   `expectedHeadSha`. After a squash merge, restart your branch from `main`.
 - **Before taking an S-number,** check open PRs as well as `main`. Next free:
-  **S232** (TODO's header lists what is reserved).
+  **S234** (TODO's header lists what is reserved).
 - **Verify every claim yourself.** Nothing is deleted without the owner's yes on
   each item; the `ref_*` release files always stay.
 - **Tests:** `python scripts/fetch_nse_closes.py` first, then
@@ -40,6 +40,8 @@ _Last updated: 24 Nov 2026 ~17:00 IST, coordinating session session_016X4g5Y1bsn
 **Standing instruction (owner, 24 Nov ~09:05 UTC):** "Check what is already done or covered and work on them ... now onwards you will don't wait for my commands to start, start one by one and finish them." Work the TODO queue in order without asking; owner decisions (ranks, frozen record, model book, deletions) still go to the owner one at a time.
 
 ## State at handover
+
+**26 Nov ~10:15 UTC.** #705 merged (2c184e2, S172 (b) step 1): the first `app_pack` run (45797631273) published revision 3f6254ca and read all 37 files back matching main; Production QA 45797631376 green, served 2c184e2. Step 2 after a week of green `app_pack` runs. On the branch, no PR yet: S233 (1) the Backtest default page kept as its parts, (2) the daily price history kept on disk (`src/core/disk_memo.py`); after a full cache clear, locally, Dashboard 19.8 -> 5.7 s and Backtest 17.1 -> 4.9 s, pages identical. Not done: the shared price load (~4 s after a pull; `keep_and_fill` records sources as side effects, so a disk copy needs care) and the model book replay (its key lacks membership and the industry map). Next: open the S233 PR, merge on green, read Backtest's and Dashboard's times in Production QA.
 
 **24 Nov ~13:15 UTC.** #674 merged (6a613a5; S203 wrong-today sentences, S189 items 3 and 8, S223, S224 notes, S163 §5-6). On the branch, opened as one PR: S225, all ten pipeline follow-ups. The owner answered (1) "Hold back on Saturday", (2) "Drop schedule only", (8) "Drop 02:00"; built (3) conflict warnings, (4) every green run scanned, (5) push alerts for Production QA and Full Validation, (9) pip cache; (6) and (10) explained. The nightly hold after a Saturday breach is pending approval (above). Next: Production QA on 6a613a5, merge the S225 PR on green, then S203's per-sentence tests, S189 item 6 (a), S163 2 (f).
 
