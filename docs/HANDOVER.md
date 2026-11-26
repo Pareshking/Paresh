@@ -42,6 +42,7 @@ _Last updated: 26 Nov 2026 ~15:45 IST, coordinating session session_016X4g5Y1bsn
 ## State at handover
 
 **26 Nov ~10:15 UTC.** #705 merged (2c184e2, S172 (b) step 1): the first `app_pack` run (45797631273) published revision 3f6254ca and read all 37 files back matching main; Production QA 45797631376 green, served 2c184e2. Step 2 after a week of green `app_pack` runs. On the branch, no PR yet: S233 (1) the Backtest default page kept as its parts, (2) the daily price history kept on disk (`src/core/disk_memo.py`); after a full cache clear, locally, Dashboard 19.8 -> 5.7 s and Backtest 17.1 -> 4.9 s, pages identical. Not done: the shared price load (~4 s after a pull; `keep_and_fill` records sources as side effects, so a disk copy needs care) and the model book replay (its key lacks membership and the industry map). **26 Nov ~11:10 UTC:** #706 merged (d80e02c; S233 (1) (2) and the membership in both run keys); Production QA 45803161505 green: Backtest 22.3 -> 17.0 s (the first visit after a code change misses the kept page by design), Sectors 4.5 -> 1.7 s. The shared price load and the record's basis frame are deferred until S172 step 2 is measured (TODO S233). No PR open.
+**26 Nov ~14:35 UTC:** #707 merged (3881a18): S232's PicklingError fixed (the regime and index-frame caches keep plain values); TODO S203 closed, S227 seen live, the queue above refreshed. Production QA 45839638472 green. No PR open.
 
 **24 Nov ~13:15 UTC.** #674 merged (6a613a5; S203 wrong-today sentences, S189 items 3 and 8, S223, S224 notes, S163 §5-6). On the branch, opened as one PR: S225, all ten pipeline follow-ups. The owner answered (1) "Hold back on Saturday", (2) "Drop schedule only", (8) "Drop 02:00"; built (3) conflict warnings, (4) every green run scanned, (5) push alerts for Production QA and Full Validation, (9) pip cache; (6) and (10) explained. The nightly hold after a Saturday breach is pending approval (above). Next: Production QA on 6a613a5, merge the S225 PR on green, then S203's per-sentence tests, S189 item 6 (a), S163 2 (f).
 
@@ -181,9 +182,11 @@ any work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
 ## Queue: one at a time, in this order
 
-_Refreshed 26 Nov 2026. Items 0-3 of 23-24 Nov are done (S188, S193 A-L, S203 all merged)._
+_Refreshed 26 Nov 2026. Items 0-3 of 23-24 Nov are merged (S188, S193 A-L, S203); S193 A5 and L's live cold start are still open (see 0b)._
 
 0. **Waiting on the owner's Streamlit log** (ask once, with the next decision): S232 (no import traceback across three pulls; the PicklingError fix is in the 26 Nov batch), S152 (d) (a log after 3050c86).
+0b. **Promises audit, 26 Nov** (my replies and reasoning since 23 Nov checked against the docs): the S189 sector check of INA, SUDEEPPHRM, BUILDPRO, CMPDI (blocked here: NSE's quote page answered 503 and BSE 403 to this session, and an NSE API read with session cookies was refused by the permission check; next: NSE's next Nifty 1000 list, or a CI job with the owner's yes); the dead `stPills` CSS (done, below); then in CI with R2 keys after the freeze: S129's before/after backtest and S193 A5. Not measurable while `keep_awake` runs: S193 L's live cold start. Tracked under S233: Portfolio's 17 fingerprints.
+0a. **S198 (c) prices from ₹800 Cr: by 15 Dec, with S198 (e)** (checked 26 Nov: no history is lost before then and the December measurement prices the band from NSE's own files; the January switch is the only reader). Its own store, not the one the app loads. See TODO S198.
 1. **Dated checks** (each has a scheduled reminder): 27 Nov 03:11 UTC the D2 ledger matches (S174); 27 Nov S142 (make the repository private: the owner's step); 28 Nov the earnings run; 29 Nov `backtest_reference` and `r2_retention` (S188 (c)); 26 Nov-3 Dec a week of green `app_pack` runs, then S172 step 2 job by job; ~1 Dec page budgets reset by rule (S193); 1 Dec budgets and #638 (owner's yes on the figures); 2 Dec freeze checks, `momentum_health` (S177 (c)), S116 (c); 5 Dec S185 replay; 13 Dec S116 (d); 15 Dec S137; Jan S227 rename, S188 (h); 2 Feb S220.
 2. **S233 after S172 step 2**: re-measure Production QA; then decide the shared price load and the record's basis frame (TODO S233).
 3. **S231**: NSE's Q2 FY27 earnings PDF (daily retry); then the definition of "financials" and the default to the owner.
@@ -210,6 +213,8 @@ Done 23 Nov and gone from the queue: S185 replay step (#625), S199, S201 (#625),
 S194 L3/L4 and S202 (#627).
 
 ## Found, not fixed (recorded so it is not rediscovered)
+
+- **26 Nov, dead pill CSS: resolved** (owner, 26 Nov: "No pill required"): the 7 `stPills` rules and the 3 `stSegmentedControl` rules (both ids gone since Streamlit 1.65) removed from `page.css`, so pills keep Streamlit's look as today; `tests/test_css_test_ids_exist.py` fails on any test id the installed Streamlit no longer emits.
 - 25 Nov: Configuration at 1400 px shows three 56 px "empty bands" in the layout audit: they are its section breaks (space, a rule drawn as a border, the next numbered section; screenshot checked), which the audit does not count as drawn. Intended, not fixed; the page is not in CI's layout list. Its missing foot line was fixed in #694.
 
 - **Layout audit, Dashboard at 412 px, 25 Nov:** "segbar frame taller than its drawing 39 px spare" failed #692's validate (run 45621877248, attempt 1) on a docs-only change; the same code passed on #689, #691 and locally, and the one re-run passed. Lead: the frame keeps its fallback-font height past the audit's second reading. If it recurs, wait for `document.fonts.ready` inside the frame before measuring.
