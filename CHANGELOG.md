@@ -3,6 +3,7 @@
 
 ## 2026-11-26
 
+- Every page: a page opened while the site was updating could fail for a moment with an error; the update now waits for a page that is loading.
 - Indices earnings: a switch, All companies or Without financials (NSE's Financial Services sector left out: banks, NBFCs, insurers, capital-market companies). All companies stays the default and its figures are unchanged; without financials the Nifty 500's Q2 FY27 profit rose 37.7%, against 30.3% for all companies.
 
 ## 2026-11-25 — Indices: how many companies reported (S171)

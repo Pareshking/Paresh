@@ -116,3 +116,36 @@ def reload_if_changed(modules: dict | None = None) -> list[str]:
             mods.pop(name, None)
         _SEEN.clear()  # re-recorded from the fresh imports on the next run
         return sorted(changed)
+
+
+def guard_streamlit_evictions() -> bool:
+    """Make Streamlit's own module eviction wait for the app's import window.
+
+    On a pull Streamlit's file watcher marks every src/ and r2/ module for
+    eviction and drops them from sys.modules at the start of each session's
+    next script run (`LocalSourcesWatcher.flush_pending_evictions`). sys.modules
+    is shared by every session, and that drop does not take `_LOCK`, so a
+    second session starting a run while the first was importing pulled the
+    modules from under it: `KeyError: 'src'` (and `'src.core.logger'`, ...) in
+    app.py's imports, 48 tracebacks in the owner's log of 24-26 Nov 2026, the
+    last at the 26 Nov 05:05 UTC pull. Holding the same lock makes the drop wait
+    until the importing session has finished. Returns True once patched.
+    """
+    try:
+        from streamlit.watcher.local_sources_watcher import LocalSourcesWatcher
+    except Exception:  # noqa: BLE001 - another Streamlit: leave it as it is
+        return False
+    original = getattr(LocalSourcesWatcher, "flush_pending_evictions", None)
+    if original is None:
+        return False
+    if getattr(original, "_app_import_guarded", False):
+        return True
+
+    def flush_pending_evictions(self) -> None:
+        with _LOCK:
+            original(self)
+
+    flush_pending_evictions._app_import_guarded = True  # type: ignore[attr-defined]
+    flush_pending_evictions.__wrapped__ = original  # type: ignore[attr-defined]
+    LocalSourcesWatcher.flush_pending_evictions = flush_pending_evictions
+    return True
