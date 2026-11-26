@@ -1167,6 +1167,8 @@ def _run(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float
     ph = h.get("close_fingerprint") or price_fingerprint(h["close"])
     if h["traded_value"] is not None:
         ph += f"_{h.get('traded_fingerprint') or price_fingerprint(h['traded_value'])}"
+    # The membership is passed as _membership, which the cache does not hash (S233).
+    ph += f"_{snapshot.fingerprint(h['membership'])[:16]}"
     queued = st.empty()
     # One backtest computes at a time across the whole server (compute_gate, TODO S65).
     if compute_gate.busy():

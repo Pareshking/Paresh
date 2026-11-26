@@ -27,6 +27,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.core.disk_memo import code_fingerprint  # noqa: F401  (monkeypatched in tests)
+from src.core.disk_memo import value_fingerprint as fingerprint
 from src.core.logger import logger
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,31 +36,6 @@ VERSION = 1          # the parts' JSON layout; a change writes under a new key
 
 def _sha(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
-
-
-def fingerprint(obj) -> str:
-    """A stable digest of an input: a frame or series by its whole values (pipeline.price_fingerprint), a
-    mapping or sequence item by item, a set in sorted order (a set's own order changes from process to
-    process), anything else by repr."""
-    from src.engine.pipeline import price_fingerprint
-
-    if obj is None:
-        return "-"
-    if isinstance(obj, pd.Series):
-        obj = obj.to_frame()
-    if isinstance(obj, pd.DataFrame):
-        try:
-            return price_fingerprint(obj)
-        except Exception:  # noqa: BLE001  a frame that cannot be fingerprinted never matches
-            return f"unhashable-{id(obj)}"
-    if isinstance(obj, dict):
-        items = sorted(((repr(k), fingerprint(v)) for k, v in obj.items()))
-        return _sha(repr(items).encode())
-    if isinstance(obj, (set, frozenset)):
-        return _sha(repr(sorted(repr(v) for v in obj)).encode())
-    if isinstance(obj, (list, tuple)):
-        return _sha(repr([fingerprint(v) for v in obj]).encode())
-    return _sha(repr(obj).encode())
 
 
 def key(settings: dict, inputs: dict, caps: tuple, bench: pd.Series, store, reference_bytes: bytes | None) -> str:

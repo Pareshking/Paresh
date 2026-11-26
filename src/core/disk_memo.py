@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import Any
 from collections.abc import Callable
 
+import pandas as pd
+
 from src.core.logger import logger
 
 KEEP = 2
@@ -37,6 +39,35 @@ def code_fingerprint(root: Path = ROOT) -> str:
             h.update(p.relative_to(root).as_posix().encode() + b"\0" + p.read_bytes() + b"\0")
         _CODE[str(root)] = h.hexdigest()
     return _CODE[str(root)]
+
+
+def _sha(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
+
+
+def value_fingerprint(obj) -> str:
+    """A stable digest of an input: a frame or series by its whole values (pipeline.price_fingerprint), a
+    mapping or sequence item by item, a set in sorted order (a set's own order changes from process to
+    process), anything else by repr."""
+    from src.engine.pipeline import price_fingerprint
+
+    if obj is None:
+        return "-"
+    if isinstance(obj, pd.Series):
+        obj = obj.to_frame()
+    if isinstance(obj, pd.DataFrame):
+        try:
+            return price_fingerprint(obj)
+        except Exception:  # noqa: BLE001  a frame that cannot be fingerprinted never matches
+            return f"unhashable-{id(obj)}"
+    if isinstance(obj, dict):
+        items = sorted(((repr(k), value_fingerprint(v)) for k, v in obj.items()))
+        return _sha(repr(items).encode())
+    if isinstance(obj, (set, frozenset)):
+        return _sha(repr(sorted(repr(v) for v in obj)).encode())
+    if isinstance(obj, (list, tuple)):
+        return _sha(repr([value_fingerprint(v) for v in obj]).encode())
+    return _sha(repr(obj).encode())
 
 
 def _dir(name: str) -> Path:
