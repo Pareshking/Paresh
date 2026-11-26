@@ -29,8 +29,6 @@ def test_pct_formats_fractions_and_dashes_non_finite():
 def _kit_app():
     from src.ui import page_kit as k
 
-    k.metric_tile(k.Metric("Strategy", k.pct(0.1), delta="+2.0% vs Nifty", tone="normal"))
-    k.metric_tile(k.Metric("Alpha", k.pct(float("nan"))))
     k.callout("Holdout check", "<b>escaped</b>", "warn")
     k.badge("LIVE", "up")
 
@@ -38,8 +36,6 @@ def _kit_app():
 def test_kit_helpers_render_without_error():
     at = AppTest.from_function(_kit_app).run()
     assert not at.exception, [e.value for e in at.exception]
-    assert [m.label for m in at.metric] == ["Strategy", "Alpha"]
-    assert [m.value for m in at.metric] == ["+10.0%", "–"]
 
 
 def test_callout_escapes_its_text():

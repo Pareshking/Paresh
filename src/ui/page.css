@@ -851,11 +851,6 @@
         @media (max-width: 640px) {
             [class*="st-key-pgcard_"] { padding: 14px 14px !important; border-radius: 4px; }
             .pg-bar { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 64px; gap: 8px; }
-            /* Four figures read as a 2 x 2 block, not four tall tiles. */
-            [class*="st-key-mrow_"] { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
-            [class*="st-key-mrow_"] > div { width: auto !important; min-width: 0 !important; }
-            [class*="st-key-mrow_"] [data-testid="stMetric"] { padding: 10px 12px !important; }
-            [class*="st-key-mrow_"] [data-testid="stMetricLabel"] { font-size: var(--fs-12); }
         }
 
         /* The watchlist bridge has no visible output. */
@@ -1034,13 +1029,6 @@
         [data-testid="stMetric"] [data-testid="stMetricValue"] {
             font-variant-numeric: tabular-nums;
         }
-        [class*="st-key-mrow_"] { align-items: stretch; }
-        [class*="st-key-mrow_"] > [data-testid="stMetric"],
-        [class*="st-key-mrow_"] > div { flex: 1 1 180px; min-width: 0; }
-        /* Figures in a card: as tall as their text, not a 90px box (owner, 13 Oct). */
-        [class*="st-key-mrow_"] [data-testid="stMetric"] { padding: 10px 14px !important; }
-        [class*="st-key-mrow_"] [data-testid="stMetric"] > div { padding: 0 !important; }
-        [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: var(--fs-17) !important; line-height: 1.2 !important; }
 
         .sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden;
             clip: rect(0 0 0 0); white-space: nowrap; padding: 0 !important; border: 0 !important; }
@@ -1156,7 +1144,6 @@
         [data-testid="stMetric"] [data-testid="stMetricDelta"] {
             font-family: var(--font-ui) !important; text-transform: none !important; letter-spacing: 0 !important;
         }
-        [class*="st-key-mrow_"] [data-testid="stMetricLabel"] { display: flex !important; justify-content: center !important; }
 
         /* Readers who ask their system for less motion get none (audit F74). */
         @media (prefers-reduced-motion: reduce) {
@@ -1177,47 +1164,35 @@
            between a hairline above and below, cells split by a hairline,
            centred (owner, 13 Oct), the figure in Plex Sans tabular, 600
            (decision 4). No box, no radius, no shadow. */
-        .mkt-strip.pg-strip,
-        [class*="st-key-mrow_"] {
+        .mkt-strip.pg-strip {
             background: transparent !important; border: 0 !important; border-radius: 0 !important;
             border-top: 1px solid var(--c-rule) !important; border-bottom: 1px solid var(--c-rule) !important;
             box-shadow: none !important; gap: 0 !important;
         }
-        .mkt-strip.pg-strip .ms-tile,
-        [class*="st-key-mrow_"] [data-testid="stMetric"] {
+        .mkt-strip.pg-strip .ms-tile {
             background: transparent !important; border: 0 !important; border-radius: 0 !important;
             border-right: 1px solid var(--c-rule) !important; box-shadow: none !important;
             padding: 12px 14px !important; text-align: center;
         }
-        .mkt-strip.pg-strip .ms-tile:last-child,
-        [class*="st-key-mrow_"] > :last-child [data-testid="stMetric"],
-        [class*="st-key-mrow_"] > [data-testid="stMetric"]:last-child { border-right: 0 !important; }
-        [class*="st-key-mrow_"] [data-testid="stMetric"] label,
-        [class*="st-key-mrow_"] [data-testid="stMetricLabel"],
-        [class*="st-key-mrow_"] [data-testid="stMetricValue"],
-        [class*="st-key-mrow_"] [data-testid="stMetricDelta"] { justify-content: center; margin-inline: auto; }
-        .mkt-strip.pg-strip .ms-k,
-        [class*="st-key-mrow_"] [data-testid="stMetricLabel"] p {
+        .mkt-strip.pg-strip .ms-tile:last-child { border-right: 0 !important; }
+        .mkt-strip.pg-strip .ms-k {
             font-size: var(--fs-12) !important; font-weight: 500 !important; color: var(--c-muted) !important;
         }
-        .mkt-strip.pg-strip .ms-v,
-        [class*="st-key-mrow_"] [data-testid="stMetricValue"] {
+        .mkt-strip.pg-strip .ms-v {
             font-family: var(--font-ui) !important; font-size: var(--fs-24) !important; font-weight: 600 !important;
             line-height: 1.15 !important; letter-spacing: 0 !important; font-variant-numeric: tabular-nums;
         }
         .mkt-strip.pg-strip .ms-v.ms-name { font-size: var(--fs-17) !important; }
         @media (max-width: 640px) {
-            .mkt-strip.pg-strip, [class*="st-key-mrow_"] {
+            .mkt-strip.pg-strip {
                 display: grid !important; grid-template-columns: 1fr 1fr; gap: 0 !important;
                 border-bottom: 0 !important;
             }
-            .mkt-strip.pg-strip .ms-tile,
-            [class*="st-key-mrow_"] [data-testid="stMetric"] {
+            .mkt-strip.pg-strip .ms-tile {
                 padding: 10px 8px !important; border-bottom: 1px solid var(--c-rule) !important;
             }
-            .mkt-strip.pg-strip .ms-tile:nth-child(2n),
-            [class*="st-key-mrow_"] > :nth-child(2n) [data-testid="stMetric"] { border-right: 0 !important; }
-            .mkt-strip.pg-strip .ms-v, [class*="st-key-mrow_"] [data-testid="stMetricValue"] { font-size: var(--fs-17) !important; }
+            .mkt-strip.pg-strip .ms-tile:nth-child(2n) { border-right: 0 !important; }
+            .mkt-strip.pg-strip .ms-v { font-size: var(--fs-17) !important; }
             .mkt-strip.pg-strip .ms-v.ms-name { font-size: var(--fs-15) !important; }
         }
 
@@ -1494,7 +1469,7 @@
         .t50-icon { display: none !important; }
         .t50-col-head, .t50-row { padding-left: 0 !important; padding-right: 0 !important; }
         .t50-col-head { background: transparent !important; }
-        [data-testid="stMetric"], [class*="st-key-mrow_"] > div {
+        [data-testid="stMetric"] {
             border-radius: 0 !important; box-shadow: none !important; }
         [data-testid="stPills"] button { border-radius: 4px !important; background-color: var(--c-white) !important; }
         /* Streamlit 1.65 draws st.pills and st.segmented_control inside
