@@ -90,6 +90,17 @@
       "mentions": false,
       "included": [],
       "excluded": []
+    },
+    {
+      "issued": "2026-11-25",
+      "notice": "ind_prs25112026.pdf",
+      "title": "Changes in Nifty Fixed Income indices w.e.f.November 30, 2026",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs25112026.pdf",
+      "sha256": "442a0d892ec62d29d7044e2de7f1699e4a9c28cda4058346c541129aa9b206f4",
+      "effective": "2026-11-30",
+      "mentions": false,
+      "included": [],
+      "excluded": []
     }
   ]
 }

@@ -1,34 +1,84 @@
 {
- "fetched_at_utc": "2026-11-25T11:44:14+00:00",
+ "fetched_at_utc": "2026-11-26T11:29:59+00:00",
  "new": {
   "symbolchange.csv": [
    {
-    "company": "REC Limited",
-    "old_symbol": "789REC36",
-    "new_symbol": "789RECL36",
-    "date": "25-NOV-2026"
-   },
-   {
-    "company": "REC Limited",
-    "old_symbol": "789RECL36",
-    "new_symbol": "789RECL36",
-    "date": "25-NOV-2026"
+    "company": "MRO-TEK Networks Limited",
+    "old_symbol": "UMIYA-MRO",
+    "new_symbol": "MROTEK",
+    "date": "26-NOV-2026"
    }
   ],
   "namechange.csv": [],
   "equity_l.csv": [
    {
-    "SYMBOL": "OLIL",
-    "NAME OF COMPANY": "Oneclick Logistics India Limited",
+    "SYMBOL": "CRYSTALCP",
+    "NAME OF COMPANY": "Crystal Crop Protection Limited",
     "SERIES": "EQ",
     "DATE OF LISTING": "26-NOV-2026",
     "PAID UP VALUE": "10",
     "MARKET LOT": "1",
-    "ISIN NUMBER": "INE0OPS01011",
+    "ISIN NUMBER": "INE101P01016",
     "FACE VALUE": "10"
+   },
+   {
+    "SYMBOL": "MROTEK",
+    "NAME OF COMPANY": "MRO-TEK Networks Limited",
+    "SERIES": "EQ",
+    "DATE OF LISTING": "01-NOV-2000",
+    "PAID UP VALUE": "5",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE398B01018",
+    "FACE VALUE": "5"
+   },
+   {
+    "SYMBOL": "PRAXIS-RE3",
+    "NAME OF COMPANY": "Praxis Home Retail Limited-RE",
+    "SERIES": "BE",
+    "DATE OF LISTING": "27-NOV-2026",
+    "PAID UP VALUE": "5",
+    "MARKET LOT": "1",
+    "ISIN NUMBER": "INE546Y20048",
+    "FACE VALUE": "5"
    }
   ],
-  "corporate_actions": []
+  "corporate_actions": [
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Tech Mahindra Limited",
+    "exDate": "30-Nov-2026",
+    "faceVal": "5",
+    "ind": "-",
+    "isin": "INE669C01028",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "30-Nov-2026",
+    "series": "EQ",
+    "subject": "Bonus 1:1",
+    "symbol": "TECHM"
+   }
+  ]
  },
- "touching_members": {}
+ "touching_members": {
+  "corporate_actions": [
+   {
+    "bcEndDate": "-",
+    "bcStartDate": "-",
+    "caBroadcastDate": null,
+    "comp": "Tech Mahindra Limited",
+    "exDate": "30-Nov-2026",
+    "faceVal": "5",
+    "ind": "-",
+    "isin": "INE669C01028",
+    "ndEndDate": "-",
+    "ndStartDate": "-",
+    "recDate": "30-Nov-2026",
+    "series": "EQ",
+    "subject": "Bonus 1:1",
+    "symbol": "TECHM"
+   }
+  ]
+ }
 }
