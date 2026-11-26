@@ -305,8 +305,25 @@ def _regime_close(benchmark_symbol: str) -> tuple[pd.Series, str]:
     return fetch_benchmark_history(period="max", symbol=benchmark_symbol), "Nifty 500"
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
 def get_market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL, end: str | None = None) -> RegimeData:
+    """_market_regime, through a cache of plain values (S232): st.cache_data pickles what it keeps, and
+    a pull that re-imported src/ between building a RegimeData and writing it made pickle find another
+    class under the same name ("PicklingError: Can't pickle RegimeData", owner's log, 24 Nov 2026)."""
+    status, price, dma, dist, name = _market_regime_values(benchmark_symbol, end)
+    return RegimeData(status=MarketRegime(status), current_price=price, dma_200=dma, distance_pct=dist,
+                      index_name=name)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _market_regime_values(benchmark_symbol: str, end: str | None) -> tuple[str, float, float, float, str]:
+    r = _market_regime(benchmark_symbol, end)
+    return (r.status.value, float(r.current_price), float(r.dma_200), float(r.distance_pct), str(r.index_name))
+
+
+get_market_regime.clear = _market_regime_values.clear  # type: ignore[attr-defined]
+
+
+def _market_regime(benchmark_symbol: str = BENCHMARK_SYMBOL, end: str | None = None) -> RegimeData:
     """
     Computes market regime by comparing benchmark index price with its 200 DMA.
     `benchmark_symbol=TOTAL_MARKET_REGIME` reads Nifty Total Market (S165) and names it in `index_name`.

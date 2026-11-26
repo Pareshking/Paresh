@@ -41,7 +41,7 @@ _Last updated: 26 Nov 2026 ~15:45 IST, coordinating session session_016X4g5Y1bsn
 
 ## State at handover
 
-**26 Nov ~10:15 UTC.** #705 merged (2c184e2, S172 (b) step 1): the first `app_pack` run (45797631273) published revision 3f6254ca and read all 37 files back matching main; Production QA 45797631376 green, served 2c184e2. Step 2 after a week of green `app_pack` runs. On the branch, no PR yet: S233 (1) the Backtest default page kept as its parts, (2) the daily price history kept on disk (`src/core/disk_memo.py`); after a full cache clear, locally, Dashboard 19.8 -> 5.7 s and Backtest 17.1 -> 4.9 s, pages identical. Not done: the shared price load (~4 s after a pull; `keep_and_fill` records sources as side effects, so a disk copy needs care) and the model book replay (its key lacks membership and the industry map). Next: open the S233 PR, merge on green, read Backtest's and Dashboard's times in Production QA.
+**26 Nov ~10:15 UTC.** #705 merged (2c184e2, S172 (b) step 1): the first `app_pack` run (45797631273) published revision 3f6254ca and read all 37 files back matching main; Production QA 45797631376 green, served 2c184e2. Step 2 after a week of green `app_pack` runs. On the branch, no PR yet: S233 (1) the Backtest default page kept as its parts, (2) the daily price history kept on disk (`src/core/disk_memo.py`); after a full cache clear, locally, Dashboard 19.8 -> 5.7 s and Backtest 17.1 -> 4.9 s, pages identical. Not done: the shared price load (~4 s after a pull; `keep_and_fill` records sources as side effects, so a disk copy needs care) and the model book replay (its key lacks membership and the industry map). **26 Nov ~11:10 UTC:** #706 merged (d80e02c; S233 (1) (2) and the membership in both run keys); Production QA 45803161505 green: Backtest 22.3 -> 17.0 s (the first visit after a code change misses the kept page by design), Sectors 4.5 -> 1.7 s. The shared price load and the record's basis frame are deferred until S172 step 2 is measured (TODO S233). No PR open.
 
 **24 Nov ~13:15 UTC.** #674 merged (6a613a5; S203 wrong-today sentences, S189 items 3 and 8, S223, S224 notes, S163 §5-6). On the branch, opened as one PR: S225, all ten pipeline follow-ups. The owner answered (1) "Hold back on Saturday", (2) "Drop schedule only", (8) "Drop 02:00"; built (3) conflict warnings, (4) every green run scanned, (5) push alerts for Production QA and Full Validation, (9) pip cache; (6) and (10) explained. The nightly hold after a Saturday breach is pending approval (above). Next: Production QA on 6a613a5, merge the S225 PR on green, then S203's per-sentence tests, S189 item 6 (a), S163 2 (f).
 
@@ -181,24 +181,12 @@ any work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
 ## Queue: one at a time, in this order
 
-0. **Finish what is open**: the item C PR; the owner's 24 Nov items (a)-(c) above. Merges no longer wait for the owner once CI is green (CLAUDE.md). Then S213 and the S193 items (one at a time with the owner).
+_Refreshed 26 Nov 2026. Items 0-3 of 23-24 Nov are done (S188, S193 A-L, S203 all merged)._
 
-1. **23 Nov first-run checks** (record each in TODO S188 with its run ID). The
-   Screener sync is scheduled 17:07 UTC but GitHub starts it 5-7 h late (22:09,
-   23:02, 23:31 UTC on recent nights; ~40 min a run). `daily_sync` 02:00 UTC,
-   `r2_archive_inventory` 02:31, `nse_reference_sync` 02:45 (all usually hours
-   late); `nse_long_prices` runs after `daily_sync` completes.
-   - Done 23 Nov night (TODO S194): `screener_sync` 45077658093 (31/31 have a 30 Oct close, 0 pending,
-     extra 219/219) and `daily_sync` 45081696293 (weekly fill holds the Nifty 1000's 30; now the default).
-     ENNATURE/IGLSPIRITS need no former-member price (no book held them; S196).
-   - `nse_reference_sync`: first `nifty_1000` line in `anchor_checks.jsonl`, the
-     notices ledger committed (S196).
-   - `nse_long_prices`: green with the 104 new series.
-   - `r2_archive_inventory`: lists `snapshots/rankings_1000`, `_nano`, `_combined`.
-2. **S193, one item at a time with the owner** (examples, recommendation, opposite view). Stock page v2
-   live (#628). D (glossary, `docs/GLOSSARY.md`) and K's /stock redirect merged (#631). Next: prepare
-   A-C and E-L for the owner; do not apply without their decision. S203 templates: draft only.
-3. (merged into 2)
+0. **Waiting on the owner's Streamlit log** (ask once, with the next decision): S232 (no import traceback across three pulls; the PicklingError fix is in the 26 Nov batch), S152 (d) (a log after 3050c86).
+1. **Dated checks** (each has a scheduled reminder): 27 Nov 03:11 UTC the D2 ledger matches (S174); 27 Nov S142 (make the repository private: the owner's step); 28 Nov the earnings run; 29 Nov `backtest_reference` and `r2_retention` (S188 (c)); 26 Nov-3 Dec a week of green `app_pack` runs, then S172 step 2 job by job; ~1 Dec page budgets reset by rule (S193); 1 Dec budgets and #638 (owner's yes on the figures); 2 Dec freeze checks, `momentum_health` (S177 (c)), S116 (c); 5 Dec S185 replay; 13 Dec S116 (d); 15 Dec S137; Jan S227 rename, S188 (h); 2 Feb S220.
+2. **S233 after S172 step 2**: re-measure Production QA; then decide the shared price load and the record's basis frame (TODO S233).
+3. **S231**: NSE's Q2 FY27 earnings PDF (daily retry); then the definition of "financials" and the default to the owner.
 4. **After the 1-5 Dec freeze: S197**, membership from NSE's daily CSVs for
    all seven indices (the Nifty 1000 joins `build_membership_history.py`; a
    missed day is reported, not bridged), and NSE's notices read on the **25th
