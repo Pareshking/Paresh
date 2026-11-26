@@ -42,6 +42,7 @@ from src.ui import page_kit as kit
 from src.ui.system_param import page_href
 from src.ui.views.dashboard_home_view import END, HOME_CSS, Chart, emit, how, sg
 from src.ui.views.portfolio_page import history_spec
+from src.ui import backtest_snapshot as snapshot
 from src.loaders.app_pack import resolve as _pack
 
 e = html.escape
@@ -1122,6 +1123,45 @@ def _derived(key: str, _res: dict, _s: dict, _h: dict, _bench: pd.Series, defaul
     return f, spec
 
 
+HISTORY_FILL = {"label": "Every trade and every rebalance line",
+                "note": "A trade is one stock from the fill that bought it to the fill that sold it. A rebalance line is "
+                        "one stock’s action at one rebalance (bought, sold or kept). Signal is the close the rule read; "
+                        "the fill is the next session’s close. Returns are before costs."}
+
+
+def _sections(f: dict, spec: dict) -> dict[str, list]:
+    """The page under the settings, in the four places it is drawn (and stored, S233)."""
+    return {"head": head(f),
+            "body": section_lead(f) + section_falls(f) + section_years(f) + section_depends(f) + section_trust(f)
+            + section_trades_head(f),
+            "history": [Chart("history", spec, dict(HISTORY_FILL))],
+            "foot": [END] + foot(f)}
+
+
+def _draw(top, sections: dict[str, list], download) -> None:
+    with top:
+        emit(sections["head"])
+    emit(sections["body"])
+    download()
+    with st.expander("Show the table · every trade and the rebalance log", expanded=False):
+        emit(sections["history"])
+    emit(sections["foot"])
+
+
+def _snapshot_key(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float) -> str | None:
+    """None when a run frame has no whole-history fingerprint: then nothing is stored or served."""
+    if not h.get("close_fingerprint") or (h.get("traded_value") is not None and not h.get("traded_fingerprint")):
+        return None
+    try:
+        ref = Path(_pack(REFERENCE)).read_bytes()
+    except OSError:
+        ref = None
+    # The run frames are already fingerprinted whole in h (close_fingerprint, traded_fingerprint, S208).
+    inputs = {k: v for k, v in h.items() if k not in ("close", "traded_value")}
+    inputs["close_shape"] = (tuple(h["close"].shape), str(h["close"].index[-1]) if len(h["close"]) else "-")
+    return snapshot.key(s, inputs, (stock_cap, sector_cap), bench, _store(), ref)
+
+
 def _run(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float) -> dict | None:
     # Computed once with the frame in its cached loader (S208), not on every rerun.
     ph = h.get("close_fingerprint") or price_fingerprint(h["close"])
@@ -1149,29 +1189,38 @@ def _run(s: dict, h: dict, bench: pd.Series, stock_cap: float, sector_cap: float
     return res
 
 
-def _download(res: dict, s: dict, h: dict, stock_cap: float, sector_cap: float, eq: pd.Series) -> None:
-    """One download (owner, 8 Oct 2026): the rules this run followed and every trade it made."""
+def _export(res: dict, s: dict, h: dict, stock_cap: float, sector_cap: float) -> bytes:
+    """The download's ZIP: the rules this run followed and every trade it made."""
+    eq = pd.Series(res.get("equity_curve")).dropna()
+    trades = trades_table(res.get("closed_trades"))
+    rules = rules_table(RunSpec(
+        mode="Research run on NSE's long price file", universe=h["name"], benchmark="Nifty 500",
+        first_fill=eq.index[0] if len(eq) else None, last_session=eq.index[-1] if len(eq) else None,
+        top_n=s["top_n"], rebal_freq=s["rebal_freq"], buffer_n=s["buffer_n"], weight_method=s["weight_method"],
+        cost_bps=s["cost_bps"], stock_cap=stock_cap, sector_cap=sector_cap, weights=tuple(s["weights"]),
+        liquidity_floor_cr=float(h["floor"] or 0.0),
+        price_basis=("NSE closes, adjusted for splits, bonuses, demergers and rights issues, and for dividends of "
+                     "10% or more of the price"),
+        has_industry_map=bool(h["sector_map"]), stats=res.get("stats") or {}, ema_period=s["ema_period"],
+        high_pct=s["high_pct"], ath_pct=s["ath_pct"], ath_min_years=s["ath_min_years"], score_method=s["score_method"],
+        exit_ema_period=s["exit_ema_period"], exit_high_pct=s["exit_high_pct"], exit_ath_pct=s["exit_ath_pct"],
+        score_skip=int(s.get("score_skip") or 0),
+        hold_cap=rebalance_rule_kwargs(s["rule"], s.get("hold_cap")).get("hold_cap"),
+        generated=f"{ist_now():%Y-%m-%d %H:%M}"), trades)
+    return export_zip(rules, trades)
+
+
+def _export_name(h: dict, first, last) -> str:
+    slug = "".join(c if c.isalnum() else "_" for c in h["name"]).strip("_").lower()
+    return f"backtest_{slug}_{pd.Timestamp(first):%Y%m}_{pd.Timestamp(last):%Y%m}.zip"
+
+
+def _download(data, name: str) -> None:
+    """One download (owner, 8 Oct 2026): the rules this run followed and every trade it made. `data` is the
+    ZIP, or a function that builds it when the reader clicks (the stored default page has no run in hand)."""
     try:
-        trades = trades_table(res.get("closed_trades"))
-        rules = rules_table(RunSpec(
-            mode="Research run on NSE's long price file", universe=h["name"], benchmark="Nifty 500",
-            first_fill=eq.index[0] if len(eq) else None, last_session=eq.index[-1] if len(eq) else None,
-            top_n=s["top_n"], rebal_freq=s["rebal_freq"], buffer_n=s["buffer_n"], weight_method=s["weight_method"],
-            cost_bps=s["cost_bps"], stock_cap=stock_cap, sector_cap=sector_cap, weights=tuple(s["weights"]),
-            liquidity_floor_cr=float(h["floor"] or 0.0),
-            price_basis=("NSE closes, adjusted for splits, bonuses, demergers and rights issues, and for dividends of "
-                         "10% or more of the price"),
-            has_industry_map=bool(h["sector_map"]), stats=res.get("stats") or {}, ema_period=s["ema_period"],
-            high_pct=s["high_pct"], ath_pct=s["ath_pct"], ath_min_years=s["ath_min_years"], score_method=s["score_method"],
-            exit_ema_period=s["exit_ema_period"], exit_high_pct=s["exit_high_pct"], exit_ath_pct=s["exit_ath_pct"],
-            score_skip=int(s.get("score_skip") or 0),
-            hold_cap=rebalance_rule_kwargs(s["rule"], s.get("hold_cap")).get("hold_cap"),
-            generated=f"{ist_now():%Y-%m-%d %H:%M}"), trades)
-        slug = "".join(c if c.isalnum() else "_" for c in h["name"]).strip("_").lower()
-        span = f"{eq.index[0]:%Y%m}_{eq.index[-1]:%Y%m}" if len(eq) else "empty"
-        st.download_button("Download the rules and every trade (ZIP of 2 CSV files)", export_zip(rules, trades),
-                           f"backtest_{slug}_{span}.zip", "application/zip", key="dl_bt_export",
-                           icon=":material/download:")
+        st.download_button("Download the rules and every trade (ZIP of 2 CSV files)", data,
+                           name, "application/zip", key="dl_bt_export", icon=":material/download:")
     except Exception as exc:  # the page must not fail because a download could not be built
         from src.core.logger import logger
         logger.warning("Backtest download not built: %s: %s", type(exc).__name__, exc)
@@ -1234,6 +1283,21 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
         # A failure is an amber note, not a red box (S193 E, rule 4).
         kit.note("The Nifty 500's closes are unavailable.", "Backtest stopped rather than compare against nothing.", kind="warning")
         return
+    default = is_default(s, h, stock_cap, sector_cap)
+    snap_key = None
+    if default:
+        # S233 (1): the default page as its stored parts when nothing it was cut from has changed.
+        snap_key = _snapshot_key(s, h, bench, stock_cap, sector_cap)
+        kept = snapshot.load(snap_key) if snap_key else None
+        mark("snapshot")
+        if kept is not None:
+            meta = kept["meta"]
+            _draw(top, kept["sections"],
+                  lambda: _download(lambda: _export(_run(s, h, bench, stock_cap, sector_cap), s, h, stock_cap, sector_cap),
+                                    _export_name(h, meta["first"], meta["last"])))
+            _metrics.note("backtest_snapshot", "hit")
+            mark("drawn")
+            return
     res = _run(s, h, bench, stock_cap, sector_cap)
     mark("run")
     if res is None:
@@ -1244,23 +1308,23 @@ def render_backtest_view(rank_df: pd.DataFrame, stock_cap: float, sector_cap: fl
     if eq.empty or len(eq) < 2:
         kit.empty("No completed month in this window yet.")
         return
-    default = is_default(s, h, stock_cap, sector_cap)
     f, spec = _derived(_derived_key(s, h, bench, stock_cap, sector_cap, default), res, s, h, bench, default)
     mark("derived")
-    with top:
-        emit(head(f))
-    emit(section_lead(f) + section_falls(f) + section_years(f) + section_depends(f) + section_trust(f)
-         + section_trades_head(f))
-    _download(res, s, h, stock_cap, sector_cap, eq)
-    mark("sections+download")
-    with st.expander("Show the table · every trade and the rebalance log", expanded=False):
-        emit([Chart("history", spec,
-                    {"label": "Every trade and every rebalance line",
-                     "note": "A trade is one stock from the fill that bought it to the fill that sold it. A rebalance line is "
-                             "one stock’s action at one rebalance (bought, sold or kept). Signal is the close the rule read; "
-                             "the fill is the next session’s close. Returns are before costs."})])
-    emit([END] + foot(f))
-    mark("trade_log+foot")
+    sections = _sections(f, spec)
+    try:
+        data = _export(res, s, h, stock_cap, sector_cap)
+    except Exception as exc:  # the page must not fail because a download could not be built
+        from src.core.logger import logger
+        logger.warning("Backtest download not built: %s: %s", type(exc).__name__, exc)
+        data = None
+    name = _export_name(h, eq.index[0], eq.index[-1])
+    _draw(top, sections, lambda: _download(data, name) if data is not None else st.caption(
+        "The download is not available for this run; the figures on the page are complete. Run it again to retry."))
+    if snap_key:
+        snapshot.save({"key": snap_key, "sections": sections,
+                       "meta": {"first": str(pd.Timestamp(eq.index[0]).date()), "last": str(pd.Timestamp(eq.index[-1]).date())}})
+        _metrics.note("backtest_snapshot", "miss")
+    mark("drawn")
 
 
 __all__ = ["render_backtest_view", "page_parts", "gather", "is_default", "rebalance_rule_kwargs", "engine_kwargs",
