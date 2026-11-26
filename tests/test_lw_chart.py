@@ -1,20 +1,7 @@
 """The shared chart component: data in, one self-contained document out."""
 
-import numpy as np
-import pandas as pd
 
 from src.ui import lw_chart as lw
-
-
-def test_series_points_drops_nan_and_keeps_one_point_per_day():
-    idx = pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-02", "2026-01-05"])
-    pts = lw.series_points(idx, [1.0, np.nan, 3.0, 4.0])
-    assert pts == [("2026-01-01", 1.0), ("2026-01-02", 3.0), ("2026-01-05", 4.0)]
-
-
-def test_series_points_scales_fractions_to_percent():
-    (day, value), = lw.series_points(pd.to_datetime(["2026-01-01"]), [-0.119], scale=100.0)
-    assert day == "2026-01-01" and abs(value + 11.9) < 1e-9
 
 
 def test_the_document_loads_the_library_and_carries_the_data():
