@@ -1,5 +1,4 @@
 symbol,date,purpose,results,detail,source
-POWERGRID,2026-09-26,Fund Raising,0,To consider proposal for Raising of funds through Unsecured Rupee Term Loan/Line of Credit (Bank Facility) .,held
 AEGISLOG,2026-09-28,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
 DEEPA,2026-09-28,Financial Results,1,"To consider and approve the financial results for the period ended June 30, 2026",held
 GANESHCP,2026-09-28,Other business matters,0,"To consider and review the operations of the Hyderabad unit, development thereto and incidental matters",held
@@ -81,6 +80,7 @@ HINDCOMPOS,2026-10-12,Dividend,0,"To consider and approve the proposal of declar
 ICICIAMC,2026-10-12,Financial Results/Dividend,1,"To consider and approve the financial results for the period ended September 30, 2026 and dividend",held
 JUBLPHARMA,2026-10-12,Fund Raising,0,To consider and approve raising of funds through the issuance of Non-Convertible Debentures (NCDs) and/or such other securities as may be pe,held
 KOTYARK,2026-10-12,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
+MROTEK,2026-10-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 NXST,2026-10-12,Fund Raising,0,To consider Fund Raising,held
 PACEDIGITK,2026-10-12,Fund Raising,0,To consider Fund Raising,held
 PLASTIBLEN,2026-10-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
@@ -88,7 +88,6 @@ RBLBANK,2026-10-12,Financial Results,1,"To consider and approve the financial re
 SUNPHARMA,2026-10-12,Other business matters,0,"Board meeting intimation for consideration and approval of the issuance of listed, rated, unsecured, redeemable, non-convertible debentures",held
 SWANDEF,2026-10-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 SWARAJENG,2026-10-12,Financial Results,1,"Pursuant to Regulation 29(1)(a) of the Securities and Exchange Board of India (Listing Obligations and Disclosure Requirements) Regulations,",held
-UMIYA-MRO,2026-10-12,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 AHCL,2026-10-13,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
 ARSSBL,2026-10-13,Financial Results/Other business matters,1,"To consider and approve the financial results for the period ended September 30, 2026 and other business matters",held
 DEN,2026-10-13,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
@@ -964,6 +963,7 @@ CONCOR,2026-11-02,Financial Results/Dividend/Other business matters,1,"To consid
 CROWN,2026-11-02,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 CSLFINANCE,2026-11-02,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
 DANGEE,2026-11-02,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",held
+DAVANGERE,2026-11-02,Board meeting,0,Davangere Sugar Company Limited has informed the Exchange about Board Meeting to be held on 02-Nov-2026 to consider Other business.,held
 DCMFINSERV,2026-11-02,Financial Results,1,"To consider and approve the Unaudited Standalone & Consolidated Financial Results for the period ended September 30, 2026",held
 DEVYANI,2026-11-02,Financial Results/Other business matters,1,"To consider and approve the financial results for the Quarter and Half Year ended September 30, 2026 and other business matters",held
 DGCONTENT,2026-11-02,Financial Results,1,"To consider and approve the financial results for the quarter and half year ended September 30, 2026",held
@@ -2627,12 +2627,12 @@ ENRIN,2026-11-25,Financial Results/Dividend,1,"To consider and approve the finan
 RAJRATAN,2026-11-25,Other business matters,0,To consider other business matters,held
 SATIN,2026-11-25,Fund Raising,0,"Working Committee Meeting is scheduled on 25/11/2026 ,inter alia, to consider and approve for Issuance Of Listed, Secured/Unsecured, Non-Con",held
 SIMBHALS,2026-11-25,Financial Results,1,Simbhaoli Sugars Limited has informed the Exchange about IRP Convened Meeting scheduled to be held on 25 November 2026 inter-alia to conside,held
-COMSYN,2026-11-26,Other business matters,0,"To consider related to allotment of upto 3,25,000 warrants.",calendar
-DAVANGERE,2026-11-26,Other business matters,0,To consider and discuss the revision in the conversion price of the outstanding Foreign Currency Convertible Bonds (FCCBs).,calendar
-MINDACORP,2026-11-26,Fund Raising,0,To consider Fund Raising,calendar
-PATANJALI,2026-11-26,Dividend,0,"To consider, approve and declare 2nd Interim Dividend for the financial year 2026-27 to the shareholders of the Company.",calendar
-SGMART,2026-11-26,Fund Raising,0,To consider Fund Raising,calendar
-TEAMGTY,2026-11-26,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,calendar
+COMSYN,2026-11-26,Other business matters,0,"To consider related to allotment of upto 3,25,000 warrants.",held
+DAVANGERE,2026-11-26,Other business matters,0,To consider and discuss the revision in the conversion price of the outstanding Foreign Currency Convertible Bonds (FCCBs).,held
+MINDACORP,2026-11-26,Fund Raising,0,To consider Fund Raising,held
+PATANJALI,2026-11-26,Dividend,0,"To consider, approve and declare 2nd Interim Dividend for the financial year 2026-27 to the shareholders of the Company.",held
+SGMART,2026-11-26,Fund Raising,0,To consider Fund Raising,held
+TEAMGTY,2026-11-26,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
 CCCL,2026-11-27,Other business matters,0,To consider other business matters,calendar
 GUJTHEM,2026-11-27,Fund Raising,0,Intimation for Board Meeting pursuant to the SEBI (Listing Obligations and Disclosure Requirements) Regulations 2015.,calendar
 INDIANB,2026-11-27,Fund Raising,0,Prior Intimation of Meeting of Committee of Directors (Capital Raising) -Updates on Capital Raising Plan of the Bank,calendar
@@ -2640,7 +2640,15 @@ SETCO,2026-11-27,Financial Results/Other business matters,1,"SETCO : 27-Nov-2026
 STEELCITY,2026-11-27,Dividend,0,To consider dividend,calendar
 VAISHALI,2026-11-27,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,calendar
 BRNL,2026-11-28,Financial Results,1,"BRNL : 28-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 14, 2026 has been re-scheduled. Furth",calendar
+GARUDA,2026-11-28,Fund Raising,0,"1. To consider Fund Raising To consider raising of funds, in one or more tranches, by issue of equity shares and/or any other instruments or",calendar
 ORTINGLOBE,2026-11-28,Fund Raising/Other business matters,0,1. The approval of increase in authorised share capital of the company subject to the approval of the members.2. To consider the proposal to,calendar
+RIIT,2026-11-28,Fund Raising,0,To consider Fund Raising,calendar
+POWERGRID,2026-11-30,Fund Raising,0,To consider Fund Raising,calendar
+SADHNANIQ,2026-11-30,Other business matters,0,Consolidation of Equity Shares,calendar
+RUBFILA,2026-12-01,Other business matters,0,To consider other business matters,calendar
+DAVANGERE,2026-12-02,Other business matters,0,"DAVANGERE : 02-Dec-2026 : The Company has informed the Exchange that a Board meeting to be held on November 26, 2026 has been re-scheduled. ",calendar
+SHUKRAMED,2026-12-02,Fund Raising,0,To consider Fund Raising,calendar
 SUKHJITS,2026-12-02,Buyback,0,"SUKHJITS : 02-Dec-2026 : The Company has informed the Exchange that a Board meeting to be held on November 20, 2026 has been re-scheduled. F",calendar
 LATTEYS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 RNBDENIMS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
+STEAMHOUSE,2026-12-05,Other business matters,0,"Steamhouse India Ltd has informed that the meeting of the Board of Directors of the Company is scheduled on 05/12/2026, inter alia, to consi",calendar
