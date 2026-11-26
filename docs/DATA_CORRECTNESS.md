@@ -388,6 +388,13 @@ are `nse_index_rebuild/wayback_check.py` and NSE's `IndexInclExcl.xls`.
   month swapped (a Bc row read day first). `repair_swapped_dates` only catches a
   swap far from the file's day; `drop_swapped_twins` lets the yearly list's date
   win. Check a new step against NSE's list before trusting it (ALLCARGO, HCG).
+- A local `data_cache/mcap_nse.parquet` is judged fresh by when it was fetched
+  (`LastUpdated`, 22 hours), not by the trade date it holds, so a machine that
+  fetched on a holiday can show "Market caps are to" the previous session for
+  up to a day (seen 26 Nov 2026: 23 Nov locally, 25 Nov live). The site is not
+  affected: `data_cache/` is not in git, the daily sync fetches with
+  `force_refresh=True` and precompute runs after it in the same job. Move or
+  delete the local file before a local number audit.
 
 
 ### Eight small caps whose Screener closes stop on 29 Sep 2026 (S81, explained 7 Nov 2026)

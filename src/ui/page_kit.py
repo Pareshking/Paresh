@@ -220,20 +220,6 @@ def bar_list(rows: list[tuple[str, float, str, bool]], scale: float) -> str:
     return f'<div class="pg-bars">{"".join(out)}</div>'
 
 
-@dataclass(frozen=True)
-class Metric:
-    """One figure inside a card: a label, the figure, and optionally how it moved.
-
-    `tone` is st.metric's delta_color: "normal" (up is good), "inverse" (up is
-    bad) or "off" (no colour). Delta colour is the only judgement drawn here.
-    """
-
-    label: str
-    value: str
-    delta: str | None = None
-    tone: Literal["normal", "inverse", "off"] = "off"
-    help: str | None = None
-
 
 def _finite(x) -> float | None:
     try:
@@ -263,12 +249,6 @@ def pct(x: float | None, signed: bool = True) -> str:
     return _pct(v, signed_=signed)
 
 
-
-def metric_tile(m: Metric) -> None:
-    """One bordered figure. Every tile in the app is drawn by this call, so a
-    figure has the same border, radius and delta colouring on every page."""
-    st.metric(m.label, m.value, delta=m.delta, delta_color=m.tone, help=m.help,
-              border=True)
 
 
 def callout(title: str, body: str = "", tone: str = "muted") -> None:
@@ -321,35 +301,6 @@ def _slug(s: str) -> str:
     return "".join(c.lower() if c.isalnum() else "_" for c in s).strip("_")
 
 
-def equity_chart(
-    dates,
-    strategy: list[float],
-    benchmark: list[float] | None,
-    names: tuple[str, str] = ("Strategy", "Nifty 500"),
-    key: str = "equity",
-    fmt: str = "rupee",
-    drawdown: list[float] | None = None,
-) -> None:
-    """Strategy against benchmark on real dates, with the drawdown under it when
-    given. Values are drawn as passed (rupees, not growth factors), so a
-    growth-factor formatter cannot multiply a portfolio value by 100. Hover for
-    the date and every value."""
-    from src.ui import lw_chart as lw
-
-    if len(strategy) < 2:
-        return
-    series = [{"name": names[0], "type": "line", "color": lw.colour_for(names[0], lw.colour_for("The book")), "fmt": fmt,
-               "data": lw.series_points(dates, strategy)}]
-    if benchmark:
-        series.append({"name": names[1], "type": "line", "color": lw.colour_for(names[1], lw.GREY), "fmt": fmt,
-                       "data": lw.series_points(dates, benchmark)})
-    panes = [{"height": 300, "series": series}]
-    if drawdown:
-        panes.append({"height": 150, "series": [
-            {"name": "Drawdown", "type": "baseline", "color": lw.RED, "negColor": lw.RED,
-             "fmt": "pct", "data": lw.series_points(dates, drawdown, scale=100.0)}]})
-    lw.render(panes, key=key)
-
 
 # ── Editorial type (owner, 7 Nov) ──────────────────────────────────────────
 # A serif for page titles, question headings, verdicts and headline figures;
@@ -378,7 +329,7 @@ body .qp td.big span.sub{font-family:var(--font-ui);font-size: var(--fs-12);colo
 .rng i.d{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--c-ink)}
 .rng i.d.up{background:var(--c-up)}.rng i.d.down{background:var(--c-down)}
 /* Headline figures and the other titles, site-wide */
-body .mkt-strip.pg-strip .ms-v, body [class*="st-key-mrow_"] [data-testid="stMetricValue"]{
+body .mkt-strip.pg-strip .ms-v {
   font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-30)!important;letter-spacing:-0.3px!important}
 body .mkt-strip.pg-strip .ms-v.ms-name{font-size:var(--fs-24)!important}
 body .gd h2{font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;border-top-color:var(--c-ink)}

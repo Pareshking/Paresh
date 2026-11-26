@@ -288,8 +288,7 @@ navigation contract changed.
   depth `--sh-*`, spacing `--sp-*`, plus the caution/accent tints. New CSS lives
   in one `UI kit v2` block after the Command Bar marker, outside every block
   `tests/test_redesign_legibility.py` slices.
-- **`src/ui/page_kit.py`**: `Metric` / `metric_tile` / `metric_row` (bordered
-  `st.metric`, wraps on a phone), `pct` (display-only formatting),
+- **`src/ui/page_kit.py`**: `pct` (display-only formatting),
   `callout` (escaped, tone-tinted, replaces inline-hex blocks), `badge`,
   `toolbar`, `df_card` with `col_pct` / `col_rupee` / `col_num` / `col_rank`
   `column_config` helpers. No `LinkColumn` for stocks: it opens a new tab, and
@@ -310,8 +309,10 @@ navigation contract changed.
   table instead of a nested expander.
 - **Fixed on the way**: `page_kit.growth_chart` was removed by the equity-chart
   commit while the Backtest and Track Record pages still called it, so both
-  raised `AttributeError`. It is back as a wrapper over `equity_chart`, and
-  `tests/test_ui_kit_v2.py` fails if any `kit.<name>` the UI calls is missing.
+  raised `AttributeError`; `tests/test_ui_kit_v2.py` fails if any `kit.<name>`
+  the UI calls is missing. (`Metric`, `metric_tile`, `metric_row`,
+  `equity_chart` and `growth_chart` were removed later, unused: S212, owner,
+  26 Nov 2026.)
 
 ### 9.1 Second pass: grids and drill-downs
 
