@@ -42,6 +42,7 @@ from src.ui import page_kit as kit
 from src.ui.system_param import page_href
 from src.ui.views.dashboard_home_view import END, HOME_CSS, Chart, emit, how, sg
 from src.ui.views.portfolio_page import history_spec
+from src.loaders.app_pack import resolve as _pack
 
 e = html.escape
 ROOT = Path(__file__).resolve().parents[3]
@@ -231,7 +232,7 @@ def _traded(value: pd.DataFrame, cols: list, last) -> tuple[pd.DataFrame, str]:
 
 def _reference() -> dict | None:
     try:
-        return json.loads(REFERENCE.read_text(encoding="utf-8"))
+        return json.loads(Path(_pack(REFERENCE)).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
 

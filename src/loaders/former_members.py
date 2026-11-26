@@ -26,6 +26,7 @@ import pandas as pd
 
 from src.core.config import TV_CLASSIFICATION_FILE
 from src.engine.membership import members_on
+from src.loaders.app_pack import resolve as _pack
 
 REPO_DATA = Path(__file__).resolve().parents[2] / "data"
 PRICES_FILE = REPO_DATA / "former_member_prices.parquet"
@@ -104,9 +105,9 @@ def industry_for(symbols: Iterable[str], *, tv_file: Path | str = TV_CLASSIFICAT
     accuracy 82% on the 750). A name nothing can place falls to "Other", which the
     cap treats as one group.
     """
-    idx = pd.read_csv(index_file)
+    idx = pd.read_csv(_pack(index_file))
     idx.columns = [str(c).strip() for c in idx.columns]
-    tv = pd.read_csv(tv_file)
+    tv = pd.read_csv(_pack(tv_file))
     tv.columns = [str(c).strip() for c in tv.columns]
     nse = dict(zip(idx["Symbol"], idx["Industry"]))
     votes: dict[str, Counter] = defaultdict(Counter)

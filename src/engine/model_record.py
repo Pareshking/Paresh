@@ -18,6 +18,7 @@ from src.engine.track_record import (TRACK_RECORD_CONFIG, months_to_cover,
                                     run_backtest_kwargs)
 from src.loaders import former_members, nse_prices
 from src.loaders.ranking_store import actions_digest
+from src.loaders.app_pack import resolve as _pack
 
 
 @st.cache_data(show_spinner=False, max_entries=6)
@@ -38,7 +39,7 @@ def record_sector_map(symbols, system: str | None = None) -> dict[str, str]:
     for names that have left the index.
     """
     syms = [str(s) for s in symbols]
-    idx = pd.read_csv(former_members.INDEX_FILE)
+    idx = pd.read_csv(_pack(former_members.INDEX_FILE))
     idx.columns = [str(c).strip() for c in idx.columns]
     nse = dict(zip(idx["Symbol"].astype(str), idx["Industry"].astype(str)))
     out = {s: nse[s] for s in syms if s in nse}

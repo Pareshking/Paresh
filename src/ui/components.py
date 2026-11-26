@@ -13,6 +13,7 @@ import streamlit as st
 
 from src.core.types import MarketRegime, RegimeData, SignalAlert
 from src.ui.theme import is_tick_true
+from src.loaders.app_pack import resolve as _pack
 
 
 
@@ -469,7 +470,7 @@ def pending_history_notice(path=None) -> str:
 
     target = Path(path) if path else Path(__file__).resolve().parents[2] / "data" / "screener_pending_history.json"
     try:
-        pending = json.loads(target.read_text(encoding="utf-8")).get("symbols") or {}
+        pending = json.loads(Path(_pack(target)).read_text(encoding="utf-8")).get("symbols") or {}
     except (OSError, ValueError, AttributeError):
         return ""
     if not pending:

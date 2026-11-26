@@ -1,0 +1,62 @@
+name: App pack (R2)
+
+# S172 (b), owner 26 Nov 2026: "Stop commit and save everything in R2". The 37 job outputs the
+# pages read go to R2 as one dataset, app/pack (src/loaders/app_pack.py lists them). Step 1: the
+# jobs below still commit their files; after each one finishes, this job builds the pack from
+# main, publishes it when its bytes changed, and checks every file in R2's copy against main.
+# A mismatch fails the run (scheduled_failure_alert.yml). Read by: every page.
+on:
+  workflow_run:
+    workflows:
+      - Daily NSE Momentum Data Sync
+      - NSE indices (every index, daily)
+      - NSE long price file (backtests from 2010)
+      - FII and DII flows (daily)
+      - NSDL FPI daily (official FII history)
+      - Momentum health (monthly)
+      - Backtest reference (weekly)
+      - Monthly Track Record Freeze
+      - Results calendar (nightly)
+      - Screener earnings (weekly, Saturday)
+      - Screener daily price sync (overnight)
+      - NSE reference feeds sync
+      - Weekly Full Sync (Friday night)
+    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - "src/loaders/app_pack.py"
+      - "scripts/app_pack.py"
+      - ".github/workflows/app_pack.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r2-publish-app_pack
+  cancel-in-progress: false
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Publish the pack when changed, then check it against main
+        run: python scripts/app_pack.py

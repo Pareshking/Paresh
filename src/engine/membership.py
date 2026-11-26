@@ -31,6 +31,7 @@ from collections.abc import Iterable
 
 from src.core.logger import logger
 from src.core.tickers import is_tradeable_symbol
+from src.loaders.app_pack import resolve as _pack
 
 # Repo-root anchored: see the note on LOG_PATH in corporate_actions.py. A
 # missing history here silently returns None, which the backtester counts as
@@ -80,7 +81,7 @@ def load_history(path: Path | str = HISTORY_PATH) -> dict[str, Any]:
             "index membership.", p,
         )
         return empty_history()
-    with p.open("r", encoding="utf-8") as fh:
+    with Path(_pack(p)).open("r", encoding="utf-8") as fh:
         history = json.load(fh)
     if not isinstance(history, dict) or "changes" not in history:
         raise ValueError(f"{p} is not a membership history")

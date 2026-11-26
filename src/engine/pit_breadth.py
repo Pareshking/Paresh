@@ -21,6 +21,7 @@ from typing import Any
 import pandas as pd
 
 from src.engine import membership
+from src.loaders.app_pack import resolve as _pack
 
 
 def member_mask(history: dict[str, Any], index: pd.DatetimeIndex, columns) -> pd.DataFrame:
@@ -52,7 +53,7 @@ FILE = __import__("pathlib").Path(__file__).resolve().parents[2] / "data" / "bre
 def load(universe: str, path=FILE) -> pd.DataFrame | None:
     """One universe's readings by date (scripts/build_breadth_history.py), or None."""
     try:
-        f = pd.read_csv(path, parse_dates=["date"])
+        f = pd.read_csv(_pack(path), parse_dates=["date"])
     except (OSError, ValueError):
         return None
     f = f[f["universe"] == universe].drop(columns="universe").set_index("date").sort_index()

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+from src.loaders.app_pack import resolve as _pack
 
 ROOT = Path(__file__).resolve().parents[2]
 CALENDAR_FILE = ROOT / "data" / "results_calendar.csv"
@@ -30,7 +31,7 @@ class BookCalendar:
 def load(path: Path = CALENDAR_FILE) -> pd.DataFrame | None:
     if not Path(path).exists():
         return None
-    d = pd.read_csv(path)
+    d = pd.read_csv(_pack(path))
     if d.empty or not {"symbol", "date", "purpose", "results"} <= set(d.columns):
         return None
     d["date"] = pd.to_datetime(d["date"], errors="coerce")
@@ -39,7 +40,7 @@ def load(path: Path = CALENDAR_FILE) -> pd.DataFrame | None:
 
 def fetched_on(path: Path = META_FILE) -> pd.Timestamp | None:
     try:
-        return pd.Timestamp(json.loads(Path(path).read_text())["fetched_on"])
+        return pd.Timestamp(json.loads(Path(_pack(path)).read_text())["fetched_on"])
     except (OSError, ValueError, KeyError, TypeError):
         return None
 

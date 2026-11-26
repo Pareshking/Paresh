@@ -25,6 +25,7 @@ import pandas as pd
 
 from src.core.config import BENCHMARK_SYMBOL, BENCHMARK_SYMBOL_N50
 from src.core.logger import logger
+from src.loaders.app_pack import resolve as _pack
 
 FILE = Path(__file__).resolve().parents[2] / "data" / "benchmarks.csv"
 
@@ -44,7 +45,7 @@ FIELDS = ["date", "nifty500", "nifty50", "source"]
 def read(path: Path = FILE) -> pd.DataFrame:
     """The whole file, indexed by date; empty (with the columns) when absent."""
     try:
-        frame = pd.read_csv(path, parse_dates=["date"])
+        frame = pd.read_csv(_pack(path), parse_dates=["date"])
     except (OSError, ValueError):
         return pd.DataFrame(columns=FIELDS[1:], index=pd.DatetimeIndex([], name="date"))
     frame = frame.set_index("date").sort_index()

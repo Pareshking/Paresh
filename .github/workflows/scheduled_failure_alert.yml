@@ -18,6 +18,7 @@ on:
   workflow_dispatch:
   workflow_run:
     workflows:
+      - App pack (R2)
       - BSE daily table (weekly refresh)
       - Canonical parity gate
       - Daily NSE Momentum Data Sync

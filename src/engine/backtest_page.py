@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from src.engine.metrics import drawdown, max_drawdown
+from src.loaders.app_pack import resolve as _pack
 
 # The run the page opens on, and the one the weekly reference re-runs: the record's
 # rules on the Nifty 500 as it stood, from 2010, with the six-monthly reset applied
@@ -82,7 +83,7 @@ def index_file_industries() -> dict[str, str]:
     """Today's Total Market list's industries (the Screener's rows carry the same)."""
     from src.loaders import former_members
 
-    idx = pd.read_csv(former_members.INDEX_FILE)
+    idx = pd.read_csv(_pack(former_members.INDEX_FILE))
     idx.columns = [str(c).strip() for c in idx.columns]
     return dict(zip(idx["Symbol"].astype(str), idx["Industry"].astype(str)))
 

@@ -21,6 +21,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+from src.loaders.app_pack import resolve as _pack
 
 PATH = Path(__file__).resolve().parents[2] / "data" / "book_exposure.csv"
 FIELDS = ["date", "kind", "name", "weight"]
@@ -77,7 +78,7 @@ def exposure(tradebook: pd.DataFrame, industry: dict[str, str], membership: dict
 def load(path: Path = PATH) -> pd.DataFrame:
     if not Path(path).exists():
         return pd.DataFrame(columns=FIELDS)
-    f = pd.read_csv(path, parse_dates=["date"])
+    f = pd.read_csv(_pack(path), parse_dates=["date"])
     return f[FIELDS]
 
 

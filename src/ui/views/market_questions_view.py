@@ -15,6 +15,7 @@ import streamlit as st
 from src.engine import market_questions as mq
 from src.engine.pipeline import known_fingerprint
 from src.ui import formats as _fmt
+from src.loaders.app_pack import resolve as _pack
 
 _VOTE_WORD = {
     "breadth": {mq.UP: "Broad", mq.MID: "Between", mq.DOWN: "Narrow"},
@@ -162,7 +163,7 @@ def total_market() -> pd.Series:
     f = Path(__file__).resolve().parents[3] / "data" / "nse_total_market.csv"
     nse = pd.Series(dtype=float)
     if f.exists():
-        t = pd.read_csv(f, parse_dates=["date"])
+        t = pd.read_csv(_pack(f), parse_dates=["date"])
         nse = pd.Series(pd.to_numeric(t["close"], errors="coerce").values, index=t["date"]).dropna()
     ours = bi.series(bi.TOTAL_MARKET).dropna()
     # The archive's close wins where it has one; every other session comes from the index file, not only those

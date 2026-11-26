@@ -37,6 +37,7 @@ from src.engine.membership import (
     record_snapshot,
 )
 from src.engine.track_record import INCEPTION, LEDGER_PATH
+from src.loaders.app_pack import resolve as _pack
 
 DATA = Path(__file__).resolve().parents[2] / "data"
 NANO_HISTORY_PATH = DATA / "nanocap_membership.json"
@@ -62,7 +63,7 @@ def inception(system: str) -> pd.Period:
 def nano_history(path: Path | str = NANO_HISTORY_PATH) -> dict[str, Any] | None:
     """Nano Cap's month-end lists as a membership timeline, or None without any."""
     try:
-        months = json.loads(Path(path).read_text(encoding="utf-8")).get("months", {})
+        months = json.loads(Path(_pack(path)).read_text(encoding="utf-8")).get("months", {})
     except (OSError, ValueError):
         return None
     history: dict[str, Any] = {"schema_version": 1, "index": "NANO CAP",
