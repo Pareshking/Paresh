@@ -7,7 +7,30 @@ name so links to it hold.
 Update this file with every PR that changes how a system is defined, ranked,
 booked or recorded.
 
-_Last updated: 2026-11-21_
+_Last updated: 2026-11-26_
+
+## Size today, and what the names mean (26 Nov 2026)
+
+"> ₹2,000 Cr" is a **market-value cut-off, not a count**: every main-board stock worth ₹2,000 crore or
+more that is outside the 750. Counted from `data/indices/` on 26 Nov 2026:
+
+| System (key) | Who is in it | Stocks |
+|---|---|---|
+| Nifty 750 (default, `750`) | NSE's Nifty Total Market | 750 |
+| Nifty 1000 (`1000`) | the 750 plus Nano Cap, NSE's next 250 | 1,000 |
+| > ₹2,000 Cr (`nano`) | ≥ ₹2,000 Cr, outside the 750 | 411 |
+| Combined (`combined`) | the 750 and the > ₹2,000 Cr list, one ranking | 1,163 |
+
+None of the 411 is in the 750; 192 of them are in Nano Cap, and 219 are outside the Nifty 1000 (Ultra Nano Cap).
+The key `nano` and the file `ind_nanocap_list.csv` are the > ₹2,000 Cr list, not Nano Cap: the names are older
+than the owner's 23 Nov naming and are kept until the January switch so the ledger, nightly files and links hold.
+
+**From the January 2027 book (S198, owner 22 Nov 2026) there are three systems:** Nifty 750, Nifty 1000, and
+Ultra Nano Cap (key `nano` kept): every main-board stock of ₹1,000 Cr or more outside the Nifty 1000, taken on
+each month-end date. Buyable from ₹1,000 Cr; a member that falls below stays tracked (not buyable) down to
+₹500 Cr; prices collected from ₹800 Cr so a joiner has history; a holding below ₹1,000 Cr is sold at the
+rebalance. The > ₹2,000 Cr cut-off and Combined retire (Combined's ledger kept read-only). The rule is in
+`src/engine/ultra_nano.py`, used only by `scripts/s198_measure.py` until S198 (e).
 
 ## The systems
 
