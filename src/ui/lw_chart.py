@@ -104,19 +104,6 @@ def _json(obj) -> str:
     return json.dumps(obj, separators=(",", ":")).replace("</", "<\\/")
 
 
-def series_points(index, values, *, scale: float = 1.0) -> list[tuple[str, float]]:
-    """(YYYY-MM-DD, value) pairs, dropping NaN and keeping one point per day."""
-    out: dict[str, float] = {}
-    for ts, v in zip(pd.DatetimeIndex(index), values):
-        try:
-            f = float(v)
-        except (TypeError, ValueError):
-            continue
-        if f == f:
-            out[f"{ts:%Y-%m-%d}"] = f * scale
-    return sorted(out.items())
-
-
 def _rows(s: dict) -> list[dict]:
     colors = s.get("colors")
     out = []
