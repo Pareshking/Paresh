@@ -865,70 +865,6 @@
         /* The old stock page's cards, verdict and gain-vs-pain bars went with mock-up v2 (S182); the page's own
            styles are in src/ui/views/stock_view.py (SP_CSS). */
 
-        /* ── Command Bar & Quick Filter Pills Styling ── */
-        [data-testid="stPills"] {
-            display: flex !important;
-            gap: 6px !important;
-            align-items: center !important;
-            flex-wrap: nowrap !important;
-            white-space: nowrap !important;
-            overflow-x: auto !important;
-            scrollbar-width: none !important;
-        }
-
-        [data-testid="stPills"] button {
-            border-radius: 4px !important;
-            font-size: var(--fs-13) !important;
-            font-weight: 500 !important;
-            padding: 2px 14px !important;
-            height: 40px !important;
-            border: 1px solid var(--c-rule) !important;
-            background-color: var(--c-subtle) !important;
-            color: var(--c-text_2) !important;
-            white-space: nowrap !important;
-            flex-shrink: 0 !important;
-            transition: all 0.15s ease !important;
-        }
-
-        [data-testid="stPills"] button:hover {
-            background-color: var(--c-white) !important;
-            color: var(--c-ink) !important;
-            border-color: var(--c-rule_strong) !important;
-        }
-
-        [data-testid="stPills"] button[aria-checked="true"] {
-            background-color: var(--c-fill) !important;
-            color: var(--c-ink) !important;
-            border: 1.5px solid var(--c-ink) !important;
-            box-shadow: none !important;
-            font-weight: 600 !important;
-        }
-
-        /* ── Segmented Control (Table / Cards Switcher) ── */
-        [data-testid="stSegmentedControl"] {
-            height: 36px !important;
-            border-radius: 4px !important;
-            background-color: var(--c-subtle) !important;
-            border: 1px solid var(--c-rule) !important;
-            padding: 2px !important;
-        }
-
-        [data-testid="stSegmentedControl"] button {
-            height: 30px !important;
-            border-radius: 4px !important;
-            font-size: var(--fs-12) !important;
-            font-weight: 600 !important;
-            padding: 0 10px !important;
-            color: var(--c-muted) !important;
-            border: none !important;
-        }
-
-        [data-testid="stSegmentedControl"] button[aria-checked="true"] {
-            background-color: var(--c-white) !important;
-            color: var(--c-ink) !important;
-            box-shadow: none !important;
-            font-weight: 700 !important;
-        }
 
         /* ── Harmonized Selectbox Inputs ── */
         div[data-testid="stSelectbox"] > div {
@@ -1471,12 +1407,9 @@
         .t50-col-head { background: transparent !important; }
         [data-testid="stMetric"] {
             border-radius: 0 !important; box-shadow: none !important; }
-        [data-testid="stPills"] button { border-radius: 4px !important; background-color: var(--c-white) !important; }
         /* Streamlit 1.65 draws st.pills and st.segmented_control inside
-           data-testid="stButtonGroup"; the stPills selector no longer matches. */
+           data-testid="stButtonGroup"; they keep Streamlit's own look (owner, 26 Nov 2026: "No pill required"). */
         [data-testid="stButtonGroup"] button { border-radius: 4px !important; }
-        [data-testid="stPills"] button[aria-checked="true"] { background-color: var(--c-fill) !important;
-            border: 1px solid var(--c-ink) !important; }
         .hdr-pill, .sig-chip { border-radius: 4px !important; }
         [data-testid="stExpander"] details { border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
 
