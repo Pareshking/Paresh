@@ -182,9 +182,10 @@ any work on the systems; the 1-5 Dec freeze runs on today's four systems.
 
 ## Queue: one at a time, in this order
 
-_Refreshed 26 Nov 2026. Items 0-3 of 23-24 Nov are done (S188, S193 A-L, S203 all merged)._
+_Refreshed 26 Nov 2026. Items 0-3 of 23-24 Nov are merged (S188, S193 A-L, S203); S193 A5 and L's live cold start are still open (see 0b)._
 
 0. **Waiting on the owner's Streamlit log** (ask once, with the next decision): S232 (no import traceback across three pulls; the PicklingError fix is in the 26 Nov batch), S152 (d) (a log after 3050c86).
+0b. **Promises audit, 26 Nov** (my replies and reasoning since 23 Nov checked against the docs): open and needing no owner decision: the S189 sector check of INA, SUDEEPPHRM, BUILDPRO (and CMPDI on NSE's own page); the dead `stPills` CSS (below); then in CI with R2 keys after the freeze: S129's before/after backtest and S193 A5. Not measurable while `keep_awake` runs: S193 L's live cold start. Tracked under S233: Portfolio's 17 fingerprints.
 0a. **S198 (c) prices from ₹800 Cr: build now** (gap found 26 Nov when the owner asked about the ₹500 Cr cut-off): nothing live collects prices below ₹2,000 Cr outside the Nifty 1000, so the January book and S198 (a)'s measurement lack them. The nightly Screener sync collects that band on the extras' path, display unchanged; before the 1-5 Dec measurement. See TODO S198.
 1. **Dated checks** (each has a scheduled reminder): 27 Nov 03:11 UTC the D2 ledger matches (S174); 27 Nov S142 (make the repository private: the owner's step); 28 Nov the earnings run; 29 Nov `backtest_reference` and `r2_retention` (S188 (c)); 26 Nov-3 Dec a week of green `app_pack` runs, then S172 step 2 job by job; ~1 Dec page budgets reset by rule (S193); 1 Dec budgets and #638 (owner's yes on the figures); 2 Dec freeze checks, `momentum_health` (S177 (c)), S116 (c); 5 Dec S185 replay; 13 Dec S116 (d); 15 Dec S137; Jan S227 rename, S188 (h); 2 Feb S220.
 2. **S233 after S172 step 2**: re-measure Production QA; then decide the shared price load and the record's basis frame (TODO S233).
