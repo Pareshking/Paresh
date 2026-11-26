@@ -1,48 +1,45 @@
 {
-  "last_synced": "25 Nov 2026, 02:07",
-  "timestamp": "2026-11-25T02:07:17.727160",
+  "last_synced": "26 Nov 2026, 01:41",
+  "timestamp": "2026-11-26T01:41:28.980309",
   "total_stocks": 752,
   "indices": {
     "NIFTY 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-11-25T02:07:15.540152"
+      "time": "2026-11-26T01:41:27.030154"
     },
     "NIFTY NEXT 50": {
       "count": 50,
       "status": "Updated",
-      "time": "2026-11-25T02:07:15.949389"
+      "time": "2026-11-26T01:41:27.444448"
     },
     "NIFTY MIDCAP 150": {
       "count": 150,
       "status": "Updated",
-      "time": "2026-11-25T02:07:16.405550"
+      "time": "2026-11-26T01:41:27.823708"
     },
     "NIFTY SMALLCAP 250": {
       "count": 251,
       "status": "Updated",
-      "time": "2026-11-25T02:07:16.820514"
+      "time": "2026-11-26T01:41:28.200030"
     },
     "NIFTY MICROCAP 250": {
       "count": 251,
       "status": "Updated",
-      "time": "2026-11-25T02:07:17.281497"
+      "time": "2026-11-26T01:41:28.592395"
     }
   },
-  "last_attempt": "26 Nov 2026, 01:04",
-  "last_attempt_timestamp": "2026-11-26T01:04:55.572205",
-  "last_attempt_fetched": 3,
-  "last_attempt_errors": {
-    "NIFTY 50": "Live fetch failed; using existing fallback",
-    "NIFTY NEXT 50": "Live fetch failed; using existing fallback"
-  },
-  "last_attempt_ok": false,
+  "last_attempt": "26 Nov 2026, 01:41",
+  "last_attempt_timestamp": "2026-11-26T01:41:28.980309",
+  "last_attempt_fetched": 5,
+  "last_attempt_errors": {},
+  "last_attempt_ok": true,
   "local_csv_fetched": {
-    "NIFTY 50": "2026-11-26T01:04:55.924945",
-    "NIFTY NEXT 50": "2026-11-26T01:04:56.288689",
-    "NIFTY MIDCAP 150": "2026-11-26T01:04:56.292403",
-    "NIFTY SMALLCAP 250": "2026-11-26T01:04:56.299749",
-    "NIFTY MICROCAP 250": "2026-11-26T01:04:56.311033",
-    "NIFTY TOTAL MARKET": "2026-11-26T01:04:56.688336"
+    "NIFTY 50": "2026-11-26T01:41:28.981548",
+    "NIFTY NEXT 50": "2026-11-26T01:41:28.984357",
+    "NIFTY MIDCAP 150": "2026-11-26T01:41:28.986884",
+    "NIFTY SMALLCAP 250": "2026-11-26T01:41:28.992406",
+    "NIFTY MICROCAP 250": "2026-11-26T01:41:29.001371",
+    "NIFTY TOTAL MARKET": "2026-11-26T01:41:29.384766"
   }
 }
