@@ -216,7 +216,7 @@ def test_header_and_the_uptrend_card_measure_the_200d_ema_the_same_way():
 
     # The regime's closes come from _regime_close (S165: Nifty Total Market joined to the Nifty 500, or one
     # benchmark): every branch reads the whole series.
-    assert "_regime_close(benchmark_symbol)" in inspect.getsource(price_loader.get_market_regime)
+    assert "_regime_close(benchmark_symbol)" in inspect.getsource(price_loader._market_regime)
     src = inspect.getsource(price_loader._regime_close)
     assert src.count('period="max"') == 2, "the header's regime must read the whole benchmark series"
 
@@ -312,3 +312,26 @@ def test_a_month_end_bar_is_labelled_the_session_that_closed_the_month():
         assert label in s.index
     short = s.drop(pd.Timestamp("2026-10-30"))
     assert pd.Timestamp("2026-10-29") in bucket_by_last_session(short, "M").index
+
+
+def test_the_regime_cache_keeps_plain_values_not_our_classes():
+    """S232: a PicklingError on RegimeData when a pull re-imported src/ mid-write (owner's log, 24 Nov).
+    What the cache keeps must pickle without naming any class of ours; the same for the index frames."""
+    import pickle
+
+    import pandas as pd
+
+    from src.loaders import price_loader
+    from src.ui import indices_data
+
+    price_loader.get_market_regime.clear()
+    values = price_loader._market_regime_values(price_loader.BENCHMARK_SYMBOL, None)
+    assert b"src." not in pickle.dumps(values)
+    r = price_loader.get_market_regime()
+    assert r.status.value == values[0] and r.distance_pct == values[3]
+    indices_data._frames.clear()
+    fields = indices_data._frame_fields(indices_data._stamp())
+    if fields is not None:
+        assert b"src." not in pickle.dumps(fields)
+        f = indices_data.frames()
+        assert isinstance(f.close, pd.DataFrame) and f.as_of == pd.Timestamp(fields["close"].index[-1])
