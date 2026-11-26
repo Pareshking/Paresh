@@ -32,6 +32,7 @@ import pandas as pd
 
 from src.core.config import MODEL_BOOK_CAPITAL
 from src.engine.metrics import drawdown
+from src.loaders.app_pack import resolve as _pack
 
 WINDOW = 126
 MIN_SESSIONS = 60
@@ -72,7 +73,7 @@ def tier_of(symbols, index_dir: Path = INDEX_DIR) -> dict[str, str]:
             path = index_dir / f
             if not path.exists():
                 continue
-            frame = pd.read_csv(path)
+            frame = pd.read_csv(_pack(path))
             frame.columns = [str(c).strip() for c in frame.columns]
             for s in frame.get("Symbol", pd.Series(dtype=str)).astype(str).str.strip():
                 out.setdefault(s, tier)

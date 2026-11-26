@@ -36,6 +36,7 @@ import numpy as np
 import pandas as pd
 
 from src.core.logger import logger
+from src.loaders.app_pack import resolve as _pack
 
 # Beyond this, a single session is not a price move. NSE's widest ordinary band
 # is 20%; index-derivative names can move further on results days, so the
@@ -186,7 +187,7 @@ def load_fo_symbols(path: str | Path = FO_SYMBOLS_PATH) -> set[str]:
     import json
 
     try:
-        with Path(path).open(encoding="utf-8") as fh:
+        with Path(_pack(path)).open(encoding="utf-8") as fh:
             return {str(s).strip().upper() for s in json.load(fh).get("symbols", [])}
     except (OSError, ValueError, AttributeError):
         logger.warning("No readable F&O symbol list at %s; the F&O rule is off.", path)
@@ -226,7 +227,7 @@ def load_events(path: str | Path = LOG_PATH,
         )
         return []
     try:
-        with p.open(encoding="utf-8") as fh:
+        with Path(_pack(p)).open(encoding="utf-8") as fh:
             log = json.load(fh)
     except (ValueError, OSError) as exc:
         # Same stakes as the missing-file case above, and it used to be silent:

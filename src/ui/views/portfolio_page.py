@@ -31,6 +31,7 @@ from src.engine import book_exposure as bx
 from src.engine import dashboard_insights as di
 from src.engine import portfolio_report as pr
 from src.loaders import benchmark_indices as bi
+from src.loaders.app_pack import resolve as _pack
 from src.ui.views.dashboard_home_view import (END, HOME_CSS, SHORT, Chart, emit, how, html_of, index_late_note, sg,
                                               size_class)
 
@@ -148,7 +149,7 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
     if leaders is not None:
         for _, r in leaders.sectors.iterrows():
             state[str(r["Industry"])] = di.industry_bucket(float(r["rel_6m"]), float(r["rel_1m"]))
-    membership = json.loads((ROOT / "data" / "membership_history.json").read_text())
+    membership = json.loads(Path(_pack(ROOT / "data" / "membership_history.json")).read_text())
     sizes = bx.size_of(syms, as_of, membership)
     tb = record.get("tradebook")
     # data/book_exposure.csv is the 750's record (scripts/update_track_record.py writes it);

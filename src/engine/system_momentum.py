@@ -25,6 +25,7 @@ from typing import Any
 import pandas as pd
 
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_1000, SYSTEM_NANO
+from src.loaders.app_pack import resolve as _pack
 
 ROOT = Path(__file__).resolve().parents[2]
 NANO_FILE = ROOT / "data" / "nanocap_membership.json"
@@ -93,7 +94,7 @@ def read(system: str) -> pd.DataFrame | None:
     if not p.exists():
         return None
     try:
-        frame = pd.read_csv(p)
+        frame = pd.read_csv(_pack(p))
     except (OSError, ValueError):
         return None
     return frame if len(frame) else None

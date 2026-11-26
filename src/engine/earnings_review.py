@@ -12,6 +12,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
+from src.loaders.app_pack import resolve as _pack
 
 PATH = Path(__file__).resolve().parents[2] / "data" / "reference" / "nse_earnings_review.csv"
 INDICES = ("Nifty 50", "Nifty Next 50", "Nifty Midcap 150", "Nifty Smallcap 250", "Nifty 500")
@@ -38,7 +39,7 @@ def _order(q: str) -> tuple[int, int]:
 
 @lru_cache(maxsize=4)
 def _read(path: str, mtime: float) -> pd.DataFrame:
-    return pd.read_csv(path)
+    return pd.read_csv(_pack(path))
 
 
 def load(path: Path = PATH) -> pd.DataFrame | None:

@@ -214,13 +214,15 @@ _editorial_style()
 # The loaders overwrite these with live dates when they run cold.
 try:
     import os as _os
-    _snap = pd.read_csv(REPO_MCAP_FILE) if _os.path.exists(REPO_MCAP_FILE) else None
+    from src.loaders.app_pack import resolve as _pack
+
+    _snap = pd.read_csv(_pack(REPO_MCAP_FILE)) if _os.path.exists(REPO_MCAP_FILE) else None
     if _snap is not None and "AsOf" in _snap.columns and len(_snap):
         _d = str(_snap["AsOf"].iloc[0]).strip()
         if _d and "mcap_as_of" not in metrics.snapshot().get("facts", {}):
             metrics.note("mcap_as_of", _d)
             metrics.note("mcap_path", "repo_snapshot")
-    _ath = pd.read_csv(REPO_ATH_FILE) if _os.path.exists(REPO_ATH_FILE) else None
+    _ath = pd.read_csv(_pack(REPO_ATH_FILE)) if _os.path.exists(REPO_ATH_FILE) else None
     if _ath is not None and "AsOf" in _ath.columns and len(_ath):
         _d = str(_ath["AsOf"].iloc[0]).strip()
         if _d and "ath_as_of" not in metrics.snapshot().get("facts", {}):

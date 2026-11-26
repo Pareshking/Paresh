@@ -28,6 +28,7 @@ from src.core.config import (
 )
 from src.core.logger import logger
 from src.core.tickers import is_tradeable_symbol
+from src.loaders.app_pack import resolve as _pack
 
 SYNC_META_FILE = os.path.join(REPO_DATA_DIR, "indices_sync_meta.json")
 
@@ -208,7 +209,7 @@ def get_sync_metadata() -> dict[str, Any]:
     """Reads index sync metadata from disk."""
     if os.path.exists(SYNC_META_FILE):
         try:
-            with open(SYNC_META_FILE, encoding="utf-8") as f:
+            with open(_pack(SYNC_META_FILE), encoding="utf-8") as f:
                 return json.load(f)
         except Exception as exc:
             logger.warning("Unreadable %s (%s); treating as absent.", SYNC_META_FILE, type(exc).__name__)
@@ -372,7 +373,7 @@ def _fetch_indices_impl(
         if prefer_local and _committed_copy_is_fresh(idx_name, meta_now):
             local_path = INDICES_LOCAL.get(idx_name)
             try:
-                with open(local_path, encoding="utf-8-sig", errors="replace") as f:
+                with open(_pack(local_path), encoding="utf-8-sig", errors="replace") as f:
                     csv_text = f.read()
                 logger.debug(f"{idx_name}: using the committed copy ({local_path})")
             except Exception as e:
@@ -403,7 +404,7 @@ def _fetch_indices_impl(
             local_path = INDICES_LOCAL.get(idx_name)
             if local_path and os.path.exists(local_path):
                 try:
-                    with open(local_path, encoding="utf-8-sig", errors="replace") as f:
+                    with open(_pack(local_path), encoding="utf-8-sig", errors="replace") as f:
                         csv_text = f.read()
                     logger.info(f"{idx_name}: using local fallback ({local_path})")
                 except Exception as e:

@@ -11,6 +11,7 @@ import streamlit as st
 
 from src.core.config import TV_CLASSIFICATION_FILE
 from src.core.logger import logger
+from src.loaders.app_pack import resolve as _pack
 
 
 @st.cache_data(show_spinner=False, ttl=86400)
@@ -24,7 +25,7 @@ def load_tv_classification() -> dict[str, dict[str, str]]:
         return {}
 
     try:
-        df = pd.read_csv(TV_CLASSIFICATION_FILE)
+        df = pd.read_csv(_pack(TV_CLASSIFICATION_FILE))
         df["Symbol"] = df["Symbol"].astype(str).str.strip().str.upper()
         df = df.dropna(subset=["TV_Sector", "TV_Industry"]).drop_duplicates("Symbol")
         result: dict[str, dict[str, str]] = df.set_index("Symbol")[

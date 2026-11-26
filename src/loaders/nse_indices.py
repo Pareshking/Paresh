@@ -29,6 +29,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from src.loaders.app_pack import resolve as _pack
 
 URL = "https://nsearchives.nseindia.com/content/indices/ind_close_all_{d:%d%m%Y}.csv"
 FIRST_SESSION = pd.Timestamp("2012-02-21")
@@ -352,7 +353,7 @@ def read_compact(history: Path | None = None, recent: Path | None = None) -> pd.
     if h_path.exists():
         parts.append(pd.read_parquet(h_path))
     if r_path.exists() and r_path.stat().st_size > 0:
-        r = pd.read_csv(r_path, parse_dates=["date"])
+        r = pd.read_csv(_pack(r_path), parse_dates=["date"])
         if len(r):
             r["derived"] = r["derived"].astype(str).str.lower().eq("true")
             parts.append(r)

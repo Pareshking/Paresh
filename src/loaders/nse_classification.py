@@ -29,6 +29,7 @@ import streamlit as st
 
 from src.core.config import REPO_DATA_DIR
 from src.engine import extra_universe as xu
+from src.loaders.app_pack import resolve as _pack
 
 CLASSIFICATION_PATH = os.path.join(REPO_DATA_DIR, "reference", "nse_classification.csv")
 TOTAL_MARKET_PATH = os.path.join(REPO_DATA_DIR, "indices", "ind_niftytotalmarket_list.csv")
@@ -52,7 +53,7 @@ def _historical(level: str, path: str = HISTORICAL_PATH) -> dict[str, str]:
 
 def _list_sectors(path: str) -> dict[str, str]:
     try:
-        frame = pd.read_csv(path)
+        frame = pd.read_csv(_pack(path))
     except (OSError, ValueError):
         return {}
     frame.columns = [str(c).strip() for c in frame.columns]

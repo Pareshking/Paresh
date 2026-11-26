@@ -37,6 +37,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.core.logger import logger
+from src.loaders.app_pack import resolve as _pack
 
 FILE = Path(__file__).resolve().parents[2] / "data" / "benchmark_indices.csv"
 FIELDS = ["date", "index", "close", "source"]
@@ -69,7 +70,7 @@ ETF_TOLERANCE_PTS = 1.5
 def read(path: Path = FILE) -> pd.DataFrame:
     """The long table, or an empty one with its columns when the file is absent."""
     try:
-        frame = pd.read_csv(path, parse_dates=["date"])
+        frame = pd.read_csv(_pack(path), parse_dates=["date"])
     except (OSError, ValueError):
         return pd.DataFrame(columns=FIELDS)
     if not pd.api.types.is_datetime64_any_dtype(frame["date"]):

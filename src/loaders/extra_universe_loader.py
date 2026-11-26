@@ -19,6 +19,7 @@ import streamlit as st
 from src.core.config import REPO_DATA_DIR
 from src.core.tickers import is_tradeable_symbol
 from src.engine import extra_universe as xu
+from src.loaders.app_pack import resolve as _pack
 
 LIST_PATH = os.path.join(REPO_DATA_DIR, "indices", "ind_nanocap_list.csv")
 # NSE's Nifty 1000 list, written by the daily sync (S175).
@@ -29,7 +30,7 @@ def members(path: str = LIST_PATH) -> pd.DataFrame:
     """The current list in the index loader's shape: Symbol, Company Name, Industry, Indices."""
     if not os.path.exists(path):
         return pd.DataFrame(columns=["Symbol", "Company Name", "Industry", "Indices"])
-    frame = pd.read_csv(path)
+    frame = pd.read_csv(_pack(path))
     frame["Symbol"] = frame["Symbol"].astype(str).str.strip().str.upper()
     frame = frame[frame["Symbol"].map(is_tradeable_symbol)].drop_duplicates("Symbol")
     return pd.DataFrame({
@@ -53,7 +54,7 @@ def nifty_1000_members(path: str = NIFTY_1000_PATH) -> pd.DataFrame:
     """
     if not os.path.exists(path):
         return pd.DataFrame(columns=["Symbol", "Company Name", "Industry", "Indices"])
-    frame = pd.read_csv(path)
+    frame = pd.read_csv(_pack(path))
     frame.columns = [str(c).strip() for c in frame.columns]
     frame["Symbol"] = frame["Symbol"].astype(str).str.strip().str.upper()
     frame = frame[frame["Symbol"].map(is_tradeable_symbol)].drop_duplicates("Symbol")
@@ -81,7 +82,7 @@ def _labels_750() -> dict[str, str]:
     if _LABELS_750 is None:
         path = os.path.join(REPO_DATA_DIR, "indices", "ind_niftytotalmarket_list.csv")
         try:
-            frame = pd.read_csv(path)
+            frame = pd.read_csv(_pack(path))
             frame.columns = [str(c).strip() for c in frame.columns]
             _LABELS_750 = {_industry_key(v): str(v).strip() for v in frame["Industry"].dropna().unique()}
         except (OSError, KeyError, ValueError):
@@ -190,7 +191,7 @@ def list_market_caps(symbols: list[str], path: str = LIST_PATH) -> pd.Series:
     Not fetch_market_caps: production cannot reach NSE, its repo snapshot
     holds only the 750, and the fallback is one Yahoo request per stock.
     """
-    listed = pd.read_csv(path) if os.path.exists(path) else None
+    listed = pd.read_csv(_pack(path)) if os.path.exists(path) else None
     if listed is None or "MarketCapCr" not in listed.columns:
         return pd.Series(dtype=float)
     caps = listed.set_index("Symbol")["MarketCapCr"] * 1e7
@@ -211,7 +212,7 @@ def system_market_caps(symbols, nse_path: str | None = None, list_path: str = LI
     symbols = [str(s) for s in symbols]
     path = nse_path or REPO_MCAP_FILE
     try:
-        nse = pd.read_csv(path).set_index("Symbol")["MarketCap"]
+        nse = pd.read_csv(_pack(path)).set_index("Symbol")["MarketCap"]
         nse = pd.to_numeric(nse[~nse.index.duplicated()], errors="coerce").reindex(symbols)
     except (OSError, KeyError, ValueError):
         nse = pd.Series(index=symbols, dtype=float)
@@ -250,7 +251,7 @@ def membership_summary(path: str = HISTORY_PATH) -> dict:
     import json
 
     try:
-        with open(path, encoding="utf-8") as fh:
+        with open(_pack(path), encoding="utf-8") as fh:
             months = json.load(fh).get("months", {})
     except (OSError, ValueError):
         return {}

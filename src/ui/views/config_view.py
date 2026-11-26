@@ -37,6 +37,7 @@ from src.ui.components import age_phrase, data_freshness, gap_count, render_data
 from src.ui.widget_state import forget, remember, resolve
 from src.ui.theme import render_saas_table
 from src.engine.momentum import MIN_OBSERVATIONS
+from src.loaders.app_pack import resolve as _pack
 
 # Sync and Purge clear st.cache_data for the WHOLE PROCESS, not the clicking
 # reader: every other visitor's next rerun then pays the cold engine build
@@ -178,6 +179,8 @@ FILE_RULES: list[tuple[str, str, str, str, str, int, str]] = [
 def _file_date(path: str, how: str):
     """The last date a file holds, or None when it is missing or unreadable."""
     import json
+
+    path = _pack(path)
 
     try:
         if how == "parquet":

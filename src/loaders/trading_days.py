@@ -42,6 +42,7 @@ from datetime import date
 
 from src.core.config import REPO_TRADING_DAYS_FILE
 from src.core.logger import logger
+from src.loaders.app_pack import resolve as _pack
 
 SCHEMA_VERSION: int = 1
 
@@ -52,7 +53,7 @@ def load_confirmed(path: str | None = None) -> set[str]:
     if not os.path.exists(target):
         return set()
     try:
-        with open(target, encoding="utf-8") as fh:
+        with open(_pack(target), encoding="utf-8") as fh:
             payload = json.load(fh)
     except (ValueError, OSError) as exc:
         logger.warning(
@@ -70,7 +71,7 @@ def _read_payload(target: str) -> dict:
     if not os.path.exists(target):
         return {}
     try:
-        with open(target, encoding="utf-8") as fh:
+        with open(_pack(target), encoding="utf-8") as fh:
             payload = json.load(fh)
         return payload if isinstance(payload, dict) else {}
     except (ValueError, OSError):
@@ -146,7 +147,7 @@ def load_closed(path: str | None = None) -> set[str]:
     if not os.path.exists(target):
         return set()
     try:
-        with open(target, encoding="utf-8") as fh:
+        with open(_pack(target), encoding="utf-8") as fh:
             payload = json.load(fh)
     except (ValueError, OSError):
         return set()

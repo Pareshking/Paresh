@@ -25,6 +25,7 @@ from src.ui import page_kit as kit
 from src.ui.formats import price as _fmt_price
 from src.ui.views.dashboard_home_view import HOME_CSS, emit, html_of, sg
 from src.ui.views.portfolio_page import PF_CSS, _head, _kpis, _sec, dshort, inr, pct, short, tone
+from src.loaders.app_pack import resolve as _pack
 
 e = html.escape
 
@@ -544,7 +545,7 @@ def _sizes(symbols: list, on: pd.Timestamp) -> dict:
     from src.engine import book_exposure as bx
     path = Path(__file__).resolve().parents[3] / "data" / "membership_history.json"
     try:
-        return bx.size_of(symbols, on, json.loads(path.read_text()))
+        return bx.size_of(symbols, on, json.loads(Path(_pack(path)).read_text()))
     except (OSError, ValueError):
         return {}
 

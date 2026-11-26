@@ -68,6 +68,7 @@ LEAD_RANGE = {"default": "all", "why": "record"}
 FLOWS_RANGE = {"default": "12M", "why": "lately"}
 from src.ui.industry_names import INDUSTRY_SHORT as SHORT  # noqa: E402  one map for every page
 from src.ui import missing_words as mw  # noqa: E402  the fixed words for "–" and empty states (S193 E)
+from src.loaders.app_pack import resolve as _pack
 TONE = {"up": "dh-up", "down": "dh-down", "watch": "dh-watch", "flat": "dh-muted", "for": "dh-up",
         "against": "dh-down", "neutral": "dh-muted"}
 
@@ -176,7 +177,7 @@ def how(what: str, read: str, head: list[str], rows: list[list[str]]) -> str:
 
 def _read_csv(path: Path, **kw) -> pd.DataFrame | None:
     try:
-        return pd.read_csv(path, **kw)
+        return pd.read_csv(_pack(path), **kw)
     except (OSError, ValueError):
         return None
 
@@ -1613,7 +1614,7 @@ def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, 
 
 def _load_tests() -> dict:
     try:
-        return json.loads(FILES["tests"].read_text())
+        return json.loads(Path(_pack(FILES["tests"])).read_text())
     except (OSError, ValueError):
         return {}
 
@@ -1657,7 +1658,7 @@ def _qualify_cached(key: str, _prices: pd.DataFrame, dates: tuple) -> dict:
 def _qualify_saved(session: pd.Timestamp, path: Path | None = None) -> dict:
     """{session: share} from data/qualified_now.json when it was read for `session`, else {}."""
     try:
-        d = json.loads((path or ROOT / "data" / "qualified_now.json").read_text())
+        d = json.loads(Path(_pack(path or ROOT / "data" / "qualified_now.json")).read_text())
     except (OSError, ValueError):
         return {}
     if d.get("as_of") != f"{pd.Timestamp(session):%Y-%m-%d}":
@@ -1769,7 +1770,7 @@ def _signals(spreads, n500: pd.Series, as_of: pd.Timestamp, flows, n500_breadth:
         q = pd.Series(pd.to_numeric(spreads["qualified"], errors="coerce").values * 100,
                       index=pd.to_datetime(spreads["date"])).dropna()
         try:
-            latest = json.loads(FILES["latest_q"].read_text())
+            latest = json.loads(Path(_pack(FILES["latest_q"])).read_text())
             q.loc[pd.Timestamp(latest["date"])] = float(latest["qualified"]) * 100
         except (OSError, ValueError, KeyError, TypeError):
             pass
