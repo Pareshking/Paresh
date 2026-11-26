@@ -115,3 +115,37 @@ def test_app_import_guard_serializes_reload_and_import_windows():
     assert not t1.is_alive()
     assert not t2.is_alive()
     assert second_entered.is_set()
+
+
+def test_streamlit_evictions_wait_for_the_app_import_window(monkeypatch):
+    """26 Nov 2026: a second session's start-of-run eviction emptied sys.modules
+    under a session that was importing (KeyError: 'src'). The eviction now
+    takes the app's import lock."""
+    from streamlit.watcher.local_sources_watcher import LocalSourcesWatcher
+
+    calls = []
+
+    def fake_flush(self):
+        calls.append(time.perf_counter())
+
+    monkeypatch.setattr(LocalSourcesWatcher, "flush_pending_evictions", fake_flush)
+    assert cr.guard_streamlit_evictions() is True
+    assert cr.guard_streamlit_evictions() is True          # once, not wrapped twice
+    flush = LocalSourcesWatcher.flush_pending_evictions
+    assert flush.__wrapped__ is fake_flush
+
+    released = []
+    held = threading.Event()
+
+    def importer():
+        with cr.app_import_guard():
+            held.set()
+            time.sleep(0.3)
+            released.append(time.perf_counter())
+
+    t = threading.Thread(target=importer)
+    t.start()
+    held.wait(2)
+    flush(object())
+    t.join()
+    assert calls and released and calls[0] >= released[0]

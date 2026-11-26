@@ -64,6 +64,9 @@ if app_import_guard is None:
 
 mark_loaded = _code_reload.mark_loaded
 reload_if_changed = _code_reload.reload_if_changed
+# Streamlit's own eviction of src/ and r2/ waits for the import window below
+# (code_reload.guard_streamlit_evictions; 26 Nov 2026: KeyError: 'src' on a pull).
+getattr(_code_reload, "guard_streamlit_evictions", lambda: False)()
 
 def _new_revision_pulled() -> bool:
     """True on the first run after Streamlit Cloud pulled a new commit into this process.
