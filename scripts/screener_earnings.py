@@ -64,6 +64,17 @@ COMPLETE_SHARE = 0.90
 PARTIAL_SHARE = 0.10      # the quarter still coming in shows "so far" from one in ten Nifty 500 companies (owner, 25 Nov 2026)
 GROSS_PTS = 5.0
 FIELDS = ("sales", "pat", "pat_xoi")
+# Without financials (owner, 25 Nov 2026, S231; decided by benchmark, owner to confirm): NSE's own Corporate Earnings
+# Review reports figures "ex-Financials". A financial is a stock in NSE's macro sector "Financial Services" (banks,
+# NBFCs, insurers, capital markets) by the classification file, past members included; a member it does not name
+# stays in, and is counted in `unclassified`.
+SCOPES = ("all", "ex_financials")
+FINANCIALS = "Financial Services"
+
+
+def financials() -> set[str]:
+    from src.loaders.nse_classification import levels_map
+    return {s for s, m in (levels_map().get("NSE_Macro") or {}).items() if m == FINANCIALS}
 QUARTER_COLS = ["symbol", "quarter_end", "basis", "sales_label", "sales", "operating_profit", "pbt", "net_profit",
                 "other_income", "tax_pct", "eps", "fetched"]
 
@@ -216,6 +227,9 @@ def earnings(quarters: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     have = set(quarters["quarter_end"])
     rows, notes = [], []
     nse = research.nse_figures() if os.path.exists(research.NSE_CSV) else {}
+    fin = financials()
+    from src.loaders.nse_classification import levels_map
+    named = set(levels_map().get("NSE_Macro") or {})
     for qe in sorted(q for q in have if research.year_before(q) in have):
         q = research.quarter_label(qe)
         n500 = members("nifty_500", qe)
@@ -228,12 +242,16 @@ def earnings(quarters: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
             size = (len(today_list(LATEST_ONLY[key])) if key in LATEST_ONLY else
                     len(research.members_on(research.index_history(key), qe, canonical=True) or ()))
             for field in FIELDS:
+                for scope in SCOPES:
+                    these = syms if scope == "all" else syms - fin
+                    g = growth(values, these, qe, field)
+                    for stat in ("agg", "median"):
+                        v = g[stat]
+                        rows.append({"quarter": q, "quarter_end": qe, "index": label, "measure": f"{field}_{stat}_yoy",
+                                     "value_pct": None if v is None else round(v, 2), "members": len(these), "size": size,
+                                     "used": g["used"], "complete": complete, "scope": scope,
+                                     "unclassified": len(syms - named)})
                 g = growth(values, syms, qe, field)
-                for stat in ("agg", "median"):
-                    v = g[stat]
-                    rows.append({"quarter": q, "quarter_end": qe, "index": label, "measure": f"{field}_{stat}_yoy",
-                                 "value_pct": None if v is None else round(v, 2), "members": len(syms), "size": size,
-                                 "used": g["used"], "complete": complete})
                 theirs = nse.get((q, label, f"{'pat' if field != 'sales' else 'sales'}_agg_yoy"))
                 if complete and label in research.GATED and theirs is not None and g["agg"] is not None \
                         and abs(g["agg"] - theirs) > GROSS_PTS:
@@ -289,7 +307,8 @@ def publishable(out: pd.DataFrame) -> pd.DataFrame:
     if not len(later):
         return out[out["complete"]]
     newest = later["quarter_end"].max()
-    n500 = later[(later["quarter_end"] == newest) & (later["index"] == "Nifty 500") & (later["measure"] == "sales_agg_yoy")]
+    n500 = later[(later["quarter_end"] == newest) & (later["index"] == "Nifty 500") & (later["measure"] == "sales_agg_yoy")
+                 & (later["scope"] == "all" if "scope" in later else True)]
     if len(n500) and n500["used"].iloc[0] >= PARTIAL_SHARE * n500["size"].iloc[0]:
         return out[out["complete"] | (out["quarter_end"] == newest)]
     return out[out["complete"]]

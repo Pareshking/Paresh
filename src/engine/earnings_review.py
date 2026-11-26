@@ -107,22 +107,33 @@ def _done(df: pd.DataFrame, complete: bool = True) -> pd.DataFrame:
     return df[flag] if complete else df[~flag]
 
 
-def partial(df: pd.DataFrame | None = None) -> Latest | None:
+# All companies, or without financials (NSE's macro sector "Financial Services"; S231, decided by benchmark, owner
+# to confirm): scripts/screener_earnings.py writes both; a file from before the switch holds "all" only.
+SCOPES = {"all": "All companies", "ex_financials": "Without financials"}
+
+
+def _scoped(df: pd.DataFrame, scope: str) -> pd.DataFrame:
+    if "scope" not in df.columns:
+        return df if scope == "all" else df.iloc[0:0]
+    return df[df["scope"].fillna("all") == scope]
+
+
+def partial(df: pd.DataFrame | None = None, scope: str = "all") -> Latest | None:
     """The quarter still coming in, "so far" (owner, 25 Nov 2026: "Show partial one"): each company that has reported
     against its own quarter a year earlier; None between results seasons."""
     df = load(OURS_PATH) if df is None else df
     if df is None or df.empty:
         return None
-    rest = _done(df, complete=False)
-    return ours(rest.assign(complete=True)) if len(rest) else None
+    rest = _done(_scoped(df, scope), complete=False)
+    return ours(rest.assign(complete=True), scope) if len(rest) else None
 
 
-def ours(df: pd.DataFrame | None = None) -> Latest | None:
+def ours(df: pd.DataFrame | None = None, scope: str = "all") -> Latest | None:
     """The newest complete quarter of our calculation, with the date its pages were read."""
     df = load(OURS_PATH) if df is None else df
     if df is None or df.empty:
         return None
-    df = _done(df)
+    df = _done(_scoped(df, scope))
     if df.empty:
         return None
     q = max(df["quarter"].unique(), key=_order)
@@ -142,12 +153,12 @@ def ours(df: pd.DataFrame | None = None) -> Latest | None:
     return Latest(quarter=q, published=pd.Timestamp(rows["as_of"].iloc[0]), pdf_url="", values=vals, reported=rep)
 
 
-def ours_history(index: str, measure: str, df: pd.DataFrame | None = None) -> pd.Series:
+def ours_history(index: str, measure: str, df: pd.DataFrame | None = None, scope: str = "all") -> pd.Series:
     """Our figure each quarter, oldest first, indexed by quarter end."""
     df = load(OURS_PATH) if df is None else df
     if df is None or df.empty:
         return pd.Series(dtype=float)
-    return history(index, _measure(measure), _done(df))
+    return history(index, _measure(measure), _done(_scoped(df, scope)))
 
 
 # ── One company's quarters, for the Stock page's results table ───────────────
