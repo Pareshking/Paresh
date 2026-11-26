@@ -29,17 +29,20 @@
       "time": "2026-11-25T02:07:17.281497"
     }
   },
-  "last_attempt": "25 Nov 2026, 02:07",
-  "last_attempt_timestamp": "2026-11-25T02:07:17.727160",
-  "last_attempt_fetched": 5,
-  "last_attempt_errors": {},
-  "last_attempt_ok": true,
+  "last_attempt": "26 Nov 2026, 01:04",
+  "last_attempt_timestamp": "2026-11-26T01:04:55.572205",
+  "last_attempt_fetched": 3,
+  "last_attempt_errors": {
+    "NIFTY 50": "Live fetch failed; using existing fallback",
+    "NIFTY NEXT 50": "Live fetch failed; using existing fallback"
+  },
+  "last_attempt_ok": false,
   "local_csv_fetched": {
-    "NIFTY 50": "2026-11-25T02:07:17.728151",
-    "NIFTY NEXT 50": "2026-11-25T02:07:17.730575",
-    "NIFTY MIDCAP 150": "2026-11-25T02:07:17.732867",
-    "NIFTY SMALLCAP 250": "2026-11-25T02:07:17.737866",
-    "NIFTY MICROCAP 250": "2026-11-25T02:07:17.745445",
-    "NIFTY TOTAL MARKET": "2026-11-25T02:07:18.197227"
+    "NIFTY 50": "2026-11-26T01:04:55.924945",
+    "NIFTY NEXT 50": "2026-11-26T01:04:56.288689",
+    "NIFTY MIDCAP 150": "2026-11-26T01:04:56.292403",
+    "NIFTY SMALLCAP 250": "2026-11-26T01:04:56.299749",
+    "NIFTY MICROCAP 250": "2026-11-26T01:04:56.311033",
+    "NIFTY TOTAL MARKET": "2026-11-26T01:04:56.688336"
   }
 }
