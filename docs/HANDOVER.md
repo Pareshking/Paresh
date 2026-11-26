@@ -212,6 +212,8 @@ Done 23 Nov and gone from the queue: S185 replay step (#625), S199, S201 (#625),
 S194 L3/L4 and S202 (#627).
 
 ## Found, not fixed (recorded so it is not rediscovered)
+
+- **26 Nov, dead pill CSS** (found by the promises audit; seen 24 Nov 09:44 and not recorded): Streamlit 1.65+ draws `st.pills` inside `stButtonGroup`; the 1.67 bundle has no `stPills`, so `page.css` 869-899, 1474 and 1478-1479 match nothing and the selected pill shows Streamlit's default, not our fill and ink border (40 px height, nowrap, hover lost too). Fix: move the rules to `stButtonGroup` (scoped so segmented controls at 1110 keep theirs), with before/after screenshots at 412 and 1400 px; next batch.
 - 25 Nov: Configuration at 1400 px shows three 56 px "empty bands" in the layout audit: they are its section breaks (space, a rule drawn as a border, the next numbered section; screenshot checked), which the audit does not count as drawn. Intended, not fixed; the page is not in CI's layout list. Its missing foot line was fixed in #694.
 
 - **Layout audit, Dashboard at 412 px, 25 Nov:** "segbar frame taller than its drawing 39 px spare" failed #692's validate (run 45621877248, attempt 1) on a docs-only change; the same code passed on #689, #691 and locally, and the one re-run passed. Lead: the frame keeps its fallback-font height past the audit's second reading. If it recurs, wait for `document.fonts.ready` inside the frame before measuring.
