@@ -2,6 +2,8 @@
 
 
 ## 2026-11-26
+- Backtest opens faster: the default run's page is kept once it has been drawn and served again while nothing it was cut from (prices, settings, the benchmark, the index store, the stored tests, the code) has changed; it no longer re-runs after each update of the site (S233).
+- Dashboard, Market, Portfolio, Stock and Sectors open faster after each update of the site: the daily price history they read is kept on the server's disk while its inputs and the code are unchanged (S233).
 
 - Behind the pages: the nightly data the pages read (benchmarks, breadth, flows, momentum health, index lists, market caps, the results calendar and the earnings table) now comes from R2 as one checked pack, with the committed copy as the backup. Nothing on the pages changes.
 - Every page: a page opened while the site was updating could fail for a moment with an error; the update now waits for a page that is loading.

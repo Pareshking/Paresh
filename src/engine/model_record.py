@@ -8,6 +8,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.core.disk_memo import value_fingerprint
 from src.engine.backtester import run_backtest
 from src.engine.corporate_actions import load_events
 from src.engine.extra_universe import SYSTEM_750, SYSTEM_1000
@@ -187,7 +188,10 @@ def record_run_uncached(adj_close: pd.DataFrame, benchmark_close: pd.Series | No
         return {}
 
     result = run_backtest(
+        # The membership too (S233): it is passed as _membership, which the cache does not hash, so a
+        # membership change with the same prices served the old run until a pull cleared the cache.
         f"trackrec_{system}_{known_fingerprint(prices)}_{actions_digest(events)}_{months}"
+        f"_{value_fingerprint(membership)[:16]}"
         f"_{_benchmark_key(benchmark_close, start)}",
         prices,
         **run_backtest_kwargs(cfg),

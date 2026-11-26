@@ -185,6 +185,14 @@ def _fresh_record_memo():
     model_record._RUN_MEMO.clear()
 
 
+@pytest.fixture(autouse=True)
+def _own_disk_copies(monkeypatch, tmp_path):
+    """Results kept on disk across cache clears (S233) go to the test's own directory: a test never
+    serves another test's, or a local app run's, kept result."""
+    monkeypatch.setenv("APP_DISK_MEMO_DIR", str(tmp_path / "disk_memo"))
+    monkeypatch.setenv("BACKTEST_SNAPSHOT_DIR", str(tmp_path / "backtest_default"))
+
+
 # ── Markers (S138 I2, I3) ────────────────────────────────────────────────────
 # Set from what a test file does, not by hand, so a new file cannot fall outside
 # them: `live_data` for a file that reads the repository's data/ (which the nightly
