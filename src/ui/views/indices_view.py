@@ -194,7 +194,7 @@ PROFIT_WORDS = {"pat": "profit after tax as reported",
                            "and lenders, whose other income is part of the business)"}
 
 
-def earnings_headline(lt: er.Latest) -> str:
+def earnings_headline(lt: er.Latest, scope: str = "all") -> str:
     """The earnings heading (S171): the Nifty 500's profit growth in the latest complete quarter, all companies and
     the median company."""
     v = lt.values.get("Nifty 500", {})
@@ -205,7 +205,8 @@ def earnings_headline(lt: er.Latest) -> str:
     verb = "rose" if agg >= 0 else "fell"
     tail = ("" if med is None else
             f"; the median company's profit {'rose' if med >= 0 else 'fell'} {_pc(abs(med))}")
-    return f"In {q} the Nifty 500's profit {verb} {_pc(abs(agg))} from a year earlier{tail}."
+    who = "the Nifty 500's profit" + (" without financials" if scope == "ex_financials" else "")
+    return f"In {q} {who} {verb} {_pc(abs(agg))} from a year earlier{tail}."
 
 
 def _pc(v: float) -> str:
@@ -221,7 +222,7 @@ def _source_note(q: str, as_of) -> str:
             "of the Nifty Microcap 250's, would alone set that index's growth.")
 
 
-def section_partial(pt: er.Latest | None) -> str:
+def section_partial(pt: er.Latest | None, every: str = "all companies") -> str:
     """The quarter still coming in (owner, 25 Nov 2026: "Show partial one"): shown from one in ten Nifty 500 companies
     reported until nine in ten, when it joins the tables below."""
     if pt is None:
@@ -239,21 +240,28 @@ def section_partial(pt: er.Latest | None) -> str:
     n500 = pt.reported.get("Nifty 500")
     lede = f"{q} so far" + (f": {n500[0]} of {n500[1]} Nifty 500 companies have reported." if n500 else ".")
     return (f'<h3 class="dh-h3">{e(lede)}</h3><div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr>'
-            '<th scope="col">Index</th><th scope="col" class="dh-num">Profit, all companies</th>'
-            '<th scope="col" class="dh-num">Revenue, all companies</th><th scope="col" class="dh-num">Companies reported</th>'
+            f'<th scope="col">Index</th><th scope="col" class="dh-num">Profit, {every}</th>'
+            f'<th scope="col" class="dh-num">Revenue, {every}</th><th scope="col" class="dh-num">Companies reported</th>'
             f'</tr></thead><tbody>{rows}</tbody></table></div><p class="dh-note">Each company that has reported, against its '
             f"own quarter a year earlier. The larger companies tend to report first, so these figures move as the rest "
             f"report; an index shows – until one in ten of its companies have. {q} joins the tables below once nine in ten "
             f"Nifty 500 companies have reported.</p>")
 
 
-def section_earnings(lt: er.Latest | None, pt: er.Latest | None = None) -> list:
+# Without financials (S231; decided by benchmark, owner to confirm): NSE's own Corporate Earnings Review reports
+# figures ex-Financials; a bank's "revenue" is interest earned and its profit moves with provisions, not sales.
+EX_FIN_NOTE = ("Without financials leaves out the companies in NSE's macro sector Financial Services (banks, NBFCs, "
+               "insurers, capital-market companies), by NSE's classification; companies reported then counts the rest.")
+
+
+def section_earnings(lt: er.Latest | None, pt: er.Latest | None = None, scope: str = "all") -> list:
     """Profit and revenue growth beside the P/E (S171): our calculation from Screener's company results (owner,
     25 Nov 2026: "We will use Screener data only")."""
     if lt is None:
         return []
-    cols = [("pat_agg_yoy", "Profit, all companies"), ("pat_median_yoy", "Profit, median company"),
-            ("sales_agg_yoy", "Revenue, all companies"), ("sales_median_yoy", "Revenue, median company")]
+    every = "all but financials" if scope == "ex_financials" else "all companies"
+    cols = [("pat_agg_yoy", f"Profit, {every}"), ("pat_median_yoy", "Profit, median company"),
+            ("sales_agg_yoy", f"Revenue, {every}"), ("sales_median_yoy", "Revenue, median company")]
     body = ""
     for name in er.LATEST_INDICES:
         v = lt.values.get(name, {})
@@ -265,29 +273,30 @@ def section_earnings(lt: er.Latest | None, pt: er.Latest | None = None) -> list:
     note = (f"Growth in {q} over the same quarter a year earlier: all companies added together, and the median "
             f"company; companies reported counts those with both quarters, against the index's size. A quarter shows "
             f"once nine in ten Nifty 500 companies have reported it. The Nifty 1000 is here only: its members are today's, "
-            f"which are right for the latest quarter but not for earlier ones. " + _source_note(q, lt.published))
+            f"which are right for the latest quarter but not for earlier ones. "
+            + (EX_FIN_NOTE + " " if scope == "ex_financials" else "") + _source_note(q, lt.published))
     return [f'<div class="dh-sec dh-sec-cont">{KICK.format("Earnings")}<h2 id="s-earnings" class="dh-h2">'
-            f'{e(earnings_headline(lt))}</h2><p class="dh-note">{e(note)}</p>'
+            f'{e(earnings_headline(lt, scope))}</h2><p class="dh-note">{e(note)}</p>'
             '<div class="dh-scroll"><table class="dh-tab dh-tab-s ix-every"><thead><tr><th scope="col">Index</th>'
             + "".join(f'<th scope="col" class="dh-num">{e(h)}</th>' for _, h in cols)
             + '<th scope="col" class="dh-num">Companies reported</th>'
-            + f'</tr></thead><tbody>{body}</tbody></table></div>' + section_partial(pt) + '</div>'] + earnings_quarters() + earnings_history()
+            + f'</tr></thead><tbody>{body}</tbody></table></div>' + section_partial(pt, every) + '</div>'] + earnings_quarters(scope) + earnings_history(scope)
 
 
 QUARTER_HEADS = {i: i for i in er.OUR_INDICES}       # the glossary's full names (G3), headings may wrap
 
 
-def earnings_quarters() -> list:
+def earnings_quarters(scope: str = "all") -> list:
     """Each index's growth every quarter, newest first (owner, 25 Nov 2026: "a good table to see 8-10 quarter growth for
     Indices"): profit, then revenue, all companies added together, against the same quarter a year earlier."""
     out = []
     for measure, title in (("pat_agg_yoy", "Profit"), ("sales_agg_yoy", "Revenue")):
-        hist = {i: er.ours_history(i, measure) for i in er.OUR_INDICES}
+        hist = {i: er.ours_history(i, measure, scope=scope) for i in er.OUR_INDICES}
         idx = sorted({d for h in hist.values() for d in h.index}, reverse=True)
         if len(idx) < 2:
             return []
         rows = ""
-        pt = er.partial()
+        pt = er.partial(scope=scope)
         if pt is not None:              # the quarter coming in, top row (owner, 25 Nov 2026: "show partial also")
             got = pt.reported.get("Nifty 500")
             cells = ""
@@ -308,7 +317,8 @@ def earnings_quarters() -> list:
                    + "".join(f'<th scope="col" class="dh-num">{e(QUARTER_HEADS[i])}</th>' for i in er.OUR_INDICES)
                    + f'</tr></thead><tbody>{rows}</tbody></table></div></div>')
     if out:
-        out[-1] = out[-1].replace("</table></div></div>", '</table></div><p class="dh-note">All the index\'s companies '
+        who = "All the index's companies but financials" if scope == "ex_financials" else "All the index's companies"
+        out[-1] = out[-1].replace("</table></div></div>", f'</table></div><p class="dh-note">{who} '
                                   "added together, each quarter against the same quarter a year earlier; the first row is "
                                   "the latest quarter. A quarter still coming in reads \"so far\", with how many Nifty 500 "
                                   "companies have reported; an index shows – until one in ten of its companies have. "
@@ -316,10 +326,11 @@ def earnings_quarters() -> list:
     return out
 
 
-def earnings_history() -> list:
+def earnings_history(scope: str = "all") -> list:
     """Profit growth each quarter, Nifty 50 and Nifty 500, from our calculation (S171)."""
-    n50, n500 = er.ours_history("Nifty 50", "pat_agg_yoy"), er.ours_history("Nifty 500", "pat_agg_yoy")
-    s50, s500 = er.ours_history("Nifty 50", "sales_agg_yoy"), er.ours_history("Nifty 500", "sales_agg_yoy")
+    h = lambda i, m: er.ours_history(i, m, scope=scope)    # noqa: E731
+    n50, n500 = h("Nifty 50", "pat_agg_yoy"), h("Nifty 500", "pat_agg_yoy")
+    s50, s500 = h("Nifty 50", "sales_agg_yoy"), h("Nifty 500", "sales_agg_yoy")
     idx = sorted(set(n50.index) | set(n500.index))
     if len(idx) < 4:
         return []
@@ -634,7 +645,9 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
     return parts
 
 
-def page_parts(f: ip.Frames, system: str | None = None) -> list:
+def page_parts(f: ip.Frames, system: str | None = None, scope: str = "all", part: str = "all") -> list:
+    """The page, or one part of it: "pre" (header and valuation), "post" (earnings onwards), for the earnings switch
+    between the two (S231)."""
     as_of = f.as_of
     n50 = f.close["nifty_50"].dropna()
     m1 = ip.on_or_before(n50, ip.months_back(as_of, 1))
@@ -643,8 +656,12 @@ def page_parts(f: ip.Frames, system: str | None = None) -> list:
     every = ip.every_index(f)
     n = sum(len(v) for v in every.values())
     young = ip.young_valuation(f, SYSTEM_INDEX[system]) if system in SYSTEM_INDEX else None
-    return (head(vals, as_of) + section_valuation(f, vals, m1, m3, young) + section_earnings(er.ours(), er.partial()) + section_styles(sts, m1, m3) + section_lag(sts)
-            + section_years(sts, as_of) + section_size(ip.size_years(f), as_of) + section_every(f, every, as_of)
+    pre = head(vals, as_of) + section_valuation(f, vals, m1, m3, young) if part != "post" else []
+    if part == "pre":
+        return pre
+    return (pre + section_earnings(er.ours(scope=scope), er.partial(scope=scope), scope) + section_styles(sts, m1, m3)
+            + section_lag(sts) + section_years(sts, as_of) + section_size(ip.size_years(f), as_of)
+            + section_every(f, every, as_of)
             + [f'<p class="dh-foot">{_fmt.data_to_html(as_of, "NSE")} · {n} broad, theme and strategy indices</p>'])
 
 
@@ -655,7 +672,14 @@ def render_indices_view() -> None:
         kit.page_empty(mw.NO_INDEX_DATA, mw.NO_INDEX_DATA_WHY, kicker="Indices")   # S203 ix.empty.1, R4
         return
     from src.ui import system_param
-    emit(page_parts(f, system_param.current()))
+    system = system_param.current()
+    emit(page_parts(f, system, part="pre"))
+    scope = "all"
+    if er.ours(scope="ex_financials") is not None:
+        with st.container(horizontal=True, horizontal_alignment="right", key="ix_earn_scope_row"):
+            scope = st.segmented_control("Companies", list(er.SCOPES), format_func=er.SCOPES.get, default="all",
+                                         key="ix_earn_scope", label_visibility="collapsed") or "all"
+    emit(page_parts(f, system, scope, part="post"))
 
 
 __all__ = ["render_indices_view", "page_parts", "html_of"]

@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-11-26
+
+- Indices earnings: a switch, All companies or Without financials (NSE's Financial Services sector left out: banks, NBFCs, insurers, capital-market companies). All companies stays the default and its figures are unchanged; without financials the Nifty 500's Q2 FY27 profit rose 37.7%, against 30.3% for all companies.
+
 ## 2026-11-25 — Indices: how many companies reported (S171)
 
 - Backtest: section 4 gives each stored test from Mar 2012 too, on NSE's own Nifty 500 closes only (as tested 19.8% a year, the Nifty 500 11.8%); the closes before 21 Feb 2012 come from an outside dataset not checked against NSE's.
