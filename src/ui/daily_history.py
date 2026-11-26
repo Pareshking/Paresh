@@ -29,10 +29,23 @@ from src.engine.pipeline import known_fingerprint, price_fingerprint, remember_f
 
 @st.cache_resource(show_spinner=False, ttl=3600, max_entries=2)
 def _built(fingerprint: str, _prices: pd.DataFrame):
-    """(daily frame, its fingerprint), or (None, None) when the long file adds nothing."""
-    from src.loaders import nse_long, price_source
+    """(daily frame, its fingerprint), or (None, None) when the long file adds nothing.
+
+    Kept on disk too (S233 (2)): every pull clears this cache, and the fill costs ~7 s of a cold page
+    (Dashboard, Market, Portfolio, Stock, Sectors). The disk key is the ranking frame's and the long
+    file's columns' whole-value fingerprints and the code, so any change to either rebuilds."""
+    from src.core import disk_memo
+    from src.loaders import nse_long
 
     long = nse_long.load_columns(_prices.columns, start=pd.DatetimeIndex(_prices.index)[0])
+    key = disk_memo.digest("daily_history", fingerprint, price_fingerprint(long) if long is not None else "-",
+                           disk_memo.code_fingerprint())
+    return disk_memo.get("daily_history", key, lambda: _fill(_prices, long))
+
+
+def _fill(_prices: pd.DataFrame, long):
+    from src.loaders import price_source
+
     out, report = price_source.daily_history(_prices, long)
     if out is _prices:
         logger.info("Daily history: nothing filled from the long NSE file (%s).", report.get("skipped") or "no gap")

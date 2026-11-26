@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.core.disk_memo import code_fingerprint  # noqa: F401  (monkeypatched in tests)
 from src.core.logger import logger
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,20 +35,6 @@ VERSION = 1          # the parts' JSON layout; a change writes under a new key
 
 def _sha(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
-
-
-_CODE: dict[str, str] = {}
-
-
-def code_fingerprint(root: Path = ROOT) -> str:
-    """Every .py file under src/, path and bytes, in path order. Once per module load: code_reload drops this
-    module on a pull that changed src/, so a new revision is fingerprinted afresh."""
-    if str(root) not in _CODE:
-        h = hashlib.sha256()
-        for p in sorted((root / "src").rglob("*.py")):
-            h.update(p.relative_to(root).as_posix().encode() + b"\0" + p.read_bytes() + b"\0")
-        _CODE[str(root)] = h.hexdigest()
-    return _CODE[str(root)]
 
 
 def fingerprint(obj) -> str:
