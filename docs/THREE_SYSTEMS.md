@@ -204,4 +204,4 @@ The existing ₹2,000 Cr cutoff and eligibility rules are unchanged. A stock ent
 
 Production and nightly precompute now use the same definition. `extra_universe_loader.system_universe()` applies the effective-Nano subtraction for Nano and Combined, and `scripts/precompute_systems.py` always loads the current 750 before building Nano/Combined artifacts. Regression tests cover both a current-750 overlap and a stock leaving the 750.
 
-**Identity note:** HEG and HEGAM are different companies/symbols. The September 2026 `HEG → HEGAM` event is an index constituent change, not duplicate-company evidence.
+**Identity note (corrected 27 Nov 2026):** `HEGAM` is HEG Ltd renamed HEG Advanced Materials, the same ISIN (INE545A01024) and identical closes (`data/nse_prices/notes.json`: last HEG 21 Sep, first HEGAM 22 Sep), so one company under two symbols. The demerged graphite business is a new company, `HEGRAPHITE` ("HEG Ltd.", ISIN INE0Y9J01020), listed 27 Nov 2026 in series BE; NSE's index lists carried it from the 27 Nov sync (2b459c4) in place of the placeholder `DUMMYHEG`. The earlier note here called HEG and HEGAM different companies; that was wrong.
