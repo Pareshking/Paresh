@@ -1,0 +1,35 @@
+name: Actions minutes (S142 measure)
+
+# TODO S142 (owner, 17 Nov 2026): Actions minutes per workflow for a window, measured before the repository goes
+# private (2,000 / 3,000 a month on Free / Pro). Manual only, no schedule, writes nothing: the log is the reader.
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: Window start, UTC (ISO)
+        default: "2026-11-19T18:30:00Z"
+      end:
+        description: Window end, UTC (ISO)
+        default: "2026-11-26T18:30:00Z"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: pip install requests
+      - name: Count minutes
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          START: ${{ inputs.start }}
+          END: ${{ inputs.end }}
+        run: python scripts/actions_minutes.py "$START" "$END"

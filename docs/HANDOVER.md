@@ -214,6 +214,8 @@ S194 L3/L4 and S202 (#627).
 
 ## Found, not fixed (recorded so it is not rediscovered)
 
+- **27 Nov, local CI writes `data/`**: `/tmp/claude-0/s203/ci.sh` (its live smoke) refreshes NSE's index lists into `data/indices/` and `indices_sync_meta.json`; a branch behind main then fails `test_the_latest_membership_is_nses_list_name_for_name` on the newest NSE list (27 Nov: HEGRAPHITE, recorded by that night's sync 2b459c4). Restore `data/` with `git checkout -- data/` and merge main before committing. HEGRAPHITE is HEG's demerged business (NSE's DUMMYHEG slot, as ENNATURE was India Glycols'); the 7 Sep demerger day uses NSE's 0% (`PRICE_PIPELINE.md`), and it is ranked once it has 63 sessions.
+
 - **26 Nov, dead pill CSS: resolved** (owner, 26 Nov: "No pill required"): the 7 `stPills` rules and the 3 `stSegmentedControl` rules (both ids gone since Streamlit 1.65) removed from `page.css`, so pills keep Streamlit's look as today; `tests/test_css_test_ids_exist.py` fails on any test id the installed Streamlit no longer emits.
 - 25 Nov: Configuration at 1400 px shows three 56 px "empty bands" in the layout audit: they are its section breaks (space, a rule drawn as a border, the next numbered section; screenshot checked), which the audit does not count as drawn. Intended, not fixed; the page is not in CI's layout list. Its missing foot line was fixed in #694.
 
