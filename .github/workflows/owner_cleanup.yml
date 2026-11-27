@@ -50,7 +50,7 @@ jobs:
           while IFS=$'\t' read -r name sha why; do
             case "$name" in ''|'#'*) continue ;; esac
             if git fetch -q origin "refs/heads/$name:refs/backup/$name" 2>/dev/null; then refs+=("refs/backup/$name"); fi
-          done < .github/cleanup/branches.tsv
+          done < <(cat .github/cleanup/branches.tsv .github/cleanup/archive_tags.tsv)
           if [ ${#refs[@]} -gt 0 ]; then
             git bundle create unmerged-branches.bundle "${refs[@]}"
             git bundle verify unmerged-branches.bundle

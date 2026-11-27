@@ -12,6 +12,10 @@ runner can do all three.
 Three things, each re-checked at run time and skipped, not forced, when the
 check fails:
 
+0. Branches in .github/cleanup/archive_tags.tsv (S212 group C, owner 23 Nov 2026: "Use git tags"):
+   tagged `archive/<branch>` at the listed tip, the tag read back from GitHub, and only then the
+   branch deleted. Same checks as below (tip unchanged, no open pull request); the keep rules do
+   not apply, because the tag keeps the history. A tag already on another sha skips the branch.
 1. Branches in .github/cleanup/branches.tsv: deleted only if the branch still
    points at the sha recorded there (nothing pushed since the list was made), no
    pull request is open on it, and its name matches no keep rule.
@@ -45,6 +49,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BRANCH_LIST = ROOT / ".github" / "cleanup" / "branches.tsv"
+ARCHIVE_LIST = ROOT / ".github" / "cleanup" / "archive_tags.tsv"
 REPO = "Pareshking/Paresh"
 
 # Never deleted, whatever the list says (the keep rules of the retired BRANCH_CLEANUP_TODO.md; docs/PENDING_DELETIONS.md).
@@ -113,6 +118,25 @@ def plan_branches(listed: list[tuple[str, str]], tips: dict[str, str], open_head
             steps.append(Step("branch", name, "skip", f"moved since the list: {sha[:7]} -> {tips[name][:7]}"))
         else:
             steps.append(Step("branch", name, "delete", f"tip {sha[:7]} as listed"))
+    return steps
+
+
+def plan_archive(listed: list[tuple[str, str]], tips: dict[str, str], open_heads: set[str],
+                 tags: dict[str, str]) -> list[Step]:
+    steps = []
+    for name, sha in listed:
+        tag = f"archive/{name}"
+        if tag in tags and tags[tag] != sha:
+            steps.append(Step("archive", name, "skip", f"tag {tag} is on {tags[tag][:7]}, not {sha[:7]}"))
+        elif name not in tips:
+            steps.append(Step("archive", name, "gone", "branch already deleted" + (", tag kept" if tag in tags
+                                                                                     else ", NO TAG")))
+        elif name in open_heads:
+            steps.append(Step("archive", name, "skip", "a pull request is open on it"))
+        elif tips[name] != sha:
+            steps.append(Step("archive", name, "skip", f"moved since the list: {sha[:7]} -> {tips[name][:7]}"))
+        else:
+            steps.append(Step("archive", name, "delete", f"tag {tag} at {sha[:7]}, then delete the branch"))
     return steps
 
 
@@ -186,6 +210,14 @@ def remote_tips() -> dict[str, str]:
     return tips
 
 
+def remote_tags() -> dict[str, str]:
+    tags = {}
+    for line in _run(["git", "ls-remote", "--tags", "origin", "refs/tags/archive/*"]).splitlines():
+        sha, ref = line.split("\t")
+        tags[ref.removeprefix("refs/tags/")] = sha
+    return tags
+
+
 def open_pr_heads() -> set[str]:
     heads, page = set(), 1
     while True:
@@ -230,7 +262,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--delete", action="store_true", help="delete; without it nothing is removed")
     args = ap.parse_args(argv)
 
-    steps = plan_branches(read_list(), remote_tips(), open_pr_heads())
+    tips, heads = remote_tips(), open_pr_heads()
+    listed_archive = dict(read_list(ARCHIVE_LIST))
+    steps = plan_archive(read_list(ARCHIVE_LIST), tips, heads, remote_tags())
+    steps += plan_branches(read_list(), tips, heads)
     client, bucket, objects = None, os.environ.get("R2_BUCKET", ""), []
     if bucket:
         client = r2_client()
@@ -256,7 +291,13 @@ def main(argv: list[str] | None = None) -> int:
     failed = 0
     for s in todo:
         try:
-            if s.what == "branch":
+            if s.what == "archive":
+                sha, tag = listed_archive[s.target], f"archive/{s.target}"
+                _run(["git", "push", "origin", f"{sha}:refs/tags/{tag}"])
+                if remote_tags().get(tag) != sha:
+                    raise RuntimeError(f"tag {tag} not on GitHub at {sha[:7]}; branch kept")
+                _run(["git", "push", "origin", "--delete", f"refs/heads/{s.target}"])
+            elif s.what == "branch":
                 _run(["git", "push", "origin", "--delete", s.target])
             elif s.what == "r2":
                 for i in range(0, len(objects), 1000):

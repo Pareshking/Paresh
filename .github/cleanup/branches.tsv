@@ -2,5 +2,18 @@
 # Both earlier 15 Nov batches are done (233 merged, run 43674615797; 69 unmerged, run 43677526783,
 # bundled first into the artifact unmerged-branches-bundle). Third batch (the branches of closed PRs #511 and #513) done 15 Nov, run 43708240986. Empty now.
 # scripts/owner_cleanup.py deletes a branch only if its tip is still this sha and no PR is open on it.
-claude/friendly-hawking-0fp25l	1ff94f81a8ddc28bfd9fd1ce63a8d4ac3ac1fdfa	Watchlist WIP, merged in #619 (owner, 22 Nov 2026: "delete both branches")
-claude/laughing-cray-ynqt45	c44e055d064fcccff4849eed908cdbc5e0df1bf4	S195 draft, merged via #620 (owner, 22 Nov 2026)
+# Fourth batch, S212 groups A and B (owner, 23 Nov 2026, PR #640): merged or closed; tips read 27 Nov, none moved since 23 Nov.
+# Kept off, though in that block: ccr-681026d4-y7db8l and ccr-5b2956f6-7ybas4, coordinating sessions' branches this test protects.
+ccr-ab18adf2-yy6999	c76368052380c74bd0c9294e3fcd0cb0bd2d09be	merged (S212 group A) (owner, 23 Nov 2026)
+ccr-ee72d831-k0btgc	4d3e56df9e7d44c54f907797da8e04346547f8b0	merged (S212 group A) (owner, 23 Nov 2026)
+claude/stoic-mayer-d3gop5	23f6fc7c06d885500bc1f2c04ff0b8550da8a1c2	merged (S212 group A) (owner, 23 Nov 2026)
+claude/sharp-darwin-x9fl7t	038c3d5d99c1a9ce761be478fafd1a8869398129	merged (S212 group A) (owner, 23 Nov 2026)
+claude/blissful-johnson-bjb0nz	b58e1da50188c223e445abd176ac7ffabc027d58	merged (S212 group A) (owner, 23 Nov 2026)
+claude/amazing-albattani-ni90tg	835de08de3ffbb6de4026308cbbf49d6a9e640a3	merged (S212 group A) (owner, 23 Nov 2026)
+claude/inspiring-darwin-ztavb5	6109117ec20ce6d4e1c11e4bee6e41a232697aed	merged (S212 group A) (owner, 23 Nov 2026)
+ccr-edd9990a-portfolio-window	f2fce8a7878c45099368eb1df9dce46947ada190	merged (S212 group A) (owner, 23 Nov 2026)
+ccr-028696a4-ekt05g	fc1496148b1ab6d0fbd8cf4de4194a9dbd612a2f	merged (S212 group A) (owner, 23 Nov 2026)
+ccr-c3604729-c0o3v3	3050c86c44c4536f937d204a273aa4ef18df97cc	merged (S212 group A) (owner, 23 Nov 2026)
+ccr-8e7ba854-9rju2f	f8a37087058b0d7f2898ff3832df34484e63ccf1	merged (S212 group A) (owner, 23 Nov 2026)
+ccr-cf040eab-jsdbh9	c6333904aae04431c627711d1fc46811460ab457	closed, superseded (S212 group B) (owner, 23 Nov 2026)
+ccr-92ffad7f-s210	5ba5e3923e72fde691a3a5fa0d4c9eeab518e5ad	merged in #636 (S212) (owner, 23 Nov 2026)
