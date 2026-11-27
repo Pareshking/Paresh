@@ -2146,6 +2146,13 @@
           "removed": [
             "ENNATURE"
           ]
+        },
+        {
+          "date": "2026-11-27",
+          "added": [
+            "HEGRAPHITE"
+          ],
+          "removed": []
         }
       ]
     },
@@ -6599,6 +6606,13 @@
             "THELEELA",
             "TRAVELFOOD"
           ]
+        },
+        {
+          "date": "2026-11-27",
+          "added": [
+            "HEGRAPHITE"
+          ],
+          "removed": []
         }
       ]
     },
@@ -14840,6 +14854,13 @@
       "removed": [
         "ENNATURE"
       ]
+    },
+    {
+      "date": "2026-11-27",
+      "added": [
+        "HEGRAPHITE"
+      ],
+      "removed": []
     }
   ],
   "aliases": {
