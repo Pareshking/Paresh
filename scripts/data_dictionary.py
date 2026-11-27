@@ -32,12 +32,16 @@ def writers() -> dict[str, list[str]]:
     return found
 
 
-# The bots' commit subjects, by the workflow that makes them (each workflow's `git commit -m`).
-BOT_SUBJECTS = {
-    "automated daily NSE index & classification sync": "daily_sync",
-    "weekly full sync findings": "weekly_full_sync",
-    "freeze closed month(s)": "monthly_track_record",
-}
+def bot_subjects() -> dict[str, str]:
+    """Each workflow's bot commit subject (its `git commit -m "chore(...): <subject> [skip ci]"`) -> the workflow."""
+    out = {}
+    for wf in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        for m in re.finditer(r'git commit[^"\n]*-m "[^:"]*:\s*([^"\[]+?)\s*(?:\[skip ci\])?"', wf.read_text()):
+            out[m.group(1)] = wf.stem
+    return out
+
+
+BOT_SUBJECTS = bot_subjects()
 HISTORY_SINCE = "60 days ago"
 
 
