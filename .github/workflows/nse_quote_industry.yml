@@ -1,4 +1,4 @@
-name: NSE quote industry (one-off check)
+name: Exchange classification read (one-off check)
 
 # Owner, 26 Nov 2026: a one-off read of NSE's own four-level classification for S189's four stocks
 # (CMPDI, SUDEEPPHRM, INA, BUILDPRO), whose Screener sector differs from the Nifty 1000 list's. Manual only,
@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install requests
-      - name: Read NSE's classification
+      - name: Read BSE's classification (NSE refused, HTTP 403)
         env:
           SYMBOLS: ${{ inputs.symbols }}
         run: python scripts/nse_quote_industry.py $SYMBOLS
