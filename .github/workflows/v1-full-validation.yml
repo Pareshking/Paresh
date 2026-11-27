@@ -43,6 +43,9 @@ on:
 
 permissions:
   contents: read
+  # ci_already_validated.py reads the merged PR and its runs.
+  actions: read
+  pull-requests: read
 # Superseded PR runs are cancelled: only the PR's current head counts (S141,
 # 16 Nov 2026: 61 full-validation PR runs, 242 min, were still running when a
 # newer push reached their branch). Pushes, schedules and chains are never cancelled.
@@ -69,8 +72,10 @@ jobs:
       # running app below, so a PR touching one keeps the full run. Push, schedule and
       # dispatch always run everything. The job keeps its name either way, so a required
       # `validate` check still reports.
-      - name: Scope (Markdown-only PR?)
+      - name: Scope (Markdown-only PR, or a merge already validated on its PR?)
         id: scope
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           DOCS_ONLY=false
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -82,8 +87,18 @@ jobs:
               DOCS_ONLY=true
             fi
           fi
-          echo "docs_only=$DOCS_ONLY" >> "$GITHUB_OUTPUT"
-          echo "DOCS_ONLY=$DOCS_ONLY"
+          # S141 (27 Nov 2026): a merge to main whose files are exactly the PR's last commit, which
+          # passed this suite on the PR, runs the light checks too (scripts/ci_already_validated.py;
+          # any doubt or API error runs everything). 94 merges in 20-26 Nov reran ~1,400 minutes.
+          ALREADY=false
+          if [ "${{ github.event_name }}" = "push" ]; then
+            ALREADY=$(python3 scripts/ci_already_validated.py "${{ github.sha }}" "$(git rev-parse 'HEAD^{tree}')" \
+              | sed -n 's/^already=//p')
+          fi
+          LIGHT=false
+          if [ "$DOCS_ONLY" = true ] || [ "$ALREADY" = true ]; then LIGHT=true; fi
+          echo "light=$LIGHT" >> "$GITHUB_OUTPUT"
+          echo "DOCS_ONLY=$DOCS_ONLY ALREADY=$ALREADY LIGHT=$LIGHT"
       - uses: actions/setup-python@v7
         with:
           python-version-file: .python-version
@@ -95,8 +110,8 @@ jobs:
       # 200 consecutive runs -- silently do not run in the only place that matters.
       - run: pip install -r requirements.txt pytest pytest-xdist pyyaml
 
-      - name: Markdown-reading tests (Markdown-only PR)
-        if: ${{ steps.scope.outputs.docs_only == 'true' }}
+      - name: Markdown-reading tests (Markdown-only PR, or a merge already validated on its PR)
+        if: ${{ steps.scope.outputs.light == 'true' }}
         run: python -m pytest -q tests/test_launch_slot_10_leftovers.py tests/test_ss_prices.py tests/test_banned_synonyms.py
 
       # Everything, R2 suites included. They are hermetic (fakes, no
@@ -108,21 +123,21 @@ jobs:
       # data/nse_prices/closes.parquet is not in git (TODO S178); the suite is offline,
       # so the tests that check the real closes read the published copy fetched here.
       - name: Fetch the published NSE closes
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.light != 'true' }}
         run: python scripts/fetch_nse_closes.py
 
       # Four workers (S138 I8, 24 Nov 2026): the suite passed three times in a row under xdist, 154 s -> 51-66 s
       # locally; the runner has 4 vCPUs. worksteal keeps the long Backtest tests from bunching on one worker.
       - name: Full regression suite
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.light != 'true' }}
         run: python -m pytest -q -n 4 --dist worksteal
 
       - name: Compile application and source
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.light != 'true' }}
         run: python -m compileall -q app.py src scripts
 
       - name: Enforce deprecated Streamlit HTML cleanup
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.light != 'true' }}
         run: |
           if git grep -n -E "components.v1|components.html|streamlit.components" -- app.py src; then
             echo "Deprecated Streamlit component HTML call remains in application source"
@@ -131,7 +146,7 @@ jobs:
           echo "DEPRECATED_STREAMLIT_HTML=NONE"
 
       - name: Headless Streamlit runtime smoke test
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.light != 'true' }}
         run: python scripts/headless_smoke.py
 
       # The smoke test reads text and cannot see layout. This drives the running app in
@@ -140,11 +155,11 @@ jobs:
       # what they draw and empty bands (owner, 20 Nov 2026: "Why doesn't your audit
       # capture such issues?").
       - uses: actions/setup-node@v7
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.light != 'true' }}
         with:
           node-version: 22
       - name: Layout audit (Dashboard, Portfolio, Actions, Breadth, Sectors, Screener, Indices, Backtest, Watchlist, Stock), requirements and links
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.light != 'true' }}
         # The app here reads R2 as the live site does (S172, 21 Nov 2026): without the keys
         # it fell back to the release files and drew partial figures the live site did not.
         env:
@@ -201,7 +216,7 @@ jobs:
           node scripts/link_crawl.mjs http://localhost:8501/ --out artifacts/links --jobs 4 --no-external
 
       - name: Upload V1 validation artifacts
-        if: ${{ steps.scope.outputs.docs_only != 'true' }}
+        if: ${{ steps.scope.outputs.light != 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: v1-validation-artifacts

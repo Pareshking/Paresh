@@ -14,7 +14,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 WF = ROOT / ".github" / "workflows" / "v1-full-validation.yml"
-GATE = "steps.scope.outputs.docs_only != 'true'"
+GATE = "steps.scope.outputs.light != 'true'"
 
 
 def _steps():
