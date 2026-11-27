@@ -11,6 +11,7 @@ back, then the branch deleted. `.github/cleanup/branches.tsv`: 13 merged or clos
 unchanged since 23 Nov; all are bundled into the 90-day artifact first. Kept off the list: `ccr-681026d4-y7db8l` and
 `ccr-5b2956f6-7ybas4` (coordinating sessions' branches, protected by `tests/test_owner_cleanup.py`). Run: dry run,
 the owner reads the plan, then `delete`.
+**Done 27 Nov 2026** (owner: "Yes"): dry run 45955640700 planned 28; delete run 45956749746: 15 tagged and deleted, 13 deleted; 14 heads left, 15 `archive/*` tags; bundle artifact `unmerged-branches-bundle` 15179635262 (90 days).
 
 ## S224 (d) clean-up (owner, 24 Nov 2026: "Yes")
 
