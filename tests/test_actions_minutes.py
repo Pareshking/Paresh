@@ -26,3 +26,13 @@ def test_the_table_sums_per_workflow_and_event():
     by_wf, by_event, total = am.table(runs)
     assert by_wf["A"] == [4, 2] and by_wf["B"] == [0, 1] and total == 4
     assert by_event == {"push": 3, "schedule": 1}
+
+
+def test_the_breakdown_splits_one_workflow_by_event_conclusion_and_branch():
+    runs = [dict(_run("2026-11-20T00:00:00Z", "2026-11-20T00:02:30Z", name="A", event="pull_request"), head_branch="x"),
+            dict(_run("2026-11-20T00:00:00Z", "2026-11-20T00:01:30Z", name="A", event="pull_request",
+                      conclusion="cancelled"), head_branch="x"),
+            dict(_run("2026-11-20T00:00:00Z", "2026-11-20T00:09:00Z", name="B"), head_branch="main")]
+    by_kind, by_branch = am.breakdown(runs, "A")
+    assert by_kind == {("pull_request", "success"): [3, 1], ("pull_request", "cancelled"): [2, 1]}
+    assert by_branch == {"x": [5, 2]}
