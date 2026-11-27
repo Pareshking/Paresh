@@ -59,9 +59,9 @@ def test_an_asset_is_deleted_only_if_still_the_same_size_and_downloads():
 
 def test_the_branch_list_holds_no_protected_or_open_pr_branch():
     listed = oc.read_list()
-    # The three 15 Nov batches are done; the fourth (owner, 22 Nov 2026: "delete both branches") holds
-    # the two paused branches whose work reached main in #619 and #620.
-    assert sorted(n for n, _ in listed) == ["claude/friendly-hawking-0fp25l", "claude/laughing-cray-ynqt45"]
+    # Earlier batches are done (22 Nov: #619 and #620's branches deleted); this one is S212's groups A and B
+    # (owner, 23 Nov 2026, PR #640), less the two coordinating sessions' branches below.
+    assert len(listed) == 13 and "ccr-92ffad7f-s210" in dict(listed)
     names = [n for n, _ in listed]
     assert len(set(names)) == len(names)
     assert all(re.fullmatch(r"[0-9a-f]{40}", sha) for _, sha in listed)
@@ -113,3 +113,32 @@ def test_only_the_90_day_qa_artifacts_are_deleted():
 def test_the_job_may_delete_artifacts():
     src = open(".github/workflows/owner_cleanup.yml", encoding="utf-8").read()
     assert "actions: write" in src
+
+
+def test_an_old_history_branch_is_tagged_first_and_only_when_unchanged():
+    listed = [("agent/old", A), ("agent/moved", A), ("agent/open", A), ("agent/done", A), ("agent/clash", A)]
+    tips = {"agent/old": A, "agent/moved": B, "agent/open": A, "agent/clash": A}
+    tags = {"archive/agent/done": A, "archive/agent/clash": B}
+    steps = {s.target: s for s in oc.plan_archive(listed, tips, {"agent/open"}, tags)}
+    assert steps["agent/old"].action == "delete" and "tag archive/agent/old" in steps["agent/old"].why
+    assert steps["agent/moved"].action == "skip"
+    assert steps["agent/open"].action == "skip"
+    assert steps["agent/done"].action == "gone" and "tag kept" in steps["agent/done"].why
+    assert steps["agent/clash"].action == "skip" and "tag" in steps["agent/clash"].why
+
+
+def test_the_s212_lists_match_the_owners_23_nov_block():
+    archive = dict(oc.read_list(oc.ARCHIVE_LIST))
+    branches = dict(oc.read_list())
+    assert len(archive) == 15 and "agent/foundation-v1" in archive and "archive/probe-test" in archive
+    assert {"ccr-cf040eab-jsdbh9", "ccr-92ffad7f-s210"} <= set(branches)
+    assert all(len(sha) == 40 for sha in {**archive, **branches}.values())
+    assert not set(archive) & set(branches)
+    # A live branch is never on either list.
+    for live in ("main", "claude/handover-session-setup-7bd5zk", "ccr-edd9990a-number-format"):
+        assert live not in archive and live not in branches
+
+
+def test_the_backup_bundles_both_lists():
+    wf = (ROOT / ".github" / "workflows" / "owner_cleanup.yml").read_text(encoding="utf-8")
+    assert "archive_tags.tsv" in wf and "branches.tsv" in wf

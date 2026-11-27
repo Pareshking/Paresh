@@ -1,0 +1,18 @@
+# Old-history branches (no common history with main): kept as an `archive/<branch>` tag, then the branch deleted.
+# Owner, 23 Nov 2026 (S212, PR #640): "Use git tags for group C". Tips read 27 Nov; none moved since 23 Nov.
+# scripts/owner_cleanup.py tags the listed tip, checks the tag is on GitHub at that sha, and only then deletes the branch.
+agent/foundation-v1	076e2f0704480a2552c8ca011a8bc81dec1ba6e6	S212 group C (owner, 23 Nov 2026)
+agent/portfolio-full-ledger	be7e58da5f7f335816c685c536b9a2b84764d002	S212 group C (owner, 23 Nov 2026)
+agent/portfolio-redesign-backtest-boundary	0e4c9dcb7bc077ba5ece71044b8d079e6780437f	S212 group C (owner, 23 Nov 2026)
+agent/stage4b-batch1-pharma	3925b39abe4fd9bda7e23fabb60b8359a8c8a0f4	S212 group C (owner, 23 Nov 2026)
+agent/stage4b-execution	0c1cd6b4ca270bead2f3cd07635e8dfb5f491661	S212 group C (owner, 23 Nov 2026)
+agent/stage4b-next	118b60eef65a545821d78afcc9ef312f24a80ac2	S212 group C (owner, 23 Nov 2026)
+agent/stage4b-second-archetype	5f779078250923b67badb33ee2a3fa3d73090a6c	S212 group C (owner, 23 Nov 2026)
+agent/stage4b-second-archetype-clean	0ae111613d83e79cdbfcf50684fb05d7798aef84	S212 group C (owner, 23 Nov 2026)
+agent/stage4b-third-archetypes	217617f860969baf9c17bcb5e88fc4b0014322da	S212 group C (owner, 23 Nov 2026)
+agent/track-record-portfolio-canonical	df10b4f663d74e034f5cd36cf219599774687a40	S212 group C (owner, 23 Nov 2026)
+archive/probe-test	1d6af1155bdf33735003af48631c23509c73f042	S212 group C (owner, 23 Nov 2026)
+audit-backup-20260831	50d7d236e6768074ae42d85020519ddda774cade	S212 group C (owner, 23 Nov 2026)
+ci/isolate-stage4b-from-v1	245141608c27d07e8422fdca022964156aaa3d4f	S212 group C (owner, 23 Nov 2026)
+claude/stage4b-cutoff-fix-rerun-gvpryl	0c1cd6b4ca270bead2f3cd07635e8dfb5f491661	S212 group C (owner, 23 Nov 2026)
+fix/r2-membership-test-live-change	4ec9dac32ab4f881dbc41b89914e266cc7c51b74	S212 group C (owner, 23 Nov 2026)

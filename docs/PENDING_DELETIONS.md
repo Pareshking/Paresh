@@ -3,6 +3,15 @@
 Owner, 11 Nov 2026: *"Record items which required delete as I am on mobile and
 can't do it, whatever possible please delete it."*
 
+## S212 branches (owner, 23 Nov 2026, PR #640: groups A and B deleted, group C kept as `archive/<branch>` tags)
+
+This session cannot push tags or delete branches (proxy 403), so `owner_cleanup.yml` does it on GitHub's runner
+(27 Nov). `.github/cleanup/archive_tags.tsv`: the 15 group-C branches, each tagged at its listed tip, the tag read
+back, then the branch deleted. `.github/cleanup/branches.tsv`: 13 merged or closed branches. Every tip read 27 Nov and
+unchanged since 23 Nov; all are bundled into the 90-day artifact first. Kept off the list: `ccr-681026d4-y7db8l` and
+`ccr-5b2956f6-7ybas4` (coordinating sessions' branches, protected by `tests/test_owner_cleanup.py`). Run: dry run,
+the owner reads the plan, then `delete`.
+
 ## S224 (d) clean-up (owner, 24 Nov 2026: "Yes")
 
 - **R2 `market_caps/nse_history`, `market_caps/nse_snapshot`, `prices/ss`, `nse/source_checks`**: nothing reads them

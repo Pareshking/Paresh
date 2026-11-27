@@ -136,7 +136,7 @@ what was in progress. Merged on 23 Nov: #628, #630, #634-#637, #639 (S209), #640
 **Confirmed by the owner (24 Nov, "With your recommendation 1"):** the Dashboard flows readout keeps "heavy buying" / "moderate buying" / "net selling" (S222).
 
 **Waiting on the owner (24 Nov, laptop back):**
-- (a) Run the branch clean-up in TODO S212: tags for group C, then delete the merged branches. This session could
+- (a) 27 Nov: now one tap, `owner_cleanup.yml` (PENDING_DELETIONS, S212 branches): dry run, the owner's yes, then delete. Was: run the branch clean-up in TODO S212: tags for group C, then delete the merged branches. This session could
   not: proxy 403 on tags, branch deletes refused.
 - (b) Send the Streamlit log after tonight's nightly run, the first past #636/#644. S210 is done when it reads
   "Precomputed ranking accepted" for all three systems: open each system once after boot. Once the S213 PR is
