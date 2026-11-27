@@ -71,6 +71,21 @@ def table(runs: list[dict]) -> tuple[dict, dict, int]:
     return by_wf, by_event, sum(v[0] for v in by_wf.values())
 
 
+def breakdown(runs: list[dict], name: str) -> tuple[dict, dict]:
+    """One workflow's minutes and runs by (event, conclusion) and by head branch: where its runs come from."""
+    by_kind, by_branch = defaultdict(lambda: [0, 0]), defaultdict(lambda: [0, 0])
+    for run in runs:
+        if (run.get("name") or "?") != name:
+            continue
+        m = run_minutes(run)
+        k = (run.get("event") or "?", run.get("conclusion") or run.get("status") or "?")
+        by_kind[k][0] += m
+        by_kind[k][1] += 1
+        by_branch[run.get("head_branch") or "?"][0] += m
+        by_branch[run.get("head_branch") or "?"][1] += 1
+    return by_kind, by_branch
+
+
 def main(argv: list[str]) -> int:
     start, end = _ts(argv[0]), _ts(argv[1])
     repo = os.environ.get("GITHUB_REPOSITORY", "Pareshking/Paresh")
@@ -83,6 +98,13 @@ def main(argv: list[str]) -> int:
     print(f"{'Workflow':<60} {'Minutes':>8} {'Runs':>6}")
     for name, (m, n) in sorted(by_wf.items(), key=lambda kv: -kv[1][0]):
         print(f"{name[:60]:<60} {m:>8,} {n:>6}")
+    for name, _ in sorted(by_wf.items(), key=lambda kv: -kv[1][0])[:4]:
+        by_kind, by_branch = breakdown(runs, name)
+        print(f"\n{name}: minutes/runs by event and conclusion")
+        for (ev, co), (m, n) in sorted(by_kind.items(), key=lambda kv: -kv[1][0]):
+            print(f"  {ev:<20} {co:<12} {m:>7,} {n:>5}")
+        print("  top branches: " + "; ".join(f"{b} {m:,}/{n}" for b, (m, n) in
+                                             sorted(by_branch.items(), key=lambda kv: -kv[1][0])[:8]))
     return 0
 
 
