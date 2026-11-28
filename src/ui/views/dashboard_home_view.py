@@ -28,6 +28,7 @@ from src.ui import formats as _fmt
 
 from src.core.market_time import ist_now
 from src.engine import dashboard_insights as di
+from src.engine import momentum_health as mh
 from src.engine.extra_universe import SYSTEM_750, UNIVERSE_SHORT
 from src.engine.exit_watch import SELL, UNKNOWN, WATCH, Rules, assess, least_room, nearest_rule
 from src.engine.track_record import TRACK_RECORD_CONFIG
@@ -703,10 +704,33 @@ def momentum_lede(signals: list[dict], average: float | None, month_end: pd.Time
     return out
 
 
+def split_parts(split: dict | None) -> list:
+    """The Nifty 500's top fifth split in two, and winners against losers, over 12 months (owner, 8 Nov 2026: "give
+    bifurcation of top two deciles also"; restored S239, owner 28 Nov: "Restore the 9"). Colour on the figures only."""
+    if not split:
+        return []
+    month = pd.Period(split["month"], "M")
+    since = pd.Period(split["first"], "M")
+    body = "".join(
+        f'<tr><th scope="row">{e(r["label"])}</th><td class="dh-num dh-muted">{e(sg(r["ago"]))}</td>'
+        f'<td class="dh-num dh-b {tone(r["now"])}">{e(sg(r["now"]))}</td>'
+        f'<td class="dh-num dh-muted">{e(_fmt.fixed(r["pct"], 0))}th</td></tr>' for r in split["rows"])
+    return [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>The top fifth, split in two</b><span>the Nifty 500’s '
+            f'members of each month-end, 12 months to {month:%b %Y}, points</span></div>'
+            '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Against the Nifty 500</th>'
+            f'<th scope="col" class="dh-num">A month before</th><th scope="col" class="dh-num">{month:%b %Y}</th>'
+            f'<th scope="col" class="dh-num">Percentile since {since:%Y}</th></tr></thead><tbody>{body}</tbody></table></div>'
+            '<p class="dh-note">Each row is a 12-month return less the Nifty 500’s over the same months, both compounded; '
+            'the last row is the top 100 less the bottom 100, the momentum factor, kept for reference. The top 50 leading '
+            'ranks 51–100 says the very top of the ranking still carries the signal. Winners against losers is checked '
+            'against IIM Ahmedabad’s published Indian momentum series: correlation 0.84 over 12-month sums, Feb 2010 to '
+            'Dec 2025. The percentile counts 12-month windows since 2010 at or below today’s.</p></div>']
+
+
 def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None,
                      lag: di.MomentumLag | None = None, uni: str = "750", since: str = "2021", long=None,
                      short: str | None = None, so_far: str | None = None, last_month: str | None = None,
-                     month_end: pd.Timestamp | None = None, borrowed: bool = False) -> list:
+                     month_end: pd.Timestamp | None = None, borrowed: bool = False, split: dict | None = None) -> list:
     year = lead[0][1] if lead else None
     head = momentum_head(year, streak, so_far, last_month)
     lede = momentum_lede(signals, average, month_end)
@@ -757,7 +781,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
              + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top fifth less all members, equal weight, points</span></div>'
                 if lead_bars else '')
              + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '')
-             + _lag_note(lag, f"the {uni}", since, short, long) + '</div>']
+             + _lag_note(lag, f"the {uni}", since, short, long) + '</div>'] + split_parts(split)
     if lead_bars:
         parts += [Chart("bars", {**lead_bars, "range": LEAD_RANGE}, {"label": f"Momentum’s lead over the {uni}, equal weight, by month"}),
                   how(f"Each finished month, the return of the best-ranked fifth of the {uni} less all its members’, equal "
@@ -1347,7 +1371,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                               long=_long_record(spreads), short=short,
                               so_far=f"{as_of:%B}" if mtd is not None and mtd < 0 else None,
                               last_month=f"{as_of.to_period('M') - 1:%B}", month_end=di.month_end_before(adj_close.index, as_of),
-                              borrowed=system not in sm.SYSTEMS)
+                              borrowed=system not in sm.SYSTEMS, split=mh.top_fifth_split(spreads))
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}",
