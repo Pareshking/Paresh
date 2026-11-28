@@ -111,6 +111,8 @@ def run(close, bench, gate=None, mode="both", index_key="nifty_500", start=START
 
 def stats(eq: pd.Series) -> dict:
     def cagr(s):
+        if len(s) < 2:
+            return float("nan")
         y = (s.index[-1] - s.index[0]).days / 365.25
         return ((s.iloc[-1] / s.iloc[0]) ** (1 / y) - 1) * 100
     return {"a year %": cagr(eq), "2010-17 %": cagr(eq[eq.index < HALF]), "2018-26 %": cagr(eq[eq.index >= HALF]),

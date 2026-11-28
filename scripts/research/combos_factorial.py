@@ -58,7 +58,7 @@ def cell(close, bench, gates, s, w, b, r, b_thr=1.0, skip=5, **uni):
     return curve(run(close, bench, g, "entry", **uni, **kw))
 
 
-def main(close_path: str, value_path: str, seeds: int = 30) -> None:
+def main(close_path: str, value_path: str, seeds: int = 30, skip_n500: bool = False) -> None:
     close = pd.read_parquet(close_path)
     close.index = pd.DatetimeIndex(close.index)
     bench = pd.read_csv(ROOT / "data" / "benchmarks.csv", parse_dates=["date"]).set_index("date")["nifty500"]
@@ -70,6 +70,8 @@ def main(close_path: str, value_path: str, seeds: int = 30) -> None:
 
     for label, uni, halves in (("NIFTY 500, Jan 2010 - Nov 2026", {}, True),
                                ("NIFTY TOTAL MARKET, Jan 2022 - Nov 2026", {"index_key": "nifty_total_market", "start": "2022-01-01"}, False)):
+        if skip_n500 and halves:
+            continue
         rows = {}
         for s, w, b, r in itertools.product((0, 1), repeat=4):
             st = stats(cell(close, bench, gates, s, w, b, r, **uni))
@@ -122,4 +124,4 @@ def main(close_path: str, value_path: str, seeds: int = 30) -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], skip_n500="--skip-n500" in sys.argv)
