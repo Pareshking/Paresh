@@ -72,6 +72,30 @@ mock-up and approval is recorded in its row of section 7 and in TODO S151.
 | "What it is · how to read it" in plain sight on a wide screen, folded on a phone; "Show the table" stays folded | Folded everywhere |
 | A bar chart with a long history shades its usual range (the middle half of all months) and names it | No usual range on any bar chart |
 
+## 2b. A restored or new section is built to the redesign's shape (S239, owner 28 Nov 2026)
+
+Owner, 28 Nov: "Ensure you design it such a way that when it comes to page re-design (which is still pending) we have those
+sections ready as per benchmark." So a section built now is not redone in the full-page redesign (S237); the redesign only
+places it. Decided by benchmark (tipsheet.markets' valuation, breadth and flows pages, S237 G1-G3, G6), owner to confirm.
+The owner's rules below each line stand over the benchmark.
+
+1. **One function, its data in, its parts out.** `section_<name>(data) -> list` (Dashboard-style parts: HTML, `Chart`,
+   `Cols`). It reads nothing global and assumes nothing about the section above or below it, so the redesign can move it.
+   No data, no section: it returns `[]`, never an empty frame.
+2. **A heading that answers, with the figure in it** ("The top 50 lead ranks 51-100 by 6.9 points"), sentence case. On
+   Market, Indices and Sectors a short question kicker above it (G6). Colour on the figure and its sign only, never on the
+   sentence (G2).
+3. **History where we hold it: one line, its usual range shaded, the highest and lowest labelled** (G3), from
+   `src/ui/record_line` (`facts`, `chart_spec`); the spec states its `"range"` (S193 H). Several series on one scale as
+   one chart, not one chart each. A figure with no history (a 90-session correlation) stays a table.
+4. **No tick strips in new work.** The owner's line bars (§4.2) stay where they are until he decides S240; a new chart
+   is lines or plain bars.
+5. **The detail folded under it:** "What it is · how to read it" and "Show the table" (`how()`), the table holding every
+   figure the chart draws. A section the owner asked to be folded stays folded (Portfolio's correlations, 13 Oct).
+6. **No source line** (owner, 20 Nov: "Let's not show source"; the S237 G4 lines were reverted on 28 Nov).
+7. **On the list.** Each section has its row in `docs/PAGE_INVENTORY.md` and a requirement row with a marker in its
+   page's `docs/<PAGE>_REQUIREMENTS.md`, so `section_diff.mjs` and the requirement check see it if it is dropped later.
+
 ## 3. Tables
 
 | Rule | Why / source |

@@ -881,9 +881,10 @@ _KEY_HTML = (
 @st.cache_data(show_spinner=False, ttl=3600)
 def _qualified_trail(key: str, _prices: pd.DataFrame, symbols: tuple) -> dict:
     from src.engine import dashboard_insights as di
-    _, trails = di.rank_trails(_prices, [s for s in symbols if s in _prices.columns])
-    return {"3m": {s: r[0] for s, r in trails.items() if r[0] is not None},
-            "1m": {s: r[1] for s, r in trails.items() if r[1] is not None}}
+    # 6, 3, 2 and 1 months back: the Screener reads 3M and 1M, the stock page all four (S239 item 5).
+    _, trails = di.rank_trails(_prices, [s for s in symbols if s in _prices.columns], when=di.long_trail_dates)
+    keys = ("6m", "3m", "2m", "1m")
+    return {k: {s: r[i] for s, r in trails.items() if r[i] is not None} for i, k in enumerate(keys)}
 
 
 def with_book_columns(rank_df: pd.DataFrame, book_symbols=None,
@@ -906,8 +907,8 @@ def with_book_columns(rank_df: pd.DataFrame, book_symbols=None,
     view["Qualified Rank"] = view["Symbol"].map(qualified_ranks(rank_df))
     trail = qualified_trail(history_prices, rank_df)
     if trail is not None:
-        view["Qualified (-3M)"] = view["Symbol"].map(trail["3m"])
-        view["Qualified (-1M)"] = view["Symbol"].map(trail["1m"])
+        for m in ("6", "3", "2", "1"):
+            view[f"Qualified (-{m}M)"] = view["Symbol"].map(trail[f"{m}m"])
     view["Held"] = view["Symbol"].isin(set(book_symbols or ()))
     return view
 

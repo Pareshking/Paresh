@@ -272,14 +272,16 @@ def head_html(row, uni: sl.Universe, held: bool, as_of, market12, q, n_q, ln, ho
 def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
     a, b, c = sl.rank_heading(row, uni, q, n_q, ln)
     heads = "".join(f'<th scope="col" class="n">{lab}<span class="sub">{e(wl.fmt_day(d)) if d is not None else formats.DASH}</span></th>'
-                    for lab, d in zip(("3M ago", "1M ago", "Now"), tr.dates))
-    rk = "".join(f'<td class="n{" past" if i < 2 else ""}">{"–" if r is None else r}</td>' for i, r in enumerate(tr.ranks))
-    pl = "".join(f'<td class="n{" past" if i < 2 else (" up" if p is not None and p <= ln.buy else "")}">{e(sl.place_text(p))}</td>'
+                    for lab, d in zip([f"{m}M ago" for m in sl.TRAIL_MONTHS] + ["Now"], tr.dates))
+    last = len(tr.ranks) - 1
+    rk = "".join(f'<td class="n{" past" if i < last else ""}">{"–" if r is None else r}</td>' for i, r in enumerate(tr.ranks))
+    pl = "".join(f'<td class="n{" past" if i < last else (" up" if p is not None and p <= ln.buy else "")}">{e(sl.place_text(p))}</td>'
                  for i, p in enumerate(tr.places))
     ys = sl.trail_points(tr.places, ln.keep)
-    xs = (35, 115, 195)
+    # x by months back on one scale (6M at 20, now at 200), so the gaps read as time
+    xs = tuple(round(200 - m * 30) for m in sl.TRAIL_MONTHS) + (200,)
     pts = " ".join(f"{x},{y}" for x, y in zip(xs, ys))
-    dots = "".join(f'<circle cx="{x}" cy="{y}" r="{5 if i == 2 else 4}" style="fill:var(--c-{"ink" if i == 2 else "white"})" '
+    dots = "".join(f'<circle cx="{x}" cy="{y}" r="{5 if i == last else 4}" style="fill:var(--c-{"ink" if i == last else "white"})" '
                    f'stroke="var(--c-ink)" stroke-width="2"/>' for i, (x, y) in enumerate(zip(xs, ys)))
     label = ("Place among the qualified: " + ", ".join(sl.place_text(p) for p in tr.places)
              + f"; buy line {wl.fmt_ordinal(ln.buy)}, keep line {wl.fmt_ordinal(ln.keep)}")
@@ -290,8 +292,8 @@ def rank_html(row, uni, q, n_q, ln, tr: sl.Trail) -> list:
            f'<text x="210" y="66" text-anchor="end" {t}>Buy line, {wl.fmt_ordinal(ln.buy)}</text>'
            f'<text x="210" y="124" text-anchor="end" {t}>Keep line, {wl.fmt_ordinal(ln.keep)}</text>'
            f'<polyline points="{pts}" fill="none" stroke="var(--c-ink)" stroke-width="2"/>{dots}'
-           f'<text x="35" y="166" text-anchor="middle" {t}>3M</text><text x="115" y="166" text-anchor="middle" {t}>1M</text>'
-           f'<text x="195" y="166" text-anchor="middle" {t}>Now</text></svg>')
+           + "".join(f'<text x="{x}" y="166" text-anchor="middle" {t}>{lab}</text>'
+                     for x, lab in zip(xs, [f"{m}M" for m in sl.TRAIL_MONTHS] + ["Now"])) + '</svg>')
     # st.html's cleaner drops inline SVG, so the trail is an image with the theme's colours
     # written in, as the Dashboard's rank trail is.
     from src.ui.tokens import resolve
@@ -596,9 +598,9 @@ def render_stock_view(
     n_q = len(qmap)
     full = with_book_columns(rank_df, book_symbols, prices)
     me = full[full["Symbol"].astype(str) == sym]
-    past = ([me.iloc[0].get("Qualified (-3M)"), me.iloc[0].get("Qualified (-1M)")]
-            if not me.empty and "Qualified (-3M)" in me.columns else [None, None])
-    tr = sl.trail(row, [_month_ago(adj_close, 3), _month_ago(adj_close, 1), as_of], past, q)
+    past = [me.iloc[0].get(f"Qualified (-{m}M)") if not me.empty and f"Qualified (-{m}M)" in me.columns else None
+            for m in sl.TRAIL_MONTHS]
+    tr = sl.trail(row, [_month_ago(adj_close, m) for m in sl.TRAIL_MONTHS] + [as_of], past, q)
 
     # Closes in the 52-week window, for a recent listing's "too new to have a 52-week high: 70 of 126 sessions".
     if sym in adj_close.columns:

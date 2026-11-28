@@ -38,6 +38,8 @@ The patterns allowed from tipsheet.markets, and what may not be taken from it: C
 - Inline SVG is stripped by `st.html`. Draw small lines as an image: `src/ui/record_line.spark_svg`, the same way as the Dashboard's rank trail.
 - Every date chart states its range (`"range": {...}` in the spec literal; `tests/test_s193_h_chart_ranges.py`).
 - Font sizes come from `tokens.TYPE` (`var(--fs-…)`); colours from the tokens.
+- Build each section to `docs/PAGE_DESIGN.md` §2b (one function, a heading that answers, history as a line with its
+  usual range, the detail folded, no source line), so the full-page redesign places it and does not redo it.
 - Charts: load the `dataviz` skill. Copy: the `design:ux-copy` skill.
 
 ## 4. Before and after

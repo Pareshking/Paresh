@@ -166,3 +166,39 @@ def health(spreads: pd.DataFrame) -> dict | None:
     }
 
 
+
+
+# The Nifty 500's top fifth split in two, and winners against losers (owner, 8 Nov 2026: "give bifurcation of top two
+# deciles also"; dropped with the old Dashboard on 20 Nov without his decision, restored S239 on his "Restore the 9", 28 Nov).
+SPLIT_ROWS = (("top50", "Top 50", "nifty500"), ("d2", "Ranks 51–100", "nifty500"), ("top", "Top 100 (the top fifth)", "nifty500"),
+              ("top", "Top 100 less bottom 100", "bottom"))
+
+
+def top_fifth_split(spreads: pd.DataFrame | None) -> dict | None:
+    """Each row's 12-month return less its benchmark's, both compounded over the same 12 months (the gap between two
+    12-month returns a reader can check, as `docs/MOMENTUM_HEALTH.md` sets out), to the last month and to the month
+    before, with the share of 12-month windows since 2010 at or below today's. None without two years of months."""
+    if spreads is None or not {"month", "top", "nifty500"} <= set(spreads.columns):
+        return None
+    d = spreads.copy()
+    for c in ("top", "bottom", "nifty500", "top50", "d2"):
+        if c in d:
+            d[c] = pd.to_numeric(d[c], errors="coerce")
+    d = d.dropna(subset=["top", "nifty500"]).reset_index(drop=True)
+    if len(d) < 24:
+        return None
+
+    def r12(c):
+        return (1.0 + d[c] / 100.0).rolling(12).apply(np.prod, raw=True).sub(1.0).mul(100.0)
+    rows = []
+    for col, label, bench in SPLIT_ROWS:
+        if col not in d or bench not in d or d[col].tail(13).isna().any():
+            continue
+        gap = (r12(col) - r12(bench)).dropna()
+        if len(gap) < 2:
+            continue
+        hist = pd.Series(gap.to_numpy(), index=pd.PeriodIndex(d.loc[gap.index, "month"].astype(str), freq="M")
+                         .to_timestamp(how="end").normalize())
+        rows.append({"label": label, "col": col, "now": float(gap.iloc[-1]), "ago": float(gap.iloc[-2]),
+                     "pct": float((gap <= gap.iloc[-1]).mean() * 100), "reference": bench == "bottom", "series": hist})
+    return {"month": str(d["month"].iloc[-1]), "first": str(d["month"].iloc[0]), "rows": rows} if rows else None

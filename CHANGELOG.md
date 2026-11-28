@@ -2,6 +2,7 @@
 
 
 ## 2026-11-28
+- Nine sections dropped in earlier redesigns are back (owner: "Restore the 9"). Dashboard: the top 50 against ranks 51–100 over 12 months, as a table and as lines since 2011, and "Coming up for the book". Portfolio: how the holdings move together and how each month was made, both folded. Stock page: the 200D EMA, an All range, and the rank 6 and 2 months ago. Backtest: average win and loss, best and worst trade, and the rebalance periods under Show the table. Market: the day's new 52W highs and lows and the daily net line.
 - Screener: the lede reads "The 750 stocks, ranked by momentum…" instead of "The 750 ranked stocks of the 750". Stock page: a falling relative strength reads in the down colour.
 - Screener: the search finds a stock NSE listed in the past year that is too new to rank ("HEGRAPHITE · listed 27 Nov 2026") and opens its page; it gave "No results".
 - Indices and Market: each page opens with its question and the answer in two sentences ("Are NSE’s indices cheap or dear against their own past?"; "Is Nifty Total Market rising, and are most stocks rising with it?"), then one figure against its own record: the Nifty 50's P/E (20.9) and the share of the 750 above their 200D EMA (45%), each beside a line with its usual range shaded and its highest and lowest day labelled. Colour marks the figures only.

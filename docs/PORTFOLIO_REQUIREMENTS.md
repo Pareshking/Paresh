@@ -60,6 +60,8 @@ Order: current book → sector & size → returns → equity, drawdown & risk �
 | 45 | Risk measured on all the record's history, named; from January 2027 also the last 12 months and each year | Owner 20 Nov | Equity, drawdown & risk | from January 2027 also the last 12 months |
 | 46 | Calendar returns last for years: a row group per year with months, quarters and the year; the momentum index beside | Owner 20 Nov ("people visiting after 5 years") | Calendar returns | each new year adds a row + Momentum 50 |
 | 47 | Trades and rebalance lines in one section, hidden until opened, each view with its CSV of every field | Owner 20 Nov ("Can't it be one and hidden?", "CSV export of past trades ... so people can verify") | Trades | Trade history + 15 fields + 300 lines |
+| 48 | How the holdings move together: their pairwise correlation over 90 sessions, folded, the three most alike pairs named | Owner 13 Oct (collapsed); restored 28 Nov ("Restore the 9", S239 item 2) | Exposure | How they move together |
+| 49 | How each month was made, folded under the calendar: recorded or worked out, the list ranked, frozen on, rebuilt on; the summary answers how many were recorded as they closed | Restored 28 Nov ("Restore the 9", S239 item 3); PAGE_DESIGN §2b | Calendar returns | How each month was made |
 
 **Dropped by the owner, 20 Nov:** the cash tile and row (row 25) and the note that Backtest can differ from the record (row 36).
 

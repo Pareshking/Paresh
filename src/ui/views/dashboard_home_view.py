@@ -28,11 +28,13 @@ from src.ui import formats as _fmt
 
 from src.core.market_time import ist_now
 from src.engine import dashboard_insights as di
+from src.engine import momentum_health as mh
 from src.engine.extra_universe import SYSTEM_750, UNIVERSE_SHORT
 from src.engine.exit_watch import SELL, UNKNOWN, WATCH, Rules, assess, least_room, nearest_rule
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.loaders import benchmark_indices as bi
 from src.ui import dash_charts as dc
+from src.ui import record_line
 from src.ui.system_param import page_href, stock_href
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -518,6 +520,33 @@ def sector_go_line(n: int, sector: str) -> str:
             'over 6M and 1M.')
 
 
+def coming_up_parts(bc, check: pd.Timestamp) -> list:
+    """"Coming up for the book": the holdings' and planned buys' board meetings by day over the next five weeks,
+    the rebalance check in its place (tipsheet's "Coming up" list; dropped 20 Nov without the owner's decision,
+    restored S239 item 6 on "Restore the 9", 28 Nov). PAGE_DESIGN §2b: the heading answers (how many report before
+    the check), the list is the detail; no source line."""
+    from src.engine import results_calendar as rc
+    if bc is None:
+        return []
+    days: dict[pd.Timestamp, list[str]] = {}
+    for r in bc.upcoming.itertuples():
+        tag = ' <span class="dh-sub">to buy</span>' if r.role == "to buy" else ""
+        days.setdefault(pd.Timestamp(r.date).normalize(), []).append(
+            f'<li><b class="dh-mono">{e(r.symbol)}</b>{tag} {e(rc.short_purpose(r.purpose))}</li>')
+    check = pd.Timestamp(check).normalize()
+    if days and min(days) <= check <= max(days) + pd.Timedelta(days=7):
+        days.setdefault(check, []).insert(0, '<li class="dh-cal-check">Rebalance check, at the close</li>')
+    blocks = "".join(f'<div class="dh-cal-day"><div class="dh-lab">{d:%a %-d %b}</div><ul>{"".join(items)}</ul></div>'
+                     for d, items in sorted(days.items()))
+    if not blocks:
+        blocks = f'<p class="dh-note">No board meetings announced for the book in the next {rc.AHEAD_DAYS // 7} weeks.</p>'
+    head, _, rest = rc.lede(bc, check).rstrip(".").partition("; ")
+    return [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>Coming up: {e(head[0].lower() + head[1:])}</b><span>board '
+            f'meetings of the holdings and planned buys, as announced, next {rc.AHEAD_DAYS // 7} weeks</span></div>'
+            + (f'<p class="dh-lede-s">{e(rest[0].upper() + rest[1:])}.</p>' if rest else "")
+            + (f'<div class="dh-cal">{blocks}</div>' if days else blocks) + '</div>']
+
+
 def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check, fill, n_sess: int,
                       rules: Rules, n_hold: int, churn: str, results_line: str, turnover: str = "",
                       dates: dict | None = None) -> list:
@@ -703,10 +732,72 @@ def momentum_lede(signals: list[dict], average: float | None, month_end: pd.Time
     return out
 
 
+SPLIT_RANGE = {"default": "all", "why": "record"}
+
+
+def split_head(rows: list[dict]) -> str:
+    """The answer, figure in it, coloured on the figure only (PAGE_DESIGN §2b): "The top 50 lead ranks 51–100 by 6.9 points"."""
+    by = {r["label"]: r for r in rows}
+    t, d = by.get("Top 50"), by.get("Ranks 51–100")
+    if not t or not d:
+        return "The top fifth, split in two"
+    gap = t["now"] - d["now"]
+    fig = f'<span class="{tone(gap)}">{e(_fmt.fixed(abs(gap), 1))} points</span>'
+    if round(gap, 1) == 0:
+        return "The top 50 and ranks 51–100 are level"
+    return f"The top 50 lead ranks 51–100 by {fig}" if gap > 0 else f"Ranks 51–100 lead the top 50 by {fig}"
+
+
+def split_parts(split: dict | None) -> list:
+    """The Nifty 500's top fifth split in two, and winners against losers, over 12 months (owner, 8 Nov 2026: "give
+    bifurcation of top two deciles also"; restored S239, owner 28 Nov: "Restore the 9"). Built to PAGE_DESIGN §2b:
+    a heading that answers, the record as lines with the top 50's usual range, the table folded under it."""
+    if not split:
+        return []
+    month = pd.Period(split["month"], "M")
+    rows = split["rows"]
+    since = rows[0]["series"].index[0]   # the first 12-month window's end (Jan 2011 for a record from Jan 2010)
+    body = "".join(
+        f'<tr><th scope="row">{e(r["label"])}</th><td class="dh-num dh-muted">{e(sg(r["ago"]))}</td>'
+        f'<td class="dh-num dh-b {tone(r["now"])}">{e(sg(r["now"]))}</td>'
+        f'<td class="dh-num dh-muted">{e(_fmt.fixed(r["pct"], 0))}th</td></tr>' for r in rows)
+    out = [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>{split_head(rows)}</b><span>12 months to the '
+           f'{month:%b %Y} month-end, each against the Nifty 500, points</span></div>'
+           '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Against the Nifty 500</th>'
+           f'<th scope="col" class="dh-num">A month before</th><th scope="col" class="dh-num">{month:%b %Y}</th>'
+           f'<th scope="col" class="dh-num">Percentile since {since:%Y}</th></tr></thead><tbody>{body}</tbody></table></div></div>']
+    line = {r["label"]: r for r in rows if r["label"] in ("Top 50", "Ranks 51–100")}
+    t = line.get("Top 50")
+    x = None if t is None else record_line.facts(t["series"], min_days=24)
+    if x is not None:
+        f1 = lambda v: sg(v)  # noqa: E731
+        spec = record_line.chart_spec(x, "Top 50", f1, nd=1)
+        d2 = line.get("Ranks 51–100")
+        if d2 is not None:
+            s2 = d2["series"].reindex(x["series"].index)
+            spec["series"].append({"name": "Ranks 51–100", "color": "muted", "width": 1.2,
+                                   "values": [None if pd.isna(v) else round(float(v), 1) for v in s2]})
+        spec["bands"][0].pop("label", None)   # the two lines fill both ends here: the band is named in the caption
+        out += [f'<p class="dh-note">Shaded: the top 50’s usual range, {e(f1(x["q25"]))} to {e(f1(x["q75"]))} points.</p>',
+                Chart("lines", {**spec, "range": SPLIT_RANGE},
+                      {"label": "Top 50 and ranks 51–100, return over 12 months less the Nifty 500’s, at each month-end"})]
+    out += [how("Each row is a return over 12 months less the Nifty 500’s over the same months, both compounded, for the "
+                "Nifty 500’s members of each month-end ranked by momentum. The last row is the top 100 less the bottom "
+                "100, the momentum factor, kept for reference; it is checked against IIM Ahmedabad’s published Indian "
+                "momentum series: correlation 0.84 over sums of 12 months, finished months Feb 2010 to Dec 2025.",
+                "The top 50 above ranks 51–100 says the very top of the ranking still carries the signal. The shaded band "
+                "is the middle half of the top 50’s months since " f"{since:%b %Y}" "; the percentile counts windows of 12 months "
+                " since then at or below today’s.",
+                ["Month"] + [r["label"] for r in rows],
+                [[f"{m:%b %Y}"] + [sg(r["series"].get(m)) if pd.notna(r["series"].get(m)) else "–" for r in rows]
+                 for m in list(t["series"].index[::-1])] if t is not None else [])]
+    return out
+
+
 def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None,
                      lag: di.MomentumLag | None = None, uni: str = "750", since: str = "2021", long=None,
                      short: str | None = None, so_far: str | None = None, last_month: str | None = None,
-                     month_end: pd.Timestamp | None = None, borrowed: bool = False) -> list:
+                     month_end: pd.Timestamp | None = None, borrowed: bool = False, split: dict | None = None) -> list:
     year = lead[0][1] if lead else None
     head = momentum_head(year, streak, so_far, last_month)
     lede = momentum_lede(signals, average, month_end)
@@ -757,7 +848,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
              + ('<div class="dh-cap"><b>Momentum’s lead, every month</b><span>top fifth less all members, equal weight, points</span></div>'
                 if lead_bars else '')
              + (f'<p class="dh-note dh-band-note">{e(lead_bars["band_note"])}</p>' if lead_bars and lead_bars.get("band_note") else '')
-             + _lag_note(lag, f"the {uni}", since, short, long) + '</div>']
+             + _lag_note(lag, f"the {uni}", since, short, long) + '</div>'] + split_parts(split)
     if lead_bars:
         parts += [Chart("bars", {**lead_bars, "range": LEAD_RANGE}, {"label": f"Momentum’s lead over the {uni}, equal weight, by month"}),
                   how(f"Each finished month, the return of the best-ranked fifth of the {uni} less all its members’, equal "
@@ -1340,6 +1431,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                           fill=first_fill, late=idx_late)
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
                                results_line, turnover, hist.get("dates"))
+    parts += coming_up_parts(bc, check)
     own_since = pd.Period(own["month"].iloc[0], "M").strftime("%B %Y") if own is not None else ""
     short = sm.record_note(own, system)
     parts += section_momentum(lead, streak, signals, average, lead_bars,
@@ -1347,7 +1439,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                               long=_long_record(spreads), short=short,
                               so_far=f"{as_of:%B}" if mtd is not None and mtd < 0 else None,
                               last_month=f"{as_of.to_period('M') - 1:%B}", month_end=di.month_end_before(adj_close.index, as_of),
-                              borrowed=system not in sm.SYSTEMS)
+                              borrowed=system not in sm.SYSTEMS, split=mh.top_fifth_split(spreads))
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}",
@@ -2027,6 +2119,9 @@ HOME_CSS = """
 .dh-lab{font-size:var(--fs-12);color:var(--c-muted);padding-bottom:6px;border-bottom:1px solid var(--c-ink)}
 .dh-chips{display:flex;flex-wrap:wrap;gap:8px}
 .dh-chip{font-family:var(--font-mono);font-weight:600;font-size:var(--fs-13);color:var(--c-up);background:var(--c-up_tint);border-radius:4px;padding:4px 9px}
+.dh-cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px 24px;margin-top:8px}
+.dh-cal ul{list-style:none;margin:4px 0 0;padding:0;font-size:var(--fs-13)}.dh-cal li{padding:2px 0}
+.dh-cal-check{color:var(--c-muted)}
 .dh-callout{background:var(--c-fill_soft);border-radius:4px;padding:12px 14px;font-size:var(--fs-13)}
 .dh-link{font-size:var(--fs-13);font-weight:600;color:var(--c-ink);min-height:44px;display:flex;align-items:center}
 .dh-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}

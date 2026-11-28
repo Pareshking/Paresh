@@ -284,6 +284,25 @@ def short_books(monthly: pd.DataFrame | None, top_n: int) -> list[tuple[pd.Times
     return [(pd.Timestamp(d), int(h)) for d, h in zip(short["Period Start"], short["Holdings"])]
 
 
+PERIOD_COLS = ("Period Start", "Period End", "Strategy Net", "Benchmark", "Alpha vs Benchmark", "Turnover %",
+               "Cost Drag %", "Buys", "Sells", "Holdings")
+PERIOD_KEYS = ("from", "to", "rule", "n500", "lead", "turnover", "costs", "buys", "sells", "holdings")
+
+
+def periods(monthly: pd.DataFrame | None) -> pd.DataFrame:
+    """Each rebalance period, fill to fill, newest first: the rule's return after costs and the Nifty 500's, turnover,
+    costs, buys, sells and holdings (S239 item 7; "Rebalance periods" dropped 22 Nov, restored on "Restore the 9",
+    28 Nov). Returns are fractions; turnover and costs are in percent, as the engine writes them."""
+    names = dict(zip(PERIOD_COLS, PERIOD_KEYS))
+    if monthly is None or monthly.empty or "Period Start" not in monthly:
+        return pd.DataFrame(columns=list(PERIOD_KEYS))
+    m = monthly[[c for c in PERIOD_COLS if c in monthly]].rename(columns=names)
+    for c in ("from", "to"):
+        if c in m:
+            m[c] = pd.to_datetime(m[c])
+    return m.sort_values("from", ascending=False).reset_index(drop=True)
+
+
 def trade_stats(closed_trades: pd.DataFrame | None) -> dict:
     """Closed trades: count, share won, median days held, median return, and the profit
     factor weighted by each trade's size at entry (gains in ₹ terms over losses)."""
@@ -300,4 +319,11 @@ def trade_stats(closed_trades: pd.DataFrame | None) -> dict:
     return {"closed": len(done), "open": int((ct["Status"] == "Open").sum()), "won": float((r > 0).mean()),
             "median_days": float(pd.to_numeric(done["Holding (Days)"], errors="coerce").median()),
             "median_return": float(r.median()), "mean_return": float(r.mean()),
-            "profit_factor": gains / losses if losses > 0 else None}
+            "profit_factor": gains / losses if losses > 0 else None,
+            # The average win and loss, the best and the worst (S239 item 8; dropped 22 Nov, restored on the owner's
+            # "Restore the 9", 28 Nov). Each trade counted once, as the share won is.
+            "avg_win": float(r[r > 0].mean()) if (r > 0).any() else None,
+            "avg_loss": float(r[r < 0].mean()) if (r < 0).any() else None,
+            "best": float(r.max()), "worst": float(r.min()),
+            "best_sym": str(done.loc[r.idxmax(), "Symbol"]) if "Symbol" in done else None,
+            "worst_sym": str(done.loc[r.idxmin(), "Symbol"]) if "Symbol" in done else None}

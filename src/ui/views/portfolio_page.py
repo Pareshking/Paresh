@@ -131,6 +131,7 @@ class Page:
     systems: list = field(default_factory=list)
     correlation: float | None = None
     system: str = "750"
+    corr_matrix: pd.DataFrame | None = None
 
 
 def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: str, benchmark_close) -> Page:
@@ -171,7 +172,7 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
         live = bx.exposure(tb, record_sector_map(sorted(set(tb["Symbol"].astype(str))), system), membership)
         exposure = bx.merge(exposure, live)
     mw = _market_weights(rank_df)
-    corr = correlation(series.prices, syms)[1]
+    corr_m, corr = correlation(series.prices, syms)
     systems = _systems(series.prices, benchmark_close, system, market, as_of)
     # The money put in, not the equity's first point: with no frozen month that point is today's
     # value, so the Nifty 1000 read "Started with ₹1,05,50,323" and a gain of ₹0 (S193 A2).
@@ -181,7 +182,7 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
                 table=table, history=series.history, meta=meta, record=record, ledger=ledger, rank_df=rank_df,
                 prices=series.prices, cfg=dict(TRACK_RECORD_CONFIG), trails=trails, industry_state=state,
                 sizes=sizes, exposure=exposure, market_weights=mw, indices=idx, systems=systems,
-                correlation=corr, system=system)
+                correlation=corr, system=system, corr_matrix=corr_m)
 
 
 def _market_weights(rank_df: pd.DataFrame) -> dict[str, float]:
@@ -512,6 +513,29 @@ def size_shift(first_date, first, last) -> str:
     return out + f"Now {_fmt.fixed(lm_now, 0)}% is in Large Cap and Mid Cap. "
 
 
+def corr_parts(p: Page) -> list:
+    """How the holdings move together, pair by pair, folded (owner, 13 Oct 2026: collapsed; dropped on 21 Nov without
+    his decision, restored S239 on "Restore the 9", 28 Nov). Daily returns over 90 sessions; ink, darker for a closer pair."""
+    m = p.corr_matrix
+    if m is None or len(m) < 2:
+        return []
+    syms = list(m.columns)
+    pairs = sorted(((float(m.iloc[i, j]), syms[i], syms[j]) for i in range(len(syms)) for j in range(i + 1, len(syms))
+                    if pd.notna(m.iloc[i, j])), reverse=True)
+    top = "; ".join(f"{a} and {b}, {v:.2f}" for v, a, b in pairs[:3])
+    cell = lambda v: ("<td></td>" if pd.isna(v) else  # noqa: E731
+                      f'<td class="dh-num pf-hc" style="background:color-mix(in srgb,var(--c-ink) {max(0.0, v) * 70:.0f}%,var(--c-white));'
+                      f'color:{"var(--c-white)" if v >= 0.6 else "var(--c-ink)"}">{f"{round(float(v), 2) + 0.0:.2f}".replace("-", "−")}</td>')
+    grid = ('<table class="dh-tab pf-heat pf-corr"><thead><tr><th scope="col"></th>'
+            + "".join(f'<th scope="col" class="dh-num">{e(c)}</th>' for c in syms) + "</tr></thead><tbody>"
+            + "".join(f'<tr><th scope="row">{e(r)}</th>' + "".join(cell(m.loc[r, c]) if r != c else "<td></td>" for c in syms)
+                      + "</tr>" for r in syms) + "</tbody></table>")
+    avg = "" if p.correlation is None else f" · average {p.correlation:.2f}"
+    return [f'<details class="pf-corrbox"><summary>How they move together{avg}</summary>'
+            f'<p class="dh-note">Each cell is the correlation of two holdings’ daily returns over the last 90 sessions: 1 moves '
+            f'as one, 0 unrelated. The most alike: {e(top)}.</p><div class="dh-scroll">{grid}</div></details>']
+
+
 def section_exposure(p: Page) -> list:
     t = p.table
     now = (t.groupby("Sector / Industry")["Weight %"].sum()).to_dict()
@@ -571,7 +595,47 @@ def section_exposure(p: Page) -> list:
                  f'<span>{e(" · ".join(_fmt.size(k) for k in drawn))}</span></div>'
                  + srows + key + f'<p class="dh-note pf-gap">{e(note)}</p></div><div><div class="dh-cap"><b>Sectors, each rebalance</b>'
                  '<span>% of the book, the largest at any rebalance first</span></div>'
-                 f'<div class="dh-scroll">{heat}</div></div></div>'])
+                 f'<div class="dh-scroll">{heat}</div></div></div>'] + corr_parts(p))
+
+
+def provenance_parts(p: Page) -> list:
+    """Each frozen month's provenance, folded under the calendar (S239 item 3; dropped 6 Oct and 21 Nov without the
+    owner's decision, restored on "Restore the 9", 28 Nov). Built to PAGE_DESIGN §2b: the summary answers how much of
+    the record was recorded live; the table names, for each month, how it was made, on which list, when it was frozen
+    and whether it was rebuilt."""
+    months = (p.ledger or {}).get("months") or {}
+    if not months:
+        return []
+    rebuilt = {}
+    for r in (p.ledger or {}).get("rebuilds") or []:
+        for m in r.get("months") or []:
+            rebuilt[m] = r.get("on")
+    keys = sorted(months)
+    live = sum(1 for k in keys if (months[k] or {}).get("origin") == "recorded")
+    n = len(keys)
+    summary = (f"All {n} months recorded as they closed" if live == n else
+               f"{live} of {n} months recorded as they closed; {n - live} worked out from the rules" if live else
+               f"All {n} months worked out from the rules")
+    lists = {"point_in_time": "Members on the day", "current": "Today’s list"}
+
+    def day(v):
+        return _fmt.date(pd.Timestamp(v)) if v else "–"
+    body = "".join(
+        f'<tr><th scope="row">{pd.Period(k, "M").strftime("%b %Y")}</th>'
+        f'<td class="dh-num {tone((v or {}).get("strategy"))}">{pct(None if (v or {}).get("strategy") is None else v["strategy"] * 100)}</td>'
+        f'<td>{"Recorded" if (v or {}).get("origin") == "recorded" else "Worked out"}</td>'
+        f'<td>{e(lists.get((v or {}).get("universe"), "–"))}</td><td class="dh-num">{e(day((v or {}).get("finalized_on")))}</td>'
+        f'<td class="dh-num">{e(day(rebuilt.get(k)))}</td></tr>' for k, v in ((k, months[k]) for k in reversed(keys)))
+    basis = {"screener_primary": "Prices: Screener.in’s closes, as the live ranking uses; NSE’s as published where Screener has none."}.get(
+        (p.ledger or {}).get("price_basis"), "")
+    return [f'<details class="pf-corrbox"><summary>How each month was made · {e(summary)}</summary>'
+            '<p class="dh-note">Recorded: struck in the first days of the next month and frozen. Worked out: run afterwards from '
+            'the same rules on the prices of the time. Members on the day: the index’s members as NSE’s notices had them '
+            f'that month, not today’s list. Rebuilt: worked out again after a change of method; the ledger keeps the figure it replaced. {e(basis)}</p>'
+            '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Month</th>'
+            '<th scope="col" class="dh-num">The book</th><th scope="col">How</th><th scope="col">Stocks ranked</th>'
+            '<th scope="col" class="dh-num">Frozen on</th><th scope="col" class="dh-num">Rebuilt on</th></tr></thead>'
+            f'<tbody>{body}</tbody></table></div></details>']
 
 
 def section_returns(p: Page) -> list:
@@ -1091,6 +1155,7 @@ PF_CSS = """
 .pf-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:var(--fs-12);color:var(--c-muted);margin-top:6px}
 .pf-key span{display:flex;align-items:center;gap:6px}.pf-key i{width:12px;height:12px;border-radius:3px;display:inline-block}
 .dh-tab.pf-heat{min-width:560px}.pf-heat th,.pf-heat td{padding:3px 6px!important;line-height:1.3}.pf-heat thead th.dh-num{text-align:center!important}.pf-hc{text-align:center!important;font-size:var(--fs-12);border:1px solid var(--c-white)}
+.pf-corrbox{margin-top:var(--sp-4)}.pf-corrbox summary{cursor:pointer;font-weight:600;font-size:var(--fs-15)}.pf-corr th[scope=row],.pf-corr thead th{font-family:var(--font-mono);font-size:var(--fs-12)}
 .pf-hl th,.pf-hl td{background:var(--c-fill_soft)}
 .dh-tab.pf-grid{min-width:1060px}.pf-grid th,.pf-grid td{padding:7px 10px 7px 0}.pf-q{border-left:1px solid var(--c-rule)}
 .pf-yr th{font-weight:700;padding-top:12px!important;border-bottom:1px solid var(--c-rule)!important}.pf-ghost th{font-weight:400}
@@ -1118,7 +1183,7 @@ def page_parts(p: Page) -> list:
               f'<div class="dh-pair"><div><div class="dh-cap"><b>Calendar years</b><span>January to December</span></div>{years}</div>'
               f'<div><div class="dh-cap"><b>Financial years</b><span>April to March</span></div>{fys}</div></div>',
               f'<p class="dh-note">{_frozen_note(p)}Momentum 50 is NSE’s Nifty500 Momentum 50, a '
-              'momentum index to judge the strategy by.</p></section>', END]
+              'momentum index to judge the strategy by.</p>', *provenance_parts(p), '</section>', END]
     parts += day_section(p) + section_trades_top(p, s) + ["</section>"]
     parts += section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to_html(p.as_of)}.</p>']
     return parts
@@ -1182,7 +1247,7 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
           f'<div class="dh-pair"><div><div class="dh-cap"><b>Calendar years</b><span>January to December</span></div>{years}</div>'
           f'<div><div class="dh-cap"><b>Financial years</b><span>April to March</span></div>{fys}</div></div>',
           f'<p class="dh-note">{_frozen_note(p)}Momentum 50 is NSE’s Nifty500 Momentum 50, a '
-          'momentum index to judge the strategy by.</p></section>', END])
+          'momentum index to judge the strategy by.</p>', *provenance_parts(p), '</section>', END])
     emit(day_section(p) + section_trades_top(p, s) + ["</section>"])
 
     # The history, hidden until opened (owner, 20 Nov: "Can't it be one and hidden?").

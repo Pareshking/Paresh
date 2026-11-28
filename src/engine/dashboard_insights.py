@@ -68,6 +68,13 @@ def trail_dates(end: pd.Timestamp) -> dict[str, pd.Timestamp]:
     return {"3m": end - pd.DateOffset(months=3), "1m": end - pd.DateOffset(months=1), "now": end}
 
 
+def long_trail_dates(end: pd.Timestamp) -> dict[str, pd.Timestamp]:
+    """The stock page's longer trail: 6, 3, 2 and 1 months back and now, the ranking's own `RANK_HISTORY_MONTHS`
+    (S239 item 5, owner 28 Nov 2026: "Restore the 9"; the 6M and 2M ranks went on 23 Nov)."""
+    end = pd.Timestamp(end)
+    return {**{f"{m}m": end - pd.DateOffset(months=m) for m in (6, 3, 2, 1)}, "now": end}
+
+
 def month_end_before(index: pd.DatetimeIndex, when: pd.Timestamp) -> pd.Timestamp | None:
     """The last session of the month before `when`'s month."""
     first = pd.Timestamp(when).to_period("M").to_timestamp()
@@ -570,7 +577,7 @@ def fpi_share_of_value(flows: Flows, market_value_cr: float | None) -> tuple[flo
 
 
 def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None,
-                now: pd.Series | None = None) -> tuple[dict, dict]:
+                now: pd.Series | None = None, when=trail_dates) -> tuple[dict, dict]:
     """Each stock's rank 3 months ago, a month ago and now, under today's rule.
 
     One definition for every page (S151, S154): `rank_history.snapshots`, the rank
@@ -581,7 +588,7 @@ def rank_trails(prices: pd.DataFrame, symbols, snap: pd.DataFrame | None = None,
     """
     from src.engine.rank_history import snapshots
     px = prices.sort_index()
-    dates = {k: on_or_before(px.index, d) for k, d in trail_dates(px.index[-1]).items()}
+    dates = {k: on_or_before(px.index, d) for k, d in when(px.index[-1]).items()}
     if snap is None:
         snap = snapshots(px, [d for d in dates.values() if d is not None])
     ranks = {}
