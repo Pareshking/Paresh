@@ -83,3 +83,39 @@ any of them; it can only check behaviour (TRACK_RECORD.md sections 9-11 already 
 
 Not checked: OHLC versions (ADX, Stochastic, true ATR; the long file has closes only); the Nifty 750 or smaller
 universes; the six-monthly reset default; tax; cash at 6.5% in the daily-exit replay.
+
+## Round 2 (owner, 28 Nov 2026): skip 5 + Bollinger, no 1M window, 3M > 0, and market states
+
+Scripts: `combos_factorial.py` (16-book factorial, neighbours, null), `regime_audit.py` (states, months, years),
+`midbreadth_lowvol.py`. The 1-month window carries 10% of the score (weights .10/.30/.30/.20/.10 on 1/3/6/9/12 months).
+
+**Factorial main effects, pts a year** (mean of the 8 books with the rule minus the 8 without):
+
+| Rule | Nifty 500 2010-26 | 2010-17 | 2018-26 | Total Market 2022-26 |
+|---|---|---|---|---|
+| S skip 5 | +2.74 | +4.29 | +1.46 | +2.55 |
+| B no new buy above the upper Bollinger band | +1.99 | +2.85 | +1.26 | +2.33 |
+| W no 1-month window | +0.09 | +0.55 | -0.29 | +1.56 |
+| R 3-month return > 0 at entry (blocks 1.6% of buys) | +0.16 | -0.17 | +0.43 | +0.55 |
+
+Books: baseline 18.81%; skip 5 23.06%; skip 5 + B 24.21% (worst fall -35.8% vs -38.7%); skip 5 + B + R 24.31%.
+
+**Shadow candidate, skip 5 + B, against skip 5 alone (the shadow already recorded):** B adds +1.15 pts a year, but
++3.02 in 2010-17 and **-0.40 in 2018-26**: it fails the halves rule fixed first. Above the null (random 6.9% of buys
+blocked on top of skip 5: mean -0.94, p90 -0.26). Neighbours +0.46 (%B 0.9), +0.54 (1.1), +0.58 (skip 3), +1.30
+(skip 7). By year, B over skip 5 is ahead in 2010-15 (+6.2, +0.8, -3.7, +4.8, +10.6, +9.0) and in 3 of the 11 years
+2016-26.
+
+**Market states** (read at the signal close; 204 signals: trend bull 130 / bear 40 / sideways 34; breadth high 82 /
+mid 64 / low 58; volatility low 151 / high 53):
+- Indicators: 297 state cells; |t| >= 2 in 12% of real cells against 6% of 220 placebo cells; t >= 3 in 10 real, 1
+  placebo. Passing (t >= 3, both halves of the state's months positive): low volatility in mid breadth (three forms
+  of one idea, 61 months) and Bollinger %B in low-volatility months (t 3.5, 132 months). Our composite predicts
+  inside the pool in no state.
+- Engine, low-volatility in mid breadth (no new buy in the most volatile fifth): +0.32 alone (2010-17 +0.00), inside
+  the null (p90 +0.76); +1.02 on skip 5 and +0.61 on skip 5 + B, both failing 2010-17. Not a rule.
+- The books: B and skip 5 earn their gain in **bull trend, high breadth and calm months** (B main effect +0.21 pts a
+  month, t 3.1, in bull trend; +0.08 in bear, -0.01 sideways). Neither turns harmful in another state, so switching
+  them on and off by state would change little. W and R do nothing in any state.
+- Years: skip 5 + B ahead of the baseline in 13 of 17 years; its large gains are the strong years (2010 +13.5, 2014
+  +26.3, 2015 +15.2, 2017 +14.6, 2021 +14.6, 2023 +10.1); behind in 2012 (-4.1), 2022 (-2.0), 2026 to date (-5.6).

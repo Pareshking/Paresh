@@ -77,63 +77,10 @@ def part_a(ic: pd.DataFrame, st: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def main(close_path: str, value_path: str, out_dir: str) -> None:
-    out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=True)
-    pd.set_option("display.width", 220)
-    close = pd.read_parquet(close_path)
-    close.index = pd.DatetimeIndex(close.index)
-    bench = pd.read_csv(ROOT / "data" / "benchmarks.csv", parse_dates=["date"]).set_index("date")["nifty500"]
-    cols = sorted(iu.ever_members(iu.index_history("nifty_500")) & set(close.columns))
-    pf = close.loc[:, cols].astype("float64").ffill()
-    dates = pf.index
-    month_last = pd.DatetimeIndex(pd.Series(dates, index=dates).groupby([dates.year, dates.month]).max().to_numpy())
-    st = states(pf, bench, month_last[month_last >= "2009-12-01"])
-    st.to_csv(out / "states.csv")
-    print("months in each state (signals Dec 2009 - ):")
-    for c in st.columns:
-        print(f"  {c}: {st[c].value_counts().to_dict()}")
-
-    # ---- A: indicators by state
-    ic, _ = monthly_ics(close_path, value_path, n_placebo=N_PLACEBO)
-    a = part_a(ic, st)
-    a.to_csv(out / "indicators_by_state.csv", index=False)
-    real = a[~a["indicator"].str.startswith("placebo") & (a["indicator"] != "composite")]
-    plac = a[a["indicator"].str.startswith("placebo")]
-    a["pass"] = (a["t"] >= 3.0) & (a["h1 mean"] > 0) & (a["h2 mean"] > 0)
-    print("\nA. INDICATORS BY STATE (signed IC inside the pool; + = the expected direction)")
-    print(f"   cells tried: {len(real)} real, {len(plac)} placebo")
-    print(f"   |t| >= 2: real {int((real['t'].abs() >= 2).sum())} of {len(real)} "
-          f"({100 * (real['t'].abs() >= 2).mean():.0f}%), placebo {int((plac['t'].abs() >= 2).sum())} of {len(plac)} "
-          f"({100 * (plac['t'].abs() >= 2).mean():.0f}%)")
-    print(f"   t >= 3: real {int((real['t'] >= 3).sum())}, placebo {int((plac['t'] >= 3).sum())}; "
-          f"t <= -3 (works the OTHER way): real {int((real['t'] <= -3).sum())}, placebo {int((plac['t'] <= -3).sum())}")
-    hit = a[a["pass"] & ~a["indicator"].str.startswith("placebo")]
-    print("   passing the bar (t >= 3 and both halves of the state's months positive):")
-    print(hit.round(3).to_string(index=False) if len(hit) else "   none")
-    strong = a[(a["t"].abs() >= 2.5) & ~a["indicator"].str.startswith("placebo")].sort_values("t")
-    print("   every real cell with |t| >= 2.5 (either direction):")
-    print(strong.round(3).to_string(index=False))
-    composite = a[a["indicator"] == "composite"][["state", "months", "mean IC", "t"]]
-    print("   our composite score inside the pool, by state:")
-    print(composite.round(3).to_string(index=False))
-
-    # ---- B: the 16 books by state, and year by year
-    cols2 = sorted((iu.ever_members(iu.index_history("nifty_500"))) & set(close.columns))
-    pf2 = close.loc[:, cols2].astype("float64").ffill()
-    gates = {"pb": pct_b(pf2), "r3": months_ret(pf2, 3)}
-    monthly = {}
-    for s, w, b, r in itertools.product((0, 1), repeat=4):
-        name = "+".join(n for n, f in zip("SWBR", (s, w, b, r), strict=True) if f) or "baseline"
-        eq = cell(close, bench, gates, s, w, b, r)
-        monthly[name] = eq.resample("ME").last().pct_change()
-        print(f"   ran {name}", flush=True)
-    mdf = pd.DataFrame(monthly).dropna()
-    mdf.to_csv(out / "book_months.csv")
+def part_b(mdf: pd.DataFrame, st: pd.DataFrame, bench: pd.Series, out: Path) -> None:
     diff = mdf.sub(mdf["baseline"], axis=0).drop(columns="baseline") * 100
-    # the book for month M is formed at the signal on the last session of M-1
     sig_state = st.copy()
-    sig_state.index = sig_state.index + pd.offsets.MonthEnd(1)
+    sig_state.index = sig_state.index + pd.offsets.MonthEnd(0) + pd.offsets.MonthEnd(1)  # last session -> next month's end
     sig_state = sig_state.reindex(diff.index)
     print("\nB. THE 16 BOOKS BY STATE: month's return minus the baseline's, pts a month")
     rows = []
@@ -178,6 +125,67 @@ def main(close_path: str, value_path: str, out_dir: str) -> None:
     print(show.round(1).to_string())
     print("  years ahead of the baseline: " + ", ".join(f"{c} {int((ytab[c] > 0).sum())}/{len(ytab)}" for c in keep))
     ytab.to_csv(out / "books_by_year.csv")
+
+
+def main(close_path: str, value_path: str, out_dir: str) -> None:
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    pd.set_option("display.width", 220)
+    close = pd.read_parquet(close_path)
+    close.index = pd.DatetimeIndex(close.index)
+    bench = pd.read_csv(ROOT / "data" / "benchmarks.csv", parse_dates=["date"]).set_index("date")["nifty500"]
+    cols = sorted(iu.ever_members(iu.index_history("nifty_500")) & set(close.columns))
+    pf = close.loc[:, cols].astype("float64").ffill()
+    dates = pf.index
+    month_last = pd.DatetimeIndex(pd.Series(dates, index=dates).groupby([dates.year, dates.month]).max().to_numpy())
+    b_only = (out / "book_months.csv").exists() and "--b-only" in sys.argv
+    st = states(pf, bench, month_last[month_last >= "2009-12-01"])
+    st.to_csv(out / "states.csv")
+    if b_only:
+        part_b(pd.read_csv(out / "book_months.csv", index_col=0, parse_dates=True), st, bench, out)
+        return
+    print("months in each state (signals Dec 2009 - ):")
+    for c in st.columns:
+        print(f"  {c}: {st[c].value_counts().to_dict()}")
+
+    # ---- A: indicators by state
+    ic, _ = monthly_ics(close_path, value_path, n_placebo=N_PLACEBO)
+    a = part_a(ic, st)
+    a.to_csv(out / "indicators_by_state.csv", index=False)
+    real = a[~a["indicator"].str.startswith("placebo") & (a["indicator"] != "composite")]
+    plac = a[a["indicator"].str.startswith("placebo")]
+    a["pass"] = (a["t"] >= 3.0) & (a["h1 mean"] > 0) & (a["h2 mean"] > 0)
+    print("\nA. INDICATORS BY STATE (signed IC inside the pool; + = the expected direction)")
+    print(f"   cells tried: {len(real)} real, {len(plac)} placebo")
+    print(f"   |t| >= 2: real {int((real['t'].abs() >= 2).sum())} of {len(real)} "
+          f"({100 * (real['t'].abs() >= 2).mean():.0f}%), placebo {int((plac['t'].abs() >= 2).sum())} of {len(plac)} "
+          f"({100 * (plac['t'].abs() >= 2).mean():.0f}%)")
+    print(f"   t >= 3: real {int((real['t'] >= 3).sum())}, placebo {int((plac['t'] >= 3).sum())}; "
+          f"t <= -3 (works the OTHER way): real {int((real['t'] <= -3).sum())}, placebo {int((plac['t'] <= -3).sum())}")
+    hit = a[a["pass"] & ~a["indicator"].str.startswith("placebo")]
+    print("   passing the bar (t >= 3 and both halves of the state's months positive):")
+    print(hit.round(3).to_string(index=False) if len(hit) else "   none")
+    strong = a[(a["t"].abs() >= 2.5) & ~a["indicator"].str.startswith("placebo")].sort_values("t")
+    print("   every real cell with |t| >= 2.5 (either direction):")
+    print(strong.round(3).to_string(index=False))
+    composite = a[a["indicator"] == "composite"][["state", "months", "mean IC", "t"]]
+    print("   our composite score inside the pool, by state:")
+    print(composite.round(3).to_string(index=False))
+
+    # ---- B: the 16 books by state, and year by year
+    cols2 = sorted((iu.ever_members(iu.index_history("nifty_500"))) & set(close.columns))
+    pf2 = close.loc[:, cols2].astype("float64").ffill()
+    gates = {"pb": pct_b(pf2), "r3": months_ret(pf2, 3)}
+    monthly = {}
+    for s, w, b, r in itertools.product((0, 1), repeat=4):
+        name = "+".join(n for n, f in zip("SWBR", (s, w, b, r), strict=True) if f) or "baseline"
+        eq = cell(close, bench, gates, s, w, b, r)
+        monthly[name] = eq.resample("ME").last().pct_change()
+        print(f"   ran {name}", flush=True)
+    mdf = pd.DataFrame(monthly).dropna()
+    mdf.to_csv(out / "book_months.csv")
+    # the book for month M is formed at the signal on the last session of M-1
+    part_b(mdf, st, bench, out)
     _ = SPEC
 
 
