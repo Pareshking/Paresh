@@ -21,6 +21,13 @@ def test_no_history_keeps_the_workflow_answer():
     assert dd.history_writer("x", "") is None
 
 
+def test_the_subjects_are_read_from_the_workflows():
+    assert dd.BOT_SUBJECTS["automated daily NSE index & classification sync"] == "daily_sync"
+    assert dd.BOT_SUBJECTS["Screener earnings, weekly"] == "screener_earnings"
+    assert dd.BOT_SUBJECTS["freeze closed month(s)"] == "monthly_track_record"
+    assert len(dd.BOT_SUBJECTS) >= 15
+
+
 def test_every_bot_subject_is_one_a_workflow_commits():
     texts = {p.stem: p.read_text() for p in (ROOT / ".github" / "workflows").glob("*.yml")}
     for subject, wf in dd.BOT_SUBJECTS.items():

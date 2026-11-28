@@ -38,7 +38,17 @@ PERSISTENT: dict[str, dict] = {}
 
 # path -> (mtime_ns, size) as first seen after the module was loaded.
 _SEEN: dict[str, tuple[int, int]] = {}
-_LOCK = threading.RLock()
+# One lock for the life of the process, kept on `sys` because this module is
+# itself dropped and re-imported on a pull: a module-level RLock() was a new
+# lock after every pull, so the eviction patch below (installed with the first
+# lock) and app_import_guard (on the new one) stopped excluding each other.
+# Owner's log, 26 Nov 2026 10:38 UTC: four import tracebacks on the first pull
+# after the S232 fix had itself been re-imported.
+_LOCK_NAME = "_paresh_app_import_lock"
+_LOCK = getattr(sys, _LOCK_NAME, None)
+if _LOCK is None:
+    _LOCK = threading.RLock()
+    setattr(sys, _LOCK_NAME, _LOCK)
 
 
 @contextmanager
@@ -138,11 +148,13 @@ def guard_streamlit_evictions() -> bool:
     original = getattr(LocalSourcesWatcher, "flush_pending_evictions", None)
     if original is None:
         return False
-    if getattr(original, "_app_import_guarded", False):
-        return True
+    # A wrapper from an earlier copy of this module (before a pull) is replaced,
+    # not kept: it may hold that copy's lock. The new one wraps Streamlit's own.
+    while getattr(original, "_app_import_guarded", False):
+        original = original.__wrapped__
 
     def flush_pending_evictions(self) -> None:
-        with _LOCK:
+        with getattr(sys, _LOCK_NAME, _LOCK):
             original(self)
 
     flush_pending_evictions._app_import_guarded = True  # type: ignore[attr-defined]

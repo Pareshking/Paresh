@@ -149,3 +149,45 @@ def test_streamlit_evictions_wait_for_the_app_import_window(monkeypatch):
     flush(object())
     t.join()
     assert calls and released and calls[0] >= released[0]
+
+
+def test_the_import_lock_survives_a_reimport_of_this_module(monkeypatch):
+    """26 Nov 2026 10:38 UTC: four import tracebacks on the pull after the S232
+    fix. A pull drops and re-imports code_reload itself; its RLock() was then a
+    new lock, while the eviction patch kept the first one, so the two stopped
+    excluding each other. The lock now lives on sys, and a re-import re-wraps
+    Streamlit's own flush instead of keeping the old wrapper."""
+    import importlib
+
+    from streamlit.watcher.local_sources_watcher import LocalSourcesWatcher
+
+    calls = []
+
+    def fake_flush(self):
+        calls.append(time.perf_counter())
+
+    monkeypatch.setattr(LocalSourcesWatcher, "flush_pending_evictions", fake_flush)
+    assert cr.guard_streamlit_evictions() is True
+    first_lock = cr._LOCK
+
+    fresh = importlib.reload(cr)                            # what a pull does
+    assert fresh._LOCK is first_lock
+    assert fresh.guard_streamlit_evictions() is True
+    flush = LocalSourcesWatcher.flush_pending_evictions
+    assert flush.__wrapped__ is fake_flush                  # one wrapper, not two
+
+    released = []
+    held = threading.Event()
+
+    def importer():
+        with fresh.app_import_guard():
+            held.set()
+            time.sleep(0.3)
+            released.append(time.perf_counter())
+
+    t = threading.Thread(target=importer)
+    t.start()
+    held.wait(2)
+    flush(object())
+    t.join()
+    assert calls and released and calls[0] >= released[0]

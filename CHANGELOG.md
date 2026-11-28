@@ -1,6 +1,9 @@
 # Changelog
 
 
+## 2026-11-28
+- Every page: the 26 Nov fix for a page failing for a moment while the site updated stopped holding after the next update (its lock was replaced on each update). It now keeps one lock for as long as the server runs.
+
 ## 2026-11-26
 - Backtest opens faster: the default run's page is kept once it has been drawn and served again while nothing it was cut from (prices, settings, the benchmark, the index store, the stored tests, the code) has changed; it no longer re-runs after each update of the site (S233).
 - Dashboard, Market, Portfolio, Stock and Sectors open faster after each update of the site: the daily price history they read is kept on the server's disk while its inputs and the code are unchanged (S233).
