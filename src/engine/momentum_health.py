@@ -197,6 +197,8 @@ def top_fifth_split(spreads: pd.DataFrame | None) -> dict | None:
         gap = (r12(col) - r12(bench)).dropna()
         if len(gap) < 2:
             continue
-        rows.append({"label": label, "now": float(gap.iloc[-1]), "ago": float(gap.iloc[-2]),
-                     "pct": float((gap <= gap.iloc[-1]).mean() * 100), "reference": bench == "bottom"})
+        hist = pd.Series(gap.to_numpy(), index=pd.PeriodIndex(d.loc[gap.index, "month"].astype(str), freq="M")
+                         .to_timestamp(how="end").normalize())
+        rows.append({"label": label, "col": col, "now": float(gap.iloc[-1]), "ago": float(gap.iloc[-2]),
+                     "pct": float((gap <= gap.iloc[-1]).mean() * 100), "reference": bench == "bottom", "series": hist})
     return {"month": str(d["month"].iloc[-1]), "first": str(d["month"].iloc[0]), "rows": rows} if rows else None

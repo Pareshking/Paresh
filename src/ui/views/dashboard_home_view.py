@@ -34,6 +34,7 @@ from src.engine.exit_watch import SELL, UNKNOWN, WATCH, Rules, assess, least_roo
 from src.engine.track_record import TRACK_RECORD_CONFIG
 from src.loaders import benchmark_indices as bi
 from src.ui import dash_charts as dc
+from src.ui import record_line
 from src.ui.system_param import page_href, stock_href
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -704,27 +705,66 @@ def momentum_lede(signals: list[dict], average: float | None, month_end: pd.Time
     return out
 
 
+SPLIT_RANGE = {"default": "all", "why": "record"}
+
+
+def split_head(rows: list[dict]) -> str:
+    """The answer, figure in it, coloured on the figure only (PAGE_DESIGN §2b): "The top 50 lead ranks 51–100 by 6.9 points"."""
+    by = {r["label"]: r for r in rows}
+    t, d = by.get("Top 50"), by.get("Ranks 51–100")
+    if not t or not d:
+        return "The top fifth, split in two"
+    gap = t["now"] - d["now"]
+    fig = f'<span class="{tone(gap)}">{e(_fmt.fixed(abs(gap), 1))} points</span>'
+    if round(gap, 1) == 0:
+        return "The top 50 and ranks 51–100 are level"
+    return f"The top 50 lead ranks 51–100 by {fig}" if gap > 0 else f"Ranks 51–100 lead the top 50 by {fig}"
+
+
 def split_parts(split: dict | None) -> list:
     """The Nifty 500's top fifth split in two, and winners against losers, over 12 months (owner, 8 Nov 2026: "give
-    bifurcation of top two deciles also"; restored S239, owner 28 Nov: "Restore the 9"). Colour on the figures only."""
+    bifurcation of top two deciles also"; restored S239, owner 28 Nov: "Restore the 9"). Built to PAGE_DESIGN §2b:
+    a heading that answers, the record as lines with the top 50's usual range, the table folded under it."""
     if not split:
         return []
     month = pd.Period(split["month"], "M")
-    since = pd.Period(split["first"], "M")
+    rows = split["rows"]
+    since = rows[0]["series"].index[0]   # the first 12-month window's end (Jan 2011 for a record from Jan 2010)
     body = "".join(
         f'<tr><th scope="row">{e(r["label"])}</th><td class="dh-num dh-muted">{e(sg(r["ago"]))}</td>'
         f'<td class="dh-num dh-b {tone(r["now"])}">{e(sg(r["now"]))}</td>'
-        f'<td class="dh-num dh-muted">{e(_fmt.fixed(r["pct"], 0))}th</td></tr>' for r in split["rows"])
-    return [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>The top fifth, split in two</b><span>the Nifty 500’s '
-            f'members of each month-end, 12 months to {month:%b %Y}, points</span></div>'
-            '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Against the Nifty 500</th>'
-            f'<th scope="col" class="dh-num">A month before</th><th scope="col" class="dh-num">{month:%b %Y}</th>'
-            f'<th scope="col" class="dh-num">Percentile since {since:%Y}</th></tr></thead><tbody>{body}</tbody></table></div>'
-            '<p class="dh-note">Each row is a 12-month return less the Nifty 500’s over the same months, both compounded; '
-            'the last row is the top 100 less the bottom 100, the momentum factor, kept for reference. The top 50 leading '
-            'ranks 51–100 says the very top of the ranking still carries the signal. Winners against losers is checked '
-            'against IIM Ahmedabad’s published Indian momentum series: correlation 0.84 over 12-month sums, Feb 2010 to '
-            'Dec 2025. The percentile counts 12-month windows since 2010 at or below today’s.</p></div>']
+        f'<td class="dh-num dh-muted">{e(_fmt.fixed(r["pct"], 0))}th</td></tr>' for r in rows)
+    out = [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>{split_head(rows)}</b><span>12 months to '
+           f'{month:%b %Y}, each against the Nifty 500, points</span></div>'
+           '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Against the Nifty 500</th>'
+           f'<th scope="col" class="dh-num">A month before</th><th scope="col" class="dh-num">{month:%b %Y}</th>'
+           f'<th scope="col" class="dh-num">Percentile since {since:%Y}</th></tr></thead><tbody>{body}</tbody></table></div></div>']
+    line = {r["label"]: r for r in rows if r["label"] in ("Top 50", "Ranks 51–100")}
+    t = line.get("Top 50")
+    x = None if t is None else record_line.facts(t["series"], min_days=24)
+    if x is not None:
+        f1 = lambda v: sg(v)  # noqa: E731
+        spec = record_line.chart_spec(x, "Top 50", f1, nd=1)
+        d2 = line.get("Ranks 51–100")
+        if d2 is not None:
+            s2 = d2["series"].reindex(x["series"].index)
+            spec["series"].append({"name": "Ranks 51–100", "color": "muted", "width": 1.2,
+                                   "values": [None if pd.isna(v) else round(float(v), 1) for v in s2]})
+        spec["bands"][0].pop("label", None)   # the two lines fill both ends here: the band is named in the caption
+        out += [f'<p class="dh-note">Shaded: the top 50’s usual range, {e(f1(x["q25"]))} to {e(f1(x["q75"]))} points.</p>',
+                Chart("lines", {**spec, "range": SPLIT_RANGE},
+                      {"label": "Top 50 and ranks 51–100, 12-month return less the Nifty 500’s, by month"})]
+    out += [how("Each row is a 12-month return less the Nifty 500’s over the same months, both compounded, for the "
+                "Nifty 500’s members of each month-end ranked by momentum. The last row is the top 100 less the bottom "
+                "100, the momentum factor, kept for reference; it is checked against IIM Ahmedabad’s published Indian "
+                "momentum series: correlation 0.84 over 12-month sums, Feb 2010 to Dec 2025.",
+                "The top 50 above ranks 51–100 says the very top of the ranking still carries the signal. The shaded band "
+                "is the middle half of the top 50’s months since " f"{since:%b %Y}" "; the percentile counts 12-month "
+                "windows since then at or below today’s.",
+                ["Month"] + [r["label"] for r in rows],
+                [[f"{m:%b %Y}"] + [sg(r["series"].get(m)) if pd.notna(r["series"].get(m)) else "–" for r in rows]
+                 for m in list(t["series"].index[::-1])] if t is not None else [])]
+    return out
 
 
 def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None,
