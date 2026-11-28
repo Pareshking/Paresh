@@ -119,3 +119,39 @@ mid 64 / low 58; volatility low 151 / high 53):
   them on and off by state would change little. W and R do nothing in any state.
 - Years: skip 5 + B ahead of the baseline in 13 of 17 years; its large gains are the strong years (2010 +13.5, 2014
   +26.3, 2015 +15.2, 2017 +14.6, 2021 +14.6, 2023 +10.1); behind in 2012 (-4.1), 2022 (-2.0), 2026 to date (-5.6).
+
+## Round 3 (owner, 28 Nov 2026): exits, chosen from the book's own history
+
+Scripts: `exit_diagnostics.py`, `exit_rules.py`, `exit_grid.py`, `verify_exit.py`.
+
+**What the history shows (before any rule was picked):**
+- The book's falls of 15% or more are its own, not the market's: in 7 of 8 it fell 6-13 pts more than the Nifty 500
+  over the same days; only Mar 2020 matched. The fall from Jul 2024 (-38.7%, not recovered) is the deepest, against
+  -10.1% for the index; Jan 2025 alone -17.2% vs -3.6%.
+- Month-end sales are about neutral: 1,581 sales, the sold stock against the kept ones +0.35 pts mean / -0.12 median
+  over a month, +0.93 / -0.09 over three. Only "below 80% of the 52-week high" sales were clearly right (20, -4 pts).
+- Inside a month a holding down 10 / 15 / 20% then beat the other holdings to the month's end (+0.3 to +0.6 mean,
+  60-65% rose). Daily stops at -15% (from the fill / trailing) cost 2.0 / 2.8 pts a year, worst fall 3 pts shallower.
+- Holdings kept at rank 21-40 did as well as ranks 1-20 the next month (+0.17 pts, t 0.4).
+
+**Rules (entry unchanged: above the 50D EMA, within 20% of the high, top 20):** exit below the 200D EMA alone +0.96;
+keep while in the top 90 alone +1.20 (2018-26 -1.74); **both +5.58 (2010-17 +5.05, 2018-26 +6.06), worst fall -36.8%
+vs -38.7%, turnover 22.6% a month vs 40.2%**; on skip 5 +4.49 (27.55% a year; 2010-17 +1.69). Industry cap 30% +0.88
+(skip 5 -0.25); 25% and "within 30% of the high" nothing.
+
+**Neighbours** (exit EMA 100-200 x keep within top 60-120), baseline: every cell +3.2 to +5.8 pts a year and positive
+in both halves; 6 of 9 meet the full rule fixed first (needed 7): the three that miss have a worst fall 1-2 pts deeper.
+On skip 5: +0.6 to +4.5, 2 of 9 meet it (2010-17 small). Year by year (EMA 200 + top 90): ahead in 13 of 17 years
+(baseline), 12 of 17 (skip 5). Nifty Total Market 2022-26: +1.35 to +4.61 (baseline), +1.78 to +3.99 (skip 5).
+
+**Checks of the code:**
+- Every logged decision against the rule recomputed from raw closes: the loose-exit run 0 of 4,864 disagree; the
+  baseline 22 of 5,611, all new buys ranked 21-28 in months when one industry held its 8-name cap (Healthcare
+  May 2020, Financial Services 2019 and 2023; "Other", the unlabelled leavers, Mar 2011): the cap, as designed.
+- A second book written from scratch (scores from `rank_history.snapshots`, gates computed separately, no industry
+  cap): today's exits 17.83%; EMA 200 alone +2.08; top 90 alone +1.62; **both +5.96 (2010-17 +5.17, 2018-26 +6.67)**.
+  The pattern, including the extra gain from loosening both, is the engine's. Both use the same long file, so a
+  fault in the prices would reach both.
+
+Not checked: tax (half the turnover should cut it), industry concentration of the longer-held book, the six-monthly
+reset default, and whether "Other" as one capped industry distorts 2010-12.
