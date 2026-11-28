@@ -655,7 +655,9 @@ def render_stock_view(
     for lab, months in RANGES.items():
         rs = relative_strength(window(chart_close, months), market)
         pa, pb, pc = sl.price_heading(above, of, float(rs.iloc[-1]) if len(rs) else None)
-        heads[lab] = _h2(pa, pb, pc.replace(RANGE_WORDS[DEFAULT_RANGE], RANGE_WORDS[lab]))
+        # A fall reads in the down colour (S238 inventory, 28 Nov: "its relative strength fell 11.9%" read blue).
+        tone = "down" if len(rs) and float(rs.iloc[-1]) < 100 else "up"
+        heads[lab] = _h2(pa, pb, pc.replace(RANGE_WORDS[DEFAULT_RANGE], RANGE_WORDS[lab]), tone=tone)
     head = heads[DEFAULT_RANGE].replace('<h2 class="dh-h2">', '<h2 class="dh-h2 sp-price-h">', 1)
     follow = {"sel": "h2.sp-price-h", "html": {k: v[len('<h2 class="dh-h2">'):-len("</h2>")] for k, v in heads.items()}}
     _emit(['<section class="dh-sec sp-sec" style="padding-bottom:0;border-bottom:0">', _kick("4 · Price"), head,

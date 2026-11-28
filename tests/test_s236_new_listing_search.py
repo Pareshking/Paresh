@@ -22,3 +22,10 @@ def test_the_search_offers_them_as_stocks():
     src = (ROOT / "src/ui/views/ranking_view.py").read_text(encoding="utf-8")
     assert '[STOCK] {sym} — listed {day:%-d %b %Y}' in src
     assert rv.search_label("[STOCK] HEGRAPHITE — listed 27 Nov 2026") == "HEGRAPHITE · listed 27 Nov 2026"
+
+
+def test_a_falling_relative_strength_reads_in_the_down_colour():
+    """S238 inventory (28 Nov): RELIANCE's "its relative strength fell 11.9%" was drawn in the up colour."""
+    src = (ROOT / "src/ui/views/stock_view.py").read_text(encoding="utf-8")
+    assert 'tone = "down" if len(rs) and float(rs.iloc[-1]) < 100 else "up"' in src
+    assert "tone=tone)" in src
