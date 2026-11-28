@@ -1,61 +1,10 @@
 {
- "fetched_at_utc": "2026-11-27T11:25:58+00:00",
+ "fetched_at_utc": "2026-11-28T10:54:45+00:00",
  "new": {
-  "symbolchange.csv": [
-   {
-    "company": "MONTEIL LIMITED",
-    "old_symbol": "LAL",
-    "new_symbol": "MONTEIL",
-    "date": "27-NOV-2026"
-   }
-  ],
+  "symbolchange.csv": [],
   "namechange.csv": [],
-  "equity_l.csv": [
-   {
-    "SYMBOL": "HEGRAPHITE",
-    "NAME OF COMPANY": "HEG Limited",
-    "SERIES": "BE",
-    "DATE OF LISTING": "27-NOV-2026",
-    "PAID UP VALUE": "2",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE0Y9J01020",
-    "FACE VALUE": "2"
-   },
-   {
-    "SYMBOL": "MAHACOAL",
-    "NAME OF COMPANY": "Mahanadi Coalfields Limited",
-    "SERIES": "EQ",
-    "DATE OF LISTING": "27-NOV-2026",
-    "PAID UP VALUE": "2",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE03K401026",
-    "FACE VALUE": "2"
-   },
-   {
-    "SYMBOL": "MONTEIL",
-    "NAME OF COMPANY": "MONTEIL LIMITED",
-    "SERIES": "BE",
-    "DATE OF LISTING": "10-APR-2023",
-    "PAID UP VALUE": "1",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE740X01023",
-    "FACE VALUE": "1"
-   }
-  ],
+  "equity_l.csv": [],
   "corporate_actions": []
  },
- "touching_members": {
-  "equity_l.csv": [
-   {
-    "SYMBOL": "HEGRAPHITE",
-    "NAME OF COMPANY": "HEG Limited",
-    "SERIES": "BE",
-    "DATE OF LISTING": "27-NOV-2026",
-    "PAID UP VALUE": "2",
-    "MARKET LOT": "1",
-    "ISIN NUMBER": "INE0Y9J01020",
-    "FACE VALUE": "2"
-   }
-  ]
- }
+ "touching_members": {}
 }
