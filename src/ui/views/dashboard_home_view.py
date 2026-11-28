@@ -761,8 +761,8 @@ def split_parts(split: dict | None) -> list:
         f'<tr><th scope="row">{e(r["label"])}</th><td class="dh-num dh-muted">{e(sg(r["ago"]))}</td>'
         f'<td class="dh-num dh-b {tone(r["now"])}">{e(sg(r["now"]))}</td>'
         f'<td class="dh-num dh-muted">{e(_fmt.fixed(r["pct"], 0))}th</td></tr>' for r in rows)
-    out = [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>{split_head(rows)}</b><span>12 months to '
-           f'{month:%b %Y}, each against the Nifty 500, points</span></div>'
+    out = [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>{split_head(rows)}</b><span>12 months to the '
+           f'{month:%b %Y} month-end, each against the Nifty 500, points</span></div>'
            '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Against the Nifty 500</th>'
            f'<th scope="col" class="dh-num">A month before</th><th scope="col" class="dh-num">{month:%b %Y}</th>'
            f'<th scope="col" class="dh-num">Percentile since {since:%Y}</th></tr></thead><tbody>{body}</tbody></table></div></div>']
@@ -780,11 +780,11 @@ def split_parts(split: dict | None) -> list:
         spec["bands"][0].pop("label", None)   # the two lines fill both ends here: the band is named in the caption
         out += [f'<p class="dh-note">Shaded: the top 50’s usual range, {e(f1(x["q25"]))} to {e(f1(x["q75"]))} points.</p>',
                 Chart("lines", {**spec, "range": SPLIT_RANGE},
-                      {"label": "Top 50 and ranks 51–100, return over 12 months less the Nifty 500’s, by month"})]
+                      {"label": "Top 50 and ranks 51–100, return over 12 months less the Nifty 500’s, at each month-end"})]
     out += [how("Each row is a return over 12 months less the Nifty 500’s over the same months, both compounded, for the "
                 "Nifty 500’s members of each month-end ranked by momentum. The last row is the top 100 less the bottom "
                 "100, the momentum factor, kept for reference; it is checked against IIM Ahmedabad’s published Indian "
-                "momentum series: correlation 0.84 over sums of 12 months, Feb 2010 to Dec 2025.",
+                "momentum series: correlation 0.84 over sums of 12 months, finished months Feb 2010 to Dec 2025.",
                 "The top 50 above ranks 51–100 says the very top of the ranking still carries the signal. The shaded band "
                 "is the middle half of the top 50’s months since " f"{since:%b %Y}" "; the percentile counts windows of 12 months "
                 " since then at or below today’s.",

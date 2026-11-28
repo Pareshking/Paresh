@@ -46,6 +46,9 @@ export const ALLOW = [
   { where: null, re: /pts, momentum’s lead/, todo: 'S164',
     why: 'rule shown: the bars are finished months of the system’s own record ("Each finished month" in the ' +
       'chart’s note) and the "Month so far" tile beside them reads to the session; the chart itself does not say it' },
+  { where: /\/(\?|$)/, re: /^Latest · \d{1,2} \w+ 20\d\d\nTop 50\n[+−-]?[\d.]+\nRanks 51–100/, todo: 'S239',
+    why: 'rule shown: finished months, 12 months to each month-end; the caption above the chart says "12 months to the ' +
+      '<month> month-end" and the chart’s label "at each month-end"; the chart itself does not say it, as momentum’s lead' },
   { where: null, re: /What heavy foreign buying has meant · \w+ 20\d\d to \w+ 20\d\d/, todo: 'S164',
     why: 'rule shown: a study of finished months (audit: RULE, SHOWN); the month so far is in the tiles above it' },
   { where: /\/portfolio/, re: /were worked out from the rules on \d{1,2} \w+ 20\d\d/, todo: 'S164',

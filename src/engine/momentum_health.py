@@ -171,7 +171,7 @@ def health(spreads: pd.DataFrame) -> dict | None:
 # The Nifty 500's top fifth split in two, and winners against losers (owner, 8 Nov 2026: "give bifurcation of top two
 # deciles also"; dropped with the old Dashboard on 20 Nov without his decision, restored S239 on his "Restore the 9", 28 Nov).
 SPLIT_ROWS = (("top50", "Top 50", "nifty500"), ("d2", "Ranks 51–100", "nifty500"), ("top", "Top 100 (the top fifth)", "nifty500"),
-              ("top", "Winners against losers (top 100 less bottom 100)", "bottom"))
+              ("top", "Top 100 less bottom 100", "bottom"))
 
 
 def top_fifth_split(spreads: pd.DataFrame | None) -> dict | None:

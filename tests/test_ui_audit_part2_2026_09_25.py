@@ -26,13 +26,14 @@ def test_stock_page_index_badges_are_exact_tags():
 def test_rank_path_reads_oldest_to_now():
     from src.ui import stock_lines as sl
     from src.ui import watchlist_lines as wl
-    row = pd.Series({"Symbol": "ABC", "Rank": 1, "Rank (-1M)": 2, "Rank (-3M)": 6})
-    days = [pd.Timestamp("2026-08-20"), pd.Timestamp("2026-10-19"), pd.Timestamp("2026-11-20")]
-    tr = sl.trail(row, days, [5, 2], 1)
+    # 6, 3, 2 and 1 months back and now (S239 item 5, owner 28 Nov 2026)
+    row = pd.Series({"Symbol": "ABC", "Rank": 1, "Rank (-1M)": 2, "Rank (-2M)": 4, "Rank (-3M)": 6, "Rank (-6M)": 9})
+    days = [pd.Timestamp(d) for d in ("2026-05-20", "2026-08-20", "2026-09-19", "2026-10-19", "2026-11-20")]
+    tr = sl.trail(row, days, [8, 5, 3, 2], 1)
     page = "".join(stock_view.rank_html(row, sl.Universe("750", 750), 1, 290, wl.Lines(20, 40, 20), tr))
     body = page[page.index("<tbody>"):]
-    assert body.index(">6<") < body.index(">2<") < body.index(">1<")
-    assert page.index("3M ago") < page.index("1M ago") < page.index("Now")
+    assert body.index(">9<") < body.index(">6<") < body.index(">4<") < body.index(">2<") < body.index(">1<")
+    assert page.index("6M ago") < page.index("3M ago") < page.index("2M ago") < page.index("1M ago") < page.index("Now")
 
 
 def _peers_html(rank_df, sym):
