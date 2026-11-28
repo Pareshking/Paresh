@@ -102,3 +102,24 @@ def test_since_start_market_starts_at_the_fill():
     assert "since_mkt = di.window_return(market, fill0 if fill0 is not None else inc, as_of)" in src   # the book's session; the index reads on or before it (S193 E)
     psrc = (ROOT / "src" / "ui" / "views" / "portfolio_page.py").read_text(encoding="utf-8")
     assert "rows = pr.periods(p.equity, p.market, p.mom, p.as_of, first_fill(p)[1])" in psrc
+
+
+def test_this_year_tables_measure_the_indices_from_the_same_fill():
+    # S236 (site audit, 28 Nov 2026): By period read Nifty Total Market +0.6% since 1 Jan 2026 (the fill),
+    # the table beside it +0.7% since 31 Dec 2025, so the book's lead read 46.2 and 46.0 on one page.
+    import re
+
+    from src.loaders import benchmark_indices as bi
+
+    idx = pd.to_datetime(["2025-12-30", "2025-12-31", "2026-01-01", "2026-01-02", "2026-11-27"])
+    mk = pd.Series([99.0, 100.0, 110.0, 111.0, 121.0], index=idx)
+    eq = pd.Series([1e7, 1.01e7, 1.02e7, 1.5e7], index=idx[1:])
+    blank = {f.name: None for f in dataclasses.fields(pp.Page)}
+    blank.update(as_of=pd.Timestamp("2026-11-27"), market=mk, mom=mk, equity=eq, system="750", ledger={}, cfg={},
+                 capital=1e7, exposure=pd.DataFrame(columns=["date"]),
+                 indices={k: mk for k in (bi.TOTAL_MARKET, "nifty50", "midcap150", "smallcap250", "microcap250")})
+    txt = re.sub(r"<[^>]+>", "|", "".join(pp.section_returns(pp.Page(**blank))))
+    assert "since 31 Dec 2025" not in txt
+    by_period = re.search(r"This year, since 1 Jan 2026\|+[^|]+\|+([^|]+)\|", txt).group(1)
+    beside = re.search(r"Nifty Total Market\|+([+−\-][^|]+)\|", txt).group(1)
+    assert by_period == beside == "+10.0%"                     # 110 -> 121, from the 1 Jan fill

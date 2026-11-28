@@ -583,8 +583,11 @@ def section_returns(p: Page) -> list:
     book_ytd = pr.ret(p.equity, ytd_start, p.as_of)
     # A young book's indices start at its first fill, as the header's (owner, 23 Nov 2026: "2: from the
     # fill"); the book from the money put in. The table read +8.5% from 30 Sep beside +9.6% (S193 B8).
-    fill = first_fill(p)[1] if young else None
-    idx_start = fill if fill is not None else ytd_start
+    # A record whose first fill falls after 31 Dec (the 750: fill 1 Jan 2026) measures its indices from
+    # the fill too, as the By period table beside it does: the two read +0.6% and +0.7% for Nifty Total
+    # Market (S236, site audit 28 Nov 2026).
+    fill = first_fill(p)[1]
+    idx_start = fill if fill is not None and (young or fill > ytd_start) else ytd_start
     vals = {k: pr.ret(p.indices[k], idx_start, p.as_of) for k, _ in YTD_ROWS if k in p.indices}
     ex_since = p.exposure[pd.to_datetime(p.exposure["date"]) > ytd_start] if len(p.exposure) else p.exposure
     vals["mix"] = pr.size_mix(ex_since, {k: p.indices[v] for k, v in SIZE_INDEX.items()}, p.as_of)
@@ -609,7 +612,7 @@ def section_returns(p: Page) -> list:
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Period</th><th scope="col" class="dh-num">The book</th>'
                  '<th scope="col" class="dh-num">Nifty Total Market</th><th scope="col" class="dh-num">Lead, pts</th><th scope="col" class="dh-num">Momentum 50</th>'
                  f'</tr></thead><tbody>{per}</tbody></table></div><p class="dh-note">{e(grows)}</p></div>'
-                 f'<div><div class="dh-cap"><b>{_fmt.since(begun) if young else "This year"} against other indices</b><span>{"to " + f"{p.as_of:%-d %b}" if young else f"since {ytd_start:%-d %b %Y}"}</span></div>'
+                 f'<div><div class="dh-cap"><b>{_fmt.since(begun) if young else "This year"} against other indices</b><span>{"to " + f"{p.as_of:%-d %b}" if young else f"since {idx_start:%-d %b %Y}"}</span></div>'
                  '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Index</th>'
                  f'<th scope="col" class="dh-num">{_fmt.since(begun) if young else "This year"}</th>'
                  f'<th scope="col" class="dh-num">The book’s lead, pts</th></tr></thead><tbody>{ytd}</tbody></table></div>'
