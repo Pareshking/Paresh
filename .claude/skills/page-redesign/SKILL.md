@@ -46,6 +46,15 @@ Write a table for the owner with one row per section and per figure in the inven
 
 Never leave a row out of this table. A figure that leaves a section is a row too (for example the P/E 3 months and a month ago).
 
+Then run the machine check, the main-branch app against the preview:
+
+    node scripts/section_diff.mjs http://localhost:<main-port>/<page> http://localhost:<preview-port>/<page>
+
+It lists every heading, kicker, chart, word a chart prints (column heads, readout names), table column, tile, expander, button,
+download and image the preview lacks. It exits 1 while anything is missing. Every "-" line must be a row of the table: kept under
+another name, moved (where), or left out for the owner to decide. Its first run, 28 Nov, on the Indices preview found the 36 dropped
+parts that the eye had missed (the P/E 3 months and a month ago, the month-ago percentile, dividend yield, the yield gap).
+
 ## 5. Check the preview
 
 - Screenshots at 1400 px, full page, and iPhone 13, full page, of the local run.
