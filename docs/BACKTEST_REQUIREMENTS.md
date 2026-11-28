@@ -111,6 +111,7 @@ The owner runs a monthly momentum book. He opens this page to ask:
 | 30 | One name per idea on the whole page, as listed under "Naming"; a test fails on a banned synonym in `backtest_view.py` | S173 | Whole page | Max drawdown |
 | 31 | Headings in the serif, each a sentence stating the finding; notes 13.5 px, about 80 characters a line; tables sentence case, Plex Mono right-aligned figures, row labels never wrap to three lines; minus is U+2212 | PAGE_DESIGN §2a, §3, §8 | Sections | Ahead of the Nifty 500 |
 | 32 | Layout audit clean at 412 and 1400 px; the page joins CI's layout and requirements step | PAGE_DESIGN §8 | Whole page | Backtest |
+| 33 | Trade tiles: average win, average loss, best and worst trade with the stock; the rebalance periods, fill to fill, under Show the table, the heading answering how many periods the rule beat the Nifty 500 | Restored 28 Nov ("Restore the 9", S239 items 7 and 8); PAGE_DESIGN §2b | Trades | Average win + Worst trade |
 
 Order: What was tested → Change the test → Backtest → 1 · Ahead of the Nifty 500 → 2 · Falls from a peak → 3 · Year by year → 4 · What the result depends on → 5 · Can it be trusted → 6 · Trades → Data to
 

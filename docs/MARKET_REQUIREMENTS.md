@@ -54,6 +54,7 @@ the owner approves the section order.
 | 17 | Data date only, no sources named on the page; the data-quality counts kept | Owner 20, 21 Nov | Footer | Data to |
 | 18 | Layout audit clean at 412 and 1400 px; numbers right-aligned under right-aligned headings | Owner 20 Nov | Whole page | and are most stocks rising with it? |
 | 19 | "Ahead of the market" over a year and the median stock against it read Nifty Total Market, named on the page | Owner 21 Nov ("Yes") | Breadth question | ahead of Nifty Total Market |
+| 20 | The day's new 52W highs and lows among the stocks that could make one, their ratio, and the daily net line with its usual range; today's members throughout, said so | Restored 28 Nov ("Restore the 9", S239 item 11); PAGE_DESIGN §2b | Breadth question | closed at a new 52W high |
 
 ## Decided (owner, 21 Nov 2026: "go as recommended")
 

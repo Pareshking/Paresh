@@ -101,6 +101,7 @@ data-heavy pages that S151 counts.
 | 50 | No stop loss and no chandelier exit anywhere on the page; code that only they reach goes, and a test fails if either is shown | Owner 22 Nov 2026: "we don't have exit or SL so remove it" | Whole page | Rank of 750 |
 | 51 | Prices, moving averages and ₹ levels in whole rupees, below ₹100 too; returns to at most one decimal (11.1%, not 11.11%); display only, exports and calculations exact; the chart readout too | Owner 22 Nov 2026: "price etc, Moving averages etc should be in round numbers, return only with Max one decimal values like 11.1% not 11.11%"; then whole rupees for all prices, below ₹100 included | Whole page | Rank of 750 |
 | 52 | The owner's style sheet, through the one shared formatter (S173) and its page-scanning test: ₹ Cr without decimals; dates as "20 Nov 2026"; a true minus and an explicit + on changes; "–" for missing data with the reason in a footnote; one word per thing ("sector", "pts", "50D EMA", "Nifty Total Market"); the standard foot; weights to one decimal | Owner 22 Nov 2026, the 8-rule style sheet (relayed by the coordinating session) | Whole page | Data to |
+| 53 | Rank and place among the qualified 6, 3, 2 and 1 months ago and now; the chart's 200D EMA (the line Market's breadth counts) and an All range | Restored 28 Nov ("Restore the 9", S239 items 4 and 5) | Rank, Price | 6M ago + 2M ago + 200D EMA |
 
 ## Data checks run on 21 Nov 2026 (prices to Fri 20 Nov 2026)
 

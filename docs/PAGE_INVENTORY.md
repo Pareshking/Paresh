@@ -49,17 +49,17 @@ These were dropped in my redesigns. In most cases the owner approved the redesig
 
 | # | Page | What was shown | Removed in | Data still held | Recommendation |
 |---|---|---|---|---|---|
-| 1 | Dashboard | Momentum health: "Top 50 against the Nifty 500", "Ranks 51–100", winners-against-losers, the check against IIM Ahmedabad's series | `c07710e2` 20 Nov; code `835de08d` 22 Nov | `momentum_health.csv` `top50`, `d2`, `spread` | Restore in §3 (asked for by the owner, 8 Nov) |
-| 2 | Portfolio | "How they move together": the holdings' correlation heatmap | `f4152a80` 21 Nov | `qualified_view.correlation()` | Restore, collapsed (owner, 13 Oct: keep it collapsed) |
-| 3 | Portfolio | Each month's provenance: recorded or backfilled, point-in-time or current list, frozen on, priced from | `074ef4f0` 6 Oct; `f4152a80` | `track_record*.json` | Restore as a column of the monthly table |
-| 4 | Stock page | Chart: 200-day line, 20 EMA, Nifty 500 overlay; ranges 1M, 3M and All | `4098c5bf` 23 Nov | prices | Restore the 200-day line and the All range |
-| 5 | Stock page | Rank 6 months and 2 months ago | `4098c5bf` 23 Nov | `rank_history` snapshots | Restore in the rank trail |
-| 6 | Dashboard | "Coming up for the book": board meetings for holdings and planned buys, next 6 weeks | `c07710e2` 20 Nov | `results_calendar.csv` | Restore as a short list |
-| 7 | Backtest | "Rebalance periods": holdings, buys, sells, turnover, costs per rebalance | `38ce0dba` 22 Nov | `run_backtest()["monthly"]` | Restore inside "Show the table" |
-| 8 | Backtest | Trade tiles: average win and loss, best and worst | `38ce0dba` 22 Nov | closed trades | Restore |
+| 1 | Dashboard | Momentum health: "Top 50 against the Nifty 500", "Ranks 51–100", winners-against-losers, the check against IIM Ahmedabad's series | `c07710e2` 20 Nov; code `835de08d` 22 Nov | `momentum_health.csv` `top50`, `d2`, `spread` | **Restored 28 Nov (S239, owner approved the preview)**; was: Restore in §3 (asked for by the owner, 8 Nov) |
+| 2 | Portfolio | "How they move together": the holdings' correlation heatmap | `f4152a80` 21 Nov | `qualified_view.correlation()` | **Restored 28 Nov (S239, owner approved the preview)**; was: Restore, collapsed (owner, 13 Oct: keep it collapsed) |
+| 3 | Portfolio | Each month's provenance: recorded or backfilled, point-in-time or current list, frozen on, priced from | `074ef4f0` 6 Oct; `f4152a80` | `track_record*.json` | **Restored 28 Nov (S239, owner approved the preview)**; was: Restore as a column of the monthly table |
+| 4 | Stock page | Chart: 200-day line, 20 EMA, Nifty 500 overlay; ranges 1M, 3M and All | `4098c5bf` 23 Nov | prices | **Restored 28 Nov (S239, owner approved the preview)**; was: Restore the 200-day line and the All range |
+| 5 | Stock page | Rank 6 months and 2 months ago | `4098c5bf` 23 Nov | `rank_history` snapshots | **Restored 28 Nov (S239, owner approved the preview)**; was: Restore in the rank trail |
+| 6 | Dashboard | "Coming up for the book": board meetings for holdings and planned buys, next 6 weeks | `c07710e2` 20 Nov | `results_calendar.csv` | **Restored 28 Nov (S239, owner approved the preview)**; was: Restore as a short list |
+| 7 | Backtest | "Rebalance periods": holdings, buys, sells, turnover, costs per rebalance | `38ce0dba` 22 Nov | `run_backtest()["monthly"]` | **Restored 28 Nov (S239, owner approved the preview)**; was: Restore inside "Show the table" |
+| 8 | Backtest | Trade tiles: average win and loss, best and worst | `38ce0dba` 22 Nov | closed trades | **Restored 28 Nov (S239, owner approved the preview)**; was: Restore |
 | 9 | Dashboard | Sector rotation from NSE's own sector indices | `835de08d` | sector indices | Leave out (Sectors covers it) |
 | 10 | Portfolio | Worst-month tile with the best month beside it | `f4152a80` | ledger | Leave out (the year grid shows both) |
-| 11 | Market | New highs and new lows today, their ratio, net-new-highs chart | `07565fd9` 26 Sep; 7 Nov | `compute_hl_timeseries` | Restore the daily net line beside the weekly bars |
+| 11 | Market | New highs and new lows today, their ratio, net-new-highs chart | `07565fd9` 26 Sep; 7 Nov | `compute_hl_timeseries` | **Restored 28 Nov (S239, owner approved the preview)**; was: Restore the daily net line beside the weekly bars |
 | 12 | Portfolio | Holdings CSV, monthly returns CSV | `f4152a80` | – | Owner's call: no new CSV links (owner, 28 Nov) |
 | 13 | Old Qualified page | Average 3M/6M return and average correlation of the buy candidates | – | – | Leave out |
 
