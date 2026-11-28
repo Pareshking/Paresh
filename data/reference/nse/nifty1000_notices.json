@@ -101,6 +101,17 @@
       "mentions": false,
       "included": [],
       "excluded": []
+    },
+    {
+      "issued": "2026-11-27",
+      "notice": "ind_prs27112026.pdf",
+      "title": "Inclusion in Nifty IPO index w.e.f. December 02, 2026",
+      "url": "https://www.niftyindices.com/Press_Release/ind_prs27112026.pdf",
+      "sha256": "d741cb45cc0a6c2aca8a75dd28c0d6a7a3b2f611d9c7a382f9d7f1dac1ba5af3",
+      "effective": "2026-12-02",
+      "mentions": false,
+      "included": [],
+      "excluded": []
     }
   ]
 }
