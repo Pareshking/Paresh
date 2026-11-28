@@ -46,7 +46,30 @@ the code and, where stated, on the live page.
 
 ## 3. Controls, phone width and load times
 
-(Filled from the second agent's report, below.)
+Every page in the four systems at 1400 px and 390 px (iPhone 13), each control used once, each failure
+re-checked (agent's report, scratchpad `audit_controls.md`, screenshots `shots/`).
+
+- **No live fault**: no exception, Traceback, KeyError, "nan" or "undefined" on any page or system. Every
+  download gives a non-empty file with a sensible header. The system chosen on Configuration rides in `?sys=`
+  to the next pages and is dropped on going back to the 750. Screener pills, four sort columns both ways,
+  filters, search, the stock page's links and chips, Watchlist paste and save, Backtest settings, Market and
+  Indices pills, Configuration toggles and dialogs, the phone menu: all work. Console errors are Streamlit
+  Cloud's own (`heap`, `user/details`, `_stcore/health`, `host-config`).
+- One data lead checked here and **dismissed**: the Screener's "Biggest jumps" (HDFCBANK +26.0% over 1M) is
+  real: Screener's own closes give +26.0% (§1).
+- Load times (run over and still for 1.5 s, QA's rule; fresh browser, warm server):
+
+| Page | 23 Nov | 28 Nov, new session | Reload | Budget |
+|---|---|---|---|---|
+| Market | 6.7 s | 12.4-13.7 s | 5.2-5.5 s | 10.5 s |
+| Backtest | 11.3 s | 5.3-7.0 s (server warm) | 3.4 s | 31 s |
+| The other eight | 3.8-5.9 s | 5.0-8.3 s | – | 6-9 s |
+
+The streamlit.app address adds about 6-7 s before the app starts (12.3-15 s to a new reader there); neither
+Production QA nor the budgets count it. The Nifty 1000's first Dashboard took 21.9 s (its cache cold), then 6.6 s.
+
+Not checked: a cold start of a sleeping container; timings from a GitHub runner; whether the weight sliders
+change the ranking (the script could not reach the thumbs); a full link crawl; the Share popover's copy.
 
 ## 4. Findings, ranked
 
@@ -66,3 +89,12 @@ the code and, where stated, on the live page.
 | F12 | Backup | `track_record_1000.json` is not in the nightly R2 copy of the track records (first written at the 1-5 Dec freeze) | `track_record_r2_copy.py:22` | **fixed**: the copy takes every system's ledger; test against `systems.LEDGERS` |
 | F13 | Backup | a11: the BSE fill audit zip is overwritten each build; b8-b10: files no page reads | 24 Nov audit §2 | open: S236 rows |
 | F14 | Docs | TODO S224 still says "(a)-(c) left"; the R2 pack closed a1, a3-a7 | code | fixed in TODO |
+| F15 | Speed | Market over its 10.5 s budget on a new session (12.4-13.7 s; 5.2 s on reload): first-visit work on a 335 KB chart, by the reload's speed | agent's timings | open: measure the chart's share, then trim it |
+| F16 | Usability | Browser Back needs two presses after a stock link from Dashboard, Actions or Screener at `paresh.streamlit.app/` (one at `/~/+/`): one click adds two history entries inside the streamlit.app frame (S193 K F1 again) | agent, all four systems | open: find whether the app or the wrapper adds the entry |
+| F17 | Phone | The main area drags sideways at 390 px: Dashboard 18 px ("Tested here · 129 months" span), Screener 5-13 px ("Entered / Left the top 50"), Configuration 12 px (slider help icons); the Dashboard's next-month table is 1,080 px with no fixed first column | agent's screenshots | open: wrap the three; pin the table's first column |
+| F18 | Search | HEGRAPHITE (listed 27 Nov) gives "No results" in the Screener search; its `?stock=` page works and says it is too new to rank | agent | open: search NSE's listed names too, pointing to the page |
+| F19 | Exports | The Screener CSV gives returns as fractions (0.10) and drawdowns in percent (−2.59); Portfolio files carry raw floats (1542.300048828125) and an emoji; file dates 20261128 against 20261127 | agent's downloads | open, **owner**: a file's format may be read by his own sheets or Kite; the Kite file is not changed |
+| F20 | Wording | Configuration's "Reset to defaults" resets the score weights only (by design, `config_view.py:449`); an added index stays | agent | open: the button's label says what it resets |
+| F21 | Wording | Index files dialog: Smallcap 250 and Microcap 250 with 251 constituents (the DUMMYHEG placeholder, `DATA_CORRECTNESS.md`), unexplained there | agent | open: the dialog says why |
+| F22 | Wording | Sectors "Pick a industry"; Backtest "None: the replay is our own engine" | agent | **fixed**: "Pick an industry"; "No second source: ..." |
+

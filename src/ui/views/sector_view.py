@@ -794,7 +794,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     top = next((r for r in ld.rows if r.group == "ahead on both"), ld.rows[0])
     # The heading names the group picked, so it is drawn into its place once the picker has a value (S203 se.stk.1).
     slot = st.empty()
-    pick_name = st.selectbox(f"Pick a {noun}", names, index=names.index(top.name), key=f"sector_pick_{col}",
+    pick_name = st.selectbox(f"Pick {'an' if noun[:1] in 'aeiou' else 'a'} {noun}", names, index=names.index(top.name), key=f"sector_pick_{col}",
                              format_func=sh, width=260)
     members = rank_df[rank_df[col] == pick_name].sort_values("Rank")
     with slot.container():
