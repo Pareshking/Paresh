@@ -96,12 +96,19 @@ def _index_files_dialog() -> None:
                 "%-d %b %Y, %H:%M"
             )
             with open(path, encoding="utf-8") as f:
-                lines = sum(1 for _ in f) - 1
+                rows = [ln.split(",") for ln in f.read().splitlines()[1:] if ln.strip()]
+            dummies = [r[2] for r in rows if len(r) > 2 and r[2].upper().startswith("DUMMY")]
+            held = f" (one is NSE's placeholder {', '.join(dummies)})" if len(dummies) == 1 else (
+                f" ({len(dummies)} are NSE's placeholders)" if dummies else "")
             st.caption(
-                f"**{idx_name.title()}**: `{lines}` constituents ({size/1024:.1f} KB) · {mtime}"
+                f"**{idx_name.title()}**: `{len(rows)}` rows in NSE's file{held} ({size/1024:.1f} KB) · {mtime}"
             )
         else:
             st.caption(f"**{idx_name.title()}**: File missing at `{path}`")
+    # S236 F21 (site audit, 28 Nov 2026): Smallcap 250 and Microcap 250 read 251 with no word why.
+    st.caption("A list can hold more rows than its name: NSE keeps a demerged company in its parent's index "
+               "until it excludes it (HEG Ltd. beside HEG Advanced Materials, Nov 2026), and holds a placeholder "
+               "(DUMMY…) until a demerged company lists.")
 
 
 @st.dialog("Corporate actions adjusted, by date", width="large")
@@ -446,7 +453,8 @@ def _section_momentum_signal() -> None:
         + f'</div><div class="cfg-wbar">{segs}</div>'
     )
 
-    if st.button("Reset to defaults", key="cfg_w_reset"):
+    if st.button("Reset to defaults (weights only)", key="cfg_w_reset",
+                 help="Puts the five window weights back to the defaults; the indices and other settings stay as they are."):
         # Write the mirror and DROP the widget's own state, so the sliders read
         # the restored value on the next run. Writing the widget key instead is
         # legal only above the widget, and was the shape that crashed the tab.
