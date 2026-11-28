@@ -39,13 +39,18 @@ def _order(q: str) -> tuple[int, int]:
 
 @lru_cache(maxsize=4)
 def _read(path: str, mtime: float) -> pd.DataFrame:
-    return pd.read_csv(_pack(path))
+    return pd.read_csv(path)
 
 
 def load(path: Path = PATH) -> pd.DataFrame | None:
-    if not path.exists():
+    # Keyed on the file actually read: the R2 pack's copy when it has one (a new pack is a new
+    # folder), so a refreshed pack is read without waiting for a pull to touch the repo's copy.
+    # 28 Nov 2026: the weekly earnings run's pack was live at 06:23 UTC and the Indices page
+    # still read 25 Nov's table, the cache being keyed on the repo file.
+    read = Path(_pack(path))
+    if not read.exists():
         return None
-    return _read(str(path), path.stat().st_mtime)
+    return _read(str(read), read.stat().st_mtime)
 
 
 def latest(df: pd.DataFrame | None = None) -> Latest | None:
