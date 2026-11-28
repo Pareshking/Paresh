@@ -2,6 +2,8 @@
 
 
 ## 2026-11-28
+- Charts on the Dashboard, Portfolio, Market, Indices, Sectors and Backtest: a source line under each, saying where its figures come from (NSE Indices, NSE's daily closes, NSDL, the model book's record, or our own calculation from them).
+- Configuration: the reset button reads "Reset to defaults (weights only)"; the index-files dialog counts the rows in NSE's file, names a placeholder, and says why a list can hold more than its name.
 - Downloads (Screener, Actions' qualified list, Watchlist, Portfolio): every return and fall is in percent with " %" in its header, numbers have two decimals (the score four), and the Portfolio's lines carry no emoji. The Kite basket is unchanged.
 - > ₹2,000 Cr and Combined: market caps are now NSE's figure for the latest close, as on the 750 and the Nifty 1000; they were the month-end list's (JLHL read ₹8,430 Cr against NSE's ₹11,320 Cr).
 - Stock page: a stock NSE has renamed (SHUKRAPHAR to SHUKRAMED, 20 Nov) now says so on every system and links to the list that ranks it; on the Nifty 750 it read "in none of the systems' lists".

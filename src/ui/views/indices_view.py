@@ -185,7 +185,7 @@ def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, 
                       "colours are two definitions: do not read the 2021 drop as a fall in price.",
                       ["Index", "P/E", "P/B", "Div yield", "Percentile now", "A month ago", "3 months ago"],
                       [[v.name, f"{v.pe_now:.2f}", f"{v.pb_now:.2f}", f"{v.dy_now:.1f}%", f"{v.pct_now:.0f}",
-                        f"{v.pct_1m:.0f}", f"{v.pct_3m:.0f}"] for v in vals] + ([young_table] if young_table else []))]
+                        f"{v.pct_1m:.0f}", f"{v.pct_3m:.0f}"] for v in vals] + ([young_table] if young_table else []), source="NSE Indices' published P/E")]
     return parts
 
 
@@ -554,7 +554,7 @@ def section_size(sizes: list[ip.SizeYears], as_of: pd.Timestamp) -> list:
                 "what a holder sat through.",
                 ["Year"] + [_fmt.size(z.size) for z in sizes],
                 [[str(y)] + [("–" if y not in z.years else f"{sg(z.years[y][0], 1, '%')} · {sg(z.years[y][1], 1, '%')}")
-                             for z in sizes] for y in sorted({y for z in sizes for y in z.years}, reverse=True)])
+                             for z in sizes] for y in sorted({y for z in sizes for y in z.years}, reverse=True)], source="NSE Indices' daily closes")
     return ([f'<div class="dh-sec">{KICK.format("Size, year by year")}<h2 id="s-size" class="dh-h2">{e(h2)}</h2>'
              f'<p class="dh-note">The bar is the calendar year\'s return; the dot is the max drawdown within it. '
              f'{as_of.year} is year to date. Median of whole years since {ip.SIZE_FROM_YEAR}: {e(meds)}'
