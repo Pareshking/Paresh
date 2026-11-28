@@ -136,7 +136,8 @@ def build(pf: pd.DataFrame, bench: pd.Series, val: pd.DataFrame, sector: dict[st
     return P
 
 
-def main(close_path: str, value_path: str, out: str | None) -> None:
+def monthly_ics(close_path: str, value_path: str, n_placebo: int = 3) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Each month's signed rank correlation (IC) and good-third-minus-bad-third spread, per indicator."""
     close = pd.read_parquet(close_path)
     close.index = pd.DatetimeIndex(close.index)
     value = pd.read_parquet(value_path)
@@ -150,8 +151,7 @@ def main(close_path: str, value_path: str, out: str | None) -> None:
     sector = record_sector_map(cols)
     ind = build(pf, bench, value.reindex(columns=cols), sector)
     rng = np.random.default_rng(11)
-    for k in range(3):
-        ind[f"placebo_{k + 1}"] = pd.DataFrame(rng.standard_normal(pf.shape), index=pf.index, columns=pf.columns)
+    placebos = [f"placebo_{k + 1}" for k in range(n_placebo)]   # drawn afresh for each month's pool
 
     weights = np.array(cfg["config_weights"], float)
     weights = list(weights / weights.sum())
@@ -163,8 +163,8 @@ def main(close_path: str, value_path: str, out: str | None) -> None:
     sig = [d for d in month_last if d >= pd.Timestamp(START) + pd.DateOffset(months=15)]
     pos = {d: dates.get_loc(d) for d in sig}
 
-    ic: dict[str, list] = {n: [] for n in ["composite", *ind]}
-    sp: dict[str, list] = {n: [] for n in ["composite", *ind]}
+    ic: dict[str, list] = {n: [] for n in ["composite", *ind, *placebos]}
+    sp: dict[str, list] = {n: [] for n in ["composite", *ind, *placebos]}
     when = []
     for a, b in zip(sig[:-1], sig[1:], strict=True):
         i, j = pos[a], pos[b]
@@ -184,7 +184,8 @@ def main(close_path: str, value_path: str, out: str | None) -> None:
             continue
         when.append(a)
         for n in ic:
-            x = score[pool] if n == "composite" else ind[n].iloc[i][pool]
+            x = (score[pool] if n == "composite" else
+                 pd.Series(rng.standard_normal(len(pool)), index=pool) if n in placebos else ind[n].iloc[i][pool])
             d = 1 if n == "composite" else (SPEC[n][0] if n in SPEC else 1)
             m = ok & x.notna() & np.isfinite(x)
             if m.sum() < 30 or x[m].nunique() < 5:
@@ -197,10 +198,16 @@ def main(close_path: str, value_path: str, out: str | None) -> None:
             order = xs.sort_values(ascending=False).index
             sp[n].append(ys[order[:third]].mean() - ys[order[-third:]].mean())
     idx = pd.DatetimeIndex(when)
+    return pd.DataFrame(ic, index=idx), pd.DataFrame(sp, index=idx)
+
+
+def main(close_path: str, value_path: str, out: str | None) -> None:
+    ic_df, sp_df = monthly_ics(close_path, value_path)
+    idx = ic_df.index
     res = []
-    for n in ic:
-        s = pd.Series(ic[n], index=idx).dropna()
-        w = pd.Series(sp[n], index=idx).dropna() * 100
+    for n in ic_df.columns:
+        s = ic_df[n].dropna()
+        w = sp_df[n].dropna() * 100
         h1, h2 = s[s.index < HALF], s[s.index >= HALF]
         tt = lambda x: x.mean() / (x.std(ddof=1) / np.sqrt(len(x))) if len(x) > 3 else np.nan  # noqa: E731
         res.append({"indicator": n, "group": SPEC.get(n, ("", "placebo" if n.startswith("placebo") else "ref"))[1],
