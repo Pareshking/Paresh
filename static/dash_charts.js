@@ -201,6 +201,14 @@ function track(v, o){
   // fills leftward from the zero line. The last line fills part of its height, so 5.4 and 5.6 differ.
   const N = Math.round((o.hi - o.lo) / o.step), z = Math.round((0 - o.lo) / o.step);
   const pos = v != null && v >= 0, reach = v == null ? 0 : Math.abs(v) / o.step;
+  const at = x => (x - o.lo) / (o.hi - o.lo) * 100;
+  const extra = (o.lo < 0 ? `<span class="zero" style="left:${at(0)}%"></span>` : '')
+    + (o.lines || []).map(x => `<span class="line" style="left:${at(x)}%"></span>`).join('')
+    + (o.ago != null ? `<span class="ago" style="left:${at(o.ago)}%" title="A month ago"></span>` : '');
+  if (o.solid) {   // S240 preview: one solid bar on the same scale, same two colours, instead of the run of lines
+    const a = v == null ? 0 : at(Math.min(0, v)), w = v == null ? 0 : Math.abs(at(v) - at(0));
+    return `<div class="tt ts" style="--n:${N}"><span class="fill" style="left:${a}%;width:${w}%"></span>${extra}</div>`;
+  }
   let out = '';
   for (let k = 0; k < N; k++){
     const d = pos ? k - z : z - 1 - k;
@@ -210,10 +218,6 @@ function track(v, o){
     const p = Math.round(f * 100);
     out += f >= 1 ? '<i class="f"></i>' : `<i style="background:linear-gradient(to top, var(--ink) ${p}%, var(--rule) ${p}%)"></i>`;
   }
-  const at = x => (x - o.lo) / (o.hi - o.lo) * 100;
-  const extra = (o.lo < 0 ? `<span class="zero" style="left:${at(0)}%"></span>` : '')
-    + (o.lines || []).map(x => `<span class="line" style="left:${at(x)}%"></span>`).join('')
-    + (o.ago != null ? `<span class="ago" style="left:${at(o.ago)}%" title="A month ago"></span>` : '');
   return `<div class="tt" style="--n:${N}">${out}${extra}</div>`;
 }
 
@@ -250,7 +254,7 @@ const R = {};
 
 /* The month: one row per series, straight-line bars, a period switch (a month that fell shows leftward). */
 R.month = (card, s) => {
-  const o = {lo: s.lo, hi: s.hi, step: s.step};
+  const o = {lo: s.lo, hi: s.hi, step: s.step, solid: !!s.solid};
   let m = s.periods[0].key;
   const sw = $('.chips', card);
   sw.innerHTML = s.periods.map((p, i) => `<button class="chip" type="button" data-m="${p.key}" aria-pressed="${i === 0}">${esc(p.label)}</button>`).join('');
@@ -462,7 +466,7 @@ R.trows = (card, s) => {
   const data = s.rows.filter(r => !r.heading);
   $('#rows', card).innerHTML = s.rows.map(r => r.heading ? `<div class="trgrp" role="presentation"><b>${esc(r.heading)}</b>${r.sub ? ` <span>${esc(r.sub)}</span>` : ''}</div>`
     : `<div class="trrow${r.ref ? ' ref' : ''}" role="listitem"><div class="nm"><b>${esc(r.name)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</div>`
-    + track(r.bar, {lo: s.lo, hi: s.hi, step: s.step, ago: r.ago, lines: s.lines || []})
+    + track(r.bar, {lo: s.lo, hi: s.hi, step: s.step, ago: r.ago, lines: s.lines || [], solid: !!s.solid})
     + r.vals.map((v, j) => `<span class="num ${(r.cls || [])[j] || ''}">${esc(v)}</span>`).join('') + '</div>').join('');
   rowsInteract(card, '.trrow', j => { const r = data[j ?? 0];
     ro(card, j == null ? s.rest || 'Latest' : r.name, (r.read || []).map(x => ({v: x[0], name: x[1], cls: x[2] || ''}))); });

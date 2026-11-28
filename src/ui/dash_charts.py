@@ -64,6 +64,7 @@ font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-s
 .chart text.lbl-band{font-family:'IBM Plex Sans',system-ui,sans-serif;font-style:italic;font-size:var(--fs-12);fill:var(--muted)}
 .chart text.lbl-mark{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:var(--fs-12);fill:var(--text2)}
 .tt{--pitch:8px;display:grid;gap:0;height:24px;position:relative;grid-template-columns:repeat(var(--n),var(--pitch));width:calc(var(--n) * var(--pitch));max-width:100%}
+.tt.ts{display:block;background:var(--rule);height:14px;margin:5px 0}.tt.ts .fill{position:absolute;top:0;bottom:0;background:var(--ink)}
 .tt i{display:block;width:50%;justify-self:center;background:var(--rule)}.tt i.f{background:var(--ink)}
 .tt .zero,.tt .line{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1px dashed var(--muted)}
 .tt .zero{border-left:2px solid var(--ink);top:-5px;bottom:-5px}

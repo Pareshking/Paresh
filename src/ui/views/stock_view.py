@@ -23,6 +23,7 @@ don't have exit or SL so remove it"); the Factsheet window that showed them is g
 from __future__ import annotations
 
 import html
+import os
 from urllib.parse import quote
 
 import pandas as pd
@@ -98,6 +99,7 @@ a.sp-go:hover{text-decoration:underline}
 .lb .f{left:calc(var(--s) * var(--pitch));width:calc(var(--f) * var(--pitch));background:repeating-linear-gradient(to right,var(--c-ink) 0 var(--lw),transparent var(--lw) var(--pitch))}
 .lb .p{left:calc(var(--pa) * var(--pitch));width:var(--lw);top:auto;height:calc(var(--part) * 18px);background:var(--c-ink)}
 .lb .z{left:calc(var(--z) * var(--pitch) - 3px);width:2px;top:-3px;bottom:-3px;background:var(--c-ink)}
+.lb.solid::before{background:var(--c-rule)}.lb.solid .f{background:var(--c-ink);width:calc((var(--f) + var(--part)) * var(--pitch))}.lb.solid .p{display:none}
 .lb .m{left:calc(var(--m) * var(--pitch) - 4px);top:auto;bottom:-9px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:6px solid var(--c-muted)}
 .sp-t td.bar{padding-top:11px;padding-bottom:13px}
 .sp-checks{list-style:none;padding:0;margin:0;columns:2 26em;column-gap:32px;font-size:var(--fs-13)}
@@ -345,7 +347,7 @@ def rules_html(row, a: dict | None, q, ln, high_pct, ladder: sl.Ladder, held, ho
             f'<div>{book}<p class="dh-note">{e(sl.highs_note(row))}</p></div></div>', "</section>"]
 
 
-def returns_html(ws: list[sl.Window], as_of, uni, late: bool = False) -> list:
+def returns_html(ws: list[sl.Window], as_of, uni, late: bool = False, solid: bool = False) -> list:
     step = sl.line_step(ws)
     bs = sl.bars(ws, step)
     a, b, c = sl.returns_heading(ws)
@@ -359,7 +361,7 @@ def returns_html(ws: list[sl.Window], as_of, uni, late: bool = False) -> list:
         start = f'<span class="sub sp-wide">from {e(formats.date(w.start))}</span>' if w.start is not None else ""
         body.append(
             f'<tr><th scope="row">{w.months}M{start}</th>'
-            f'<td class="bar"><span class="lb" role="img" aria-label="{e(aria)}" style="{style}">{inner}</span></td>'
+            f'<td class="bar"><span class="lb{' solid' if solid else ''}" role="img" aria-label="{e(aria)}" style="{style}">{inner}</span></td>'
             f'<td class="n {_num_cls(w.ret)}">{formats.pct(w.ret)}</td><td class="n">{formats.pct(w.market)}</td>'
             f'<td class="n sp-wide {_num_cls(w.lead)}">{formats.pts(w.lead)}</td>'
             f'<td class="n sp-wide">{formats.pct(w.typical)}</td>'
@@ -646,7 +648,9 @@ def render_stock_view(
           + rank_html(row, uni, q, n_q, ln, tr)
           + rules_html(row, a_row, q, ln, high_pct, sl.ladder(row, closes, high_pct), held, holding, check,
                        events, last_res, fill)
-          + returns_html(ws, as_of, uni, late))
+          + returns_html(ws, as_of, uni, late)
+          + (['<p class="dh-note"><b>S240 preview:</b> the same rows as one solid bar each.</p>'] + returns_html(ws, as_of, uni, late, solid=True)
+             if os.environ.get("S240_PREVIEW") else []))
 
     # 4 · Price: the chart is a widget (the range control), so the section is drawn in pieces.
     ema = ranking_ema(chart_close) if not chart_close.empty else pd.Series(dtype=float)

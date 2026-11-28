@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -407,6 +408,8 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
         f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h2 id="s-month" class="dh-h2">{title if style_lag or gap is None else "Against Nifty Total Market and NSE’s momentum indices"}</h2>'
         f'<p class="dh-lede">{e(lede)}</p>{kp}<div class="dh-cap"><b>The month</b><span>to {as_of:%-d %b}, price return</span></div></div>',
         Chart("month", spec, {"note": f"Each line is {step:g}%; filled lines right of the dark zero line are a gain, left a fall.", "n": n}),
+        *([Chart("month", {**spec, "solid": True}, {"note": "S240 preview: the same rows as one solid bar each; right of the dark zero line is a gain, left a fall.", "n": n})]
+          if os.environ.get("S240_PREVIEW") else []),
         how("Each row is a return for the month: Nifty Total Market (about 750 stocks), the model book, "
             "and NSE’s momentum indices. Switch to the last finished month to compare.",
             "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "

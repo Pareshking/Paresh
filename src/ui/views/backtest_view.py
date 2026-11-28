@@ -18,6 +18,7 @@ import hashlib
 from time import perf_counter as _perf
 import html
 import json
+import os
 import re
 from pathlib import Path
 
@@ -764,6 +765,9 @@ def section_years(f: dict) -> list:
     return ['<div class="dh-sec">', _kick("3", "Year by year"), f'<h2 id="s-years" class="dh-h2">{h2}</h2>', "</div>",
             Chart("trows", spec, {"label": "Each calendar year: this rule, the Nifty 500 and the lead",
                                   "note": f"Each line is {step:g} pts"}),
+            *([Chart("trows", {**spec, "solid": True}, {"label": "S240 preview: each calendar year, solid bars",
+                                                         "note": "S240 preview: the same rows as one solid bar each"})]
+              if os.environ.get("S240_PREVIEW") else []),
             f'<div class="dh-sec dh-sec-cont"><p class="dh-note">{e(note)}</p>'
             f'<details><summary>Show the table · month by month</summary><div class="dh-scroll">{grid}</div></details></div>', END]
 
@@ -864,6 +868,9 @@ def section_depends(f: dict) -> list:
         parts += [f'<h2 id="s-depends" class="dh-h2">{h2}</h2>', "</div>",
                   Chart("trows", spec, {"label": "The default run, re-run with other costs and rules, and after tax",
                                         "note": f"Each line is {step:g}%; the dashed line is the Nifty 500"}),
+                  *([Chart("trows", {**spec, "solid": True}, {"label": "S240 preview: the re-runs, solid bars",
+                                                               "note": "S240 preview: the same rows as one solid bar each; the dashed line is the Nifty 500"})]
+                    if os.environ.get("S240_PREVIEW") else []),
                   '<div class="dh-sec dh-sec-cont">'
                   f'<p class="dh-note">The rows other than “As tested” '
                   f'and “Nifty 500” are re-run once a week on the default settings only (run of {_d(ref["built"])}). After tax: '
