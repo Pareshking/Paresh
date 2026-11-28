@@ -131,6 +131,7 @@ class Page:
     systems: list = field(default_factory=list)
     correlation: float | None = None
     system: str = "750"
+    corr_matrix: pd.DataFrame | None = None
 
 
 def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: str, benchmark_close) -> Page:
@@ -171,7 +172,7 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
         live = bx.exposure(tb, record_sector_map(sorted(set(tb["Symbol"].astype(str))), system), membership)
         exposure = bx.merge(exposure, live)
     mw = _market_weights(rank_df)
-    corr = correlation(series.prices, syms)[1]
+    corr_m, corr = correlation(series.prices, syms)
     systems = _systems(series.prices, benchmark_close, system, market, as_of)
     # The money put in, not the equity's first point: with no frozen month that point is today's
     # value, so the Nifty 1000 read "Started with ₹1,05,50,323" and a gain of ₹0 (S193 A2).
@@ -181,7 +182,7 @@ def gather(series, record: dict, ledger: dict, rank_df: pd.DataFrame, system: st
                 table=table, history=series.history, meta=meta, record=record, ledger=ledger, rank_df=rank_df,
                 prices=series.prices, cfg=dict(TRACK_RECORD_CONFIG), trails=trails, industry_state=state,
                 sizes=sizes, exposure=exposure, market_weights=mw, indices=idx, systems=systems,
-                correlation=corr, system=system)
+                correlation=corr, system=system, corr_matrix=corr_m)
 
 
 def _market_weights(rank_df: pd.DataFrame) -> dict[str, float]:
@@ -512,6 +513,29 @@ def size_shift(first_date, first, last) -> str:
     return out + f"Now {_fmt.fixed(lm_now, 0)}% is in Large Cap and Mid Cap. "
 
 
+def corr_parts(p: Page) -> list:
+    """How the holdings move together, pair by pair, folded (owner, 13 Oct 2026: collapsed; dropped on 21 Nov without
+    his decision, restored S239 on "Restore the 9", 28 Nov). Daily returns over 90 sessions; ink, darker for a closer pair."""
+    m = p.corr_matrix
+    if m is None or len(m) < 2:
+        return []
+    syms = list(m.columns)
+    pairs = sorted(((float(m.iloc[i, j]), syms[i], syms[j]) for i in range(len(syms)) for j in range(i + 1, len(syms))
+                    if pd.notna(m.iloc[i, j])), reverse=True)
+    top = "; ".join(f"{a} and {b}, {v:.2f}" for v, a, b in pairs[:3])
+    cell = lambda v: ("<td></td>" if pd.isna(v) else  # noqa: E731
+                      f'<td class="dh-num pf-hc" style="background:color-mix(in srgb,var(--c-ink) {max(0.0, v) * 70:.0f}%,var(--c-white));'
+                      f'color:{"var(--c-white)" if v >= 0.6 else "var(--c-ink)"}">{v:.2f}</td>')
+    grid = ('<table class="dh-tab pf-heat pf-corr"><thead><tr><th scope="col"></th>'
+            + "".join(f'<th scope="col" class="dh-num">{e(c)}</th>' for c in syms) + "</tr></thead><tbody>"
+            + "".join(f'<tr><th scope="row">{e(r)}</th>' + "".join(cell(m.loc[r, c]) if r != c else "<td></td>" for c in syms)
+                      + "</tr>" for r in syms) + "</tbody></table>")
+    avg = "" if p.correlation is None else f" · average {p.correlation:.2f}"
+    return [f'<details class="pf-corrbox"><summary>How they move together{avg}</summary>'
+            f'<p class="dh-note">Each cell is the correlation of two holdings’ daily returns over the last 90 sessions: 1 moves '
+            f'as one, 0 unrelated. The most alike: {e(top)}.</p><div class="dh-scroll">{grid}</div></details>']
+
+
 def section_exposure(p: Page) -> list:
     t = p.table
     now = (t.groupby("Sector / Industry")["Weight %"].sum()).to_dict()
@@ -571,7 +595,7 @@ def section_exposure(p: Page) -> list:
                  f'<span>{e(" · ".join(_fmt.size(k) for k in drawn))}</span></div>'
                  + srows + key + f'<p class="dh-note pf-gap">{e(note)}</p></div><div><div class="dh-cap"><b>Sectors, each rebalance</b>'
                  '<span>% of the book, the largest at any rebalance first</span></div>'
-                 f'<div class="dh-scroll">{heat}</div></div></div>'])
+                 f'<div class="dh-scroll">{heat}</div></div></div>'] + corr_parts(p))
 
 
 def section_returns(p: Page) -> list:
@@ -1091,6 +1115,7 @@ PF_CSS = """
 .pf-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:var(--fs-12);color:var(--c-muted);margin-top:6px}
 .pf-key span{display:flex;align-items:center;gap:6px}.pf-key i{width:12px;height:12px;border-radius:3px;display:inline-block}
 .dh-tab.pf-heat{min-width:560px}.pf-heat th,.pf-heat td{padding:3px 6px!important;line-height:1.3}.pf-heat thead th.dh-num{text-align:center!important}.pf-hc{text-align:center!important;font-size:var(--fs-12);border:1px solid var(--c-white)}
+.pf-corrbox{margin-top:var(--sp-4)}.pf-corrbox summary{cursor:pointer;font-weight:600;font-size:var(--fs-15)}.pf-corr th[scope=row],.pf-corr thead th{font-family:var(--font-mono);font-size:var(--fs-12)}
 .pf-hl th,.pf-hl td{background:var(--c-fill_soft)}
 .dh-tab.pf-grid{min-width:1060px}.pf-grid th,.pf-grid td{padding:7px 10px 7px 0}.pf-q{border-left:1px solid var(--c-rule)}
 .pf-yr th{font-weight:700;padding-top:12px!important;border-bottom:1px solid var(--c-rule)!important}.pf-ghost th{font-weight:400}
