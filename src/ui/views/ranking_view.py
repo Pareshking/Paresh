@@ -967,7 +967,8 @@ _MOVERS_CSS = (
     ".mv-t .pos{color:var(--c-up)}.mv-t .neg{color:var(--c-down)}"
     ".mv-held{font-size:var(--fs-12);font-family:var(--font-ui);font-weight:600;border:1px solid var(--c-ink);"
     "padding:0 4px;margin-left:6px;border-radius:4px}"
-    "@media (max-width:900px){.mv-grid{grid-template-columns:1fr;gap:28px}.mv-sec h2.mv-h{font-size:var(--fs-24)!important}}</style>"
+    ".mv-card{min-width:0}"
+    "@media (max-width:900px){.mv-grid{grid-template-columns:minmax(0,1fr);gap:28px}.mv-sec h2.mv-h{font-size:var(--fs-24)!important}}</style>"
 )
 
 

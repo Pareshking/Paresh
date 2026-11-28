@@ -2032,6 +2032,8 @@ HOME_CSS = """
 .dh-lede-s{margin:var(--sp-2) 0 0;font-size:var(--fs-13)}
 .dh-ev{font-size:var(--fs-12);font-weight:600;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block}
 .dh-ev-t{color:var(--c-up);background:var(--c-up_tint)}.dh-ev-c{color:var(--c-muted);background:var(--c-fill_soft)}
+/* S236 F17 (site audit, 28 Nov): at 390 px the badge and the signals table dragged the page sideways. */
+@media (max-width:600px){.dh-ev{white-space:normal}.dh-tab-sig th:first-child,.dh-tab-sig td:first-child,.dh-tab-sig th[scope=row]{position:sticky;left:0;z-index:1;background:var(--c-white);min-width:140px;max-width:160px}}
 .dh-ev-box{border-left:3px solid var(--c-rule);padding:2px 0 2px 12px;font-size:var(--fs-13)}
 .dh-ev-up{border-left-color:var(--c-up)}
 .dh-mbars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px}

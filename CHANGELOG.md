@@ -2,6 +2,7 @@
 
 
 ## 2026-11-28
+- Phone: the Dashboard and the Screener no longer drag sideways at 390 px, and the Dashboard's signals table keeps its first column in place while it scrolls.
 - Charts on the Dashboard, Portfolio, Market, Indices, Sectors and Backtest: a source line under each, saying where its figures come from (NSE Indices, NSE's daily closes, NSDL, the model book's record, or our own calculation from them).
 - Configuration: the reset button reads "Reset to defaults (weights only)"; the index-files dialog counts the rows in NSE's file, names a placeholder, and says why a list can hold more than its name.
 - Downloads (Screener, Actions' qualified list, Watchlist, Portfolio): every return and fall is in percent with " %" in its header, numbers have two decimals (the score four), and the Portfolio's lines carry no emoji. The Kite basket is unchanged.
