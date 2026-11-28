@@ -55,7 +55,7 @@ function linePane(el, o){
   let lo=Math.min(...all,...(o.levels||[]).map(l=>l.v)), hi=Math.max(...all,...(o.levels||[]).map(l=>l.v));
   if(o.range){lo=o.range[0];hi=o.range[1];} else {const pad=(hi-lo)*0.08;lo-=pad;hi+=pad;}
   const X=i=>padL+(W-padL-padR)*(n<2?0:i/(n-1)), Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo));
-  for(const b of o.bands||[]){ mk('rect',{x:padL,width:W-padL-padR,y:Y(b.to),height:Y(b.from)-Y(b.to),fill:b.fill},svg);
+  for(const b of o.bands||[]){ const bx=b.i>0?X(Math.min(b.i,n-1)):padL; mk('rect',{x:bx,width:Math.max(0,W-padR-bx),y:Y(b.to),height:Y(b.from)-Y(b.to),fill:b.fill},svg);
     // Its label just above the band, at whichever end the lines leave clear (the end whose highest point is lower).
     if(b.label){ const k=Math.max(1,Math.round(n*.3)), top=a=>Math.max(...o.series.flatMap(x=>a(x.values).filter(v=>v!=null)));
       const right=top(v=>v.slice(-k))<top(v=>v.slice(0,k));
@@ -437,7 +437,7 @@ R.lines = (card, s) => {
     pane = linePane(el, {dates: s.dates.slice(from), series: s.series.map(x => ({name: x.name, color: css('--' + x.color), values: x.values.slice(from), dash: x.dash ? '5 4' : '', width: x.width || 2})),
       height: h, padL: 44, padR: 8, yfmt: fmt, range: yr, ticks: 4,
       levels: (s.levels || []).map(l => ({v: l.v, label: l.label, color: css('--' + (l.color || 'muted'))})),
-      bands: (s.bands || []).map(b => ({from: b.from, to: b.to, label: b.label, fill: css('--' + (b.color || 'up-soft'))})),
+      bands: (s.bands || []).map(b => ({from: b.from, to: b.to, label: b.label, i: b.start ? s.dates.indexOf(b.start) - from : 0, fill: css('--' + (b.color || 'up-soft'))})),
       marks: (s.marks || []).map(m => ({i: s.dates.indexOf(m.date) - from, v: m.v, label: m.label, below: m.below}))}); };
   // A stated range (S193 H) sets the chips and the default; the older chips [[label, sessions]] open on the last.
   if (s.range && !Array.isArray(s.range)) from = rangeChips(card, s, () => s.dates, i => { from = i; draw(); el.dispatchEvent(new Event('blur')); });

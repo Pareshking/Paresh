@@ -6,6 +6,8 @@ the app's copy of NSE's daily index files (src/loaders/nse_indices.read_compact)
 """
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -694,6 +696,80 @@ def section_every(f: ip.Frames, rows: dict[str, list[ip.IndexRow]], as_of: pd.Ti
     return parts
 
 
+PB_BREAKS = (pd.Timestamp("2023-09-29"), pd.Timestamp("2024-09-23"))   # NSE's P/B basis changes (DATA_CORRECTNESS)
+VALUE_RANGE = {"default": "all", "why": "record"}
+
+
+def _segments(s: pd.Series, breaks: tuple, names: list[str]) -> list[dict]:
+    """One series per basis, so a basis change is a gap, not a fall: the older ones faint, the current one ink."""
+    edges = [s.index[0] - pd.Timedelta(days=1), *breaks, s.index[-1] + pd.Timedelta(days=1)]
+    out = []
+    for i, nm in enumerate(names):
+        last = i == len(names) - 1
+        out.append({"name": nm, "color": "ink" if last else "faint", "width": 1.8 if last else 1.4,
+                    "values": [round(float(v), 2) if edges[i] <= d < edges[i + 1] or (last and d >= edges[i]) else None
+                               for d, v in s.items()]})
+    return out
+
+
+def value_history_head(name: str, pe: float | None, pe_pct: float | None, pb: float | None, dy: float | None) -> str:
+    """The answer first (PAGE_DESIGN §2b): the three readings now and where the P/E sits on its own basis."""
+    bits = [b for b in (None if pe is None else f"P/E {pe:.1f}", None if pb is None else f"P/B {pb:.2f}",
+                        None if dy is None else f"dividend yield {dy:.2f}%") if b]
+    tail = "" if pe_pct is None else f"; its P/E is higher than on {pe_pct:.0f}% of days since {_dy(ip.PE_FROM)}"
+    return f"{name}: " + ", ".join(bits) + tail
+
+
+def section_value_history(f: ip.Frames, key: str) -> list:
+    """S241 (2), owner 28 Nov 2026 ("P/B and yield history"): one index's P/E, P/B and dividend yield over the whole
+    record, each basis change marked as a break, the usual range shaded on the current basis only. Its own section
+    (PAGE_DESIGN §2b); the caller picks the index."""
+    pe, pb, dy = (getattr(f, k)[key].dropna() if key in getattr(f, k) else pd.Series(dtype=float) for k in ("pe", "pb", "dy"))
+    if pe.empty and pb.empty and dy.empty:
+        return []
+    name = f.names.get(key, key)
+    pe_w, pb_w, dy_w = ip.weekly(pe), ip.weekly(pb), ip.weekly(dy)
+    pe_new = pe[pe.index >= ip.PE_FROM]
+    pe_pct = float((pe_new < pe_new.iloc[-1]).mean() * 100) if len(pe_new) > 250 else None
+    parts = [f'<div class="dh-sec">{KICK.format("Valuation, the whole record")}<h2 id="s-value-history" class="dh-h2">'
+             f'{e(value_history_head(name, pe.iloc[-1] if len(pe) else None, pe_pct, pb.iloc[-1] if len(pb) else None, dy.iloc[-1] if len(dy) else None))}'
+             '</h2></div>']
+    def band(s, since):
+        r = s[s.index >= since]
+        # The band starts where its basis does (the lines kit's `start`), not across the older readings.
+        return [] if len(r) < 50 else [{"from": round(float(r.quantile(.25)), 2), "to": round(float(r.quantile(.75)), 2),
+                                        "color": "fill", "start": f"{r.index[0]:%Y-%m-%d}"}]
+    if len(pe_w):
+        parts += ['<div class="dh-cap"><b>P/E</b><span>weekly; NSE changed the earnings basis on 31 Mar 2021</span></div>',
+                  Chart("lines", {"dates": [f"{d:%Y-%m-%d}" for d in pe_w.index], "yfmt": "num",
+                                  "series": _segments(pe_w, (ip.PE_FROM,), ["P/E, old basis", "P/E since 31 Mar 2021"]),
+                                  "bands": band(pe_w, ip.PE_FROM), "levels": [], "range": VALUE_RANGE},
+                        {"label": f"{name} P/E, weekly, the 2021 basis change a break"})]
+    if len(pb_w):
+        parts += ['<div class="dh-cap"><b>P/B</b><span>weekly; NSE changed the basis on 29 Sep 2023 and 23 Sep 2024</span></div>',
+                  Chart("lines", {"dates": [f"{d:%Y-%m-%d}" for d in pb_w.index], "yfmt": "num",
+                                  "series": _segments(pb_w, PB_BREAKS, ["P/B to Sep 2023", "P/B Sep 2023 to Sep 2024",
+                                                                         "P/B since 23 Sep 2024"]),
+                                  "bands": band(pb_w, PB_BREAKS[-1]), "levels": [], "range": VALUE_RANGE},
+                        {"label": f"{name} P/B, weekly, the 2023 and 2024 basis changes breaks"})]
+    x = record_line.facts(dy_w, min_days=50) if len(dy_w) else None
+    if x is not None:
+        f2 = lambda v: f"{v:.2f}%"  # noqa: E731
+        parts += ['<div class="dh-cap"><b>Dividend yield</b><span>weekly, one basis throughout</span></div>',
+                  Chart("lines", {**record_line.chart_spec(x, "Dividend yield", f2, yfmt="pct", nd=2), "range": VALUE_RANGE},
+                        {"label": f"{name} dividend yield, weekly"})]
+    parts += [how("NSE's own trailing P/E, price to book and dividend yield for the index, each week. Where NSE changed how "
+                  "a measure is worked out, the line breaks and the older stretch is grey: those readings are a different "
+                  "measure, and the drop at the change is not a fall in price.",
+                  "The shaded band is the middle half of weeks on the current basis only (P/E since 31 Mar 2021, P/B since "
+                  "23 Sep 2024, dividend yield since the record began). Above the band is dearer than three weeks in four.",
+                  ["Week", "P/E", "P/B", "Dividend yield"],
+                  [[f"{d:%Y-%m-%d}", "–" if pd.isna(pe_w.get(d)) else f"{pe_w.get(d):.2f}",
+                    "–" if pd.isna(pb_w.get(d)) else f"{pb_w.get(d):.2f}", "–" if pd.isna(dy_w.get(d)) else f"{dy_w.get(d):.2f}%"]
+                   for d in list(pe_w.index[::-1])[:520]])]
+    return parts
+
+
 def page_parts(f: ip.Frames, system: str | None = None, scope: str = "all", part: str = "all") -> list:
     """The page, or one part of it: "pre" (header and valuation), "post" (earnings onwards), for the earnings switch
     between the two (S231)."""
@@ -723,6 +799,11 @@ def render_indices_view() -> None:
     from src.ui import system_param
     system = system_param.current()
     emit(page_parts(f, system, part="pre"))
+    if os.environ.get("S241_PREVIEW"):
+        keys = sorted((k for k in f.pe.columns if f.pe[k].notna().any()), key=lambda k: f.names.get(k, k))
+        pick = st.selectbox("Index", keys, index=keys.index("nifty_500") if "nifty_500" in keys else 0,
+                            format_func=lambda k: f.names.get(k, k), key="ix_value_pick")
+        emit(section_value_history(f, pick))
     scope = "all"
     if er.ours(scope="ex_financials") is not None:
         with st.container(horizontal=True, horizontal_alignment="right", key="ix_earn_scope_row"):
