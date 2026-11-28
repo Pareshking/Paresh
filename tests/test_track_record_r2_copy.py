@@ -69,5 +69,12 @@ def test_a_copy_that_does_not_read_back_fails(tmp_path):
 
 def test_every_ledger_file_is_in_git_and_kept_by_retention():
     for rel in trc.LEDGER_FILES:
-        assert (ROOT / rel).exists(), rel
+        # The Nifty 1000's is first written at its first freeze (1-5 Dec 2026), the others already are.
+        assert (ROOT / rel).exists() or rel == "data/track_record_1000.json", rel
     assert "record/ledger/" in (ROOT / "scripts/r2_retention.py").read_text()
+
+
+def test_every_system_s_ledger_is_copied():
+    # S236: the Nifty 1000's ledger was not in the copy.
+    from src.engine.systems import LEDGERS
+    assert {str(p.relative_to(ROOT)) for p in LEDGERS.values()} == set(trc.LEDGER_FILES)

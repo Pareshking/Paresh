@@ -2,6 +2,10 @@
 
 
 ## 2026-11-28
+- > ₹2,000 Cr and Combined: market caps are now NSE's figure for the latest close, as on the 750 and the Nifty 1000; they were the month-end list's (JLHL read ₹8,430 Cr against NSE's ₹11,320 Cr).
+- Stock page: a stock NSE has renamed (SHUKRAPHAR to SHUKRAMED, 20 Nov) now says so on every system and links to the list that ranks it; on the Nifty 750 it read "in none of the systems' lists".
+- Portfolio: the "This year against other indices" table measures the indices from the 1 Jan fill, as the By period table beside it does (Nifty Total Market +0.6% in both; one read +0.7%).
+- Indices, Sectors, Dashboard (Combined): three notes now say what the page does: Tata Motors is left out of Q2 and Q3 FY26 and Q2 FY27; the grouping switch's choices are NSE's four levels; Combined's momentum tiles read the Nifty 750's record. Footers read "1,000 stocks ranked".
 - Indices: the earnings tables show the week's figures as soon as they are published, instead of after the site's next update.
 - Every page: the 26 Nov fix for a page failing for a moment while the site updated stopped holding after the next update (its lock was replaced on each update). It now keeps one lock for as long as the server runs.
 
