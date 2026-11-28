@@ -762,7 +762,7 @@ def section_value_history(f: ip.Frames, key: str) -> list:
                   "a measure is worked out, the line breaks and the older stretch is grey: those readings are a different "
                   "measure, and the drop at the change is not a fall in price.",
                   "The shaded band is the middle half of weeks on the current basis only (P/E since 31 Mar 2021, P/B since "
-                  "23 Sep 2024, dividend yield since the record began). Above the band is dearer than three weeks in four.",
+                  "23 Sep 2024, dividend yield since Feb 2012). Above the band is dearer than three weeks in four.",
                   ["Week", "P/E", "P/B", "Dividend yield"],
                   [[f"{d:%Y-%m-%d}", "–" if pd.isna(pe_w.get(d)) else f"{pe_w.get(d):.2f}",
                     "–" if pd.isna(pb_w.get(d)) else f"{pb_w.get(d):.2f}", "–" if pd.isna(dy_w.get(d)) else f"{dy_w.get(d):.2f}%"]

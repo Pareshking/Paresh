@@ -943,11 +943,11 @@ def flows_record_parts(r: pd.DataFrame | None) -> list:
               {"name": "Foreign, new issues", "color": "muted", "values": rnd(r["primary_net"]), "width": 1.6}]
     if "dii" in r:
         series.append({"name": "Domestic institutions, NSE", "color": "s-dii", "values": rnd(r["dii"]), "width": 1.6})
-    return [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>{head}</b><span>12-month sums at each month-end, '
+    return [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>{head}</b><span>sums over 12 months at each month-end, '
             '₹ lakh Cr</span></div></div>',
             Chart("lines", {"dates": dates, "yfmt": "num", "series": series, "bands": [], "levels": [{"v": 0}],
                             "range": FLOW_RECORD_RANGE},
-                  {"label": "Foreign flows on the exchanges and into new issues, and domestic institutions, 12-month sums at each month-end"}),
+                  {"label": "Foreign flows on the exchanges and into new issues, and domestic institutions, sums over 12 months at each month-end"}),
             how("NSDL's confirmed foreign portfolio equity flows, summed over the 12 months to each month-end: what "
                 "foreign investors bought less sold on the exchanges, and what they put into new issues (IPOs, QIPs, "
                 "rights). Domestic institutions are NSE's own category figures, NSE only, from January 2021. Finished "
