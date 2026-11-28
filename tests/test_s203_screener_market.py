@@ -78,10 +78,12 @@ def test_sc_head_1_no_ranking_and_no_date():
 def test_sc_head_2(system):
     uni = UNIVERSE_SHORT[system]
     df = _ranks(750, 300)
-    want = (f"The 750 ranked stocks of the {uni}, by momentum at the 20 Nov close. "
+    # The list's name only where it is not the count itself (owner, 28 Nov 2026: "Drop the repeat").
+    who = "The 750 stocks, ranked by momentum" if uni == "750" else f"The 750 stocks of the {uni}, ranked by momentum"
+    want = (f"{who} at the 20 Nov close. "
             f"The book buys the top {BUY} qualified and keeps a holding while it is in the top {KEEP}.")
     assert _clean(rv.screener_lede(df, PX, uni)) == want
-    assert rv.screener_lede(df, None, uni).startswith(f"The 750 ranked stocks of the {uni}, by momentum. ")   # no date
+    assert rv.screener_lede(df, None, uni).startswith(f"{who}. ")   # no date
 
 
 def test_sc_head_2_follows_the_config(monkeypatch):

@@ -130,7 +130,7 @@ or a reason (S195 §4). Part E also gives three corrections to `docs/DATA_CATALO
 
 1. **Restore list: answered 28 Nov, "Restore the 9".** Items 1-8 and 11 of §1 come back, each previewed on real data first and each with a requirements row so a later redesign cannot drop it again; 9, 10, 12 and 13 stay out.
 2. **Tick strips: answered 28 Nov, "Preview replacements".** The Dashboard §1 month strip, the stock page's returns bars and the Backtest's year and sensitivity strips each get a bars-or-lines version built on real data beside the current strip; the owner approves or rejects each; nothing changes before that.
-3. **Screener lede:** "The 750 ranked stocks of the 750" (template sc.head.2). Proposed: "The 750 stocks, ranked by momentum at the 27 Nov close."
+3. **Screener lede: answered 28 Nov, "Drop the repeat"; built** ("The 750 stocks, ranked by momentum at the 27 Nov close."; a list named in words, or a count short of its number, keeps the name).
 4. **Unused data:** which items of §2 to show, and on which page.
 
 Already answered: source lines (owner, 28 Nov: "Revert to my rule"); no new CSV links (owner, 28 Nov).
