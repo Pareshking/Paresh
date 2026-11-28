@@ -90,21 +90,23 @@ def build_gates(close: pd.DataFrame, bench: pd.Series) -> dict[str, pd.DataFrame
     return gates
 
 
-def run(close, bench, gate=None, mode="both", **extra):
-    membership = iu.index_history("nifty_500")
+def run(close, bench, gate=None, mode="both", index_key="nifty_500", start=START, **extra):
+    membership = iu.index_history(index_key)
     cols = sorted(iu.ever_members(membership) & set(close.columns))
     frame = close.loc[:, cols].astype("float64")
-    months = (pd.Period(frame.index[-1], "M") - pd.Period(START, "M")).n
+    months = (pd.Period(frame.index[-1], "M") - pd.Period(start, "M")).n
     fn = run_backtest
     while hasattr(fn, "__wrapped__"):
         fn = fn.__wrapped__
     g = gate.loc[:, [c for c in cols if c in gate.columns]] if gate is not None else None
-    return fn("rs-test", frame, top_n=cfg["top_n"], rebal_freq=21, ema_period=cfg["ema_period"],
+    kw = dict(top_n=cfg["top_n"], rebal_freq=21, ema_period=cfg["ema_period"],
               high_pct=cfg["high_pct"], weight_method=cfg["weight_method"], config_weights=cfg["config_weights"],
               cost_bps=cfg["cost_bps"], buffer_n=cfg["buffer_n"], stock_cap=cfg["stock_cap"],
               sector_cap=cfg["sector_cap"], sector_map=record_sector_map(cols), _benchmark_close=bench,
               backtest_months=months, _membership=membership, stateful_history=True,
-              history_start=pd.Timestamp(START), _actions=[], extra_gate=g, extra_gate_mode=mode, **extra)
+              history_start=pd.Timestamp(start), _actions=[], extra_gate=g, extra_gate_mode=mode)
+    kw.update(extra)
+    return fn("rs-test", frame, **kw)
 
 
 def stats(eq: pd.Series) -> dict:
