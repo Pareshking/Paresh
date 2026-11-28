@@ -686,7 +686,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
             # S237 G3 (owner approved 28 Nov 2026): the share against its whole record, as tipsheet's breadth page.
             from src.ui import dash_charts as dc
             pc = lambda v: f"{_fmt.fixed(v, 0)}%"  # noqa: E731
-            left, right = st.columns([1, 2], gap="large")
+            left, right = st.columns([1, 2], gap="medium")
             with left:
                 st.html(feature_html(x, universe))
             with right:
