@@ -605,7 +605,7 @@ _CHART_CSS = """<style>
 
 
 def head_lede(breadth, trend, universe: str, name: str = mq.MARKET) -> str:
-    """Two sentences under the question (S237 G1 form on Market, tipsheet's breadth page; preview): the share above
+    """Two sentences under the question (S237 G1 form on Market, tipsheet's breadth page; owner approved 28 Nov 2026): the share above
     the 200D EMA and where it sits in its record, then the trend. Colour on the share only, by its vote."""
     out = []
     m = next((x for x in (breadth.measures if breadth else []) if x.primary and x.now is not None), None)
@@ -637,7 +637,7 @@ def feature_html(x: dict, universe: str) -> str:
 _FEAT_CSS = """<style>
 .qp-brief .qp-date{margin:0 0 10px;color:var(--c-muted);font-size:var(--fs-13)}
 .qp-brief .qp-sub b{font-weight:600}.qp-brief .qp-sub .dh-up{color:var(--c-up)}.qp-brief .qp-sub .dh-down{color:var(--c-down)}
-.qp-big{margin:4px 0 2px!important;font-family:var(--font-serif)!important;font-size:72px!important;line-height:1!important}
+.qp-big{margin:4px 0 2px!important;font-family:var(--font-serif)!important;font-size:var(--fs-52)!important;line-height:1!important}
 .qp-feat-t{font-size:var(--fs-17);line-height:1.5;margin:16px 0 0!important;max-width:380px}
 </style>"""
 
@@ -683,16 +683,17 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
         from src.ui import record_line
         x = record_line.facts(share200)
         if x is not None:
-            # S237 G3 (preview): the share against its whole record, as tipsheet's breadth page.
+            # S237 G3 (owner approved 28 Nov 2026): the share against its whole record, as tipsheet's breadth page.
             from src.ui import dash_charts as dc
             pc = lambda v: f"{_fmt.fixed(v, 0)}%"  # noqa: E731
             left, right = st.columns([1, 2], gap="large")
             with left:
                 st.html(feature_html(x, universe))
             with right:
-                dc.render("lines", record_line.chart_spec(x, "Share above their 200D EMA", pc, yfmt="pct", nd=1),
+                dc.render("lines", {**record_line.chart_spec(x, "Share above their 200D EMA", pc, yfmt="pct", nd=1),
+                                   "range": {"default": "all", "why": "record"}},
                           label=f"Share of the {universe} above their 200D EMA, each day since {x['since']:%b %Y}")
-                st.html('<p class="qp-note">The share of the ranked stocks closing above their own 200-day EMA, '
+                st.html('<p class="qp-note">The share of the ranked stocks closing above their own 200D EMA, '
                         'each trading day; the shaded band is the middle half of those days. Source: NSE closes.</p>')
         st.html(question_section_html(breadth, "breadth", "q-breadth")
                 + '<p class="qp-behind">Behind the answer</p>')

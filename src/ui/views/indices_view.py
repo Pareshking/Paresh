@@ -33,7 +33,7 @@ IX_CSS = """
 .ix-every th[scope=row]{font-weight:500;white-space:normal;min-width:170px}
 .ix-every .dh-sub{white-space:nowrap}
 .ix-q td.up{color:var(--c-up)}.ix-q td.down{color:var(--c-down)}.ix-q th[scope=row]{min-width:0;white-space:nowrap}.ix-q thead th{white-space:normal}
-.ix-big{margin:4px 0 2px!important;font-family:var(--font-serif)!important;font-size:72px!important;line-height:1!important;font-weight:400!important}
+.ix-big{margin:4px 0 2px!important;font-family:var(--font-serif)!important;font-size:var(--fs-52)!important;line-height:1!important;font-weight:400!important}
 .ix-feat-t{font-size:var(--fs-17);line-height:1.5;margin:16px 0 0!important;max-width:380px}
 .ix-for{margin:0 0 14px!important}
 .ix-fam{margin:8px 0 0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;line-height:1.3!important}
@@ -97,13 +97,13 @@ NAV = (("s-valuation", "P/E"), ("s-earnings", "Earnings"), ("s-styles", "Styles"
 
 
 def head(vals: list[ip.Valuation], as_of: pd.Timestamp) -> list:
-    """The first screen (S237 G1/G6 on Indices, preview): a date line, the question, the answer in two sentences,
+    """The first screen (S237 G1/G6 on Indices, owner approved 28 Nov 2026): a date line, the question, the answer in two sentences,
     the page's sections."""
     by = {v.key: v for v in vals}
     nav = "".join(f'<a href="#{a}" class="dh-pill">{e(t)}</a>' for a, t in NAV)
     return ['<section class="dh-brief dh-brief2" aria-label="Indices in brief">'
             f'<p class="dh-date">Indices · end of day, {_fmt.date(as_of)}</p>'
-            '<h1 id="s-top" class="dh-h1 dh-head">Is the market cheap or dear against its own past?</h1>'
+            '<h1 id="s-top" class="dh-h1 dh-head">Are NSE’s indices cheap or dear against their own past?</h1>'
             f'<p class="dh-lede2">{head_lede(by.get("nifty_50"), by.get("nifty_smallcap_250"))}</p>'
             '<p class="dh-note ix-for">NSE\'s own indices. Price returns; dividends are not added.</p>'
             f'<nav class="dh-pills" aria-label="On this page">{nav}</nav></section>']
@@ -122,7 +122,7 @@ def section_pe_feature(f: ip.Frames) -> list:
     left = [f'<div class="dh-sec ix-feat">{KICK.format("Nifty 50 P/E")}<p class="ix-big">{f1(x["now"])}</p>'
             f'<p class="dh-note">times earnings, {_fmt.date(x["day"])}</p>'
             f'<p class="ix-feat-t">{e(record_line.words(x, f1, since))}</p></div>']
-    chart = Chart("lines", {**record_line.chart_spec(x, "Nifty 50 P/E", f1, range_=PE_RANGE)},
+    chart = Chart("lines", {**record_line.chart_spec(x, "Nifty 50 P/E", f1), "range": PE_RANGE},
                   {"label": f"Nifty 50 P/E, each day since {since}"})
     note = how(f"NSE's trailing P/E for the Nifty 50 each trading day since {since}, the day NSE changed the "
                "earnings basis; the shaded band is the middle half of those days.",
@@ -173,7 +173,7 @@ def valuation_headline(n50: ip.Valuation | None, s250: ip.Valuation | None) -> s
 
 
 def spread_headline(vals: list[ip.Valuation]) -> str:
-    """The valuation heading once the first screen gives the Nifty 50 and the Smallcap 250 (S237 preview): which of
+    """The valuation heading once the first screen gives the Nifty 50 and the Smallcap 250 (S237, owner approved 28 Nov 2026): which of
     the broad indices is cheapest and dearest against its own past."""
     if len(vals) < 3:
         return ""

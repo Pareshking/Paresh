@@ -75,25 +75,33 @@ def _frames(tm_pe_from: str | None = "2021-10-14", late_tm: bool = False) -> ip.
     return ip.Frames(close, pe, pe * 0 + 3.0, pe * 0 + 1.2, names, {k: "Broad market" for k in keys})
 
 
-# ── ix.head.1, ix.head.2 ──
+# ── ix.head.1, ix.head.2 (S237: the question and its two sentences, owner approved 28 Nov 2026) ──
 
 @pytest.mark.parametrize("b, s, want", [
-    (20, 80, "The Nifty 50's P/E is below its median since Mar 2021; the Nifty Smallcap 250's is above it."),
-    (80, 20, "The Nifty 50's P/E is above its median since Mar 2021; the Nifty Smallcap 250's is below it."),
-    (20, 30, "The Nifty 50's P/E is at the 20th percentile of its days since Mar 2021; the Nifty Smallcap 250's at the 30th."),
-    (50, 70, "The Nifty 50's P/E is at its median since Mar 2021; the Nifty Smallcap 250's at the 70th."),
+    (20, 80, "The Nifty 50 trades at 22.0 times trailing earnings, cheaper than on 80% of days since 31 Mar 2021; "
+             "the Nifty Smallcap 250, at 22.0, is dearer than on 80%. A P/E says what you are paying, not what happens next."),
+    (79.5, 20.5, "The Nifty 50 trades at 22.0 times trailing earnings, dearer than on 80% of days since 31 Mar 2021; "
+                 "the Nifty Smallcap 250, at 22.0, is cheaper than on 80%. A P/E says what you are paying, not what happens next."),
+    (50, 70, "The Nifty 50 trades at 22.0 times trailing earnings, at its median since 31 Mar 2021; "
+             "the Nifty Smallcap 250, at 22.0, is dearer than on 70%. A P/E says what you are paying, not what happens next."),
     (None, None, "NSE's index P/Es are not in yet."),
 ])
 def test_ix_head_1(b, s, want):
     vals = [] if b is None else [_val("nifty_50", b), _val("nifty_smallcap_250", s)]
-    assert _tag(iv.head(vals, NOV)[0], "h1") == want
+    html = iv.head(vals, NOV)[0]
+    assert _tag(html, "h1") == "Are NSE’s indices cheap or dear against their own past?"
+    assert _tag(html, 'p class="dh-lede2"') == want
+
+
+def test_ix_head_colour_sits_on_the_figures_only():
+    html = iv.head([_val("nifty_50", 20), _val("nifty_smallcap_250", 80)], NOV)[0]
+    assert re.findall(r'class="dh-(?:up|down)">([^<]*)<', html) == ["80%", "80%"]
 
 
 def test_ix_head_2():
-    assert _tag(iv.head([], NOV)[0], "p class=\"dh-lede\"") == (
-        "NSE's own indices, read at the 20 Nov close: what each index costs against its recent past, which investing "
-        "styles beat their parent index, and how deep a median year's max drawdown goes for each size. Price returns; "
-        "dividends are not added.")
+    html = iv.head([], NOV)[0]
+    assert _tag(html, 'p class="dh-date"') == "Indices · end of day, 20 Nov 2026"
+    assert "Price returns; dividends are not added." in html
 
 
 # ── ix.val.1 to ix.val.4 ──

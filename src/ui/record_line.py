@@ -46,9 +46,9 @@ def words(x: dict, fmt: Callable[[float], str], since_words: str) -> str:
     return out
 
 
-def chart_spec(x: dict, name: str, fmt: Callable[[float], str], yfmt: str = "num", range_: dict | None = None,
-               nd: int = 2) -> dict:
-    """The "lines" spec: the record as one ink line, the usual range shaded and named, the extremes labelled."""
+def chart_spec(x: dict, name: str, fmt: Callable[[float], str], yfmt: str = "num", nd: int = 2) -> dict:
+    """The "lines" spec: the record as one ink line, the usual range shaded and named, the extremes labelled.
+    The caller adds its "range" (S193 H: every date chart states the range it opens on)."""
     r = x["series"]
     spec = {"dates": [f"{d:%Y-%m-%d}" for d in r.index], "yfmt": yfmt,
             "series": [{"name": name, "color": "ink", "values": [round(float(v), nd) for v in r], "width": 1.6}],
@@ -58,8 +58,6 @@ def chart_spec(x: dict, name: str, fmt: Callable[[float], str], yfmt: str = "num
                       {"date": f"{x['lo_d']:%Y-%m-%d}", "v": round(x["lo"], nd), "label": f"{fmt(x['lo'])}, {x['lo_d']:%b %Y}",
                        "below": True}],
             "levels": []}
-    if range_ is not None:
-        spec["range"] = range_
     return spec
 
 
