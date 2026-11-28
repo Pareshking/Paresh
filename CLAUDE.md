@@ -20,6 +20,10 @@ Read, in this order:
 Before redesigning a page, read `docs/PAGE_DESIGN.md`: the content, table,
 chart and data-check rules the Dashboard redesign settled, with their sources.
 
+Two project skills hold these as steps (owner, 28 Nov 2026: "We must have advanced skills for data, design"):
+`.claude/skills/page-redesign` for any page change (the inventory, the owner's rules, a before/after list) and
+`.claude/skills/data-check` for any figure or dataset.
+
 ## Rules that have been decided
 
 - Judge a fix by independent evidence (a different source, dated, quoted). A

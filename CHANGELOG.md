@@ -2,6 +2,7 @@
 
 
 ## 2026-11-28
+- Screener: the lede reads "The 750 stocks, ranked by momentum…" instead of "The 750 ranked stocks of the 750". Stock page: a falling relative strength reads in the down colour.
 - Screener: the search finds a stock NSE listed in the past year that is too new to rank ("HEGRAPHITE · listed 27 Nov 2026") and opens its page; it gave "No results".
 - Indices and Market: each page opens with its question and the answer in two sentences ("Are NSE’s indices cheap or dear against their own past?"; "Is Nifty Total Market rising, and are most stocks rising with it?"), then one figure against its own record: the Nifty 50's P/E (20.9) and the share of the 750 above their 200D EMA (45%), each beside a line with its usual range shaded and its highest and lowest day labelled. Colour marks the figures only.
 - Dashboard: the first screen gives the answer first: the date, one headline ("The book is up 6.2% so far in November, 3.0 points behind Nifty Total Market."), and two plain sentences on the signals, the sales at the next check and a narrow rally. Colour marks the figures only; on a phone the section links sit in one row.

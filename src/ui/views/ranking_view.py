@@ -812,7 +812,12 @@ def screener_lede(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None, univers
     """S203 sc.head.2: the list named ({uni}), the book's two numbers from the rules (rule 9)."""
     when = "" if adj_close is None or not len(adj_close.index) else f" at the {pd.Timestamp(adj_close.index[-1]):%-d %b} close"
     buy, keep = _top_n()
-    return (f"The {len(rank_df):,} ranked stocks of the {universe}, by momentum{when}. The book buys the top {buy} "
+    n = len(rank_df)
+    # The list's name is dropped where it only repeats the count (owner, 28 Nov 2026: "Drop the repeat"; it read "The 750
+    # ranked stocks of the 750"); a list named in words, or a count short of the list's number, keeps it.
+    who = (f"The {n:,} stocks, ranked by momentum" if universe.isdigit() and int(universe) == n
+           else f"The {n:,} stocks of the {universe}, ranked by momentum")
+    return (f"{who}{when}. The book buys the top {buy} "
             f"qualified and keeps a holding while it is in the top {keep}.")
 
 
