@@ -17,6 +17,7 @@ from src.ui import page_kit as kit
 from src.engine import earnings_review as er
 from src.engine import indices_page as ip
 from src.ui import indices_data
+from src.ui import record_line
 from src.ui.views.dashboard_home_view import HOME_CSS, Chart, Cols, emit, how, html_of, sg, tone
 
 e = __import__("html").escape
@@ -108,59 +109,25 @@ def head(vals: list[ip.Valuation], as_of: pd.Timestamp) -> list:
             f'<nav class="dh-pills" aria-label="On this page">{nav}</nav></section>']
 
 
-def pe_story(pe: pd.Series, as_of: pd.Timestamp) -> dict | None:
-    """The Nifty 50's P/E on NSE's basis since 31 Mar 2021: now, its usual range (the middle half of days, as the
-    page's other P/E charts), the highest and lowest day, and a year ago."""
-    reg = pe.dropna()
-    reg = reg[(reg.index >= ip.PE_FROM) & (reg.index <= as_of)]
-    if len(reg) < 250:
-        return None
-    y1 = ip.on_or_before(reg, ip.months_back(as_of, 12))
-    return {"now": float(reg.iloc[-1]), "day": reg.index[-1], "q25": float(reg.quantile(.25)), "q75": float(reg.quantile(.75)),
-            "hi": float(reg.max()), "hi_d": reg.idxmax(), "lo": float(reg.min()), "lo_d": reg.idxmin(),
-            "ago": None if y1 is None else float(reg[y1]), "since": reg.index[0], "series": reg}
-
-
-def pe_story_words(x: dict) -> str:
-    f1 = lambda v: _fmt.fixed(v, 1)  # noqa: E731
-    now, lo, hi = x["now"], x["q25"], x["q75"]
-    where = ("Inside its usual range" if lo <= now <= hi else "Below its usual range" if now < lo else "Above its usual range")
-    out = (f"{where} of {f1(lo)} to {f1(hi)}, the middle half of days since {_dy(x['since'])}. "
-           f"The highest was {f1(x['hi'])}, in {x['hi_d']:%B %Y}; the lowest {f1(x['lo'])}, in {x['lo_d']:%B %Y}.")
-    if x["ago"] is not None and not _fmt.reads_zero(round(now, 1) - round(x["ago"], 1)):
-        out += f" {'Down' if now < x['ago'] else 'Up'} from {f1(x['ago'])} a year ago."
-    return out
-
-
 def section_pe_feature(f: ip.Frames) -> list:
     """One index, one number, one line (S237 G3, tipsheet's "Nifty 50 P/E 20.9" block): the figure beside its
     record on one basis, the usual range shaded and the highest and lowest day labelled."""
     if "nifty_50" not in f.pe:
         return []
-    x = pe_story(f.pe["nifty_50"], f.as_of)
+    x = record_line.facts(f.pe["nifty_50"], f.as_of, since=ip.PE_FROM)
     if x is None:
         return []
-    r = x["series"]
-    dates = [f"{d:%Y-%m-%d}" for d in r.index]
     f1 = lambda v: _fmt.fixed(v, 1)  # noqa: E731
+    since = _dy(x["since"])
     left = [f'<div class="dh-sec ix-feat">{KICK.format("Nifty 50 P/E")}<p class="ix-big">{f1(x["now"])}</p>'
             f'<p class="dh-note">times earnings, {_fmt.date(x["day"])}</p>'
-            f'<p class="ix-feat-t">{e(pe_story_words(x))}</p></div>']
-    chart = Chart("lines", {"dates": dates, "series": [{"name": "Nifty 50 P/E", "color": "ink", "values": [round(float(v), 2) for v in r], "width": 1.6}],
-                            "bands": [{"from": round(x["q25"], 2), "to": round(x["q75"], 2), "color": "fill",
-                                       "label": f"usual range, {f1(x['q25'])} to {f1(x['q75'])}"}],
-                            "marks": [{"date": f"{x['hi_d']:%Y-%m-%d}", "v": round(x["hi"], 2), "label": f"{f1(x['hi'])}, {x['hi_d']:%b %Y}"},
-                                      {"date": f"{x['lo_d']:%Y-%m-%d}", "v": round(x["lo"], 2), "label": f"{f1(x['lo'])}, {x['lo_d']:%b %Y}", "below": True}],
-                            "levels": [], "range": PE_RANGE},
-                  {"label": f"Nifty 50 P/E, each day since {_dy(x['since'])}"})
-    note = how(f"NSE's trailing P/E for the Nifty 50 each trading day since {_dy(x['since'])}, the day NSE changed the "
+            f'<p class="ix-feat-t">{e(record_line.words(x, f1, since))}</p></div>']
+    chart = Chart("lines", {**record_line.chart_spec(x, "Nifty 50 P/E", f1, range_=PE_RANGE)},
+                  {"label": f"Nifty 50 P/E, each day since {since}"})
+    note = how(f"NSE's trailing P/E for the Nifty 50 each trading day since {since}, the day NSE changed the "
                "earnings basis; the shaded band is the middle half of those days.",
                "Above the band, dearer than three days in four; below it, cheaper. It says what you are paying, not "
-               "what happens next.",
-               ["", "P/E"], [["Now", f1(x["now"])], ["Usual range", f"{f1(x['q25'])} to {f1(x['q75'])}"],
-                             [f"Highest, {_fmt.date(x['hi_d'])}", f1(x["hi"])], [f"Lowest, {_fmt.date(x['lo_d'])}", f1(x["lo"])]]
-               + ([["A year ago", f1(x["ago"])]] if x["ago"] is not None else []),
-               source="NSE Indices' published P/E")
+               "what happens next.", ["", "P/E"], record_line.table(x, f1), source="NSE Indices' published P/E")
     return [Cols(left, [chart, note], (1, 2))]
 
 
