@@ -898,6 +898,69 @@ def flows_head(f: di.Flows, dii=None) -> str:
     return head
 
 
+FLOW_RECORD_RANGE = {"default": "all", "why": "record"}
+
+
+def flows_record(nsdl: pd.DataFrame | None, nse_dii: pd.DataFrame | None) -> pd.DataFrame | None:
+    """Each finished month's 12-month sums, ₹ Cr: foreign investors on the exchanges and in new issues (NSDL, all
+    exchanges, from Jan 2016) and domestic institutions (NSE's category file, NSE only, from Jan 2021). S241 (1)."""
+    if nsdl is None or nsdl.empty or not {"date", "exchange_net", "primary_net"} <= set(nsdl.columns):
+        return None
+    d = nsdl.copy()
+    d["m"] = pd.to_datetime(d["date"]).dt.to_period("M")
+    m = d.groupby("m")[["exchange_net", "primary_net"]].sum()
+    last = pd.Period(pd.to_datetime(d["date"]).max(), "M")
+    m = m[m.index < last]                       # finished months only
+    if nse_dii is not None and len(nse_dii) and "kind" in nse_dii:
+        dm = nse_dii[(nse_dii["kind"] == "month") & nse_dii["scope"].astype(str).str.contains("total", case=False)]
+        m["dii"] = pd.Series(pd.to_numeric(dm["net"], errors="coerce").to_numpy(),
+                             index=pd.PeriodIndex(dm["period"].astype(str), freq="M")).reindex(m.index)
+    roll = m.rolling(12, min_periods=12).sum()
+    if "dii" in m:
+        roll["dii"] = m["dii"].rolling(12, min_periods=12).sum()
+    roll = roll.dropna(subset=["exchange_net"])
+    roll.index = roll.index.to_timestamp(how="end").normalize()
+    return roll if len(roll) else None
+
+
+def flows_record_parts(r: pd.DataFrame | None) -> list:
+    """S241 (1), owner 28 Nov 2026 ("Foreign flows, full"): foreign selling on the exchanges against foreign buying of
+    new issues, and domestic institutions as their own line, as 12-month sums since 2016 (PAGE_DESIGN §2b)."""
+    if r is None:
+        return []
+    end = r.index[-1]
+    x, p = float(r["exchange_net"].iloc[-1]), float(r["primary_net"].iloc[-1])
+    dii = r["dii"].iloc[-1] if "dii" in r and pd.notna(r["dii"].iloc[-1]) else None
+    worst = r["exchange_net"].idxmin()
+    head = (f"In the 12 months to {end:%b %Y}, foreign investors {'sold' if x < 0 else 'bought'} "
+            f'<span class="{tone(x)}">{e(cr(abs(x)).lstrip('+'))}</span> on the exchanges and '
+            f"{'bought' if p >= 0 else 'sold'} <span class=\"{tone(p)}\">{e(cr(abs(p)).lstrip('+'))}</span> of new issues"
+            + ("" if dii is None else f"; domestic institutions {'bought' if dii >= 0 else 'sold'} "
+               f'<span class="{tone(dii)}">{e(cr(abs(dii)).lstrip('+'))}</span> on NSE'))
+    dates = [f"{d:%Y-%m-%d}" for d in r.index]
+    rnd = lambda s: [None if pd.isna(v) else round(float(v) / 1e5, 2) for v in s]  # noqa: E731  ₹ lakh Cr
+    series = [{"name": "Foreign, on the exchanges", "color": "ink", "values": rnd(r["exchange_net"]), "width": 2},
+              {"name": "Foreign, new issues", "color": "muted", "values": rnd(r["primary_net"]), "width": 1.6}]
+    if "dii" in r:
+        series.append({"name": "Domestic institutions, NSE", "color": "s-dii", "values": rnd(r["dii"]), "width": 1.6})
+    return [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>{head}</b><span>12-month sums at each month-end, '
+            '₹ lakh Cr</span></div></div>',
+            Chart("lines", {"dates": dates, "yfmt": "num", "series": series, "bands": [], "levels": [{"v": 0}],
+                            "range": FLOW_RECORD_RANGE},
+                  {"label": "Foreign flows on the exchanges and into new issues, and domestic institutions, 12-month sums at each month-end"}),
+            how("NSDL's confirmed foreign portfolio equity flows, summed over the 12 months to each month-end: what "
+                "foreign investors bought less sold on the exchanges, and what they put into new issues (IPOs, QIPs, "
+                "rights). Domestic institutions are NSE's own category figures, NSE only, from January 2021. Finished "
+                "months only.",
+                f"Below zero, net selling. The deepest 12 months of foreign selling on the exchanges ended in "
+                f"{worst:%b %Y}. When the exchange line falls while the new-issue line rises, foreigners are selling "
+                "what they hold and buying what is newly listed.",
+                ["Month-end", "Exchanges", "New issues"] + (["Domestic, NSE"] if "dii" in r else []),
+                [[f"{d:%b %Y}", cr(r.at[d, "exchange_net"]), cr(r.at[d, "primary_net"])]
+                 + ([cr(r.at[d, "dii"]) if pd.notna(r.at[d, "dii"]) else "–"] if "dii" in r else [])
+                 for d in r.index[::-1]])]
+
+
 def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[float, float] | None = None,
                   bars: dict | None = None, compare: tuple[float, float, int] | None = None,
                   universe: str = "750") -> list:
@@ -1445,6 +1508,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                               borrowed=system not in sm.SYSTEMS, split=mh.top_fifth_split(spreads))
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
+        if os.environ.get("S241_PREVIEW"):
+            parts += flows_record_parts(flows_record(nsdl, nse_dii))
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}",
                           gap12=di.momentum_gap(closes, idx_end, 12))
     parts += section_strong_weak(weights, sectors)
