@@ -473,3 +473,13 @@ def test_pf_book_2_day_3_cal_2_err_2():
     assert "The book beat Nifty Total Market on {beat} of" not in src
     assert "mw.NOT_PUBLISHED" not in src.split("def calendar_html")[1].split("def month_bars_spec")[0]   # cal.2
     assert "could not be sized" not in src                                                        # err.2
+
+
+def test_combined_names_the_record_its_tiles_read():
+    # S236 (site audit, 28 Nov 2026): Combined's tiles read the 750's record, the note said "This system's".
+    sigs = [{"key": "qualify", "name": "Q", "sub": "", "cells": ["1", "2", "–"], "like": None, "like_me": None,
+             "test": None, "flip": "", "now_note": True}]
+    t = _text(dv.html_of(dv.section_momentum([("12M", 3.0, "the Nifty 750's record (Combined keeps none)")], 0, sigs,
+                                             0.0, uni="combined universe", since="December 2021", borrowed=True)))
+    assert "The Nifty 750’s record, which Combined reads, starts in December 2021." in t
+    assert "This system’s record" not in t
