@@ -621,7 +621,7 @@ def provenance_parts(p: Page) -> list:
     def day(v):
         return _fmt.date(pd.Timestamp(v)) if v else "–"
     body = "".join(
-        f'<tr><th scope="row">{pd.Period(k, "M"):%b %Y}</th>'
+        f'<tr><th scope="row">{pd.Period(k, "M").strftime("%b %Y")}</th>'
         f'<td class="dh-num {tone((v or {}).get("strategy"))}">{pct(None if (v or {}).get("strategy") is None else v["strategy"] * 100)}</td>'
         f'<td>{"Recorded" if (v or {}).get("origin") == "recorded" else "Worked out"}</td>'
         f'<td>{e(lists.get((v or {}).get("universe"), "–"))}</td><td class="dh-num">{e(day((v or {}).get("finalized_on")))}</td>'
