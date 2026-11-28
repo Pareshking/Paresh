@@ -21,11 +21,10 @@ import pandas as pd
 import streamlit as st
 
 from src.core.market_time import ist_now
-
-from src.ui import formats
+from src.ui import formats, watchlist_store
 from src.ui import watchlist_lines as wl
-from src.ui import watchlist_store
 from src.ui.components import gap_count, render_data_quality_footer
+from src.ui.export import csv_bytes
 from src.ui.screener_table import render_screener_table
 
 e = html.escape
@@ -204,8 +203,8 @@ def render_watchlist_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None 
                 st.pills("Remove", user_symbols, key="wl_remove_pick",
                          on_change=_remove_picked, label_visibility="collapsed")
         if not matched.empty:
-            # Exact figures, every column the ranking has (exports stay exact).
-            st.download_button("Export CSV", matched.to_csv(index=False).encode(),
+            # Every column the ranking has, in percent and two decimals (S236 F19).
+            st.download_button("Export CSV", csv_bytes(matched),
                                f"watchlist_momentum_{ist_now():%Y%m%d}.csv", "text/csv",
                                key="dl_wl_csv", icon=":material/download:")
     if user_symbols:

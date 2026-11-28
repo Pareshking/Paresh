@@ -622,7 +622,7 @@ def section_lead(f: dict) -> list:
                   "log scale (equal heights are equal percentage moves). The lower pane is how far each sits below its "
                   "own highest value so far, on daily closes.",
                   "Move the pointer, tap, or use the arrow keys; the values follow in the headings. At rest they are "
-                  "the latest.", ["Measure", "This rule", "Nifty 500"], rows)
+                  "the latest.", ["Measure", "This rule", "Nifty 500"], rows, source="our replay on NSE's daily closes (the long price file, corporate actions applied); the Nifty 500 from NSE Indices")
             + "".join(f'<p class="dh-note">{n}</p>' for n in notes) + "</div>", END]
 
 

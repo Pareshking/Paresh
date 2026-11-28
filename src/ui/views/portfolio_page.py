@@ -24,16 +24,26 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.ui import formats as _fmt
-from src.ui import missing_words as mw
-
 from src.engine import book_exposure as bx
 from src.engine import dashboard_insights as di
 from src.engine import portfolio_report as pr
 from src.loaders import benchmark_indices as bi
 from src.loaders.app_pack import resolve as _pack
-from src.ui.views.dashboard_home_view import (END, HOME_CSS, SHORT, Chart, emit, how, html_of, index_late_note, sg,
-                                              size_class)
+from src.ui import formats as _fmt
+from src.ui import missing_words as mw
+from src.ui.export import csv_bytes
+from src.ui.views.dashboard_home_view import (
+    END,
+    HOME_CSS,
+    SHORT,
+    Chart,
+    emit,
+    how,
+    html_of,
+    index_late_note,
+    sg,
+    size_class,
+)
 
 e = html.escape
 ROOT = Path(__file__).resolve().parents[3]
@@ -753,7 +763,7 @@ def section_equity(p: Page) -> list:
                      ["Date", "The book", "Momentum 50", "Nifty Total Market", "Book below peak", "Nifty Total Market below peak"],
                      [[d, f"{b:.1f}", "–" if mo is None else f"{mo:.1f}", "–" if mk is None else f"{mk:.1f}", f"{dd:.1f}%",
                        "–" if dm is None else f"{dm:.1f}%"]
-                      for d, b, mo, mk, dd, dm in list(zip(spec["dates"], spec["book"], spec["mom"], spec["market"], spec["dd"], spec["ddm"]))[::-5]]),
+                      for d, b, mo, mk, dd, dm in list(zip(spec["dates"], spec["book"], spec["mom"], spec["market"], spec["dd"], spec["ddm"]))[::-5]], source="the model book's record (NSE's closes, after costs); Nifty500 Momentum 50 and Nifty Total Market from NSE Indices"),
                  _kpis(falls, "pf-four"),
                  f'<div class="dh-cap"><b>Risk</b><span>{e(windows + more)}</span></div>', _kpis(risk_cells, "pf-five"), rtable,
                  how("Volatility: how much the book’s daily returns swing, scaled to a year. Beta: how much the book moves, on average, for a 1% "
@@ -766,7 +776,7 @@ def section_equity(p: Page) -> list:
                      if rk else f"No risk figures yet: {mw.book_too_short(pr.RISK_MIN_SESSIONS, len(pr._clean(p.equity)))}.",   # S193 B7: read 0.0%
                      ["Measure", "The book", "Nifty Total Market"],
                      [["Volatility, a year", f"{rk.vol:.1f}%", f"{rk.market_vol:.1f}%"], ["Beta", f"{rk.beta:.2f}", "1.00"],
-                      ["Tracking error", f"{rk.tracking:.1f}%", mw.NOT_APPLICABLE], ["Sessions", str(rk.sessions), str(rk.sessions)]] if rk else [])])
+                      ["Tracking error", f"{rk.tracking:.1f}%", mw.NOT_APPLICABLE], ["Sessions", str(rk.sessions), str(rk.sessions)]] if rk else [], source="our calculation from the model book's daily values and Nifty Total Market's closes (NSE Indices)")])
 
 
 def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
@@ -885,7 +895,7 @@ def day_section(p: Page) -> list:
                  how("Each session, the book’s day less Nifty Total Market’s day, in points.",
                      "One day says little; a run of bars on one side says more.",
                      ["Session", "Book", "Nifty Total Market", "Lead, pts"],
-                     [[f"{d:%-d %b %Y}", pct(r.book), pct(r.market), sg(r.gap)] for d, r in last.iloc[::-1].iterrows()])])
+                     [[f"{d:%-d %b %Y}", pct(r.book), pct(r.market), sg(r.gap)] for d, r in last.iloc[::-1].iterrows()], source="the model book's daily values; Nifty Total Market's closes from NSE Indices")])
 
 
 def trade_stats(p: Page) -> dict:
@@ -1185,10 +1195,10 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
         emit([Chart("history", history_spec(trades, tb, s.get("rebal") or []), {"label": "Every trade and every rebalance line", "note": HISTORY_NOTE})])
         a, b = st.columns(2)
         with a:
-            st.download_button(f"Export CSV · {len(trades)} trades, {len(pr.TRADE_FIELDS)} fields", trades.to_csv(index=False).encode(),
+            st.download_button(f"Export CSV · {len(trades)} trades, {len(pr.TRADE_FIELDS)} fields", csv_bytes(trades),
                                f"model_book_trades_{p.as_of:%Y%m%d}.csv", "text/csv", key="pf_dl_trades")
         with b:
-            st.download_button(f"Export CSV · {n_lines} lines", tb.to_csv(index=False).encode() if n_lines else b"",
+            st.download_button(f"Export CSV · {n_lines} lines", csv_bytes(tb, fractions=("Return %",)) if n_lines else b"",
                                f"model_book_rebalances_{p.as_of:%Y%m%d}.csv", "text/csv", key="pf_dl_lines")
     emit([END] + section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to_html(p.as_of)}.</p>'])
 

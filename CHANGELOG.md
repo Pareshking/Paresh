@@ -2,6 +2,11 @@
 
 
 ## 2026-11-28
+- Dashboard: the first screen gives the answer first: the date, one headline ("The book is up 6.2% so far in November, 3.0 points behind Nifty Total Market."), and two plain sentences on the signals, the sales at the next check and a narrow rally. Colour marks the figures only; on a phone the section links sit in one row.
+- Phone: the Dashboard and the Screener no longer drag sideways at 390 px, and the Dashboard's signals table keeps its first column in place while it scrolls.
+- Charts on the Dashboard, Portfolio, Market, Indices, Sectors and Backtest: a source line under each, saying where its figures come from (NSE Indices, NSE's daily closes, NSDL, the model book's record, or our own calculation from them).
+- Configuration: the reset button reads "Reset to defaults (weights only)"; the index-files dialog counts the rows in NSE's file, names a placeholder, and says why a list can hold more than its name.
+- Downloads (Screener, Actions' qualified list, Watchlist, Portfolio): every return and fall is in percent with " %" in its header, numbers have two decimals (the score four), and the Portfolio's lines carry no emoji. The Kite basket is unchanged.
 - > ₹2,000 Cr and Combined: market caps are now NSE's figure for the latest close, as on the 750 and the Nifty 1000; they were the month-end list's (JLHL read ₹8,430 Cr against NSE's ₹11,320 Cr).
 - Stock page: a stock NSE has renamed (SHUKRAPHAR to SHUKRAMED, 20 Nov) now says so on every system and links to the list that ranks it; on the Nifty 750 it read "in none of the systems' lists".
 - Portfolio: the "This year against other indices" table measures the indices from the 1 Jan fill, as the By period table beside it does (Nifty Total Market +0.6% in both; one read +0.7%).

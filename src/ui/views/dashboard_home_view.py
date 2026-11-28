@@ -153,8 +153,9 @@ def emit(parts) -> None:
 END = '<div class="dh-end"></div>'
 
 
-def how(what: str, read: str, head: list[str], rows: list[list[str]]) -> str:
-    """Under every chart: what it is, how to read it, and its table (agreed 20 Nov, tipsheet pattern)."""
+def how(what: str, read: str, head: list[str], rows: list[list[str]], source: str = "") -> str:
+    """Under every chart: what it is, how to read it, where its figures come from, and its table (agreed 20 Nov,
+    tipsheet pattern; the source line S237 G4, 28 Nov: tipsheet names a source under every chart)."""
     from src.ui.formats import date as _date
 
     def cell(c):
@@ -172,7 +173,8 @@ def how(what: str, read: str, head: list[str], rows: list[list[str]]) -> str:
     body = f'<p><b>What it is</b>{e(what)}</p><p><b>How to read it</b>{e(read)}</p>'
     return (f'<div class="dh-how"><div class="dh-how-b dh-how-wide">{body}</div>'
             f'<details class="dh-how-narrow"><summary>What it is · how to read it</summary><div class="dh-how-b">{body}</div></details>'
-            f'<details><summary>Show the table</summary><div class="dh-scroll dh-how-t">{table}</div></details></div>')
+            + (f'<p class="dh-src">Source: {e(source)}.</p>' if source else "")
+            + f'<details><summary>Show the table</summary><div class="dh-scroll dh-how-t">{table}</div></details></div>')
 
 
 def _read_csv(path: Path, **kw) -> pd.DataFrame | None:
@@ -401,14 +403,14 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             dash_notes[p_["label"]] = mw.not_published()
     dash_line = (mw.column_notes(dash_notes) + " ") if dash_notes else ""
     return [
-        f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h1 id="s-month" class="dh-h1">{title}</h1>'
+        f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h2 id="s-month" class="dh-h2">{title if style_lag or gap is None else "Against Nifty Total Market and NSE’s momentum indices"}</h2>'
         f'<p class="dh-lede">{e(lede)}</p>{kp}<div class="dh-cap"><b>The month</b><span>to {as_of:%-d %b}, price return</span></div></div>',
         Chart("month", spec, {"note": f"Each line is {step:g}%; filled lines right of the dark zero line are a gain, left a fall.", "n": n}),
         how("Each row is a return for the month: Nifty Total Market (about 750 stocks), the model book, "
             "and NSE’s momentum indices. Switch to the last finished month to compare.",
             "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "
             "style lagged; against the Nifty Total Market row, how far momentum is behind.",
-            [""] + [p["label"] for p in periods], table_rows),
+            [""] + [p["label"] for p in periods], table_rows, source="NSE Indices' closes; the model book's record"),
         f'<p class="dh-note">{e(late + " ") if late else ""}{e(dash_line)}{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. '
         + (f'{e(frozen)} {"stay" if " to " in frozen else "stays"} as recorded against the Nifty 500; the Nifty Total Market comparison is worked out beside them. '
            if frozen else '') + 'The book is after costs; indices are '
@@ -763,7 +765,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
                       "weight, in points.",
                       "Bars above the line are months momentum led. A run below it is momentum out of favour; whether the "
                       "year-long lead holds matters more than one month.",
-                      ["Month", "Lead, pts"], [[m, sg(v)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])])]
+                      ["Month", "Lead, pts"], [[m, sg(v)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])], source="our calculation from NSE's daily closes and the ranking")]
     parts.append(
         f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>What today’s readings have meant for next month</b><span>Momentum’s next-month lead after '
         f'months like this, points · all months since 2010 average {e(avg)}</span></div>'
@@ -869,7 +871,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                     "momentum has led the Nifty 500 by more the next month than after the rest.",
                     ["Month", "FPI net, ₹ Cr", "DII net, ₹ Cr"],
                     [[m, f"{v:,.0f}", "–" if not a else f"{a[1]:,.0f}"] for m, v, a in
-                     zip(bars["full"][::-1], bars["values"][::-1], (bars.get("also") or [None] * len(bars["values"]))[::-1])])]
+                     zip(bars["full"][::-1], bars["values"][::-1], (bars.get("also") or [None] * len(bars["values"]))[::-1])], source="NSDL's daily FPI reports; domestic institutions from NSE's category-wise turnover")]
     right = (f'<div class="dh-col1"><div class="dh-sub"><b>What heavy foreign buying has meant</b> · {e(ev.first) if ev else ""} to '
              f'{e(ev.last) if ev else ""}</div>{evid}</div>')
     return [head_html, Cols(left, [right], (2, 1)),
@@ -952,7 +954,7 @@ def _shared_parts(by_size, typical, book_sizes, universe: str = "750", month: st
     right_more = [f'<p class="dh-lede-s"><b>Is the rally shared?</b> {say}</p>' if say else "",
                   how("The share of each NSE size list trading above its own 200D EMA.",
                       "Above 60% the rally is broad there, below 40% narrow. The triangle marks a month ago.",
-                      ["Size", "3M ago", "1M ago", "Now"], [[r[0]] + ["–" if x is None else f"{x}%" for x in r[1:]] for r in rows])]
+                      ["Size", "3M ago", "1M ago", "Now"], [[r[0]] + ["–" if x is None else f"{x}%" for x in r[1:]] for r in rows], source="our calculation from NSE's daily closes and NSE's index lists")]
     return [Cols(left, [right] + right_more, (1, 1))]
 
 
@@ -1080,7 +1082,7 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame) -> list:
             how("The book’s weight in each sector, coloured by how that sector stands against all ranked stocks over 6 "
                 "months and 1 month.", "Blue is ahead on both, grey ahead on one, rust behind on both. The cards give each "
                 "sector’s figures.", ["Sector", "Weight", "Status"],
-                [[x[0], f"{x[2]:.1f}%", x[6].capitalize()] for x in sorted(segs, key=lambda x: -x[2])]),
+                [[x[0], f"{x[2]:.1f}%", x[6].capitalize()] for x in sorted(segs, key=lambda x: -x[2])], source="the model book; sectors from NSE's classification"),
             f'<div class="dh-gcards">{"".join(cards)}</div>'
             '<p class="dh-note">Each sector’s stocks, equal-weighted, against all ranked stocks built the same way: 6M · 1M in '
             'points, as on Sectors.</p>' + END]
@@ -1104,7 +1106,7 @@ def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], br
                                              "label": f"{ix} and the share of the {universe} above their 200D EMA"}),
                   how(f"Top: {ix}{joined}. Bottom: the share of the {universe} above their own 200D EMA, {counted}", "When the top line rises while the bottom one falls, fewer stocks are carrying the index.",
                       ["Date", ix, "Above 200D EMA"],
-                      [[d, f"{n:,.1f}", "–" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]])]
+                      [[d, f"{n:,.1f}", "–" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]], source="the index from NSE Indices; the share our calculation from NSE's daily closes")]
     return parts + [f'<div class="dh-gls">{cells}</div>']
 
 
@@ -1334,7 +1336,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
     uni = UNIVERSE_SHORT.get(system, "750")
     first_fill = fill0 if fill0 is not None and first_month == as_of.to_period("M") else None
-    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{as_of:%B}", uni, fill=first_fill)]
+    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{as_of:%B}", uni, fill=first_fill, as_of=as_of)]
     parts += section_book(bm, since, since_mkt, as_of, prev, inc + pd.Timedelta(days=1), frozen=_frozen_span(ledger),
                           fill=first_fill, late=idx_late)
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
@@ -1595,8 +1597,54 @@ def brief_signals(signals: list[dict], average, flows=None) -> str:
     return out
 
 
+def brief_head(bm: di.BookMonth, month: str, fill: pd.Timestamp | None = None) -> str:
+    """The first screen's headline: the book's month against Nifty Total Market, in one line (S237 G1, tipsheet
+    benchmark: "The Nifty 50 fell 1.1%; small caps rose 0.5%"). Colour on the figures only."""
+    if bm.market_mtd is None or bm.book_mtd is None:
+        return ""
+    when = f"since the {fill:%-d %b} fill" if fill is not None else f"so far in {month}"
+    gap = bm.book_mtd - bm.market_mtd
+    book = f'<span class="{"dh-up" if bm.book_mtd >= 0 else "dh-down"}">{_fmt.moved(bm.book_mtd)}</span>'
+    if _fmt.reads_zero(gap):
+        return f"The book is {book} {when}, level with Nifty Total Market."
+    side = "ahead of" if gap > 0 else "behind"
+    pts = f'<span class="{"dh-up" if gap > 0 else "dh-down"}">{_fmt.fixed(abs(gap), 1)} points {side}</span>'
+    return f"The book is {book} {when}, {pts} Nifty Total Market."
+
+
+def brief_lede(n_sells: int, check, signals: list[dict], average, typical, universe: str) -> str:
+    """Two sentences under the headline: the signals' count (owner's answer 2, 24 Nov: the brief keeps the count),
+    the sales at the check, and a narrow rally when it is one. Plain ink; colour on the counts only."""
+    tested = [x for x in signals if x["test"] is not None]
+    passed = [x for x in tested if x["test"]["passed"]]
+    read = [x for x in passed if x["like"] is not None and average is not None]
+    out = []
+    if read:
+        good = sum(1 for x in read if x["like"] >= average)
+        bad = len(read) - good
+        every = bad == 0 and good == len(passed)
+        lead = ("Our <b class=\"dh-up\">1</b> tested signal points" if every and good == 1 else
+                f"All <b class=\"dh-up\">{good}</b> of our tested signals point" if every
+                else f"Of our {len(passed)} tested signals, <b class=\"dh-up\">{good}</b> point")
+        out.append(f"{lead} to a stronger month for momentum and <b class=\"dh-down\">{'none' if bad == 0 else bad}</b> "
+                   "to a weaker one.")
+    second = []
+    if n_sells:
+        second.append(f"<b class=\"dh-down\">{n_sells}</b> holding{'s' if n_sells != 1 else ''} would be sold at the "
+                      f"{check:%-d %b} check")
+    b1 = typical["beat_share"][0] if typical else None
+    if b1 is not None and b1 < 40:
+        second.append(f"the rally is narrow, with only <b class=\"dh-down\">{_fmt.fixed(b1, 0)}%</b> of the {universe} "
+                      "ahead of Nifty Total Market over the past month")
+    if second:
+        s = "; ".join(second)
+        out.append(s[0].upper() + s[1:] + ".")
+    return " ".join(out)
+
+
 def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, typical, flows=None,
-           month: str = "the month", universe: str = "750", fill: pd.Timestamp | None = None) -> str:
+           month: str = "the month", universe: str = "750", fill: pd.Timestamp | None = None,
+           as_of: pd.Timestamp | None = None) -> str:
     bits = [x for x in (brief_book(bm, month, fill),) if x]
     if n_sells:
         # "would": it holds only if prices hold; the sale fills the next session (S193 B, S203 dash.brief.2).
@@ -1611,6 +1659,15 @@ def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, 
     nav = "".join(f'<a href="#{a}" class="dh-pill">{e(t)}</a>' for a, t in (
         ("s-month", "1 The book"), ("s-next", "2 Next rebalance"), ("s-mom", "3 Momentum"), ("s-flow", "4 Money flows"),
         ("s-size", "5 Size"), ("s-book", "6 Strong and weak"), ("s-glance", "At a glance")))
+    # S237 G1 (owner approved 28 Nov; tipsheet benchmark): a date line, one headline, a two-sentence lede, then the section pills.
+    head = brief_head(bm, month, fill)
+    if head:
+        when = f"End of day, {_fmt.date(as_of)}" if as_of is not None else ""
+        return ('<section class="dh-brief dh-brief2" aria-label="Today in brief">'
+                + (f'<p class="dh-date">{e(when)}</p>' if when else "")
+                + f'<h1 class="dh-h1 dh-head">{head}</h1>'
+                f'<p class="dh-lede2">{brief_lede(n_sells, check, signals, average, typical, universe)}</p>'
+                f'<nav class="dh-pills" aria-label="On this page">{nav}</nav></section>')
     return (f'<section class="dh-brief" aria-label="Today in brief"><p class="dh-verdict">{" ".join(bits)}</p>'
             f'<nav class="dh-pills" aria-label="On this page">{nav}</nav></section>')
 
@@ -1921,6 +1978,7 @@ def _glance(closes, as_of, hist, risk, n500, record_risk=None, book_sessions: in
 HOME_CSS = """
 .dh{font-family:var(--font-ui);color:var(--c-ink);line-height:1.5}
 .dh-brief{padding:20px 0 18px;border-bottom:1px solid var(--c-rule)}
+.dh-brief2{padding:28px 0 20px}.dh-date{margin:0 0 10px;color:var(--c-muted);font-size:var(--fs-13)}.dh .dh-brief2 .dh-head{margin:0 0 16px!important;max-width:900px}.dh-lede2{margin:0 0 var(--sp-3);font-size:var(--fs-17);line-height:1.55;max-width:720px;color:var(--c-text_2)}.dh-lede2 b{font-weight:600}@media (max-width:600px){.dh .dh-brief2 .dh-head{font-size:var(--fs-30)!important;line-height:1.15!important}.dh-lede2{font-size:var(--fs-15)}.dh-brief2 .dh-pills{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.dh-brief2 .dh-pill{flex:0 0 auto}}
 .dh-verdict{margin:0 0 var(--sp-3);font-family:var(--font-serif);font-size:var(--fs-24);line-height:1.35;max-width:980px}
 .dh-pills{display:flex;flex-wrap:wrap;gap:6px 8px}
 .dh-pill{font-size:var(--fs-13);text-decoration:none;color:var(--c-ink);border:1px solid var(--c-rule);border-radius:999px;padding:6px 12px;min-height:32px;display:inline-flex;align-items:center}
@@ -1994,6 +2052,7 @@ HOME_CSS = """
 .dh-hist{font-size:var(--fs-12);color:var(--c-muted);min-width:240px}
 .dh-tab.dh-tab-sig{min-width:1080px}
 .dh-how{display:flex;flex-wrap:wrap;gap:4px 24px;font-size:var(--fs-13)}
+.dh-src{flex-basis:100%;margin:0;color:var(--c-muted);font-size:var(--fs-12)}
 .dh-how details{flex:1 1 280px}.dh-how details[open]:last-child{flex-basis:100%}
 .dh-how summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center;gap:6px;list-style:none;color:var(--c-ink)}
 .dh-how summary::-webkit-details-marker{display:none}
@@ -2029,6 +2088,8 @@ HOME_CSS = """
 .dh-lede-s{margin:var(--sp-2) 0 0;font-size:var(--fs-13)}
 .dh-ev{font-size:var(--fs-12);font-weight:600;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block}
 .dh-ev-t{color:var(--c-up);background:var(--c-up_tint)}.dh-ev-c{color:var(--c-muted);background:var(--c-fill_soft)}
+/* S236 F17 (site audit, 28 Nov): at 390 px the badge and the signals table dragged the page sideways. */
+@media (max-width:600px){.dh-ev{white-space:normal}.dh-tab-sig th:first-child,.dh-tab-sig td:first-child,.dh-tab-sig th[scope=row]{position:sticky;left:0;z-index:1;background:var(--c-white);min-width:140px;max-width:160px}}
 .dh-ev-box{border-left:3px solid var(--c-rule);padding:2px 0 2px 12px;font-size:var(--fs-13)}
 .dh-ev-up{border-left-color:var(--c-up)}
 .dh-mbars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px}

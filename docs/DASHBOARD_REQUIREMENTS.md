@@ -17,9 +17,9 @@ the owner's word, and note it in the Source column.
 | # | Requirement | Source | Where | Marker |
 |---|---|---|---|---|
 | 1 | Everything visible; no "more questions" or clicks to reach content | Owner 19 Nov | Whole page | The book, month so far |
-| 2 | One-paragraph verdict first, with section links | Owner 19 Nov; tipsheet pattern; marker in S203's approved wording (owner, 24 Nov 2026) | Top | of our tested signals pass |
+| 2 | The answer first: a date line, one headline (the book's month against Nifty Total Market), two sentences (the signals' count, the sales at the check, a narrow rally), then the section links | Owner 19 Nov; tipsheet pattern; S237 G1, owner approved 28 Nov 2026 ("Approved, go ahead with the redesign"), replacing the one-paragraph verdict | Top | End of day |
 | 3 | Sections in the agreed order, numbered | Owner 20 Nov ("correct order"); §7 removed with RRG, owner 21 Nov | Page | 6 · Where the book is strong and weak |
-| 4 | Headline of each section states the finding, coloured by impact | Owner 19 Nov; marker in S203's approved wording (owner, 24 Nov 2026) | Each section | points ahead|points behind|The book trails Nifty Total Market|is level with Nifty Total Market |
+| 4 | Headline of each section states the finding, coloured by impact (section 1's finding is the page's headline since S237 G1; its own heading is a label unless the book trails because momentum does, or the market has no figure yet) | Owner 19 Nov; marker in S203's approved wording (owner, 24 Nov 2026) | Each section | points ahead|points behind|The book trails Nifty Total Market|is level with Nifty Total Market |
 | 5 | Market = Nifty Total Market, named | Owner 20 Nov | §1 | Nifty Total Market |
 | 6 | Frozen months kept, Total Market compared beside | Owner 20 Nov | §1 note | January to October stay as recorded against the Nifty 500 |
 | 7 | NSE momentum indices against the book this month | Owner 20 Nov | §1 | Nifty500 Momentum 50 |

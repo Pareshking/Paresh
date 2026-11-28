@@ -74,13 +74,15 @@ def test_dash_brief_2_3_4(system):
     flows = type("F", (), {"month_rank": 1})()
     html = dv._brief(_bm(8.0, 7.0), 1, CHECK, sigs, 0.5, {"beat_share": [31.0]}, flows, "November", uni)
     t = _clean(html.split('<nav')[0])
-    assert "1 holding would be sold at the 30 Nov check." in t                                     # brief.2
-    assert ("3 of our tested signals pass. On today’s readings, 2 point to a stronger month for momentum and 1 to a "
-            "weaker one. Record foreign buying is one of them.") in t                               # brief.3
-    assert f"The rally is narrow: only 31% of the {uni} beat Nifty Total Market over the past month." in t   # brief.4
+    # S237 G1 (owner approved 28 Nov): a headline and two sentences; colour on the counts only.
+    assert "The book is up 8.0% so far in November, 1.0 points ahead of Nifty Total Market." in t
+    assert "Of our 3 tested signals, 2 point to a stronger month for momentum and 1 to a weaker one." in t   # brief.3
+    assert (f"1 holding would be sold at the 30 Nov check; the rally is narrow, with only 31% of the {uni} "
+            "ahead of Nifty Total Market over the past month.") in t                              # brief.2, brief.4
+    assert '<span class="dh-watch">' not in html and "dh-verdict" not in html              # no coloured clause
     two = _text(dv._brief(_bm(8.0, 7.0), 2, CHECK, [_sig("fpi", 1.0)], 0.5, None, type("F", (), {"month_rank": 4})()))
-    assert "2 holdings would be sold" in two and "1 of our tested signals passes" in two
-    assert "1 points to a stronger month for momentum and none to a weaker one. Heavy foreign buying is one of them." in two
+    assert "2 holdings would be sold" in two
+    assert "Our 1 tested signal points to a stronger month for momentum and none to a weaker one." in two
     assert "would be sold" not in _text(dv._brief(_bm(8.0, 7.0), 0, CHECK, [], None, {"beat_share": [55.0]}))
     assert "narrow" not in _text(dv._brief(_bm(8.0, 7.0), 0, CHECK, [], None, {"beat_share": [55.0]}))
 
@@ -95,10 +97,10 @@ def _book_html(bm, fill=None, late=""):
     (5.7, 7.0, None, "The book trails Nifty Total Market in November because momentum does, not its stock picks.",
      "Nifty Total Market is up 7.0% so far in November. NSE’s 2 momentum indices are up 4.3% to 5.7%. "
      "The book is up 5.7%, level with the best of them."),
-    (8.25, 7.0, None, "The book is 1.3 points ahead of Nifty Total Market so far in November.",
+    (8.25, 7.0, None, "The book is up 8.3% so far in November, 1.3 points ahead of Nifty Total Market.",
      "The book is up 8.3%, ahead of all of them."),
-    (5.0, 7.0, None, "The book is 2.0 points behind Nifty Total Market so far in November.", "within their range."),
-    (7.0, 7.0, None, "The book is level with Nifty Total Market so far in November.", "Nifty Total Market is up 7.0%"),
+    (5.0, 7.0, None, "The book is up 5.0% so far in November, 2.0 points behind Nifty Total Market.", "within their range."),
+    (7.0, 7.0, None, "The book is up 7.0% so far in November, level with Nifty Total Market.", "Nifty Total Market is up 7.0%"),
     (-3.0, -1.0, {"nifty200_mom30": -2.1, "nifty500_mom50": -0.5}, "2.0 points behind",
      "Nifty Total Market is down 1.0% so far in November. NSE’s 2 momentum indices are down 0.5% to 2.1%. "
      "The book is down 3.0%, behind all of them."),
@@ -107,8 +109,10 @@ def _book_html(bm, fill=None, late=""):
     (1.0, 0.5, {"nifty200_mom30": 0.8}, "0.5 points ahead", "Of NSE’s momentum indices, only Nifty200 Momentum 30 has a close: +0.8%."),
 ])
 def test_dash_book_1_to_4(book, market, mom, h1, lede):
+    # S237 G1 (owner approved 28 Nov): the headline moved to the first screen; section 1's heading keeps the
+    # special cases (the style lag, a missing market figure) and is a label otherwise.
     html = _book_html(_bm(book, market, mom))
-    title = _clean(re.search(r'<h1[^>]*>(.*?)</h1>', html).group(1))
+    title = _clean(re.search(r'<h2[^>]*>(.*?)</h2>', html).group(1)) + " " + _clean(dv.brief_head(_bm(book, market, mom), "November"))
     assert h1 in title
     assert lede in _clean(re.search(r'<p class="dh-lede">(.*?)</p>', html).group(1))
     assert "What lagged is the style" not in html                                                    # book.5 dropped
@@ -117,7 +121,8 @@ def test_dash_book_1_to_4(book, market, mom, h1, lede):
 def test_dash_book_1_missing_and_first_month():
     assert "Nifty Total Market has no November figure yet" in _book_html(_bm(0.4, None, {}))       # #660, kept
     first = _text(_book_html(_bm(8.0, 7.0), fill=pd.Timestamp("2026-11-02")))                      # the 1000's first month
-    assert "1.0 points ahead of Nifty Total Market since the 2 Nov fill." in first
+    assert "since the 2 Nov fill, 1.0 points ahead of Nifty Total Market." in _clean(
+        dv.brief_head(_bm(8.0, 7.0), "November", pd.Timestamp("2026-11-02")))
     assert "Nifty Total Market is up 7.0% since the 2 Nov fill." in first
 
 

@@ -45,6 +45,7 @@ Improve wording on pages and in docs whenever you touch them.
 ## tipsheet.markets may be copied (owner, 28 Nov 2026)
 
 "We can copy, it is by my friend only who works at Zerodha. We worked together and I have his go ahead."
+Owner, later the same day: "this is one of its personal project not a own by zerodha": the site is its author's own, so his go-ahead covers it.
 
 - Layout, chart forms, table design and wording may be taken from tipsheet.markets as they stand (S237), with the
   page or pattern it came from noted in the TODO row or the PR.
