@@ -346,8 +346,8 @@ def earnings_history(scope: str = "all") -> list:
                            "companies have reported it"}),
             how(f"All the index's companies added together, against the same quarter a year earlier, each quarter from "
                 f"{first} to {last}, dated at the quarter end. Profit is {PROFIT_WORDS[er.PROFIT]}. Our calculation "
-                "from companies' reported results; the history starts in " + first + " and grows a quarter at a time. Tata Motors is left out of Q2 and Q3 of FY26 "
-                "and FY27, around its demerger of 1 Oct 2025.",
+                "from companies' reported results; the history starts in " + first + " and grows a quarter at a time. Tata Motors is left out of Q2 and Q3 FY26 "
+                "and Q2 FY27, the quarters its demerger of 1 Oct 2025 would distort.",
                 "Above the zero line, profits grew on a year earlier; below it, they fell. Growth is over the same quarter "
                 "a year before, so a weak quarter a year ago lifts this one.",
                 ["Quarter", "Nifty 50 profit", "Nifty 500 profit", "Nifty 50 revenue", "Nifty 500 revenue"],

@@ -53,8 +53,9 @@ def run(system: str) -> None:
     core, extra = xl.split_symbols(system, idx_info)
 
     caps = fetch_market_caps(core, force_refresh=False) if core else pd.Series(dtype=float)
-    mcaps = pd.concat([caps, xl.list_market_caps(extra)]) if extra else caps
-    print(f"[{system}] {len(symbols)} symbols ({len(core)} by NSE's market caps, {len(extra)} from the ₹2,000 Cr list)")
+    # NSE's daily file first, the month-end list only for a stock it lacks (S236), as app.py does.
+    mcaps = pd.concat([caps, xl.system_market_caps(extra)]) if extra else caps
+    print(f"[{system}] {len(symbols)} symbols ({len(core)} by NSE's market caps, {len(extra)} by NSE's daily file or the ₹2,000 Cr list)")
     _precompute_rankings(symbols, idx_info, mcaps, out_name=asset_name(system))
 
 

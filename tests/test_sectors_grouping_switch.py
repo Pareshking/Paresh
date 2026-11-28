@@ -84,3 +84,11 @@ def test_a_tradingview_grouping_regroups_every_section_and_hides_the_nse_indices
     assert text.count(sv.NSE_ONLY) == 1
     assert "Nifty Financial Services" not in text and "for the sector" not in text
     assert "pairs" not in {p.kind for p in parts if isinstance(p, Chart)}
+
+
+def test_the_page_names_the_switch_s_own_choices():
+    # S236: with NSE's four levels the page still said "NSE sector, TradingView sector or TradingView industry".
+    from src.ui.views.sector_view import GROUPINGS_NSE, switch_words
+    words = switch_words(tuple(GROUPINGS_NSE))
+    assert words == "NSE sector (the default), NSE macro sector, NSE industry or NSE basic industry."
+    assert "TradingView" not in words

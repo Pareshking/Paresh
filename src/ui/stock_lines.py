@@ -59,6 +59,20 @@ def renamed_on_nse(ranked: frozenset[str]) -> dict[str, tuple[str, str]]:
     return out
 
 
+def renamed_elsewhere(symbol: str, others: dict | None) -> tuple[str, str, list] | None:
+    """(the ticker another system files it under, the day NSE changed it, that system's hits) for a new
+    ticker that only another system's ranking holds, under the old one (S236: SHUKRAMED read "in none of
+    the systems' lists" on the 750 while the > ₹2,000 Cr list ranked it 1st as SHUKRAPHAR)."""
+    from src.ui import watchlist_lines as wl
+    pool = frozenset(str(x).upper() for f in (others or {}).values()
+                     if f is not None and "Symbol" in f for x in f["Symbol"])
+    hit = renamed_on_nse(pool).get(str(symbol).upper()) if pool else None
+    if not hit:
+        return None
+    hits = wl.ranks_elsewhere(hit[0], others)
+    return (hit[0], hit[1], hits) if hits else None
+
+
 def num(v) -> float | None:
     try:
         f = float(v)
