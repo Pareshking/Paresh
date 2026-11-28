@@ -1064,6 +1064,8 @@ def run_backtest(
     buy_size: float | None = None,
     weight_reset_months: tuple[int, ...] | None = None,
     score_skip: int = 0,
+    extra_gate: pd.DataFrame | None = None,
+    extra_gate_mode: str = "both",
 ) -> dict[str, Any] | None:
     """
     Executes a walk-forward momentum backtest with zero look-ahead bias and friction modeling.
@@ -1093,6 +1095,11 @@ def run_backtest(
     composite score is read ``score_skip`` sessions before the signal date
     (all five windows end there), while the trend and 52-week-high gates, the
     index membership and the fill stay on the signal date. 0 is the live system.
+    ``extra_gate``: research only (RS / Supertrend test, 28 Nov 2026): a True/False
+    frame (dates x symbols) read at the SIGNAL date. ``extra_gate_mode`` "both"
+    drops a failing name from the ranking, held or not (a held one is sold);
+    "entry" lets a held name stay whatever the gate says; "exit" lets any
+    name be bought and sells a held one that fails. None is the live system.
     ``weight_reset_months``: research only (owner, 8 Nov 2026), with
     ``buy_size``: at a signal in one of these months (3 = end of March,
     (3, 9) = March and September) every holding goes back to its target
@@ -1100,6 +1107,8 @@ def run_backtest(
     between resets the ``buy_size`` rule applies. None keeps the yearly
     31 March base of ``buy_size`` alone.
     """
+    if extra_gate_mode not in ("both", "entry", "exit"):
+        raise ValueError(f"extra_gate_mode must be 'both', 'entry' or 'exit', not {extra_gate_mode!r}")
     if int(score_skip) != score_skip or score_skip < 0:
         raise ValueError(f"score_skip must be a whole number of sessions >= 0, not {score_skip!r}")
     score_skip = int(score_skip)
@@ -1361,6 +1370,10 @@ def run_backtest(
                                     liquidity_floor_cr)
         if liq_mask is not None:
             valid &= liq_mask
+        if extra_gate is not None:
+            _g = extra_gate.reindex(columns=prices.columns).loc[dates[start_idx]].fillna(False).astype(bool)
+            _held = prices.columns.isin(prev_holdings)
+            valid &= _g if extra_gate_mode == "both" else (_g | _held) if extra_gate_mode == "entry" else (_g | ~_held)
 
         # ── Compute Causal Signal at Day T ───────────────────────────────────
         # One signal, the composite that drives every rank on screen. The
