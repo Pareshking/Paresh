@@ -13,6 +13,7 @@ from src.core.market_time import ist_now
 from src.ui import formats as _fmt
 from src.ui import page_kit as kit
 from src.ui.components import to_bool_mask
+from src.ui.export import csv_bytes
 from src.ui.screener_table import render_screener_table
 
 # Industries shown by name before the rest fold into "others".
@@ -97,7 +98,7 @@ def render_qualified_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame) -> Non
         st.segmented_control("Show", [10, 15, 20, 25, 30], default=30, required=True,
                              key="qual_top_n", format_func=lambda n: f"Top {n}",
                              label_visibility="collapsed")
-        st.download_button("Export CSV", view.to_csv(index=False).encode(),
+        st.download_button("Export CSV", csv_bytes(view),
                            f"qualified_{ist_now():%Y%m%d}.csv", "text/csv",
                            key="dl_qual_csv", icon=":material/download:",
                            disabled=view.empty)

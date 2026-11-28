@@ -188,7 +188,8 @@ def _rankings_csv(view_key: str, _export_df: pd.DataFrame) -> bytes:
     rows x 47 columns, against ~7ms to hash the frame and find out it has not
     changed.
     """
-    return _export_df.to_csv(index=False).encode()
+    from src.ui.export import csv_bytes
+    return csv_bytes(_export_df)   # percent, two decimals (S236 F19)
 
 
 DISPLAY_COLS = [

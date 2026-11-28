@@ -41,14 +41,15 @@ def test_the_order_basket_and_exports_never_use_a_display_formatter():
     assert rows and "Kite basket" in rows
 
 
-def test_the_rankings_export_keeps_exact_prices():
-    # Display only (owner, 22 Nov 2026): the page shows ₹70 and ₹1,235; the CSV keeps what the frame holds.
+def test_the_rankings_export_keeps_prices_to_the_paisa():
+    # The page shows ₹70 and ₹1,235 (owner, 22 Nov 2026); the CSV keeps two decimals (owner, 28 Nov 2026, S236
+    # F19: "With your recommendation"), which is every price NSE quotes: 1110.4000244140625 was a float's noise.
     import pandas as pd
 
     from src.ui.views import ranking_view
 
-    out = ranking_view._rankings_csv("t", pd.DataFrame({"Symbol": ["A", "B"], "CMP": [70.05, 1234.567]})).decode()
-    assert "70.05" in out and "1234.567" in out
+    out = ranking_view._rankings_csv("t", pd.DataFrame({"Symbol": ["A", "B"], "CMP": [70.05, 1110.4000244140625]})).decode()
+    assert "70.05" in out and "1110.4\n" in out
     assert fmt.price(70.05) == "₹70" and fmt.price(1234.567) == "₹1,235"
 
 

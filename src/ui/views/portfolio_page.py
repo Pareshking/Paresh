@@ -24,16 +24,26 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.ui import formats as _fmt
-from src.ui import missing_words as mw
-
 from src.engine import book_exposure as bx
 from src.engine import dashboard_insights as di
 from src.engine import portfolio_report as pr
 from src.loaders import benchmark_indices as bi
 from src.loaders.app_pack import resolve as _pack
-from src.ui.views.dashboard_home_view import (END, HOME_CSS, SHORT, Chart, emit, how, html_of, index_late_note, sg,
-                                              size_class)
+from src.ui import formats as _fmt
+from src.ui import missing_words as mw
+from src.ui.export import csv_bytes
+from src.ui.views.dashboard_home_view import (
+    END,
+    HOME_CSS,
+    SHORT,
+    Chart,
+    emit,
+    how,
+    html_of,
+    index_late_note,
+    sg,
+    size_class,
+)
 
 e = html.escape
 ROOT = Path(__file__).resolve().parents[3]
@@ -1185,10 +1195,10 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
         emit([Chart("history", history_spec(trades, tb, s.get("rebal") or []), {"label": "Every trade and every rebalance line", "note": HISTORY_NOTE})])
         a, b = st.columns(2)
         with a:
-            st.download_button(f"Export CSV · {len(trades)} trades, {len(pr.TRADE_FIELDS)} fields", trades.to_csv(index=False).encode(),
+            st.download_button(f"Export CSV · {len(trades)} trades, {len(pr.TRADE_FIELDS)} fields", csv_bytes(trades),
                                f"model_book_trades_{p.as_of:%Y%m%d}.csv", "text/csv", key="pf_dl_trades")
         with b:
-            st.download_button(f"Export CSV · {n_lines} lines", tb.to_csv(index=False).encode() if n_lines else b"",
+            st.download_button(f"Export CSV · {n_lines} lines", csv_bytes(tb, fractions=("Return %",)) if n_lines else b"",
                                f"model_book_rebalances_{p.as_of:%Y%m%d}.csv", "text/csv", key="pf_dl_lines")
     emit([END] + section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to_html(p.as_of)}.</p>'])
 

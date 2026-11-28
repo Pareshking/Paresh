@@ -2,6 +2,7 @@
 
 
 ## 2026-11-28
+- Downloads (Screener, Actions' qualified list, Watchlist, Portfolio): every return and fall is in percent with " %" in its header, numbers have two decimals (the score four), and the Portfolio's lines carry no emoji. The Kite basket is unchanged.
 - > ₹2,000 Cr and Combined: market caps are now NSE's figure for the latest close, as on the 750 and the Nifty 1000; they were the month-end list's (JLHL read ₹8,430 Cr against NSE's ₹11,320 Cr).
 - Stock page: a stock NSE has renamed (SHUKRAPHAR to SHUKRAMED, 20 Nov) now says so on every system and links to the list that ranks it; on the Nifty 750 it read "in none of the systems' lists".
 - Portfolio: the "This year against other indices" table measures the indices from the 1 Jan fill, as the By period table beside it does (Nifty Total Market +0.6% in both; one read +0.7%).
