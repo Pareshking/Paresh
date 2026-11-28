@@ -200,14 +200,10 @@ def _share_above_ema(prices: pd.DataFrame, span: int, members: pd.DataFrame | No
     return share.where(_enough(observed.sum(axis=1)))
 
 
-def _net_new_highs(prices: pd.DataFrame, window: str = "7D", members: pd.DataFrame | None = None) -> pd.Series:
-    """Net new 52-week highs over the last `window` of calendar days (a week): stocks that
-    made a new high less those that made a new low, each counted once, as a
-    share of the stocks that can make one. The 52 weeks are a calendar window, not
-    252 rows: the deep price history holds fewer rows a year in its early
-    years, and a row count read those years as too short (no reading at all).
-    The week is a calendar window too (S193 B): five ROWS of a weekly stretch
-    are five weeks, and of a twice-a-week one two to three."""
+def _hl_flags(prices: pd.DataFrame, members: pd.DataFrame | None = None
+              ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """(closed at a new 52W high, at a new 52W low, could make one) for each stock and session: the one rule
+    `_net_new_highs` and `highs_lows` both count by."""
     prices = prices.sort_index()
     hi = prices.rolling("365D", min_periods=20).max()
     lo = prices.rolling("365D", min_periods=20).min()
@@ -219,11 +215,33 @@ def _net_new_highs(prices: pd.DataFrame, window: str = "7D", members: pd.DataFra
     can = prices.notna() & hi.notna() & lo.notna() & old_enough
     if members is not None:
         can &= members.reindex_like(prices).fillna(False).astype(bool)
+    return (prices >= hi - tol) & can, (prices <= lo + tol) & can, can
+
+
+def highs_lows(prices: pd.DataFrame, members: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Each session: the stocks closing at a new 52W high, at a new 52W low, the stocks that could, and the net as a
+    share of them (S239 item 11: the day's highs and lows and the daily net line, dropped 26 Sep and 7 Nov, restored
+    on the owner's "Restore the 9", 28 Nov). The same rule as the weekly net new highs, one session wide."""
+    is_hi, is_lo, can = _hl_flags(prices, members)
+    out = pd.DataFrame({"highs": is_hi.sum(axis=1), "lows": is_lo.sum(axis=1), "can": can.sum(axis=1)})
+    out["net"] = ((out["highs"] - out["lows"]) / out["can"].replace(0, np.nan) * 100).where(_enough(out["can"]))
+    return out.dropna(subset=["net"])
+
+
+def _net_new_highs(prices: pd.DataFrame, window: str = "7D", members: pd.DataFrame | None = None) -> pd.Series:
+    """Net new 52-week highs over the last `window` of calendar days (a week): stocks that
+    made a new high less those that made a new low, each counted once, as a
+    share of the stocks that can make one. The 52 weeks are a calendar window, not
+    252 rows: the deep price history holds fewer rows a year in its early
+    years, and a row count read those years as too short (no reading at all).
+    The week is a calendar window too (S193 B): five ROWS of a weekly stretch
+    are five weeks, and of a twice-a-week one two to three."""
+    is_hi, is_lo, can = _hl_flags(prices, members)
     # Each stock once a week: made a new high on any session of the last seven
     # days, less made a new low, over the stocks that could. Summing daily shares
     # counted a stock that set highs on three days three times (+140%).
-    made_hi = ((prices >= hi - tol) & can).astype(float).rolling(window, min_periods=1).max()
-    made_lo = ((prices <= lo + tol) & can).astype(float).rolling(window, min_periods=1).max()
+    made_hi = is_hi.astype(float).rolling(window, min_periods=1).max()
+    made_lo = is_lo.astype(float).rolling(window, min_periods=1).max()
     counts = can.sum(axis=1)
     n = counts.replace(0, np.nan)
     return ((made_hi.sum(axis=1) - made_lo.sum(axis=1)) / n * 100).where(_enough(counts))

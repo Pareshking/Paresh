@@ -195,7 +195,7 @@ _PAGE_CSS = """<style>
 .qp h2{font-size:var(--fs-17)!important;font-weight:600!important;color:var(--c-ink)!important;margin:0 0 10px!important;padding:0!important;letter-spacing:0!important;scroll-margin-top:72px}
 .qp-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 40px;margin-bottom:14px}
 .qp-v{font-size:var(--fs-30);font-weight:600;line-height:1.1;margin:0 0 6px;color:var(--c-ink)}
-.qp-v.up{color:var(--c-up)}.qp-v.down{color:var(--c-down)}
+.qp-v.up{color:var(--c-up)}.qp-v.down{color:var(--c-down)}.qp-hl-up{color:var(--c-up)}.qp-hl-down{color:var(--c-down)}
 .qp-s{font-size:var(--fs-15);line-height:1.55;color:var(--c-text_2);margin:0 0 12px}
 .qp h3{font-size:var(--fs-13)!important;font-weight:600!important;color:var(--c-ink)!important;margin:0 0 6px!important;padding:0!important}
 .qp ul{margin:0 0 12px;padding-left:18px}.qp li{font-size:var(--fs-13);line-height:1.55;color:var(--c-text_2);margin:2px 0}
@@ -484,6 +484,45 @@ def _vals(s: pd.Series, nd: int = 2) -> list:
     return [None if pd.isna(v) else round(float(v), nd) for v in s.to_numpy()]
 
 
+def highs_today_html(hl: pd.DataFrame, universe: str = "750") -> str:
+    """S239 item 11, PAGE_DESIGN §2b: the heading answers (the day's highs and lows, figures coloured only), then
+    the ratio and where today's net sits in its record. The line is drawn by `_highs_today`."""
+    if hl is None or hl.empty:
+        return ""
+    r = hl.iloc[-1]
+    h, lo, can = int(r["highs"]), int(r["lows"]), int(r["can"])
+    ratio = ("no new lows" if lo == 0 else f"{h / lo:.1f} highs for each low" if h >= lo
+             else f"{lo / h:.1f} lows for each high" if h else "no new highs")
+    pct = float((hl["net"] <= r["net"]).mean() * 100)
+    return (f'<div class="qp-ch"><h3 class="qp-ch-h">On {hl.index[-1]:%-d %b}, <span class="qp-hl-up">{h:,}</span> of the '
+            f'{can:,} that could closed at a new 52W high and <span class="qp-hl-down">{lo:,}</span> at a new 52W low</h3>'
+            f'<p class="qp-note">{ratio[0].upper() + ratio[1:]}: a net of {_fmt.signed(float(r["net"]), 1)}% of the stocks, '
+            f'at or above {_fmt.fixed(pct, 0)}% of sessions since {hl.index[0]:%b %Y}. One session wide, the weekly '
+            'bars’ rule: a stock counts when its close is within 0.1% of its 52-week high or low, once it has most of '
+            f'a year of prices. Today’s {html.escape(universe)} throughout, leavers not counted.</p></div>')
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def _highs_lows(key: str, _prices: pd.DataFrame) -> pd.DataFrame:
+    return mq.highs_lows(_prices)
+
+
+def _highs_today(key: str, px: pd.DataFrame, universe: str) -> None:
+    """The day's new highs and lows and the daily net line with its usual range (S239 item 11)."""
+    from src.ui import dash_charts as dc
+    from src.ui import record_line
+    hl = _highs_lows(key, px)
+    head = highs_today_html(hl, universe)
+    x = record_line.facts(hl["net"]) if len(hl) else None
+    if not head or x is None:
+        return
+    pc = lambda v: f"{_fmt.signed(v, 1)}%"  # noqa: E731
+    st.html(head)
+    dc.render("lines", {**record_line.chart_spec(x, "Net new 52W highs, the day", pc, yfmt="pct", nd=1),
+                       "range": {"default": "12M", "why": "lately", "chips": ["12M", "3Y", "All"]}},
+              label=f"Net new 52-week highs each session, share of the {universe}, since {x['since']:%b %Y}")
+
+
 def _breadth_charts(bench: pd.Series, share200: pd.Series, weekly: pd.Series,
                     nnh: pd.Series | None = None, pit: bool = True, universe: str = "750",
                     name: str = mq.MARKET) -> None:
@@ -698,6 +737,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
         st.html(question_section_html(breadth, "breadth", "q-breadth")
                 + '<p class="qp-behind">Behind the answer</p>')
         _breadth_charts(bench.dropna(), share200, weekly, nnh, pit, universe, name)
+        _highs_today(key, px, universe)
     if trend is not None:
         sec = question_section_html(trend, "trend", "q-trend")
         table = size_trend_html(bench, size, late=late, day=end, name=name)
