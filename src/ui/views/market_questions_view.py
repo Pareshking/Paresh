@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -681,6 +682,33 @@ _FEAT_CSS = """<style>
 </style>"""
 
 
+def long_breadth_head(x: dict) -> str:
+    """S241 (3), PAGE_DESIGN §2b: the heading answers where the Nifty 500's share sits in its own record since 2009."""
+    pct = float((x["series"] < x["now"]).mean() * 100)
+    return (f'The Nifty 500 since {x["since"]:%Y}: {_fmt.fixed(x["now"], 0)}% are above their 200D EMA, a reading '
+            f'higher than on {_fmt.fixed(pct, 0)}% of days')
+
+
+def _long_breadth() -> None:
+    """The Nifty 500's share above the 200D EMA, members of each day, since Dec 2009 (S241 (3), owner 28 Nov 2026:
+    "Longer breadth record"; `data/breadth_history.csv`, scripts/build_breadth_history.py). Its own section, so the
+    full-page redesign places it (PAGE_DESIGN §2b)."""
+    from src.engine import pit_breadth
+    from src.ui import dash_charts as dc
+    from src.ui import record_line
+    h = pit_breadth.load("nifty500")
+    x = None if h is None or "above_200" not in h else record_line.facts(pd.to_numeric(h["above_200"], errors="coerce"))
+    if x is None:
+        return
+    pc = lambda v: f"{_fmt.fixed(v, 0)}%"  # noqa: E731
+    _chart_head(long_breadth_head(x),
+                "The share of the Nifty 500's members on each day closing above their own 200D EMA, leavers counted "
+                "while they were members. " + record_line.words(x, pc, f"{x['since']:%b %Y}"))
+    dc.render("lines", {**record_line.chart_spec(x, "Nifty 500 above their 200D EMA", pc, yfmt="pct", nd=1),
+                       "range": {"default": "all", "why": "record"}},
+              label=f"Share of the Nifty 500's members above their 200D EMA, each day since {x['since']:%b %Y}")
+
+
 def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
                                   size: dict[str, pd.Series], pit: bool = True, universe: str = "750",
                                   name: str = mq.MARKET) -> bool:
@@ -734,6 +762,8 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
                           label=f"Share of the {universe} above their 200D EMA, each day since {x['since']:%b %Y}")
                 st.html('<p class="qp-note">The share of the ranked stocks closing above their own 200D EMA, '
                         'each trading day; the shaded band is the middle half of those days.</p>')
+        if os.environ.get("S241_PREVIEW"):
+            _long_breadth()
         st.html(question_section_html(breadth, "breadth", "q-breadth")
                 + '<p class="qp-behind">Behind the answer</p>')
         _breadth_charts(bench.dropna(), share200, weekly, nnh, pit, universe, name)
