@@ -90,7 +90,7 @@ def build_gates(close: pd.DataFrame, bench: pd.Series) -> dict[str, pd.DataFrame
     return gates
 
 
-def run(close, bench, gate=None, mode="both"):
+def run(close, bench, gate=None, mode="both", **extra):
     membership = iu.index_history("nifty_500")
     cols = sorted(iu.ever_members(membership) & set(close.columns))
     frame = close.loc[:, cols].astype("float64")
@@ -104,7 +104,7 @@ def run(close, bench, gate=None, mode="both"):
               cost_bps=cfg["cost_bps"], buffer_n=cfg["buffer_n"], stock_cap=cfg["stock_cap"],
               sector_cap=cfg["sector_cap"], sector_map=record_sector_map(cols), _benchmark_close=bench,
               backtest_months=months, _membership=membership, stateful_history=True,
-              history_start=pd.Timestamp(START), _actions=[], extra_gate=g, extra_gate_mode=mode)
+              history_start=pd.Timestamp(START), _actions=[], extra_gate=g, extra_gate_mode=mode, **extra)
 
 
 def stats(eq: pd.Series) -> dict:
