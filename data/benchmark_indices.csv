@@ -1374,6 +1374,7 @@ date,index,close,source
 2026-11-23,microcap250,24880.70,nse_close_all
 2026-11-25,microcap250,24718.60,nse_close_all
 2026-11-26,microcap250,24726.35,nse_close_all
+2026-11-27,microcap250,24931.25,nse_close_all
 2016-04-01,midcap150,4209.39,nse_close_all
 2016-04-04,midcap150,4222.04,nse_close_all
 2016-04-05,midcap150,4156.08,nse_close_all
@@ -4014,6 +4015,7 @@ date,index,close,source
 2026-11-23,midcap150,22542.45,nse_close_all
 2026-11-25,midcap150,22591.40,nse_close_all
 2026-11-26,midcap150,22650.00,nse_close_all
+2026-11-27,midcap150,22652.70,nse_close_all
 2022-08-17,midcap150_mom50,33196.76,nse_close_all
 2022-08-18,midcap150_mom50,33276.54,nse_close_all
 2022-08-19,midcap150_mom50,32826.14,nse_close_all
@@ -5075,6 +5077,7 @@ date,index,close,source
 2026-11-23,midcap150_mom50,62095.75,nse_close_all
 2026-11-25,midcap150_mom50,62091.40,nse_close_all
 2026-11-26,midcap150_mom50,62694.10,nse_close_all
+2026-11-27,midcap150_mom50,63000.00,nse_close_all
 2012-02-21,nifty200,2839.55,nse_close_all
 2012-02-22,nifty200,2772.65,nse_close_all
 2012-02-23,nifty200,2761.80,nse_close_all
@@ -8733,6 +8736,7 @@ date,index,close,source
 2026-11-23,nifty200,14362.30,nse_close_all
 2026-11-25,nifty200,14562.80,nse_close_all
 2026-11-26,nifty200,14595.35,nse_close_all
+2026-11-27,nifty200,14490.95,nse_close_all
 2020-08-25,nifty200_mom30,12114.53,nse_close_all
 2020-08-26,nifty200_mom30,12085.56,nse_close_all
 2020-08-27,nifty200_mom30,12092.02,nse_close_all
@@ -10286,6 +10290,7 @@ date,index,close,source
 2026-11-23,nifty200_mom30,29672.90,nse_close_all
 2026-11-25,nifty200_mom30,29575.05,nse_close_all
 2026-11-26,nifty200_mom30,30000.00,nse_close_all
+2026-11-27,nifty200_mom30,30161.25,nse_close_all
 2012-02-21,nifty50,5607.15,nse_close_all
 2012-02-22,nifty50,5505.35,nse_close_all
 2012-02-23,nifty50,5483.30,nse_close_all
@@ -13944,6 +13949,7 @@ date,index,close,source
 2026-11-23,nifty50,25349.65,nse_close_all
 2026-11-25,nifty50,25819.25,nse_close_all
 2026-11-26,nifty50,25884.50,nse_close_all
+2026-11-27,nifty50,25607.20,nse_close_all
 2024-06-05,nifty500_mom50,55367.55,nse_close_all
 2024-06-06,nifty500_mom50,57305.67,nse_close_all
 2024-06-07,nifty500_mom50,58346.89,nse_close_all
@@ -14559,6 +14565,7 @@ date,index,close,source
 2026-11-23,nifty500_mom50,53574.90,nse_close_all
 2026-11-25,nifty500_mom50,53302.30,nse_close_all
 2026-11-26,nifty500_mom50,54045.30,nse_close_all
+2026-11-27,nifty500_mom50,54387.65,nse_close_all
 2021-10-14,nifty_total_market,8769.06,nse_close_all
 2021-10-18,nifty_total_market,8833.94,nse_close_all
 2021-10-19,nifty_total_market,8759.83,nse_close_all
@@ -15828,6 +15835,7 @@ date,index,close,source
 2026-11-23,nifty_total_market,13384.00,nse_close_all
 2026-11-25,nifty_total_market,13530.65,nse_close_all
 2026-11-26,nifty_total_market,13563.90,nse_close_all
+2026-11-27,nifty_total_market,13494.00,nse_close_all
 2016-04-01,smallcap250,4051.10,nse_close_all
 2016-04-04,smallcap250,4084.95,nse_close_all
 2016-04-05,smallcap250,4013.42,nse_close_all
@@ -18468,6 +18476,7 @@ date,index,close,source
 2026-11-23,smallcap250,17662.60,nse_close_all
 2026-11-25,smallcap250,17630.60,nse_close_all
 2026-11-26,smallcap250,17735.30,nse_close_all
+2026-11-27,smallcap250,17829.90,nse_close_all
 2023-12-21,smallcap250_mq100,40304.22,nse_close_all
 2023-12-22,smallcap250_mq100,40826.71,nse_close_all
 2023-12-26,smallcap250_mq100,41080.35,nse_close_all
@@ -19195,6 +19204,7 @@ date,index,close,source
 2026-11-23,smallcap250_mq100,47748.95,nse_close_all
 2026-11-25,smallcap250_mq100,47781.60,nse_close_all
 2026-11-26,smallcap250_mq100,48115.30,nse_close_all
+2026-11-27,smallcap250_mq100,48485.65,nse_close_all
 2025-08-06,total_market_mq50,42367.36,nse_close_all
 2025-08-07,total_market_mq50,42299.84,nse_close_all
 2025-08-08,total_market_mq50,41566.25,nse_close_all
@@ -19518,3 +19528,4 @@ date,index,close,source
 2026-11-23,total_market_mq50,42831.15,nse_close_all
 2026-11-25,total_market_mq50,42925.05,nse_close_all
 2026-11-26,total_market_mq50,43489.30,nse_close_all
+2026-11-27,total_market_mq50,43812.25,nse_close_all

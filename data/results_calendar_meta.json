@@ -1,8 +1,8 @@
 {
- "fetched_on": "2026-11-27",
- "rows": 2661,
- "announced": 21,
- "held": 2640,
+ "fetched_on": "2026-11-28",
+ "rows": 2657,
+ "announced": 19,
+ "held": 2638,
  "sources": [
   "https://www.nseindia.in/api/event-calendar",
   "https://www.nseindia.in/api/corporate-board-meetings"
