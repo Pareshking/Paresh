@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -107,7 +108,8 @@ def _t(v: float | None) -> str:
 def _past_stamp() -> str:
     """The breadth history file's revision, for cache keys."""
     from src.engine import pit_breadth
-    return str(pit_breadth.FILE.stat().st_mtime) if pit_breadth.FILE.exists() else "-"
+    f = Path(_pack(pit_breadth.FILE))   # the pack's copy when it has one: a new pack, a new key
+    return f"{f}:{f.stat().st_mtime}" if f.exists() else "-"
 
 
 def _answers(_key: str, _prices: pd.DataFrame, _industry: pd.Series, _bench: pd.Series,

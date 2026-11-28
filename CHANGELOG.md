@@ -2,6 +2,7 @@
 
 
 ## 2026-11-28
+- Indices: the earnings tables show the week's figures as soon as they are published, instead of after the site's next update.
 - Every page: the 26 Nov fix for a page failing for a moment while the site updated stopped holding after the next update (its lock was replaced on each update). It now keeps one lock for as long as the server runs.
 
 ## 2026-11-26

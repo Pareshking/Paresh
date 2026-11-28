@@ -2,14 +2,20 @@
 Shared by the Indices page and the Dashboard's "Valuation and styles" card."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 from src.engine import indices_page as ip
 from src.loaders import nse_indices as ni
+from src.loaders.app_pack import resolve as _pack
 
 
 def _stamp() -> str:
-    return "|".join(f"{p.stat().st_mtime_ns}" if p.exists() else "-" for p in (ni.COMPACT_HISTORY, ni.COMPACT_RECENT))
+    """The files read, the R2 pack's copy where it has one (a new pack is a new path), so a
+    refreshed pack changes the key without waiting for a pull."""
+    files = [Path(_pack(p)) for p in (ni.COMPACT_HISTORY, ni.COMPACT_RECENT)]
+    return "|".join(f"{p}:{p.stat().st_mtime_ns}" if p.exists() else "-" for p in files)
 
 
 # Plain fields in the cache, the Frames built outside it (S232): st.cache_data pickles what it
