@@ -520,6 +520,33 @@ def sector_go_line(n: int, sector: str) -> str:
             'over 6M and 1M.')
 
 
+def coming_up_parts(bc, check: pd.Timestamp) -> list:
+    """"Coming up for the book": the holdings' and planned buys' board meetings by day over the next five weeks,
+    the rebalance check in its place (tipsheet's "Coming up" list; dropped 20 Nov without the owner's decision,
+    restored S239 item 6 on "Restore the 9", 28 Nov). PAGE_DESIGN §2b: the heading answers (how many report before
+    the check), the list is the detail; no source line."""
+    from src.engine import results_calendar as rc
+    if bc is None:
+        return []
+    days: dict[pd.Timestamp, list[str]] = {}
+    for r in bc.upcoming.itertuples():
+        tag = ' <span class="dh-sub">to buy</span>' if r.role == "to buy" else ""
+        days.setdefault(pd.Timestamp(r.date).normalize(), []).append(
+            f'<li><b class="dh-mono">{e(r.symbol)}</b>{tag} {e(rc.short_purpose(r.purpose))}</li>')
+    check = pd.Timestamp(check).normalize()
+    if days and min(days) <= check <= max(days) + pd.Timedelta(days=7):
+        days.setdefault(check, []).insert(0, '<li class="dh-cal-check">Rebalance check, at the close</li>')
+    blocks = "".join(f'<div class="dh-cal-day"><div class="dh-lab">{d:%a %-d %b}</div><ul>{"".join(items)}</ul></div>'
+                     for d, items in sorted(days.items()))
+    if not blocks:
+        blocks = f'<p class="dh-note">No board meetings announced for the book in the next {rc.AHEAD_DAYS // 7} weeks.</p>'
+    head, _, rest = rc.lede(bc, check).rstrip(".").partition("; ")
+    return [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>Coming up: {e(head[0].lower() + head[1:])}</b><span>board '
+            f'meetings of the holdings and planned buys, as announced, next {rc.AHEAD_DAYS // 7} weeks</span></div>'
+            + (f'<p class="dh-lede-s">{e(rest[0].upper() + rest[1:])}.</p>' if rest else "")
+            + f'<div class="dh-cal">{blocks}</div></div>']
+
+
 def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check, fill, n_sess: int,
                       rules: Rules, n_hold: int, churn: str, results_line: str, turnover: str = "",
                       dates: dict | None = None) -> list:
@@ -1404,6 +1431,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                           fill=first_fill, late=idx_late)
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
                                results_line, turnover, hist.get("dates"))
+    parts += coming_up_parts(bc, check)
     own_since = pd.Period(own["month"].iloc[0], "M").strftime("%B %Y") if own is not None else ""
     short = sm.record_note(own, system)
     parts += section_momentum(lead, streak, signals, average, lead_bars,
@@ -2091,6 +2119,9 @@ HOME_CSS = """
 .dh-lab{font-size:var(--fs-12);color:var(--c-muted);padding-bottom:6px;border-bottom:1px solid var(--c-ink)}
 .dh-chips{display:flex;flex-wrap:wrap;gap:8px}
 .dh-chip{font-family:var(--font-mono);font-weight:600;font-size:var(--fs-13);color:var(--c-up);background:var(--c-up_tint);border-radius:4px;padding:4px 9px}
+.dh-cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px 24px;margin-top:8px}
+.dh-cal ul{list-style:none;margin:4px 0 0;padding:0;font-size:var(--fs-13)}.dh-cal li{padding:2px 0}
+.dh-cal-check{color:var(--c-muted)}
 .dh-callout{background:var(--c-fill_soft);border-radius:4px;padding:12px 14px;font-size:var(--fs-13)}
 .dh-link{font-size:var(--fs-13);font-weight:600;color:var(--c-ink);min-height:44px;display:flex;align-items:center}
 .dh-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--c-rule_soft);border:1px solid var(--c-rule_soft)}
