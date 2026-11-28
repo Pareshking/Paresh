@@ -349,7 +349,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
     elif gap > 0:
         title = f'The book is <span class="dh-up">{e(_fmt.fixed(abs(gap), 1))} points ahead</span> of Nifty Total Market {so_far}.'
     else:
-        title = f'The book is <span class="dh-down">{e(_fmt.fixed(abs(gap), 1))} points behind</span> Nifty Total Market {so_far}.'
+        title = f'The book is <span class="dh-down">{e(_fmt.fixed(abs(gap), 1))} points behind</span> Nifty Total Market {so_far}.'  # noqa: F841 -- G1 preview: the brief carries the headline
     said = []
     if bm.market_mtd is not None:
         said.append(f"Nifty Total Market is {_fmt.moved(bm.market_mtd)} {so_far}.")
@@ -403,7 +403,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             dash_notes[p_["label"]] = mw.not_published()
     dash_line = (mw.column_notes(dash_notes) + " ") if dash_notes else ""
     return [
-        f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h1 id="s-month" class="dh-h1">{title}</h1>'
+        f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h2 id="s-month" class="dh-h2">Against Nifty Total Market and NSE’s momentum indices</h2>'
         f'<p class="dh-lede">{e(lede)}</p>{kp}<div class="dh-cap"><b>The month</b><span>to {as_of:%-d %b}, price return</span></div></div>',
         Chart("month", spec, {"note": f"Each line is {step:g}%; filled lines right of the dark zero line are a gain, left a fall.", "n": n}),
         how("Each row is a return for the month: Nifty Total Market (about 750 stocks), the model book, "
@@ -1336,7 +1336,7 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
 
     uni = UNIVERSE_SHORT.get(system, "750")
     first_fill = fill0 if fill0 is not None and first_month == as_of.to_period("M") else None
-    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{as_of:%B}", uni, fill=first_fill)]
+    parts = [_brief(bm, len(plan.sells), check, signals, average, typical, flows, f"{as_of:%B}", uni, fill=first_fill, as_of=as_of)]
     parts += section_book(bm, since, since_mkt, as_of, prev, inc + pd.Timedelta(days=1), frozen=_frozen_span(ledger),
                           fill=first_fill, late=idx_late)
     parts += section_rebalance(a, plan, hist["ranks"], ind_state, check, fill, n_sess, rules, len(symbols), churn,
@@ -1597,8 +1597,52 @@ def brief_signals(signals: list[dict], average, flows=None) -> str:
     return out
 
 
+def brief_head(bm: di.BookMonth, month: str, fill: pd.Timestamp | None = None) -> str:
+    """The first screen's headline: the book's month against Nifty Total Market, in one line (S237 G1, tipsheet
+    benchmark: "The Nifty 50 fell 1.1%; small caps rose 0.5%"). Colour on the figures only."""
+    if bm.market_mtd is None or bm.book_mtd is None:
+        return ""
+    when = f"since the {fill:%-d %b} fill" if fill is not None else f"so far in {month}"
+    gap = bm.book_mtd - bm.market_mtd
+    book = f'<span class="{"dh-up" if bm.book_mtd >= 0 else "dh-down"}">{_fmt.moved(bm.book_mtd)}</span>'
+    if _fmt.reads_zero(gap):
+        return f"The book is {book} {when}, level with Nifty Total Market."
+    side = "ahead of" if gap > 0 else "behind"
+    pts = f'<span class="{"dh-up" if gap > 0 else "dh-down"}">{_fmt.fixed(abs(gap), 1)} points {side}</span>'
+    return f"The book is {book} {when}, {pts} Nifty Total Market."
+
+
+def brief_lede(n_sells: int, check, signals: list[dict], average, typical, universe: str) -> str:
+    """Two sentences under the headline: the signals' count (owner's answer 2, 24 Nov: the brief keeps the count),
+    the sales at the check, and a narrow rally when it is one. Plain ink; colour on the counts only."""
+    tested = [x for x in signals if x["test"] is not None]
+    passed = [x for x in tested if x["test"]["passed"]]
+    read = [x for x in passed if x["like"] is not None and average is not None]
+    out = []
+    if read:
+        good = sum(1 for x in read if x["like"] >= average)
+        bad = len(read) - good
+        lead = (f"All <b class=\"dh-up\">{good}</b> of our tested signals point" if bad == 0 and good == len(passed)
+                else f"Of our {len(passed)} tested signals, <b class=\"dh-up\">{good}</b> point")
+        out.append(f"{lead} to a stronger month for momentum and <b class=\"dh-down\">{'none' if bad == 0 else bad}</b> "
+                   "to a weaker one.")
+    second = []
+    if n_sells:
+        second.append(f"<b class=\"dh-down\">{n_sells}</b> holding{'s' if n_sells != 1 else ''} would be sold at the "
+                      f"{check:%-d %b} check")
+    b1 = typical["beat_share"][0] if typical else None
+    if b1 is not None and b1 < 40:
+        second.append(f"the rally is narrow, with only <b class=\"dh-down\">{_fmt.fixed(b1, 0)}%</b> of the {universe} "
+                      "ahead of Nifty Total Market over the past month")
+    if second:
+        s = "; ".join(second)
+        out.append(s[0].upper() + s[1:] + ".")
+    return " ".join(out)
+
+
 def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, typical, flows=None,
-           month: str = "the month", universe: str = "750", fill: pd.Timestamp | None = None) -> str:
+           month: str = "the month", universe: str = "750", fill: pd.Timestamp | None = None,
+           as_of: pd.Timestamp | None = None) -> str:
     bits = [x for x in (brief_book(bm, month, fill),) if x]
     if n_sells:
         # "would": it holds only if prices hold; the sale fills the next session (S193 B, S203 dash.brief.2).
@@ -1613,6 +1657,15 @@ def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, 
     nav = "".join(f'<a href="#{a}" class="dh-pill">{e(t)}</a>' for a, t in (
         ("s-month", "1 The book"), ("s-next", "2 Next rebalance"), ("s-mom", "3 Momentum"), ("s-flow", "4 Money flows"),
         ("s-size", "5 Size"), ("s-book", "6 Strong and weak"), ("s-glance", "At a glance")))
+    # S237 G1 preview (tipsheet benchmark): a date line, one headline, a two-sentence lede, then the section pills.
+    head = brief_head(bm, month, fill)
+    if head:
+        when = f"End of day, {_fmt.date(as_of)}" if as_of is not None else ""
+        return ('<section class="dh-brief dh-brief2" aria-label="Today in brief">'
+                + (f'<p class="dh-date">{e(when)}</p>' if when else "")
+                + f'<h1 class="dh-h1 dh-head">{head}</h1>'
+                f'<p class="dh-lede2">{brief_lede(n_sells, check, signals, average, typical, universe)}</p>'
+                f'<nav class="dh-pills" aria-label="On this page">{nav}</nav></section>')
     return (f'<section class="dh-brief" aria-label="Today in brief"><p class="dh-verdict">{" ".join(bits)}</p>'
             f'<nav class="dh-pills" aria-label="On this page">{nav}</nav></section>')
 
@@ -1923,6 +1976,7 @@ def _glance(closes, as_of, hist, risk, n500, record_risk=None, book_sessions: in
 HOME_CSS = """
 .dh{font-family:var(--font-ui);color:var(--c-ink);line-height:1.5}
 .dh-brief{padding:20px 0 18px;border-bottom:1px solid var(--c-rule)}
+.dh-brief2{padding:28px 0 20px}.dh-date{margin:0 0 10px;color:var(--c-muted);font-size:var(--fs-13)}.dh .dh-brief2 .dh-head{margin:0 0 16px!important;max-width:900px}.dh-lede2{margin:0 0 var(--sp-3);font-size:var(--fs-17);line-height:1.55;max-width:720px;color:var(--c-text_2)}.dh-lede2 b{font-weight:600}@media (max-width:600px){.dh .dh-brief2 .dh-head{font-size:var(--fs-30)!important;line-height:1.15!important}.dh-lede2{font-size:var(--fs-15)}.dh-brief2 .dh-pills{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.dh-brief2 .dh-pill{flex:0 0 auto}}
 .dh-verdict{margin:0 0 var(--sp-3);font-family:var(--font-serif);font-size:var(--fs-24);line-height:1.35;max-width:980px}
 .dh-pills{display:flex;flex-wrap:wrap;gap:6px 8px}
 .dh-pill{font-size:var(--fs-13);text-decoration:none;color:var(--c-ink);border:1px solid var(--c-rule);border-radius:999px;padding:6px 12px;min-height:32px;display:inline-flex;align-items:center}
