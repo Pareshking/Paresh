@@ -62,6 +62,7 @@ font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-s
 .chart text.lbl-end{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:var(--fs-12);font-weight:600}
 .chart text.lbl-v{font-weight:600}
 .chart text.lbl-band{font-family:'IBM Plex Sans',system-ui,sans-serif;font-style:italic;font-size:var(--fs-12);fill:var(--muted)}
+.chart text.lbl-mark{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:var(--fs-12);fill:var(--text2)}
 .tt{--pitch:8px;display:grid;gap:0;height:24px;position:relative;grid-template-columns:repeat(var(--n),var(--pitch));width:calc(var(--n) * var(--pitch));max-width:100%}
 .tt i{display:block;width:50%;justify-self:center;background:var(--rule)}.tt i.f{background:var(--ink)}
 .tt .zero,.tt .line{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1px dashed var(--muted)}

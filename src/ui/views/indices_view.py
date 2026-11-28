@@ -32,6 +32,9 @@ IX_CSS = """
 .ix-every th[scope=row]{font-weight:500;white-space:normal;min-width:170px}
 .ix-every .dh-sub{white-space:nowrap}
 .ix-q td.up{color:var(--c-up)}.ix-q td.down{color:var(--c-down)}.ix-q th[scope=row]{min-width:0;white-space:nowrap}.ix-q thead th{white-space:normal}
+.ix-big{margin:4px 0 2px!important;font-family:var(--font-serif)!important;font-size:72px!important;line-height:1!important;font-weight:400!important}
+.ix-feat-t{font-size:var(--fs-17);line-height:1.5;margin:16px 0 0!important;max-width:380px}
+.ix-for{margin:0 0 14px!important}
 .ix-fam{margin:8px 0 0!important;font-family:var(--font-serif)!important;font-weight:400!important;font-size:var(--fs-24)!important;line-height:1.3!important}
 @media (max-width:640px){.ix-every th[scope=row],.ix-every thead th:first-child{white-space:nowrap;min-width:0;position:sticky;left:0;background:var(--c-white);z-index:1;box-shadow:1px 0 0 var(--c-rule_soft);padding-right:10px!important}.ix-every th,.ix-every td{padding:6px 4px 6px 0!important;font-size:var(--fs-12)}
 .ix-hide-s{display:none}}
@@ -68,28 +71,97 @@ def _num(v: float | None, digits: int = 1, unit: str = "") -> str:
 # ── Sections ─────────────────────────────────────────────────────────────────
 
 
+def _pct_word(v: ip.Valuation, short: bool = False) -> str:
+    """"cheaper than on <b>79%</b> of days": colour on the figure only (S237 G2), blue for cheaper than usual."""
+    p = v.pct_now
+    if _fmt.half_up(p) == 50:
+        return "at its median"
+    cheap = p < 50
+    fig = f'<b class="{"dh-up" if cheap else "dh-down"}">{_share(100 - p if cheap else p)}%</b>'
+    return f"{'cheaper' if cheap else 'dearer'} than on {fig}" + ("" if short else " of days")
+
+
+def head_lede(n50: ip.Valuation | None, s250: ip.Valuation | None) -> str:
+    """Two sentences under the question (S237 G1 form on Indices; tipsheet's valuation page): the answer for the
+    largest and the smallest index, then what a P/E can and cannot say."""
+    if not (n50 and s250):
+        return "NSE's index P/Es are not in yet."
+    return (f"The Nifty 50 trades at {_fmt.fixed(n50.pe_now, 1)} times trailing earnings, {_pct_word(n50)} since "
+            f"{_dy(n50.since)}; the Nifty Smallcap 250, at {_fmt.fixed(s250.pe_now, 1)}, is {_pct_word(s250, True)}. "
+            "A P/E says what you are paying, not what happens next.")
+
+
+NAV = (("s-valuation", "P/E"), ("s-earnings", "Earnings"), ("s-styles", "Styles"), ("s-lag", "Lags"),
+       ("s-years", "Calendar years"), ("s-size", "Size"), ("s-every", "Every index"))
+
+
 def head(vals: list[ip.Valuation], as_of: pd.Timestamp) -> list:
+    """The first screen (S237 G1/G6 on Indices, preview): a date line, the question, the answer in two sentences,
+    the page's sections."""
     by = {v.key: v for v in vals}
-    big, small = by.get("nifty_50"), by.get("nifty_smallcap_250")
-    since = f"{ip.PE_FROM:%b %Y}"
-    if not (big and small):
-        title = "NSE's index P/Es are not in yet."
-    elif round(big.pct_now) != 50 and round(small.pct_now) != 50 and (big.pct_now < 50) != (small.pct_now < 50):
-        # One under its median, one over (S203 ix.head.1 a, a'). Cheaper than its usual reads blue, dearer rust (S219 2).
-        b_word, s_word = ("below", "above") if big.pct_now < 50 else ("above", "below")
-        title = ("The Nifty 50's P/E is " + kit.verdict(f"{b_word} its median", big.pct_now < 50)
-                 + f" since {since}; the Nifty Smallcap 250's is " + kit.verdict(f"{s_word} it", small.pct_now < 50) + ".")
-    else:
-        def at(v: ip.Valuation, first: bool) -> str:
-            if round(v.pct_now) == 50:
-                return "at its median" + (f" since {since}" if first else "")
-            words = f"at the {_ord(v.pct_now)} percentile" if first else f"at the {_ord(v.pct_now)}"
-            return kit.verdict(words, v.pct_now < 50) + (f" of its days since {since}" if first else "")
-        title = f"The Nifty 50's P/E is {at(big, True)}; the Nifty Smallcap 250's {at(small, False)}."
-    return [f'<div class="dh-sec">{KICK.format("Indices")}<h1 id="s-top" class="dh-h1">{title}</h1>'
-            f'<p class="dh-lede">NSE\'s own indices, read at the {_d(as_of)} close: what each index costs against its '
-            'recent past, which investing styles beat their parent index, and how deep a median year\'s max drawdown goes '
-            'for each size. Price returns; dividends are not added.</p></div>']
+    nav = "".join(f'<a href="#{a}" class="dh-pill">{e(t)}</a>' for a, t in NAV)
+    return ['<section class="dh-brief dh-brief2" aria-label="Indices in brief">'
+            f'<p class="dh-date">Indices · end of day, {_fmt.date(as_of)}</p>'
+            '<h1 id="s-top" class="dh-h1 dh-head">Is the market cheap or dear against its own past?</h1>'
+            f'<p class="dh-lede2">{head_lede(by.get("nifty_50"), by.get("nifty_smallcap_250"))}</p>'
+            '<p class="dh-note ix-for">NSE\'s own indices. Price returns; dividends are not added.</p>'
+            f'<nav class="dh-pills" aria-label="On this page">{nav}</nav></section>']
+
+
+def pe_story(pe: pd.Series, as_of: pd.Timestamp) -> dict | None:
+    """The Nifty 50's P/E on NSE's basis since 31 Mar 2021: now, its usual range (the middle half of days, as the
+    page's other P/E charts), the highest and lowest day, and a year ago."""
+    reg = pe.dropna()
+    reg = reg[(reg.index >= ip.PE_FROM) & (reg.index <= as_of)]
+    if len(reg) < 250:
+        return None
+    y1 = ip.on_or_before(reg, ip.months_back(as_of, 12))
+    return {"now": float(reg.iloc[-1]), "day": reg.index[-1], "q25": float(reg.quantile(.25)), "q75": float(reg.quantile(.75)),
+            "hi": float(reg.max()), "hi_d": reg.idxmax(), "lo": float(reg.min()), "lo_d": reg.idxmin(),
+            "ago": None if y1 is None else float(reg[y1]), "since": reg.index[0], "series": reg}
+
+
+def pe_story_words(x: dict) -> str:
+    f1 = lambda v: _fmt.fixed(v, 1)  # noqa: E731
+    now, lo, hi = x["now"], x["q25"], x["q75"]
+    where = ("Inside its usual range" if lo <= now <= hi else "Below its usual range" if now < lo else "Above its usual range")
+    out = (f"{where} of {f1(lo)} to {f1(hi)}, the middle half of days since {_dy(x['since'])}. "
+           f"The highest was {f1(x['hi'])}, in {x['hi_d']:%B %Y}; the lowest {f1(x['lo'])}, in {x['lo_d']:%B %Y}.")
+    if x["ago"] is not None and not _fmt.reads_zero(round(now, 1) - round(x["ago"], 1)):
+        out += f" {'Down' if now < x['ago'] else 'Up'} from {f1(x['ago'])} a year ago."
+    return out
+
+
+def section_pe_feature(f: ip.Frames) -> list:
+    """One index, one number, one line (S237 G3, tipsheet's "Nifty 50 P/E 20.9" block): the figure beside its
+    record on one basis, the usual range shaded and the highest and lowest day labelled."""
+    if "nifty_50" not in f.pe:
+        return []
+    x = pe_story(f.pe["nifty_50"], f.as_of)
+    if x is None:
+        return []
+    r = x["series"]
+    dates = [f"{d:%Y-%m-%d}" for d in r.index]
+    f1 = lambda v: _fmt.fixed(v, 1)  # noqa: E731
+    left = [f'<div class="dh-sec ix-feat">{KICK.format("Nifty 50 P/E")}<p class="ix-big">{f1(x["now"])}</p>'
+            f'<p class="dh-note">times earnings, {_fmt.date(x["day"])}</p>'
+            f'<p class="ix-feat-t">{e(pe_story_words(x))}</p></div>']
+    chart = Chart("lines", {"dates": dates, "series": [{"name": "Nifty 50 P/E", "color": "ink", "values": [round(float(v), 2) for v in r], "width": 1.6}],
+                            "bands": [{"from": round(x["q25"], 2), "to": round(x["q75"], 2), "color": "fill",
+                                       "label": f"usual range, {f1(x['q25'])} to {f1(x['q75'])}"}],
+                            "marks": [{"date": f"{x['hi_d']:%Y-%m-%d}", "v": round(x["hi"], 2), "label": f"{f1(x['hi'])}, {x['hi_d']:%b %Y}"},
+                                      {"date": f"{x['lo_d']:%Y-%m-%d}", "v": round(x["lo"], 2), "label": f"{f1(x['lo'])}, {x['lo_d']:%b %Y}", "below": True}],
+                            "levels": [], "range": PE_RANGE},
+                  {"label": f"Nifty 50 P/E, each day since {_dy(x['since'])}"})
+    note = how(f"NSE's trailing P/E for the Nifty 50 each trading day since {_dy(x['since'])}, the day NSE changed the "
+               "earnings basis; the shaded band is the middle half of those days.",
+               "Above the band, dearer than three days in four; below it, cheaper. It says what you are paying, not "
+               "what happens next.",
+               ["", "P/E"], [["Now", f1(x["now"])], ["Usual range", f"{f1(x['q25'])} to {f1(x['q75'])}"],
+                             [f"Highest, {_fmt.date(x['hi_d'])}", f1(x["hi"])], [f"Lowest, {_fmt.date(x['lo_d'])}", f1(x["lo"])]]
+               + ([["A year ago", f1(x["ago"])]] if x["ago"] is not None else []),
+               source="NSE Indices' published P/E")
+    return [Cols(left, [chart, note], (1, 2))]
 
 
 # The chosen system's own index, when it has no row of its own among the six (S219-7, owner 23 Nov 2026).
@@ -133,11 +205,21 @@ def valuation_headline(n50: ip.Valuation | None, s250: ip.Valuation | None) -> s
             f"The Nifty Smallcap 250 is {small}.")
 
 
+def spread_headline(vals: list[ip.Valuation]) -> str:
+    """The valuation heading once the first screen gives the Nifty 50 and the Smallcap 250 (S237 preview): which of
+    the broad indices is cheapest and dearest against its own past."""
+    if len(vals) < 3:
+        return ""
+    lo, hi = min(vals, key=lambda v: v.pct_now), max(vals, key=lambda v: v.pct_now)
+    return (f"Against its own past, the {lo.name} is the cheapest, at the {_ord(lo.pct_now)} percentile; "
+            f"the {hi.name} the dearest, at the {_ord(hi.pct_now)}.")
+
+
 def section_valuation(f: ip.Frames, vals: list[ip.Valuation], m1: pd.Timestamp, m3: pd.Timestamp,
                       young: ip.YoungValuation | None = None) -> list:
     by = {v.key: v for v in vals}
     n50, s250 = by.get("nifty_50"), by.get("nifty_smallcap_250")
-    h2 = valuation_headline(n50, s250)
+    h2 = spread_headline(vals) or valuation_headline(n50, s250)
     rows = [{"name": v.name, "sub": f"percentile since {_dy(v.since)}", "bar": round(v.pct_now, 1), "ago": round(v.pct_1m, 1),
              "vals": [f"{v.pe_3m:.2f}", f"{v.pe_1m:.2f}", f"{v.pe_now:.2f}", f"{v.pct_now:.0f}"],
              "cls": ["muted", "muted", "b", ""],
@@ -390,8 +472,8 @@ def styles_headline(sts: list[ip.Style]) -> str:
     lo, hi = (_fmt.fixed(x, 1) for x in (min(-s.lead_now for s in behind), max(-s.lead_now for s in behind)))
     span = lo if lo == hi else f"{lo}–{hi}"
     trail = "trails" if len(behind) == 1 else "trail"
-    return (f'Over 12 months, {e(who)} <span class="dh-up">{verb}</span>; {e(_and([s.style.lower() for s in behind]))} '
-            f'<span class="dh-down">{trail} by more than 5 points: {span}</span>.')
+    return (f'Over 12 months, {e(who)} {verb}; {e(_and([s.style.lower() for s in behind]))} '
+            f'{trail} by more than 5 points: <span class="dh-down">{span}</span>.')
 
 
 def section_styles(sts: list[ip.Style], m1: pd.Timestamp, m3: pd.Timestamp) -> list:
@@ -421,8 +503,8 @@ def lag_headline(mom: ip.Style) -> str:
     if _fmt.reads_zero(now):
         return f"{e(mom.style)}’s line against the {e(mom.parent_name)} is at its peak."
     deepest = now >= abs(mom.worst) - 0.05
-    return (f'{e(mom.style)}’s line against the {e(mom.parent_name)} is <span class="dh-down">{_fmt.fixed(now, 1)}% '
-            f'below its {mom.worst_peak:%B %Y} peak</span>' + (f", its deepest since launch in {mom.live.year}." if deepest else "."))
+    return (f'{e(mom.style)}’s line against the {e(mom.parent_name)} is <span class="dh-down">{_fmt.fixed(now, 1)}%</span> '
+            f'below its {mom.worst_peak:%B %Y} peak' + (f", its deepest since launch in {mom.live.year}." if deepest else "."))
 
 
 def lag_extra(sts: list[ip.Style], mom: ip.Style) -> str:
@@ -656,7 +738,7 @@ def page_parts(f: ip.Frames, system: str | None = None, scope: str = "all", part
     every = ip.every_index(f)
     n = sum(len(v) for v in every.values())
     young = ip.young_valuation(f, SYSTEM_INDEX[system]) if system in SYSTEM_INDEX else None
-    pre = head(vals, as_of) + section_valuation(f, vals, m1, m3, young) if part != "post" else []
+    pre = head(vals, as_of) + section_pe_feature(f) + section_valuation(f, vals, m1, m3, young) if part != "post" else []
     if part == "pre":
         return pre
     return (pre + section_earnings(er.ours(scope=scope), er.partial(scope=scope), scope) + section_styles(sts, m1, m3)
