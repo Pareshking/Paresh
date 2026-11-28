@@ -129,7 +129,7 @@ or a reason (S195 §4). Part E also gives three corrections to `docs/DATA_CATALO
 ## 4. Decisions for the owner (one at a time, in this order)
 
 1. **Restore list: answered 28 Nov, "Restore the 9".** Items 1-8 and 11 of §1 come back, each previewed on real data first and each with a requirements row so a later redesign cannot drop it again; 9, 10, 12 and 13 stay out.
-2. **Tick strips:** the owner's own chart forms that S237 would replace — the Dashboard §1 month strip, the stock page's line bars, the Backtest's year and sensitivity strips. Replace each with lines or bars, or keep it.
+2. **Tick strips: answered 28 Nov, "Preview replacements".** The Dashboard §1 month strip, the stock page's returns bars and the Backtest's year and sensitivity strips each get a bars-or-lines version built on real data beside the current strip; the owner approves or rejects each; nothing changes before that.
 3. **Screener lede:** "The 750 ranked stocks of the 750" (template sc.head.2). Proposed: "The 750 stocks, ranked by momentum at the 27 Nov close."
 4. **Unused data:** which items of §2 to show, and on which page.
 
