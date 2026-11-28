@@ -129,7 +129,7 @@ def main(close_path: str, value_path: str) -> None:
             continue
         m = eq.resample("ME").last().pct_change().dropna()
         d = (m - bm).dropna()
-        sd_y = d.std() * np.sqrt(12) * 100
+        sd_y = d.std(ddof=0) * np.sqrt(12) * 100
         gain = (stats(eq)["a year %"] - base["a year %"])
         yrs = (2 * sd_y / gain) ** 2 if gain > 0 else np.inf
         print(f"   {name:38s} spread {sd_y:.1f} pts a year; gain {gain:+.2f}; years needed ~{yrs:.0f}")

@@ -39,14 +39,14 @@ N_PLACEBO = 20
 
 def tstat(x: pd.Series) -> float:
     x = x.dropna()
-    return x.mean() / (x.std(ddof=1) / np.sqrt(len(x))) if len(x) > 3 and x.std(ddof=1) > 0 else np.nan
+    return x.mean() / (x.std(ddof=0) / np.sqrt(len(x))) if len(x) > 3 and x.std(ddof=0) > 0 else np.nan
 
 
 def states(close: pd.DataFrame, bench: pd.Series, signals: pd.DatetimeIndex) -> pd.DataFrame:
     b = bench.reindex(close.index).ffill()
     ema200 = b.ewm(span=200, adjust=False).mean()
     r6 = months_ret(b.to_frame("b"), 6)["b"]
-    vol = b.pct_change().rolling(63).std()
+    vol = b.pct_change().rolling(63).std(ddof=0)
     med = vol.expanding(250).median()
     nxt = b.resample("ME").last().pct_change().shift(-1)
     membership = iu.index_history("nifty_500")

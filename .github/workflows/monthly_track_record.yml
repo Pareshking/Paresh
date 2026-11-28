@@ -205,6 +205,22 @@ jobs:
           python scripts/update_track_record.py --shadow skip5 \
             || echo "::warning::Shadow record skip5 freeze failed; the live records are unaffected."
 
+      # Two more (owner, 28 Nov 2026, TODO S239): buying unchanged, a holding sold
+      # below its 200-day EMA or out of the top 90; the second adds skip 5.
+      - name: Freeze the loose-exit shadow records
+        env:
+          PYTHONPATH: .
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          for BOOK in loose_exit loose_exit_skip5; do
+            python scripts/update_track_record.py --shadow "$BOOK" \
+              || echo "::warning::Shadow record $BOOK freeze failed; the live records are unaffected."
+          done
+
       - name: Commit the ledger
         run: |
           git config --global user.name 'github-actions[bot]'

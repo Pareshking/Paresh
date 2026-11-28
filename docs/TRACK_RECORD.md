@@ -471,3 +471,33 @@ Rehearsed on 20 Nov 2026 as a dry run with the start moved to October 2026 (noth
 written; the NSE file brought to 20 Nov with `sync_nse_prices.py --update --source nse`
 and restored afterwards): Skip 5 days October -3.52% (benchmark +0.17%); Near-high 90%
 re-run as a control gave -5.35%, the same as its 19 Nov rehearsal.
+
+## 12. Shadow records: Loose exits, and Loose exits + skip 5
+
+Owner, 28 Nov 2026 ("Both (a) and (b) as separate shadows"; TODO S239;
+`docs/archive/INDICATOR_SEARCH_2026-11-28.md` round 3). Same machinery as sections 9-11, never traded, the live
+records and the other shadows untouched.
+
+| | Loose exits | Loose exits + skip 5 days |
+|---|---|---|
+| Configuration | `TRACK_RECORD_CONFIG` with `exit_ema_period` 200 and `buffer_n` 90: buying unchanged (above the 50D EMA, within 20% of the 52-week high, top 20); a holding is sold only below its 200D EMA or once it ranks below 90 | the same plus `score_skip` 5 |
+| Ledger | `data/track_record_shadow_loose_exit.json` | `data/track_record_shadow_loose_exit_skip5.json` |
+| First month | December 2026: the book signalled at the 30 Nov close | the same |
+| Frozen by | `monthly_track_record.yml`, "Freeze the loose-exit shadow records" (`update_track_record.py --shadow loose_exit` / `loose_exit_skip5`); a failure only warns | |
+| Shown | named in the note under Portfolio's systems table (section 9) and in the Backtest's "Can it be trusted" | |
+
+Why forward: in the book's history the month-end sales were about neutral (a sold stock did as well as the ones
+kept), so selling later held winners longer. In the engine from 2010: 24.4% a year against 18.8% (+5.1 in 2010-17,
++6.1 in 2018-26), worst fall -36.8% against -38.7%, turnover 22.6% a month against 40.2%; with skip 5, 27.6%. Every
+neighbour (sell EMA 100-200, keep within 60-120) gained 3.2 to 5.8 pts; a second implementation written separately
+gave +6.0. But it was found on the same history, and the October sweep (section 9) had already pointed this way.
+It does not avoid the book's own crashes. Review after 12 months (Dec 2027), as section 11: a year cannot prove it;
+the review asks whether each keeps up with the live record, holds names longer, and trades about half as much.
+
+`exit_ema_period` is not a key of `TRACK_RECORD_CONFIG`; `run_backtest_kwargs` passes None for the live records, so
+no live month's configuration fingerprint changes.
+
+Rehearsed on 28 Nov 2026 as a dry run with the start moved to October 2026 (nothing written; the NSE file brought to
+27 Nov with `sync_nse_prices.py --update --source nse` and restored afterwards): Loose exits October -4.51%, Loose
+exits + skip 5 -3.52% (benchmark +0.17%). In a book's first month the keep rules have nothing to keep, so these must
+equal the live settings (-4.51% by the same path) and skip 5 (-3.52%): both do.

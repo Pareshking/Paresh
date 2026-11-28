@@ -318,3 +318,28 @@ def test_score_skip_moves_only_the_score_not_the_gates(monkeypatch):
     monkeypatch.setattr(bt, "_signal_scores", spy)
     _bt(score_skip=5)
     assert seen and all(sig - idx == 5 for idx, sig in seen)
+
+
+# ── The research gate (S239, 28 Nov 2026): a True/False frame read at the signal date ──
+
+def test_an_all_true_gate_changes_nothing_and_an_unknown_mode_is_refused():
+    prices = _prices()
+    base = _bt()
+    gate = pd.DataFrame(True, index=prices.index, columns=prices.columns)
+    for mode in ("both", "entry", "exit"):
+        assert _bt(extra_gate=gate, extra_gate_mode=mode)["equity_curve"].equals(base["equity_curve"])
+    with pytest.raises(ValueError, match="extra_gate_mode"):
+        _bt(extra_gate=gate, extra_gate_mode="sometimes")
+
+
+def test_the_gate_modes_bind_where_they_say():
+    """A gate that fails every name: 'both' empties the book; 'entry' buys nothing new but the first
+    book is never formed, so it is cash too; 'exit' lets names be bought and sells them each month."""
+    prices = _prices()
+    none = pd.DataFrame(False, index=prices.index, columns=prices.columns)
+    def held(r):  # an empty book's trade log has no columns at all
+        tb = r["tradebook"]
+        return int(tb["Action"].str.contains("BUY").sum()) if "Action" in tb else 0
+    assert held(_bt(extra_gate=none, extra_gate_mode="both")) == 0
+    assert held(_bt(extra_gate=none, extra_gate_mode="entry")) == 0
+    assert held(_bt(extra_gate=none, extra_gate_mode="exit")) > 0

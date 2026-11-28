@@ -198,6 +198,23 @@ SHADOWS: dict[str, Shadow] = {
         "score read 5 sessions before the signal; gates and fills on the signal day",
         {**TRACK_RECORD_CONFIG, "score_skip": 5},
         pd.Period("2026-12", freq="M"), LEDGER_PATH.with_name("track_record_shadow_skip5.json")),
+    # Owner, 28 Nov 2026 ("Both (a) and (b) as separate shadows"; TODO S239,
+    # docs/archive/INDICATOR_SEARCH_2026-11-28.md round 3): the live buying rules
+    # with looser keep rules -- a holding is sold only below its 200-day EMA (live:
+    # 50) or once it falls out of the top 90 (live: 40). Month-end sales were about
+    # neutral in the book's history; from 2010 in the engine +5.6 pts a year in both
+    # halves, turnover about half, on the same history it was found on. The second
+    # adds skip 5. From the December 2026 book.
+    "loose_exit": Shadow(
+        "loose_exit", "Loose exits (shadow)",
+        "buying unchanged; a holding is sold below its 200D EMA (live: 50D) or out of the top 90 (live: 40)",
+        {**TRACK_RECORD_CONFIG, "exit_ema_period": 200, "buffer_n": 90},
+        pd.Period("2026-12", freq="M"), LEDGER_PATH.with_name("track_record_shadow_loose_exit.json")),
+    "loose_exit_skip5": Shadow(
+        "loose_exit_skip5", "Loose exits + skip 5 days (shadow)",
+        "loose exits as above, and the score read 5 sessions before the signal",
+        {**TRACK_RECORD_CONFIG, "exit_ema_period": 200, "buffer_n": 90, "score_skip": 5},
+        pd.Period("2026-12", freq="M"), LEDGER_PATH.with_name("track_record_shadow_loose_exit_skip5.json")),
 }
 
 
@@ -366,6 +383,9 @@ def run_backtest_kwargs(cfg: dict[str, Any]) -> dict[str, Any]:
         # Research option, set only by a shadow book (SHADOWS["skip5"]). It is
         # not in TRACK_RECORD_CONFIG, so no live month's fingerprint changes.
         "score_skip": int(cfg.get("score_skip", 0)),
+        # The keep rule's own EMA, set only by a shadow book (SHADOWS["loose_exit"]);
+        # None = the buy rule's, as in every live record. Not in TRACK_RECORD_CONFIG.
+        "exit_ema_period": cfg.get("exit_ema_period"),
     }
 
 

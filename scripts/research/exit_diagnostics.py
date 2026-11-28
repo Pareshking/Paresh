@@ -118,7 +118,7 @@ def main(close_path: str) -> None:
         trail = px / np.maximum.accumulate(px, axis=0)
         for kind, path in (("from fill", rel - 1), ("from high since fill", trail - 1)):
             for thr in (-0.10, -0.15, -0.20):
-                for k, sym in enumerate(syms):
+                for k, _sym in enumerate(syms):
                     hit = np.where(path[:, k] <= thr)[0]
                     hit = hit[hit < len(rel) - 1]
                     if not len(hit):
@@ -153,7 +153,7 @@ def main(close_path: str) -> None:
     per = d4.groupby(["s", "band"])["ret"].mean().unstack().dropna()
     diff = per["rank 21-40"] - per["rank 1-20"]
     print(f"  months with both: {len(per)}; rank 21-40 minus rank 1-20: mean {diff.mean():+.2f} pts a month, "
-          f"median {diff.median():+.2f}, t {diff.mean() / (diff.std() / np.sqrt(len(diff))):+.2f}; holdings "
+          f"median {diff.median():+.2f}, t {diff.mean() / (diff.std(ddof=0) / np.sqrt(len(diff))):+.2f}; holdings "
           f"{(d4['band'] == 'rank 21-40').sum()} of {len(d4)} at rank 21-40")
 
 

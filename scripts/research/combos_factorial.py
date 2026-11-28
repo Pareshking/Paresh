@@ -40,7 +40,7 @@ def curve(res) -> pd.Series:
 
 
 def pct_b(pf: pd.DataFrame) -> pd.DataFrame:
-    ma, sd = pf.rolling(20).mean(), pf.rolling(20).std()
+    ma, sd = pf.rolling(20).mean(), pf.rolling(20).std(ddof=0)
     return (pf - (ma - 2 * sd)) / (4 * sd)
 
 

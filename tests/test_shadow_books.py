@@ -171,3 +171,42 @@ def test_the_monthly_job_freezes_skip5_after_the_other_shadows():
     assert names.index("Freeze the near-high and breadth shadow records") < i < names.index("Commit the ledger")
     run = steps[i]["run"]
     assert "--shadow skip5" in run and "|| echo" in run
+
+
+# ── Loose exits (owner, 28 Nov 2026: "Both (a) and (b) as separate shadows"; TODO S239) ──
+
+def test_loose_exit_books_change_only_the_keep_rules_and_start_with_the_december_book():
+    from src.engine.track_record import run_backtest_kwargs
+
+    live = TRACK_RECORD_CONFIG
+    want = {"loose_exit": {"exit_ema_period": 200, "buffer_n": 90},
+            "loose_exit_skip5": {"exit_ema_period": 200, "buffer_n": 90, "score_skip": 5}}
+    for key, diff in want.items():
+        book = SHADOWS[key]
+        assert {k: v for k, v in book.config.items() if live.get(k, object()) != v} == diff
+        assert book.breadth_rule is None
+        assert book.inception == pd.Period("2026-12", freq="M")
+        assert book.ledger_path.name == f"track_record_shadow_{key}.json"
+        kw = run_backtest_kwargs(book.config)
+        assert (kw["exit_ema_period"], kw["buffer_n"]) == (200, 90)
+    # The buying rules stay the live record's; the live record keeps its one EMA.
+    assert SHADOWS["loose_exit"].config["ema_period"] == live["ema_period"]
+    assert run_backtest_kwargs(live)["exit_ema_period"] is None
+    assert "exit_ema_period" not in live
+    for other in ("recommendation", "high90", "breadth_long", "skip5"):
+        assert "exit_ema_period" not in SHADOWS[other].config
+
+
+def test_the_updater_picks_the_loose_exit_books():
+    for key in ("loose_exit", "loose_exit_skip5"):
+        system, ledger, start, cfg = _updater().record_setup(SYSTEM_750, shadow=key)
+        assert (Path(ledger), start, cfg) == (SHADOWS[key].ledger_path, SHADOWS[key].inception, SHADOWS[key].config)
+
+
+def test_the_monthly_workflow_freezes_the_loose_exit_books_without_failing_the_job():
+    text = (Path(__file__).resolve().parents[1] / ".github/workflows/monthly_track_record.yml").read_text()
+    step = text[text.index("Freeze the loose-exit shadow records"):]
+    step = step[: step.index("- name:", 10)] if "- name:" in step[10:] else step
+    assert "loose_exit loose_exit_skip5" in step and "--shadow" in step and "|| echo" in step
+    assert text.index("Freeze the skip-5 shadow record") < text.index("Freeze the loose-exit shadow records") \
+        < text.index("Commit the ledger")

@@ -31,7 +31,7 @@ def main(close_path: str, regime_dir: str, seeds: int = 20) -> None:
     pf = close.loc[:, cols].astype("float64").ffill()
     st = pd.read_csv(Path(regime_dir) / "states.csv", index_col=0, parse_dates=True)
     mid = st.index[st["breadth"] == "mid"]
-    vol = pf.pct_change(fill_method=None).rolling(126, min_periods=100).std()
+    vol = pf.pct_change(fill_method=None).rolling(126, min_periods=100).std(ddof=0)
     calm = vol.rank(axis=1, pct=True) <= 0.80
     gate = pd.DataFrame(True, index=pf.index, columns=pf.columns)
     gate.loc[mid] = calm.loc[mid]

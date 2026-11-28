@@ -103,7 +103,7 @@ def build(pf: pd.DataFrame, bench: pd.Series, val: pd.DataFrame, sector: dict[st
     g = r.clip(lower=0).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean()
     l_ = (-r.clip(upper=0)).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean()
     P["rsi14"] = 100 - 100 / (1 + g / l_.replace(0, np.nan))
-    ma20, sd20 = pf.rolling(20).mean(), pf.rolling(20).std()
+    ma20, sd20 = pf.rolling(20).mean(), pf.rolling(20).std(ddof=0)
     P["boll_b"] = (pf - (ma20 - 2 * sd20)) / (4 * sd20)
     path = pf.diff().abs().rolling(50).sum()
     P["eff_ratio_50"] = (pf - pf.shift(50)).abs() / path
@@ -111,19 +111,19 @@ def build(pf: pd.DataFrame, bench: pd.Series, val: pd.DataFrame, sector: dict[st
     t = pd.Series(np.arange(len(pf), dtype=float), index=pf.index)
     c = lp.rolling(126, min_periods=100).corr(t)
     P["trend_r2"] = c ** 2
-    slope = (c * lp.rolling(126, min_periods=100).std()).div(t.rolling(126, min_periods=100).std(), axis=0)
+    slope = (c * lp.rolling(126, min_periods=100).std(ddof=0)).div(t.rolling(126, min_periods=100).std(ddof=0), axis=0)
     P["clenow"] = (np.exp(slope * 252) - 1) * c ** 2
     up, dn = (r > 0).astype(float), (r < 0).astype(float)
     nz = r.notna().astype(float)
     P["fip"] = ((up - dn).where(r.notna()).rolling(231, min_periods=180).mean()).shift(21)
     del nz
-    P["vol_126"] = r.rolling(126, min_periods=100).std() * np.sqrt(252)
+    P["vol_126"] = r.rolling(126, min_periods=100).std(ddof=0) * np.sqrt(252)
     P["down_vol_126"] = np.sqrt((r.clip(upper=0) ** 2).rolling(126, min_periods=100).mean() * 252)
     beta = r.rolling(252, min_periods=200).cov(rb).div(rb.rolling(252, min_periods=200).var(), axis=0)
     P["beta_252"] = beta
-    P["idio_vol"] = np.sqrt(((P["vol_126"] ** 2) - (beta ** 2).mul((rb.rolling(126).std() * np.sqrt(252)) ** 2, axis=0)).clip(lower=0))
+    P["idio_vol"] = np.sqrt(((P["vol_126"] ** 2) - (beta ** 2).mul((rb.rolling(126).std(ddof=0) * np.sqrt(252)) ** 2, axis=0)).clip(lower=0))
     P["mdd_126"] = (pf / pf.rolling(126, min_periods=100).max()).rolling(126, min_periods=100).min() - 1
-    P["vol_ratio"] = r.rolling(21).std() / r.rolling(126, min_periods=100).std()
+    P["vol_ratio"] = r.rolling(21).std(ddof=0) / r.rolling(126, min_periods=100).std(ddof=0)
     v = val.reindex(index=pf.index, columns=pf.columns)
     P["value_surge"] = v.rolling(20, min_periods=15).mean() / v.rolling(120, min_periods=90).mean()
     P["up_value_share"] = (v * (r > 0)).rolling(40, min_periods=30).sum() / v.rolling(40, min_periods=30).sum()
@@ -209,7 +209,7 @@ def main(close_path: str, value_path: str, out: str | None) -> None:
         s = ic_df[n].dropna()
         w = sp_df[n].dropna() * 100
         h1, h2 = s[s.index < HALF], s[s.index >= HALF]
-        tt = lambda x: x.mean() / (x.std(ddof=1) / np.sqrt(len(x))) if len(x) > 3 else np.nan  # noqa: E731
+        tt = lambda x: x.mean() / (x.std(ddof=0) / np.sqrt(len(x))) if len(x) > 3 else np.nan  # noqa: E731
         res.append({"indicator": n, "group": SPEC.get(n, ("", "placebo" if n.startswith("placebo") else "ref"))[1],
                     "months": len(s), "mean IC": s.mean(), "t": tt(s), "t 2010-17": tt(h1), "t 2018-26": tt(h2),
                     "good third minus bad third, %/mo": w.mean(), "months IC>0 %": (s > 0).mean() * 100})
