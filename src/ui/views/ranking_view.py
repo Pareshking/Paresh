@@ -143,6 +143,12 @@ def search_filter(view: pd.DataFrame, value: str) -> pd.DataFrame | None:
     return None
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _new_listings() -> dict:
+    from src.loaders import nse_identity
+    return nse_identity.recent_listings(pd.Timestamp.today().normalize() - pd.DateOffset(years=1))
+
+
 def search_label(value: str) -> str:
     """What the search list shows for an option (audit F36). The value keeps its
     bracketed kind, which the handlers read; the reader sees "LAURUSLABS ·
@@ -401,6 +407,10 @@ def render_ranking_view(
     _ind = dict(zip(_symbols, _industries))
     stock_opts += [f"[STOCK] {new} — {_ind.get(old, '')}"
                    for new, (old, _d) in _sl.renamed_on_nse(frozenset(map(str, _symbols))).items()]
+    # A stock NSE listed in the last year and the ranking does not hold yet opens its page, which says it is too
+    # new to rank (S236 F18: HEGRAPHITE, listed 27 Nov, gave "No results").
+    stock_opts += [f"[STOCK] {sym} — listed {day:%-d %b %Y}" for sym, day in _new_listings().items()
+                   if sym not in _ind]
     search_options = stock_opts + idx_opts + ind_opts + nse_opts + sec_opts + tv_ind_opts
 
     # ── Page header ──────────────────────────────────────────────────────────

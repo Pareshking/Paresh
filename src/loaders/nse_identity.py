@@ -68,6 +68,21 @@ def current_isins(path: Path = EQUITY_L) -> dict[str, str]:
     return dict(zip(raw["ISIN NUMBER"].str.strip(), raw["SYMBOL"].str.strip().str.upper()))
 
 
+def recent_listings(since: pd.Timestamp, path: Path = EQUITY_L) -> dict[str, pd.Timestamp]:
+    """{symbol: listing date} for every equity NSE lists today that it listed on or after `since` (S236 F18: the
+    Screener's search finds a stock too new to rank)."""
+    try:
+        raw = pd.read_csv(path, dtype=str)
+    except (OSError, ValueError):
+        return {}
+    raw.columns = [c.strip().upper() for c in raw.columns]
+    if "DATE OF LISTING" not in raw.columns:
+        return {}
+    d = pd.to_datetime(raw["DATE OF LISTING"].str.strip(), format="%d-%b-%Y", errors="coerce")
+    keep = d >= since
+    return dict(zip(raw.loc[keep, "SYMBOL"].str.strip().str.upper(), d[keep]))
+
+
 def isin_history(path: Path = ISIN_HISTORY) -> pd.DataFrame:
     """symbol, isin, first, last: each pair the bhavcopy carried."""
     try:
