@@ -700,7 +700,7 @@ def test_se_stk_1():
     assert sv.stocks_heading("Healthcare", 12) == "Healthcare’s 12 ranked stocks, best rank first."
     assert sv.stocks_heading("Capital Goods", 1) == "Capital Goods’ 1 ranked stocks, best rank first."
     src = (ROOT / "src" / "ui" / "views" / "sector_view.py").read_text(encoding="utf-8")
-    assert src.index("slot = st.empty()") < src.index('st.selectbox(f"Pick a {noun}"') < src.index("stocks_heading(sh(pick_name)")
+    assert src.index("slot = st.empty()") < src.index('st.selectbox(f"Pick {') < src.index("stocks_heading(sh(pick_name)")
 
 
 def test_se_group_1():

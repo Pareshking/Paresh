@@ -788,7 +788,9 @@ def load_all_data(indices: list[str], system: str = SYSTEM_750):
 
     def _mcaps_for_system() -> pd.Series:
         caps = load_mcaps_cached(core_key, core_syms) if core_syms else pd.Series(dtype=float)
-        return pd.concat([caps, extra_loader.list_market_caps(extra_syms)]) if extra_syms else caps
+        # NSE's daily file first, the month-end list only for a stock it lacks: the list's 30 Oct values
+        # stood beside 27 Nov prices, JLHL ₹8,430 Cr against NSE's ₹11,320 Cr (S236).
+        return pd.concat([caps, extra_loader.system_market_caps(extra_syms)]) if extra_syms else caps
 
     # mcaps + regime have no dependency on price_history — submit them to
     # background threads so the three fetches overlap on cold start.

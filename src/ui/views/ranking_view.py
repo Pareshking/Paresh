@@ -926,7 +926,7 @@ def data_line(rank_df: pd.DataFrame, adj_close: pd.DataFrame | None) -> str:
     dataset that is behind is said, in the caution colour, by what it is."""
     when = "" if adj_close is None or not len(adj_close.index) else f"{_fmt.data_to(_fmt.session_of(adj_close))}. "
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
-    line = (f"{when}{len(rank_df)} stocks ranked; {gap_count(rank_df)} with a price gap, "
+    line = (f"{when}{len(rank_df):,} stocks ranked; {gap_count(rank_df)} with a price gap, "
             f"{short_n} with a short history.")
     behind = []
     try:

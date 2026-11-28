@@ -493,6 +493,11 @@ def _render_not_ranked(symbol: str, rank_df: pd.DataFrame, uni: sl.Universe, as_
     why = f"{rows[0].why} {rows[0].where if rows[0].where != wl.MISSING else ''}".strip() if rows else ""
     new = rows[0].replace_with if rows else ""
     hits = wl.ranks_elsewhere(symbol, others) if rows and rows[0].kind == wl.ELSEWHERE else []
+    moved = None if hits else sl.renamed_elsewhere(symbol, others)
+    if moved:   # another system ranks it under the ticker it had before NSE changed it (S236)
+        old, when, hits = moved
+        why = (f"NSE changed the symbol from {old} to {symbol}" + (f" on {when}" if when else "")
+               + f"; the ranking still files it as {old}. Not a member of {uni.the}. Ranks {wl.ranks_elsewhere_words(hits)}.")
     if hits:
         go = " " + _elsewhere_links(symbol, hits)
     elif new:

@@ -19,7 +19,10 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LEDGER_FILES = ("data/track_record.json", "data/track_record_nano.json", "data/track_record_combined.json")
+# Every system's ledger (src/engine/systems.LEDGERS): the Nifty 1000's, first written at the 1-5 Dec 2026 freeze,
+# was left out (S236, site audit 28 Nov); until then the run warns that it is not in the checkout.
+LEDGER_FILES = ("data/track_record.json", "data/track_record_1000.json", "data/track_record_nano.json",
+                "data/track_record_combined.json")
 DATASET_ROOT = "record/ledger"
 
 

@@ -42,6 +42,16 @@ offline, approved once, filled by code, S203). Mark each as a suggestion, give i
 gives up, and say which you recommend. Skip it when nothing better exists; never pad with options.
 Improve wording on pages and in docs whenever you touch them.
 
+## tipsheet.markets may be copied (owner, 28 Nov 2026)
+
+"We can copy, it is by my friend only who works at Zerodha. We worked together and I have his go ahead."
+
+- Layout, chart forms, table design and wording may be taken from tipsheet.markets as they stand (S237), with the
+  page or pattern it came from noted in the TODO row or the PR.
+- Still not taken: its name, logo or anything that would make a reader think our pages are Tipsheet's or Zerodha's.
+- The permission is the owner's word, recorded here; a written note from its author, if the owner gets one,
+  goes in `docs/archive/`.
+
 ## Decisions when the owner is away (owner, 23 Nov 2026)
 
 "Don't stop work ... If you want to continue working and make things ready, and I am not available, you can always benchmark with

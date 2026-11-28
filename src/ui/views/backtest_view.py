@@ -947,7 +947,7 @@ def section_trust(f: dict) -> list:
                                                     + ("; section 4 gives each stored test from Mar 2012 as well."
                                                        if (f.get("reference") or {}).get("from_2012") else "."),
                        "Not checked"))
-    checks.append(("A second source for the result", "None: the replay is our own engine. Prices pass the long file’s audits "
+    checks.append(("A second source for the result", "No second source: the replay is our own engine. Prices pass the long file’s audits "
                                                      "(other price histories and BSE).", "Not checked"))
     tone = {"Checked": "dh-up", "Soft spot": "dh-watch", "Not checked": "dh-watch"}
     body = "".join(f'<tr><th scope="row">{e(a)}</th><td>{e(b)}</td><td class="bt-st {tone[c]}">{e(c)}</td></tr>' for a, b, c in checks)

@@ -705,7 +705,7 @@ def momentum_lede(signals: list[dict], average: float | None, month_end: pd.Time
 def section_momentum(lead, streak: int, signals: list[dict], average: float | None, lead_bars: dict | None = None,
                      lag: di.MomentumLag | None = None, uni: str = "750", since: str = "2021", long=None,
                      short: str | None = None, so_far: str | None = None, last_month: str | None = None,
-                     month_end: pd.Timestamp | None = None) -> list:
+                     month_end: pd.Timestamp | None = None, borrowed: bool = False) -> list:
     year = lead[0][1] if lead else None
     head = momentum_head(year, streak, so_far, last_month)
     lede = momentum_lede(signals, average, month_end)
@@ -742,7 +742,9 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
             f'<span class="dh-sub dh-b {cls}">{reads}</span></td>'
             f'<td>{badge}<span class="dh-sub">{e(why)}</span></td><td>{e(x["flip"]) if d is not None else ""}</td></tr>')
     avg = "–" if average is None else sg(average)
-    record = (f"This system’s record starts in {e(since)}." if since else "This system’s record has not begun.")
+    # Combined keeps no record; its tiles read the 750's and the note says whose (S236, site audit 28 Nov).
+    record = (f"The Nifty 750’s record, which Combined reads, starts in {e(since)}." if since and borrowed else
+              f"This system’s record starts in {e(since)}." if since else "This system’s record has not begun.")
     parts = [f'<div class="dh-sec">{_kicker("3", "Is momentum still working?")}<h2 id="s-mom" class="dh-h2">{head}</h2>'
              + (f'<p class="dh-lede">{lede}</p>' if lede else '')
              + f'<div class="dh-sub">This system’s top fifth against the {e(uni)}, equal weight, points, longest window first</div>'
@@ -1343,7 +1345,8 @@ def render_home_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame, benchmark_c
                               None if short or own is None else di.momentum_lag(own), uni, own_since,
                               long=_long_record(spreads), short=short,
                               so_far=f"{as_of:%B}" if mtd is not None and mtd < 0 else None,
-                              last_month=f"{as_of.to_period('M') - 1:%B}", month_end=di.month_end_before(adj_close.index, as_of))
+                              last_month=f"{as_of.to_period('M') - 1:%B}", month_end=di.month_end_before(adj_close.index, as_of),
+                              borrowed=system not in sm.SYSTEMS)
     if flows is not None:
         parts += section_flows(flows, ev, dii, share, fpi_bars, compare, uni)
     parts += section_size(sizes, book_sizes, by_size, typical, UNIVERSE_SHORT.get(system, "750"), f"{as_of:%B}",

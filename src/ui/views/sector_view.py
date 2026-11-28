@@ -284,7 +284,21 @@ def lead_example(ld: sp.Leads, sh, uni: str = "750") -> str:
             f"{sg(ld.market_ret.get(6), 1, '%')}, a lead of {sg(ex.lead6)} points.")
 
 
-def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True, uni: str = "750") -> list:
+def switch_words(choices: tuple, nse_sectors: bool = True) -> str:
+    """The grouping switch's own choices, in its order, the first the default (S236: the page still offered
+    TradingView's groupings after S226 replaced them with NSE's four levels)."""
+    names = [str(c) for c in choices] or (["NSE sector", "TradingView sector", "TradingView industry"] if nse_sectors
+                                          else ["TradingView sector", "TradingView industry"])
+    first = names[0] + (" (the default: this list’s stocks carry TradingView’s sectors)" if not nse_sectors
+                        and names[0] == "TradingView sector" else " (the default)")
+    rest = names[1:]
+    if not rest:
+        return first + "."
+    return ", ".join([first, *rest[:-1]]) + f" or {rest[-1]}."
+
+
+def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True, uni: str = "750",
+                 choices: tuple = ()) -> list:
     nouns = _plural(noun)
     h2 = lead_headline(ld, sh, noun)
 
@@ -326,10 +340,8 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True, uni: str
             f"{len(ld.rows)} have five or more ranked stocks and are shown"
             + (f"; left out with fewer: {left}" if left else "") + ". Comparing like with like keeps a rally of large "
             f"companies from reading as every one lagging; that gap is the first row, the {uni} against Nifty Total Market. "
-            f"{lead_example(ld, sh, uni)} The grouping switch at the top "
-            + ("regroups the page by NSE sector (the default), TradingView sector or TradingView industry." if nse_sectors else
-               "regroups the page by TradingView sector (the default: this list’s stocks carry TradingView’s sectors) "
-               "or TradingView industry."))
+            f"{lead_example(ld, sh, uni)} The grouping switch at the top regroups the page by "
+            + switch_words(choices, nse_sectors))
     read = ("Each line is 1 point; the bar is the 6M lead now, the triangle the same reading a month ago, and the "
             "numbers the reading 3 months ago, a month ago, now, then the 1M, 3M and 12M leads now. "
             "Describing is not forecasting: a lead on both windows has not been tested here as a signal for the next month.")
@@ -717,7 +729,8 @@ def _num(v, unit: str = "") -> str:
 # ── The page ─────────────────────────────────────────────────────────────────
 
 
-def page_parts(model: dict, rank_df: pd.DataFrame, col: str, nse_sectors: bool = True, uni: str = "750") -> list:
+def page_parts(model: dict, rank_df: pd.DataFrame, col: str, nse_sectors: bool = True, uni: str = "750",
+               choices: tuple = ()) -> list:
     """Every part of the page above "Stocks in a sector", in the approved order. `nse_sectors`: False
     where "Industry" holds TradingView's sectors (the list, Combined). `uni` is the system's list
     (`UNIVERSE_SHORT`), a slot in every sentence that names it (S203 se.uni.1, rule 12)."""
@@ -727,7 +740,7 @@ def page_parts(model: dict, rank_df: pd.DataFrame, col: str, nse_sectors: bool =
     noun = noun_for(col)
     sh = (lambda n: SHORT_NAMES.get(n, n)) if nse_cols else (lambda n: n)
     board, _ = industry_board(rank_df, col)
-    parts = head(ld, sh, noun, nse, uni) + section_lead(ld, sh, noun, nse_sectors, uni)
+    parts = head(ld, sh, noun, nse, uni) + section_lead(ld, sh, noun, nse_sectors, uni, choices)
     if nse is not None:
         parts += section_broad(ld, nse, sh, uni) + section_indices(ld, nse, sh, uni)
     else:
@@ -772,7 +785,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     if model is None:
         kit.page_empty(*mw.no_groups(sp.MIN_STOCKS), kicker="Sectors")
         return
-    emit(page_parts(model, rank_df, col, nse_sectors, universe))
+    emit(page_parts(model, rank_df, col, nse_sectors, universe, tuple(choices)))
 
     ld: sp.Leads = model["ld"]
     noun = noun_for(col)
@@ -781,7 +794,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     top = next((r for r in ld.rows if r.group == "ahead on both"), ld.rows[0])
     # The heading names the group picked, so it is drawn into its place once the picker has a value (S203 se.stk.1).
     slot = st.empty()
-    pick_name = st.selectbox(f"Pick a {noun}", names, index=names.index(top.name), key=f"sector_pick_{col}",
+    pick_name = st.selectbox(f"Pick {'an' if noun[:1] in 'aeiou' else 'a'} {noun}", names, index=names.index(top.name), key=f"sector_pick_{col}",
                              format_func=sh, width=260)
     members = rank_df[rank_df[col] == pick_name].sort_values("Rank")
     with slot.container():
@@ -793,7 +806,7 @@ def render_sector_view(rank_df: pd.DataFrame, adj_close: pd.DataFrame,
     render_screener_table(members, adj_close, "Core")
 
     short_n = int((rank_df.get("Short History", pd.Series(dtype=str)) == "Yes").sum())
-    st.html(f'<div class="dh"><p class="dh-foot">{_fmt.data_to_html(ld.when)}. {len(rank_df)} stocks ranked; '
+    st.html(f'<div class="dh"><p class="dh-foot">{_fmt.data_to_html(ld.when)}. {len(rank_df):,} stocks ranked; '
             f'{gap_count(rank_df)} with a price gap, {short_n} with a short history.</p></div>')
     render_data_quality_footer(total_stocks=len(rank_df), gap_count=gap_count(rank_df), short_count=short_n)
 

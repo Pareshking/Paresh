@@ -26,6 +26,7 @@ import pandas as pd
 from src.core import startup_metrics as metrics
 from src.core.config import REPO_ATH_FILE
 from src.core.logger import logger
+from src.loaders.app_pack import resolve as _pack
 
 
 # One engine build reads this file three times -- ath_series once and
@@ -66,7 +67,9 @@ def load_ath_snapshot(path: str | None = None) -> pd.DataFrame:
     the result, and handing out the cached frame would let one caller's
     set_index reshape what every later caller receives.
     """
-    target = path or REPO_ATH_FILE
+    # The R2 pack's copy when it holds one (S172), else the path given; keyed on the file read, so a
+    # new pack is read without waiting for a pull to touch the repo's copy.
+    target = str(_pack(path or REPO_ATH_FILE))
     key = _file_identity(target)
     with _SNAPSHOT_LOCK:
         hit = _SNAPSHOT_CACHE.get(key)
@@ -78,7 +81,8 @@ def load_ath_snapshot(path: str | None = None) -> pd.DataFrame:
         _SNAPSHOT_CACHE[key] = frame
         # The path only ever has one live identity; drop stale generations so
         # a long-running process does not accumulate old snapshots.
-        for stale in [k for k in _SNAPSHOT_CACHE if k[0] == target and k != key]:
+        name = os.path.basename(target)   # a new pack is a new folder: drop the old pack's copy too
+        for stale in [k for k in _SNAPSHOT_CACHE if os.path.basename(k[0]) == name and k != key]:
             del _SNAPSHOT_CACHE[stale]
     return frame.copy()
 

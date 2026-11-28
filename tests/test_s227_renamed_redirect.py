@@ -44,3 +44,14 @@ def test_the_committed_files_redirect_shukramed():
     months = json.loads((Path(__file__).resolve().parents[1] / "data" / "nanocap_membership.json").read_text())["months"]
     got = sl.renamed_on_nse(frozenset(months[sorted(months)[-1]]["symbols"]))
     assert got.get("SHUKRAMED", ("",))[0] == "SHUKRAPHAR"
+
+
+def test_another_systems_old_ticker_is_found_from_the_750(monkeypatch):
+    # S236: on the 750, SHUKRAMED read "in none of the systems' lists" while > ₹2,000 Cr ranked SHUKRAPHAR 1st.
+    _fake(monkeypatch, {"SHUKRAPHAR": "SHUKRAMED"},
+          pd.DataFrame({"old": ["SHUKRAPHAR"], "new": ["SHUKRAMED"], "date": [pd.Timestamp("2026-11-20")]}))
+    others = {"> ₹2,000 Cr": pd.DataFrame({"Symbol": ["SHUKRAPHAR", "TCSX"], "Rank": [1, 2]})}
+    old, when, hits = sl.renamed_elsewhere("SHUKRAMED", others)
+    assert (old, when) == ("SHUKRAPHAR", "20 Nov 2026")
+    assert hits == [("> ₹2,000 Cr", 1, 2)]
+    assert sl.renamed_elsewhere("TCS", others) is None
