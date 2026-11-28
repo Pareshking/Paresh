@@ -349,7 +349,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
     elif gap > 0:
         title = f'The book is <span class="dh-up">{e(_fmt.fixed(abs(gap), 1))} points ahead</span> of Nifty Total Market {so_far}.'
     else:
-        title = f'The book is <span class="dh-down">{e(_fmt.fixed(abs(gap), 1))} points behind</span> Nifty Total Market {so_far}.'  # noqa: F841 -- G1 preview: the brief carries the headline
+        title = f'The book is <span class="dh-down">{e(_fmt.fixed(abs(gap), 1))} points behind</span> Nifty Total Market {so_far}.'
     said = []
     if bm.market_mtd is not None:
         said.append(f"Nifty Total Market is {_fmt.moved(bm.market_mtd)} {so_far}.")
@@ -403,7 +403,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             dash_notes[p_["label"]] = mw.not_published()
     dash_line = (mw.column_notes(dash_notes) + " ") if dash_notes else ""
     return [
-        f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h2 id="s-month" class="dh-h2">Against Nifty Total Market and NSE’s momentum indices</h2>'
+        f'<div class="dh-sec">{_kicker("1", f"The book, month so far · {as_of:%b}")}<h2 id="s-month" class="dh-h2">{title if style_lag or gap is None else "Against Nifty Total Market and NSE’s momentum indices"}</h2>'
         f'<p class="dh-lede">{e(lede)}</p>{kp}<div class="dh-cap"><b>The month</b><span>to {as_of:%-d %b}, price return</span></div></div>',
         Chart("month", spec, {"note": f"Each line is {step:g}%; filled lines right of the dark zero line are a gain, left a fall.", "n": n}),
         how("Each row is a return for the month: Nifty Total Market (about 750 stocks), the model book, "
@@ -1622,7 +1622,9 @@ def brief_lede(n_sells: int, check, signals: list[dict], average, typical, unive
     if read:
         good = sum(1 for x in read if x["like"] >= average)
         bad = len(read) - good
-        lead = (f"All <b class=\"dh-up\">{good}</b> of our tested signals point" if bad == 0 and good == len(passed)
+        every = bad == 0 and good == len(passed)
+        lead = ("Our <b class=\"dh-up\">1</b> tested signal points" if every and good == 1 else
+                f"All <b class=\"dh-up\">{good}</b> of our tested signals point" if every
                 else f"Of our {len(passed)} tested signals, <b class=\"dh-up\">{good}</b> point")
         out.append(f"{lead} to a stronger month for momentum and <b class=\"dh-down\">{'none' if bad == 0 else bad}</b> "
                    "to a weaker one.")
@@ -1657,7 +1659,7 @@ def _brief(bm: di.BookMonth, n_sells: int, check, signals: list[dict], average, 
     nav = "".join(f'<a href="#{a}" class="dh-pill">{e(t)}</a>' for a, t in (
         ("s-month", "1 The book"), ("s-next", "2 Next rebalance"), ("s-mom", "3 Momentum"), ("s-flow", "4 Money flows"),
         ("s-size", "5 Size"), ("s-book", "6 Strong and weak"), ("s-glance", "At a glance")))
-    # S237 G1 preview (tipsheet benchmark): a date line, one headline, a two-sentence lede, then the section pills.
+    # S237 G1 (owner approved 28 Nov; tipsheet benchmark): a date line, one headline, a two-sentence lede, then the section pills.
     head = brief_head(bm, month, fill)
     if head:
         when = f"End of day, {_fmt.date(as_of)}" if as_of is not None else ""

@@ -2,6 +2,7 @@
 
 
 ## 2026-11-28
+- Dashboard: the first screen gives the answer first: the date, one headline ("The book is up 6.2% so far in November, 3.0 points behind Nifty Total Market."), and two plain sentences on the signals, the sales at the next check and a narrow rally. Colour marks the figures only; on a phone the section links sit in one row.
 - Phone: the Dashboard and the Screener no longer drag sideways at 390 px, and the Dashboard's signals table keeps its first column in place while it scrolls.
 - Charts on the Dashboard, Portfolio, Market, Indices, Sectors and Backtest: a source line under each, saying where its figures come from (NSE Indices, NSE's daily closes, NSDL, the model book's record, or our own calculation from them).
 - Configuration: the reset button reads "Reset to defaults (weights only)"; the index-files dialog counts the rows in NSE's file, names a placeholder, and says why a list can hold more than its name.
