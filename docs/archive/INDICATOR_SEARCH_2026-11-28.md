@@ -155,3 +155,43 @@ On skip 5: +0.6 to +4.5, 2 of 9 meet it (2010-17 small). Year by year (EMA 200 +
 
 Not checked: tax (half the turnover should cut it), industry concentration of the longer-held book, the six-monthly
 reset default, and whether "Other" as one capped industry distorts 2010-12.
+
+## Round 4 (owner, 28 Nov 2026): every Backtest universe, 20 / 25 / 30 holdings
+
+`scripts/research/exit_universes.py`. Each universe from its first point-in-time list (Nifty 50, 100, 500 Jan 2010;
+Midcap 150, Smallcap 250 May 2016; Microcap 250 Nov 2021; Total Market Jan 2022), all ever-members priced. Halves
+split at each window's middle date. "Today" = 50D EMA, keep within 2x the holdings.
+
+| Universe | Today's rules, a year (20 / 25 / 30) | Loose exits, change (20 / 25 / 30) | Skip 5, change | Loose + skip 5, change |
+|---|---|---|---|---|
+| Nifty 50 | 4.5 / 3.9 / 3.6% | +2.5 / +2.0 / +2.5 | 0.0 / -0.2 / +0.1 | +2.8 / +2.2 / +2.8 |
+| Nifty 100 | 10.0 / 10.1 / 9.6% | +2.4 / +2.8 / +2.4 (worst fall 5-6 pts deeper) | -1.2 / -0.5 / -0.2 | +1.9 / +1.0 / +2.0 |
+| Nifty 500 | 18.8 / 20.0 / 20.8% | +5.6 / +3.1 / +2.3 (band x4.5: +5.1, +4.2) | +4.3 / +2.0 / +0.9 | +8.7 / +7.2 / +4.4 |
+| Midcap 150 | 18.6 / 18.9 / 18.4% | +1.2 / +0.3 / +1.6 | +1.6 / +0.9 / -0.8 | +1.6 / +0.9 / +1.9 |
+| Smallcap 250 | 22.7 / 23.7 / 20.9% | +4.0 / +0.4 / +4.2 | -0.2 / -3.1 / +0.8 | +4.0 / +0.5 / +3.2 |
+| Microcap 250 (5 years) | 28.4 / 29.0 / 26.6% | +0.1 / +5.1 / +6.4 | -0.9 / -4.6 / +1.1 | +2.9 / +2.0 / +5.3 |
+| Total Market (5 years) | 12.0 / 12.7 / 13.4% | +1.8 / +2.8 / +2.3 | +4.9 / +1.3 / +1.2 | +8.8 / +6.3 / +5.3 |
+
+Over the 21 universe x holdings cells:
+
+| Book | Ahead in a year | Ahead in both halves | Worst fall no deeper | Median change | Turnover |
+|---|---|---|---|---|---|
+| Loose exits (keep within 90) | **21 / 21** | 13 / 21 | 10 / 21 | +2.44 pts | -14 pts a month |
+| Loose exits, band 4.5x the holdings | 20 / 21 | 12 / 21 | 10 / 21 | +2.44 | -16 |
+| Skip 5 | 11 / 21 | 5 / 21 | 4 / 21 | **+0.09** | +0.6 |
+| Loose exits + skip 5 | **21 / 21** | 14 / 21 | 13 / 21 | +2.84 | -14 |
+
+Against the bar fixed first (ahead in two thirds of the cells, and in both halves on every 2010 / 2016 universe):
+the first part holds (21 of 21); the second does not (11 of 15: Midcap 150 at 20 and 25 holdings lost the first
+half, Nifty 100 at 30 and Smallcap 250 at 25 the second).
+
+Read: the loose exits are the most general change found today: higher in every universe and size, a third less
+trading, but no reliable cut in the worst fall. **Skip 5 is not general**: its gain is the Nifty 500's and Total
+Market's at 20 holdings; on the other universes and sizes the median is +0.1 pts. On the Nifty 500 the number of
+holdings matters little once exits are loose (24.4 / 25.1 / 25.0% at 20 / 25 / 30 with the band scaled), so 30
+names buy diversification at about the same return. Large caps (Nifty 50, 100) earn little from this momentum
+rule under any exit (4-12% a year against the Nifty 500 index's 10%).
+
+Rerun after the population-SD fix (Bollinger bands now as Bollinger defines them): %B > 1 entry block +2.60 pts
+(was +2.47; 2018-26 +1.34), still above its null; Level A unchanged (%B t 3.18; 0 of 27 pass). A placebo drawn
+afresh each month reached |t| 2.78, so a t under 3 is within chance here.
