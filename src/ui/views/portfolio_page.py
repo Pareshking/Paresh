@@ -598,6 +598,46 @@ def section_exposure(p: Page) -> list:
                  f'<div class="dh-scroll">{heat}</div></div></div>'] + corr_parts(p))
 
 
+def provenance_parts(p: Page) -> list:
+    """Each frozen month's provenance, folded under the calendar (S239 item 3; dropped 6 Oct and 21 Nov without the
+    owner's decision, restored on "Restore the 9", 28 Nov). Built to PAGE_DESIGN §2b: the summary answers how much of
+    the record was recorded live; the table names, for each month, how it was made, on which list, when it was frozen
+    and whether it was rebuilt."""
+    months = (p.ledger or {}).get("months") or {}
+    if not months:
+        return []
+    rebuilt = {}
+    for r in (p.ledger or {}).get("rebuilds") or []:
+        for m in r.get("months") or []:
+            rebuilt[m] = r.get("on")
+    keys = sorted(months)
+    live = sum(1 for k in keys if (months[k] or {}).get("origin") == "recorded")
+    n = len(keys)
+    summary = (f"All {n} months recorded as they closed" if live == n else
+               f"{live} of {n} months recorded as they closed; {n - live} worked out from the rules" if live else
+               f"All {n} months worked out from the rules")
+    lists = {"point_in_time": "Members on the day", "current": "Today’s list"}
+
+    def day(v):
+        return _fmt.date(pd.Timestamp(v)) if v else "–"
+    body = "".join(
+        f'<tr><th scope="row">{pd.Period(k, "M"):%b %Y}</th>'
+        f'<td class="dh-num {tone((v or {}).get("strategy"))}">{pct(None if (v or {}).get("strategy") is None else v["strategy"] * 100)}</td>'
+        f'<td>{"Recorded" if (v or {}).get("origin") == "recorded" else "Worked out"}</td>'
+        f'<td>{e(lists.get((v or {}).get("universe"), "–"))}</td><td class="dh-num">{e(day((v or {}).get("finalized_on")))}</td>'
+        f'<td class="dh-num">{e(day(rebuilt.get(k)))}</td></tr>' for k, v in ((k, months[k]) for k in reversed(keys)))
+    basis = {"screener_primary": "Prices: Screener.in’s closes, as the live ranking uses; NSE’s as published where Screener has none."}.get(
+        (p.ledger or {}).get("price_basis"), "")
+    return [f'<details class="pf-corrbox"><summary>How each month was made · {e(summary)}</summary>'
+            '<p class="dh-note">Recorded: struck in the first days of the next month and frozen. Worked out: run afterwards from '
+            'the same rules on the prices of the time. Members on the day: the index’s members as NSE’s notices had them '
+            f'that month, not today’s list. Rebuilt: worked out again after a change of method; the ledger keeps the figure it replaced. {e(basis)}</p>'
+            '<div class="dh-scroll"><table class="dh-tab dh-tab-s"><thead><tr><th scope="col">Month</th>'
+            '<th scope="col" class="dh-num">The book</th><th scope="col">How</th><th scope="col">Stocks ranked</th>'
+            '<th scope="col" class="dh-num">Frozen on</th><th scope="col" class="dh-num">Rebuilt on</th></tr></thead>'
+            f'<tbody>{body}</tbody></table></div></details>']
+
+
 def section_returns(p: Page) -> list:
     rows = pr.periods(p.equity, p.market, p.mom, p.as_of, first_fill(p)[1])
     begun = _start(p)
@@ -1143,7 +1183,7 @@ def page_parts(p: Page) -> list:
               f'<div class="dh-pair"><div><div class="dh-cap"><b>Calendar years</b><span>January to December</span></div>{years}</div>'
               f'<div><div class="dh-cap"><b>Financial years</b><span>April to March</span></div>{fys}</div></div>',
               f'<p class="dh-note">{_frozen_note(p)}Momentum 50 is NSE’s Nifty500 Momentum 50, a '
-              'momentum index to judge the strategy by.</p></section>', END]
+              'momentum index to judge the strategy by.</p>', *provenance_parts(p), '</section>', END]
     parts += day_section(p) + section_trades_top(p, s) + ["</section>"]
     parts += section_systems(p) + [f'<p class="dh-foot">{_fmt.data_to_html(p.as_of)}.</p>']
     return parts
@@ -1207,7 +1247,7 @@ def render(prices: pd.DataFrame, rank_df: pd.DataFrame) -> None:
           f'<div class="dh-pair"><div><div class="dh-cap"><b>Calendar years</b><span>January to December</span></div>{years}</div>'
           f'<div><div class="dh-cap"><b>Financial years</b><span>April to March</span></div>{fys}</div></div>',
           f'<p class="dh-note">{_frozen_note(p)}Momentum 50 is NSE’s Nifty500 Momentum 50, a '
-          'momentum index to judge the strategy by.</p></section>', END])
+          'momentum index to judge the strategy by.</p>', *provenance_parts(p), '</section>', END])
     emit(day_section(p) + section_trades_top(p, s) + ["</section>"])
 
     # The history, hidden until opened (owner, 20 Nov: "Can't it be one and hidden?").

@@ -235,12 +235,17 @@ class Trail:
     places: list           # place among the qualified at each (None: "Out")
 
 
+TRAIL_MONTHS = (6, 3, 2, 1)   # the ranking's RANK_HISTORY_MONTHS; 6M and 2M restored S239 (owner, 28 Nov 2026)
+
+
 def trail(row, dates: list, past_places: list, q_now: int | None) -> Trail:
-    """The ranking's own Rank (-3M) and Rank (-1M), read on the session on or before the date
+    """The ranking's own Rank (-6M) to Rank (-1M), read on the session on or before the date
     (`rank_history_position`, Screener decision A), and the qualified place from the
-    Dashboard's rank trail (`rank_trails`, through `ranking_view.qualified_trail`)."""
-    ranks = [num(row.get("Rank (-3M)")), num(row.get("Rank (-1M)")), num(row.get("Rank"))]
-    places = [num(p) for p in list(past_places)[:2]] + [q_now]
+    Dashboard's rank trail (`rank_trails`, through `ranking_view.qualified_trail`). `dates` and
+    `past_places` run oldest first and end before now: 6, 3, 2 and 1 months back (S239 item 5)."""
+    cols = [f"Rank (-{m}M)" for m in TRAIL_MONTHS]
+    ranks = [num(row.get(c)) for c in cols] + [num(row.get("Rank"))]
+    places = [num(p) for p in list(past_places)[:len(cols)]] + [q_now]
     return Trail(list(dates), [None if r is None else int(r) for r in ranks],
                  [None if p is None else int(p) for p in places])
 
@@ -647,7 +652,8 @@ def price_heading(above: int, of: int, rs_end: float | None) -> tuple[str, str, 
     return a + "; ", f"against {MARKET} it {words}" if words.startswith("has") else f"against {MARKET} {words}", " over 12 months."
 
 
-PRICE_NOTE = (f"Three panes: price with its 50D EMA, the one the ranking reads (none before {_EMA_MIN} sessions); volume, the "
+PRICE_NOTE = (f"Three panes: price with its 50D EMA, the one the ranking reads (none before {_EMA_MIN} sessions), and its "
+              "200D EMA, the line Market’s breadth counts stocks above (none before 160 sessions); volume, the "
               "shares traded each session (taller bars on busier days, blue when the close rose); and RS, the stock’s "
               f"price over {MARKET}’s, set to 100 at the start of the range: above 100 it has gained more than {MARKET} "
               "since then. Prices are adjusted for corporate actions.")

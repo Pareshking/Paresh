@@ -84,11 +84,13 @@ def test_four_tiles_when_held_three_when_not():
 # ── 1 · Rank (row 25) ────────────────────────────────────────────────────────
 
 def test_the_trail_reads_the_rankings_past_ranks_and_the_dashboards_qualified_places():
-    days = [pd.Timestamp("2026-08-20"), pd.Timestamp("2026-10-19"), DAY]
-    tr = sl.trail(_row(), days, [16.0, 11.0], 12)
-    assert tr.ranks == [16, 13, 12] and tr.places == [16, 11, 12]
-    html = "".join(stock_view.rank_html(_row(), sl.Universe("750", 750), 12, 290, LN, tr))
-    for text in ("3M ago", "1M ago", "Now", "20 Aug", "19 Oct", "16th", "11th", "Rank of 750",
+    # 6, 3, 2 and 1 months back and now (the 6M and 2M came back on 28 Nov 2026, S239 item 5).
+    days = [pd.Timestamp("2026-05-20"), pd.Timestamp("2026-08-20"), pd.Timestamp("2026-09-19"), pd.Timestamp("2026-10-19"), DAY]
+    row = {**_row(), "Rank (-6M)": 40, "Rank (-2M)": 14}
+    tr = sl.trail(row, days, [None, 16.0, 13.0, 11.0], 12)
+    assert tr.ranks == [40, 16, 14, 13, 12] and tr.places == [None, 16, 13, 11, 12]
+    html = "".join(stock_view.rank_html(row, sl.Universe("750", 750), 12, 290, LN, tr))
+    for text in ("6M ago", "3M ago", "2M ago", "1M ago", "Now", "20 May", "20 Aug", "19 Oct", "16th", "11th", "Out", "Rank of 750",
                  "Its score is 1.973, with all five horizons scored."):
         assert text in html, text
     assert "data:image/svg+xml" in html            # the trail is drawn (st.html drops inline SVG)
@@ -257,9 +259,10 @@ def test_the_chart_keeps_price_volume_and_rs_against_nifty_total_market():
     vol = pd.Series(1e5, index=idx)
     panes, has_vol = stock_chart.price_chart_panes(close, vol, market, stock_chart.RANGES["12M"])
     assert has_vol and [p["series"][0]["name"] for p in panes] == ["Price", "Volume", stock_chart.RS_NAME]
-    assert [s["name"] for s in panes[0]["series"]] == ["Price", "50D EMA"]
+    # The 200D EMA came back on 28 Nov 2026 (S239 item 4, owner: "Restore the 9").
+    assert [s["name"] for s in panes[0]["series"]] == ["Price", "50D EMA", "200D EMA"]
     assert panes[2]["series"][0]["data"][0][1] == pytest.approx(100.0)     # 100 at the start of the range
-    assert list(stock_chart.RANGES) == ["6M", "12M", "3Y"]   # glossary 6
+    assert list(stock_chart.RANGES) == ["6M", "12M", "3Y", "All"]   # glossary 6; All restored S239
     assert stock_chart.RS_NAME == "RS against Nifty Total Market"
 
 

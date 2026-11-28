@@ -161,7 +161,7 @@ def test_the_stock_chart_sends_three_years_and_states_12m():
     close, vol, market = _stock()
     panes, has_vol, ranges = stock_chart.chart_panes_all(close, vol, market)
     assert has_vol and ranges["default"] == "12M" and ranges["why"] == "lately"
-    assert [c[0] for c in ranges["chips"]] == ["6M", "12M", "3Y"]
+    assert [c[0] for c in ranges["chips"]] == ["6M", "12M", "3Y", "All"]   # All restored S239
     # Each chip starts where the old per-range chart started, and RS is 100 there again.
     for lab, start in ranges["chips"]:
         old, _ = stock_chart.price_chart_panes(close, vol, market, stock_chart.RANGES[lab])
@@ -182,7 +182,7 @@ def test_the_stock_page_has_no_streamlit_range_picker():
 def test_the_stock_heading_follows_the_range():
     text = (ROOT / "src" / "ui" / "views" / "stock_view.py").read_text(encoding="utf-8")
     assert "sp-price-h" in text and "follow=follow" in text
-    assert stock_chart.RANGE_WORDS == {"6M": "6 months", "12M": "12 months", "3Y": "3 years"}
+    assert stock_chart.RANGE_WORDS == {"6M": "6 months", "12M": "12 months", "3Y": "3 years", "All": "the whole record"}
 
 
 # ── Dashboard: momentum's lead is its whole record; the month's track fits 520 px ───

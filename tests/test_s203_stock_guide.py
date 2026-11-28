@@ -297,7 +297,7 @@ def test_st_px_1():
 def test_st_px_2():
     from src.engine.backtester import EMA_MIN_PRINTS
     assert f"(none before {int(EMA_MIN_PRINTS)} sessions)" in sl.PRICE_NOTE
-    assert _clean(sl.PRICE_NOTE).startswith("Three panes: price with its 50D EMA, the one the ranking reads (none before 30 sessions);")
+    assert _clean(sl.PRICE_NOTE).startswith("Three panes: price with its 50D EMA, the one the ranking reads (none before 30 sessions), and its 200D EMA")
 
 
 def _sector(qualified):

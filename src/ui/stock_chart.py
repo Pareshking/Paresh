@@ -35,7 +35,7 @@ INK = C.ink
 GRID = C.grid
 MUTED = C.muted
 # Each overlay in its series colour (tokens.SERIES): one colour per series on every page (S193 G).
-MA_COLOURS = {name: series_colour(name) for name in ("20 EMA", "50 EMA", "50D EMA", "200 SMA", "Nifty 500")}
+MA_COLOURS = {name: series_colour(name) for name in ("20 EMA", "50 EMA", "50D EMA", "200D EMA", "200 SMA", "Nifty 500")}
 assert all(name in SERIES for name in MA_COLOURS)
 # Volume is context, not a signal: pale tints of the up and down colours.
 VOL_UP, VOL_DOWN = C.up_line, C.down_line_2
@@ -227,11 +227,18 @@ def build_panes(
 # Nifty Total Market beneath, set to 100 at the start of the range; 6M, 12M, 3Y as chips in the chart
 # (S193 H2; owner, 23 Nov 2026: one period picker): three years are sent once and a chip redraws in place.
 
-RANGES = {"6M": 6, "12M": 12, "3Y": 36}   # 12M, not 1Y (glossary 6)
+# All: the whole record held (S239 item 4, owner 28 Nov 2026: "Restore the 9"; it went in the 23 Nov mock-up).
+RANGES = {"6M": 6, "12M": 12, "3Y": 36, "All": None}   # 12M, not 1Y (glossary 6)
 DEFAULT_RANGE = "12M"
 RANGE_WHY = "lately"   # recent movement opens on 12M (S193 H1)
-RANGE_WORDS = {"6M": "6 months", "12M": "12 months", "3Y": "3 years"}
+RANGE_WORDS = {"6M": "6 months", "12M": "12 months", "3Y": "3 years", "All": "the whole record"}
 RS_NAME = "RS against Nifty Total Market"
+
+
+def long_ema(close: pd.Series) -> pd.Series:
+    """The 200D EMA as the breadth readings count it (`market_questions._share_above_ema`: span 200, none before
+    160 prints), so the line on a stock's chart is the one Market's "above their 200D EMA" reads."""
+    return close.dropna().ewm(span=200, min_periods=160).mean()
 
 
 def ranking_ema(close: pd.Series) -> pd.Series:
@@ -241,10 +248,10 @@ def ranking_ema(close: pd.Series) -> pd.Series:
     return close.dropna().ewm(span=50, min_periods=int(EMA_MIN_PRINTS)).mean()
 
 
-def window(close: pd.Series, months: int) -> pd.Series:
-    """The sessions from the first on or after the date `months` back to the last."""
+def window(close: pd.Series, months: int | None) -> pd.Series:
+    """The sessions from the first on or after the date `months` back to the last; every session for None (All)."""
     c = close.dropna()
-    if c.empty:
+    if c.empty or months is None:
         return c
     start = c.index[-1] - pd.DateOffset(months=months)
     return c[c.index >= start]
@@ -265,11 +272,10 @@ def relative_strength(close: pd.Series, market: pd.Series | None) -> pd.Series:
 
 
 def price_chart_panes(close_full: pd.Series, volume: pd.Series | None, market: pd.Series | None,
-                      months: int) -> tuple[list[dict], bool]:
-    """The three panes for a range: price and 50D EMA, Volume, RS against the market."""
+                      months: int | None) -> tuple[list[dict], bool]:
+    """The three panes for a range: price, its 50D EMA and 200D EMA, Volume, RS against the market."""
     close = window(close_full, months)
-    ema = ranking_ema(close_full)
-    return build_panes(close, volume=volume, overlays={"50D EMA": ema},
+    return build_panes(close, volume=volume, overlays={"50D EMA": ranking_ema(close_full), "200D EMA": long_ema(close_full)},
                        rs=relative_strength(close, market), rs_name=RS_NAME,
                        height=320, volume_pane=90, rs_height=130)
 
@@ -288,7 +294,7 @@ def chart_panes_all(close_full: pd.Series, volume: pd.Series | None, market: pd.
                     ) -> tuple[list[dict], bool, dict]:
     """The longest range's panes, sent once, and the chips that cut them (S193 H2). Relative strength is
     marked to be set to 100 again at each range's first session, so 6M and 12M read as they did."""
-    panes, has_volume = price_chart_panes(close_full, volume, market, max(RANGES.values()))
+    panes, has_volume = price_chart_panes(close_full, volume, market, None)
     for p in panes:
         for s in p["series"]:
             if s.get("name") == RS_NAME:
@@ -306,7 +312,7 @@ def render_price_chart(symbol: str, close_full: pd.Series, volume: pd.Series | N
         if follow:
             ranges["follow"] = follow
         lw_chart.render(panes, key=f"lw_{symbol}", one_line=True, ranges=ranges,
-                        label=f"{symbol}: price and 50D EMA, volume, and relative strength against "
+                        label=f"{symbol}: price, 50D EMA and 200D EMA, volume, and relative strength against "
                               "Nifty Total Market. Arrow keys move the reading; the range buttons above redraw it.")
     except ChartUnavailable as exc:
         from src.core.logger import logger

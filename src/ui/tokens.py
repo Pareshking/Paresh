@@ -77,7 +77,7 @@ SERIES: dict[str, str] = {
     "Nifty500 Momentum 50": "s_mom50", "Momentum 50": "s_mom50",
     "20 EMA": "s_ema20",
     "50 EMA": "s_ema50", "50D EMA": "s_ema50",
-    "200 SMA": "s_sma200",
+    "200 SMA": "s_sma200", "200D EMA": "s_sma200",
     "Domestic flows": "s_dii",
 }
 
