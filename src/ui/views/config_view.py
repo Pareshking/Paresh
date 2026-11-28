@@ -152,11 +152,11 @@ DAILY, MONTHLY = "daily", "monthly"
 # file that lagged. Each file a page reads, its date, and its rule. (name, file, read by, how its date is read,
 # kind, sessions it may lag, the rule in words.)
 FILE_RULES: list[tuple[str, str, str, str, str, int, str]] = [
-    ("Nifty 500 and Nifty 50", "benchmarks.csv", "Dashboard, Market", "date", DAILY, 0,
+    ("Nifty 500 and Nifty 50", "benchmarks.csv", "Every page’s header; Dashboard, Actions, Portfolio, Market, Watchlist, Backtest", "date", DAILY, 0,
      "NSE’s close, collected each evening"),
     ("NSE indices", "benchmark_indices.csv", "Dashboard, Portfolio, Market, Sectors", "date", DAILY, 1,
      "NSE’s index closes; a page names an index whose close is not in yet"),
-    ("Nifty Total Market", "nse_total_market.csv", "Market page", "date", DAILY, 0, "NSE’s close, collected each evening"),
+    ("Nifty Total Market", "nse_total_market.csv", "Market, Sectors", "date", DAILY, 0, "NSE’s close, collected each evening"),
     ("Foreign flows", "nsdl_fpi_daily.csv", "Dashboard", "date", DAILY, 1, "NSDL’s daily report, the next morning"),
     ("Domestic institutions, all exchanges", "fii_dii_flows.csv", "Dashboard", "date", DAILY, 1,
      "NSE’s provisional report, collected each evening"),
