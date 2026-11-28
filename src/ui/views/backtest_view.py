@@ -975,10 +975,47 @@ def section_trades_head(f: dict) -> list:
         ("Median holding", f"{ts['median_days']:.0f} days", "", "entry fill to exit fill"),
         ("Median trade", _pcs(ts["median_return"]), _t(ts["median_return"]), f"mean {_pcs(ts['mean_return'])}"),
         ("Gains over losses", f"{pf:.2f}×" if pf else "–", "", "each trade weighted by its size at entry"),
+        # Restored S239 item 8 (owner, 28 Nov 2026: "Restore the 9").
+        ("Average win / loss", f"{_pcs(ts.get('avg_win'))} / {_pcs(ts.get('avg_loss'))}", "", "each closed trade once"),
+        ("Best / worst", f"{_pcs(ts.get('best'))} / {_pcs(ts.get('worst'))}", "",
+         " / ".join(x for x in (ts.get("best_sym"), ts.get("worst_sym")) if x)),
     ])
     return ['<div class="dh-sec">', _kick("6", "Trades"), f'<h2 id="s-trades" class="dh-h2">{h2}</h2>', tiles,
-            f'<p class="dh-note">Every trade and the rebalance log are below; the live record’s trades are on '
+            f'<p class="dh-note">Every trade, the rebalance log and the rebalance periods are below; the live record’s trades are on '
             f'<a class="bt-l" href="{page_href("portfolio")}" target="_self">Portfolio</a>, which owns the record.</p></div>']
+
+
+def periods_parts(f: dict) -> list:
+    """The rebalance periods, fill to fill, inside "Show the table" (S239 item 7). PAGE_DESIGN §2b: its own function,
+    the heading answers (how many periods the rule beat the Nifty 500 in), no source line."""
+    m = f.get("periods")
+    if m is None or not len(m):
+        return []
+    won = int((m["lead"] > 0).sum()) if "lead" in m else None
+    head = (f"The rule beat the Nifty 500 in {won} of {len(m)} rebalance periods" if won is not None
+            else f"{len(m)} rebalance periods")
+
+    def cell(c, v):
+        if c in ("from", "to"):
+            return f'<td class="dh-num" style="white-space:nowrap">{e(_d(v))}</td>'
+        if c in ("rule", "n500"):
+            return f'<td class="dh-num">{e(_pcs(float(v)))}</td>'
+        if c == "lead":
+            return f'<td class="dh-num {_t(float(v))}">{e(_pts(float(v)))}</td>'
+        if c in ("turnover", "costs"):
+            return f'<td class="dh-num">{e(_num(float(v), 1 if c == "turnover" else 2))}%</td>'
+        return f'<td class="dh-num">{int(v)}</td>'
+    names = {"from": "From fill", "to": "To fill", "rule": "The rule, after costs", "n500": "Nifty 500",
+             "lead": "Lead", "turnover": "Turnover", "costs": "Costs", "buys": "Buys", "sells": "Sells",
+             "holdings": "Holdings"}
+    cols = list(m.columns)
+    body = "".join("<tr>" + "".join(cell(c, r[c]) for c in cols) + "</tr>" for _, r in m.iterrows())
+    return [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>{e(head)}</b><span>rebalance periods, fill to fill, '
+            'newest first</span></div><div class="dh-scroll bt-periods" style="max-height:480px;overflow:auto"><table class="dh-tab dh-tab-s"><thead><tr>'
+            + "".join(f'<th scope="col" class="dh-num">{e(names.get(c, c))}</th>' for c in cols)
+            + f'</tr></thead><tbody>{body}</tbody></table></div><p class="dh-note">Each row runs from one fill to the next. '
+            'Turnover: the share of the book replaced at the period’s rebalance, counted one way. Costs: what that '
+            'trading cost, in percent of the book.</p></div>']
 
 
 def foot(f: dict) -> list:
@@ -1084,6 +1121,7 @@ def gather(res: dict, s: dict, h: dict, bench: pd.Series, default: bool) -> dict
         "stale": bp.stale_exits(res.get("closed_trades"), h["close"]),
         "short": bp.short_books(res.get("monthly"), s["top_n"]),
         "trades": bp.trade_stats(res.get("closed_trades")),
+        "periods": bp.periods(res.get("monthly")),
         "long_last": pd.Timestamp(h["close"].index[-1]),
         "indices_as_of": store.as_of if store is not None else None,
     }
@@ -1092,7 +1130,7 @@ def gather(res: dict, s: dict, h: dict, bench: pd.Series, default: bool) -> dict
 def page_parts(f: dict) -> list:
     """Everything but the widgets, in order (for tests and the requirements check)."""
     return ([tested_line(f["s"], f["h"])] + head(f) + section_lead(f) + section_falls(f) + section_years(f) + section_depends(f)
-            + section_trust(f) + section_trades_head(f) + foot(f))
+            + section_trust(f) + section_trades_head(f) + periods_parts(f) + foot(f))
 
 
 # ── The page ──────────────────────────────────────────────────────────────────
@@ -1134,7 +1172,7 @@ def _sections(f: dict, spec: dict) -> dict[str, list]:
     return {"head": head(f),
             "body": section_lead(f) + section_falls(f) + section_years(f) + section_depends(f) + section_trust(f)
             + section_trades_head(f),
-            "history": [Chart("history", spec, dict(HISTORY_FILL))],
+            "history": [Chart("history", spec, dict(HISTORY_FILL))] + periods_parts(f),
             "foot": [END] + foot(f)}
 
 
@@ -1143,7 +1181,7 @@ def _draw(top, sections: dict[str, list], download) -> None:
         emit(sections["head"])
     emit(sections["body"])
     download()
-    with st.expander("Show the table · every trade and the rebalance log", expanded=False):
+    with st.expander("Show the table · every trade, the rebalance log and the periods", expanded=False):
         emit(sections["history"])
     emit(sections["foot"])
 
