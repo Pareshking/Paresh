@@ -1005,8 +1005,10 @@ def periods_parts(f: dict) -> list:
             return f'<td class="dh-num">{e(_pcs(float(v)))}</td>'
         if c == "lead":
             return f'<td class="dh-num {_t(float(v))}">{e(_pts(float(v)))}</td>'
-        if c in ("turnover", "costs"):
-            return f'<td class="dh-num">{e(_num(float(v), 1 if c == "turnover" else 2))}%</td>'
+        if c == "costs":   # in bps, as the page states its costs ("30 bps a round trip"); 0.15% read as two decimals
+            return f'<td class="dh-num">{float(v) * 100:.0f} bps</td>'
+        if c == "turnover":
+            return f'<td class="dh-num">{e(_num(float(v), 1))}%</td>'
         return f'<td class="dh-num">{int(v)}</td>'
     names = {"from": "From fill", "to": "To fill", "rule": "The rule, after costs", "n500": "Nifty 500",
              "lead": "Lead", "turnover": "Turnover", "costs": "Costs", "buys": "Buys", "sells": "Sells",
@@ -1018,7 +1020,7 @@ def periods_parts(f: dict) -> list:
             + "".join(f'<th scope="col" class="dh-num">{e(names.get(c, c))}</th>' for c in cols)
             + f'</tr></thead><tbody>{body}</tbody></table></div><p class="dh-note">Each row runs from one fill to the next. '
             'Turnover: the share of the book replaced at the period’s rebalance, counted one way. Costs: what that '
-            'trading cost, in percent of the book.</p></div>']
+            'trading cost, in basis points of the book.</p></div>']
 
 
 def foot(f: dict) -> list:

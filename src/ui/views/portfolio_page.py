@@ -525,7 +525,7 @@ def corr_parts(p: Page) -> list:
     top = "; ".join(f"{a} and {b}, {v:.2f}" for v, a, b in pairs[:3])
     cell = lambda v: ("<td></td>" if pd.isna(v) else  # noqa: E731
                       f'<td class="dh-num pf-hc" style="background:color-mix(in srgb,var(--c-ink) {max(0.0, v) * 70:.0f}%,var(--c-white));'
-                      f'color:{"var(--c-white)" if v >= 0.6 else "var(--c-ink)"}">{round(float(v), 2) + 0.0:.2f}</td>')
+                      f'color:{"var(--c-white)" if v >= 0.6 else "var(--c-ink)"}">{f"{round(float(v), 2) + 0.0:.2f}".replace("-", "−")}</td>')
     grid = ('<table class="dh-tab pf-heat pf-corr"><thead><tr><th scope="col"></th>'
             + "".join(f'<th scope="col" class="dh-num">{e(c)}</th>' for c in syms) + "</tr></thead><tbody>"
             + "".join(f'<tr><th scope="row">{e(r)}</th>' + "".join(cell(m.loc[r, c]) if r != c else "<td></td>" for c in syms)
