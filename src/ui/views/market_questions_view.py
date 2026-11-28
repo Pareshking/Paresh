@@ -694,7 +694,7 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
                                    "range": {"default": "all", "why": "record"}},
                           label=f"Share of the {universe} above their 200D EMA, each day since {x['since']:%b %Y}")
                 st.html('<p class="qp-note">The share of the ranked stocks closing above their own 200D EMA, '
-                        'each trading day; the shaded band is the middle half of those days. Source: NSE closes.</p>')
+                        'each trading day; the shaded band is the middle half of those days.</p>')
         st.html(question_section_html(breadth, "breadth", "q-breadth")
                 + '<p class="qp-behind">Behind the answer</p>')
         _breadth_charts(bench.dropna(), share200, weekly, nnh, pit, universe, name)

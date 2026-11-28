@@ -153,9 +153,9 @@ def emit(parts) -> None:
 END = '<div class="dh-end"></div>'
 
 
-def how(what: str, read: str, head: list[str], rows: list[list[str]], source: str = "") -> str:
-    """Under every chart: what it is, how to read it, where its figures come from, and its table (agreed 20 Nov,
-    tipsheet pattern; the source line S237 G4, 28 Nov: tipsheet names a source under every chart)."""
+def how(what: str, read: str, head: list[str], rows: list[list[str]]) -> str:
+    """Under every chart: what it is, how to read it, and its table (agreed 20 Nov, tipsheet pattern). No source line:
+    owner, 20 Nov 2026: "Let's not show source", confirmed 28 Nov ("Revert to my rule") after S237 G4 added one."""
     from src.ui.formats import date as _date
 
     def cell(c):
@@ -173,7 +173,6 @@ def how(what: str, read: str, head: list[str], rows: list[list[str]], source: st
     body = f'<p><b>What it is</b>{e(what)}</p><p><b>How to read it</b>{e(read)}</p>'
     return (f'<div class="dh-how"><div class="dh-how-b dh-how-wide">{body}</div>'
             f'<details class="dh-how-narrow"><summary>What it is · how to read it</summary><div class="dh-how-b">{body}</div></details>'
-            + (f'<p class="dh-src">Source: {e(source)}.</p>' if source else "")
             + f'<details><summary>Show the table</summary><div class="dh-scroll dh-how-t">{table}</div></details></div>')
 
 
@@ -410,7 +409,7 @@ def section_book(bm: di.BookMonth, since: float | None, since_mkt: float | None,
             "and NSE’s momentum indices. Switch to the last finished month to compare.",
             "Right of the zero line is a gain, left a fall. The book against the momentum rows tells whether the picking or the "
             "style lagged; against the Nifty Total Market row, how far momentum is behind.",
-            [""] + [p["label"] for p in periods], table_rows, source="NSE Indices' closes; the model book's record"),
+            [""] + [p["label"] for p in periods], table_rows),
         f'<p class="dh-note">{e(late + " ") if late else ""}{e(dash_line)}{_fmt.PTS_NOTE} The yardstick is Nifty Total Market, about 750 stocks. '
         + (f'{e(frozen)} {"stay" if " to " in frozen else "stays"} as recorded against the Nifty 500; the Nifty Total Market comparison is worked out beside them. '
            if frozen else '') + 'The book is after costs; indices are '
@@ -765,7 +764,7 @@ def section_momentum(lead, streak: int, signals: list[dict], average: float | No
                       "weight, in points.",
                       "Bars above the line are months momentum led. A run below it is momentum out of favour; whether the "
                       "year-long lead holds matters more than one month.",
-                      ["Month", "Lead, pts"], [[m, sg(v)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])], source="our calculation from NSE's daily closes and the ranking")]
+                      ["Month", "Lead, pts"], [[m, sg(v)] for m, v in zip(lead_bars["full"][::-1], lead_bars["values"][::-1])])]
     parts.append(
         f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>What today’s readings have meant for next month</b><span>Momentum’s next-month lead after '
         f'months like this, points · all months since 2010 average {e(avg)}</span></div>'
@@ -871,7 +870,7 @@ def section_flows(f: di.Flows, ev: di.FlowEvidence | None, dii, share: tuple[flo
                     "momentum has led the Nifty 500 by more the next month than after the rest.",
                     ["Month", "FPI net, ₹ Cr", "DII net, ₹ Cr"],
                     [[m, f"{v:,.0f}", "–" if not a else f"{a[1]:,.0f}"] for m, v, a in
-                     zip(bars["full"][::-1], bars["values"][::-1], (bars.get("also") or [None] * len(bars["values"]))[::-1])], source="NSDL's daily FPI reports; domestic institutions from NSE's category-wise turnover")]
+                     zip(bars["full"][::-1], bars["values"][::-1], (bars.get("also") or [None] * len(bars["values"]))[::-1])])]
     right = (f'<div class="dh-col1"><div class="dh-sub"><b>What heavy foreign buying has meant</b> · {e(ev.first) if ev else ""} to '
              f'{e(ev.last) if ev else ""}</div>{evid}</div>')
     return [head_html, Cols(left, [right], (2, 1)),
@@ -954,7 +953,7 @@ def _shared_parts(by_size, typical, book_sizes, universe: str = "750", month: st
     right_more = [f'<p class="dh-lede-s"><b>Is the rally shared?</b> {say}</p>' if say else "",
                   how("The share of each NSE size list trading above its own 200D EMA.",
                       "Above 60% the rally is broad there, below 40% narrow. The triangle marks a month ago.",
-                      ["Size", "3M ago", "1M ago", "Now"], [[r[0]] + ["–" if x is None else f"{x}%" for x in r[1:]] for r in rows], source="our calculation from NSE's daily closes and NSE's index lists")]
+                      ["Size", "3M ago", "1M ago", "Now"], [[r[0]] + ["–" if x is None else f"{x}%" for x in r[1:]] for r in rows])]
     return [Cols(left, [right] + right_more, (1, 1))]
 
 
@@ -1082,7 +1081,7 @@ def section_strong_weak(weights: pd.DataFrame, sectors: pd.DataFrame) -> list:
             how("The book’s weight in each sector, coloured by how that sector stands against all ranked stocks over 6 "
                 "months and 1 month.", "Blue is ahead on both, grey ahead on one, rust behind on both. The cards give each "
                 "sector’s figures.", ["Sector", "Weight", "Status"],
-                [[x[0], f"{x[2]:.1f}%", x[6].capitalize()] for x in sorted(segs, key=lambda x: -x[2])], source="the model book; sectors from NSE's classification"),
+                [[x[0], f"{x[2]:.1f}%", x[6].capitalize()] for x in sorted(segs, key=lambda x: -x[2])]),
             f'<div class="dh-gcards">{"".join(cards)}</div>'
             '<p class="dh-note">Each sector’s stocks, equal-weighted, against all ranked stocks built the same way: 6M · 1M in '
             'points, as on Sectors.</p>' + END]
@@ -1106,7 +1105,7 @@ def section_glance(blocks: list[tuple[str, str, list[tuple[str, str, str]]]], br
                                              "label": f"{ix} and the share of the {universe} above their 200D EMA"}),
                   how(f"Top: {ix}{joined}. Bottom: the share of the {universe} above their own 200D EMA, {counted}", "When the top line rises while the bottom one falls, fewer stocks are carrying the index.",
                       ["Date", ix, "Above 200D EMA"],
-                      [[d, f"{n:,.1f}", "–" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]], source="the index from NSE Indices; the share our calculation from NSE's daily closes")]
+                      [[d, f"{n:,.1f}", "–" if a is None else f"{a:.0f}%"] for d, n, a in list(zip(breadth["dates"], breadth["n500"], breadth["a200"]))[::-5]])]
     return parts + [f'<div class="dh-gls">{cells}</div>']
 
 
@@ -2052,7 +2051,7 @@ HOME_CSS = """
 .dh-hist{font-size:var(--fs-12);color:var(--c-muted);min-width:240px}
 .dh-tab.dh-tab-sig{min-width:1080px}
 .dh-how{display:flex;flex-wrap:wrap;gap:4px 24px;font-size:var(--fs-13)}
-.dh-src{flex-basis:100%;margin:0;color:var(--c-muted);font-size:var(--fs-12)}
+
 .dh-how details{flex:1 1 280px}.dh-how details[open]:last-child{flex-basis:100%}
 .dh-how summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center;gap:6px;list-style:none;color:var(--c-ink)}
 .dh-how summary::-webkit-details-marker{display:none}

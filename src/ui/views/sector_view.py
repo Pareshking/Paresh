@@ -348,8 +348,7 @@ def section_lead(ld: sp.Leads, sh, noun: str, nse_sectors: bool = True, uni: str
     table = how(what, read, [noun.capitalize(), "Stocks", f"6M lead {_d(ld.d3)}", f"6M lead {_d(ld.d1)}", "6M lead now", "1M lead",
                              "3M lead", "12M lead"],
                 [[sh(r.name), r.stocks, sg(r.lead6_3m), sg(r.lead6_1m), sg(r.lead6), sg(r.lead1), sg(r.lead3), sg(r.lead12)]
-                 for r in ld.rows], source="our calculation from NSE's daily closes; sectors from "
-                 + ("NSE's classification" if nse_sectors else "the list's own sector names"))
+                 for r in ld.rows])
     # A 12M lead needs a year of the group's prices; a "–" says why, once for the column (S193 E).
     short = [sh(r.name) for r in ld.rows if r.lead12 is None]
     dash_note = (" " + mw.column_note("12M", f"{mw.TOO_NEW} (under 12 months of prices): {_list(short)}")   # se.lead.2

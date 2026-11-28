@@ -763,7 +763,7 @@ def section_equity(p: Page) -> list:
                      ["Date", "The book", "Momentum 50", "Nifty Total Market", "Book below peak", "Nifty Total Market below peak"],
                      [[d, f"{b:.1f}", "–" if mo is None else f"{mo:.1f}", "–" if mk is None else f"{mk:.1f}", f"{dd:.1f}%",
                        "–" if dm is None else f"{dm:.1f}%"]
-                      for d, b, mo, mk, dd, dm in list(zip(spec["dates"], spec["book"], spec["mom"], spec["market"], spec["dd"], spec["ddm"]))[::-5]], source="the model book's record (NSE's closes, after costs); Nifty500 Momentum 50 and Nifty Total Market from NSE Indices"),
+                      for d, b, mo, mk, dd, dm in list(zip(spec["dates"], spec["book"], spec["mom"], spec["market"], spec["dd"], spec["ddm"]))[::-5]]),
                  _kpis(falls, "pf-four"),
                  f'<div class="dh-cap"><b>Risk</b><span>{e(windows + more)}</span></div>', _kpis(risk_cells, "pf-five"), rtable,
                  how("Volatility: how much the book’s daily returns swing, scaled to a year. Beta: how much the book moves, on average, for a 1% "
@@ -776,7 +776,7 @@ def section_equity(p: Page) -> list:
                      if rk else f"No risk figures yet: {mw.book_too_short(pr.RISK_MIN_SESSIONS, len(pr._clean(p.equity)))}.",   # S193 B7: read 0.0%
                      ["Measure", "The book", "Nifty Total Market"],
                      [["Volatility, a year", f"{rk.vol:.1f}%", f"{rk.market_vol:.1f}%"], ["Beta", f"{rk.beta:.2f}", "1.00"],
-                      ["Tracking error", f"{rk.tracking:.1f}%", mw.NOT_APPLICABLE], ["Sessions", str(rk.sessions), str(rk.sessions)]] if rk else [], source="our calculation from the model book's daily values and Nifty Total Market's closes (NSE Indices)")])
+                      ["Tracking error", f"{rk.tracking:.1f}%", mw.NOT_APPLICABLE], ["Sessions", str(rk.sessions), str(rk.sessions)]] if rk else [])])
 
 
 def calendar_html(p: Page, show: str = "All") -> tuple[str, str, str]:
@@ -895,7 +895,7 @@ def day_section(p: Page) -> list:
                  how("Each session, the book’s day less Nifty Total Market’s day, in points.",
                      "One day says little; a run of bars on one side says more.",
                      ["Session", "Book", "Nifty Total Market", "Lead, pts"],
-                     [[f"{d:%-d %b %Y}", pct(r.book), pct(r.market), sg(r.gap)] for d, r in last.iloc[::-1].iterrows()], source="the model book's daily values; Nifty Total Market's closes from NSE Indices")])
+                     [[f"{d:%-d %b %Y}", pct(r.book), pct(r.market), sg(r.gap)] for d, r in last.iloc[::-1].iterrows()])])
 
 
 def trade_stats(p: Page) -> dict:
