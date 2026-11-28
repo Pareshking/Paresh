@@ -34,3 +34,17 @@ def test_indices_stamp_names_the_pack_copy(tmp_path, monkeypatch):
     f.write_text("date\n")
     monkeypatch.setattr(indices_data, "_pack", lambda p: f if Path(p).name == f.name else p)
     assert str(f) in indices_data._stamp()
+
+
+def test_ath_snapshot_reads_the_pack_copy(tmp_path, monkeypatch):
+    from src.loaders import ath_loader as al
+
+    repo = tmp_path / "nse_all_time_highs.csv"
+    repo.write_text("Symbol,ATH,ATHDate,AsOf\nAAA,100,2026-11-20,2026-11-25\n")
+    pack = tmp_path / "pack_b" / "nse_all_time_highs.csv"
+    pack.parent.mkdir()
+    pack.write_text("Symbol,ATH,ATHDate,AsOf\nAAA,120,2026-11-27,2026-11-27\n")
+    al.clear_snapshot_cache()
+    monkeypatch.setattr(al, "_pack", lambda p: pack)
+    assert float(al.load_ath_snapshot(str(repo))["ATH"].iloc[0]) == 120.0
+    al.clear_snapshot_cache()
