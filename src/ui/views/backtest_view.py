@@ -975,10 +975,13 @@ def section_trades_head(f: dict) -> list:
         ("Median holding", f"{ts['median_days']:.0f} days", "", "entry fill to exit fill"),
         ("Median trade", _pcs(ts["median_return"]), _t(ts["median_return"]), f"mean {_pcs(ts['mean_return'])}"),
         ("Gains over losses", f"{pf:.2f}×" if pf else "–", "", "each trade weighted by its size at entry"),
-        # Restored S239 item 8 (owner, 28 Nov 2026: "Restore the 9").
-        ("Average win / loss", f"{_pcs(ts.get('avg_win'))} / {_pcs(ts.get('avg_loss'))}", "", "each closed trade once"),
-        ("Best / worst", f"{_pcs(ts.get('best'))} / {_pcs(ts.get('worst'))}", "",
-         " / ".join(x for x in (ts.get("best_sym"), ts.get("worst_sym")) if x)),
+    ])
+    # Restored S239 item 8 (owner, 28 Nov 2026: "Restore the 9"): a row of four, as Portfolio's trade tiles.
+    tiles += _kpis([
+        ("Average win", _pcs(ts.get("avg_win")), _t(ts.get("avg_win")), "the winners, each once"),
+        ("Average loss", _pcs(ts.get("avg_loss")), _t(ts.get("avg_loss")), "the losers, each once"),
+        ("Best trade", _pcs(ts.get("best")), _t(ts.get("best")), ts.get("best_sym") or ""),
+        ("Worst trade", _pcs(ts.get("worst")), _t(ts.get("worst")), ts.get("worst_sym") or ""),
     ])
     return ['<div class="dh-sec">', _kick("6", "Trades"), f'<h2 id="s-trades" class="dh-h2">{h2}</h2>', tiles,
             f'<p class="dh-note">Every trade, the rebalance log and the rebalance periods are below; the live record’s trades are on '

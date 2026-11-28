@@ -790,7 +790,7 @@ def test_bt_trd_3():
     # The last two, average win and loss and best and worst, came back on 28 Nov 2026 (S239 item 8).
     assert _subs(doc)[:5] == ["20 still held", "of closed trades", "entry fill to exit fill", "mean +5.0%",
                               "each trade weighted by its size at entry"]
-    assert "Average win / loss" in doc and "Best / worst" in doc
+    assert all(t in doc for t in ("Average win", "Average loss", "Best trade", "Worst trade"))
     assert _notes(doc) == ["Every trade, the rebalance log and the rebalance periods are below; the live record’s trades are on Portfolio, "
                            "which owns the record."]
 

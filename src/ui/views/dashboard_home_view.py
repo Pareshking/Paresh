@@ -544,7 +544,7 @@ def coming_up_parts(bc, check: pd.Timestamp) -> list:
     return [f'<div class="dh-sec dh-sec-cont"><div class="dh-cap"><b>Coming up: {e(head[0].lower() + head[1:])}</b><span>board '
             f'meetings of the holdings and planned buys, as announced, next {rc.AHEAD_DAYS // 7} weeks</span></div>'
             + (f'<p class="dh-lede-s">{e(rest[0].upper() + rest[1:])}.</p>' if rest else "")
-            + f'<div class="dh-cal">{blocks}</div></div>']
+            + (f'<div class="dh-cal">{blocks}</div>' if days else blocks) + '</div>']
 
 
 def section_rebalance(a: pd.DataFrame, plan, ranks: dict, ind_state: dict, check, fill, n_sess: int,
@@ -780,14 +780,14 @@ def split_parts(split: dict | None) -> list:
         spec["bands"][0].pop("label", None)   # the two lines fill both ends here: the band is named in the caption
         out += [f'<p class="dh-note">Shaded: the top 50’s usual range, {e(f1(x["q25"]))} to {e(f1(x["q75"]))} points.</p>',
                 Chart("lines", {**spec, "range": SPLIT_RANGE},
-                      {"label": "Top 50 and ranks 51–100, 12-month return less the Nifty 500’s, by month"})]
-    out += [how("Each row is a 12-month return less the Nifty 500’s over the same months, both compounded, for the "
+                      {"label": "Top 50 and ranks 51–100, return over 12 months less the Nifty 500’s, by month"})]
+    out += [how("Each row is a return over 12 months less the Nifty 500’s over the same months, both compounded, for the "
                 "Nifty 500’s members of each month-end ranked by momentum. The last row is the top 100 less the bottom "
                 "100, the momentum factor, kept for reference; it is checked against IIM Ahmedabad’s published Indian "
-                "momentum series: correlation 0.84 over 12-month sums, Feb 2010 to Dec 2025.",
+                "momentum series: correlation 0.84 over sums of 12 months, Feb 2010 to Dec 2025.",
                 "The top 50 above ranks 51–100 says the very top of the ranking still carries the signal. The shaded band "
-                "is the middle half of the top 50’s months since " f"{since:%b %Y}" "; the percentile counts 12-month "
-                "windows since then at or below today’s.",
+                "is the middle half of the top 50’s months since " f"{since:%b %Y}" "; the percentile counts windows of 12 months "
+                " since then at or below today’s.",
                 ["Month"] + [r["label"] for r in rows],
                 [[f"{m:%b %Y}"] + [sg(r["series"].get(m)) if pd.notna(r["series"].get(m)) else "–" for r in rows]
                  for m in list(t["series"].index[::-1])] if t is not None else [])]
