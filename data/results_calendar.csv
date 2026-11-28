@@ -1,11 +1,4 @@
 symbol,date,purpose,results,detail,source
-AEGISLOG,2026-09-28,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
-DEEPA,2026-09-28,Financial Results,1,"To consider and approve the financial results for the period ended June 30, 2026",held
-GANESHCP,2026-09-28,Other business matters,0,"To consider and review the operations of the Hyderabad unit, development thereto and incidental matters",held
-MOMSBELIEF,2026-09-28,Financial Results,1,"To consider and approve the unaudited financial results for the period ended Jun 30, 2026",held
-OLAELEC,2026-09-28,Fund Raising,0,"Intimation relating to the meeting of the Board of Directors of Ola Electric Mobility Limited (the Company ) to be held on September 28, 202",held
-PRASOLCHEM,2026-09-28,Financial Results,1,"To consider and approve the financial results for the period ended Jun 30, 2026",held
-SWARAJ,2026-09-28,Fund Raising,0,To consider Fund Raising,held
 ANSALAPI,2026-09-29,Financial Results/Dividend,1,The Company has informed the stock exchanges that in compliances with the Regulations 29 and 33 of SEBI (Listing Obligations and Disclosure ,held
 PSB,2026-09-29,Fund Raising,0,To consider Fund Raising,held
 TCI,2026-09-29,Buyback,0,Prior intimation of the meeting of Board of Directors ( Board ) to consider and approve proposal for buyback of fully paid-up equity shares ,held
@@ -2639,11 +2632,12 @@ INDIANB,2026-11-27,Fund Raising,0,Prior Intimation of Meeting of Committee of Di
 SETCO,2026-11-27,Financial Results/Other business matters,1,"SETCO : 27-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 24, 2026 has been re-scheduled. Furt",held
 STEELCITY,2026-11-27,Dividend,0,To consider dividend,held
 VAISHALI,2026-11-27,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,held
-BRNL,2026-11-28,Financial Results,1,"BRNL : 28-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 14, 2026 has been re-scheduled. Furth",calendar
-GARUDA,2026-11-28,Fund Raising,0,"1. To consider Fund Raising To consider raising of funds, in one or more tranches, by issue of equity shares and/or any other instruments or",calendar
-NDRINVIT,2026-11-28,Other business matters,0,"To consider and approve the Audited Standalone and Consolidated Financial Results of the Trust for the quarter ended June 30, 2026.",calendar
-ORTINGLOBE,2026-11-28,Fund Raising/Other business matters,0,1. The approval of increase in authorised share capital of the company subject to the approval of the members.2. To consider the proposal to,calendar
-RIIT,2026-11-28,Fund Raising,0,To consider Fund Raising,calendar
+BRNL,2026-11-28,Financial Results,1,"BRNL : 28-Nov-2026 : The Company has informed the Exchange that a Board meeting to be held on November 14, 2026 has been re-scheduled. Furth",held
+GARUDA,2026-11-28,Fund Raising,0,"1. To consider Fund Raising To consider raising of funds, in one or more tranches, by issue of equity shares and/or any other instruments or",held
+NDRINVIT,2026-11-28,Other business matters,0,"To consider and approve the Audited Standalone and Consolidated Financial Results of the Trust for the quarter ended June 30, 2026.",held
+ORTINGLOBE,2026-11-28,Fund Raising/Other business matters,0,1. The approval of increase in authorised share capital of the company subject to the approval of the members.2. To consider the proposal to,held
+RIIT,2026-11-28,Fund Raising,0,To consider Fund Raising,held
+LEEL,2026-11-30,Other business matters,0,To consider other business matters,calendar
 POWERGRID,2026-11-30,Fund Raising,0,To consider Fund Raising,calendar
 SADHNANIQ,2026-11-30,Other business matters,0,Consolidation of Equity Shares,calendar
 UNITEDPOLY,2026-11-30,Fund Raising,0,To consider Fund Raising,calendar
@@ -2653,9 +2647,11 @@ MANCREDIT,2026-12-01,Fund Raising,0,To consider Fund Raising by way of issuing N
 POONAWALLA,2026-12-01,Fund Raising,0,To consider Fund Raising,calendar
 RUBFILA,2026-12-01,Other business matters,0,To consider other business matters,calendar
 DAVANGERE,2026-12-02,Other business matters,0,"DAVANGERE : 02-Dec-2026 : The Company has informed the Exchange that a Board meeting to be held on November 26, 2026 has been re-scheduled. ",calendar
+PATELENG,2026-12-02,Fund Raising,0,"To Consider and Approve Fund Raising - Prior Board Meeting Intimation Under Regulation 29 And Regulation 50 Of SEBI (LODR) Regulations, 2015",calendar
 SHUKRAMED,2026-12-02,Fund Raising,0,To consider Fund Raising,calendar
 SUKHJITS,2026-12-02,Buyback,0,"SUKHJITS : 02-Dec-2026 : The Company has informed the Exchange that a Board meeting to be held on November 20, 2026 has been re-scheduled. F",calendar
 SUPRIYA,2026-12-02,Buyback,0,To consider buyback for equity shares,calendar
+ATALREAL,2026-12-03,Fund Raising/Other business matters,0,To consider Fund Raising and other business matters,calendar
 JKSHAH,2026-12-03,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 LATTEYS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
 RNBDENIMS,2026-12-05,Financial Results,1,"To consider and approve the financial results for the period ended September 30, 2026",calendar
