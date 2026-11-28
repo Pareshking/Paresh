@@ -55,7 +55,11 @@ function linePane(el, o){
   let lo=Math.min(...all,...(o.levels||[]).map(l=>l.v)), hi=Math.max(...all,...(o.levels||[]).map(l=>l.v));
   if(o.range){lo=o.range[0];hi=o.range[1];} else {const pad=(hi-lo)*0.08;lo-=pad;hi+=pad;}
   const X=i=>padL+(W-padL-padR)*(n<2?0:i/(n-1)), Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo));
-  for(const b of o.bands||[]) mk('rect',{x:padL,width:W-padL-padR,y:Y(b.to),height:Y(b.from)-Y(b.to),fill:b.fill},svg);
+  for(const b of o.bands||[]){ mk('rect',{x:padL,width:W-padL-padR,y:Y(b.to),height:Y(b.from)-Y(b.to),fill:b.fill},svg);
+    // Its label just above the band, at whichever end the lines leave clear (the end whose highest point is lower).
+    if(b.label){ const k=Math.max(1,Math.round(n*.3)), top=a=>Math.max(...o.series.flatMap(x=>a(x.values).filter(v=>v!=null)));
+      const right=top(v=>v.slice(-k))<top(v=>v.slice(0,k));
+      const t=mk('text',{x:right?W-padR-6:padL+6,y:Y(b.to)-6,'text-anchor':right?'end':'start',class:'lbl-band'},svg); t.textContent=b.label; } }
   for(const t of (o.tickVals||niceTicks(lo,hi,o.ticks||4))){ if(t<lo||t>hi) continue;
     mk('line',{x1:padL,x2:W-padR,y1:Y(t),y2:Y(t),stroke:css('--rule-soft'),'stroke-width':1},svg);
     mk('text',{x:padL-6,y:Y(t)+4,'text-anchor':'end'},svg).textContent=String(o.yfmt(t)).replace('-','−'); }
@@ -74,6 +78,10 @@ function linePane(el, o){
     mk('path',{d:smooth(pts),fill:'none',stroke:s.color,'stroke-width':s.width||2,'stroke-linejoin':'round','stroke-linecap':'round','stroke-dasharray':s.dash||''},svg);
     const last=pts.at(-1); mk('circle',{cx:last[0],cy:last[1],r:4,fill:s.color,stroke:css('--bg'),'stroke-width':2},svg);
   }
+  // Labelled points, the record high and low (S237 G3, tipsheet's valuation chart): an open ring and its value and date.
+  for(const m of o.marks||[]){ if(m.i<0||m.i>=n) continue; const x=X(m.i), y=Y(m.v), up=m.below?1:-1;
+    mk('circle',{cx:x,cy:y,r:3.5,fill:css('--bg'),stroke:css('--ink'),'stroke-width':1.2},svg);
+    const t=mk('text',{x:Math.min(W-padR-4,Math.max(padL+4,x)),y:y+up*9+(up>0?6:0),'text-anchor':x>W-padR-60?'end':x<padL+60?'start':'middle',class:'lbl-mark'},svg); t.textContent=m.label; }
   const cross=mk('line',{y1:padT,y2:H-padB,stroke:css('--muted'),'stroke-width':1,opacity:0},svg);
   const dots=o.series.map(s=>mk('circle',{r:5,fill:s.color,stroke:css('--bg'),'stroke-width':2,opacity:0},svg));
   return { n, X, padL, padR, W,
@@ -425,7 +433,8 @@ R.lines = (card, s) => {
     pane = linePane(el, {dates: s.dates.slice(from), series: s.series.map(x => ({name: x.name, color: css('--' + x.color), values: x.values.slice(from), dash: x.dash ? '5 4' : '', width: x.width || 2})),
       height: h, padL: 44, padR: 8, yfmt: fmt, range: yr, ticks: 4,
       levels: (s.levels || []).map(l => ({v: l.v, label: l.label, color: css('--' + (l.color || 'muted'))})),
-      bands: (s.bands || []).map(b => ({from: b.from, to: b.to, fill: css('--' + (b.color || 'up-soft'))}))}); };
+      bands: (s.bands || []).map(b => ({from: b.from, to: b.to, label: b.label, fill: css('--' + (b.color || 'up-soft'))})),
+      marks: (s.marks || []).map(m => ({i: s.dates.indexOf(m.date) - from, v: m.v, label: m.label, below: m.below}))}); };
   // A stated range (S193 H) sets the chips and the default; the older chips [[label, sessions]] open on the last.
   if (s.range && !Array.isArray(s.range)) from = rangeChips(card, s, () => s.dates, i => { from = i; draw(); el.dispatchEvent(new Event('blur')); });
   REDRAW.push(draw); draw(); new ResizeObserver(draw).observe(el);

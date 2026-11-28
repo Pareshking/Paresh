@@ -604,6 +604,44 @@ _CHART_CSS = """<style>
 </style>"""
 
 
+def head_lede(breadth, trend, universe: str, name: str = mq.MARKET) -> str:
+    """Two sentences under the question (S237 G1 form on Market, tipsheet's breadth page; owner approved 28 Nov 2026): the share above
+    the 200D EMA and where it sits in its record, then the trend. Colour on the share only, by its vote."""
+    out = []
+    m = next((x for x in (breadth.measures if breadth else []) if x.primary and x.now is not None), None)
+    if m is not None:
+        cls = {"UP": "dh-up", "DOWN": "dh-down"}.get(m.vote, "")
+        fig = f'<b class="{cls}">{_fmt.fixed(m.now, 0)}%</b>' if cls else f"<b>{_fmt.fixed(m.now, 0)}%</b>"
+        s = f"{fig} of the {html.escape(universe)} closed above their 200D EMA"
+        if m.history:
+            pct, since = m.history[4], m.history[5]
+            s += f", a reading higher than on {_fmt.fixed(pct, 0)}% of days since {since:%b %Y}" if pct >= 50 else \
+                 f", a reading lower than on {_fmt.fixed(100 - pct, 0)}% of days since {since:%b %Y}"
+        out.append(s + f": participation is {html.escape(breadth.verdict.lower())}.")
+    if trend is not None:
+        from src.engine.market_questions import word_for
+        if trend.verdict != word_for(None, ("",) * 5):
+            out.append(f"{html.escape(sentence_case(the(name)))} {html.escape(_TREND.get(trend.verdict, trend.verdict.lower()))}.")
+    return " ".join(out)
+
+
+def feature_html(x: dict, universe: str) -> str:
+    """The left of the breadth feature: the share now, large, and its record in words (S237 G3)."""
+    from src.ui import record_line
+    pc = lambda v: f"{_fmt.fixed(v, 0)}%"  # noqa: E731
+    return ('<div class="qp-feat"><p class="qp-kick">Above their 200D EMA</p>'
+            f'<p class="qp-big">{pc(x["now"])}</p><p class="qp-note">of the {html.escape(universe)}, {_fmt.date(x["day"])}</p>'
+            f'<p class="qp-feat-t">{html.escape(record_line.words(x, pc, f"{x['since']:%b %Y}"))}</p></div>')
+
+
+_FEAT_CSS = """<style>
+.qp-brief .qp-date{margin:0 0 10px;color:var(--c-muted);font-size:var(--fs-13)}
+.qp-brief .qp-sub b{font-weight:600}.qp-brief .qp-sub .dh-up{color:var(--c-up)}.qp-brief .qp-sub .dh-down{color:var(--c-down)}
+.qp-big{margin:4px 0 2px!important;font-family:var(--font-serif)!important;font-size:var(--fs-52)!important;line-height:1!important}
+.qp-feat-t{font-size:var(--fs-17);line-height:1.5;margin:16px 0 0!important;max-width:380px}
+</style>"""
+
+
 def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, bench: pd.Series | None,
                                   size: dict[str, pd.Series], pit: bool = True, universe: str = "750",
                                   name: str = mq.MARKET) -> bool:
@@ -631,18 +669,34 @@ def render_market_page_questions(rank_df: pd.DataFrame, prices: pd.DataFrame, be
     key = "|".join([_columns_key(prices, syms), str(bench.dropna().index[-1]), ",".join(sorted(size)), _past_stamp()])
     breadth, trend, _ = _answers(key, px, industry, bench.dropna(), size, pit, name)
     # The title answers both questions; the page's name is the kicker (PAGE_DESIGN 2a, 21 Nov 2026).
-    title = market_title(breadth, trend, name)
-    st.html(_CSS + _PAGE_CSS + _CHART_CSS +
-            '<div class="qp-head"><p class="qp-kick">Market</p>'
+    lede = head_lede(breadth, trend, universe, name)
+    title = f"Is {the(name)} rising, and are most stocks rising with it?" if lede else market_title(breadth, trend, name)
+    st.html(_CSS + _PAGE_CSS + _CHART_CSS + _FEAT_CSS +
+            f'<div class="qp-head qp-brief"><p class="qp-date">Market · end of day, {_fmt.date(end)}</p>'
             f'<h1 class="qp-title">{html.escape(title)}</h1>'
-            f'<p class="qp-sub">{html.escape(market_sub(name))}</p></div>'
+            f'<p class="qp-sub">{lede or html.escape(market_sub(name))}</p></div>'
             '<nav class="qp-nav" aria-label="On this page">'
             '<a href="#q-breadth">Are most stocks taking part?</a>'
             f'<a href="#q-trend">Is {html.escape(the(name))} in an uptrend?</a><a href="#q-charts">Today\'s charts</a></nav>')
     if breadth is not None:
+        share200, weekly, nnh = _chart_series(key, px, bench.dropna(), pit)
+        from src.ui import record_line
+        x = record_line.facts(share200)
+        if x is not None:
+            # S237 G3 (owner approved 28 Nov 2026): the share against its whole record, as tipsheet's breadth page.
+            from src.ui import dash_charts as dc
+            pc = lambda v: f"{_fmt.fixed(v, 0)}%"  # noqa: E731
+            left, right = st.columns([1, 2], gap="medium")
+            with left:
+                st.html(feature_html(x, universe))
+            with right:
+                dc.render("lines", {**record_line.chart_spec(x, "Share above their 200D EMA", pc, yfmt="pct", nd=1),
+                                   "range": {"default": "all", "why": "record"}},
+                          label=f"Share of the {universe} above their 200D EMA, each day since {x['since']:%b %Y}")
+                st.html('<p class="qp-note">The share of the ranked stocks closing above their own 200D EMA, '
+                        'each trading day; the shaded band is the middle half of those days.</p>')
         st.html(question_section_html(breadth, "breadth", "q-breadth")
                 + '<p class="qp-behind">Behind the answer</p>')
-        share200, weekly, nnh = _chart_series(key, px, bench.dropna(), pit)
         _breadth_charts(bench.dropna(), share200, weekly, nnh, pit, universe, name)
     if trend is not None:
         sec = question_section_html(trend, "trend", "q-trend")

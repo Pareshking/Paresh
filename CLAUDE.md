@@ -32,6 +32,13 @@ chart and data-check rules the Dashboard redesign settled, with their sources.
   before calling a gap a halt or a download fault.
 - Anything promised in a conversation goes in `docs/TODO.md` the same day, with
   how we will know it is done.
+- A redesign removes nothing silently (owner, 28 Nov 2026: "I am talking about silent drops by you"). Each
+  redesign preview comes with a before/after list of its sections and figures, checked against
+  `docs/PAGE_INVENTORY.md`; anything left out is named for the owner's decision. Approving a preview approves what
+  it shows, not what was taken out.
+- Before calling a choice "decided by benchmark", search `docs/*_REQUIREMENTS.md`, `docs/PAGE_DESIGN.md` and TODO
+  for an owner rule on it (28 Nov 2026: S237 G4 put source lines under every chart against his 20 Nov "Let's not
+  show source", and had to be reverted).
 
 ## Suggesting (owner, 23 Nov 2026)
 

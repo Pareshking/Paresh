@@ -1,7 +1,6 @@
 """S203: the sentences that were wrong today, now true in every case (indices, backtest, market)."""
 import re
 
-import pandas as pd
 import pytest
 
 from src.engine import indices_page as ip
@@ -13,25 +12,19 @@ def _v(key: str, pct: float, pe: float = 22.0) -> ip.Valuation:
                         since=ip.PE_FROM, pb_now=3.0, dy_now=1.2)
 
 
-def _title(big, small) -> str:
-    vals = [v for v in (big, small) if v is not None]
-    html = iv.head(vals, pd.Timestamp("2026-11-20"))[0]
-    return re.sub(r"<[^>]+>", "", re.search(r'<h1[^>]*>(.*?)</h1>', html).group(1))
-
-
 @pytest.mark.parametrize("b,s,want", [
-    (20, 80, "The Nifty 50's P/E is below its median since Mar 2021; the Nifty Smallcap 250's is above it."),
-    (80, 20, "The Nifty 50's P/E is above its median since Mar 2021; the Nifty Smallcap 250's is below it."),
-    (20, 30, "The Nifty 50's P/E is at the 20th percentile of its days since Mar 2021; the Nifty Smallcap 250's at the 30th."),
-    (90, 70, "The Nifty 50's P/E is at the 90th percentile of its days since Mar 2021; the Nifty Smallcap 250's at the 70th."),
-    (50, 70, "The Nifty 50's P/E is at its median since Mar 2021; the Nifty Smallcap 250's at the 70th."),
+    (20, 80, "cheaper than on 80% of days since 31 Mar 2021; the Nifty Smallcap 250, at 22.0, is dearer than on 80%."),
+    (90, 70, "dearer than on 90% of days since 31 Mar 2021; the Nifty Smallcap 250, at 22.0, is dearer than on 70%."),
+    (50, 70, "at its median since 31 Mar 2021; the Nifty Smallcap 250, at 22.0, is dearer than on 70%."),
 ])
-def test_the_title_reads_each_case(b, s, want):
-    assert _title(_v("nifty_50", b), _v("nifty_smallcap_250", s)) == want
+def test_the_lede_reads_each_case(b, s, want):
+    """S237 (owner approved 28 Nov 2026): the first screen asks the question and the lede answers it each way."""
+    t = re.sub(r"<[^>]+>", "", iv.head_lede(_v("nifty_50", b), _v("nifty_smallcap_250", s))).replace("&#x27;", "'")
+    assert want in t
 
 
-def test_the_title_without_the_figures():
-    assert _title(None, None) == "NSE's index P/Es are not in yet."
+def test_the_lede_without_the_figures():
+    assert iv.head_lede(None, None) == "NSE's index P/Es are not in yet."
 
 
 @pytest.mark.parametrize("b,s,want", [
