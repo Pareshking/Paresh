@@ -1,769 +1,769 @@
 quarter,quarter_end,index,measure,value_pct,members,size,used,complete,scope,unclassified,as_of
-Q2FY25,2024-09-30,Nifty 50,sales_agg_yoy,5.85,50,50,50,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,sales_median_yoy,9.49,50,50,50,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,sales_agg_yoy,2.51,39,50,39,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,sales_median_yoy,6.33,39,50,39,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,pat_agg_yoy,4.27,50,50,50,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,pat_median_yoy,8.27,50,50,50,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,pat_agg_yoy,-1.42,39,50,39,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,pat_median_yoy,4.95,39,50,39,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,pat_xoi_agg_yoy,-0.96,50,50,50,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,pat_xoi_median_yoy,7.27,50,50,50,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,pat_xoi_agg_yoy,-10.37,39,50,39,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 50,pat_xoi_median_yoy,0.69,39,50,39,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,sales_agg_yoy,8.52,50,50,49,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,sales_median_yoy,11.22,50,50,49,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,sales_agg_yoy,3.38,37,50,36,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,sales_median_yoy,6.88,37,50,36,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,pat_agg_yoy,-5.53,50,50,49,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,pat_median_yoy,7.75,50,50,49,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,pat_agg_yoy,-26.18,37,50,36,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,pat_median_yoy,7.69,37,50,36,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,pat_xoi_agg_yoy,-9.24,50,50,49,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,pat_xoi_median_yoy,10.14,50,50,49,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,pat_xoi_agg_yoy,-39.91,37,50,36,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Next 50,pat_xoi_median_yoy,8.72,37,50,36,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,sales_agg_yoy,10.33,150,150,149,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,sales_median_yoy,10.76,150,150,149,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,sales_agg_yoy,8.32,119,150,118,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,sales_median_yoy,8.13,119,150,118,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,pat_agg_yoy,7.03,150,150,149,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,pat_median_yoy,5.88,150,150,149,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,pat_agg_yoy,-4.1,119,150,118,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,pat_median_yoy,3.85,119,150,118,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,-1.88,150,150,149,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,pat_xoi_median_yoy,4.8,150,150,149,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,-17.78,119,150,118,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Midcap 150,pat_xoi_median_yoy,1.75,119,150,118,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,sales_agg_yoy,7.66,249,250,246,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,sales_median_yoy,11.97,249,250,246,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,sales_agg_yoy,5.39,209,250,207,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,sales_median_yoy,9.82,209,250,207,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,pat_agg_yoy,-10.51,249,250,246,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,pat_median_yoy,10.98,249,250,246,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,pat_agg_yoy,-9.59,209,250,207,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,pat_median_yoy,6.28,209,250,207,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,-9.68,249,250,246,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,7.77,249,250,246,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,-7.68,209,250,207,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,3.98,209,250,207,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,sales_agg_yoy,5.79,250,250,244,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,sales_median_yoy,10.62,250,250,244,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,sales_agg_yoy,4.28,230,250,224,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,sales_median_yoy,9.45,230,250,224,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,pat_agg_yoy,60.25,250,250,244,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,pat_median_yoy,8.39,250,250,244,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,pat_agg_yoy,86.4,230,250,224,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,pat_median_yoy,8.36,230,250,224,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,13.56,250,250,244,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,pat_xoi_median_yoy,6.31,250,250,244,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,32.42,230,250,224,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Microcap 250,pat_xoi_median_yoy,6.22,230,250,224,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,sales_agg_yoy,7.45,499,500,494,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,sales_median_yoy,11.05,499,500,494,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,sales_agg_yoy,4.07,404,500,400,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,sales_median_yoy,8.61,404,500,400,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,pat_agg_yoy,1.18,499,500,494,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,pat_median_yoy,8.27,499,500,494,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,pat_agg_yoy,-7.1,404,500,400,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,pat_median_yoy,4.89,404,500,400,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,pat_xoi_agg_yoy,-3.54,499,500,494,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,pat_xoi_median_yoy,7.16,499,500,494,True,all,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,pat_xoi_agg_yoy,-16.1,404,500,400,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty 500,pat_xoi_median_yoy,3.47,404,500,400,True,ex_financials,0,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,sales_agg_yoy,7.38,749,750,737,True,all,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,sales_median_yoy,10.82,749,750,737,True,all,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,sales_agg_yoy,4.09,634,750,623,True,ex_financials,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,sales_median_yoy,9.03,634,750,623,True,ex_financials,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,pat_agg_yoy,2.76,749,750,737,True,all,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,pat_median_yoy,8.39,749,750,737,True,all,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,pat_agg_yoy,-3.96,634,750,623,True,ex_financials,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,pat_median_yoy,5.96,634,750,623,True,ex_financials,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,pat_xoi_agg_yoy,-3.13,749,750,737,True,all,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,pat_xoi_median_yoy,6.84,749,750,737,True,all,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,pat_xoi_agg_yoy,-14.66,634,750,623,True,ex_financials,1,2026-11-25
-Q2FY25,2024-09-30,Nifty Total Market,pat_xoi_median_yoy,4.36,634,750,623,True,ex_financials,1,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,sales_agg_yoy,3.7,50,50,50,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,sales_median_yoy,8.63,50,50,50,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,sales_agg_yoy,4.03,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,sales_median_yoy,7.1,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,pat_agg_yoy,14.39,50,50,50,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,pat_median_yoy,10.41,50,50,50,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,pat_agg_yoy,11.33,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,pat_median_yoy,8.02,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,pat_xoi_agg_yoy,11.3,50,50,50,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,pat_xoi_median_yoy,9.75,50,50,50,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,pat_xoi_agg_yoy,5.81,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 50,pat_xoi_median_yoy,9.56,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,sales_agg_yoy,-1.61,50,50,49,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,sales_median_yoy,8.41,50,50,49,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,sales_agg_yoy,-0.03,37,50,36,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,sales_median_yoy,8.5,37,50,36,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,pat_agg_yoy,8.74,50,50,49,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,pat_median_yoy,13.67,50,50,49,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,pat_agg_yoy,-5.27,37,50,36,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,pat_median_yoy,11.98,37,50,36,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,pat_xoi_agg_yoy,1.42,50,50,49,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,pat_xoi_median_yoy,9.03,50,50,49,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,pat_xoi_agg_yoy,-23.96,37,50,36,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Next 50,pat_xoi_median_yoy,6.21,37,50,36,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,sales_agg_yoy,7.95,150,150,149,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,sales_median_yoy,10.54,150,150,149,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,sales_agg_yoy,7.36,119,150,118,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,sales_median_yoy,9.44,119,150,118,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,pat_agg_yoy,33.4,150,150,149,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,pat_median_yoy,7.36,150,150,149,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,pat_agg_yoy,47.66,119,150,118,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,pat_median_yoy,7.19,119,150,118,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,pat_xoi_agg_yoy,29.66,150,150,149,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,pat_xoi_median_yoy,6.52,150,150,149,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,pat_xoi_agg_yoy,45.25,119,150,118,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Midcap 150,pat_xoi_median_yoy,5.74,119,150,118,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,sales_agg_yoy,7.64,249,250,249,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,sales_median_yoy,10.76,249,250,249,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,sales_agg_yoy,6.71,210,250,210,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,sales_median_yoy,9.37,210,250,210,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,pat_agg_yoy,9.04,249,250,249,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,pat_median_yoy,7.88,249,250,249,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,pat_agg_yoy,2.71,210,250,210,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,pat_median_yoy,4.76,210,250,210,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,pat_xoi_agg_yoy,7.94,249,250,249,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,pat_xoi_median_yoy,4.64,249,250,249,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,pat_xoi_agg_yoy,-0.57,210,250,210,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Smallcap 250,pat_xoi_median_yoy,0.89,210,250,210,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,sales_agg_yoy,6.45,250,250,245,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,sales_median_yoy,10.42,250,250,245,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,sales_agg_yoy,6.58,230,250,225,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,sales_median_yoy,10.45,230,250,225,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,pat_agg_yoy,-40.76,250,250,245,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,pat_median_yoy,6.38,250,250,245,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,pat_agg_yoy,-30.73,230,250,225,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,pat_median_yoy,7.15,230,250,225,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,pat_xoi_agg_yoy,-0.59,250,250,245,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,pat_xoi_median_yoy,5.68,250,250,245,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,pat_xoi_agg_yoy,36.88,230,250,225,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Microcap 250,pat_xoi_median_yoy,6.92,230,250,225,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,sales_agg_yoy,3.6,499,500,497,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,sales_median_yoy,10.15,499,500,497,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,sales_agg_yoy,4.25,405,500,403,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,sales_median_yoy,9.11,405,500,403,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,pat_agg_yoy,15.41,499,500,497,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,pat_median_yoy,9.02,499,500,497,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,pat_agg_yoy,12.47,405,500,403,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,pat_median_yoy,7.36,405,500,403,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,pat_xoi_agg_yoy,11.31,499,500,497,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,pat_xoi_median_yoy,6.79,499,500,497,True,all,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,pat_xoi_agg_yoy,4.69,405,500,403,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty 500,pat_xoi_median_yoy,3.9,405,500,403,True,ex_financials,0,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,sales_agg_yoy,3.73,749,750,741,True,all,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,sales_median_yoy,10.35,749,750,741,True,all,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,sales_agg_yoy,4.38,635,750,627,True,ex_financials,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,sales_median_yoy,9.51,635,750,627,True,ex_financials,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,pat_agg_yoy,13.33,749,750,741,True,all,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,pat_median_yoy,8.19,749,750,741,True,all,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,pat_agg_yoy,10.36,635,750,627,True,ex_financials,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,pat_median_yoy,7.37,635,750,627,True,ex_financials,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,pat_xoi_agg_yoy,11.02,749,750,741,True,all,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,pat_xoi_median_yoy,6.6,749,750,741,True,all,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,pat_xoi_agg_yoy,5.69,635,750,627,True,ex_financials,1,2026-11-25
-Q3FY25,2024-12-31,Nifty Total Market,pat_xoi_median_yoy,5.14,635,750,627,True,ex_financials,1,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,sales_agg_yoy,4.71,50,50,50,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,sales_median_yoy,8.67,50,50,50,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,sales_agg_yoy,4.86,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,sales_median_yoy,8.03,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,pat_agg_yoy,11.32,50,50,50,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,pat_median_yoy,11.01,50,50,50,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,pat_agg_yoy,18.81,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,pat_median_yoy,13.16,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,pat_xoi_agg_yoy,1.13,50,50,50,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,pat_xoi_median_yoy,6.57,50,50,50,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,pat_xoi_agg_yoy,3.1,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 50,pat_xoi_median_yoy,7.98,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,sales_agg_yoy,1.61,50,50,49,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,sales_median_yoy,9.88,50,50,49,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,sales_agg_yoy,0.21,38,50,37,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,sales_median_yoy,9.88,38,50,37,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,pat_agg_yoy,20.71,50,50,49,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,pat_median_yoy,15.66,50,50,49,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,pat_agg_yoy,21.55,38,50,37,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,pat_median_yoy,15.66,38,50,37,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,pat_xoi_agg_yoy,38.61,50,50,49,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,pat_xoi_median_yoy,18.31,50,50,49,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,pat_xoi_agg_yoy,12.6,38,50,37,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Next 50,pat_xoi_median_yoy,19.95,38,50,37,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,sales_agg_yoy,8.24,150,150,149,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,sales_median_yoy,10.35,150,150,149,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,sales_agg_yoy,7.98,119,150,118,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,sales_median_yoy,10.28,119,150,118,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,pat_agg_yoy,25.25,150,150,149,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,pat_median_yoy,14.15,150,150,149,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,pat_agg_yoy,30.69,119,150,118,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,pat_median_yoy,13.49,119,150,118,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,pat_xoi_agg_yoy,29.73,150,150,149,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,pat_xoi_median_yoy,12.31,150,150,149,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,pat_xoi_agg_yoy,38.55,119,150,118,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Midcap 150,pat_xoi_median_yoy,11.42,119,150,118,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,sales_agg_yoy,8.24,250,250,250,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,sales_median_yoy,11.5,250,250,250,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,sales_agg_yoy,7.98,210,250,210,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,sales_median_yoy,10.7,210,250,210,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,pat_agg_yoy,14.17,250,250,250,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,pat_median_yoy,16.14,250,250,250,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,pat_agg_yoy,17.48,210,250,210,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,pat_median_yoy,16.15,210,250,210,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,pat_xoi_agg_yoy,9.2,250,250,250,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,pat_xoi_median_yoy,15.52,250,250,250,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,pat_xoi_agg_yoy,12.4,210,250,210,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Smallcap 250,pat_xoi_median_yoy,15.33,210,250,210,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,sales_agg_yoy,6.05,249,250,243,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,sales_median_yoy,9.41,249,250,243,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,sales_agg_yoy,6.43,230,250,224,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,sales_median_yoy,9.47,230,250,224,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,pat_agg_yoy,-3.45,249,250,243,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,pat_median_yoy,12.73,249,250,243,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,pat_agg_yoy,1.12,230,250,224,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,pat_median_yoy,12.86,230,250,224,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,pat_xoi_agg_yoy,22.09,249,250,243,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,pat_xoi_median_yoy,12.39,249,250,243,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,pat_xoi_agg_yoy,42.97,230,250,224,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Microcap 250,pat_xoi_median_yoy,12.71,230,250,224,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,sales_agg_yoy,4.91,500,500,498,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,sales_median_yoy,10.5,500,500,498,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,sales_agg_yoy,4.8,405,500,403,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,sales_median_yoy,10.14,405,500,403,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,pat_agg_yoy,15.51,500,500,498,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,pat_median_yoy,14.7,500,500,498,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,pat_agg_yoy,20.81,405,500,403,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,pat_median_yoy,14.67,405,500,403,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,pat_xoi_agg_yoy,12.71,500,500,498,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,pat_xoi_median_yoy,12.94,500,500,498,True,all,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,pat_xoi_agg_yoy,9.77,405,500,403,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty 500,pat_xoi_median_yoy,12.13,405,500,403,True,ex_financials,0,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,sales_agg_yoy,4.97,749,750,740,True,all,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,sales_median_yoy,10.15,749,750,740,True,all,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,sales_agg_yoy,4.91,635,750,626,True,ex_financials,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,sales_median_yoy,9.86,635,750,626,True,ex_financials,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,pat_agg_yoy,14.46,749,750,740,True,all,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,pat_median_yoy,13.79,749,750,740,True,all,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,pat_agg_yoy,19.26,635,750,626,True,ex_financials,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,pat_median_yoy,14.04,635,750,626,True,ex_financials,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,pat_xoi_agg_yoy,13.0,749,750,740,True,all,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,pat_xoi_median_yoy,12.71,749,750,740,True,all,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,pat_xoi_agg_yoy,10.95,635,750,626,True,ex_financials,1,2026-11-25
-Q4FY25,2025-03-31,Nifty Total Market,pat_xoi_median_yoy,12.47,635,750,626,True,ex_financials,1,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,sales_agg_yoy,5.37,50,50,50,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,sales_median_yoy,9.15,50,50,50,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,sales_agg_yoy,4.34,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,sales_median_yoy,8.03,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,pat_agg_yoy,9.26,50,50,50,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,pat_median_yoy,9.9,50,50,50,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,pat_agg_yoy,13.48,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,pat_median_yoy,9.9,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,pat_xoi_agg_yoy,5.64,50,50,50,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,pat_xoi_median_yoy,6.66,50,50,50,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,pat_xoi_agg_yoy,8.33,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 50,pat_xoi_median_yoy,7.68,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,sales_agg_yoy,2.69,50,50,49,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,sales_median_yoy,9.9,50,50,49,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,sales_agg_yoy,-0.3,38,50,37,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,sales_median_yoy,9.42,38,50,37,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,pat_agg_yoy,12.27,50,50,49,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,pat_median_yoy,10.79,50,50,49,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,pat_agg_yoy,19.59,38,50,37,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,pat_median_yoy,10.57,38,50,37,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,pat_xoi_agg_yoy,4.92,50,50,49,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,pat_xoi_median_yoy,14.59,50,50,49,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,pat_xoi_agg_yoy,9.0,38,50,37,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Next 50,pat_xoi_median_yoy,12.85,38,50,37,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,sales_agg_yoy,7.58,150,150,150,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,sales_median_yoy,10.48,150,150,150,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,sales_agg_yoy,6.51,119,150,119,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,sales_median_yoy,9.9,119,150,119,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,pat_agg_yoy,18.14,150,150,150,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,pat_median_yoy,10.78,150,150,150,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,pat_agg_yoy,18.63,119,150,119,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,pat_median_yoy,9.14,119,150,119,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,pat_xoi_agg_yoy,18.39,150,150,150,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,pat_xoi_median_yoy,9.06,150,150,150,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,pat_xoi_agg_yoy,20.45,119,150,119,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Midcap 150,pat_xoi_median_yoy,8.4,119,150,119,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,sales_agg_yoy,6.72,250,250,250,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,sales_median_yoy,8.61,250,250,250,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,sales_agg_yoy,5.89,210,250,210,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,sales_median_yoy,7.78,210,250,210,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,pat_agg_yoy,-11.27,250,250,250,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,pat_median_yoy,9.91,250,250,250,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,pat_agg_yoy,-18.64,210,250,210,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,pat_median_yoy,8.33,210,250,210,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,pat_xoi_agg_yoy,5.48,250,250,250,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,pat_xoi_median_yoy,6.32,250,250,250,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,pat_xoi_agg_yoy,2.7,210,250,210,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Smallcap 250,pat_xoi_median_yoy,2.54,210,250,210,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,sales_agg_yoy,4.34,249,250,246,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,sales_median_yoy,7.83,249,250,246,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,sales_agg_yoy,4.14,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,sales_median_yoy,7.79,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,pat_agg_yoy,-18.91,249,250,246,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,pat_median_yoy,9.42,249,250,246,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,pat_agg_yoy,-15.93,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,pat_median_yoy,12.56,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,pat_xoi_agg_yoy,-5.08,249,250,246,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,pat_xoi_median_yoy,7.04,249,250,246,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,pat_xoi_agg_yoy,4.37,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Microcap 250,pat_xoi_median_yoy,8.13,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,sales_agg_yoy,5.23,500,500,499,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,sales_median_yoy,9.42,500,500,499,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,sales_agg_yoy,3.91,405,500,404,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,sales_median_yoy,8.84,405,500,404,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,pat_agg_yoy,8.65,500,500,499,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,pat_median_yoy,10.32,500,500,499,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,pat_agg_yoy,10.55,405,500,404,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,pat_median_yoy,9.14,405,500,404,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,pat_xoi_agg_yoy,7.31,500,500,499,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,pat_xoi_median_yoy,7.73,500,500,499,True,all,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,pat_xoi_agg_yoy,9.59,405,500,404,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty 500,pat_xoi_median_yoy,6.6,405,500,404,True,ex_financials,0,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,sales_agg_yoy,5.15,749,750,744,True,all,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,sales_median_yoy,8.98,749,750,744,True,all,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,sales_agg_yoy,3.88,635,750,630,True,ex_financials,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,sales_median_yoy,8.42,635,750,630,True,ex_financials,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,pat_agg_yoy,7.48,749,750,744,True,all,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,pat_median_yoy,10.13,749,750,744,True,all,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,pat_agg_yoy,8.97,635,750,630,True,ex_financials,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,pat_median_yoy,9.29,635,750,630,True,ex_financials,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,pat_xoi_agg_yoy,6.93,749,750,744,True,all,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,pat_xoi_median_yoy,7.57,749,750,744,True,all,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,pat_xoi_agg_yoy,9.33,635,750,630,True,ex_financials,1,2026-11-25
-Q1FY26,2025-06-30,Nifty Total Market,pat_xoi_median_yoy,6.64,635,750,630,True,ex_financials,1,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,sales_agg_yoy,7.19,49,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,sales_median_yoy,10.42,49,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,sales_agg_yoy,9.94,38,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,sales_median_yoy,10.63,38,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,pat_agg_yoy,10.79,49,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,pat_median_yoy,10.11,49,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,pat_agg_yoy,15.67,38,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,pat_median_yoy,14.13,38,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,pat_xoi_agg_yoy,11.14,49,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,pat_xoi_median_yoy,10.88,49,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,pat_xoi_agg_yoy,17.33,38,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 50,pat_xoi_median_yoy,17.73,38,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,sales_agg_yoy,3.23,50,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,sales_median_yoy,9.86,50,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,sales_agg_yoy,1.5,39,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,sales_median_yoy,9.18,39,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,pat_agg_yoy,24.35,50,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,pat_median_yoy,14.12,50,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,pat_agg_yoy,36.47,39,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,pat_median_yoy,14.33,39,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,pat_xoi_agg_yoy,32.43,50,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,pat_xoi_median_yoy,12.48,50,50,49,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,pat_xoi_agg_yoy,60.77,39,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Next 50,pat_xoi_median_yoy,12.51,39,50,38,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,sales_agg_yoy,7.98,150,150,150,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,sales_median_yoy,11.26,150,150,150,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,sales_agg_yoy,12.26,116,150,116,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,sales_median_yoy,11.26,116,150,116,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,pat_agg_yoy,26.44,150,150,150,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,pat_median_yoy,16.26,150,150,150,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,pat_agg_yoy,46.65,116,150,116,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,pat_median_yoy,19.19,116,150,116,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,32.37,150,150,150,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,pat_xoi_median_yoy,15.77,150,150,150,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,62.56,116,150,116,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Midcap 150,pat_xoi_median_yoy,18.25,116,150,116,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,sales_agg_yoy,9.14,250,250,250,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,sales_median_yoy,10.25,250,250,250,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,sales_agg_yoy,8.98,211,250,211,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,sales_median_yoy,9.62,211,250,211,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,pat_agg_yoy,23.01,250,250,250,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,pat_median_yoy,11.7,250,250,250,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,pat_agg_yoy,14.03,211,250,211,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,pat_median_yoy,10.87,211,250,211,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,48.74,250,250,250,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,14.34,250,250,250,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,42.86,211,250,211,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,14.45,211,250,211,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,sales_agg_yoy,11.14,249,250,245,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,sales_median_yoy,11.09,249,250,245,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,sales_agg_yoy,11.69,233,250,230,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,sales_median_yoy,11.14,233,250,230,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,pat_agg_yoy,6.9,249,250,245,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,pat_median_yoy,11.43,249,250,245,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,pat_agg_yoy,9.28,233,250,230,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,pat_median_yoy,11.71,233,250,230,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,2.84,249,250,245,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,pat_xoi_median_yoy,15.14,249,250,245,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,4.52,233,250,230,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Microcap 250,pat_xoi_median_yoy,15.22,233,250,230,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,sales_agg_yoy,6.56,499,500,498,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,sales_median_yoy,10.39,499,500,498,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,sales_agg_yoy,8.45,404,500,403,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,sales_median_yoy,10.27,404,500,403,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,pat_agg_yoy,17.35,499,500,498,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,pat_median_yoy,12.5,499,500,498,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,pat_agg_yoy,23.66,404,500,403,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,pat_median_yoy,13.18,404,500,403,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,pat_xoi_agg_yoy,21.55,499,500,498,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,pat_xoi_median_yoy,14.12,499,500,498,True,all,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,pat_xoi_agg_yoy,33.09,404,500,403,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty 500,pat_xoi_median_yoy,15.15,404,500,403,True,ex_financials,0,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,sales_agg_yoy,6.75,748,750,742,True,all,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,sales_median_yoy,10.44,748,750,742,True,all,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,sales_agg_yoy,8.61,637,750,632,True,ex_financials,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,sales_median_yoy,10.42,637,750,632,True,ex_financials,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,pat_agg_yoy,16.97,748,750,742,True,all,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,pat_median_yoy,12.2,748,750,742,True,all,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,pat_agg_yoy,22.92,637,750,632,True,ex_financials,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,pat_median_yoy,12.73,637,750,632,True,ex_financials,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,pat_xoi_agg_yoy,20.96,748,750,742,True,all,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,pat_xoi_median_yoy,14.58,748,750,742,True,all,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,pat_xoi_agg_yoy,31.7,637,750,632,True,ex_financials,1,2026-11-25
-Q2FY26,2025-09-30,Nifty Total Market,pat_xoi_median_yoy,15.22,637,750,632,True,ex_financials,1,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,sales_agg_yoy,12.35,49,50,49,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,sales_median_yoy,11.15,49,50,49,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,sales_agg_yoy,11.26,38,50,38,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,sales_median_yoy,10.93,38,50,38,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,pat_agg_yoy,4.69,49,50,49,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,pat_median_yoy,4.74,49,50,49,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,pat_agg_yoy,4.26,38,50,38,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,pat_median_yoy,14.61,38,50,38,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,pat_xoi_agg_yoy,9.85,49,50,49,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,pat_xoi_median_yoy,11.71,49,50,49,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,pat_xoi_agg_yoy,12.7,38,50,38,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 50,pat_xoi_median_yoy,17.91,38,50,38,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,sales_agg_yoy,9.12,50,50,50,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,sales_median_yoy,12.14,50,50,50,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,sales_agg_yoy,7.95,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,sales_median_yoy,12.29,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,pat_agg_yoy,22.89,50,50,50,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,pat_median_yoy,12.81,50,50,50,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,pat_agg_yoy,34.08,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,pat_median_yoy,12.03,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,pat_xoi_agg_yoy,30.49,50,50,50,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,pat_xoi_median_yoy,17.25,50,50,50,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,pat_xoi_agg_yoy,54.75,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Next 50,pat_xoi_median_yoy,17.55,39,50,39,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,sales_agg_yoy,14.22,150,150,150,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,sales_median_yoy,11.76,150,150,150,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,sales_agg_yoy,12.23,116,150,116,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,sales_median_yoy,10.62,116,150,116,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,pat_agg_yoy,4.79,150,150,150,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,pat_median_yoy,11.97,150,150,150,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,pat_agg_yoy,-3.13,116,150,116,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,pat_median_yoy,9.18,116,150,116,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,pat_xoi_agg_yoy,16.4,150,150,150,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,pat_xoi_median_yoy,16.69,150,150,150,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,pat_xoi_agg_yoy,15.43,116,150,116,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Midcap 150,pat_xoi_median_yoy,15.33,116,150,116,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,sales_agg_yoy,10.68,250,250,250,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,sales_median_yoy,12.19,250,250,250,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,sales_agg_yoy,10.54,211,250,211,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,sales_median_yoy,12.83,211,250,211,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,pat_agg_yoy,37.4,250,250,250,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,pat_median_yoy,9.78,250,250,250,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,pat_agg_yoy,44.89,211,250,211,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,pat_median_yoy,7.8,211,250,211,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,pat_xoi_agg_yoy,40.41,250,250,250,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,pat_xoi_median_yoy,18.55,250,250,250,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,pat_xoi_agg_yoy,51.28,211,250,211,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Smallcap 250,pat_xoi_median_yoy,18.82,211,250,211,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,sales_agg_yoy,12.41,250,250,247,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,sales_median_yoy,10.85,250,250,247,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,sales_agg_yoy,10.72,235,250,232,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,sales_median_yoy,10.7,235,250,232,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,pat_agg_yoy,23.79,250,250,247,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,pat_median_yoy,7.75,250,250,247,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,pat_agg_yoy,25.72,235,250,232,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,pat_median_yoy,7.17,235,250,232,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,pat_xoi_agg_yoy,16.97,250,250,247,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,pat_xoi_median_yoy,13.4,250,250,247,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,pat_xoi_agg_yoy,19.22,235,250,232,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Microcap 250,pat_xoi_median_yoy,13.4,235,250,232,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,sales_agg_yoy,11.73,499,500,499,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,sales_median_yoy,12.11,499,500,499,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,sales_agg_yoy,10.65,404,500,404,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,sales_median_yoy,11.88,404,500,404,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,pat_agg_yoy,10.77,499,500,499,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,pat_median_yoy,10.33,499,500,499,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,pat_agg_yoy,11.19,404,500,404,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,pat_median_yoy,8.99,404,500,404,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,pat_xoi_agg_yoy,17.32,499,500,499,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,pat_xoi_median_yoy,17.55,499,500,499,True,all,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,pat_xoi_agg_yoy,22.97,404,500,404,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty 500,pat_xoi_median_yoy,18.1,404,500,404,True,ex_financials,0,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,sales_agg_yoy,11.8,749,750,745,True,all,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,sales_median_yoy,11.76,749,750,745,True,all,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,sales_agg_yoy,10.69,639,750,635,True,ex_financials,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,sales_median_yoy,11.6,639,750,635,True,ex_financials,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,pat_agg_yoy,11.19,749,750,745,True,all,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,pat_median_yoy,8.88,749,750,745,True,all,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,pat_agg_yoy,11.85,639,750,635,True,ex_financials,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,pat_median_yoy,8.28,639,750,635,True,ex_financials,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,pat_xoi_agg_yoy,17.31,749,750,745,True,all,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,pat_xoi_median_yoy,16.29,749,750,745,True,all,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,pat_xoi_agg_yoy,22.8,639,750,635,True,ex_financials,1,2026-11-25
-Q3FY26,2025-12-31,Nifty Total Market,pat_xoi_median_yoy,16.96,639,750,635,True,ex_financials,1,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,sales_agg_yoy,9.95,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,sales_median_yoy,12.27,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,sales_agg_yoy,13.43,39,50,39,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,sales_median_yoy,12.64,39,50,39,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,pat_agg_yoy,3.46,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,pat_median_yoy,9.91,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,pat_agg_yoy,1.5,39,50,39,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,pat_median_yoy,13.71,39,50,39,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,pat_xoi_agg_yoy,6.51,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,pat_xoi_median_yoy,10.15,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,pat_xoi_agg_yoy,6.3,39,50,39,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 50,pat_xoi_median_yoy,16.0,39,50,39,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,sales_agg_yoy,8.48,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,sales_median_yoy,12.47,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,sales_agg_yoy,10.13,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,sales_median_yoy,14.05,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,pat_agg_yoy,27.18,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,pat_median_yoy,19.06,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,pat_agg_yoy,41.31,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,pat_median_yoy,21.65,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,pat_xoi_agg_yoy,22.23,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,pat_xoi_median_yoy,16.42,50,50,50,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,pat_xoi_agg_yoy,33.43,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Next 50,pat_xoi_median_yoy,19.28,38,50,38,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,sales_agg_yoy,12.23,150,150,150,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,sales_median_yoy,15.08,150,150,150,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,sales_agg_yoy,15.15,114,150,114,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,sales_median_yoy,15.58,114,150,114,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,pat_agg_yoy,103.81,150,150,150,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,pat_median_yoy,20.82,150,150,150,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,pat_agg_yoy,173.46,114,150,114,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,pat_median_yoy,19.79,114,150,114,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,pat_xoi_agg_yoy,36.05,150,150,150,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,pat_xoi_median_yoy,21.68,150,150,150,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,pat_xoi_agg_yoy,49.73,114,150,114,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Midcap 150,pat_xoi_median_yoy,20.72,114,150,114,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,sales_agg_yoy,10.98,250,250,247,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,sales_median_yoy,12.71,250,250,247,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,sales_agg_yoy,11.17,208,250,205,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,sales_median_yoy,12.46,208,250,205,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,pat_agg_yoy,-4.0,250,250,247,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,pat_median_yoy,15.62,250,250,247,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,pat_agg_yoy,14.14,208,250,205,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,pat_median_yoy,13.71,208,250,205,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,pat_xoi_agg_yoy,-4.29,250,250,247,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,pat_xoi_median_yoy,14.44,250,250,247,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,pat_xoi_agg_yoy,19.33,208,250,205,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Smallcap 250,pat_xoi_median_yoy,12.32,208,250,205,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,sales_agg_yoy,17.27,250,250,246,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,sales_median_yoy,15.0,250,250,246,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,sales_agg_yoy,17.21,230,250,226,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,sales_median_yoy,14.96,230,250,226,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,pat_agg_yoy,35.49,250,250,246,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,pat_median_yoy,25.49,250,250,246,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,pat_agg_yoy,36.16,230,250,226,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,pat_median_yoy,25.49,230,250,226,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,pat_xoi_agg_yoy,45.21,250,250,246,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,pat_xoi_median_yoy,26.89,250,250,246,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,pat_xoi_agg_yoy,47.1,230,250,226,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Microcap 250,pat_xoi_median_yoy,26.34,230,250,226,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,sales_agg_yoy,10.33,500,500,497,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,sales_median_yoy,13.37,500,500,497,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,sales_agg_yoy,12.81,399,500,396,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,sales_median_yoy,13.8,399,500,396,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,pat_agg_yoy,25.36,500,500,497,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,pat_median_yoy,17.01,500,500,497,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,pat_agg_yoy,34.21,399,500,396,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,pat_median_yoy,16.67,399,500,396,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,pat_xoi_agg_yoy,14.26,500,500,497,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,pat_xoi_median_yoy,16.04,500,500,497,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,pat_xoi_agg_yoy,18.63,399,500,396,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty 500,pat_xoi_median_yoy,15.31,399,500,396,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,sales_agg_yoy,10.69,750,750,743,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,sales_median_yoy,13.85,750,750,743,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,sales_agg_yoy,13.09,629,750,622,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,sales_median_yoy,14.12,629,750,622,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,pat_agg_yoy,25.69,750,750,743,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,pat_median_yoy,19.14,750,750,743,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,pat_agg_yoy,34.3,629,750,622,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,pat_median_yoy,19.14,629,750,622,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,pat_xoi_agg_yoy,15.22,750,750,743,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,pat_xoi_median_yoy,18.72,750,750,743,True,all,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,pat_xoi_agg_yoy,19.86,629,750,622,True,ex_financials,0,2026-11-25
-Q4FY26,2026-03-31,Nifty Total Market,pat_xoi_median_yoy,17.96,629,750,622,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,sales_agg_yoy,18.01,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,sales_median_yoy,16.41,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,sales_agg_yoy,20.48,39,50,39,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,sales_median_yoy,17.68,39,50,39,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,pat_agg_yoy,4.84,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,pat_median_yoy,18.5,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,pat_agg_yoy,-2.29,39,50,39,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,pat_median_yoy,15.52,39,50,39,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,pat_xoi_agg_yoy,10.86,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,pat_xoi_median_yoy,18.31,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,pat_xoi_agg_yoy,5.64,39,50,39,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 50,pat_xoi_median_yoy,12.43,39,50,39,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,sales_agg_yoy,23.42,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,sales_median_yoy,17.9,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,sales_agg_yoy,29.15,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,sales_median_yoy,18.66,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,pat_agg_yoy,6.17,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,pat_median_yoy,15.12,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,pat_agg_yoy,-1.79,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,pat_median_yoy,15.12,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,pat_xoi_agg_yoy,3.57,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,pat_xoi_median_yoy,15.83,50,50,50,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,pat_xoi_agg_yoy,-11.32,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Next 50,pat_xoi_median_yoy,14.69,38,50,38,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,sales_agg_yoy,15.01,150,150,149,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,sales_median_yoy,17.34,150,150,149,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,sales_agg_yoy,19.58,114,150,114,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,sales_median_yoy,17.5,114,150,114,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,pat_agg_yoy,7.92,150,150,149,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,pat_median_yoy,22.12,150,150,149,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,pat_agg_yoy,-9.09,114,150,114,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,pat_median_yoy,15.39,114,150,114,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,pat_xoi_agg_yoy,8.74,150,150,149,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,pat_xoi_median_yoy,20.5,150,150,149,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,pat_xoi_agg_yoy,-12.76,114,150,114,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Midcap 150,pat_xoi_median_yoy,15.0,114,150,114,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,sales_agg_yoy,24.32,250,250,248,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,sales_median_yoy,17.22,250,250,248,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,sales_agg_yoy,26.48,208,250,206,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,sales_median_yoy,17.22,208,250,206,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,pat_agg_yoy,43.16,250,250,248,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,pat_median_yoy,17.07,250,250,248,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,pat_agg_yoy,50.8,208,250,206,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,pat_median_yoy,15.69,208,250,206,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,pat_xoi_agg_yoy,40.45,250,250,248,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,pat_xoi_median_yoy,17.14,250,250,248,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,pat_xoi_agg_yoy,47.1,208,250,206,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Smallcap 250,pat_xoi_median_yoy,16.97,208,250,206,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,sales_agg_yoy,17.61,250,250,246,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,sales_median_yoy,19.02,250,250,246,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,sales_agg_yoy,17.19,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,sales_median_yoy,18.62,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,pat_agg_yoy,17.08,250,250,246,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,pat_median_yoy,22.36,250,250,246,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,pat_agg_yoy,11.25,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,pat_median_yoy,19.22,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,pat_xoi_agg_yoy,32.84,250,250,246,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,pat_xoi_median_yoy,24.59,250,250,246,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,pat_xoi_agg_yoy,28.1,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Microcap 250,pat_xoi_median_yoy,21.82,230,250,227,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,sales_agg_yoy,19.05,500,500,497,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,sales_median_yoy,17.25,500,500,497,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,sales_agg_yoy,22.84,399,500,397,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,sales_median_yoy,17.68,399,500,397,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,pat_agg_yoy,8.75,500,500,497,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,pat_median_yoy,18.75,500,500,497,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,pat_agg_yoy,0.91,399,500,397,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,pat_median_yoy,15.49,399,500,397,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,pat_xoi_agg_yoy,11.51,500,500,497,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,pat_xoi_median_yoy,18.26,500,500,497,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,pat_xoi_agg_yoy,3.13,399,500,397,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty 500,pat_xoi_median_yoy,16.54,399,500,397,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,sales_agg_yoy,18.98,750,750,743,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,sales_median_yoy,17.77,750,750,743,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,sales_agg_yoy,22.48,629,750,624,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,sales_median_yoy,17.91,629,750,624,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,pat_agg_yoy,9.04,750,750,743,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,pat_median_yoy,19.15,750,750,743,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,pat_agg_yoy,1.41,629,750,624,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,pat_median_yoy,16.67,629,750,624,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,pat_xoi_agg_yoy,12.16,750,750,743,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,pat_xoi_median_yoy,19.22,750,750,743,True,all,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,pat_xoi_agg_yoy,4.23,629,750,624,True,ex_financials,0,2026-11-25
-Q1FY27,2026-06-30,Nifty Total Market,pat_xoi_median_yoy,17.27,629,750,624,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,sales_agg_yoy,20.99,49,50,49,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,sales_median_yoy,18.33,49,50,49,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,sales_agg_yoy,23.53,37,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,sales_median_yoy,20.27,37,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,pat_agg_yoy,22.45,49,50,49,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,pat_median_yoy,21.2,49,50,49,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,pat_agg_yoy,24.13,37,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,pat_median_yoy,20.41,37,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,pat_xoi_agg_yoy,24.56,49,50,49,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,pat_xoi_median_yoy,24.18,49,50,49,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,pat_xoi_agg_yoy,27.98,37,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 50,pat_xoi_median_yoy,24.18,37,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,sales_agg_yoy,29.53,49,50,48,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,sales_median_yoy,23.6,49,50,48,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,sales_agg_yoy,35.2,38,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,sales_median_yoy,29.19,38,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,pat_agg_yoy,42.93,49,50,48,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,pat_median_yoy,16.0,49,50,48,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,pat_agg_yoy,60.77,38,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,pat_median_yoy,16.0,38,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,pat_xoi_agg_yoy,49.53,49,50,48,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,pat_xoi_median_yoy,15.56,49,50,48,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,pat_xoi_agg_yoy,77.13,38,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Next 50,pat_xoi_median_yoy,16.47,38,50,37,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,sales_agg_yoy,18.2,150,150,148,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,sales_median_yoy,18.67,150,150,148,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,sales_agg_yoy,22.59,113,150,112,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,sales_median_yoy,20.3,113,150,112,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,pat_agg_yoy,20.93,150,150,148,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,pat_median_yoy,21.97,150,150,148,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,pat_agg_yoy,16.24,113,150,112,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,pat_median_yoy,20.16,113,150,112,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,23.07,150,150,148,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,pat_xoi_median_yoy,20.99,150,150,148,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,17.4,113,150,112,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Midcap 150,pat_xoi_median_yoy,19.35,113,150,112,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,sales_agg_yoy,23.31,250,250,248,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,sales_median_yoy,19.14,250,250,248,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,sales_agg_yoy,25.12,212,250,210,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,sales_median_yoy,20.39,212,250,210,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,pat_agg_yoy,35.31,250,250,248,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,pat_median_yoy,14.57,250,250,248,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,pat_agg_yoy,47.07,212,250,210,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,pat_median_yoy,14.02,212,250,210,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,37.52,250,250,248,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,21.24,250,250,248,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,54.27,212,250,210,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,21.54,212,250,210,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,sales_agg_yoy,19.9,250,250,249,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,sales_median_yoy,22.33,250,250,249,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,sales_agg_yoy,19.43,230,250,229,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,sales_median_yoy,22.11,230,250,229,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,pat_agg_yoy,27.58,250,250,249,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,pat_median_yoy,24.43,250,250,249,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,pat_agg_yoy,23.71,230,250,229,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,pat_median_yoy,23.82,230,250,229,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,36.24,250,250,249,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,pat_xoi_median_yoy,26.02,250,250,249,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,37.31,230,250,229,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Microcap 250,pat_xoi_median_yoy,24.27,230,250,229,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,sales_agg_yoy,22.29,498,500,493,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,sales_median_yoy,19.42,498,500,493,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,sales_agg_yoy,26.07,400,500,396,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,sales_median_yoy,20.74,400,500,396,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,pat_agg_yoy,27.37,498,500,493,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,pat_median_yoy,18.01,498,500,493,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,pat_agg_yoy,31.8,400,500,396,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,pat_median_yoy,16.24,400,500,396,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,pat_xoi_agg_yoy,30.33,498,500,493,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,pat_xoi_median_yoy,21.12,498,500,493,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,pat_xoi_agg_yoy,37.72,400,500,396,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 500,pat_xoi_median_yoy,20.42,400,500,396,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,sales_agg_yoy,22.16,748,750,742,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,sales_median_yoy,20.2,748,750,742,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,sales_agg_yoy,25.62,630,750,625,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,sales_median_yoy,20.93,630,750,625,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,pat_agg_yoy,27.37,748,750,742,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,pat_median_yoy,19.97,748,750,742,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,pat_agg_yoy,31.44,630,750,625,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,pat_median_yoy,18.71,630,750,625,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_agg_yoy,30.5,748,750,742,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_median_yoy,22.42,748,750,742,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_agg_yoy,37.7,630,750,625,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_median_yoy,21.3,630,750,625,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,sales_agg_yoy,22.31,998,1000,988,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,sales_median_yoy,20.76,998,1000,988,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,sales_agg_yoy,25.71,865,1000,856,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,sales_median_yoy,21.79,865,1000,856,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,pat_agg_yoy,28.31,998,1000,988,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,pat_median_yoy,20.73,998,1000,988,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,pat_agg_yoy,32.61,865,1000,856,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,pat_median_yoy,19.61,865,1000,856,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,pat_xoi_agg_yoy,31.22,998,1000,988,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,pat_xoi_median_yoy,23.21,998,1000,988,True,all,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,pat_xoi_agg_yoy,38.53,865,1000,856,True,ex_financials,0,2026-11-25
-Q2FY27,2026-09-30,Nifty 1000,pat_xoi_median_yoy,22.48,865,1000,856,True,ex_financials,0,2026-11-25
+Q2FY25,2024-09-30,Nifty 50,sales_agg_yoy,5.85,50,50,50,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,sales_median_yoy,9.49,50,50,50,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,sales_agg_yoy,2.51,39,50,39,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,sales_median_yoy,6.33,39,50,39,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,pat_agg_yoy,4.27,50,50,50,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,pat_median_yoy,8.27,50,50,50,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,pat_agg_yoy,-1.42,39,50,39,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,pat_median_yoy,4.95,39,50,39,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,pat_xoi_agg_yoy,-0.96,50,50,50,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,pat_xoi_median_yoy,7.27,50,50,50,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,pat_xoi_agg_yoy,-10.37,39,50,39,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 50,pat_xoi_median_yoy,0.69,39,50,39,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,sales_agg_yoy,8.52,50,50,49,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,sales_median_yoy,11.22,50,50,49,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,sales_agg_yoy,3.38,37,50,36,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,sales_median_yoy,6.88,37,50,36,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,pat_agg_yoy,-5.53,50,50,49,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,pat_median_yoy,7.75,50,50,49,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,pat_agg_yoy,-26.18,37,50,36,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,pat_median_yoy,7.69,37,50,36,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,pat_xoi_agg_yoy,-9.24,50,50,49,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,pat_xoi_median_yoy,10.14,50,50,49,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,pat_xoi_agg_yoy,-39.91,37,50,36,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Next 50,pat_xoi_median_yoy,8.72,37,50,36,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,sales_agg_yoy,10.33,150,150,149,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,sales_median_yoy,10.76,150,150,149,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,sales_agg_yoy,8.32,119,150,118,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,sales_median_yoy,8.13,119,150,118,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,pat_agg_yoy,7.03,150,150,149,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,pat_median_yoy,5.88,150,150,149,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,pat_agg_yoy,-4.1,119,150,118,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,pat_median_yoy,3.85,119,150,118,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,-1.88,150,150,149,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,pat_xoi_median_yoy,4.8,150,150,149,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,-17.78,119,150,118,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Midcap 150,pat_xoi_median_yoy,1.75,119,150,118,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,sales_agg_yoy,7.66,249,250,246,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,sales_median_yoy,11.97,249,250,246,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,sales_agg_yoy,5.39,209,250,207,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,sales_median_yoy,9.82,209,250,207,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,pat_agg_yoy,-10.51,249,250,246,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,pat_median_yoy,10.98,249,250,246,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,pat_agg_yoy,-9.59,209,250,207,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,pat_median_yoy,6.28,209,250,207,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,-9.68,249,250,246,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,7.77,249,250,246,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,-7.68,209,250,207,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,3.98,209,250,207,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,sales_agg_yoy,5.79,250,250,244,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,sales_median_yoy,10.62,250,250,244,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,sales_agg_yoy,4.28,230,250,224,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,sales_median_yoy,9.45,230,250,224,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,pat_agg_yoy,60.25,250,250,244,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,pat_median_yoy,8.39,250,250,244,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,pat_agg_yoy,86.4,230,250,224,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,pat_median_yoy,8.36,230,250,224,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,13.56,250,250,244,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,pat_xoi_median_yoy,6.31,250,250,244,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,32.42,230,250,224,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Microcap 250,pat_xoi_median_yoy,6.22,230,250,224,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,sales_agg_yoy,7.45,499,500,494,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,sales_median_yoy,11.05,499,500,494,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,sales_agg_yoy,4.07,404,500,400,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,sales_median_yoy,8.61,404,500,400,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,pat_agg_yoy,1.18,499,500,494,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,pat_median_yoy,8.27,499,500,494,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,pat_agg_yoy,-7.1,404,500,400,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,pat_median_yoy,4.89,404,500,400,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,pat_xoi_agg_yoy,-3.54,499,500,494,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,pat_xoi_median_yoy,7.16,499,500,494,True,all,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,pat_xoi_agg_yoy,-16.1,404,500,400,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty 500,pat_xoi_median_yoy,3.47,404,500,400,True,ex_financials,0,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,sales_agg_yoy,7.38,749,750,737,True,all,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,sales_median_yoy,10.82,749,750,737,True,all,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,sales_agg_yoy,4.09,634,750,623,True,ex_financials,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,sales_median_yoy,9.03,634,750,623,True,ex_financials,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,pat_agg_yoy,2.76,749,750,737,True,all,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,pat_median_yoy,8.39,749,750,737,True,all,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,pat_agg_yoy,-3.96,634,750,623,True,ex_financials,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,pat_median_yoy,5.96,634,750,623,True,ex_financials,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,pat_xoi_agg_yoy,-3.13,749,750,737,True,all,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,pat_xoi_median_yoy,6.84,749,750,737,True,all,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,pat_xoi_agg_yoy,-14.66,634,750,623,True,ex_financials,1,2026-11-28
+Q2FY25,2024-09-30,Nifty Total Market,pat_xoi_median_yoy,4.36,634,750,623,True,ex_financials,1,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,sales_agg_yoy,3.7,50,50,50,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,sales_median_yoy,8.63,50,50,50,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,sales_agg_yoy,4.03,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,sales_median_yoy,7.1,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,pat_agg_yoy,14.39,50,50,50,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,pat_median_yoy,10.41,50,50,50,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,pat_agg_yoy,11.33,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,pat_median_yoy,8.02,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,pat_xoi_agg_yoy,11.3,50,50,50,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,pat_xoi_median_yoy,9.75,50,50,50,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,pat_xoi_agg_yoy,5.81,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 50,pat_xoi_median_yoy,9.56,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,sales_agg_yoy,-1.61,50,50,49,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,sales_median_yoy,8.41,50,50,49,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,sales_agg_yoy,-0.03,37,50,36,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,sales_median_yoy,8.5,37,50,36,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,pat_agg_yoy,8.74,50,50,49,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,pat_median_yoy,13.67,50,50,49,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,pat_agg_yoy,-5.27,37,50,36,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,pat_median_yoy,11.98,37,50,36,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,pat_xoi_agg_yoy,1.42,50,50,49,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,pat_xoi_median_yoy,9.03,50,50,49,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,pat_xoi_agg_yoy,-23.96,37,50,36,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Next 50,pat_xoi_median_yoy,6.21,37,50,36,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,sales_agg_yoy,7.95,150,150,149,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,sales_median_yoy,10.54,150,150,149,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,sales_agg_yoy,7.36,119,150,118,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,sales_median_yoy,9.44,119,150,118,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,pat_agg_yoy,33.4,150,150,149,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,pat_median_yoy,7.36,150,150,149,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,pat_agg_yoy,47.66,119,150,118,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,pat_median_yoy,7.19,119,150,118,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,pat_xoi_agg_yoy,29.66,150,150,149,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,pat_xoi_median_yoy,6.52,150,150,149,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,pat_xoi_agg_yoy,45.25,119,150,118,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Midcap 150,pat_xoi_median_yoy,5.74,119,150,118,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,sales_agg_yoy,7.64,249,250,249,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,sales_median_yoy,10.76,249,250,249,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,sales_agg_yoy,6.71,210,250,210,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,sales_median_yoy,9.37,210,250,210,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,pat_agg_yoy,9.04,249,250,249,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,pat_median_yoy,7.88,249,250,249,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,pat_agg_yoy,2.71,210,250,210,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,pat_median_yoy,4.76,210,250,210,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,pat_xoi_agg_yoy,7.94,249,250,249,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,pat_xoi_median_yoy,4.64,249,250,249,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,pat_xoi_agg_yoy,-0.57,210,250,210,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Smallcap 250,pat_xoi_median_yoy,0.89,210,250,210,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,sales_agg_yoy,6.45,250,250,245,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,sales_median_yoy,10.42,250,250,245,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,sales_agg_yoy,6.58,230,250,225,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,sales_median_yoy,10.45,230,250,225,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,pat_agg_yoy,-40.76,250,250,245,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,pat_median_yoy,6.38,250,250,245,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,pat_agg_yoy,-30.73,230,250,225,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,pat_median_yoy,7.15,230,250,225,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,pat_xoi_agg_yoy,-0.59,250,250,245,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,pat_xoi_median_yoy,5.68,250,250,245,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,pat_xoi_agg_yoy,36.88,230,250,225,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Microcap 250,pat_xoi_median_yoy,6.92,230,250,225,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,sales_agg_yoy,3.6,499,500,497,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,sales_median_yoy,10.15,499,500,497,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,sales_agg_yoy,4.25,405,500,403,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,sales_median_yoy,9.11,405,500,403,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,pat_agg_yoy,15.41,499,500,497,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,pat_median_yoy,9.02,499,500,497,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,pat_agg_yoy,12.47,405,500,403,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,pat_median_yoy,7.36,405,500,403,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,pat_xoi_agg_yoy,11.31,499,500,497,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,pat_xoi_median_yoy,6.79,499,500,497,True,all,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,pat_xoi_agg_yoy,4.69,405,500,403,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty 500,pat_xoi_median_yoy,3.9,405,500,403,True,ex_financials,0,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,sales_agg_yoy,3.73,749,750,741,True,all,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,sales_median_yoy,10.35,749,750,741,True,all,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,sales_agg_yoy,4.38,635,750,627,True,ex_financials,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,sales_median_yoy,9.51,635,750,627,True,ex_financials,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,pat_agg_yoy,13.33,749,750,741,True,all,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,pat_median_yoy,8.19,749,750,741,True,all,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,pat_agg_yoy,10.36,635,750,627,True,ex_financials,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,pat_median_yoy,7.37,635,750,627,True,ex_financials,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,pat_xoi_agg_yoy,11.02,749,750,741,True,all,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,pat_xoi_median_yoy,6.6,749,750,741,True,all,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,pat_xoi_agg_yoy,5.69,635,750,627,True,ex_financials,1,2026-11-28
+Q3FY25,2024-12-31,Nifty Total Market,pat_xoi_median_yoy,5.14,635,750,627,True,ex_financials,1,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,sales_agg_yoy,4.71,50,50,50,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,sales_median_yoy,8.67,50,50,50,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,sales_agg_yoy,4.86,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,sales_median_yoy,8.03,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,pat_agg_yoy,11.32,50,50,50,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,pat_median_yoy,11.01,50,50,50,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,pat_agg_yoy,18.81,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,pat_median_yoy,13.16,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,pat_xoi_agg_yoy,1.13,50,50,50,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,pat_xoi_median_yoy,6.57,50,50,50,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,pat_xoi_agg_yoy,3.1,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 50,pat_xoi_median_yoy,7.98,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,sales_agg_yoy,1.61,50,50,49,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,sales_median_yoy,9.88,50,50,49,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,sales_agg_yoy,0.21,38,50,37,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,sales_median_yoy,9.88,38,50,37,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,pat_agg_yoy,20.71,50,50,49,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,pat_median_yoy,15.66,50,50,49,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,pat_agg_yoy,21.55,38,50,37,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,pat_median_yoy,15.66,38,50,37,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,pat_xoi_agg_yoy,38.61,50,50,49,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,pat_xoi_median_yoy,18.31,50,50,49,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,pat_xoi_agg_yoy,12.6,38,50,37,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Next 50,pat_xoi_median_yoy,19.95,38,50,37,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,sales_agg_yoy,8.24,150,150,149,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,sales_median_yoy,10.35,150,150,149,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,sales_agg_yoy,7.98,119,150,118,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,sales_median_yoy,10.28,119,150,118,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,pat_agg_yoy,25.25,150,150,149,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,pat_median_yoy,14.15,150,150,149,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,pat_agg_yoy,30.69,119,150,118,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,pat_median_yoy,13.49,119,150,118,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,pat_xoi_agg_yoy,29.73,150,150,149,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,pat_xoi_median_yoy,12.31,150,150,149,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,pat_xoi_agg_yoy,38.55,119,150,118,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Midcap 150,pat_xoi_median_yoy,11.42,119,150,118,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,sales_agg_yoy,8.24,250,250,250,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,sales_median_yoy,11.5,250,250,250,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,sales_agg_yoy,7.98,210,250,210,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,sales_median_yoy,10.7,210,250,210,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,pat_agg_yoy,14.17,250,250,250,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,pat_median_yoy,16.14,250,250,250,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,pat_agg_yoy,17.48,210,250,210,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,pat_median_yoy,16.15,210,250,210,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,pat_xoi_agg_yoy,9.2,250,250,250,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,pat_xoi_median_yoy,15.52,250,250,250,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,pat_xoi_agg_yoy,12.4,210,250,210,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Smallcap 250,pat_xoi_median_yoy,15.33,210,250,210,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,sales_agg_yoy,6.05,249,250,243,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,sales_median_yoy,9.41,249,250,243,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,sales_agg_yoy,6.43,230,250,224,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,sales_median_yoy,9.47,230,250,224,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,pat_agg_yoy,-3.45,249,250,243,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,pat_median_yoy,12.73,249,250,243,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,pat_agg_yoy,1.12,230,250,224,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,pat_median_yoy,12.86,230,250,224,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,pat_xoi_agg_yoy,22.09,249,250,243,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,pat_xoi_median_yoy,12.39,249,250,243,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,pat_xoi_agg_yoy,42.97,230,250,224,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Microcap 250,pat_xoi_median_yoy,12.71,230,250,224,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,sales_agg_yoy,4.91,500,500,498,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,sales_median_yoy,10.5,500,500,498,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,sales_agg_yoy,4.8,405,500,403,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,sales_median_yoy,10.14,405,500,403,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,pat_agg_yoy,15.51,500,500,498,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,pat_median_yoy,14.7,500,500,498,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,pat_agg_yoy,20.81,405,500,403,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,pat_median_yoy,14.67,405,500,403,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,pat_xoi_agg_yoy,12.71,500,500,498,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,pat_xoi_median_yoy,12.94,500,500,498,True,all,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,pat_xoi_agg_yoy,9.77,405,500,403,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty 500,pat_xoi_median_yoy,12.13,405,500,403,True,ex_financials,0,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,sales_agg_yoy,4.97,749,750,740,True,all,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,sales_median_yoy,10.15,749,750,740,True,all,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,sales_agg_yoy,4.91,635,750,626,True,ex_financials,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,sales_median_yoy,9.86,635,750,626,True,ex_financials,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,pat_agg_yoy,14.46,749,750,740,True,all,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,pat_median_yoy,13.79,749,750,740,True,all,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,pat_agg_yoy,19.26,635,750,626,True,ex_financials,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,pat_median_yoy,14.04,635,750,626,True,ex_financials,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,pat_xoi_agg_yoy,13.0,749,750,740,True,all,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,pat_xoi_median_yoy,12.71,749,750,740,True,all,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,pat_xoi_agg_yoy,10.95,635,750,626,True,ex_financials,1,2026-11-28
+Q4FY25,2025-03-31,Nifty Total Market,pat_xoi_median_yoy,12.47,635,750,626,True,ex_financials,1,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,sales_agg_yoy,5.37,50,50,50,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,sales_median_yoy,9.15,50,50,50,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,sales_agg_yoy,4.34,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,sales_median_yoy,8.03,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,pat_agg_yoy,9.26,50,50,50,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,pat_median_yoy,9.9,50,50,50,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,pat_agg_yoy,13.48,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,pat_median_yoy,9.9,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,pat_xoi_agg_yoy,5.64,50,50,50,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,pat_xoi_median_yoy,6.66,50,50,50,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,pat_xoi_agg_yoy,8.33,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 50,pat_xoi_median_yoy,7.68,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,sales_agg_yoy,2.69,50,50,49,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,sales_median_yoy,9.9,50,50,49,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,sales_agg_yoy,-0.3,38,50,37,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,sales_median_yoy,9.42,38,50,37,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,pat_agg_yoy,12.27,50,50,49,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,pat_median_yoy,10.79,50,50,49,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,pat_agg_yoy,19.59,38,50,37,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,pat_median_yoy,10.57,38,50,37,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,pat_xoi_agg_yoy,4.92,50,50,49,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,pat_xoi_median_yoy,14.59,50,50,49,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,pat_xoi_agg_yoy,9.0,38,50,37,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Next 50,pat_xoi_median_yoy,12.85,38,50,37,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,sales_agg_yoy,7.58,150,150,150,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,sales_median_yoy,10.48,150,150,150,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,sales_agg_yoy,6.51,119,150,119,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,sales_median_yoy,9.9,119,150,119,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,pat_agg_yoy,18.14,150,150,150,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,pat_median_yoy,10.78,150,150,150,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,pat_agg_yoy,18.63,119,150,119,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,pat_median_yoy,9.14,119,150,119,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,pat_xoi_agg_yoy,18.39,150,150,150,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,pat_xoi_median_yoy,9.06,150,150,150,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,pat_xoi_agg_yoy,20.45,119,150,119,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Midcap 150,pat_xoi_median_yoy,8.4,119,150,119,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,sales_agg_yoy,6.72,250,250,250,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,sales_median_yoy,8.61,250,250,250,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,sales_agg_yoy,5.89,210,250,210,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,sales_median_yoy,7.78,210,250,210,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,pat_agg_yoy,-11.27,250,250,250,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,pat_median_yoy,9.91,250,250,250,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,pat_agg_yoy,-18.64,210,250,210,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,pat_median_yoy,8.33,210,250,210,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,pat_xoi_agg_yoy,5.48,250,250,250,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,pat_xoi_median_yoy,6.32,250,250,250,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,pat_xoi_agg_yoy,2.7,210,250,210,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Smallcap 250,pat_xoi_median_yoy,2.54,210,250,210,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,sales_agg_yoy,4.34,249,250,246,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,sales_median_yoy,7.83,249,250,246,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,sales_agg_yoy,4.14,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,sales_median_yoy,7.79,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,pat_agg_yoy,-18.91,249,250,246,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,pat_median_yoy,9.42,249,250,246,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,pat_agg_yoy,-15.93,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,pat_median_yoy,12.56,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,pat_xoi_agg_yoy,-5.08,249,250,246,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,pat_xoi_median_yoy,7.04,249,250,246,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,pat_xoi_agg_yoy,4.37,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Microcap 250,pat_xoi_median_yoy,8.13,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,sales_agg_yoy,5.23,500,500,499,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,sales_median_yoy,9.42,500,500,499,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,sales_agg_yoy,3.91,405,500,404,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,sales_median_yoy,8.84,405,500,404,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,pat_agg_yoy,8.65,500,500,499,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,pat_median_yoy,10.32,500,500,499,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,pat_agg_yoy,10.55,405,500,404,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,pat_median_yoy,9.14,405,500,404,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,pat_xoi_agg_yoy,7.31,500,500,499,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,pat_xoi_median_yoy,7.73,500,500,499,True,all,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,pat_xoi_agg_yoy,9.59,405,500,404,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty 500,pat_xoi_median_yoy,6.6,405,500,404,True,ex_financials,0,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,sales_agg_yoy,5.15,749,750,744,True,all,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,sales_median_yoy,8.98,749,750,744,True,all,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,sales_agg_yoy,3.88,635,750,630,True,ex_financials,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,sales_median_yoy,8.42,635,750,630,True,ex_financials,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,pat_agg_yoy,7.48,749,750,744,True,all,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,pat_median_yoy,10.13,749,750,744,True,all,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,pat_agg_yoy,8.97,635,750,630,True,ex_financials,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,pat_median_yoy,9.29,635,750,630,True,ex_financials,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,pat_xoi_agg_yoy,6.93,749,750,744,True,all,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,pat_xoi_median_yoy,7.57,749,750,744,True,all,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,pat_xoi_agg_yoy,9.33,635,750,630,True,ex_financials,1,2026-11-28
+Q1FY26,2025-06-30,Nifty Total Market,pat_xoi_median_yoy,6.64,635,750,630,True,ex_financials,1,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,sales_agg_yoy,7.19,49,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,sales_median_yoy,10.42,49,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,sales_agg_yoy,9.94,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,sales_median_yoy,10.63,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,pat_agg_yoy,10.79,49,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,pat_median_yoy,10.11,49,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,pat_agg_yoy,15.67,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,pat_median_yoy,14.13,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,pat_xoi_agg_yoy,11.14,49,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,pat_xoi_median_yoy,10.88,49,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,pat_xoi_agg_yoy,17.33,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 50,pat_xoi_median_yoy,17.73,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,sales_agg_yoy,3.23,50,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,sales_median_yoy,9.86,50,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,sales_agg_yoy,1.5,39,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,sales_median_yoy,9.18,39,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,pat_agg_yoy,24.35,50,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,pat_median_yoy,14.12,50,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,pat_agg_yoy,36.47,39,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,pat_median_yoy,14.33,39,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,pat_xoi_agg_yoy,32.43,50,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,pat_xoi_median_yoy,12.48,50,50,49,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,pat_xoi_agg_yoy,60.77,39,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Next 50,pat_xoi_median_yoy,12.51,39,50,38,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,sales_agg_yoy,7.98,150,150,150,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,sales_median_yoy,11.26,150,150,150,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,sales_agg_yoy,12.26,116,150,116,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,sales_median_yoy,11.26,116,150,116,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,pat_agg_yoy,26.44,150,150,150,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,pat_median_yoy,16.26,150,150,150,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,pat_agg_yoy,46.65,116,150,116,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,pat_median_yoy,19.19,116,150,116,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,32.37,150,150,150,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,pat_xoi_median_yoy,15.77,150,150,150,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,62.56,116,150,116,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Midcap 150,pat_xoi_median_yoy,18.25,116,150,116,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,sales_agg_yoy,9.14,250,250,250,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,sales_median_yoy,10.25,250,250,250,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,sales_agg_yoy,8.98,211,250,211,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,sales_median_yoy,9.62,211,250,211,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,pat_agg_yoy,23.01,250,250,250,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,pat_median_yoy,11.7,250,250,250,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,pat_agg_yoy,14.03,211,250,211,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,pat_median_yoy,10.87,211,250,211,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,48.74,250,250,250,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,14.34,250,250,250,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,42.86,211,250,211,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,14.45,211,250,211,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,sales_agg_yoy,11.14,249,250,245,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,sales_median_yoy,11.09,249,250,245,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,sales_agg_yoy,11.69,233,250,230,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,sales_median_yoy,11.14,233,250,230,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,pat_agg_yoy,6.9,249,250,245,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,pat_median_yoy,11.43,249,250,245,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,pat_agg_yoy,9.28,233,250,230,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,pat_median_yoy,11.71,233,250,230,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,2.84,249,250,245,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,pat_xoi_median_yoy,15.14,249,250,245,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,4.52,233,250,230,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Microcap 250,pat_xoi_median_yoy,15.22,233,250,230,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,sales_agg_yoy,6.56,499,500,498,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,sales_median_yoy,10.39,499,500,498,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,sales_agg_yoy,8.45,404,500,403,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,sales_median_yoy,10.27,404,500,403,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,pat_agg_yoy,17.35,499,500,498,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,pat_median_yoy,12.5,499,500,498,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,pat_agg_yoy,23.66,404,500,403,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,pat_median_yoy,13.18,404,500,403,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,pat_xoi_agg_yoy,21.55,499,500,498,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,pat_xoi_median_yoy,14.12,499,500,498,True,all,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,pat_xoi_agg_yoy,33.09,404,500,403,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty 500,pat_xoi_median_yoy,15.15,404,500,403,True,ex_financials,0,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,sales_agg_yoy,6.75,748,750,742,True,all,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,sales_median_yoy,10.44,748,750,742,True,all,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,sales_agg_yoy,8.61,637,750,632,True,ex_financials,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,sales_median_yoy,10.42,637,750,632,True,ex_financials,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,pat_agg_yoy,16.97,748,750,742,True,all,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,pat_median_yoy,12.2,748,750,742,True,all,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,pat_agg_yoy,22.92,637,750,632,True,ex_financials,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,pat_median_yoy,12.73,637,750,632,True,ex_financials,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,pat_xoi_agg_yoy,20.96,748,750,742,True,all,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,pat_xoi_median_yoy,14.58,748,750,742,True,all,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,pat_xoi_agg_yoy,31.7,637,750,632,True,ex_financials,1,2026-11-28
+Q2FY26,2025-09-30,Nifty Total Market,pat_xoi_median_yoy,15.22,637,750,632,True,ex_financials,1,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,sales_agg_yoy,12.35,49,50,49,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,sales_median_yoy,11.15,49,50,49,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,sales_agg_yoy,11.26,38,50,38,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,sales_median_yoy,10.93,38,50,38,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,pat_agg_yoy,4.69,49,50,49,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,pat_median_yoy,4.74,49,50,49,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,pat_agg_yoy,4.26,38,50,38,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,pat_median_yoy,14.61,38,50,38,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,pat_xoi_agg_yoy,9.85,49,50,49,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,pat_xoi_median_yoy,11.71,49,50,49,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,pat_xoi_agg_yoy,12.7,38,50,38,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 50,pat_xoi_median_yoy,17.91,38,50,38,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,sales_agg_yoy,9.12,50,50,50,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,sales_median_yoy,12.14,50,50,50,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,sales_agg_yoy,7.95,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,sales_median_yoy,12.29,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,pat_agg_yoy,22.89,50,50,50,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,pat_median_yoy,12.81,50,50,50,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,pat_agg_yoy,34.08,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,pat_median_yoy,12.03,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,pat_xoi_agg_yoy,30.49,50,50,50,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,pat_xoi_median_yoy,17.25,50,50,50,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,pat_xoi_agg_yoy,54.75,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Next 50,pat_xoi_median_yoy,17.55,39,50,39,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,sales_agg_yoy,14.22,150,150,150,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,sales_median_yoy,11.76,150,150,150,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,sales_agg_yoy,12.23,116,150,116,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,sales_median_yoy,10.62,116,150,116,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,pat_agg_yoy,4.79,150,150,150,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,pat_median_yoy,11.97,150,150,150,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,pat_agg_yoy,-3.13,116,150,116,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,pat_median_yoy,9.18,116,150,116,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,pat_xoi_agg_yoy,16.4,150,150,150,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,pat_xoi_median_yoy,16.69,150,150,150,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,pat_xoi_agg_yoy,15.43,116,150,116,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Midcap 150,pat_xoi_median_yoy,15.33,116,150,116,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,sales_agg_yoy,10.68,250,250,250,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,sales_median_yoy,12.19,250,250,250,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,sales_agg_yoy,10.54,211,250,211,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,sales_median_yoy,12.83,211,250,211,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,pat_agg_yoy,37.4,250,250,250,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,pat_median_yoy,9.78,250,250,250,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,pat_agg_yoy,44.89,211,250,211,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,pat_median_yoy,7.8,211,250,211,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,pat_xoi_agg_yoy,40.41,250,250,250,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,pat_xoi_median_yoy,18.55,250,250,250,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,pat_xoi_agg_yoy,51.28,211,250,211,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Smallcap 250,pat_xoi_median_yoy,18.82,211,250,211,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,sales_agg_yoy,12.41,250,250,247,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,sales_median_yoy,10.85,250,250,247,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,sales_agg_yoy,10.72,235,250,232,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,sales_median_yoy,10.7,235,250,232,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,pat_agg_yoy,23.79,250,250,247,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,pat_median_yoy,7.75,250,250,247,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,pat_agg_yoy,25.72,235,250,232,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,pat_median_yoy,7.17,235,250,232,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,pat_xoi_agg_yoy,16.97,250,250,247,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,pat_xoi_median_yoy,13.4,250,250,247,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,pat_xoi_agg_yoy,19.22,235,250,232,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Microcap 250,pat_xoi_median_yoy,13.4,235,250,232,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,sales_agg_yoy,11.73,499,500,499,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,sales_median_yoy,12.11,499,500,499,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,sales_agg_yoy,10.65,404,500,404,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,sales_median_yoy,11.88,404,500,404,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,pat_agg_yoy,10.77,499,500,499,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,pat_median_yoy,10.33,499,500,499,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,pat_agg_yoy,11.19,404,500,404,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,pat_median_yoy,8.99,404,500,404,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,pat_xoi_agg_yoy,17.32,499,500,499,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,pat_xoi_median_yoy,17.55,499,500,499,True,all,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,pat_xoi_agg_yoy,22.97,404,500,404,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty 500,pat_xoi_median_yoy,18.1,404,500,404,True,ex_financials,0,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,sales_agg_yoy,11.8,749,750,745,True,all,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,sales_median_yoy,11.76,749,750,745,True,all,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,sales_agg_yoy,10.69,639,750,635,True,ex_financials,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,sales_median_yoy,11.6,639,750,635,True,ex_financials,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,pat_agg_yoy,11.19,749,750,745,True,all,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,pat_median_yoy,8.88,749,750,745,True,all,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,pat_agg_yoy,11.85,639,750,635,True,ex_financials,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,pat_median_yoy,8.28,639,750,635,True,ex_financials,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,pat_xoi_agg_yoy,17.31,749,750,745,True,all,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,pat_xoi_median_yoy,16.29,749,750,745,True,all,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,pat_xoi_agg_yoy,22.8,639,750,635,True,ex_financials,1,2026-11-28
+Q3FY26,2025-12-31,Nifty Total Market,pat_xoi_median_yoy,16.96,639,750,635,True,ex_financials,1,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,sales_agg_yoy,9.95,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,sales_median_yoy,12.27,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,sales_agg_yoy,13.43,39,50,39,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,sales_median_yoy,12.64,39,50,39,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,pat_agg_yoy,3.46,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,pat_median_yoy,9.91,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,pat_agg_yoy,1.5,39,50,39,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,pat_median_yoy,13.71,39,50,39,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,pat_xoi_agg_yoy,6.51,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,pat_xoi_median_yoy,10.15,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,pat_xoi_agg_yoy,6.3,39,50,39,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 50,pat_xoi_median_yoy,16.0,39,50,39,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,sales_agg_yoy,8.48,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,sales_median_yoy,12.47,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,sales_agg_yoy,10.13,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,sales_median_yoy,14.05,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,pat_agg_yoy,27.18,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,pat_median_yoy,19.06,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,pat_agg_yoy,41.31,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,pat_median_yoy,21.65,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,pat_xoi_agg_yoy,22.23,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,pat_xoi_median_yoy,16.42,50,50,50,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,pat_xoi_agg_yoy,33.43,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Next 50,pat_xoi_median_yoy,19.28,38,50,38,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,sales_agg_yoy,12.23,150,150,150,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,sales_median_yoy,15.08,150,150,150,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,sales_agg_yoy,15.15,114,150,114,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,sales_median_yoy,15.58,114,150,114,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,pat_agg_yoy,103.81,150,150,150,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,pat_median_yoy,20.82,150,150,150,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,pat_agg_yoy,173.46,114,150,114,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,pat_median_yoy,19.79,114,150,114,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,pat_xoi_agg_yoy,36.05,150,150,150,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,pat_xoi_median_yoy,21.68,150,150,150,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,pat_xoi_agg_yoy,49.73,114,150,114,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Midcap 150,pat_xoi_median_yoy,20.72,114,150,114,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,sales_agg_yoy,10.98,250,250,247,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,sales_median_yoy,12.71,250,250,247,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,sales_agg_yoy,11.17,208,250,205,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,sales_median_yoy,12.46,208,250,205,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,pat_agg_yoy,-4.0,250,250,247,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,pat_median_yoy,15.62,250,250,247,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,pat_agg_yoy,14.14,208,250,205,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,pat_median_yoy,13.71,208,250,205,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,pat_xoi_agg_yoy,-4.29,250,250,247,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,pat_xoi_median_yoy,14.44,250,250,247,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,pat_xoi_agg_yoy,19.33,208,250,205,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Smallcap 250,pat_xoi_median_yoy,12.32,208,250,205,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,sales_agg_yoy,17.27,250,250,246,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,sales_median_yoy,15.0,250,250,246,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,sales_agg_yoy,17.21,230,250,226,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,sales_median_yoy,14.96,230,250,226,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,pat_agg_yoy,35.49,250,250,246,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,pat_median_yoy,25.49,250,250,246,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,pat_agg_yoy,36.16,230,250,226,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,pat_median_yoy,25.49,230,250,226,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,pat_xoi_agg_yoy,45.21,250,250,246,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,pat_xoi_median_yoy,26.89,250,250,246,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,pat_xoi_agg_yoy,47.1,230,250,226,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Microcap 250,pat_xoi_median_yoy,26.34,230,250,226,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,sales_agg_yoy,10.33,500,500,497,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,sales_median_yoy,13.37,500,500,497,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,sales_agg_yoy,12.81,399,500,396,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,sales_median_yoy,13.8,399,500,396,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,pat_agg_yoy,25.36,500,500,497,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,pat_median_yoy,17.01,500,500,497,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,pat_agg_yoy,34.21,399,500,396,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,pat_median_yoy,16.67,399,500,396,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,pat_xoi_agg_yoy,14.26,500,500,497,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,pat_xoi_median_yoy,16.04,500,500,497,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,pat_xoi_agg_yoy,18.63,399,500,396,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty 500,pat_xoi_median_yoy,15.31,399,500,396,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,sales_agg_yoy,10.69,750,750,743,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,sales_median_yoy,13.85,750,750,743,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,sales_agg_yoy,13.09,629,750,622,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,sales_median_yoy,14.12,629,750,622,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,pat_agg_yoy,25.69,750,750,743,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,pat_median_yoy,19.14,750,750,743,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,pat_agg_yoy,34.3,629,750,622,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,pat_median_yoy,19.14,629,750,622,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,pat_xoi_agg_yoy,15.22,750,750,743,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,pat_xoi_median_yoy,18.72,750,750,743,True,all,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,pat_xoi_agg_yoy,19.86,629,750,622,True,ex_financials,0,2026-11-28
+Q4FY26,2026-03-31,Nifty Total Market,pat_xoi_median_yoy,17.96,629,750,622,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,sales_agg_yoy,18.01,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,sales_median_yoy,16.41,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,sales_agg_yoy,20.48,39,50,39,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,sales_median_yoy,17.68,39,50,39,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,pat_agg_yoy,4.84,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,pat_median_yoy,18.5,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,pat_agg_yoy,-2.29,39,50,39,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,pat_median_yoy,15.52,39,50,39,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,pat_xoi_agg_yoy,10.86,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,pat_xoi_median_yoy,18.31,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,pat_xoi_agg_yoy,5.64,39,50,39,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 50,pat_xoi_median_yoy,12.43,39,50,39,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,sales_agg_yoy,23.42,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,sales_median_yoy,17.9,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,sales_agg_yoy,29.15,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,sales_median_yoy,18.66,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,pat_agg_yoy,6.17,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,pat_median_yoy,15.12,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,pat_agg_yoy,-1.79,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,pat_median_yoy,15.12,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,pat_xoi_agg_yoy,3.57,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,pat_xoi_median_yoy,15.83,50,50,50,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,pat_xoi_agg_yoy,-11.32,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Next 50,pat_xoi_median_yoy,14.69,38,50,38,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,sales_agg_yoy,15.01,150,150,149,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,sales_median_yoy,17.34,150,150,149,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,sales_agg_yoy,19.58,114,150,114,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,sales_median_yoy,17.5,114,150,114,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,pat_agg_yoy,7.92,150,150,149,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,pat_median_yoy,22.12,150,150,149,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,pat_agg_yoy,-9.09,114,150,114,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,pat_median_yoy,15.39,114,150,114,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,pat_xoi_agg_yoy,8.74,150,150,149,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,pat_xoi_median_yoy,20.5,150,150,149,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,pat_xoi_agg_yoy,-12.76,114,150,114,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Midcap 150,pat_xoi_median_yoy,15.0,114,150,114,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,sales_agg_yoy,24.32,250,250,248,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,sales_median_yoy,17.22,250,250,248,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,sales_agg_yoy,26.48,208,250,206,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,sales_median_yoy,17.22,208,250,206,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,pat_agg_yoy,43.16,250,250,248,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,pat_median_yoy,17.07,250,250,248,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,pat_agg_yoy,50.8,208,250,206,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,pat_median_yoy,15.69,208,250,206,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,pat_xoi_agg_yoy,40.45,250,250,248,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,pat_xoi_median_yoy,17.14,250,250,248,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,pat_xoi_agg_yoy,47.1,208,250,206,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Smallcap 250,pat_xoi_median_yoy,16.97,208,250,206,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,sales_agg_yoy,17.61,250,250,246,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,sales_median_yoy,19.02,250,250,246,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,sales_agg_yoy,17.19,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,sales_median_yoy,18.62,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,pat_agg_yoy,17.08,250,250,246,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,pat_median_yoy,22.36,250,250,246,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,pat_agg_yoy,11.25,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,pat_median_yoy,19.22,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,pat_xoi_agg_yoy,32.84,250,250,246,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,pat_xoi_median_yoy,24.59,250,250,246,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,pat_xoi_agg_yoy,28.1,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Microcap 250,pat_xoi_median_yoy,21.82,230,250,227,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,sales_agg_yoy,19.05,500,500,497,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,sales_median_yoy,17.25,500,500,497,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,sales_agg_yoy,22.84,399,500,397,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,sales_median_yoy,17.68,399,500,397,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,pat_agg_yoy,8.75,500,500,497,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,pat_median_yoy,18.75,500,500,497,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,pat_agg_yoy,0.91,399,500,397,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,pat_median_yoy,15.49,399,500,397,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,pat_xoi_agg_yoy,11.51,500,500,497,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,pat_xoi_median_yoy,18.26,500,500,497,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,pat_xoi_agg_yoy,3.13,399,500,397,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty 500,pat_xoi_median_yoy,16.54,399,500,397,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,sales_agg_yoy,18.98,750,750,743,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,sales_median_yoy,17.77,750,750,743,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,sales_agg_yoy,22.48,629,750,624,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,sales_median_yoy,17.91,629,750,624,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,pat_agg_yoy,9.04,750,750,743,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,pat_median_yoy,19.15,750,750,743,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,pat_agg_yoy,1.41,629,750,624,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,pat_median_yoy,16.67,629,750,624,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,pat_xoi_agg_yoy,12.16,750,750,743,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,pat_xoi_median_yoy,19.22,750,750,743,True,all,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,pat_xoi_agg_yoy,4.23,629,750,624,True,ex_financials,0,2026-11-28
+Q1FY27,2026-06-30,Nifty Total Market,pat_xoi_median_yoy,17.27,629,750,624,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,sales_agg_yoy,20.99,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,sales_median_yoy,18.33,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,sales_agg_yoy,23.53,37,50,37,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,sales_median_yoy,20.27,37,50,37,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,pat_agg_yoy,22.45,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,pat_median_yoy,21.2,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,pat_agg_yoy,24.13,37,50,37,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,pat_median_yoy,20.41,37,50,37,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,pat_xoi_agg_yoy,24.56,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,pat_xoi_median_yoy,24.18,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,pat_xoi_agg_yoy,27.98,37,50,37,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 50,pat_xoi_median_yoy,24.18,37,50,37,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,sales_agg_yoy,29.54,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,sales_median_yoy,23.76,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,sales_agg_yoy,35.18,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,sales_median_yoy,29.63,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,pat_agg_yoy,43.09,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,pat_median_yoy,17.32,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,pat_agg_yoy,60.92,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,pat_median_yoy,16.0,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,pat_xoi_agg_yoy,49.63,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,pat_xoi_median_yoy,17.63,49,50,49,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,pat_xoi_agg_yoy,77.1,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Next 50,pat_xoi_median_yoy,19.69,38,50,38,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,sales_agg_yoy,18.2,150,150,148,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,sales_median_yoy,18.67,150,150,148,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,sales_agg_yoy,22.59,113,150,112,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,sales_median_yoy,20.3,113,150,112,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,pat_agg_yoy,20.93,150,150,148,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,pat_median_yoy,21.97,150,150,148,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,pat_agg_yoy,16.24,113,150,112,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,pat_median_yoy,20.16,113,150,112,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,23.07,150,150,148,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,pat_xoi_median_yoy,20.99,150,150,148,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,pat_xoi_agg_yoy,17.4,113,150,112,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Midcap 150,pat_xoi_median_yoy,19.35,113,150,112,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,sales_agg_yoy,23.31,250,250,248,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,sales_median_yoy,19.14,250,250,248,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,sales_agg_yoy,25.12,212,250,210,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,sales_median_yoy,20.39,212,250,210,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,pat_agg_yoy,35.31,250,250,248,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,pat_median_yoy,14.57,250,250,248,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,pat_agg_yoy,47.07,212,250,210,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,pat_median_yoy,14.02,212,250,210,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,37.52,250,250,248,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,21.24,250,250,248,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,pat_xoi_agg_yoy,54.27,212,250,210,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Smallcap 250,pat_xoi_median_yoy,21.54,212,250,210,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,sales_agg_yoy,19.9,250,250,249,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,sales_median_yoy,22.33,250,250,249,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,sales_agg_yoy,19.43,230,250,229,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,sales_median_yoy,22.11,230,250,229,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,pat_agg_yoy,27.58,250,250,249,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,pat_median_yoy,24.43,250,250,249,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,pat_agg_yoy,23.71,230,250,229,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,pat_median_yoy,23.82,230,250,229,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,36.24,250,250,249,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,pat_xoi_median_yoy,26.02,250,250,249,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,pat_xoi_agg_yoy,37.31,230,250,229,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Microcap 250,pat_xoi_median_yoy,24.27,230,250,229,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,sales_agg_yoy,22.29,498,500,494,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,sales_median_yoy,19.48,498,500,494,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,sales_agg_yoy,26.07,400,500,397,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,sales_median_yoy,20.78,400,500,397,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,pat_agg_yoy,27.41,498,500,494,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,pat_median_yoy,18.27,498,500,494,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,pat_agg_yoy,31.87,400,500,397,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,pat_median_yoy,16.45,400,500,397,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,pat_xoi_agg_yoy,30.37,498,500,494,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,pat_xoi_median_yoy,21.24,498,500,494,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,pat_xoi_agg_yoy,37.77,400,500,397,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 500,pat_xoi_median_yoy,20.64,400,500,397,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,sales_agg_yoy,22.16,748,750,743,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,sales_median_yoy,20.2,748,750,743,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,sales_agg_yoy,25.63,630,750,626,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,sales_median_yoy,20.94,630,750,626,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,pat_agg_yoy,27.42,748,750,743,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,pat_median_yoy,19.98,748,750,743,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,pat_agg_yoy,31.5,630,750,626,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,pat_median_yoy,18.93,630,750,626,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_agg_yoy,30.53,748,750,743,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_median_yoy,22.48,748,750,743,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_agg_yoy,37.76,630,750,626,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty Total Market,pat_xoi_median_yoy,21.35,630,750,626,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,sales_agg_yoy,22.31,998,1000,989,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,sales_median_yoy,20.78,998,1000,989,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,sales_agg_yoy,25.72,865,1000,857,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,sales_median_yoy,21.87,865,1000,857,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,pat_agg_yoy,28.35,998,1000,989,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,pat_median_yoy,20.76,998,1000,989,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,pat_agg_yoy,32.68,865,1000,857,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,pat_median_yoy,19.62,865,1000,857,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,pat_xoi_agg_yoy,31.25,998,1000,989,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,pat_xoi_median_yoy,23.32,998,1000,989,True,all,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,pat_xoi_agg_yoy,38.59,865,1000,857,True,ex_financials,0,2026-11-28
+Q2FY27,2026-09-30,Nifty 1000,pat_xoi_median_yoy,22.53,865,1000,857,True,ex_financials,0,2026-11-28
